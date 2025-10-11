@@ -49,12 +49,18 @@ export function shiftLocalDate(parts: LocalDateParts, days: number): LocalDatePa
 }
 
 export function shiftLocalMonths(parts: LocalDateParts, months: number): LocalDateParts {
-  const base = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
-  base.setUTCMonth(base.getUTCMonth() + months);
+  const targetMonth = new Date(Date.UTC(parts.year, parts.month - 1 + months, 1));
+  const lastDayOfTargetMonth = new Date(
+    Date.UTC(targetMonth.getUTCFullYear(), targetMonth.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  const clampedDay = Math.min(parts.day, lastDayOfTargetMonth);
+  const result = new Date(
+    Date.UTC(targetMonth.getUTCFullYear(), targetMonth.getUTCMonth(), clampedDay),
+  );
   return {
-    year: base.getUTCFullYear(),
-    month: base.getUTCMonth() + 1,
-    day: base.getUTCDate(),
+    year: result.getUTCFullYear(),
+    month: result.getUTCMonth() + 1,
+    day: result.getUTCDate(),
   };
 }
 

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateDateRange } from "@/lib/reportingDatePresets";
 import { formatInTimeZone } from "date-fns-tz";
+import { buildDynamicQuery } from "@/lib/queryBuilder";
 
 test("today preset respects provided timezone", () => {
   const now = new Date("2024-05-10T12:30:00Z");
@@ -51,4 +52,30 @@ test("relative before_days preset produces open-ended start", () => {
   assert.equal(start, undefined);
   assert(end instanceof Date);
   assert.equal(formatInTimeZone(end!, "Europe/London", "yyyy-MM-dd"), "2024-01-17");
+});
+
+test("date_in_last months clamps to target month boundary", () => {
+  const now = new Date("2024-03-31T10:00:00Z");
+  const { queries } = buildDynamicQuery(
+    {
+      selectedFields: ["Employee.hireDate"],
+      filters: [
+        {
+          field: "Employee.hireDate",
+          operator: "date_in_last",
+          value: { amount: 1, unit: "months" },
+        },
+      ],
+    },
+    { timeZone: "Pacific/Auckland", now },
+  );
+
+  assert.equal(queries.length, 1);
+  const where = queries[0].prismaQuery.where;
+  assert(where?.hireDate);
+  const { gte, lte } = where.hireDate;
+  assert(gte instanceof Date);
+  assert(lte instanceof Date);
+  assert.equal(formatInTimeZone(gte, "Pacific/Auckland", "yyyy-MM-dd"), "2024-02-29");
+  assert.equal(formatInTimeZone(lte, "Pacific/Auckland", "yyyy-MM-dd"), "2024-03-31");
 });

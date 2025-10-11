@@ -56,37 +56,131 @@ npm run web
 
 ## Features Implemented
 
-### Authentication
+### 🔐 Authentication
 - ✅ Credentials-based login (email/password)
 - ✅ Secure session storage using `expo-secure-store`
 - ✅ Automatic session persistence
 - ✅ Session validation on app start
 - ✅ Sign out functionality
 
-### HR Data Integration
-- ✅ Fetch employee profile
-- ✅ View onboarding progress
-- ✅ Fetch pending leave requests
-- ✅ Multi-tenant support (automatic companyId scoping)
+### 🏠 Home Dashboard
+- ✅ Personalized greeting with user info
+- ✅ Stats overview (action items, surveys, leave requests, events)
+- ✅ Quick action buttons for common tasks
+- ✅ Pending items summary
+- ✅ Employee information display
+- ✅ Real-time notifications badge
 
-### UI Components
-- ✅ Login screen with validation
-- ✅ Dashboard with user info
-- ✅ Employee profile display
-- ✅ Pull-to-refresh functionality
-- ✅ Loading states
+### 📅 Leave Management
+- ✅ View leave balances by policy type
+- ✅ Submit time-off requests with date picker
+- ✅ Track request status (pending, approved, rejected)
+- ✅ View leave history
+- ✅ Multi-policy support
+- ✅ Reason input and validation
+
+### 👥 Team Directory
+- ✅ View team members and direct reports
+- ✅ Browse company directory
+- ✅ Search employees by name, email, department
+- ✅ Employee profiles with contact info
+- ✅ Quick contact actions (email, call, message)
+- ✅ Filter by team vs. full directory
+
+### ✅ Action Items
+- ✅ View all assigned action items
+- ✅ Filter by pending/completed/all
+- ✅ Priority indicators (urgent, high, medium, low)
+- ✅ Mark items as complete
+- ✅ Update item status (pending → in progress → completed)
+- ✅ Due date tracking
+- ✅ Category organization
+
+### 📋 Surveys
+- ✅ View pending surveys
+- ✅ Complete surveys with multiple question types
+- ✅ Support for text, radio, select, and rating questions
+- ✅ Form validation for required fields
+- ✅ View completed surveys
+- ✅ Survey descriptions and due dates
+
+### 📊 Performance Reviews
+- ✅ View pending performance reviews
+- ✅ Complete self-reviews
+- ✅ Save draft progress
+- ✅ View completed reviews with scores
+- ✅ Track review periods and deadlines
+- ✅ Reviewer information display
+
+### 📆 Calendar & Events
+- ✅ View upcoming company events
+- ✅ Grouped by date with smart labels (Today, Tomorrow)
+- ✅ Event categories with color coding
+- ✅ All-day and timed events
+- ✅ Recurring event indicators
+- ✅ Event descriptions and attendees
+
+### 🎨 Modern UI/UX
+- ✅ Bottom tab navigation
+- ✅ Stack navigation for feature screens
+- ✅ Reusable components (Card, Button, Badge, EmptyState)
+- ✅ Pull-to-refresh on all screens
+- ✅ Loading states and error handling
+- ✅ Beautiful color scheme and typography
+- ✅ Responsive design
 
 ## API Endpoints Used
 
 The mobile app connects to the following Next.js API endpoints:
 
+### Authentication
 | Endpoint | Purpose |
 |----------|---------|
 | `POST /api/auth/callback/credentials` | Login with email/password |
 | `GET /api/auth/session` | Get current session |
+| `POST /api/auth/signout` | Sign out |
+
+### Employee Data
+| Endpoint | Purpose |
+|----------|---------|
 | `GET /api/employees` | Fetch employee data |
+| `GET /api/employees/:id` | Get employee details |
 | `GET /api/onboarding/instances/employee/:id` | Get onboarding progress |
-| `GET /api/leave-request` | Fetch leave requests |
+
+### Leave Management
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/leave-request?scope=my` | Fetch my leave requests |
+| `GET /api/leave-request?scope=balances` | Get leave balances |
+| `POST /api/leave-request` | Submit leave request |
+| `GET /api/leave-policies` | Get leave policies |
+
+### Action Items
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/action-items?scope=my` | Get my action items |
+| `PATCH /api/action-items/:id` | Update action item status |
+
+### Surveys
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/surveys?scope=assigned&status=active` | Get pending surveys |
+| `GET /api/surveys?scope=completed` | Get completed surveys |
+| `GET /api/surveys/:id` | Get survey details |
+| `POST /api/surveys/:id/responses` | Submit survey response |
+
+### Performance Reviews
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/performance/reviews?scope=my` | Get my performance reviews |
+| `GET /api/performance/reviews/:id` | Get review details |
+| `POST /api/performance/reviews/:id/self-review` | Submit self-review |
+| `GET /api/objectives?scope=my` | Get my objectives |
+
+### Calendar
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/calendar-events` | Get calendar events |
 
 All endpoints automatically scope data by `session.user.companyId` for multi-tenant isolation.
 
@@ -96,15 +190,36 @@ All endpoints automatically scope data by `session.user.companyId` for multi-ten
 mobile/
 ├── src/
 │   ├── api/
-│   │   ├── auth.ts          # Authentication helpers
-│   │   └── hr-data.ts       # HR data fetching
+│   │   ├── auth.ts              # Authentication helpers
+│   │   ├── hr-data.ts           # HR data fetching
+│   │   ├── leave.ts             # Leave management API
+│   │   ├── surveys.ts           # Surveys API
+│   │   ├── performance.ts       # Performance reviews API
+│   │   ├── action-items.ts      # Action items API
+│   │   ├── calendar.ts          # Calendar events API
+│   │   └── team.ts              # Team/employee directory API
+│   ├── components/
+│   │   ├── Card.tsx             # Reusable card component
+│   │   ├── Button.tsx           # Button with variants
+│   │   ├── Badge.tsx            # Status badges
+│   │   ├── EmptyState.tsx       # Empty state placeholder
+│   │   └── LoadingState.tsx     # Loading indicator
+│   ├── navigation/
+│   │   └── AppNavigator.tsx     # Tab & stack navigation
 │   └── screens/
-│       ├── LoginScreen.tsx  # Login UI
-│       └── DashboardScreen.tsx # Main dashboard
-├── App.tsx                  # Root component
+│       ├── LoginScreen.tsx      # Login UI
+│       ├── HomeScreen.tsx       # Dashboard home
+│       ├── LeaveScreen.tsx      # Leave management
+│       ├── TeamScreen.tsx       # Team directory
+│       ├── MoreScreen.tsx       # More menu
+│       ├── ActionItemsScreen.tsx    # Action items
+│       ├── SurveysScreen.tsx    # Surveys
+│       ├── PerformanceScreen.tsx    # Performance reviews
+│       └── CalendarScreen.tsx   # Calendar & events
+├── App.tsx                      # Root component
 ├── package.json
 ├── tsconfig.json
-└── .env                     # Environment config (create this)
+└── .env                         # Environment config (create this)
 ```
 
 ## Troubleshooting
@@ -135,13 +250,16 @@ If you keep getting logged out:
 ## Next Steps
 
 ### Planned Features
-- [ ] React Navigation for multi-screen navigation
-- [ ] Leave request submission
-- [ ] Document uploads
-- [ ] Push notifications
-- [ ] Offline support
-- [ ] Biometric authentication
+- [ ] Document uploads and viewing
+- [ ] Push notifications for action items
+- [ ] Offline support with local caching
+- [ ] Biometric authentication (Face ID/Touch ID)
 - [ ] Dark mode support
+- [ ] Profile editing
+- [ ] Payroll information viewing
+- [ ] Real-time chat/messaging
+- [ ] News feed integration
+- [ ] Org chart visualization
 
 ### Building for Production
 

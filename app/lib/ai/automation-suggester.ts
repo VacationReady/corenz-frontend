@@ -79,7 +79,7 @@ export function analyzePatterns(conversationHistory: Message[]): {
 
   // Calculate frequency
   // Explicitly destructure to help TypeScript narrow the type
-  const { query, count, timestamps: patternTimestamps } = maxPattern;
+  const { query, count, timestamps: patternTimestamps } = maxPattern as { query: string; count: number; timestamps: Date[] };
   const timestamps = [...patternTimestamps].sort((a, b) => a.getTime() - b.getTime());
   const frequency = calculateFrequency(timestamps);
 

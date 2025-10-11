@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const executionsToday = await prisma.automationExecution.count({
       where: {
         companyId,
-        createdAt: {
+        triggeredAt: {
           gte: today,
         },
       },
@@ -48,14 +48,14 @@ export async function GET(req: NextRequest) {
     const recentExecutions = await prisma.automationExecution.findMany({
       where: {
         companyId,
-        createdAt: {
+        triggeredAt: {
           gte: thirtyDaysAgo,
         },
       },
       select: {
-        createdAt: true,
+        triggeredAt: true,
         status: true,
-        executionTimeMs: true,
+        durationMs: true,
       },
     });
 
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
 
     // Calculate average execution time
     const avgExecutionTime = recentExecutions.length > 0
-      ? recentExecutions.reduce((acc, e) => acc + (e.executionTimeMs || 0), 0) / recentExecutions.length
+      ? recentExecutions.reduce((acc, e) => acc + (e.durationMs || 0), 0) / recentExecutions.length
       : 0;
 
     // Calculate time saved (rough estimate: 5 minutes per execution)

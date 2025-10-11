@@ -38,7 +38,7 @@ export async function GET() {
         updatedAt: true,
         _count: {
           select: {
-            users: true,
+            User: true,
             employees: true,
           },
         },
@@ -51,7 +51,7 @@ export async function GET() {
       name: company.name,
       createdAt: company.createdAt.toISOString(),
       updatedAt: company.updatedAt.toISOString(),
-      userCount: company._count.users,
+      userCount: company._count.User,
       employeeCount: company._count.employees,
     }));
 

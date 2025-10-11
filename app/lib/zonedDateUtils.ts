@@ -1,4 +1,4 @@
-import { formatInTimeZone, zonedTimeToUtc } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 export interface LocalDateParts {
   year: number;
@@ -25,7 +25,7 @@ function toUtc(
   const millisecond = timeOverrides?.millisecond ?? 0;
 
   const iso = `${formatLocalDate(parts)}T${pad(hour)}:${pad(minute)}:${pad(second)}.${pad(millisecond, 3)}`;
-  return zonedTimeToUtc(iso, timeZone);
+  return fromZonedTime(iso, timeZone);
 }
 
 export function getLocalDateParts(date: Date, timeZone: string): LocalDateParts {

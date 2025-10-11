@@ -118,7 +118,7 @@ export default function AuditLogPage() {
   const [filters, setFilters] = useState<FilterState>({
     entityType: "all",
     action: "all",
-    actorId: "",
+    actorId: "all",
     dateFrom: null,
     dateTo: null,
     search: "",
@@ -187,7 +187,7 @@ export default function AuditLogPage() {
     setFilters({
       entityType: "all",
       action: "all",
-      actorId: "",
+      actorId: "all",
       dateFrom: null,
       dateTo: null,
       search: "",
@@ -385,7 +385,7 @@ export default function AuditLogPage() {
                     <SelectValue placeholder="All users" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All users</SelectItem>
+                    <SelectItem value="all">All users</SelectItem>
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.name || user.email}

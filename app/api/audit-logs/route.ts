@@ -16,6 +16,7 @@ const AuditLogQuerySchema = z.object({
   entityType: z.string().optional(),
   action: z.string().optional(),
   actorId: z.string().optional(),
+  employeeId: z.string().optional(),
   dateFrom: z.string().datetime().optional(),
   dateTo: z.string().datetime().optional(),
   search: z.string().optional(),
@@ -52,6 +53,22 @@ export async function GET(req: Request) {
 
     if (validatedParams.actorId) {
       whereClause.actorId = validatedParams.actorId;
+    }
+
+    // Filter by employeeId (matches entityId for EMPLOYEE type OR metadata.employeeId)
+    if (validatedParams.employeeId) {
+      whereClause.OR = [
+        {
+          entityType: "EMPLOYEE",
+          entityId: validatedParams.employeeId,
+        },
+        {
+          metadata: {
+            path: ["employeeId"],
+            equals: validatedParams.employeeId,
+          },
+        },
+      ];
     }
 
     if (validatedParams.dateFrom || validatedParams.dateTo) {
@@ -152,6 +169,11 @@ export async function POST(req: Request) {
         "SSO_CONFIG",
         "SCIM_CONFIG",
         "BRANDING_CONFIG",
+        "EMPLOYEE",
+        "EMERGENCY_CONTACT",
+        "EMPLOYMENT_CHECK",
+        "DRIVER_LICENSE",
+        "TRAINING_RECORD",
       ]),
       entityId: z.string(),
       action: z.enum([

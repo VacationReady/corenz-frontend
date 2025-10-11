@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { dispatchTransactionalNotifications } from "@/lib/transactional-notifications";
+import { auditLog } from "@/lib/audit";
 
 export interface AuditDiff {
   field: string;
@@ -111,22 +112,26 @@ export async function createAuditLogs(
     }
   }
 
-  // Create audit log entries
-  await prisma.employeeAuditLog.createMany({
-    data: diffs.map((diff) => ({
+  // Use the unified audit logger for each diff
+  // This will write to GlobalAuditLog and optionally dual-write to EmployeeAuditLog
+  for (const diff of diffs) {
+    await auditLog({
+      entityType: "EMPLOYEE",
+      entityId: employeeId,
+      action: "UPDATED",
+      actorId: changedById,
+      actorType: "USER",
       companyId,
       employeeId,
       section,
       field: diff.field,
-      oldValue: diff.oldValue,
-      newValue: diff.newValue,
-      reason:
-        (reasons[diff.field] && reasons[diff.field].trim() !== ""
-          ? reasons[diff.field]
-          : defaultReasonForDiff(diff)),
-      changedById,
-    })),
-  });
+      oldValue: diff.oldValue || "",
+      newValue: diff.newValue || "",
+      reason: (reasons[diff.field] && reasons[diff.field].trim() !== ""
+        ? reasons[diff.field]
+        : defaultReasonForDiff(diff)),
+    });
+  }
 
   // Dispatch transactional notifications unless skipped
   if (!options.skipNotifications) {

@@ -77,6 +77,7 @@ interface FilterState {
   entityType: string;
   action: string;
   actorId: string;
+  employeeId: string;
   dateFrom: Date | null;
   dateTo: Date | null;
   search: string;
@@ -93,6 +94,11 @@ const entityTypeOptions = [
   { value: "SSO_CONFIG", label: "SSO Configuration" },
   { value: "SCIM_CONFIG", label: "SCIM Configuration" },
   { value: "BRANDING_CONFIG", label: "Branding Configuration" },
+  { value: "EMPLOYEE", label: "Employee Records" },
+  { value: "EMERGENCY_CONTACT", label: "Emergency Contacts" },
+  { value: "EMPLOYMENT_CHECK", label: "Employment Checks" },
+  { value: "DRIVER_LICENSE", label: "Driver Licenses" },
+  { value: "TRAINING_RECORD", label: "Training Records" },
 ];
 
 const actionOptions = [
@@ -107,6 +113,7 @@ const actionOptions = [
 export default function AuditLogPage() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedLog, setSelectedLog] = useState<AuditLogEntry | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -119,6 +126,7 @@ export default function AuditLogPage() {
     entityType: "all",
     action: "all",
     actorId: "all",
+    employeeId: "all",
     dateFrom: null,
     dateTo: null,
     search: "",
@@ -127,6 +135,7 @@ export default function AuditLogPage() {
   useEffect(() => {
     fetchLogs();
     fetchUsers();
+    fetchEmployees();
   }, [currentPage, filters]);
 
   const fetchLogs = async () => {
@@ -183,11 +192,24 @@ export default function AuditLogPage() {
     }
   };
 
+  const fetchEmployees = async () => {
+    try {
+      const response = await fetch("/api/employees?limit=1000");
+      if (response.ok) {
+        const data = await response.json();
+        setEmployees(data.employees || []);
+      }
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+    }
+  };
+
   const resetFilters = () => {
     setFilters({
       entityType: "all",
       action: "all",
       actorId: "all",
+      employeeId: "all",
       dateFrom: null,
       dateTo: null,
       search: "",
@@ -259,6 +281,12 @@ export default function AuditLogPage() {
         return <Key className="w-4 h-4" />;
       case "BRANDING_CONFIG":
         return <Palette className="w-4 h-4" />;
+      case "EMPLOYEE":
+      case "EMERGENCY_CONTACT":
+      case "EMPLOYMENT_CHECK":
+      case "DRIVER_LICENSE":
+      case "TRAINING_RECORD":
+        return <User className="w-4 h-4" />;
       default:
         return <Settings className="w-4 h-4" />;
     }
@@ -330,7 +358,7 @@ export default function AuditLogPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
               <div>
                 <Label>Entity Type</Label>
                 <Select
@@ -389,6 +417,28 @@ export default function AuditLogPage() {
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.name || user.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Employee</Label>
+                <Select
+                  value={filters.employeeId}
+                  onValueChange={(value) =>
+                    setFilters({ ...filters, employeeId: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All employees" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All employees</SelectItem>
+                    {employees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        {employee.User?.name || employee.User?.email || employee.id}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -541,6 +591,13 @@ export default function AuditLogPage() {
                         <div className="text-sm text-muted-foreground">
                           by {log.actor?.name || log.actor?.email || "System"} •{" "}
                           {format(new Date(log.timestamp), "PPp")}
+                          {log.metadata?.employeeId && (
+                            <>
+                              {" "}• Employee:{" "}
+                              {employees.find((e) => e.id === log.metadata.employeeId)?.User?.name ||
+                                log.metadata.employeeId}
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>

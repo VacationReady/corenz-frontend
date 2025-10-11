@@ -1,12 +1,14 @@
-import { describe, it, beforeEach, mock } from "node:test";
+import { describe, it, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert";
 import { NextRequest } from "next/server";
 import { POST as ReportsQueryPOST } from "@/app/api/reports/query/route";
+import { formatInTimeZone } from "date-fns-tz";
 
 // Mocks
 const mockGetServerSession = mock.fn();
 const mockPrismaFindMany = mock.fn();
 const mockPrismaCount = mock.fn();
+const mockResolveReportingTimeConfig = mock.fn();
 const mockPrisma = new Proxy(
   {},
   {
@@ -24,12 +26,27 @@ mock.module("@/lib/prisma", () => ({
   prisma: mockPrisma,
 }));
 
+mock.module("@/lib/reportingTimeConfig", () => ({
+  resolveReportingTimeConfig: mockResolveReportingTimeConfig,
+}));
+
 describe("/api/reports/query route", () => {
   beforeEach(() => {
     mockGetServerSession.mock.resetCalls();
     mockPrismaFindMany.mock.resetCalls();
     mockPrismaCount.mock.resetCalls();
     mockPrismaCount.mock.mockImplementation(() => Promise.resolve(0));
+    mockResolveReportingTimeConfig.mock.resetCalls();
+    mockResolveReportingTimeConfig.mock.mockResolvedValue({
+      timeZone: "UTC",
+      locale: "en-GB",
+      tenant: { timeZone: "UTC", locale: "en-GB", template: null },
+      source: { timeZone: "default", locale: "default" },
+    });
+  });
+
+  afterEach(() => {
+    mock.timers.reset();
   });
 
   it("rejects unauthenticated users", async () => {
@@ -131,6 +148,43 @@ describe("/api/reports/query route", () => {
     assert.strictEqual(json.total, 1);
   });
 
+  it("maps date_preset operator using tenant timezone boundaries", async () => {
+    mockGetServerSession.mock.mockImplementationOnce(() =>
+      Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
+    );
+    mockPrismaFindMany.mock.mockImplementationOnce(() => Promise.resolve([]));
+    mockPrismaCount.mock.mockImplementationOnce(() => Promise.resolve(0));
+    mockResolveReportingTimeConfig.mockResolvedValueOnce({
+      timeZone: "Pacific/Auckland",
+      locale: "en-NZ",
+      tenant: { timeZone: "Pacific/Auckland", locale: "en-NZ", template: "NZ" },
+      source: { timeZone: "tenant", locale: "tenant" },
+    });
+
+    mock.timers.enable({ now: new Date("2024-05-01T10:00:00Z") });
+
+    const req = new NextRequest("http://localhost:3000/api/reports/query", {
+      method: "POST",
+      body: JSON.stringify({
+        selectedFields: ["LeaveRequest.startDate"],
+        filters: [
+          { field: "LeaveRequest.startDate", operator: "date_preset", value: { type: "preset", key: "today" } },
+        ],
+      }),
+    });
+
+    const res = await ReportsQueryPOST(req);
+    assert.strictEqual(res.status, 200);
+    const args = mockPrismaFindMany.mock.calls[0].arguments[0];
+    assert(args);
+    const start: Date = args.where.startDate.gte;
+    const end: Date = args.where.startDate.lte;
+    assert(start instanceof Date);
+    assert(end instanceof Date);
+    assert.strictEqual(formatInTimeZone(start, "Pacific/Auckland", "HH:mm"), "00:00");
+    assert.strictEqual(formatInTimeZone(end, "Pacific/Auckland", "HH:mm"), "23:59");
+  });
+
   it("returns total count alongside page data", async () => {
     mockGetServerSession.mock.mockImplementationOnce(() =>
       Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
@@ -168,6 +222,16 @@ test("POST /api/reports/query requires auth", async () => {
     if (request === "@/lib/auth-options") {
       return { authOptions: {} };
     }
+    if (request === "@/lib/reportingTimeConfig") {
+      return {
+        resolveReportingTimeConfig: async () => ({
+          timeZone: "UTC",
+          locale: "en-GB",
+          tenant: { timeZone: "UTC", locale: "en-GB", template: null },
+          source: { timeZone: "default", locale: "default" },
+        }),
+      };
+    }
     return originalLoad(request, parent, isMain);
   };
   const { POST } = await import("../app/api/reports/query/route");
@@ -201,6 +265,16 @@ test("POST /api/reports/query restricts selectedFields to allowed reportFields",
           { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
           { model: "User", field: "User.email", label: "email", type: "string", filterable: true },
         ],
+      };
+    }
+    if (request === "@/lib/reportingTimeConfig") {
+      return {
+        resolveReportingTimeConfig: async () => ({
+          timeZone: "UTC",
+          locale: "en-GB",
+          tenant: { timeZone: "UTC", locale: "en-GB", template: null },
+          source: { timeZone: "default", locale: "default" },
+        }),
       };
     }
     return originalLoad(request, parent, isMain);
@@ -257,6 +331,16 @@ test("POST /api/reports/query injects tenant filter for User.companyId", async (
         reportFields: [
           { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
         ],
+      };
+    }
+    if (request === "@/lib/reportingTimeConfig") {
+      return {
+        resolveReportingTimeConfig: async () => ({
+          timeZone: "UTC",
+          locale: "en-GB",
+          tenant: { timeZone: "UTC", locale: "en-GB", template: null },
+          source: { timeZone: "default", locale: "default" },
+        }),
       };
     }
     return originalLoad(request, parent, isMain);

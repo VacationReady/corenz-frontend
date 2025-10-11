@@ -3,6 +3,9 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ChevronDownIcon, ChevronUpIcon, FunnelIcon } from "@heroicons/react/24/outline";
 import { CheckIcon } from "@heroicons/react/24/solid";
+import { DatePresetSelector } from "./DatePresetSelector";
+import { calculateDateRange, type DatePresetSelection } from "@/lib/reportingDatePresets";
+import { useReportingTimeConfig } from "@/hooks/useReportingTimeConfig";
 
 interface Column {
   header: string;
@@ -27,7 +30,7 @@ interface ColumnFilter {
 type AdvancedFilter =
   | { mode: "search"; query: string }
   | { mode: "numberRange"; min?: number; max?: number }
-  | { mode: "dateRange"; from?: string; to?: string }
+  | { mode: "dateRange"; from?: string; to?: string; selection?: DatePresetSelection }
   | { mode: "boolean"; value: "true" | "false" | "" };
 
 // Helper function to get nested values (e.g., department.name)
@@ -76,6 +79,7 @@ export default function FilterableDataTable({
   const tableRef = useRef<HTMLDivElement>(null);
   const [internalPage, setInternalPage] = useState(page ?? 1);
   const [internalPageSize, setInternalPageSize] = useState(pageSize ?? 50);
+  const { timeZone, locale } = useReportingTimeConfig();
 
   useEffect(() => {
     if (typeof page === "number") {
@@ -468,30 +472,101 @@ export default function FilterableDataTable({
                               </div>
                             )}
 
-                            {detectedType === "date" && (
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label htmlFor={`from-${column.accessorKey}`} className="block text-xs font-medium text-gray-700 mb-1">From</label>
-                                  <input
-                                    id={`from-${column.accessorKey}`}
-                                    type="date"
-                                    value={adv && adv.mode === "dateRange" && adv.from ? adv.from : ""}
-                                    onChange={(e) => setAdvancedFilters((prev) => ({ ...prev, [column.accessorKey]: { mode: "dateRange", from: e.target.value || undefined, to: (adv && adv.mode === "dateRange" ? adv.to : undefined) } }))}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            {detectedType === "date" && (() => {
+                              const dateFilter = adv && adv.mode === "dateRange" ? adv : undefined;
+                              const selection = dateFilter?.selection;
+
+                              const formatForInput = (iso?: string) => {
+                                if (!iso) return "";
+                                const parsed = new Date(iso);
+                                if (Number.isNaN(parsed.getTime())) {
+                                  return iso.slice(0, 10);
+                                }
+                                return parsed.toISOString().slice(0, 10);
+                              };
+
+                              const applyPresetSelection = (selectionValue: DatePresetSelection) => {
+                                const range = calculateDateRange(selectionValue, { timeZone });
+                                setAdvancedFilters((prev) => ({
+                                  ...prev,
+                                  [column.accessorKey]: {
+                                    mode: "dateRange",
+                                    selection: selectionValue,
+                                    from: range.start ? range.start.toISOString() : undefined,
+                                    to: range.end ? range.end.toISOString() : undefined,
+                                  },
+                                }));
+                              };
+
+                              const updateManualRange = (updates: { from?: string; to?: string }) => {
+                                setAdvancedFilters((prev) => ({
+                                  ...prev,
+                                  [column.accessorKey]: {
+                                    mode: "dateRange",
+                                    from: updates.from ?? dateFilter?.from,
+                                    to: updates.to ?? dateFilter?.to,
+                                    selection: undefined,
+                                  },
+                                }));
+                              };
+
+                              const handleManualFrom = (value: string) => {
+                                if (!value) {
+                                  updateManualRange({ from: undefined });
+                                  return;
+                                }
+                                const parsed = new Date(value);
+                                parsed.setHours(0, 0, 0, 0);
+                                updateManualRange({ from: parsed.toISOString() });
+                              };
+
+                              const handleManualTo = (value: string) => {
+                                if (!value) {
+                                  updateManualRange({ to: undefined });
+                                  return;
+                                }
+                                const parsed = new Date(value);
+                                parsed.setHours(23, 59, 59, 999);
+                                updateManualRange({ to: parsed.toISOString() });
+                              };
+
+                              return (
+                                <div className="space-y-3">
+                                  <DatePresetSelector
+                                    value={selection}
+                                    onChange={applyPresetSelection}
+                                    timeZone={timeZone}
+                                    locale={locale}
                                   />
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label htmlFor={`from-${column.accessorKey}`} className="block text-xs font-medium text-gray-700 mb-1">
+                                        From
+                                      </label>
+                                      <input
+                                        id={`from-${column.accessorKey}`}
+                                        type="date"
+                                        value={formatForInput(dateFilter?.from)}
+                                        onChange={(event) => handleManualFrom(event.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label htmlFor={`to-${column.accessorKey}`} className="block text-xs font-medium text-gray-700 mb-1">
+                                        To
+                                      </label>
+                                      <input
+                                        id={`to-${column.accessorKey}`}
+                                        type="date"
+                                        value={formatForInput(dateFilter?.to)}
+                                        onChange={(event) => handleManualTo(event.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      />
+                                    </div>
+                                  </div>
                                 </div>
-                                <div>
-                                  <label htmlFor={`to-${column.accessorKey}`} className="block text-xs font-medium text-gray-700 mb-1">To</label>
-                                  <input
-                                    id={`to-${column.accessorKey}`}
-                                    type="date"
-                                    value={adv && adv.mode === "dateRange" && adv.to ? adv.to : ""}
-                                    onChange={(e) => setAdvancedFilters((prev) => ({ ...prev, [column.accessorKey]: { mode: "dateRange", to: e.target.value || undefined, from: (adv && adv.mode === "dateRange" ? adv.from : undefined) } }))}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  />
-                                </div>
-                              </div>
-                            )}
+                              );
+                            })()}
 
                             {detectedType === "boolean" && (
                               <div>

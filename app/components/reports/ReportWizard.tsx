@@ -16,6 +16,7 @@ import type { ReportFilter, SortConfig, FilterOperator } from "@/lib/reportFilte
 import FieldSelection from "./FieldSelection";
 import FilterConfiguration from "./FilterConfiguration";
 import { cn } from "@/lib/utils";
+import { useReportingTimeConfig } from "@/hooks/useReportingTimeConfig";
 
 export type WizardStep = "template" | "fields" | "filters" | "preview";
 
@@ -63,6 +64,7 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
     filters: [],
   });
   const [fieldsPanelKey, setFieldsPanelKey] = useState<string>("all");
+  const { timeZone, locale } = useReportingTimeConfig();
 
   const currentStepIndex = steps.findIndex(step => step.id === currentStep);
   const isFirstStep = currentStepIndex === 0;
@@ -140,6 +142,7 @@ const allowedOperators: FilterOperator[] = [
   "date_between",
   "date_in_last",
   "date_in_next",
+  "date_preset",
 ];
 
   return (
@@ -265,6 +268,8 @@ const allowedOperators: FilterOperator[] = [
                 selectedFields={config.selectedFields}
                 onUpdateFilters={(filters) => updateConfig({ filters })}
                 onUpdateSort={(sort) => updateConfig({ sort })}
+                timeZone={timeZone}
+                locale={locale}
               />
             )}
 

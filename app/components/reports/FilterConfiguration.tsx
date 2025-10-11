@@ -5,6 +5,9 @@ import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import Button from "@/components/ui/Button";
 import { hrReportFields, HRReportField, getFieldByKey } from "@/lib/hrReportFields";
 import type { ReportFilter, SortConfig, FilterOperator } from "@/lib/reportFilters";
+import { DatePresetSelector } from "./DatePresetSelector";
+import type { DatePresetSelection } from "@/lib/reportingDatePresets";
+import { DEFAULT_TIMEZONE } from "@/lib/datetime";
 
 interface FilterConfigurationProps {
   filters: ReportFilter[];
@@ -12,6 +15,8 @@ interface FilterConfigurationProps {
   selectedFields: string[];
   onUpdateFilters: (filters: ReportFilter[]) => void;
   onUpdateSort: (sort?: SortConfig) => void;
+  timeZone?: string;
+  locale?: string;
 }
 
 // Operator definitions by field type
@@ -46,6 +51,7 @@ const operatorsByType: Record<string, Array<{ value: FilterOperator; label: stri
     { value: "date_between", label: "Between dates" },
     { value: "date_in_last", label: "In the last" },
     { value: "date_in_next", label: "In the next" },
+    { value: "date_preset", label: "Date preset" },
     { value: "is_null", label: "Is empty" },
     { value: "is_not_null", label: "Is not empty" },
   ],
@@ -76,6 +82,8 @@ export default function FilterConfiguration({
   selectedFields,
   onUpdateFilters,
   onUpdateSort,
+  timeZone,
+  locale,
 }: FilterConfigurationProps) {
   // Get available fields for filtering (only selected fields that are filterable)
   const availableFields = selectedFields
@@ -243,6 +251,8 @@ export default function FilterConfiguration({
                   isFirst={index === 0}
                   onUpdate={(updates) => updateFilter(filterKeyValue, updates)}
                   onRemove={() => removeFilter(filterKeyValue)}
+                  timeZone={timeZone}
+                  locale={locale}
                 />
               );
             })}
@@ -260,12 +270,16 @@ function FilterRow({
   isFirst,
   onUpdate,
   onRemove,
+  timeZone,
+  locale,
 }: {
   filter: ReportFilter;
   availableFields: HRReportField[];
   isFirst: boolean;
   onUpdate: (updates: Partial<ReportFilter>) => void;
   onRemove: () => void;
+  timeZone?: string;
+  locale?: string;
 }) {
   const selectedField = getFieldByKey(filter.field);
   const fieldType = selectedField?.type || "string";
@@ -346,6 +360,8 @@ function FilterRow({
                   operator={filter.operator}
                   value={filter.value}
                   onChange={(value) => onUpdate({ value })}
+                  timeZone={timeZone}
+                  locale={locale}
                 />
                 {requiresTwoValues && (
                   <>
@@ -355,6 +371,8 @@ function FilterRow({
                       operator={filter.operator}
                       value={filter.value2}
                       onChange={(value2) => onUpdate({ value2 })}
+                      timeZone={timeZone}
+                      locale={locale}
                     />
                   </>
                 )}
@@ -385,15 +403,20 @@ function FilterValueInput({
   operator,
   value,
   onChange,
+  timeZone,
+  locale,
 }: {
   field: HRReportField | undefined;
   operator: FilterOperator;
   value: any;
   onChange: (value: any) => void;
+  timeZone?: string;
+  locale?: string;
 }) {
   if (!field) return null;
 
   const fieldType = field.type;
+  const effectiveTimeZone = timeZone || DEFAULT_TIMEZONE;
 
   // Boolean field
   if (fieldType === "boolean") {
@@ -412,6 +435,27 @@ function FilterValueInput({
 
   // Date field
   if (fieldType === "date") {
+    if (operator === "date_preset") {
+      let selection: DatePresetSelection | undefined;
+      if (typeof value === "string") {
+        try {
+          selection = JSON.parse(value) as DatePresetSelection;
+        } catch (error) {
+          selection = undefined;
+        }
+      } else {
+        selection = value as DatePresetSelection | undefined;
+      }
+
+      return (
+        <DatePresetSelector
+          value={selection}
+          onChange={(next) => onChange(next)}
+          timeZone={effectiveTimeZone}
+          locale={locale}
+        />
+      );
+    }
     if (operator.startsWith("date_in_")) {
       return (
         <div className="flex space-x-2">

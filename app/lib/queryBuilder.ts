@@ -1,11 +1,73 @@
 // lib/queryBuilder.ts
 import { computedHandlers } from "@/lib/computedHandlers";
+import { DEFAULT_TIMEZONE } from "@/lib/datetime";
+import {
+        calculateDateRange,
+        type DatePresetSelection,
+} from "@/lib/reportingDatePresets";
+import {
+        endOfLocalDay,
+        getLocalDateParts,
+        shiftLocalDate,
+        shiftLocalMonths,
+        shiftLocalYears,
+        startOfLocalDay,
+} from "@/lib/zonedDateUtils";
 
 type Operator =
-	| "equals" | "not_equals" | "contains" | "not_contains" | "starts_with" | "ends_with"
-	| "greater_than" | "less_than" | "greater_than_equal" | "less_than_equal" | "between"
-	| "is_null" | "is_not_null" | "in" | "not_in"
-	| "date_equals" | "date_before" | "date_after" | "date_between" | "date_in_last" | "date_in_next";
+        | "equals" | "not_equals" | "contains" | "not_contains" | "starts_with" | "ends_with"
+        | "greater_than" | "less_than" | "greater_than_equal" | "less_than_equal" | "between"
+        | "is_null" | "is_not_null" | "in" | "not_in"
+        | "date_equals" | "date_before" | "date_after" | "date_between" | "date_in_last" | "date_in_next" | "date_preset";
+
+interface QueryContext {
+        timeZone?: string;
+        now?: Date;
+}
+
+function resolveTimeZone(context?: QueryContext): string {
+        return context?.timeZone || DEFAULT_TIMEZONE;
+}
+
+type RollingUnit = "days" | "weeks" | "months" | "years";
+
+function computeRollingRange(
+        direction: "past" | "future",
+        amount: number,
+        unit: RollingUnit,
+        context?: QueryContext,
+) {
+        const safeAmount = Number.isFinite(amount) && amount > 0 ? amount : 1;
+        const timeZone = resolveTimeZone(context);
+        const base = context?.now ? new Date(context.now) : new Date();
+        const todayParts = getLocalDateParts(base, timeZone);
+        const unitLower = unit ?? "days";
+
+        const shift = (parts: ReturnType<typeof getLocalDateParts>, delta: number) => {
+                switch (unitLower) {
+                        case "weeks":
+                                return shiftLocalDate(parts, delta * 7);
+                        case "months":
+                                return shiftLocalMonths(parts, delta);
+                        case "years":
+                                return shiftLocalYears(parts, delta);
+                        default:
+                                return shiftLocalDate(parts, delta);
+                }
+        };
+
+        if (direction === "past") {
+                const referenceParts = shift(todayParts, -safeAmount);
+                const start = startOfLocalDay(referenceParts, timeZone);
+                const end = endOfLocalDay(todayParts, timeZone);
+                return { start, end };
+        }
+
+        const referenceParts = shift(todayParts, safeAmount);
+        const start = startOfLocalDay(todayParts, timeZone);
+        const end = endOfLocalDay(referenceParts, timeZone);
+        return { start, end };
+}
 
 function buildSelect(selectedFields: string[]) {
 	const select: Record<string, any> = {};
@@ -32,10 +94,10 @@ function buildSelect(selectedFields: string[]) {
 	return select;
 }
 
-function mapOperatorToCondition(operator: Operator, value: any, value2?: any) {
-	switch (operator) {
-		case "equals":
-			return { equals: value };
+function mapOperatorToCondition(operator: Operator, value: any, value2: any, context?: QueryContext) {
+        switch (operator) {
+                case "equals":
+                        return { equals: value };
 		case "not_equals":
 			return { not: value };
 		case "contains":
@@ -70,41 +132,54 @@ function mapOperatorToCondition(operator: Operator, value: any, value2?: any) {
 			return { lt: new Date(value) };
 		case "date_after":
 			return { gt: new Date(value) };
-		case "date_between":
-			return { gte: new Date(value), lte: new Date(value2) };
-		case "date_in_last": {
-			const { amount = 1, unit = "days" } = value || {};
-			const end = new Date();
-			const start = new Date();
-			switch (unit) {
-				case "days": start.setDate(start.getDate() - amount); break;
-				case "weeks": start.setDate(start.getDate() - amount * 7); break;
-				case "months": start.setMonth(start.getMonth() - amount); break;
-				case "years": start.setFullYear(start.getFullYear() - amount); break;
-			}
-			return { gte: start, lte: end };
-		}
-		case "date_in_next": {
-			const { amount = 1, unit = "days" } = value || {};
-			const start = new Date();
-			const end = new Date();
-			switch (unit) {
-				case "days": end.setDate(end.getDate() + amount); break;
-				case "weeks": end.setDate(end.getDate() + amount * 7); break;
-				case "months": end.setMonth(end.getMonth() + amount); break;
-				case "years": end.setFullYear(end.getFullYear() + amount); break;
-			}
-			return { gte: start, lte: end };
-		}
-	}
+                case "date_between":
+                        return { gte: new Date(value), lte: new Date(value2) };
+                case "date_in_last": {
+                        const { amount = 1, unit = "days" } = value || {};
+                        const range = computeRollingRange("past", amount, unit, context);
+                        const condition: Record<string, Date> = {};
+                        if (range.start) condition.gte = range.start;
+                        if (range.end) condition.lte = range.end;
+                        return condition;
+                }
+                case "date_in_next": {
+                        const { amount = 1, unit = "days" } = value || {};
+                        const range = computeRollingRange("future", amount, unit, context);
+                        const condition: Record<string, Date> = {};
+                        if (range.start) condition.gte = range.start;
+                        if (range.end) condition.lte = range.end;
+                        return condition;
+                }
+                case "date_preset": {
+                        let selection: DatePresetSelection | undefined;
+                        if (typeof value === "string") {
+                                try {
+                                        selection = JSON.parse(value) as DatePresetSelection;
+                                } catch (error) {
+                                        selection = undefined;
+                                }
+                        } else {
+                                selection = value as DatePresetSelection | undefined;
+                        }
+                        if (!selection) return undefined;
+                        const range = calculateDateRange(selection, {
+                                timeZone: resolveTimeZone(context),
+                                now: context?.now,
+                        });
+                        const condition: Record<string, Date> = {};
+                        if (range.start) condition.gte = range.start;
+                        if (range.end) condition.lte = range.end;
+                        return condition;
+                }
+        }
 }
 
-function buildWhere(filters: any[]) {
-	const where: Record<string, any> = {};
+function buildWhere(filters: any[], context?: QueryContext) {
+        const where: Record<string, any> = {};
 
-	for (const filter of filters) {
-		const { field, value, value2, operator } = filter;
-		if (!field || field.startsWith("_computed.")) continue;
+        for (const filter of filters) {
+                const { field, value, value2, operator } = filter;
+                if (!field || field.startsWith("_computed.")) continue;
 
 		const parts = field.split(".");
 		let current = where;
@@ -113,17 +188,17 @@ function buildWhere(filters: any[]) {
 			const key = parts[i];
 			const isLeaf = i === parts.length - 1;
 
-			if (isLeaf) {
-				if (operator === "is_null") {
-					current[key] = null;
-					continue;
-				}
-				const condition = mapOperatorToCondition(operator as Operator, value, value2);
-				current[key] = condition ?? null;
-			} else {
-				current[key] = current[key] || {};
-				current = current[key];
-			}
+                        if (isLeaf) {
+                                if (operator === "is_null") {
+                                        current[key] = null;
+                                        continue;
+                                }
+                                const condition = mapOperatorToCondition(operator as Operator, value, value2, context);
+                                current[key] = condition ?? null;
+                        } else {
+                                current[key] = current[key] || {};
+                                current = current[key];
+                        }
 		}
 	}
 
@@ -171,11 +246,11 @@ function groupFieldsByModel(selectedFields: string[]) {
 }
 
 export function buildDynamicQuery({
-	selectedFields,
-	filters,
-	pagination,
-	sort,
-}: any) {
+        selectedFields,
+        filters,
+        pagination,
+        sort,
+}: any, context: QueryContext = {}) {
 	// Constrain to a single primary dataset for now
     const fieldGroups = groupFieldsByModel(selectedFields);
     const models = Object.keys(fieldGroups);
@@ -220,14 +295,14 @@ export function buildDynamicQuery({
 			modelSort = { ...sort, field: sort.field.replace(`${model}.`, "") };
 		}
 
-		queries.push({
-			model,
-			prismaQuery: {
-				select: buildSelect(fields),
-				where: buildWhere(strippedFilters),
-				...buildPaginationAndSort(pagination, modelSort),
-			},
-		});
+                queries.push({
+                        model,
+                        prismaQuery: {
+                                select: buildSelect(fields),
+                                where: buildWhere(strippedFilters, context),
+                                ...buildPaginationAndSort(pagination, modelSort),
+                        },
+                });
 	}
 
 	const computedFields = selectedFields

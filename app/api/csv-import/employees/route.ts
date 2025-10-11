@@ -1265,6 +1265,7 @@ export async function POST(request: NextRequest) {
       action: "COMPLETED",
       actorId: session.user.id,
       actorType: "USER",
+      companyId: session.user.companyId,
       changes: {
         totalRecords: results.total,
         successful: results.successful,

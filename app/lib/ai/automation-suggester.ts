@@ -78,12 +78,14 @@ export function analyzePatterns(conversationHistory: Message[]): {
   }
 
   // Calculate frequency
-  const timestamps = maxPattern.timestamps.sort((a, b) => a.getTime() - b.getTime());
+  // Explicitly destructure to help TypeScript narrow the type
+  const { query, count, timestamps: patternTimestamps } = maxPattern;
+  const timestamps = patternTimestamps.sort((a, b) => a.getTime() - b.getTime());
   const frequency = calculateFrequency(timestamps);
 
   return {
-    repeatQuery: maxPattern.query,
-    repeatCount: maxPattern.count,
+    repeatQuery: query,
+    repeatCount: count,
     frequency,
     lastOccurrences: timestamps.slice(-5), // Last 5 occurrences
   };

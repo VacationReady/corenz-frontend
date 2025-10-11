@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -46,6 +46,12 @@ import {
   Grid3x3,
   List,
   Settings,
+  BarChart3,
+  AlertCircle,
+  Home,
+  ChevronRight,
+  Lightbulb,
+  Target,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -60,6 +66,15 @@ interface WorkflowStats {
   activeWorkflows: number;
   executionsToday: number;
   timeSaved: string;
+  successRate?: number;
+  avgExecutionTimeMs?: number;
+}
+
+interface ActivationState {
+  [templateId: string]: {
+    total: number;
+    active: number;
+  };
 }
 
 export default function WorkflowLibraryPage() {
@@ -71,14 +86,57 @@ export default function WorkflowLibraryPage() {
   const [previewWorkflow, setPreviewWorkflow] = useState<WorkflowTemplate | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [installedWorkflows, setInstalledWorkflows] = useState<Set<string>>(new Set());
+  const [activationState, setActivationState] = useState<ActivationState>({});
+  const [stats, setStats] = useState<WorkflowStats>({
+    totalWorkflows: 0,
+    activeWorkflows: 0,
+    executionsToday: 0,
+    timeSaved: "0 hrs",
+  });
 
-  // Mock stats - would come from API
-  const stats: WorkflowStats = {
-    totalWorkflows: workflowLibrary.templates.length,
-    activeWorkflows: installedWorkflows.size,
-    executionsToday: 127,
-    timeSaved: "32.5 hrs",
+  // Load real analytics from API
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
+
+  const loadAnalytics = async () => {
+    try {
+      setAnalyticsLoading(true);
+      const [analyticsRes, templatesRes] = await Promise.all([
+        fetch("/api/automation-rules/analytics"),
+        fetch("/api/automation-rules/templates"),
+      ]);
+
+      if (analyticsRes.ok) {
+        const analyticsData = await analyticsRes.json();
+        setStats({
+          totalWorkflows: analyticsData.totalWorkflows || 0,
+          activeWorkflows: analyticsData.activeWorkflows || 0,
+          executionsToday: analyticsData.executionsToday || 0,
+          timeSaved: analyticsData.timeSaved || "0 hrs",
+          successRate: analyticsData.successRate,
+          avgExecutionTimeMs: analyticsData.avgExecutionTimeMs,
+        });
+        setActivationState(analyticsData.activationState || {});
+      }
+
+      if (templatesRes.ok) {
+        const templatesData = await templatesRes.json();
+        const installed = new Set<string>(
+          templatesData.templates
+            .filter((t: any) => t.isInstalled)
+            .map((t: any) => t.id as string)
+        );
+        setInstalledWorkflows(installed);
+      }
+    } catch (error) {
+      console.error("Failed to load analytics:", error);
+      toast.error("Failed to load workflow analytics");
+    } finally {
+      setAnalyticsLoading(false);
+    }
   };
 
   // Filter workflows based on search and category
@@ -134,14 +192,18 @@ export default function WorkflowLibraryPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
         setInstalledWorkflows(prev => new Set(prev).add(workflow.id));
-        toast.success(`${workflow.name} has been added to your workflows`);
+        toast.success(data.message || `${workflow.name} has been added to your workflows`);
         setCustomizeWorkflow(null);
+        // Reload analytics to reflect new installation
+        loadAnalytics();
       } else {
-        throw new Error("Failed to install workflow");
+        const error = await response.json();
+        throw new Error(error.error || "Failed to install workflow");
       }
-    } catch (error) {
-      toast.error("Failed to install workflow");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to install workflow");
     } finally {
       setLoading(false);
     }
@@ -150,6 +212,7 @@ export default function WorkflowLibraryPage() {
   const renderWorkflowCard = (workflow: WorkflowTemplate) => {
     const isExpanded = expandedCards.has(workflow.id);
     const isInstalled = installedWorkflows.has(workflow.id);
+    const activation = activationState[workflow.id];
 
     return (
       <motion.div
@@ -177,12 +240,26 @@ export default function WorkflowLibraryPage() {
                   {workflow.description}
                 </CardDescription>
               </div>
-              {isInstalled && (
-                <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800 border-green-200">
-                  <Check className="w-3 h-3 mr-1" />
-                  Active
-                </Badge>
-              )}
+              <div className="flex flex-col gap-1 ml-2">
+                {isInstalled && activation && (
+                  <Badge variant="secondary" className={cn(
+                    "bg-green-100 text-green-800 border-green-200",
+                    activation.active === 0 && "bg-gray-100 text-gray-600 border-gray-200"
+                  )}>
+                    {activation.active > 0 ? (
+                      <>
+                        <Check className="w-3 h-3 mr-1" />
+                        {activation.active} Active
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Installed
+                      </>
+                    )}
+                  </Badge>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-1 mt-3">
@@ -345,6 +422,12 @@ export default function WorkflowLibraryPage() {
     <PageShell
       title="Workflow Library"
       description="Pre-built, customizable HR workflows to automate your processes"
+      breadcrumbs={{
+        items: [
+          { href: "/", label: "Home" },
+          { label: "Workflow Library" },
+        ],
+      }}
       action={
         <div className="flex items-center gap-2">
           <Button
@@ -372,7 +455,11 @@ export default function WorkflowLibraryPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Workflows</p>
-                <p className="text-2xl font-bold">{stats.totalWorkflows}</p>
+                {analyticsLoading ? (
+                  <Skeleton className="h-8 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats.totalWorkflows}</p>
+                )}
               </div>
               <div className="p-3 bg-primary/10 rounded-lg">
                 <Workflow className="w-6 h-6 text-primary" />
@@ -385,7 +472,11 @@ export default function WorkflowLibraryPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Workflows</p>
-                <p className="text-2xl font-bold">{stats.activeWorkflows}</p>
+                {analyticsLoading ? (
+                  <Skeleton className="h-8 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats.activeWorkflows}</p>
+                )}
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
                 <Check className="w-6 h-6 text-green-600" />
@@ -398,7 +489,11 @@ export default function WorkflowLibraryPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Executions Today</p>
-                <p className="text-2xl font-bold">{stats.executionsToday}</p>
+                {analyticsLoading ? (
+                  <Skeleton className="h-8 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats.executionsToday}</p>
+                )}
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
                 <PlayCircle className="w-6 h-6 text-blue-600" />
@@ -411,7 +506,11 @@ export default function WorkflowLibraryPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Time Saved</p>
-                <p className="text-2xl font-bold">{stats.timeSaved}</p>
+                {analyticsLoading ? (
+                  <Skeleton className="h-8 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats.timeSaved}</p>
+                )}
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
                 <Clock className="w-6 h-6 text-purple-600" />
@@ -507,14 +606,54 @@ export default function WorkflowLibraryPage() {
           filteredWorkflows.map(workflow => renderWorkflowCard(workflow))
         ) : (
           <div className="col-span-full">
-            <Card>
+            <Card className="border-2 border-dashed">
               <CardContent className="py-12">
-                <div className="text-center">
-                  <Workflow className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold mb-2">No workflows found</h3>
-                  <p className="text-muted-foreground">
-                    Try adjusting your search or filters
+                <div className="text-center max-w-2xl mx-auto">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                    {searchQuery || selectedCategory !== "all" ? (
+                      <Search className="w-8 h-8 text-primary" />
+                    ) : (
+                      <Sparkles className="w-8 h-8 text-primary" />
+                    )}
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">
+                    {searchQuery || selectedCategory !== "all" 
+                      ? "No workflows found"
+                      : "Start automating your HR processes"}
+                  </h3>
+                  <p className="text-muted-foreground mb-6">
+                    {searchQuery || selectedCategory !== "all"
+                      ? "Try adjusting your search or filters to find relevant workflows"
+                      : "Browse our library of 40+ pre-built workflows designed specifically for New Zealand HR teams"}
                   </p>
+                  {!(searchQuery || selectedCategory !== "all") && (
+                    <div className="grid grid-cols-3 gap-4 mt-6">
+                      <div className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
+                           onClick={() => setSelectedCategory("onboarding-probation")}>
+                        <Lightbulb className="w-6 h-6 text-amber-500 mb-2" />
+                        <h4 className="font-medium mb-1">Popular Start</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Onboarding & probation automations
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
+                           onClick={() => setSelectedCategory("compliance-documentation")}>
+                        <Target className="w-6 h-6 text-blue-500 mb-2" />
+                        <h4 className="font-medium mb-1">Stay Compliant</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Document tracking & compliance
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
+                           onClick={() => window.location.href = "/settings/automation-rules?mode=create"}>
+                        <Sparkles className="w-6 h-6 text-purple-500 mb-2" />
+                        <h4 className="font-medium mb-1">Build Custom</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Create your own automation
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

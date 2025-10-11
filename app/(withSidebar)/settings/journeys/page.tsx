@@ -2,10 +2,11 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { PageShell } from "@/components/ui/PageShell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,9 @@ import {
   Play,
   Pause,
   Archive,
+  CheckCircle,
+  Home,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -46,6 +50,7 @@ import { InsightDock } from "./components/InsightDock";
 import { JourneyScopingDialog } from "./components/JourneyScopingDialog";
 import { OnboardingTemplatesTab } from "./components/OnboardingTemplatesTab";
 import { FloatingAIChat } from "./components/FloatingAIChat";
+import { JourneyOnboardingChecklist } from "./components/JourneyOnboardingChecklist";
 
 interface JourneyTemplate {
   id: string;
@@ -109,7 +114,10 @@ export default function JourneysPage() {
   const [journeys, setJourneys] = useState<JourneyTemplate[]>([]);
   const [showScopingDialog, setShowScopingDialog] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [showInsightDock, setShowInsightDock] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [analytics, setAnalytics] = useState<any>(null);
 
   // Check URL parameters for tab selection
   useEffect(() => {
@@ -120,9 +128,10 @@ export default function JourneysPage() {
     }
   }, []);
 
-  // Load journeys
+  // Load journeys and analytics
   useEffect(() => {
     loadJourneys();
+    loadAnalytics();
   }, []);
 
   const loadJourneys = async () => {
@@ -138,6 +147,21 @@ export default function JourneysPage() {
       toast.error("Failed to load journeys");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    try {
+      setAnalyticsLoading(true);
+      const response = await fetch("/api/journeys/analytics");
+      if (response.ok) {
+        const data = await response.json();
+        setAnalytics(data);
+      }
+    } catch (error) {
+      console.error("Failed to load analytics:", error);
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -193,46 +217,139 @@ export default function JourneysPage() {
     return null;
   }
 
-  return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
-      <div className="flex-none border-b bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Route className="w-6 h-6 text-primary" />
-              <h1 className="text-2xl font-bold">
-                {activeTab === 'onboarding' ? 'Onboarding Templates' : 'Journey Designer'}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "journeys" | "onboarding")}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="journeys">Journeys</TabsTrigger>
-                  <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              {activeTab === 'journeys' && <JourneyModeToggle mode={mode} onModeChange={setMode} />}
-            </div>
-          </div>
+  const hasPublishedJourneys = journeys.some(j => j.status === "PUBLISHED");
+  const hasInstances = analytics?.totalInstances > 0;
 
+  return (
+    <PageShell
+      title="Journey Designer"
+      description="Design and manage employee lifecycle programs"
+      breadcrumbs={{
+        items: [
+          { href: "/", label: "Home" },
+          { href: "/settings", label: "Settings" },
+          { label: "Journeys" },
+        ],
+      }}
+    >
+      <div className="space-y-6">
+        {/* Onboarding Checklist */}
+        {showOnboarding && journeys.length < 5 && (
+          <JourneyOnboardingChecklist
+            hasJourneys={journeys.length > 0}
+            hasPublishedJourneys={hasPublishedJourneys}
+            hasInstances={hasInstances}
+            onCreateJourney={handleCreateJourney}
+            onDismiss={() => setShowOnboarding(false)}
+          />
+        )}
+
+        {/* Analytics Dashboard */}
+        <div className="grid grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Journeys</p>
+                  {analyticsLoading ? (
+                    <Skeleton className="h-8 w-16 mt-1" />
+                  ) : (
+                    <p className="text-2xl font-bold">{analytics?.totalTemplates || 0}</p>
+                  )}
+                </div>
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <Route className="w-6 h-6 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Published</p>
+                  {analyticsLoading ? (
+                    <Skeleton className="h-8 w-16 mt-1" />
+                  ) : (
+                    <p className="text-2xl font-bold">{analytics?.publishedTemplates || 0}</p>
+                  )}
+                </div>
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Active Instances</p>
+                  {analyticsLoading ? (
+                    <Skeleton className="h-8 w-16 mt-1" />
+                  ) : (
+                    <p className="text-2xl font-bold">{analytics?.activeInstances || 0}</p>
+                  )}
+                </div>
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <Users className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Avg Completion</p>
+                  {analyticsLoading ? (
+                    <Skeleton className="h-8 w-20 mt-1" />
+                  ) : (
+                    <p className="text-2xl font-bold">{analytics?.avgCompletionRate || 0}%</p>
+                  )}
+                </div>
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <Target className="w-6 h-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "journeys" | "onboarding")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="journeys">Journeys</TabsTrigger>
+                <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
           <div className="flex items-center gap-2">
             <Button onClick={handleCreateJourney}>
-              <Plus className="w-4 h-4 mr-2" />
+              <Sparkles className="w-4 h-4 mr-2" />
               Design Journey
             </Button>
           </div>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+        {/* Main Content */}
+        <div className="border rounded-lg bg-white">
         {activeTab === 'onboarding' ? (
           <OnboardingTemplatesTab />
+        ) : loading ? (
+          <div className="p-12">
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </div>
         ) : (
           <>
             {/* Canvas Workspace */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-h-[600px]">
               {selectedJourney ? (
                 <JourneyCanvas
                   journey={selectedJourney}
@@ -241,19 +358,49 @@ export default function JourneysPage() {
                   onToggleInsightDock={() => setShowInsightDock(!showInsightDock)}
                 />
               ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center max-w-md">
-                    <Route className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">Welcome to Journey Designer</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Create end-to-end employee lifecycle programs with AI-powered journey orchestration.
-                    </p>
-                    <div className="flex flex-col gap-3">
-                      <Button onClick={handleCreateJourney} className="w-full">
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Design Your First Journey
-                      </Button>
+                <div className="flex-1 flex items-center justify-center p-12">
+                  <div className="text-center max-w-2xl">
+                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
+                      <Route className="w-10 h-10 text-primary" />
                     </div>
+                    <h3 className="text-2xl font-bold mb-3">Design Your First Journey</h3>
+                    <p className="text-muted-foreground mb-8 text-lg">
+                      Create comprehensive employee lifecycle programs with AI-powered orchestration.
+                      From onboarding to offboarding, design experiences that drive engagement and success.
+                    </p>
+                    <div className="grid grid-cols-3 gap-4 mb-8">
+                      <div className="p-4 border rounded-lg text-left">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mb-3">
+                          <Route className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <h4 className="font-medium mb-1">Visual Builder</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Drag-and-drop phases and experience blocks
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg text-left">
+                        <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center mb-3">
+                          <Sparkles className="w-5 h-5 text-purple-600" />
+                        </div>
+                        <h4 className="font-medium mb-1">AI Guidance</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Get smart suggestions for journey optimization
+                        </p>
+                      </div>
+                      <div className="p-4 border rounded-lg text-left">
+                        <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center mb-3">
+                          <BarChart3 className="w-5 h-5 text-green-600" />
+                        </div>
+                        <h4 className="font-medium mb-1">Analytics</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Track completion rates and satisfaction scores
+                        </p>
+                      </div>
+                    </div>
+                    <Button onClick={handleCreateJourney} size="lg">
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Start Building
+                    </Button>
                   </div>
                 </div>
               )}
@@ -270,8 +417,8 @@ export default function JourneysPage() {
             )}
           </>
         )}
+        </div>
       </div>
-
 
       {/* Journey Scoping Dialog */}
       <JourneyScopingDialog
@@ -285,6 +432,6 @@ export default function JourneysPage() {
         journey={selectedJourney}
         onJourneyUpdate={handleJourneyUpdate}
       />
-    </div>
+    </PageShell>
   );
 }

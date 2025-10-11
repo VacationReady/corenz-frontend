@@ -41,21 +41,101 @@ function anchorFieldToLeave(field: string): string {
     return field;
 }
 
+// When any DriverLicence field is present, anchor other fields to DriverLicence
+function anchorFieldToDriverLicence(field: string): string {
+    if (field.startsWith("User.")) return field.replace("User.", "DriverLicence.Employee.User.");
+    if (field.startsWith("Employee.") && !field.startsWith("DriverLicence.Employee.")) return field.replace("Employee.", "DriverLicence.Employee.");
+    if (field.startsWith("Department.")) return field.replace("Department.", "DriverLicence.Employee.Department.");
+    if (field.startsWith("JobRole.")) return field.replace("JobRole.", "DriverLicence.Employee.JobRole.");
+    if (field.startsWith("WorkingPattern.")) return field.replace("WorkingPattern.", "DriverLicence.Employee.WorkingPattern.");
+    return field;
+}
+
+// When any EmploymentCheck field is present, anchor other fields to EmploymentCheck
+function anchorFieldToEmploymentCheck(field: string): string {
+    if (field.startsWith("User.")) return field.replace("User.", "EmploymentCheck.Employee.User.");
+    if (field.startsWith("Employee.") && !field.startsWith("EmploymentCheck.Employee.")) return field.replace("Employee.", "EmploymentCheck.Employee.");
+    if (field.startsWith("Department.")) return field.replace("Department.", "EmploymentCheck.Employee.Department.");
+    if (field.startsWith("JobRole.")) return field.replace("JobRole.", "EmploymentCheck.Employee.JobRole.");
+    if (field.startsWith("WorkingPattern.")) return field.replace("WorkingPattern.", "EmploymentCheck.Employee.WorkingPattern.");
+    return field;
+}
+
+// When any TrainingRecord field is present, anchor other fields to TrainingRecord
+function anchorFieldToTrainingRecord(field: string): string {
+    if (field.startsWith("User.")) return field.replace("User.", "TrainingRecord.Employee.User.");
+    if (field.startsWith("Employee.") && !field.startsWith("TrainingRecord.Employee.")) return field.replace("Employee.", "TrainingRecord.Employee.");
+    if (field.startsWith("Department.")) return field.replace("Department.", "TrainingRecord.Employee.Department.");
+    if (field.startsWith("JobRole.")) return field.replace("JobRole.", "TrainingRecord.Employee.JobRole.");
+    if (field.startsWith("WorkingPattern.")) return field.replace("WorkingPattern.", "TrainingRecord.Employee.WorkingPattern.");
+    return field;
+}
+
+// When any EmployeeOffboarding field is present, anchor other fields to EmployeeOffboarding
+function anchorFieldToEmployeeOffboarding(field: string): string {
+    if (field.startsWith("User.")) return field.replace("User.", "EmployeeOffboarding.Employee.User.");
+    if (field.startsWith("Employee.") && !field.startsWith("EmployeeOffboarding.Employee.")) return field.replace("Employee.", "EmployeeOffboarding.Employee.");
+    if (field.startsWith("Department.")) return field.replace("Department.", "EmployeeOffboarding.Employee.Department.");
+    if (field.startsWith("JobRole.")) return field.replace("JobRole.", "EmployeeOffboarding.Employee.JobRole.");
+    if (field.startsWith("WorkingPattern.")) return field.replace("WorkingPattern.", "EmployeeOffboarding.Employee.WorkingPattern.");
+    return field;
+}
+
 function rewriteFieldsForLeaveContext(fields: string[]): string[] {
     const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
+    const hasDriverLicence = fields.some((f) => f.startsWith("DriverLicence."));
+    const hasEmploymentCheck = fields.some((f) => f.startsWith("EmploymentCheck."));
+    const hasTrainingRecord = fields.some((f) => f.startsWith("TrainingRecord."));
+    const hasEmployeeOffboarding = fields.some((f) => f.startsWith("EmployeeOffboarding."));
     const result: string[] = [];
     for (const f of fields) {
-        const maybeAnchored = hasLeave ? anchorFieldToLeave(f) : f;
+        let maybeAnchored = f;
+        // Priority: LeaveRequest > DriverLicence > EmploymentCheck > TrainingRecord > EmployeeOffboarding
+        if (hasLeave) {
+            maybeAnchored = anchorFieldToLeave(f);
+        } else if (hasDriverLicence) {
+            maybeAnchored = anchorFieldToDriverLicence(f);
+        } else if (hasEmploymentCheck) {
+            maybeAnchored = anchorFieldToEmploymentCheck(f);
+        } else if (hasTrainingRecord) {
+            maybeAnchored = anchorFieldToTrainingRecord(f);
+        } else if (hasEmployeeOffboarding) {
+            maybeAnchored = anchorFieldToEmployeeOffboarding(f);
+        }
         // Always normalize Job Role into a single computed field, independent of context
         if (
             f === "User.JobRole.name" ||
             f === "Employee.JobRole.name" ||
             maybeAnchored === "LeaveRequest.Employee.User.JobRole.name" ||
-            maybeAnchored === "LeaveRequest.Employee.JobRole.name"
+            maybeAnchored === "LeaveRequest.Employee.JobRole.name" ||
+            maybeAnchored === "DriverLicence.Employee.User.JobRole.name" ||
+            maybeAnchored === "DriverLicence.Employee.JobRole.name" ||
+            maybeAnchored === "EmploymentCheck.Employee.User.JobRole.name" ||
+            maybeAnchored === "EmploymentCheck.Employee.JobRole.name" ||
+            maybeAnchored === "TrainingRecord.Employee.User.JobRole.name" ||
+            maybeAnchored === "TrainingRecord.Employee.JobRole.name" ||
+            maybeAnchored === "EmployeeOffboarding.Employee.User.JobRole.name" ||
+            maybeAnchored === "EmployeeOffboarding.Employee.JobRole.name"
         ) {
             // Include both source paths so the computed can resolve, plus the computed field
-            const userPath = hasLeave ? "LeaveRequest.Employee.User.JobRole.name" : "User.JobRole.name";
-            const employeePath = hasLeave ? "LeaveRequest.Employee.JobRole.name" : "Employee.JobRole.name";
+            let userPath = "User.JobRole.name";
+            let employeePath = "Employee.JobRole.name";
+            if (hasLeave) {
+                userPath = "LeaveRequest.Employee.User.JobRole.name";
+                employeePath = "LeaveRequest.Employee.JobRole.name";
+            } else if (hasDriverLicence) {
+                userPath = "DriverLicence.Employee.User.JobRole.name";
+                employeePath = "DriverLicence.Employee.JobRole.name";
+            } else if (hasEmploymentCheck) {
+                userPath = "EmploymentCheck.Employee.User.JobRole.name";
+                employeePath = "EmploymentCheck.Employee.JobRole.name";
+            } else if (hasTrainingRecord) {
+                userPath = "TrainingRecord.Employee.User.JobRole.name";
+                employeePath = "TrainingRecord.Employee.JobRole.name";
+            } else if (hasEmployeeOffboarding) {
+                userPath = "EmployeeOffboarding.Employee.User.JobRole.name";
+                employeePath = "EmployeeOffboarding.Employee.JobRole.name";
+            }
             if (!result.includes(userPath)) result.push(userPath);
             if (!result.includes(employeePath)) result.push(employeePath);
             if (!result.includes("_computed.jobRoleName")) result.push("_computed.jobRoleName");
@@ -64,9 +144,24 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
         // Ensure Working Pattern name is resolvable when requested via model alias
         if (
             f === "WorkingPattern.name" ||
-            maybeAnchored === "LeaveRequest.Employee.WorkingPattern.name"
+            maybeAnchored === "LeaveRequest.Employee.WorkingPattern.name" ||
+            maybeAnchored === "DriverLicence.Employee.WorkingPattern.name" ||
+            maybeAnchored === "EmploymentCheck.Employee.WorkingPattern.name" ||
+            maybeAnchored === "TrainingRecord.Employee.WorkingPattern.name" ||
+            maybeAnchored === "EmployeeOffboarding.Employee.WorkingPattern.name"
         ) {
-            const wpPath = hasLeave ? "LeaveRequest.Employee.WorkingPattern.name" : "WorkingPattern.name";
+            let wpPath = "WorkingPattern.name";
+            if (hasLeave) {
+                wpPath = "LeaveRequest.Employee.WorkingPattern.name";
+            } else if (hasDriverLicence) {
+                wpPath = "DriverLicence.Employee.WorkingPattern.name";
+            } else if (hasEmploymentCheck) {
+                wpPath = "EmploymentCheck.Employee.WorkingPattern.name";
+            } else if (hasTrainingRecord) {
+                wpPath = "TrainingRecord.Employee.WorkingPattern.name";
+            } else if (hasEmployeeOffboarding) {
+                wpPath = "EmployeeOffboarding.Employee.WorkingPattern.name";
+            }
             if (!result.includes(wpPath)) result.push(wpPath);
             continue;
         }
@@ -158,7 +253,11 @@ export async function POST(req: Request) {
         if (
           sanitizedSelectedFields.includes("WorkingPattern.name") ||
           sanitizedSelectedFields.includes("Employee.WorkingPattern.name") ||
-          sanitizedSelectedFields.includes("LeaveRequest.Employee.WorkingPattern.name")
+          sanitizedSelectedFields.includes("LeaveRequest.Employee.WorkingPattern.name") ||
+          sanitizedSelectedFields.includes("DriverLicence.Employee.WorkingPattern.name") ||
+          sanitizedSelectedFields.includes("EmploymentCheck.Employee.WorkingPattern.name") ||
+          sanitizedSelectedFields.includes("TrainingRecord.Employee.WorkingPattern.name") ||
+          sanitizedSelectedFields.includes("EmployeeOffboarding.Employee.WorkingPattern.name")
         ) {
           if (!sanitizedSelectedFields.includes("_computed.workingPatternName")) {
             sanitizedSelectedFields.push("_computed.workingPatternName");
@@ -166,10 +265,30 @@ export async function POST(req: Request) {
           // Also include latest assignment relation for fallback resolution
           const needsEmployee = sanitizedSelectedFields.some((f) => f.startsWith("Employee."));
           const needsLeave = sanitizedSelectedFields.some((f) => f.startsWith("LeaveRequest."));
+          const needsDriverLicence = sanitizedSelectedFields.some((f) => f.startsWith("DriverLicence."));
+          const needsEmploymentCheck = sanitizedSelectedFields.some((f) => f.startsWith("EmploymentCheck."));
+          const needsTrainingRecord = sanitizedSelectedFields.some((f) => f.startsWith("TrainingRecord."));
+          const needsEmployeeOffboarding = sanitizedSelectedFields.some((f) => f.startsWith("EmployeeOffboarding."));
           if (needsLeave) {
             // Ensure nested include contains assignments and WP under LeaveRequest.Employee
             sanitizedSelectedFields.push("LeaveRequest.Employee.EmployeeWorkingPatternAssignment.WorkingPattern.name");
             sanitizedSelectedFields.push("LeaveRequest.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          } else if (needsDriverLicence) {
+            // Ensure nested include contains assignments and WP under DriverLicence.Employee
+            sanitizedSelectedFields.push("DriverLicence.Employee.EmployeeWorkingPatternAssignment.WorkingPattern.name");
+            sanitizedSelectedFields.push("DriverLicence.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          } else if (needsEmploymentCheck) {
+            // Ensure nested include contains assignments and WP under EmploymentCheck.Employee
+            sanitizedSelectedFields.push("EmploymentCheck.Employee.EmployeeWorkingPatternAssignment.WorkingPattern.name");
+            sanitizedSelectedFields.push("EmploymentCheck.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          } else if (needsTrainingRecord) {
+            // Ensure nested include contains assignments and WP under TrainingRecord.Employee
+            sanitizedSelectedFields.push("TrainingRecord.Employee.EmployeeWorkingPatternAssignment.WorkingPattern.name");
+            sanitizedSelectedFields.push("TrainingRecord.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          } else if (needsEmployeeOffboarding) {
+            // Ensure nested include contains assignments and WP under EmployeeOffboarding.Employee
+            sanitizedSelectedFields.push("EmployeeOffboarding.Employee.EmployeeWorkingPatternAssignment.WorkingPattern.name");
+            sanitizedSelectedFields.push("EmployeeOffboarding.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
           } else if (needsEmployee || sanitizedSelectedFields.some((f) => f.startsWith("User."))) {
             sanitizedSelectedFields.push("Employee.EmployeeWorkingPatternAssignment.WorkingPattern.name");
             sanitizedSelectedFields.push("Employee.EmployeeWorkingPatternAssignment.effectiveDate");
@@ -177,14 +296,30 @@ export async function POST(req: Request) {
         }
 
         // If Employee.startDate is requested, include computed earliest assignment date as fallback
-        if (sanitizedSelectedFields.includes("Employee.startDate")) {
+        if (sanitizedSelectedFields.includes("Employee.startDate") || 
+            sanitizedSelectedFields.includes("DriverLicence.Employee.startDate") ||
+            sanitizedSelectedFields.includes("EmploymentCheck.Employee.startDate") ||
+            sanitizedSelectedFields.includes("TrainingRecord.Employee.startDate") ||
+            sanitizedSelectedFields.includes("EmployeeOffboarding.Employee.startDate")) {
           if (!sanitizedSelectedFields.includes("_computed.effectiveStartDate")) {
             sanitizedSelectedFields.push("_computed.effectiveStartDate");
           }
           // Ensure assignments are included to compute fallback
           const needsLeave = sanitizedSelectedFields.some((f) => f.startsWith("LeaveRequest."));
+          const needsDriverLicence = sanitizedSelectedFields.some((f) => f.startsWith("DriverLicence."));
+          const needsEmploymentCheck = sanitizedSelectedFields.some((f) => f.startsWith("EmploymentCheck."));
+          const needsTrainingRecord = sanitizedSelectedFields.some((f) => f.startsWith("TrainingRecord."));
+          const needsEmployeeOffboarding = sanitizedSelectedFields.some((f) => f.startsWith("EmployeeOffboarding."));
           if (needsLeave) {
             sanitizedSelectedFields.push("LeaveRequest.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          } else if (needsDriverLicence) {
+            sanitizedSelectedFields.push("DriverLicence.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          } else if (needsEmploymentCheck) {
+            sanitizedSelectedFields.push("EmploymentCheck.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          } else if (needsTrainingRecord) {
+            sanitizedSelectedFields.push("TrainingRecord.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
+          } else if (needsEmployeeOffboarding) {
+            sanitizedSelectedFields.push("EmployeeOffboarding.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
           } else {
             sanitizedSelectedFields.push("Employee.EmployeeWorkingPatternAssignment.effectiveDate");
           }

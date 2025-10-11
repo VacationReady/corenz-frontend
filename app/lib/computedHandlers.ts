@@ -63,6 +63,49 @@ export const computedHandlers: ComputedFieldRegistry = {
         (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
       );
     },
+    "_computed.jobRoleName": (item) => {
+      // Access through Employee relation
+      const viaEmployee = item?.Employee?.JobRole?.name;
+      const viaUser = item?.Employee?.User?.JobRole?.name;
+      return viaEmployee || viaUser || null;
+    },
+    "_computed.workingPatternName": (item) => {
+      // Prefer direct relation on Employee
+      const viaRelation = item?.Employee?.WorkingPattern?.name;
+      if (viaRelation) return viaRelation;
+
+      // Fallback to the latest assignment's working pattern (by effectiveDate)
+      const assignments = Array.isArray(item?.Employee?.EmployeeWorkingPatternAssignment)
+        ? item.Employee.EmployeeWorkingPatternAssignment
+        : [];
+      if (assignments.length === 0) return null;
+
+      const latest = assignments
+        .slice()
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.effectiveDate || 0).getTime();
+          const db = new Date(b?.effectiveDate || 0).getTime();
+          return db - da;
+        })[0];
+      return latest?.WorkingPattern?.name || null;
+    },
+    "_computed.effectiveStartDate": (item) => {
+      // Prefer explicit Employee.startDate through the relation
+      if (item?.Employee?.startDate) return item.Employee.startDate;
+      // Fallback: earliest assignment effective date (first assignment chronologically)
+      const assignments = Array.isArray(item?.Employee?.EmployeeWorkingPatternAssignment)
+        ? item.Employee.EmployeeWorkingPatternAssignment
+        : [];
+      if (assignments.length === 0) return null;
+      const earliest = assignments
+        .slice()
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.effectiveDate || 0).getTime();
+          const db = new Date(b?.effectiveDate || 0).getTime();
+          return da - db;
+        })[0];
+      return earliest?.effectiveDate || null;
+    },
   },
 
   // ===========================
@@ -76,6 +119,49 @@ export const computedHandlers: ComputedFieldRegistry = {
         (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
       );
     },
+    "_computed.jobRoleName": (item) => {
+      // Access through Employee relation
+      const viaEmployee = item?.Employee?.JobRole?.name;
+      const viaUser = item?.Employee?.User?.JobRole?.name;
+      return viaEmployee || viaUser || null;
+    },
+    "_computed.workingPatternName": (item) => {
+      // Prefer direct relation on Employee
+      const viaRelation = item?.Employee?.WorkingPattern?.name;
+      if (viaRelation) return viaRelation;
+
+      // Fallback to the latest assignment's working pattern (by effectiveDate)
+      const assignments = Array.isArray(item?.Employee?.EmployeeWorkingPatternAssignment)
+        ? item.Employee.EmployeeWorkingPatternAssignment
+        : [];
+      if (assignments.length === 0) return null;
+
+      const latest = assignments
+        .slice()
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.effectiveDate || 0).getTime();
+          const db = new Date(b?.effectiveDate || 0).getTime();
+          return db - da;
+        })[0];
+      return latest?.WorkingPattern?.name || null;
+    },
+    "_computed.effectiveStartDate": (item) => {
+      // Prefer explicit Employee.startDate through the relation
+      if (item?.Employee?.startDate) return item.Employee.startDate;
+      // Fallback: earliest assignment effective date (first assignment chronologically)
+      const assignments = Array.isArray(item?.Employee?.EmployeeWorkingPatternAssignment)
+        ? item.Employee.EmployeeWorkingPatternAssignment
+        : [];
+      if (assignments.length === 0) return null;
+      const earliest = assignments
+        .slice()
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.effectiveDate || 0).getTime();
+          const db = new Date(b?.effectiveDate || 0).getTime();
+          return da - db;
+        })[0];
+      return earliest?.effectiveDate || null;
+    },
   },
 
   // ===========================
@@ -88,6 +174,49 @@ export const computedHandlers: ComputedFieldRegistry = {
       return Math.floor(
         (today.getTime() - completed.getTime()) / (1000 * 60 * 60 * 24),
       );
+    },
+    "_computed.jobRoleName": (item) => {
+      // Access through Employee relation
+      const viaEmployee = item?.Employee?.JobRole?.name;
+      const viaUser = item?.Employee?.User?.JobRole?.name;
+      return viaEmployee || viaUser || null;
+    },
+    "_computed.workingPatternName": (item) => {
+      // Prefer direct relation on Employee
+      const viaRelation = item?.Employee?.WorkingPattern?.name;
+      if (viaRelation) return viaRelation;
+
+      // Fallback to the latest assignment's working pattern (by effectiveDate)
+      const assignments = Array.isArray(item?.Employee?.EmployeeWorkingPatternAssignment)
+        ? item.Employee.EmployeeWorkingPatternAssignment
+        : [];
+      if (assignments.length === 0) return null;
+
+      const latest = assignments
+        .slice()
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.effectiveDate || 0).getTime();
+          const db = new Date(b?.effectiveDate || 0).getTime();
+          return db - da;
+        })[0];
+      return latest?.WorkingPattern?.name || null;
+    },
+    "_computed.effectiveStartDate": (item) => {
+      // Prefer explicit Employee.startDate through the relation
+      if (item?.Employee?.startDate) return item.Employee.startDate;
+      // Fallback: earliest assignment effective date (first assignment chronologically)
+      const assignments = Array.isArray(item?.Employee?.EmployeeWorkingPatternAssignment)
+        ? item.Employee.EmployeeWorkingPatternAssignment
+        : [];
+      if (assignments.length === 0) return null;
+      const earliest = assignments
+        .slice()
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.effectiveDate || 0).getTime();
+          const db = new Date(b?.effectiveDate || 0).getTime();
+          return da - db;
+        })[0];
+      return earliest?.effectiveDate || null;
     },
   },
 
@@ -220,6 +349,49 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   EmployeeOffboarding: {
     "_computed.accessRemoved": (item) => Boolean(item?.accessRemovedAt),
+    "_computed.jobRoleName": (item) => {
+      // Access through Employee relation
+      const viaEmployee = item?.Employee?.JobRole?.name;
+      const viaUser = item?.Employee?.User?.JobRole?.name;
+      return viaEmployee || viaUser || null;
+    },
+    "_computed.workingPatternName": (item) => {
+      // Prefer direct relation on Employee
+      const viaRelation = item?.Employee?.WorkingPattern?.name;
+      if (viaRelation) return viaRelation;
+
+      // Fallback to the latest assignment's working pattern (by effectiveDate)
+      const assignments = Array.isArray(item?.Employee?.EmployeeWorkingPatternAssignment)
+        ? item.Employee.EmployeeWorkingPatternAssignment
+        : [];
+      if (assignments.length === 0) return null;
+
+      const latest = assignments
+        .slice()
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.effectiveDate || 0).getTime();
+          const db = new Date(b?.effectiveDate || 0).getTime();
+          return db - da;
+        })[0];
+      return latest?.WorkingPattern?.name || null;
+    },
+    "_computed.effectiveStartDate": (item) => {
+      // Prefer explicit Employee.startDate through the relation
+      if (item?.Employee?.startDate) return item.Employee.startDate;
+      // Fallback: earliest assignment effective date (first assignment chronologically)
+      const assignments = Array.isArray(item?.Employee?.EmployeeWorkingPatternAssignment)
+        ? item.Employee.EmployeeWorkingPatternAssignment
+        : [];
+      if (assignments.length === 0) return null;
+      const earliest = assignments
+        .slice()
+        .sort((a: any, b: any) => {
+          const da = new Date(a?.effectiveDate || 0).getTime();
+          const db = new Date(b?.effectiveDate || 0).getTime();
+          return da - db;
+        })[0];
+      return earliest?.effectiveDate || null;
+    },
   },
 
   // ===========================

@@ -817,8 +817,10 @@ export default function ReportsPreviewClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: reportName,
-          fields: selectedFields,
+          selectedFields,
           category: "General",
+          filters: activeFilters.length > 0 ? activeFilters : undefined,
+          sort: activeSort || undefined,
         }),
       });
       if (!res.ok) throw new Error("Failed to save report");

@@ -116,10 +116,44 @@ export async function GET(req: Request) {
       take: limit,
     });
 
+    // For EMPLOYEE entity types, fetch employee information
+    const employeeLogs = logs.filter(log => log.entityType === "EMPLOYEE");
+    const employeeIds = employeeLogs.map(log => log.entityId);
+    
+    let employeeMap: Record<string, any> = {};
+    if (employeeIds.length > 0) {
+      const employees = await prisma.employee.findMany({
+        where: {
+          id: { in: employeeIds },
+          companyId: session.user.companyId,
+        },
+        include: {
+          User: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+      
+      employeeMap = employees.reduce((acc, emp) => {
+        acc[emp.id] = emp;
+        return acc;
+      }, {} as Record<string, any>);
+    }
+
+    // Enrich logs with employee information
+    const enrichedLogs = logs.map(log => ({
+      ...log,
+      employee: log.entityType === "EMPLOYEE" ? employeeMap[log.entityId] : null,
+    }));
+
     const totalPages = Math.ceil(totalCount / limit);
 
     return NextResponse.json({
-      logs,
+      logs: enrichedLogs,
       pagination: {
         currentPage: page,
         totalPages,

@@ -82,11 +82,40 @@ export async function GET(req: Request) {
       take: 10000, // Limit to 10k records for performance
     });
 
+    // For EMPLOYEE entity types, fetch employee information
+    const employeeLogs = logs.filter(log => log.entityType === "EMPLOYEE");
+    const employeeIds = employeeLogs.map(log => log.entityId);
+    
+    let employeeMap: Record<string, any> = {};
+    if (employeeIds.length > 0) {
+      const employees = await prisma.employee.findMany({
+        where: {
+          id: { in: employeeIds },
+          companyId: session.user.companyId,
+        },
+        include: {
+          User: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+      
+      employeeMap = employees.reduce((acc, emp) => {
+        acc[emp.id] = emp;
+        return acc;
+      }, {} as Record<string, any>);
+    }
+
     // Convert to CSV
     const csvHeaders = [
       "Timestamp",
       "Entity Type",
       "Entity ID",
+      "Employee Name",
       "Action",
       "Actor Name",
       "Actor Email",
@@ -95,11 +124,16 @@ export async function GET(req: Request) {
       "Metadata",
     ].join(",");
 
-    const csvRows = logs.map((log: any) =>
-      [
+    const csvRows = logs.map((log: any) => {
+      const employeeName = log.entityType === "EMPLOYEE" && employeeMap[log.entityId]
+        ? (employeeMap[log.entityId].User?.name || employeeMap[log.entityId].User?.email || log.entityId)
+        : "";
+      
+      return [
         log.timestamp.toISOString(),
         log.entityType,
         log.entityId,
+        employeeName,
         log.action,
         log.User?.name || "",
         log.User?.email || "",
@@ -108,8 +142,8 @@ export async function GET(req: Request) {
         log.metadata ? JSON.stringify(log.metadata).replace(/"/g, '""') : "",
       ]
         .map((field) => `"${field}"`)
-        .join(","),
-    );
+        .join(",");
+    });
 
     const csvContent = [csvHeaders, ...csvRows].join("\n");
 

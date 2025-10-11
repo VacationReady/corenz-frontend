@@ -71,6 +71,14 @@ interface AuditLogEntry {
     name?: string;
     email: string;
   };
+  employee?: {
+    id: string;
+    User?: {
+      id: string;
+      name?: string;
+      email: string;
+    };
+  } | null;
 }
 
 interface FilterState {
@@ -325,9 +333,15 @@ export default function AuditLogPage() {
     );
   };
 
-  const getEmployeeName = (employeeId: string) => {
-    const employee = employees.find((e) => e.id === employeeId);
-    return employee?.User?.name || employee?.User?.email || employeeId;
+  const getEmployeeName = (log: AuditLogEntry) => {
+    // Use employee data from API response if available
+    if (log.employee?.User) {
+      return log.employee.User.name || log.employee.User.email || log.entityId;
+    }
+    
+    // Fallback to local employees list for backward compatibility
+    const employee = employees.find((e) => e.id === log.entityId);
+    return employee?.User?.name || employee?.User?.email || log.entityId;
   };
 
   return (
@@ -594,7 +608,7 @@ export default function AuditLogPage() {
                           {getActionBadge(log.action)}
                           {(log.entityType === "EMPLOYEE" || log.metadata?.employeeId) && (
                             <span className="text-sm font-medium text-blue-600">
-                              → {getEmployeeName(log.metadata?.employeeId || log.entityId)}
+                              → {getEmployeeName(log)}
                             </span>
                           )}
                         </div>
@@ -697,7 +711,7 @@ export default function AuditLogPage() {
                     <div className="col-span-2">
                       <Label className="text-sm font-medium">Employee</Label>
                       <div className="text-sm font-medium text-blue-600 bg-blue-50 p-2 rounded">
-                        {getEmployeeName(selectedLog.metadata?.employeeId || selectedLog.entityId)}
+                        {getEmployeeName(selectedLog)}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         ID: {selectedLog.metadata?.employeeId || selectedLog.entityId}

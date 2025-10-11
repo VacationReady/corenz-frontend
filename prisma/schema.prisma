@@ -15,6 +15,22 @@ model ActivationToken {
   User      User     @relation(fields: [userId], references: [id])
 }
 
+model TenantSwitchToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  companyId String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  used      Boolean  @default(false)
+  
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([token, expiresAt])
+  @@index([companyId])
+}
+
 model AutomationExecution {
   id             String                    @id
   ruleId         String
@@ -211,6 +227,7 @@ model Company {
   JourneyTemplates                    JourneyTemplate[]
   PersonaProfiles                     PersonaProfile[]
   CompanyObjectives                   CompanyObjective[]
+  TenantSwitchTokens                  TenantSwitchToken[]
 }
 
 model ContractTypeOption {
@@ -1638,6 +1655,7 @@ model User {
   AssignedMeetingActionItems                                               MeetingActionItem[]            @relation("MeetingActionItemAssignee")
   CreatedReviewCycles                                                      PerformanceReviewCycle[]
   ReviewSubmissionsAuthored                                                ReviewSubmission[]             @relation("ReviewSubmissionReviewer")
+  TenantSwitchTokens                                                       TenantSwitchToken[]
 
   @@unique([email, companyId])
 }

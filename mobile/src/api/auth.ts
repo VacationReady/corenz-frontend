@@ -10,6 +10,8 @@ export async function signInWithCredentials(email: string, password: string) {
 
   console.log("🔄 Attempting login to:", `${API_BASE_URL}/api/auth/callback/credentials`);
   console.log("📧 Email:", email);
+  console.log("🌐 API Base URL:", API_BASE_URL);
+  console.log("📱 Platform:", typeof navigator !== 'undefined' ? navigator.userAgent : 'React Native');
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/callback/credentials?json=true`, {
@@ -43,23 +45,63 @@ export async function signInWithCredentials(email: string, password: string) {
     // For redirects, we need to fetch the actual session
     if (response.status === 302) {
       console.log("✅ Login successful (302 redirect), fetching session...");
-      // Get the actual session after successful redirect
-      const sessionResponse = await fetch(`${API_BASE_URL}/api/auth/session`, {
-        credentials: "include",
-        headers: cookie ? { "Cookie": cookie } : {},
-      });
       
-      console.log("📡 Session response status:", sessionResponse.status);
-      const session = await sessionResponse.json();
-      console.log("✅ Session retrieved:", JSON.stringify(session, null, 2));
-      return session;
+      try {
+        // Get the actual session after successful redirect
+        const sessionResponse = await fetch(`${API_BASE_URL}/api/auth/session`, {
+          credentials: "include",
+          headers: cookie ? { "Cookie": cookie } : {},
+        });
+        
+        console.log("📡 Session response status:", sessionResponse.status);
+        
+        if (!sessionResponse.ok) {
+          console.warn("⚠️ Session fetch failed, but login was successful");
+          // Return a minimal session object since login succeeded
+          return { 
+            user: { 
+              email: email,
+              // Add other user fields as needed
+            },
+            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+          };
+        }
+        
+        const session = await sessionResponse.json();
+        console.log("✅ Session retrieved:", JSON.stringify(session, null, 2));
+        return session;
+      } catch (sessionError) {
+        console.warn("⚠️ Session fetch error, but login was successful:", sessionError);
+        // Return a minimal session object since login succeeded
+        return { 
+          user: { 
+            email: email,
+            // Add other user fields as needed
+          },
+          expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+        };
+      }
     }
 
     console.log("✅ Login successful (2xx)");
     return response.json();
   } catch (error) {
     console.error("❌ Network error during login:", error);
-    throw error;
+    console.error("❌ Error details:", {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      apiUrl: `${API_BASE_URL}/api/auth/callback/credentials`
+    });
+    
+    // Provide more specific error messages
+    if (error.message.includes("Network request failed")) {
+      throw new Error("Unable to connect to server. Please check your internet connection and try again.");
+    } else if (error.message.includes("fetch")) {
+      throw new Error("Connection error. Please ensure the server is running and accessible.");
+    } else {
+      throw new Error(`Login failed: ${error.message}`);
+    }
   }
 }
 

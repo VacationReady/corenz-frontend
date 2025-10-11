@@ -35,8 +35,9 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       await signInWithCredentials(email.trim(), password);
       onLoginSuccess();
     } catch (err) {
-      setError('Invalid email or password');
-      Alert.alert('Login Failed', 'Invalid email or password. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setError(errorMessage);
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }

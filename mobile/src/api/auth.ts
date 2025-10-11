@@ -14,93 +14,80 @@ export async function signInWithCredentials(email: string, password: string) {
   console.log("📱 Platform:", typeof navigator !== 'undefined' ? navigator.userAgent : 'React Native');
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/callback/credentials?json=true`, {
+    const response = await fetch(`${API_BASE_URL}/api/auth/callback/credentials`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ email, password, redirect: "false" }).toString(),
-      credentials: "include",
-      redirect: "manual", // Don't auto-follow redirects
+      headers: { 
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ 
+        email, 
+        password, 
+        json: "true",
+        redirect: "false" 
+      }).toString(),
     });
 
     console.log("📡 Response status:", response.status);
-    console.log("📡 Response ok:", response.ok);
+    console.log("📡 Response headers:", JSON.stringify(Object.fromEntries(response.headers.entries())));
 
-    // 302 redirects indicate successful auth in NextAuth
-    // Also accept 2xx status codes
-    if (!response.ok && response.status !== 302) {
-      console.error("❌ Login failed with status:", response.status);
-      const text = await response.text();
-      console.error("❌ Response body:", text);
-      throw new Error("Login failed");
+    const responseText = await response.text();
+    console.log("📡 Response body:", responseText);
+
+    // NextAuth returns JSON when json=true parameter is used
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      console.error("❌ Failed to parse response as JSON");
+      throw new Error("Invalid server response");
     }
 
-    const cookie = response.headers.get("set-cookie");
-    console.log("🍪 Cookie received:", cookie ? "YES" : "NO");
+    // Check if login was successful
+    if (data.error) {
+      console.error("❌ Login failed:", data.error);
+      throw new Error(data.error || "Login failed");
+    }
+
+    // Extract and store session token from set-cookie header
+    const setCookie = response.headers.get("set-cookie");
+    console.log("🍪 Set-Cookie header:", setCookie);
     
-    if (cookie) {
-      await SecureStore.setItemAsync("next-auth.session-token", cookie);
-      console.log("✅ Session token stored");
-    }
-
-    // For redirects, we need to fetch the actual session
-    if (response.status === 302) {
-      console.log("✅ Login successful (302 redirect), fetching session...");
-      
-      try {
-        // Get the actual session after successful redirect
-        const sessionResponse = await fetch(`${API_BASE_URL}/api/auth/session`, {
-          credentials: "include",
-          headers: cookie ? { "Cookie": cookie } : {},
-        });
-        
-        console.log("📡 Session response status:", sessionResponse.status);
-        
-        if (!sessionResponse.ok) {
-          console.warn("⚠️ Session fetch failed, but login was successful");
-          // Return a minimal session object since login succeeded
-          return { 
-            user: { 
-              email: email,
-              // Add other user fields as needed
-            },
-            expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
-          };
-        }
-        
-        const session = await sessionResponse.json();
-        console.log("✅ Session retrieved:", JSON.stringify(session, null, 2));
-        return session;
-      } catch (sessionError) {
-        console.warn("⚠️ Session fetch error, but login was successful:", sessionError);
-        // Return a minimal session object since login succeeded
-        return { 
-          user: { 
-            email: email,
-            // Add other user fields as needed
-          },
-          expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
-        };
+    if (setCookie) {
+      // Extract the session token from the cookie string
+      const match = setCookie.match(/next-auth\.session-token=([^;]+)/);
+      if (match) {
+        await SecureStore.setItemAsync("next-auth.session-token", match[1]);
+        console.log("✅ Session token stored");
       }
     }
 
-    console.log("✅ Login successful (2xx)");
-    return response.json();
+    // Return success - the session will be validated on subsequent requests
+    console.log("✅ Login successful");
+    return { 
+      user: { 
+        email: email,
+      },
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    };
   } catch (error) {
     console.error("❌ Network error during login:", error);
     console.error("❌ Error details:", {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      apiUrl: `${API_BASE_URL}/api/auth/callback/credentials`
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack,
+      apiUrl: `${API_BASE_URL}/api/auth/callback/credentials`,
+      errorType: typeof error,
+      errorKeys: error ? Object.keys(error) : []
     });
     
     // Provide more specific error messages
-    if (error.message.includes("Network request failed")) {
-      throw new Error("Unable to connect to server. Please check your internet connection and try again.");
-    } else if (error.message.includes("fetch")) {
+    const errorMessage = error?.message || String(error);
+    if (errorMessage.includes("Network request failed")) {
+      throw new Error(`Unable to connect to ${API_BASE_URL}. Please check:\n1. Server is running (npm run dev)\n2. IP address ${API_BASE_URL} is correct\n3. Phone and computer are on same WiFi`);
+    } else if (errorMessage.includes("fetch")) {
       throw new Error("Connection error. Please ensure the server is running and accessible.");
     } else {
-      throw new Error(`Login failed: ${error.message}`);
+      throw new Error(`Login failed: ${errorMessage}`);
     }
   }
 }

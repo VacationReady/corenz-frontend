@@ -10,6 +10,10 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Debug: Log environment variables on app start
+    console.log("🚀 App starting...");
+    console.log("🌐 EXPO_PUBLIC_API_BASE_URL:", process.env.EXPO_PUBLIC_API_BASE_URL);
+    console.log("🌐 API_BASE_URL:", process.env.API_BASE_URL);
     checkAuthentication();
   }, []);
 

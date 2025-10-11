@@ -39,7 +39,7 @@ export async function GET() {
         _count: {
           select: {
             User: true,
-            employees: true,
+            Employee: true,
           },
         },
       },
@@ -52,7 +52,7 @@ export async function GET() {
       createdAt: company.createdAt.toISOString(),
       updatedAt: company.updatedAt.toISOString(),
       userCount: company._count.User,
-      employeeCount: company._count.employees,
+      employeeCount: company._count.Employee,
     }));
 
     return NextResponse.json({ companies: serialized });

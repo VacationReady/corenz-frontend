@@ -76,6 +76,8 @@ interface AuditLogEntry {
     User?: {
       id: string;
       name?: string;
+      firstName?: string;
+      lastName?: string;
       email: string;
     };
   } | null;
@@ -336,12 +338,36 @@ export default function AuditLogPage() {
   const getEmployeeName = (log: AuditLogEntry) => {
     // Use employee data from API response if available
     if (log.employee?.User) {
-      return log.employee.User.name || log.employee.User.email || log.entityId;
+      // Try to construct name from firstName and lastName first
+      const fullName = `${log.employee.User.firstName || ""} ${log.employee.User.lastName || ""}`.trim();
+      if (fullName) {
+        return fullName;
+      }
+      // Fallback to name field if firstName/lastName not available
+      if (log.employee.User.name) {
+        return log.employee.User.name;
+      }
+      // Last resort: use email
+      return log.employee.User.email || log.entityId;
     }
     
     // Fallback to local employees list for backward compatibility
     const employee = employees.find((e) => e.id === log.entityId);
-    return employee?.User?.name || employee?.User?.email || log.entityId;
+    if (employee?.User) {
+      // Try to construct name from firstName and lastName first
+      const fullName = `${employee.User.firstName || ""} ${employee.User.lastName || ""}`.trim();
+      if (fullName) {
+        return fullName;
+      }
+      // Fallback to name field if firstName/lastName not available
+      if (employee.User.name) {
+        return employee.User.name;
+      }
+      // Last resort: use email
+      return employee.User.email || log.entityId;
+    }
+    
+    return log.entityId;
   };
 
   return (

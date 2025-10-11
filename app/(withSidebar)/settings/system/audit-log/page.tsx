@@ -194,7 +194,7 @@ export default function AuditLogPage() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch("/api/employees?limit=1000");
+      const response = await fetch("/api/employees?limit=1000&include=user");
       if (response.ok) {
         const data = await response.json();
         setEmployees(data.employees || []);
@@ -323,6 +323,11 @@ export default function AuditLogPage() {
       entityTypeOptions.find((opt) => opt.value === entityType)?.label ||
       entityType
     );
+  };
+
+  const getEmployeeName = (employeeId: string) => {
+    const employee = employees.find((e) => e.id === employeeId);
+    return employee?.User?.name || employee?.User?.email || employeeId;
   };
 
   return (
@@ -582,22 +587,20 @@ export default function AuditLogPage() {
                     <div className="flex items-center gap-3">
                       {getEntityIcon(log.entityType)}
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">
                             {formatEntityType(log.entityType)}
                           </span>
                           {getActionBadge(log.action)}
+                          {(log.entityType === "EMPLOYEE" || log.metadata?.employeeId) && (
+                            <span className="text-sm font-medium text-blue-600">
+                              → {getEmployeeName(log.metadata?.employeeId || log.entityId)}
+                            </span>
+                          )}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           by {log.actor?.name || log.actor?.email || "System"} •{" "}
                           {format(new Date(log.timestamp), "PPp")}
-                          {log.metadata?.employeeId && (
-                            <>
-                              {" "}• Employee:{" "}
-                              {employees.find((e) => e.id === log.metadata.employeeId)?.User?.name ||
-                                log.metadata.employeeId}
-                            </>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -690,12 +693,25 @@ export default function AuditLogPage() {
                       {format(new Date(selectedLog.timestamp), "PPpp")}
                     </div>
                   </div>
-                  <div className="col-span-2">
-                    <Label className="text-sm font-medium">Entity ID</Label>
-                    <div className="text-sm font-mono bg-muted p-2 rounded">
-                      {selectedLog.entityId}
+                  {(selectedLog.entityType === "EMPLOYEE" || selectedLog.metadata?.employeeId) && (
+                    <div className="col-span-2">
+                      <Label className="text-sm font-medium">Employee</Label>
+                      <div className="text-sm font-medium text-blue-600 bg-blue-50 p-2 rounded">
+                        {getEmployeeName(selectedLog.metadata?.employeeId || selectedLog.entityId)}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        ID: {selectedLog.metadata?.employeeId || selectedLog.entityId}
+                      </div>
                     </div>
-                  </div>
+                  )}
+                  {selectedLog.entityType !== "EMPLOYEE" && !selectedLog.metadata?.employeeId && (
+                    <div className="col-span-2">
+                      <Label className="text-sm font-medium">Entity ID</Label>
+                      <div className="text-sm font-mono bg-muted p-2 rounded">
+                        {selectedLog.entityId}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {selectedLog.changes && (

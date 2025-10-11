@@ -227,20 +227,28 @@ export function JourneyScopingDialog({ isOpen, onClose, onConfirm }: JourneyScop
                   <Card
                     key={category.id}
                     className={cn(
-                      "cursor-pointer transition-all hover:shadow-md",
+                      "cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
                       field.value === category.id
-                        ? "border-primary bg-primary/5"
-                        : "border-gray-200"
+                        ? "border-primary border-2 bg-primary/10 shadow-md ring-2 ring-primary/20"
+                        : "border-gray-200 hover:bg-gray-50"
                     )}
                     onClick={() => field.onChange(category.id)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gray-100 rounded-lg">
+                        <div className={cn(
+                          "p-2 rounded-lg transition-colors",
+                          field.value === category.id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-gray-100"
+                        )}>
                           {category.icon}
                         </div>
                         <div>
-                          <h4 className="font-medium text-sm">{category.name}</h4>
+                          <h4 className={cn(
+                            "font-medium text-sm",
+                            field.value === category.id && "text-primary font-semibold"
+                          )}>{category.name}</h4>
                           <p className="text-xs text-muted-foreground">{category.description}</p>
                         </div>
                       </div>

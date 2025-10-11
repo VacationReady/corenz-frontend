@@ -103,7 +103,11 @@ export interface JourneyAssistantRequest {
       name: string;
       status: string;
       phases: number;
+      category?: string;
+      persona?: string;
+      businessGoals?: string[];
     };
+    category?: string; // Selected category from scoping dialog
     companyId: string;
     userId: string;
   };
@@ -174,11 +178,18 @@ export class JourneyAssistant {
       };
     }
 
+    // Build focused context based on selected category
+    const categoryContext = context.category || context.journey?.category;
+    const personaContext = context.journey?.persona;
+    const contextSummary = categoryContext 
+      ? `Journey Category: ${categoryContext}${personaContext ? `, Target Persona: ${personaContext}` : ''}`
+      : '';
+
     const prompt = `
     Analyze this user message in the context of Journey Designer and determine the intent:
 
     User Message: "${message}"
-    Context: ${JSON.stringify(context)}
+    ${contextSummary ? `Focus Context: ${contextSummary}` : ''}
 
     Possible intents:
     - create_journey: User wants to create a new journey
@@ -541,13 +552,24 @@ Would you like to create your first journey or learn more about a specific aspec
       };
     }
 
+    // Build focused context based on selected category
+    const categoryContext = context.category || context.journey?.category;
+    const personaContext = context.journey?.persona;
+    const businessGoalsContext = context.journey?.businessGoals;
+    
+    let focusedContext = '';
+    if (categoryContext) {
+      focusedContext = `\nFOCUSED CONTEXT:\n- Journey Category: ${categoryContext}`;
+      if (personaContext) focusedContext += `\n- Target Persona: ${personaContext}`;
+      if (businessGoalsContext?.length) focusedContext += `\n- Business Goals: ${businessGoalsContext.join(', ')}`;
+      focusedContext += `\n\nIMPORTANT: Focus your responses on ${categoryContext} journey best practices and relevant experience blocks.`;
+    }
+
     // For other general queries, use AI with full journey knowledge
     const prompt = `
     You are an expert HR Journey Designer assistant with deep knowledge about employee journey design.
     
-    USER QUESTION: "${message}"
-    
-    CONTEXT: ${JSON.stringify(context)}
+    USER QUESTION: "${message}"${focusedContext}
     
     JOURNEY DESIGNER KNOWLEDGE BASE:
     ${JOURNEY_KNOWLEDGE_BASE}
@@ -556,6 +578,7 @@ Would you like to create your first journey or learn more about a specific aspec
     - Provide a helpful, conversational response
     - Draw from the knowledge base above to answer accurately
     - Be specific and actionable
+    ${categoryContext ? `- Focus specifically on ${categoryContext} journey patterns and best practices` : ''}
     - If the question is about journeys in general, explain what they are
     - If the question is about capabilities, explain what you can help with
     - If the question is vague, ask clarifying questions

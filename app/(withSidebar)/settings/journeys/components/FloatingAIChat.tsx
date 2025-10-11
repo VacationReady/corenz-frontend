@@ -63,13 +63,29 @@ export function FloatingAIChat({ journey, onJourneyUpdate }: FloatingAIChatProps
     setIsLoading(true);
 
     try {
+      // Build focused context with category information for token-efficient AI responses
+      const journeyContext = journey ? {
+        id: journey.id,
+        name: journey.name,
+        status: journey.status,
+        phases: journey.phases?.length || 0,
+        category: journey.category,
+        persona: journey.persona,
+        businessGoals: journey.businessGoals,
+      } : undefined;
+
       // Call AI assistant API
       const response = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMessage.content,
-          context: { journey, type: "journey_design" },
+          context: { 
+            journey: journeyContext, 
+            category: journey?.category,
+            mode: "journey_designer",
+            type: "journey_design" 
+          },
         }),
       });
 

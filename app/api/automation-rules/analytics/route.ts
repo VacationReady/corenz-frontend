@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
 
     // Calculate success rate
     const successfulExecutions = recentExecutions.filter(
-      (e) => e.status === "SUCCESS" || e.status === "COMPLETED"
+      (e) => e.status === "COMPLETED"
     ).length;
     const successRate = recentExecutions.length > 0
       ? (successfulExecutions / recentExecutions.length) * 100

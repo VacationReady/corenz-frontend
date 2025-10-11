@@ -26,7 +26,7 @@ The HR Reporting System is a complete redesign of the reporting area specificall
 ### 🎛️ Type-Aware Filtering
 - **String Fields**: Contains, equals, starts with, etc.
 - **Number Fields**: Greater than, less than, between, etc.
-- **Date Fields**: Before, after, between, in last/next X days
+- **Date Fields**: Before, after, between, in last/next X days, plus contextual presets (today/yesterday/tomorrow, this/last/next week, month, quarter, year) and relative ranges such as "before X days". Presets automatically align with the user or tenant timezone and surface clear tooltips for the selected window.
 - **Boolean Fields**: Is true/false, is empty/not empty
 - **Enum Fields**: Is one of, is not one of
 - Preview table now supports:

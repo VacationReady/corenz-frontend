@@ -1,0 +1,54 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { calculateDateRange } from "@/lib/reportingDatePresets";
+import { formatInTimeZone } from "date-fns-tz";
+
+test("today preset respects provided timezone", () => {
+  const now = new Date("2024-05-10T12:30:00Z");
+  const { start, end } = calculateDateRange(
+    { type: "preset", key: "today" },
+    { timeZone: "Pacific/Auckland", now },
+  );
+
+  assert(start instanceof Date);
+  assert(end instanceof Date);
+  assert.equal(formatInTimeZone(start, "Pacific/Auckland", "yyyy-MM-dd HH:mm"), "2024-05-11 00:00");
+  assert.equal(formatInTimeZone(end, "Pacific/Auckland", "yyyy-MM-dd HH:mm"), "2024-05-11 23:59");
+});
+
+test("this week preset aligns to ISO week boundaries in timezone", () => {
+  const now = new Date("2024-05-10T12:30:00Z");
+  const { start, end } = calculateDateRange(
+    { type: "preset", key: "this_week" },
+    { timeZone: "Pacific/Auckland", now },
+  );
+
+  assert(start instanceof Date);
+  assert(end instanceof Date);
+  assert.equal(formatInTimeZone(start, "Pacific/Auckland", "yyyy-MM-dd"), "2024-05-06");
+  assert.equal(formatInTimeZone(end, "Pacific/Auckland", "yyyy-MM-dd"), "2024-05-12");
+});
+
+test("relative after_days preset returns start boundary only", () => {
+  const now = new Date("2024-02-10T10:00:00Z");
+  const { start, end } = calculateDateRange(
+    { type: "relative", key: "after_days", amount: 5 },
+    { timeZone: "Pacific/Auckland", now },
+  );
+
+  assert(start instanceof Date);
+  assert.equal(end, undefined);
+  assert.equal(formatInTimeZone(start!, "Pacific/Auckland", "yyyy-MM-dd"), "2024-02-16");
+});
+
+test("relative before_days preset produces open-ended start", () => {
+  const now = new Date("2024-01-20T09:00:00Z");
+  const { start, end } = calculateDateRange(
+    { type: "relative", key: "before_days", amount: 3 },
+    { timeZone: "Europe/London", now },
+  );
+
+  assert.equal(start, undefined);
+  assert(end instanceof Date);
+  assert.equal(formatInTimeZone(end!, "Europe/London", "yyyy-MM-dd"), "2024-01-17");
+});

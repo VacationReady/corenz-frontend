@@ -6,6 +6,7 @@ import { resend } from "@/lib/resend";
 import { exportTableToPdf } from "@/lib/pdfExport";
 import { buildDynamicQuery, attachComputedFields } from "@/lib/queryBuilder";
 import Papa from "papaparse";
+import { resolveReportingTimeConfig } from "@/lib/reportingTimeConfig";
 
 export const runtime = "nodejs";
 
@@ -79,12 +80,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const timeConfig = await resolveReportingTimeConfig(
+      session.user.id,
+      session.user.companyId,
+    );
+
     // Fetch report data
     const reportData = await fetchReportData(
       session.user.companyId,
       fields,
       filters,
-      sort
+      sort,
+      timeConfig.timeZone,
     );
 
     if (!reportData || reportData.length === 0) {
@@ -258,7 +265,8 @@ async function fetchReportData(
   companyId: string,
   fields: string[],
   filters?: any[],
-  sort?: any
+  sort?: any,
+  timeZone?: string,
 ) {
   try {
     // Use the existing query builder
@@ -267,7 +275,7 @@ async function fetchReportData(
       filters: filters || [],
       sort: sort || { field: "User.firstName", direction: "asc" },
       pagination: { page: 1, pageSize: 10000 }, // Get all records for export
-    });
+    }, { timeZone });
 
     if (queries.length === 0) {
       return [];

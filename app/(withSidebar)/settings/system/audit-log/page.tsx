@@ -83,7 +83,7 @@ interface FilterState {
 }
 
 const entityTypeOptions = [
-  { value: "", label: "All Entity Types" },
+  { value: "all", label: "All Entity Types" },
   { value: "LEAVE_POLICY", label: "Leave Policies" },
   { value: "PERMISSION_PROFILE", label: "Permission Profiles" },
   { value: "EVENT_RULE", label: "Event Rules" },
@@ -96,7 +96,7 @@ const entityTypeOptions = [
 ];
 
 const actionOptions = [
-  { value: "", label: "All Actions" },
+  { value: "all", label: "All Actions" },
   { value: "CREATED", label: "Created" },
   { value: "UPDATED", label: "Updated" },
   { value: "DELETED", label: "Deleted" },
@@ -116,8 +116,8 @@ export default function AuditLogPage() {
   const pageSize = 50;
 
   const [filters, setFilters] = useState<FilterState>({
-    entityType: "",
-    action: "",
+    entityType: "all",
+    action: "all",
     actorId: "",
     dateFrom: null,
     dateTo: null,
@@ -140,7 +140,7 @@ export default function AuditLogPage() {
 
       // Add filters to params
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) {
+        if (value && value !== "all") {
           if (key === "dateFrom" || key === "dateTo") {
             params.append(key, (value as Date).toISOString());
           } else {
@@ -185,8 +185,8 @@ export default function AuditLogPage() {
 
   const resetFilters = () => {
     setFilters({
-      entityType: "",
-      action: "",
+      entityType: "all",
+      action: "all",
       actorId: "",
       dateFrom: null,
       dateTo: null,
@@ -201,7 +201,7 @@ export default function AuditLogPage() {
 
       // Add current filters to export
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) {
+        if (value && value !== "all") {
           if (key === "dateFrom" || key === "dateTo") {
             params.append(key, (value as Date).toISOString());
           } else {

@@ -866,13 +866,8 @@ interface CustomWidgetBuilderProps {
 function CustomWidgetBuilder({ dimensions, metrics, onCreate, onCancel }: CustomWidgetBuilderProps) {
   const defaultDimension = dimensions[0];
   const defaultMetric = metrics[0];
-  if (!defaultDimension || !defaultMetric) {
-    return (
-      <div className="rounded-2xl border border-dashed border-muted px-4 py-6 text-sm text-muted-foreground">
-        Add more people data to unlock custom dimensions and metrics.
-      </div>
-    );
-  }
+  
+  // Initialize hooks before any conditional returns (React rules)
   const [dimensionKey, setDimensionKey] = useState<string>(defaultDimension?.key ?? "");
   const [metricId, setMetricId] = useState<string>(defaultMetric?.id ?? "");
   const [visualization, setVisualization] = useState<VisualizationType>(
@@ -884,6 +879,14 @@ function CustomWidgetBuilder({ dimensions, metrics, onCreate, onCancel }: Custom
       ? `${defaultMetric.label} by ${defaultDimension.label}`
       : "Custom widget",
   );
+  
+  if (!defaultDimension || !defaultMetric) {
+    return (
+      <div className="rounded-2xl border border-dashed border-muted px-4 py-6 text-sm text-muted-foreground">
+        Add more people data to unlock custom dimensions and metrics.
+      </div>
+    );
+  }
 
   const handleSubmit = () => {
     if (!dimensionKey || !metricId) return;

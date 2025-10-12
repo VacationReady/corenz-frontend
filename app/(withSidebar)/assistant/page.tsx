@@ -10,7 +10,6 @@ import {
   Bot,
   Send,
   Sparkles,
-  Search,
   Zap,
   Plus,
   Loader2,
@@ -1452,7 +1451,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     );
   };
 
-  const detectActionType = (text: string): ActionType => {
+  const _detectActionType = (text: string): ActionType => {
     const lower = text.toLowerCase();
     if (lower.includes("how many") || lower.includes("show me") || lower.includes("list") || lower.includes("find") || lower.includes("count")) {
       return "query";
@@ -1565,7 +1564,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     return "info";
   };
 
-  const handleQuery = async (prompt: string) => {
+  const _handleQuery = async (prompt: string) => {
     const res = await fetch("/api/ai/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1602,7 +1601,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     return { content, result: data, suggestions, summary };
   };
 
-  const generateFollowUpSuggestions = (prompt: string, data: any): string[] => {
+  const generateFollowUpSuggestions = (prompt: string, _data: any): string[] => {
     const lower = prompt.toLowerCase();
     const suggestions: string[] = [];
 
@@ -1633,7 +1632,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     return suggestions.slice(0, 3); // Max 3 suggestions
   };
 
-  const handleWorkflow = async (prompt: string) => {
+  const _handleWorkflow = async (prompt: string) => {
     // Check if this is a discovery question about workflow capabilities
     const isDiscoveryQuery = prompt.toLowerCase().includes('what triggers') || 
                             prompt.toLowerCase().includes('what actions') ||
@@ -1750,7 +1749,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
     };
   };
 
-  const handleField = async (prompt: string) => {
+  const _handleField = async (prompt: string) => {
     const res = await fetch("/api/ai/field", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1889,7 +1888,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
                                     {cap.action}
                                   </div>
                                   <div className="text-[11px] text-muted-foreground mt-0.5 italic truncate">
-                                    "{cap.example}"
+                                    &ldquo;{cap.example}&rdquo;
                                   </div>
                                 </div>
                               </div>
@@ -1926,7 +1925,7 @@ Don't worry - your data is safe. This is likely a temporary glitch.
               <div className="text-center">
                 <Upload className="w-16 h-16 mx-auto mb-4 text-primary animate-bounce" />
                 <p className="text-lg font-semibold text-primary">Drop your document here</p>
-                <p className="text-sm text-muted-foreground mt-2">I'll help you assign it to an employee</p>
+                <p className="text-sm text-muted-foreground mt-2">I&apos;ll help you assign it to an employee</p>
               </div>
             </div>
           )}

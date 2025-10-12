@@ -259,7 +259,7 @@ export default function BankPayrollPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    IRD numbers include a check digit. We'll validate them against Inland Revenue
+                    IRD numbers include a check digit. We&apos;ll validate them against Inland Revenue
                     rules.
                   </TooltipContent>
                 </Tooltip>

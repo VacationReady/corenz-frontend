@@ -9,9 +9,9 @@ export default function WithSidebarLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const _pathname = usePathname();
 
-  const navItems = useMemo(
+  const _navItems = useMemo(
     () => [
       {
         title: "Dashboard",

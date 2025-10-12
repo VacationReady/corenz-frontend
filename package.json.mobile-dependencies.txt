@@ -1,0 +1,20 @@
+# Mobile Dependencies to Install
+# Run these commands in the mobile/ directory
+
+# Core dependencies (already installed in base package.json)
+# expo, react, react-native, etc.
+
+# Additional Phase 5 dependencies needed:
+
+npm install expo-location expo-notifications expo-camera expo-file-system \
+  expo-device @react-native-community/netinfo react-native-uuid
+
+# Or with yarn:
+yarn add expo-location expo-notifications expo-camera expo-file-system \
+  expo-device @react-native-community/netinfo react-native-uuid
+
+# Backend dependencies (add to root package.json):
+npm install expo-server-sdk
+
+# TypeScript types:
+npm install --save-dev @types/ws

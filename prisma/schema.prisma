@@ -476,6 +476,7 @@ model Employee {
   TransactionalChangeRequest       TransactionalChangeRequest[]
   ActionItems                      ActionItem[]                   @relation("Employee_ActionItem_Related")
   JourneyInstances                 JourneyInstance[]
+  PushNotificationTokens           PushNotificationToken[]
 
   @@unique([companyId, irdNumber])
 }
@@ -2918,6 +2919,9 @@ model ClockEntry {
   status          ClockEntryStatus @default(ACTIVE)
   notes           String?
   timesheetId     String?
+  localId         String?        // Client-generated ID for offline entries
+  syncedAt        DateTime?      // When offline entry was synced to server
+  offlineCreated  Boolean        @default(false)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   
@@ -2926,6 +2930,7 @@ model ClockEntry {
   @@index([employeeId, clockInTime])
   @@index([companyId, status])
   @@index([timesheetId])
+  @@index([localId])
 }
 
 model Timesheet {
@@ -3214,6 +3219,23 @@ model TimeTrackingSettings {
   updatedAt            DateTime @updatedAt
   
   @@index([companyId])
+}
+
+model PushNotificationToken {
+  id          String   @id @default(cuid())
+  employeeId  String
+  token       String   // Expo push token
+  deviceId    String
+  platform    String   // "ios" or "android"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  @@unique([employeeId, deviceId])
+  @@index([employeeId])
+  @@index([token])
 }
 
 enum ObjectiveVisibility {

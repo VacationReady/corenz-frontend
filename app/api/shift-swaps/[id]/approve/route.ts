@@ -161,11 +161,11 @@ export async function POST(
       {
         startTime: swapRequest.Shift.startTime,
         endTime: swapRequest.Shift.endTime,
-        location,
-        notes: swapRequest.Shift.notes,
-        role: swapRequest.Shift.role,
+        location: location || undefined,
+        notes: swapRequest.Shift.notes || undefined,
+        role: swapRequest.Shift.role || undefined,
       },
-      requestingEmployee.User.name
+      requestingEmployee.User.name || 'Manager'
     );
 
     // Create audit log

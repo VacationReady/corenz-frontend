@@ -22,7 +22,7 @@ const updateTimesheetSchema = z.object({
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -30,6 +30,8 @@ export async function GET(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const requestingEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
@@ -49,7 +51,7 @@ export async function GET(
     }
 
     const timesheet = await prisma.timesheet.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         ClockEntries: {
           orderBy: {
@@ -122,7 +124,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -130,6 +132,8 @@ export async function PUT(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const body = await req.json();
     const data = updateTimesheetSchema.parse(body);
@@ -152,7 +156,7 @@ export async function PUT(
     }
 
     const timesheet = await prisma.timesheet.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!timesheet) {
@@ -188,7 +192,7 @@ export async function PUT(
       // Delete existing manual/adjusted entries
       await prisma.timesheetEntry.deleteMany({
         where: {
-          timesheetId: params.id,
+          timesheetId: id,
           entryType: { in: ['MANUAL', 'ADJUSTED'] },
         },
       });
@@ -205,7 +209,7 @@ export async function PUT(
 
         await prisma.timesheetEntry.create({
           data: {
-            timesheetId: params.id,
+            timesheetId: id,
             date: new Date(entry.date),
             startTime: new Date(entry.startTime),
             endTime: new Date(entry.endTime),
@@ -220,7 +224,7 @@ export async function PUT(
 
       // Recalculate total hours
       const allEntries = await prisma.timesheetEntry.findMany({
-        where: { timesheetId: params.id },
+        where: { timesheetId: id },
       });
 
       const totalHours = allEntries.reduce(
@@ -235,7 +239,7 @@ export async function PUT(
       const { regularHours, overtimeHours } = calculateOvertime(totalHours, overtimeThreshold);
 
       await prisma.timesheet.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           totalHours,
           regularHours,
@@ -255,14 +259,14 @@ export async function PUT(
         entityId: timesheet.employeeId,
         metadata: {
           type: 'TIMESHEET_UPDATED',
-          timesheetId: params.id,
+          timesheetId: id,
         },
       },
     });
 
     // Fetch updated timesheet
     const updatedTimesheet = await prisma.timesheet.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         TimesheetEntries: {
           orderBy: {
@@ -301,7 +305,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -309,6 +313,8 @@ export async function DELETE(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const requestingEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
@@ -328,7 +334,7 @@ export async function DELETE(
     }
 
     const timesheet = await prisma.timesheet.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!timesheet) {
@@ -353,13 +359,13 @@ export async function DELETE(
 
     // Unlink clock entries
     await prisma.clockEntry.updateMany({
-      where: { timesheetId: params.id },
+      where: { timesheetId: id },
       data: { timesheetId: null },
     });
 
     // Delete timesheet (cascade will delete entries and stages)
     await prisma.timesheet.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     // Create audit log
@@ -373,7 +379,7 @@ export async function DELETE(
         entityId: timesheet.employeeId,
         metadata: {
           type: 'TIMESHEET_DELETED',
-          timesheetId: params.id,
+          timesheetId: id,
           periodStart: timesheet.periodStart.toISOString(),
           periodEnd: timesheet.periodEnd.toISOString(),
         },

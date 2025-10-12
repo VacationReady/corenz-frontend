@@ -11,7 +11,7 @@ const approveSchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,6 +19,8 @@ export async function POST(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const body = await req.json();
     const data = approveSchema.parse(body);
@@ -42,7 +44,7 @@ export async function POST(
     }
 
     const timesheet = await prisma.timesheet.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         ApprovalStages: {
           include: {
@@ -182,7 +184,7 @@ export async function POST(
       } else {
         // All stages complete - approve timesheet
         await prisma.timesheet.update({
-          where: { id: params.id },
+          where: { id: id },
           data: {
             approvalStatus: 'APPROVED',
             approvedAt: new Date(),
@@ -231,7 +233,7 @@ export async function POST(
         entityId: timesheet.employeeId,
         metadata: {
           type: 'TIMESHEET_APPROVED',
-          timesheetId: params.id,
+          timesheetId: id,
           stage: activeStage.name,
         },
       },
@@ -239,7 +241,7 @@ export async function POST(
 
     // Fetch updated timesheet
     const updatedTimesheet = await prisma.timesheet.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         ApprovalStages: {
           include: {

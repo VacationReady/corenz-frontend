@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,6 +14,8 @@ export async function POST(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const requestingEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
@@ -34,7 +36,7 @@ export async function POST(
     }
 
     const timesheet = await prisma.timesheet.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         TimesheetEntries: true,
       },
@@ -75,7 +77,7 @@ export async function POST(
 
     // Update timesheet status
     await prisma.timesheet.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         submittedAt: new Date(),
         approvalStatus: 'PENDING',
@@ -103,7 +105,7 @@ export async function POST(
         for (const stage of workflow.stages) {
           const approvalStage = await prisma.timesheetApprovalStage.create({
             data: {
-              timesheetId: params.id,
+              timesheetId: id,
               workflowStageId: stage.id,
               name: stage.name || `Stage ${stage.order}`,
               order: stage.order,
@@ -147,7 +149,7 @@ export async function POST(
         // Send notification to first stage approvers
         const firstStage = await prisma.timesheetApprovalStage.findFirst({
           where: {
-            timesheetId: params.id,
+            timesheetId: id,
             order: 1,
           },
           include: {
@@ -200,14 +202,14 @@ export async function POST(
         entityId: timesheet.employeeId,
         metadata: {
           type: 'TIMESHEET_SUBMITTED',
-          timesheetId: params.id,
+          timesheetId: id,
         },
       },
     });
 
     // Fetch updated timesheet
     const updatedTimesheet = await prisma.timesheet.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         ApprovalStages: {
           include: {

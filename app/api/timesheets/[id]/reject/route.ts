@@ -11,13 +11,15 @@ const rejectSchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const body = await req.json();
     const data = rejectSchema.parse(body);
@@ -32,7 +34,7 @@ export async function POST(
     }
 
     const timesheet = await prisma.timesheet.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         ApprovalStages: {
           include: { Decisions: true },
@@ -74,7 +76,7 @@ export async function POST(
     });
 
     await prisma.timesheet.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { approvalStatus: 'DECLINED', rejectedReason: data.reason },
     });
 
@@ -111,14 +113,14 @@ export async function POST(
         entityId: timesheet.employeeId,
         metadata: {
           type: 'TIMESHEET_REJECTED',
-          timesheetId: params.id,
+          timesheetId: id,
           reason: data.reason,
         },
       },
     });
 
     const updatedTimesheet = await prisma.timesheet.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         ApprovalStages: {
           include: { Decisions: true },

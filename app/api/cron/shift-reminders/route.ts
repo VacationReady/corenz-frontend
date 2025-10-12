@@ -10,7 +10,7 @@ import { sendShiftReminder } from '@/lib/push-notifications';
  * {
  *   "crons": [{
  *     "path": "/api/cron/shift-reminders",
- *     "schedule": "*/15 * * * *"
+ *     "schedule": "0,15,30,45 * * * *"
  *   }]
  * }
  */

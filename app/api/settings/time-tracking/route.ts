@@ -77,21 +77,6 @@ export async function GET(req: NextRequest) {
       settings = await prisma.timeTrackingSettings.create({
         data: {
           companyId: employee.companyId,
-          defaultApprovalWorkflow: 'SEQUENTIAL',
-          requirePhotos: false,
-          enableGPSTracking: false,
-          allowManualEntry: true,
-          minimumRestHours: 11,
-          overtimeThreshold: 40,
-          requireShiftConfirmation: false,
-          managerApprovalSwaps: true,
-          enableGeofencing: false,
-          geofenceRadius: 100,
-          requireBreaks: true,
-          minBreakDuration: 30,
-          payrollExportFormat: 'CSV',
-          includeBreaks: true,
-          includeNotes: true,
         },
       });
     }
@@ -152,22 +137,6 @@ export async function PUT(req: NextRequest) {
       create: {
         companyId: employee.companyId,
         ...data,
-        // Provide defaults for required fields not in update
-        defaultApprovalWorkflow: data.defaultApprovalWorkflow || 'SEQUENTIAL',
-        requirePhotos: data.requirePhotos ?? false,
-        enableGPSTracking: data.enableGPSTracking ?? false,
-        allowManualEntry: data.allowManualEntry ?? true,
-        minimumRestHours: data.minimumRestHours ?? 11,
-        overtimeThreshold: data.overtimeThreshold ?? 40,
-        requireShiftConfirmation: data.requireShiftConfirmation ?? false,
-        managerApprovalSwaps: data.managerApprovalSwaps ?? true,
-        enableGeofencing: data.enableGeofencing ?? false,
-        geofenceRadius: data.geofenceRadius ?? 100,
-        requireBreaks: data.requireBreaks ?? true,
-        minBreakDuration: data.minBreakDuration ?? 30,
-        payrollExportFormat: data.payrollExportFormat || 'CSV',
-        includeBreaks: data.includeBreaks ?? true,
-        includeNotes: data.includeNotes ?? true,
       },
     });
 
@@ -178,8 +147,8 @@ export async function PUT(req: NextRequest) {
         actorId: session.user.id,
         companyId: employee.companyId,
         action: 'UPDATED',
-        entityType: 'COMPANY',
-        entityId: employee.companyId,
+        entityType: 'EMPLOYEE',
+        entityId: employee.id,
         metadata: {
           type: 'TIME_TRACKING_SETTINGS_UPDATED',
           changes: data,

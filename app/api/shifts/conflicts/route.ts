@@ -143,12 +143,12 @@ export async function GET(req: NextRequest) {
       },
       select: {
         id: true,
-        skills: true,
       },
     });
 
     for (const employee of employees) {
-      employeeSkills.set(employee.id, employee.skills || []);
+      // TODO: Implement employee skills system
+      employeeSkills.set(employee.id, []);
     }
 
     // Get time tracking settings

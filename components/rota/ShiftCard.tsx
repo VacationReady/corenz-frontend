@@ -304,7 +304,7 @@ export default function ShiftCard({
             <div>
               <div className="text-sm text-gray-400">Labor Cost</div>
               <div className="font-medium text-green-400">
-                ${typeof shift.cost === 'number' ? shift.cost.toFixed(2) : parseFloat(shift.cost.toString()).toFixed(2)}
+                ${typeof shift.cost === 'number' ? shift.cost.toFixed(2) : parseFloat(String(shift.cost)).toFixed(2)}
               </div>
             </div>
           </div>

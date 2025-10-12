@@ -174,7 +174,8 @@ export async function POST(req: NextRequest) {
           }
 
           // Calculate cost
-          const cost = calculateShiftCost(shiftStart, shiftEnd, breakDuration, hourlyRate);
+          const shiftHours = (shiftEnd.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
+          const cost = calculateShiftCost(shiftHours, breakDuration, hourlyRate);
 
           // Create shift
           const shift = await prisma.shift.create({
@@ -250,8 +251,8 @@ export async function POST(req: NextRequest) {
       });
       availabilityExceptions.set(employee.id, exceptions);
 
-      // Parse skills from employee JSON field if exists
-      employeeSkills.set(employee.id, employee.skills || []);
+      // Parse skills from employee - TODO: Implement employee skills system
+      employeeSkills.set(employee.id, []);
     }
 
     // Get time tracking settings for conflict detection

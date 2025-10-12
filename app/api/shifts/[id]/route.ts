@@ -137,8 +137,6 @@ export async function GET(
         select: {
           id: true,
           name: true,
-          address: true,
-          coordinates: true,
         },
       });
     }
@@ -241,9 +239,9 @@ export async function PUT(
         });
 
         if (employee) {
+          const shiftHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
           const cost = calculateShiftCost(
-            startTime,
-            endTime,
+            shiftHours,
             breakDuration,
             employee.hourlyRate ? parseFloat(employee.hourlyRate.toString()) : 0
           );

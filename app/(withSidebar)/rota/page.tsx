@@ -412,9 +412,9 @@ export default function RotaPage() {
           <RotaCalendar
             shifts={shifts}
             conflicts={conflicts}
-            onShiftClick={(shift) => setSelectedShift(shift)}
-            onDateClick={(date) => {/* TODO: Open create shift modal with date */}}
-            onShiftEdit={(shift) => {/* TODO: Open edit modal */}}
+            onShiftClick={(shift: any) => setSelectedShift(shift)}
+            onDateClick={(date: Date) => {/* TODO: Open create shift modal with date */}}
+            onShiftEdit={(shift: any) => {/* TODO: Open edit modal */}}
             onShiftDelete={handleDeleteShift}
             showActions={true}
           />

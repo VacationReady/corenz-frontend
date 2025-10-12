@@ -10,6 +10,13 @@
  * ```
  */
 
+import { webcrypto } from "crypto";
+
+// Polyfill crypto for test environment (Node.js < 19)
+if (!globalThis.crypto) {
+  (globalThis as any).crypto = webcrypto;
+}
+
 // Set test environment variables before any modules load
 process.env.NODE_ENV = "test";
 process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://test:test@localhost:5432/testdb";

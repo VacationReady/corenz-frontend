@@ -1,3 +1,4 @@
+import "../setupEnv"; // Must be first to setup test environment
 import test from "node:test";
 import assert from "node:assert/strict";
 import Module from "module";

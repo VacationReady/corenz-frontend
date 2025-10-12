@@ -3401,6 +3401,13 @@ enum ConflictSeverity {
   CRITICAL
 }
 
+enum ViolationSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 enum BreakType {
   MEAL_BREAK          // 30-60 min meal break
   REST_BREAK          // 10-15 min rest break

@@ -23,7 +23,7 @@ const updatePatternsSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { employeeId: string } }
+  { params }: { params: Promise<{ employeeId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -31,6 +31,8 @@ export async function GET(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { employeeId } = await params;
 
     const requestingEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
@@ -51,7 +53,7 @@ export async function GET(
 
     // Verify target employee exists and is in same company
     const targetEmployee = await prisma.employee.findUnique({
-      where: { id: params.employeeId },
+      where: { id: employeeId },
     });
 
     if (!targetEmployee) {
@@ -64,7 +66,7 @@ export async function GET(
 
     // Check permissions
     const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
-    const isOwnData = params.employeeId === requestingEmployee.id;
+    const isOwnData = employeeId === requestingEmployee.id;
 
     if (!isOwnData && !isAdminOrManager) {
       return NextResponse.json({ error: 'Unauthorized to view this availability' }, { status: 403 });
@@ -74,7 +76,7 @@ export async function GET(
     const [patterns, exceptions] = await Promise.all([
       prisma.availabilityPattern.findMany({
         where: {
-          employeeId: params.employeeId,
+          employeeId: employeeId,
         },
         orderBy: [
           { dayOfWeek: 'asc' },
@@ -83,7 +85,7 @@ export async function GET(
       }),
       prisma.availabilityException.findMany({
         where: {
-          employeeId: params.employeeId,
+          employeeId: employeeId,
           date: {
             gte: new Date(), // Only future exceptions
           },
@@ -112,7 +114,7 @@ export async function GET(
  */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { employeeId: string } }
+  { params }: { params: Promise<{ employeeId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -120,6 +122,8 @@ export async function PUT(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { employeeId } = await params;
 
     const body = await req.json();
     const data = updatePatternsSchema.parse(body);
@@ -143,7 +147,7 @@ export async function PUT(
 
     // Verify target employee exists and is in same company
     const targetEmployee = await prisma.employee.findUnique({
-      where: { id: params.employeeId },
+      where: { id: employeeId },
     });
 
     if (!targetEmployee) {
@@ -156,7 +160,7 @@ export async function PUT(
 
     // Check permissions
     const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
-    const isOwnData = params.employeeId === requestingEmployee.id;
+    const isOwnData = employeeId === requestingEmployee.id;
 
     if (!isOwnData && !isAdminOrManager) {
       return NextResponse.json(
@@ -168,7 +172,7 @@ export async function PUT(
     // Delete existing patterns for the employee
     await prisma.availabilityPattern.deleteMany({
       where: {
-        employeeId: params.employeeId,
+        employeeId: employeeId,
       },
     });
 
@@ -177,7 +181,7 @@ export async function PUT(
       data.patterns.map((pattern) =>
         prisma.availabilityPattern.create({
           data: {
-            employeeId: params.employeeId,
+            employeeId: employeeId,
             companyId: requestingEmployee.companyId,
             dayOfWeek: pattern.dayOfWeek,
             startTime: pattern.startTime,
@@ -191,7 +195,7 @@ export async function PUT(
     // Run conflict detection for existing shifts
     const shifts = await prisma.shift.findMany({
       where: {
-        employeeId: params.employeeId,
+        employeeId: employeeId,
         companyId: requestingEmployee.companyId,
         startTime: {
           gte: new Date(), // Only future shifts
@@ -202,19 +206,19 @@ export async function PUT(
     // Get exceptions
     const exceptions = await prisma.availabilityException.findMany({
       where: {
-        employeeId: params.employeeId,
+        employeeId: employeeId,
       },
     });
 
     // Convert to Map format for conflict detector
     const patternsMap = new Map();
-    patternsMap.set(params.employeeId, createdPatterns);
+    patternsMap.set(employeeId, createdPatterns);
 
     const exceptionsMap = new Map();
-    exceptionsMap.set(params.employeeId, exceptions);
+    exceptionsMap.set(employeeId, exceptions);
 
     const employeeSkills = new Map();
-    employeeSkills.set(params.employeeId, []); // Simplified for now
+    employeeSkills.set(employeeId, []); // Simplified for now
 
     // Detect conflicts
     const settings = await prisma.timeTrackingSettings.findUnique({
@@ -263,7 +267,7 @@ export async function PUT(
         companyId: requestingEmployee.companyId,
         action: 'UPDATED',
         entityType: 'EMPLOYEE',
-        entityId: params.employeeId,
+        entityId: employeeId,
         metadata: {
           type: 'AVAILABILITY_PATTERNS_UPDATED',
           patternsCount: createdPatterns.length,

@@ -51,5 +51,19 @@
     ".next/types/**/*.ts",
     "types/next-auth.d.ts"
   ],
-  "exclude": ["node_modules", "scripts/**/*.js", "mobile", "prisma/seed.js"]
+  "exclude": [
+    "node_modules",
+    "scripts/**/*.js",
+    "mobile",
+    "prisma/seed.js",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "tests/**/*",
+    "scripts/debug-employee-user-mapping.ts",
+    "scripts/diagnose-org-chart.ts",
+    "scripts/fix-broken-manager-ids.ts",
+    "scripts/initialize-default-workflows.ts",
+    "scripts/test-*.ts",
+    "scripts/evaluate-finetune.ts"
+  ]
 }

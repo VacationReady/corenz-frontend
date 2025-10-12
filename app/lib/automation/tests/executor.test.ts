@@ -103,7 +103,7 @@ test("AutomationActionExecutor", async (t) => {
         User: { id: "user-123", email: "employee@example.com" },
       };
 
-      mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
+      mockPrismaClient.Employee.findUnique.mock.mockImplementationOnce(() =>
         Promise.resolve(mockEmployee),
       );
 
@@ -144,7 +144,7 @@ test("AutomationActionExecutor", async (t) => {
         },
       };
 
-      mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
+      mockPrismaClient.Employee.findUnique.mock.mockImplementationOnce(() =>
         Promise.resolve(mockEmployee),
       );
 
@@ -177,7 +177,7 @@ test("AutomationActionExecutor", async (t) => {
         { id: "hr-1", email: "hr@example.com", role: "ADMIN" },
       ];
 
-      mockPrismaClient.user.findMany.mock.mockImplementationOnce(() =>
+      mockPrismaClient.User.findMany.mock.mockImplementationOnce(() =>
         Promise.resolve(mockHRUsers),
       );
 
@@ -266,7 +266,7 @@ test("AutomationActionExecutor", async (t) => {
         User: { id: "user-123", email: "employee@example.com" },
       };
 
-      mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
+      mockPrismaClient.Employee.findUnique.mock.mockImplementationOnce(() =>
         Promise.resolve(mockEmployee),
       );
 
@@ -304,7 +304,7 @@ test("AutomationActionExecutor", async (t) => {
         User: { email: "employee@example.com" },
       };
 
-      mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
+      mockPrismaClient.Employee.findUnique.mock.mockImplementationOnce(() =>
         Promise.resolve(mockEmployee),
       );
 
@@ -494,11 +494,11 @@ test("AutomationActionExecutor", async (t) => {
         User: { id: "user-123" },
       };
 
-      mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
+      mockPrismaClient.Employee.findUnique.mock.mockImplementationOnce(() =>
         Promise.resolve(mockEmployee),
       );
 
-      mockPrismaClient.employee.update.mock.mockImplementationOnce(() =>
+      mockPrismaClient.Employee.update.mock.mockImplementationOnce(() =>
         Promise.resolve({ ...mockEmployee, departmentId: "new-dept" }),
       );
 
@@ -526,7 +526,7 @@ test("AutomationActionExecutor", async (t) => {
       assert.strictEqual(result.data?.field, "department");
       assert.strictEqual(result.data?.newValue, "new-dept");
 
-      const updateCall = mockPrismaClient.employee.update.mock.calls[0];
+      const updateCall = mockPrismaClient.Employee.update.mock.calls[0];
       assert.strictEqual(updateCall.arguments[0].where.id, "emp-123");
       assert.strictEqual(updateCall.arguments[0].data.departmentId, "new-dept");
     });
@@ -538,11 +538,11 @@ test("AutomationActionExecutor", async (t) => {
         User: { id: "user-123", managerId: "old-manager" },
       };
 
-      mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
+      mockPrismaClient.Employee.findUnique.mock.mockImplementationOnce(() =>
         Promise.resolve(mockEmployee),
       );
 
-      mockPrismaClient.user.update.mock.mockImplementationOnce(() =>
+      mockPrismaClient.User.update.mock.mockImplementationOnce(() =>
         Promise.resolve({ id: "user-123", managerId: "new-manager" }),
       );
 
@@ -568,7 +568,7 @@ test("AutomationActionExecutor", async (t) => {
 
       assert.strictEqual(result.success, true);
 
-      const updateCall = mockPrismaClient.user.update.mock.calls[0];
+      const updateCall = mockPrismaClient.User.update.mock.calls[0];
       assert.strictEqual(updateCall.arguments[0].where.id, "user-123");
       assert.strictEqual(updateCall.arguments[0].data.managerId, "new-manager");
     });
@@ -580,7 +580,7 @@ test("AutomationActionExecutor", async (t) => {
         User: { id: "user-123" },
       };
 
-      mockPrismaClient.employee.findUnique.mock.mockImplementationOnce(() =>
+      mockPrismaClient.Employee.findUnique.mock.mockImplementationOnce(() =>
         Promise.resolve(mockEmployee),
       );
 
@@ -618,7 +618,7 @@ test("AutomationActionExecutor", async (t) => {
         User: { id: "user-123", email: "test@example.com" },
       };
 
-      mockPrismaClient.employee.findUnique.mock
+      mockPrismaClient.Employee.findUnique.mock
         .mockImplementationOnce(() => Promise.resolve(mockEmployee))
         .mock.mockImplementationOnce(() => Promise.resolve(mockEmployee));
 

@@ -195,7 +195,7 @@ test("AutomationRuleEvaluator", async (t) => {
         },
       ];
 
-      mockPrismaClient.employee.findMany.mock.mockImplementationOnce(() =>
+      mockPrismaClient.Employee.findMany.mock.mockImplementationOnce(() =>
         Promise.resolve(mockEmployees),
       );
 

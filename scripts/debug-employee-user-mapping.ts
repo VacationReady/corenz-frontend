@@ -39,7 +39,7 @@ async function debugEmployeeUserMapping() {
     // Check if there are any orphaned employees (employees without users)
     const orphanedCount = await prisma.employee.count({
       where: {
-        User: null,
+        userId: null,
       },
     });
 

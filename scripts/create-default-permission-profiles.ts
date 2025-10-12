@@ -64,11 +64,13 @@ async function createDefaultPermissionProfiles() {
     // Create the permission profile
     const createdProfile = await prisma.permissionProfile.create({
       data: {
+        id: `${company.id}-${profile.role.toLowerCase()}`,
         companyId: company.id,
         name: profile.name,
         description: profile.description,
         permissions: JSON.stringify(permissions),
         builtIn: true,
+        updatedAt: new Date(),
       },
     });
 

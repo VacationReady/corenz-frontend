@@ -64,7 +64,7 @@ async function main() {
   const recentAudits = await prisma.globalAuditLog.findMany({
     where: {
       companyId: COMPANY_ID,
-      entityType: "CSV_IMPORT",
+      entityType: "CSV_IMPORT" as any,
     },
     orderBy: { timestamp: "desc" },
     take: 5,

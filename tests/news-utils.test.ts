@@ -1,3 +1,4 @@
+import "./setupEnv";
 /**
  * Unit tests for news utility functions
  * Tests share functionality, pagination, and URL generation

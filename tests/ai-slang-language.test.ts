@@ -1,3 +1,4 @@
+import "./setupEnv";
 /**
  * AI Slang/Casual Language Tests
  * 

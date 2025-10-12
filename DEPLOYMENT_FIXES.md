@@ -28,11 +28,9 @@ Fixed all TypeScript compilation errors and test environment issues that were bl
   }
   ```
 
-**File**: `package.json`
-- **Enhancement**: Modified test script to preload setupEnv globally:
-  ```json
-  "test": "tsx --import ./tests/setupEnv.ts --test tests/**/*.test.ts"
-  ```
+**All Test Files**: Added setupEnv import to all 31 test files
+- **Enhancement**: Each test file now imports `"./setupEnv"` as the first line
+- **Reason**: Node.js `--import` flag doesn't work with TypeScript files, so each test must explicitly import the setup
 
 ### 3. Test Files Excluded from Build ✅
 
@@ -91,10 +89,9 @@ The application is now ready for deployment. All TypeScript errors have been res
 1. `scripts/create-default-permission-profiles.ts` - Fixed Prisma schema compliance
 2. `app/api/blackout-days/create/route.ts` - Added crypto import
 3. `tests/setupEnv.ts` - Added crypto polyfill and enhanced setup
-4. `package.json` - Modified test script to preload setup
-5. `tsconfig.json` - Excluded test files from build
-6. `app/lib/automation/tests/executor.test.ts` - Fixed mock property names
-7. `app/lib/automation/tests/evaluator.test.ts` - Fixed mock property names  
-8. `tests/api/blackoutDaysRoutes.test.ts` - Added setupEnv import
-9. `scripts/debug-employee-user-mapping.ts` - Fixed query syntax
-10. `scripts/diagnose-org-chart.ts` - Fixed type casting
+4. `tsconfig.json` - Excluded test files from build
+5. `app/lib/automation/tests/executor.test.ts` - Fixed mock property names
+6. `app/lib/automation/tests/evaluator.test.ts` - Fixed mock property names  
+7. All 31 test files in `tests/**/*.test.ts` - Added setupEnv import
+8. `scripts/debug-employee-user-mapping.ts` - Fixed query syntax
+9. `scripts/diagnose-org-chart.ts` - Fixed type casting

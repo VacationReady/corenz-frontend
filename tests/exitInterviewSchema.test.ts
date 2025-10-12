@@ -1,3 +1,4 @@
+import "./setupEnv";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { exitInterviewSchema } from "../app/api/offboarding/[employeeId]/exit-interview/schema";

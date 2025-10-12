@@ -1,3 +1,4 @@
+import "./setupEnv";
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { computeDiffs, serialize, validateReasons } from '@/lib/audit-helpers';

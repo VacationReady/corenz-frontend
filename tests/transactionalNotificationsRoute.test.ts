@@ -1,3 +1,4 @@
+import "./setupEnv";
 import { describe, it, beforeEach, mock } from "node:test";
 import assert from "node:assert";
 import { NextRequest } from "next/server";

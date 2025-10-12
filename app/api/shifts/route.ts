@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
         User: {
           select: {
             name: true,
-            image: true,
+            profileImageUrl: true,
           },
         },
       },

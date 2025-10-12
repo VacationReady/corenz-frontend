@@ -134,12 +134,13 @@ export async function POST(req: NextRequest) {
       data: {
         id: `audit-${Date.now()}-${Math.random()}`,
         companyId: requestingEmployee.companyId,
-        userId: session.user.id,
-        action: 'MANUAL_TIME_ENTRY_CREATED',
-        tableName: 'ClockEntry',
-        recordId: clockEntry.id,
-        changedAt: new Date(),
-        details: {
+        actorId: session.user.id,
+        action: 'CREATED',
+        entityType: 'EMPLOYEE',
+        entityId: data.employeeId,
+        metadata: {
+          type: 'MANUAL_TIME_ENTRY',
+          clockEntryId: clockEntry.id,
           targetEmployeeId: data.employeeId,
           clockInTime: clockInTime.toISOString(),
           clockOutTime: clockOutTime.toISOString(),

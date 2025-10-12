@@ -172,10 +172,10 @@ export async function POST(req: NextRequest) {
         conflicts: result.conflicts,
         totalCost: result.totalCost,
         utilizationByEmployee: Array.from(result.utilizationByEmployee.entries()).map(
-          ([employeeId, hours]: [string, number]) => ({
-            employeeId,
-            hours,
-            employee: employeeProfiles.find((e: EmployeeProfile) => e.id === employeeId),
+          (entry: [string, number]) => ({
+            employeeId: entry[0],
+            hours: entry[1],
+            employee: employeeProfiles.find((e: EmployeeProfile) => e.id === entry[0]),
           })
         ),
       },

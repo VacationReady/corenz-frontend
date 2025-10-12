@@ -23,7 +23,15 @@ const envSchema = z.object({
 
   // Authentication
   NEXTAUTH_SECRET: z.string().min(1, "NEXTAUTH_SECRET is required for session security"),
-  NEXTAUTH_URL: z.string().url("NEXTAUTH_URL must be a valid URL"),
+  NEXTAUTH_URL: z.string()
+    .transform(val => {
+      // Auto-fix: Add https:// if missing protocol
+      if (val && !val.startsWith("http://") && !val.startsWith("https://")) {
+        return `https://${val}`;
+      }
+      return val;
+    })
+    .pipe(z.string().url("NEXTAUTH_URL must be a valid URL")),
 
   // OAuth Providers (optional)
   GOOGLE_CLIENT_ID: z.string().optional(),
@@ -155,6 +163,13 @@ function parseEnv(): Env {
     // At runtime, fail hard on invalid config
     console.error("❌ Environment validation failed:");
     console.error(JSON.stringify(parsed.error.format(), null, 2));
+    console.error("\n📋 Current environment variable values:");
+    console.error(`  NEXTAUTH_URL: "${process.env.NEXTAUTH_URL}"`);
+    console.error(`  DATABASE_URL: "${process.env.DATABASE_URL?.slice(0, 30)}..."`);
+    console.error(`  NEXTAUTH_SECRET: ${process.env.NEXTAUTH_SECRET ? '[SET]' : '[NOT SET]'}`);
+    console.error("\n💡 Common fixes:");
+    console.error("  - NEXTAUTH_URL must include protocol (https://yourdomain.com)");
+    console.error("  - Check Vercel environment variables are set correctly");
     throw new Error("Invalid environment configuration. See logs above for details.");
   }
 

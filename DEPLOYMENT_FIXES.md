@@ -63,15 +63,26 @@ Fixed all TypeScript compilation errors, test environment issues, and build-time
 **File**: `tests/api/blackoutDaysRoutes.test.ts`
 - **Enhancement**: Added setupEnv import to ensure test environment is properly configured
 
-### 6. Environment Validation Fixed for Build Phase ✅
+### 6. Environment Validation Fixed for Build Phase & Runtime ✅
 
 **File**: `app/lib/env.server.ts`
-- **Issue**: Environment validation ran at build time, causing Vercel builds to fail when `NEXTAUTH_URL` wasn't available
+
+**Build Phase Issue**: Environment validation ran at build time, causing Vercel builds to fail when `NEXTAUTH_URL` wasn't available
 - **Fix**: Added build phase detection that skips strict validation during `npm run build`
-- **Behavior**:
-  - **Build Phase**: Returns sensible defaults, logs warning, doesn't crash
-  - **Runtime**: Validates strictly and fails fast on invalid config
 - **Detection**: Checks `NEXT_PHASE` environment variable or absence of `NEXTAUTH_URL`
+
+**Runtime Issue**: `NEXTAUTH_URL` validation failed when users set domain without protocol
+- **Fix**: Auto-adds `https://` prefix if protocol is missing
+- **Example**: `myapp.vercel.app` → `https://myapp.vercel.app`
+
+**Enhanced Error Logging**:
+- Shows actual environment variable values in error messages
+- Provides common fix suggestions
+- Helps debug configuration issues quickly
+
+**Behavior**:
+  - **Build Phase**: Returns sensible defaults, logs warning, doesn't crash
+  - **Runtime**: Auto-fixes common URL issues, then validates strictly and fails fast on invalid config
 
 ## Impact
 

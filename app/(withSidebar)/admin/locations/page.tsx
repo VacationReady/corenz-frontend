@@ -344,7 +344,7 @@ export default function LocationsManagementPage() {
               <Input
                 placeholder="Search locations..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               />
 
               <div className="space-y-2 max-h-[500px] overflow-y-auto">
@@ -421,7 +421,7 @@ export default function LocationsManagementPage() {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Main Office"
                 />
               </div>
@@ -431,7 +431,7 @@ export default function LocationsManagementPage() {
                 <Input
                   id="address"
                   value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, address: e.target.value })}
                   placeholder="123 Main St, City"
                 />
               </div>
@@ -443,7 +443,7 @@ export default function LocationsManagementPage() {
                   type="number"
                   step="0.000001"
                   value={formData.latitude}
-                  onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, latitude: e.target.value })}
                   placeholder="-41.2865"
                 />
               </div>
@@ -455,7 +455,7 @@ export default function LocationsManagementPage() {
                   type="number"
                   step="0.000001"
                   value={formData.longitude}
-                  onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, longitude: e.target.value })}
                   placeholder="174.7762"
                 />
               </div>

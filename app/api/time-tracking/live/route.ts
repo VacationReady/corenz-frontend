@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
         },
       },
       include: {
-        employee: {
+        Employee: {
           select: {
             id: true,
             User: {
@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
         },
       },
       include: {
-        employee: {
+        Employee: {
           select: {
             User: {
               select: {
@@ -191,9 +191,9 @@ export async function GET(req: NextRequest) {
 
     // Build recent activity feed
     const recentActivityFeed = recentActivity.map((entry) => ({
-      employeeName: entry.employee?.User.name || 'Unknown',
+      employeeName: entry.Employee?.User.name || 'Unknown',
       action: entry.status === 'ACTIVE' ? 'CLOCKED_IN' : 'CLOCKED_OUT',
-      location: entry.employee?.Location?.name,
+      location: entry.Employee?.Location?.name,
       timestamp: entry.clockInTime,
       clockInTime: entry.clockInTime,
       clockOutTime: entry.clockOutTime,

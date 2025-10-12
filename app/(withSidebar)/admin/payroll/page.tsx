@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Eye, FileSpreadsheet, FileJson, FileText } from "lucide-react";
-import { format } from "date-fns";
+import { format as formatDate } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -28,7 +28,7 @@ type PayrollSummary = {
 export default function PayrollExportPage() {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  const [format, setFormat] = useState<"CSV" | "EXCEL" | "JSON">("CSV");
+  const [exportFormat, setExportFormat] = useState<"CSV" | "EXCEL" | "JSON">("CSV");
   const [departmentId, setDepartmentId] = useState<string>("");
   const [includeBreaks, setIncludeBreaks] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(true);
@@ -126,7 +126,7 @@ export default function PayrollExportPage() {
         body: JSON.stringify({
           startDate: startDate.toISOString().split("T")[0],
           endDate: endDate.toISOString().split("T")[0],
-          format,
+          format: exportFormat,
           departmentId: departmentId || undefined,
           includeBreaks,
           includeNotes,
@@ -140,7 +140,7 @@ export default function PayrollExportPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const extension = format === "CSV" ? "csv" : format === "EXCEL" ? "xlsx" : "json";
+      const extension = exportFormat === "CSV" ? "csv" : exportFormat === "EXCEL" ? "xlsx" : "json";
       a.download = `payroll_export_${startDate.toISOString().split("T")[0]}_${endDate.toISOString().split("T")[0]}.${extension}`;
       document.body.appendChild(a);
       a.click();
@@ -163,7 +163,7 @@ export default function PayrollExportPage() {
   };
 
   const getFormatIcon = () => {
-    switch (format) {
+    switch (exportFormat) {
       case "CSV":
         return <FileText className="w-5 h-5" />;
       case "EXCEL":
@@ -207,7 +207,7 @@ export default function PayrollExportPage() {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, "PPP") : "Pick a date"}
+                        {startDate ? formatDate(startDate, "PPP") : "Pick a date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -233,7 +233,7 @@ export default function PayrollExportPage() {
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "PPP") : "Pick a date"}
+                        {endDate ? formatDate(endDate, "PPP") : "Pick a date"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -251,7 +251,7 @@ export default function PayrollExportPage() {
               {/* Format Selector */}
               <div className="space-y-2">
                 <Label>Export Format</Label>
-                <Select value={format} onValueChange={(v) => setFormat(v as any)}>
+                <Select value={exportFormat} onValueChange={(v: string) => setExportFormat(v as any)}>
                   <SelectTrigger>
                     <div className="flex items-center gap-2">
                       {getFormatIcon()}

@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
     const timesheets = await prisma.timesheet.findMany({
       where: whereClause,
       include: {
-        employee: {
+        Employee: {
           include: {
             User: {
               select: {
@@ -242,12 +242,12 @@ export async function POST(req: NextRequest) {
     >();
 
     for (const timesheet of timesheets) {
-      const employeeName = timesheet.employee.User?.name || "Unknown";
-      const employeeEmail = timesheet.employee.User?.email || "";
-      const department = timesheet.employee.Department?.name || "Unassigned";
-      const hourlyRate = (timesheet.employee as any).hourlyRate || 0;
+      const employeeName = timesheet.Employee.User?.name || "Unknown";
+      const employeeEmail = timesheet.Employee.User?.email || "";
+      const department = timesheet.Employee.Department?.name || "Unassigned";
+      const hourlyRate = (timesheet.Employee as any).hourlyRate || 0;
 
-      for (const entry of timesheet.entries) {
+      for (const entry of timesheet.TimesheetEntries) {
         const clockIn = entry.clockIn ? new Date(entry.clockIn) : null;
         const clockOut = entry.clockOut ? new Date(entry.clockOut) : null;
 
@@ -258,14 +258,14 @@ export async function POST(req: NextRequest) {
         const workedMinutes = totalMinutes - breakMinutes;
         const totalHours = parseFloat((workedMinutes / 60).toFixed(2));
 
-        const approval = timesheet.approvals[0];
+        const approval = timesheet.ApprovalStages[0];
         const approvedBy = approval?.approver?.User?.name || "System";
         const approvedAt = approval?.createdAt
           ? new Date(approval.createdAt).toISOString()
           : "";
 
         const payrollEntry: PayrollEntry = {
-          employeeId: timesheet.employeeId,
+          employeeId: timesheet.EmployeeId,
           employeeName,
           email: employeeEmail,
           department,
@@ -279,7 +279,7 @@ export async function POST(req: NextRequest) {
           totalCost: parseFloat((totalHours * hourlyRate).toFixed(2)),
           location: entry.location?.name || "",
           notes: data.includeNotes !== false ? (entry.notes || "") : "",
-          status: timesheet.status,
+          status: timesheet.approvalStatus,
           approvedBy,
           approvedAt,
         };
@@ -287,16 +287,16 @@ export async function POST(req: NextRequest) {
         payrollEntries.push(payrollEntry);
 
         // Group by employee
-        if (!employeeMap.has(timesheet.employeeId)) {
-          employeeMap.set(timesheet.employeeId, {
-            employeeId: timesheet.employeeId,
+        if (!employeeMap.has(timesheet.EmployeeId)) {
+          employeeMap.set(timesheet.EmployeeId, {
+            employeeId: timesheet.EmployeeId,
             name: employeeName,
             email: employeeEmail,
             department,
             entries: [],
           });
         }
-        employeeMap.get(timesheet.employeeId)!.entries.push({
+        employeeMap.get(timesheet.EmployeeId)!.entries.push({
           date: payrollEntry.date,
           clockIn: payrollEntry.clockIn,
           clockOut: payrollEntry.clockOut,
@@ -324,8 +324,8 @@ export async function POST(req: NextRequest) {
         id: `audit-${Date.now()}-${Math.random()}`,
         actorId: session.user.id,
         companyId: employee.companyId,
-        action: "EXPORTED",
-        entityType: "TIMESHEET",
+        action: 'CREATED',
+        entityType: 'EMPLOYEE',
         entityId: "payroll_export",
         metadata: {
           type: "PAYROLL_EXPORT",
@@ -443,7 +443,7 @@ export async function POST(req: NextRequest) {
     const employees = Array.from(employeeMap.values()).map((emp) => {
       const totalHours = emp.entries.reduce((sum, e) => sum + e.totalHours, 0);
       const totalCost = emp.entries.reduce((sum, e) => sum + e.totalCost, 0);
-      const overtimeHours = calculateOvertimeHours(totalHours, overtimeThreshold);
+      const overtimeHours = calculateOvertimeHours(totalHours, typeof overtimeThreshold === 'number' ? overtimeThreshold : parseFloat(overtimeThreshold.toString()));
 
       return {
         ...emp,

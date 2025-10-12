@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
       prisma.timesheet.findMany({
         where: whereClause,
         include: {
-          employee: {
+          Employee: {
             include: {
               User: {
                 select: {
@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
     const enrichedTimesheets = timesheets.map((timesheet) => {
       let totalHours = 0;
 
-      for (const entry of timesheet.entries) {
+      for (const entry of timesheet.TimesheetEntries) {
         if (entry.clockIn && entry.clockOut) {
           const clockIn = new Date(entry.clockIn);
           const clockOut = new Date(entry.clockOut);
@@ -142,17 +142,17 @@ export async function GET(req: NextRequest) {
 
       return {
         id: timesheet.id,
-        employeeId: timesheet.employeeId,
-        employeeName: timesheet.employee.User?.name || "Unknown",
-        employeeEmail: timesheet.employee.User?.email || "",
-        employeeAvatar: timesheet.employee.User?.avatarUrl,
-        department: timesheet.employee.Department?.name || "Unassigned",
+        employeeId: timesheet.EmployeeId,
+        employeeName: timesheet.Employee.User?.name || "Unknown",
+        employeeEmail: timesheet.Employee.User?.email || "",
+        employeeAvatar: timesheet.Employee.User?.avatarUrl,
+        department: timesheet.Employee.Department?.name || "Unassigned",
         periodStart: timesheet.periodStart,
         periodEnd: timesheet.periodEnd,
         totalHours: parseFloat(totalHours.toFixed(2)),
-        status: timesheet.status,
+        status: timesheet.approvalStatus,
         submittedAt: timesheet.submittedAt,
-        notes: timesheet.notes,
+        notes: timesheet.submissionNotes,
       };
     });
 

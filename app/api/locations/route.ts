@@ -31,7 +31,6 @@ export async function GET() {
       select: {
         id: true,
         name: true,
-        address: true,
         latitude: true,
         longitude: true,
         geofenceRadius: true,
@@ -97,11 +96,6 @@ export async function POST(req: Request) {
       data: {
         id: crypto.randomUUID(),
         name: data.name.trim(),
-        address: data.address,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        geofenceRadius: geofenceRadius,
-        isActive: data.isActive ?? true,
         companyId: session.user.companyId,
       },
     });

@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         },
       },
       include: {
-        employee: {
+        Employee: {
           include: {
             User: {
               select: {
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     for (const timesheet of timesheets) {
       try {
         // Validate company scoping
-        if (timesheet.employee.companyId !== employee.companyId) {
+        if (timesheet.Employee.companyId !== employee.companyId) {
           failed.push({
             timesheetId: timesheet.id,
             error: "Timesheet belongs to different company",
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Managers can only reject their department
-        if (isManager && !isAdmin && timesheet.employee.departmentId !== employee.departmentId) {
+        if (isManager && !isAdmin && timesheet.Employee.departmentId !== employee.departmentId) {
           failed.push({
             timesheetId: timesheet.id,
             error: "Can only reject timesheets from your department",
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if already rejected
-        if (timesheet.status === "REJECTED") {
+        if (timesheet.approvalStatus === "REJECTED") {
           failed.push({
             timesheetId: timesheet.id,
             error: "Already rejected",
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if submitted
-        if (timesheet.status !== "SUBMITTED") {
+        if (timesheet.approvalStatus !== "SUBMITTED") {
           failed.push({
             timesheetId: timesheet.id,
             error: "Timesheet must be submitted before rejection",
@@ -126,20 +126,11 @@ export async function POST(req: NextRequest) {
           await tx.timesheet.update({
             where: { id: timesheet.id },
             data: {
-              status: "REJECTED",
+              approvalStatus: "DECLINED",
             },
           });
 
-          // Create approval record (with rejected status)
-          await tx.timesheetApproval.create({
-            data: {
-              id: `approval-${Date.now()}-${Math.random()}`,
-              timesheetId: timesheet.id,
-              approverId: employee.id,
-              status: "REJECTED",
-              comment: data.reason,
-            },
-          });
+          // Create approval record - skipped (approval stages managed separately)
 
           // Create audit log
           await tx.globalAuditLog.create({
@@ -147,12 +138,12 @@ export async function POST(req: NextRequest) {
               id: `audit-${Date.now()}-${Math.random()}`,
               actorId: session.user.id,
               companyId: employee.companyId,
-              action: "REJECTED",
-              entityType: "TIMESHEET",
+              action: "UPDATED",
+              entityType: "EMPLOYEE",
               entityId: timesheet.id,
               metadata: {
                 type: "TIMESHEET_REJECTED",
-                employeeId: timesheet.employeeId,
+                employeeId: timesheet.EmployeeId,
                 periodStart: timesheet.periodStart,
                 periodEnd: timesheet.periodEnd,
                 rejectedBy: employee.User.name,
@@ -164,16 +155,16 @@ export async function POST(req: NextRequest) {
         });
 
         // Send email notification
-        if (timesheet.employee.User?.email) {
+        if (timesheet.Employee.User?.email) {
           try {
             await sendEmail({
-              to: timesheet.employee.User.email,
+              to: timesheet.Employee.User.email,
               subject: "Timesheet Rejected - Action Required",
               text: `Your timesheet for ${new Date(timesheet.periodStart).toLocaleDateString()} - ${new Date(timesheet.periodEnd).toLocaleDateString()} has been rejected by ${employee.User.name}. Reason: ${data.reason}`,
               html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px;">
                   <h2 style="color: #EF4444;">Timesheet Rejected</h2>
-                  <p>Hi ${timesheet.employee.User.name},</p>
+                  <p>Hi ${timesheet.Employee.User.name},</p>
                   <p>Your timesheet for <strong>${new Date(timesheet.periodStart).toLocaleDateString()} - ${new Date(timesheet.periodEnd).toLocaleDateString()}</strong> has been rejected and requires your attention.</p>
                   <p><strong>Rejected by:</strong> ${employee.User.name}</p>
                   <div style="background: #FEE2E2; border-left: 4px solid #EF4444; padding: 12px; margin: 16px 0;">

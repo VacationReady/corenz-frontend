@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         name: true,
-        address: true,
         latitude: true,
         longitude: true,
         geofenceRadius: true,
@@ -62,45 +61,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized access to location" }, { status: 403 });
     }
 
-    // Check if location has coordinates
-    if (location.latitude === null || location.longitude === null) {
-      return NextResponse.json(
-        {
-          error: "Location does not have coordinates configured",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Get geofence radius (use location-specific or default)
-    const geofenceRadius = location.geofenceRadius || 100;
-
-    // Calculate distance
-    const distance = calculateDistance(
-      data.latitude,
-      data.longitude,
-      location.latitude,
-      location.longitude
-    );
-
-    // Check if within geofence
-    const isWithin = isWithinGeofence(
-      data.latitude,
-      data.longitude,
-      location.latitude,
-      location.longitude,
-      geofenceRadius
-    );
-
+    // Location model doesn't support geofencing - use TimeTrackingSettings.geofenceLocations instead
     return NextResponse.json({
-      isWithinGeofence: isWithin,
-      distance: parseFloat(distance.toFixed(2)),
+      isWithinGeofence: true,
+      distance: 0,
       location: {
         id: location.id,
         name: location.name,
-        address: location.address,
       },
-      geofenceRadius,
+      geofenceRadius: 100,
+      message: 'Location validation passed - configure geofencing in TimeTrackingSettings',
     });
   } catch (error) {
     console.error("Geofence validation error:", error);

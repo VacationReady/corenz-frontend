@@ -109,7 +109,6 @@ export async function PUT(
       where: { id: params.id },
       data: {
         name: data.name,
-        address: data.address,
         latitude: data.latitude,
         longitude: data.longitude,
         geofenceRadius: data.geofenceRadius,

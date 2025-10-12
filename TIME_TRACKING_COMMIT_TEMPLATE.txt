@@ -1,0 +1,119 @@
+feat: Add comprehensive time tracking and scheduling system foundation
+
+Implemented enterprise-grade time tracking with NZ employment law compliance,
+intelligent auto-scheduling, GPS verification, and payroll integration.
+
+## Database Schema
+- Added 15 new models for time tracking, scheduling, and compliance
+- Created TimeTrackingSettings for company-level configuration
+- Integrated with existing ApprovalWorkflow system
+- Added 8 new enums for status tracking and compliance
+
+Models:
+- ClockEntry: GPS + photo clock in/out with device tracking
+- Timesheet: Period-based aggregation with approval workflow
+- TimesheetEntry: Individual timesheet line items
+- TimesheetApprovalStage/Decision: Multi-stage approval integration
+- Shift: Scheduled shifts with cost calculation
+- ShiftTemplate: Reusable shift patterns
+- ShiftSwapRequest: Employee-initiated shift swaps
+- AvailabilityPattern/Exception: Employee availability tracking
+- ScheduleConflict: Auto-detected scheduling conflicts
+- PayrollExport: 6-year retention audit trail
+- BreakRecord: Meal and rest break compliance
+- ComplianceViolation: NZ employment law violation logging
+
+## Utility Libraries
+- timesheet-calculations.ts: Hours, overtime, pay calculations
+- conflict-detector.ts: Schedule conflict detection algorithm
+- auto-scheduler.ts: AI-powered intelligent shift scheduling
+- payroll-export.ts: CSV/Excel/JSON export with summaries
+- gps-verification.ts: Geofence validation and GPS verification
+
+## API Routes (Core)
+Time Tracking:
+- POST /api/time-tracking/clock-in (GPS, photo, geofence validation)
+- POST /api/time-tracking/clock-out (auto-rounding, break tracking)
+- GET /api/time-tracking/status (live clock status)
+- GET /api/time-tracking/history (week/month/all periods)
+- POST /api/time-tracking/manual-entry (manager override)
+
+Timesheets:
+- GET /api/timesheets (filtered list with approval stages)
+- POST /api/timesheets/generate (auto-generate from clock entries)
+
+Shifts:
+- GET /api/shifts (filtered by date/department/employee)
+- POST /api/shifts (create with cost calculation)
+- POST /api/shifts/auto-schedule (AI-powered scheduling)
+
+## UI Components
+- ClockWidget: Mobile-optimized clock in/out with live timer,
+  GPS location display, photo upload, and status tracking
+
+## Key Features
+✅ NZ Employment Law Compliance
+  - 11-hour minimum rest period tracking
+  - Meal break requirements (30 min after 5 hours)
+  - Rest break tracking (10 min after 2 hours)
+  - Compliance violation logging with severity levels
+
+✅ Intelligent Auto-Scheduling
+  - Skills matching and availability checking
+  - Fair hour distribution across employees
+  - Labor cost optimization
+  - Conflict detection (double-booking, rest periods, overtime)
+
+✅ GPS & Geofencing
+  - Haversine distance calculations
+  - Geofence validation with accuracy checking
+  - Historical location analysis
+  - Auto-suggest geofence radius
+
+✅ Payroll Integration
+  - CSV/Excel/JSON export formats
+  - Overtime calculations with configurable multipliers
+  - Department-level summaries
+  - Links to existing Employee.hourlyRate (no duplication)
+
+✅ Approval Workflow Integration
+  - Leverages existing ApprovalWorkflow models
+  - Multi-stage approval (sequential, first-responder, unanimous)
+  - Approval timeline and comment tracking
+
+## Configuration
+TimeTrackingSettings model stores company preferences:
+- Clock settings: GPS, photos, geofencing, rounding
+- Timesheet settings: periods, auto-submit, approvals
+- Rota settings: auto-scheduling, shift confirmations, swaps
+- Payroll settings: overtime thresholds, export formats
+
+## Documentation
+- TIME_TRACKING_IMPLEMENTATION_SUMMARY.md: Complete feature overview
+- TIME_TRACKING_QUICK_START.md: 5-minute setup guide
+- DEPENDENCIES_CHECKLIST.md: Installation requirements
+
+## Migration
+- prisma/migrations/20250112000000_add_time_tracking_system/migration.sql
+
+## Dependencies Added
+- xlsx: Excel file generation for payroll exports
+
+## Next Steps
+See TIME_TRACKING_IMPLEMENTATION_SUMMARY.md for:
+- Remaining API routes (submit, approve, reject, publish)
+- Additional UI components (calendar, cards, forms)
+- Main pages (rota hub, timesheet hub, employee views)
+- Settings configuration UI
+- Mobile app screens
+
+## Testing
+Foundation ready for:
+- Unit tests on calculation algorithms
+- Integration tests on approval workflows
+- E2E tests on full clock→approve→export flow
+
+Breaking Changes: None
+Backward Compatible: Yes
+Security: Role-based access (EMPLOYEE, MANAGER, ADMIN)
+Performance: Optimized with composite indexes on all queries

@@ -2899,6 +2899,323 @@ enum ObjectivePriority {
   CRITICAL
 }
 
+// ============================================
+// TIME TRACKING & SCHEDULING MODELS
+// ============================================
+
+model ClockEntry {
+  id              String         @id @default(cuid())
+  employeeId      String
+  companyId       String
+  clockInTime     DateTime
+  clockOutTime    DateTime?
+  clockInLocation Json?          // {lat, lng, accuracy}
+  clockOutLocation Json?         // {lat, lng, accuracy}
+  clockInPhotoUrl String?
+  clockOutPhotoUrl String?
+  ipAddress       String?
+  deviceInfo      Json?          // {device, os, browser}
+  status          ClockEntryStatus @default(ACTIVE)
+  notes           String?
+  timesheetId     String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  Timesheet       Timesheet?     @relation(fields: [timesheetId], references: [id])
+  
+  @@index([employeeId, clockInTime])
+  @@index([companyId, status])
+  @@index([timesheetId])
+}
+
+model Timesheet {
+  id                  String                 @id @default(cuid())
+  employeeId          String
+  companyId           String
+  periodStart         DateTime
+  periodEnd           DateTime
+  totalHours          Decimal                @db.Decimal(10, 2)
+  regularHours        Decimal                @db.Decimal(10, 2)
+  overtimeHours       Decimal                @db.Decimal(10, 2)
+  breakHours          Decimal                @db.Decimal(10, 2)
+  approvalStatus      ApprovalStatus         @default(PENDING)
+  submittedAt         DateTime?
+  approvedAt          DateTime?
+  approvedBy          String?
+  rejectedReason      String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  
+  ClockEntries        ClockEntry[]
+  TimesheetEntries    TimesheetEntry[]
+  ApprovalStages      TimesheetApprovalStage[]
+  BreakRecords        BreakRecord[]
+  
+  @@index([employeeId, periodStart])
+  @@index([companyId, approvalStatus])
+  @@unique([employeeId, periodStart, periodEnd])
+}
+
+model TimesheetEntry {
+  id          String    @id @default(cuid())
+  timesheetId String
+  date        DateTime
+  startTime   DateTime
+  endTime     DateTime
+  breakMinutes Int      @default(0)
+  hours       Decimal   @db.Decimal(10, 2)
+  isOvertime  Boolean   @default(false)
+  notes       String?
+  entryType   TimesheetEntryType @default(MANUAL)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  Timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  
+  @@index([timesheetId, date])
+}
+
+model TimesheetApprovalStage {
+  id              String                     @id @default(cuid())
+  timesheetId     String
+  workflowStageId String?
+  name            String?
+  order           Int
+  mode            ApprovalStageMode
+  status          ApprovalStatus             @default(PENDING)
+  isActive        Boolean                    @default(false)
+  completedAt     DateTime?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  
+  Timesheet       Timesheet                  @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  Decisions       TimesheetApprovalDecision[]
+  
+  @@index([timesheetId, order])
+}
+
+model TimesheetApprovalDecision {
+  id          String                   @id @default(cuid())
+  stageId     String
+  approverId  String
+  order       Int
+  status      ApprovalStatus           @default(PENDING)
+  isActive    Boolean                  @default(false)
+  comments    String?
+  respondedAt DateTime?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  
+  Stage       TimesheetApprovalStage   @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  
+  @@unique([stageId, approverId])
+  @@unique([stageId, order])
+  @@index([approverId, status, isActive])
+}
+
+model ShiftTemplate {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  description String?
+  startTime   String   // HH:MM format
+  endTime     String   // HH:MM format
+  breakDuration Int    @default(0) // minutes
+  color       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  Shifts      Shift[]
+  
+  @@index([companyId, isActive])
+  @@unique([companyId, name])
+}
+
+model Shift {
+  id                  String              @id @default(cuid())
+  companyId           String
+  employeeId          String?
+  templateId          String?
+  departmentId        String?
+  locationId          String?
+  startTime           DateTime
+  endTime             DateTime
+  breakDuration       Int                 @default(0) // minutes
+  notes               String?
+  role                String?
+  requiredSkills      String[]            @default([])
+  isPublished         Boolean             @default(false)
+  requiresConfirmation Boolean            @default(false)
+  confirmedAt         DateTime?
+  attendanceStatus    ShiftAttendanceStatus @default(SCHEDULED)
+  cost                Decimal?            @db.Decimal(10, 2)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  createdBy           String
+  
+  Template            ShiftTemplate?      @relation(fields: [templateId], references: [id])
+  ShiftSwapRequests   ShiftSwapRequest[]
+  
+  @@index([companyId, startTime])
+  @@index([employeeId, startTime])
+  @@index([departmentId, startTime])
+  @@index([isPublished])
+}
+
+model ShiftSwapRequest {
+  id                  String              @id @default(cuid())
+  shiftId             String
+  requesterId         String
+  targetEmployeeId    String?
+  status              ShiftSwapStatus     @default(PENDING)
+  requestMessage      String?
+  responseMessage     String?
+  managerApprovalRequired Boolean         @default(true)
+  managerApprovedBy   String?
+  managerApprovedAt   DateTime?
+  acceptedAt          DateTime?
+  rejectedAt          DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  
+  Shift               Shift               @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  
+  @@index([requesterId, status])
+  @@index([targetEmployeeId, status])
+  @@index([shiftId])
+}
+
+model AvailabilityPattern {
+  id          String   @id @default(cuid())
+  employeeId  String
+  companyId   String
+  dayOfWeek   Int      // 0=Sunday, 6=Saturday
+  startTime   String   // HH:MM format
+  endTime     String   // HH:MM format
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([employeeId, dayOfWeek])
+  @@unique([employeeId, dayOfWeek, startTime, endTime])
+}
+
+model AvailabilityException {
+  id          String   @id @default(cuid())
+  employeeId  String
+  companyId   String
+  date        DateTime
+  startTime   String?  // HH:MM format (null = all day)
+  endTime     String?  // HH:MM format (null = all day)
+  isAvailable Boolean  @default(false)
+  reason      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([employeeId, date])
+}
+
+model ScheduleConflict {
+  id             String             @id @default(cuid())
+  companyId      String
+  employeeId     String
+  conflictType   ConflictType
+  description    String
+  shift1Id       String?
+  shift2Id       String?
+  detectedAt     DateTime           @default(now())
+  resolvedAt     DateTime?
+  resolvedBy     String?
+  severity       ConflictSeverity   @default(MEDIUM)
+  
+  @@index([companyId, resolvedAt])
+  @@index([employeeId, resolvedAt])
+}
+
+model PayrollExport {
+  id          String   @id @default(cuid())
+  companyId   String
+  periodStart DateTime
+  periodEnd   DateTime
+  exportedBy  String
+  exportedAt  DateTime @default(now())
+  format      String   // CSV, EXCEL, JSON
+  fileUrl     String?
+  employeeCount Int
+  totalHours  Decimal  @db.Decimal(10, 2)
+  totalCost   Decimal? @db.Decimal(10, 2)
+  metadata    Json?    // Additional export settings
+  
+  @@index([companyId, exportedAt])
+}
+
+model BreakRecord {
+  id          String     @id @default(cuid())
+  timesheetId String?
+  employeeId  String
+  companyId   String
+  breakType   BreakType
+  startTime   DateTime
+  endTime     DateTime?
+  duration    Int?       // minutes
+  isPaid      Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  Timesheet   Timesheet? @relation(fields: [timesheetId], references: [id])
+  
+  @@index([employeeId, startTime])
+  @@index([companyId, breakType])
+}
+
+model ComplianceViolation {
+  id             String             @id @default(cuid())
+  companyId      String
+  employeeId     String
+  violationType  ViolationType
+  description    String
+  detectedAt     DateTime           @default(now())
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+  resolution     String?
+  severity       ViolationSeverity  @default(MEDIUM)
+  metadata       Json?              // Additional context
+  
+  @@index([companyId, violationType])
+  @@index([employeeId, detectedAt])
+}
+
+model TimeTrackingSettings {
+  id                   String   @id @default(cuid())
+  companyId            String   @unique
+  requireGPS           Boolean  @default(false)
+  requirePhoto         String   @default("NO") // NO, CLOCK_IN, BOTH
+  allowMobileClock     Boolean  @default(true)
+  geofenceLocations    Json?    // [{lat, lng, radius, name}]
+  roundClockTimes      String   @default("NONE") // NONE, 15MIN, 30MIN
+  autoClockOutHours    Int?
+  timesheetPeriod      String   @default("WEEKLY") // WEEKLY, BIWEEKLY, MONTHLY
+  periodStartDay       String   @default("MONDAY") // MONDAY, SUNDAY, 1ST
+  autoSubmit           Boolean  @default(false)
+  defaultWorkflowId    String?
+  allowEditAfterSubmit Boolean  @default(false)
+  autoSchedulingEnabled Boolean @default(false)
+  publishDaysAdvance   Int      @default(7)
+  requireShiftConfirm  Boolean  @default(false)
+  allowShiftSwaps      Boolean  @default(true)
+  managerApprovalSwaps Boolean  @default(true)
+  minimumRestHours     Int      @default(11)
+  includeOvertimeExport Boolean @default(true)
+  overtimeThreshold    Decimal  @db.Decimal(5, 2) @default(40.00)
+  overtimeMultiplier   Decimal  @db.Decimal(3, 2) @default(1.50)
+  exportFormat         String   @default("CSV") // CSV, EXCEL, JSON
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  @@index([companyId])
+}
+
 enum ObjectiveVisibility {
   PRIVATE
   TEAM
@@ -3031,4 +3348,70 @@ enum PerformanceNotificationChannel {
   IN_APP
   SLACK
   SMS
+}
+
+// ============================================
+// TIME TRACKING & SCHEDULING ENUMS
+// ============================================
+
+enum ClockEntryStatus {
+  ACTIVE       // Currently clocked in
+  COMPLETED    // Clocked out
+  MISSED       // Missed clock out
+  CANCELLED    // Cancelled
+}
+
+enum TimesheetEntryType {
+  CLOCK        // Generated from clock entry
+  MANUAL       // Manually entered
+  ADJUSTED     // Adjusted by manager
+}
+
+enum ShiftAttendanceStatus {
+  SCHEDULED    // Shift scheduled
+  CONFIRMED    // Employee confirmed
+  COMPLETED    // Shift completed
+  NO_SHOW      // Employee didn't show up
+  PARTIAL      // Partially completed
+  CANCELLED    // Shift cancelled
+}
+
+enum ShiftSwapStatus {
+  PENDING              // Awaiting colleague response
+  ACCEPTED             // Colleague accepted
+  REJECTED             // Colleague rejected
+  MANAGER_PENDING      // Awaiting manager approval
+  APPROVED             // Manager approved
+  DECLINED             // Manager declined
+  COMPLETED            // Swap completed
+}
+
+enum ConflictType {
+  DOUBLE_BOOKING      // Two shifts at same time
+  REST_PERIOD         // Insufficient rest between shifts
+  OVERTIME            // Exceeds maximum hours
+  UNAVAILABLE         // Employee marked unavailable
+  SKILL_MISMATCH      // Employee lacks required skills
+}
+
+enum ConflictSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum BreakType {
+  MEAL_BREAK          // 30-60 min meal break
+  REST_BREAK          // 10-15 min rest break
+  UNPAID_BREAK        // Unpaid break
+}
+
+enum ViolationType {
+  REST_PERIOD         // NZ: Minimum 11 hours rest
+  MEAL_BREAK          // NZ: 30 min after 5 hours
+  REST_BREAK          // NZ: 10 min after 2 hours
+  MAX_HOURS           // Exceeds maximum hours
+  OVERTIME_EXCESSIVE  // Excessive overtime
+  MISSING_TIMESHEET   // Timesheet not submitted
 }

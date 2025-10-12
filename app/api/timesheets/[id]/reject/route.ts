@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { sendEmail } from '@/lib/email';
+// import { sendEmail } from '@/lib/email'; // TODO: Implement email service
 
 const rejectSchema = z.object({
   reason: z.string().min(1, 'Rejection reason is required'),
@@ -85,29 +85,35 @@ export async function POST(
     });
 
     if (employee?.User.email) {
-      await sendEmail({
-        to: employee.User.email,
-        subject: 'Timesheet Rejected',
-        html: `
-          <h2>Timesheet Rejected</h2>
-          <p>Hi ${employee.User.name},</p>
-          <p>Your timesheet has been rejected by ${requestingEmployee.User.name}.</p>
-          <p><strong>Reason:</strong> ${data.reason}</p>
-          <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
-          <p>Please review and resubmit.</p>
-        `,
-      });
+      // TODO: Implement email notifications
+      // await sendEmail({
+      //   to: employee.User.email,
+      //   subject: 'Timesheet Rejected',
+      //   html: `
+      //     <h2>Timesheet Rejected</h2>
+      //     <p>Hi ${employee.User.name},</p>
+      //     <p>Your timesheet has been rejected by ${requestingEmployee.User.name}.</p>
+      //     <p><strong>Reason:</strong> ${data.reason}</p>
+      //     <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
+      //     <p>Please review and resubmit.</p>
+      //   `,
+      // });
     }
 
     // Audit log
     await prisma.globalAuditLog.create({
       data: {
-        userId: session.user.id,
+        id: `audit-${Date.now()}-${Math.random()}`,
+        actorId: session.user.id,
         companyId: requestingEmployee.companyId,
-        action: 'REJECT',
-        resourceType: 'Timesheet',
-        resourceId: params.id,
-        details: `Rejected timesheet: ${data.reason}`,
+        action: 'UPDATED',
+        entityType: 'EMPLOYEE',
+        entityId: timesheet.employeeId,
+        metadata: {
+          type: 'TIMESHEET_REJECTED',
+          timesheetId: params.id,
+          reason: data.reason,
+        },
       },
     });
 

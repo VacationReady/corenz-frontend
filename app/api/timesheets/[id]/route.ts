@@ -247,12 +247,16 @@ export async function PUT(
     // Create audit log
     await prisma.globalAuditLog.create({
       data: {
-        userId: session.user.id,
+        id: `audit-${Date.now()}-${Math.random()}`,
+        actorId: session.user.id,
         companyId: requestingEmployee.companyId,
-        action: 'UPDATE',
-        resourceType: 'Timesheet',
-        resourceId: params.id,
-        details: `Updated timesheet entries`,
+        action: 'UPDATED',
+        entityType: 'EMPLOYEE',
+        entityId: timesheet.employeeId,
+        metadata: {
+          type: 'TIMESHEET_UPDATED',
+          timesheetId: params.id,
+        },
       },
     });
 
@@ -361,12 +365,18 @@ export async function DELETE(
     // Create audit log
     await prisma.globalAuditLog.create({
       data: {
-        userId: session.user.id,
+        id: `audit-${Date.now()}-${Math.random()}`,
+        actorId: session.user.id,
         companyId: requestingEmployee.companyId,
-        action: 'DELETE',
-        resourceType: 'Timesheet',
-        resourceId: params.id,
-        details: `Deleted draft timesheet for period ${timesheet.periodStart.toISOString()} to ${timesheet.periodEnd.toISOString()}`,
+        action: 'DELETED',
+        entityType: 'EMPLOYEE',
+        entityId: timesheet.employeeId,
+        metadata: {
+          type: 'TIMESHEET_DELETED',
+          timesheetId: params.id,
+          periodStart: timesheet.periodStart.toISOString(),
+          periodEnd: timesheet.periodEnd.toISOString(),
+        },
       },
     });
 

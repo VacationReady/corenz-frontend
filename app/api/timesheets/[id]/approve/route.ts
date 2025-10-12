@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { sendEmail } from '@/lib/email';
+// import { sendEmail } from '@/lib/email'; // TODO: Implement email service
 
 const approveSchema = z.object({
   comments: z.string().optional(),
@@ -164,18 +164,19 @@ export async function POST(
           });
 
           if (approverEmployee?.User.email) {
-            await sendEmail({
-              to: approverEmployee.User.email,
-              subject: 'Timesheet Approval Required',
-              html: `
-                <h2>Timesheet Approval Required</h2>
-                <p>Hi ${approverEmployee.User.name},</p>
-                <p>A timesheet has reached your approval stage.</p>
-                <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
-                <p><strong>Total Hours:</strong> ${timesheet.totalHours}</p>
-                <p>Please review and approve or reject the timesheet.</p>
-              `,
-            });
+            // TODO: Implement email notifications
+            // await sendEmail({
+            //   to: approverEmployee.User.email,
+            //   subject: 'Timesheet Approval Required',
+            //   html: `
+            //     <h2>Timesheet Approval Required</h2>
+            //     <p>Hi ${approverEmployee.User.name},</p>
+            //     <p>A timesheet has reached your approval stage.</p>
+            //     <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
+            //     <p><strong>Total Hours:</strong> ${timesheet.totalHours}</p>
+            //     <p>Please review and approve or reject the timesheet.</p>
+            //   `,
+            // });
           }
         }
       } else {
@@ -203,17 +204,18 @@ export async function POST(
         });
 
         if (employee?.User.email) {
-          await sendEmail({
-            to: employee.User.email,
-            subject: 'Timesheet Approved',
-            html: `
-              <h2>Timesheet Approved</h2>
-              <p>Hi ${employee.User.name},</p>
-              <p>Your timesheet has been approved.</p>
-              <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
-              <p><strong>Total Hours:</strong> ${timesheet.totalHours}</p>
-            `,
-          });
+          // TODO: Implement email notifications
+          // await sendEmail({
+          //   to: employee.User.email,
+          //   subject: 'Timesheet Approved',
+          //   html: `
+          //     <h2>Timesheet Approved</h2>
+          //     <p>Hi ${employee.User.name},</p>
+          //     <p>Your timesheet has been approved.</p>
+          //     <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
+          //     <p><strong>Total Hours:</strong> ${timesheet.totalHours}</p>
+          //   `,
+          // });
         }
       }
     }
@@ -221,12 +223,17 @@ export async function POST(
     // Create audit log
     await prisma.globalAuditLog.create({
       data: {
-        userId: session.user.id,
+        id: `audit-${Date.now()}-${Math.random()}`,
+        actorId: session.user.id,
         companyId: requestingEmployee.companyId,
-        action: 'APPROVE',
-        resourceType: 'Timesheet',
-        resourceId: params.id,
-        details: `Approved timesheet at stage ${activeStage.name}`,
+        action: 'UPDATED',
+        entityType: 'EMPLOYEE',
+        entityId: timesheet.employeeId,
+        metadata: {
+          type: 'TIMESHEET_APPROVED',
+          timesheetId: params.id,
+          stage: activeStage.name,
+        },
       },
     });
 

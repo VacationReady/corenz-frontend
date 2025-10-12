@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import { sendEmail } from '@/lib/email';
+// import { sendEmail } from '@/lib/email'; // TODO: Implement email service
 
 export async function POST(
   req: NextRequest,
@@ -121,13 +121,13 @@ export async function POST(
             if (approver.type === 'USER' && approver.userId) {
               approverId = approver.userId;
             } else if (approver.type === 'MANAGER') {
-              // Get employee's manager
+              // Get employee's manager through User
               const employee = await prisma.employee.findUnique({
                 where: { id: timesheet.employeeId },
-                select: { managerId: true },
+                include: { User: { select: { managerId: true } } },
               });
-              if (!employee?.managerId) continue;
-              approverId = employee.managerId;
+              if (!employee?.User?.managerId) continue;
+              approverId = employee.User.managerId;
             } else {
               continue;
             }
@@ -170,18 +170,19 @@ export async function POST(
             });
 
             if (approverEmployee?.User.email) {
-              await sendEmail({
-                to: approverEmployee.User.email,
-                subject: 'Timesheet Approval Required',
-                html: `
-                  <h2>Timesheet Approval Required</h2>
-                  <p>Hi ${approverEmployee.User.name},</p>
-                  <p>${requestingEmployee.User.name} has submitted a timesheet for approval.</p>
-                  <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
-                  <p><strong>Total Hours:</strong> ${timesheet.totalHours}</p>
-                  <p>Please review and approve or reject the timesheet.</p>
-                `,
-              });
+              // TODO: Implement email notifications
+              // await sendEmail({
+              //   to: approverEmployee.User.email,
+              //   subject: 'Timesheet Approval Required',
+              //   html: `
+              //     <h2>Timesheet Approval Required</h2>
+              //     <p>Hi ${approverEmployee.User.name},</p>
+              //     <p>${requestingEmployee.User.name} has submitted a timesheet for approval.</p>
+              //     <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
+              //     <p><strong>Total Hours:</strong> ${timesheet.totalHours}</p>
+              //     <p>Please review and approve or reject the timesheet.</p>
+              //   `,
+              // });
             }
           }
         }
@@ -191,12 +192,16 @@ export async function POST(
     // Create audit log
     await prisma.globalAuditLog.create({
       data: {
-        userId: session.user.id,
+        id: `audit-${Date.now()}-${Math.random()}`,
+        actorId: session.user.id,
         companyId: requestingEmployee.companyId,
-        action: 'SUBMIT',
-        resourceType: 'Timesheet',
-        resourceId: params.id,
-        details: `Submitted timesheet for approval`,
+        action: 'UPDATED',
+        entityType: 'EMPLOYEE',
+        entityId: timesheet.employeeId,
+        metadata: {
+          type: 'TIMESHEET_SUBMITTED',
+          timesheetId: params.id,
+        },
       },
     });
 

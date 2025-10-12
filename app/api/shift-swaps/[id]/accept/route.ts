@@ -148,22 +148,18 @@ export async function POST(
         const department = await prisma.department.findUnique({
           where: { id: requestingEmployee.departmentId },
           include: {
-            Manager: {
-              include: {
-                User: {
-                  select: {
-                    email: true,
-                    name: true,
-                  },
-                },
+            User_Department_headIdToUser: {
+              select: {
+                email: true,
+                name: true,
               },
             },
           },
         });
 
-        if (department?.Manager) {
-          managerEmail = department.Manager.User.email;
-          managerName = department.Manager.User.name;
+        if (department?.User_Department_headIdToUser) {
+          managerEmail = department.User_Department_headIdToUser.email;
+          managerName = department.User_Department_headIdToUser.name || 'Manager';
         }
       }
 
@@ -194,22 +190,22 @@ export async function POST(
           managerName,
           {
             User: {
-              name: requester.User.name,
+              name: requester.User.name || 'Employee',
               email: requester.User.email,
             },
           },
           {
             User: {
-              name: requestingEmployee.User.name,
+              name: requestingEmployee.User.name || 'Employee',
               email: requestingEmployee.User.email,
             },
           },
           {
             startTime: swapRequest.Shift.startTime,
             endTime: swapRequest.Shift.endTime,
-            location,
-            notes: swapRequest.Shift.notes,
-            role: swapRequest.Shift.role,
+            location: location || undefined,
+            notes: swapRequest.Shift.notes || undefined,
+            role: swapRequest.Shift.role || undefined,
           }
         );
       }
@@ -218,22 +214,22 @@ export async function POST(
       await sendShiftSwapAcceptedEmail(
         {
           User: {
-            name: requester.User.name,
+            name: requester.User.name || 'Employee',
             email: requester.User.email,
           },
         },
         {
           User: {
-            name: requestingEmployee.User.name,
+            name: requestingEmployee.User.name || 'Employee',
             email: requestingEmployee.User.email,
           },
         },
         {
           startTime: swapRequest.Shift.startTime,
           endTime: swapRequest.Shift.endTime,
-          location,
-          notes: swapRequest.Shift.notes,
-          role: swapRequest.Shift.role,
+          location: location || undefined,
+          notes: swapRequest.Shift.notes || undefined,
+          role: swapRequest.Shift.role || undefined,
         },
         true // requiresManagerApproval
       );
@@ -284,22 +280,22 @@ export async function POST(
       await sendShiftSwapAcceptedEmail(
         {
           User: {
-            name: requester.User.name,
+            name: requester.User.name || 'Employee',
             email: requester.User.email,
           },
         },
         {
           User: {
-            name: requestingEmployee.User.name,
+            name: requestingEmployee.User.name || 'Employee',
             email: requestingEmployee.User.email,
           },
         },
         {
           startTime: swapRequest.Shift.startTime,
           endTime: swapRequest.Shift.endTime,
-          location,
-          notes: swapRequest.Shift.notes,
-          role: swapRequest.Shift.role,
+          location: location || undefined,
+          notes: swapRequest.Shift.notes || undefined,
+          role: swapRequest.Shift.role || undefined,
         },
         false // No manager approval required
       );

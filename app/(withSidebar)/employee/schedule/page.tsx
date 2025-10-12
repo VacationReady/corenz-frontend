@@ -66,7 +66,7 @@ interface SwapRequest {
 }
 
 interface AvailabilityPattern {
-  id: string;
+  id?: string;
   dayOfWeek: number;
   startTime: string;
   endTime: string;

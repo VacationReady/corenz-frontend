@@ -271,7 +271,7 @@ export async function POST(req: NextRequest) {
       where: { companyId: requestingEmployee.companyId },
     });
 
-    const requiresManagerApproval = settings?.requireShiftSwapApproval ?? true;
+    const requiresManagerApproval = settings?.managerApprovalSwaps ?? true;
 
     // Create swap request
     const swapRequest = await prisma.shiftSwapRequest.create({
@@ -295,10 +295,10 @@ export async function POST(req: NextRequest) {
     // Send notification to target employee (or broadcast if no target)
     if (targetEmployee) {
       await sendShiftSwapRequestEmail(
-        targetEmployee,
+        targetEmployee as any,
         {
           User: {
-            name: requestingEmployee.User.name,
+            name: requestingEmployee.User.name || 'Employee',
             email: requestingEmployee.User.email,
           },
         },

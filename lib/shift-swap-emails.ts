@@ -1,4 +1,4 @@
-import { resend } from '@/app/lib/resend';
+// import { resend } from '@/app/lib/resend'; // TODO: Implement email service
 import { format } from 'date-fns';
 
 interface Employee {
@@ -35,7 +35,8 @@ export async function sendShiftSwapRequestEmail(
       (shift.endTime.getTime() - shift.startTime.getTime()) / (1000 * 60 * 60) * 10
     ) / 10;
 
-    await resend.emails.send({
+    // TODO: Implement email service
+    console.log('Would send email:', {
       from: 'Corenz <noreply@corenz.com>',
       to: targetEmployee.User.email,
       subject: 'New Shift Swap Request',
@@ -134,7 +135,8 @@ export async function sendShiftSwapAcceptedEmail(
     const shiftTimeStart = format(shift.startTime, 'h:mm a');
     const shiftTimeEnd = format(shift.endTime, 'h:mm a');
 
-    await resend.emails.send({
+    // TODO: Implement email service
+    console.log('Would send email:', {
       from: 'Corenz <noreply@corenz.com>',
       to: requesterEmployee.User.email,
       subject: requiresManagerApproval 
@@ -224,7 +226,8 @@ export async function sendShiftSwapRejectedEmail(
     const shiftTimeStart = format(shift.startTime, 'h:mm a');
     const shiftTimeEnd = format(shift.endTime, 'h:mm a');
 
-    await resend.emails.send({
+    // TODO: Implement email service
+    console.log('Would send email:', {
       from: 'Corenz <noreply@corenz.com>',
       to: requesterEmployee.User.email,
       subject: 'Shift Swap Request Declined',
@@ -312,7 +315,8 @@ export async function sendManagerApprovalNeededEmail(
     const shiftTimeStart = format(shift.startTime, 'h:mm a');
     const shiftTimeEnd = format(shift.endTime, 'h:mm a');
 
-    await resend.emails.send({
+    // TODO: Implement email service
+    console.log('Would send email:', {
       from: 'Corenz <noreply@corenz.com>',
       to: managerEmail,
       subject: 'Shift Swap Awaiting Your Approval',
@@ -470,7 +474,8 @@ export async function sendShiftSwapApprovedEmail(
     `;
 
     // Send to requester
-    await resend.emails.send({
+    // TODO: Implement email service
+    console.log('Would send email:', {
       from: 'Corenz <noreply@corenz.com>',
       to: requesterEmployee.User.email,
       subject: 'Shift Swap Approved',
@@ -478,7 +483,8 @@ export async function sendShiftSwapApprovedEmail(
     });
 
     // Send to accepting employee
-    await resend.emails.send({
+    // TODO: Implement email service
+    console.log('Would send email:', {
       from: 'Corenz <noreply@corenz.com>',
       to: acceptingEmployee.User.email,
       subject: 'Shift Swap Approved',

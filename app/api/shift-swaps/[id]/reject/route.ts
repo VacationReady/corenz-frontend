@@ -118,13 +118,13 @@ export async function POST(
     await sendShiftSwapRejectedEmail(
       {
         User: {
-          name: requester.User.name,
+          name: requester.User.name || 'Employee',
           email: requester.User.email,
         },
       },
       {
         User: {
-          name: requestingEmployee.User.name,
+          name: requestingEmployee.User.name || 'Employee',
           email: requestingEmployee.User.email,
         },
       },

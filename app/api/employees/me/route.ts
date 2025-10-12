@@ -25,22 +25,13 @@ export async function GET(req: NextRequest) {
             email: true,
             role: true,
             profileImageUrl: true,
+            managerId: true,
           },
         },
         Department: {
           select: {
             id: true,
             name: true,
-          },
-        },
-        Manager: {
-          include: {
-            User: {
-              select: {
-                name: true,
-                email: true,
-              },
-            },
           },
         },
       },

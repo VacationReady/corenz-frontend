@@ -103,7 +103,6 @@ export async function GET(
         select: {
           id: true,
           name: true,
-          address: true,
         },
       });
     }
@@ -191,7 +190,7 @@ export async function DELETE(
     await prisma.shiftSwapRequest.update({
       where: { id: params.id },
       data: {
-        status: 'CANCELLED',
+        status: 'REJECTED',
       },
     });
 

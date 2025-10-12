@@ -228,7 +228,7 @@ export async function PUT(
       employeeSkills,
       {
         minimumRestHours: settings?.minimumRestHours || 11,
-        maxHoursPerWeek: settings?.maxHoursPerWeek || 40,
+        maxHoursPerWeek: 40, // Default max hours per week
       }
     );
 

@@ -243,7 +243,7 @@ export function detectUserPatterns(
   // Pattern: Naming conventions (e.g., distinguishes "Sales" from "Sales & Marketing")
   if (conversation.entities.userPreferences) {
     const prefs = conversation.entities.userPreferences;
-    if (prefs.distinctDepartments) {
+    if (prefs.distinctDepartments && Array.isArray(prefs.distinctDepartments)) {
       patterns.push({
         type: "naming",
         pattern: `Distinguishes between similar department names`,

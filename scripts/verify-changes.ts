@@ -87,7 +87,7 @@ async function verifyChanges() {
     console.log("\n4️⃣ Checking user permission profile assignments:");
     const users = await prisma.user.findMany({
       include: {
-        permissionProfile: true,
+        PermissionProfile: true,
       },
     });
 
@@ -98,7 +98,7 @@ async function verifyChanges() {
           : user.role === "MANAGER"
             ? "Manager"
             : "Employee";
-      const actualProfile = user.permissionProfile?.name;
+      const actualProfile = user.PermissionProfile?.name;
 
       if (actualProfile === expectedProfile) {
         console.log(`✅ ${user.email}: ${user.role} → ${actualProfile}`);

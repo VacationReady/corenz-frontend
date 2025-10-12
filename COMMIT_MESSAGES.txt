@@ -61,31 +61,33 @@ Added missing dependencies:
 Result: Cleaner dependency tree, reduced bundle size, improved security posture.
 
 ----------------------------------------
-COMMIT 3: TypeScript Safety
+COMMIT 3: TypeScript Configuration (Pragmatic)
 ----------------------------------------
 
-feat(typescript): Tighten compiler options for better type safety
+chore(typescript): Update tsconfig with pragmatic strictness settings
 
-Enable stricter TypeScript flags:
-- allowJs: false (TypeScript-only codebase)
-- noUncheckedIndexedAccess: true
-- noImplicitOverride: true
-- noFallthroughCasesInSwitch: true
-- noImplicitReturns: true
-- noPropertyAccessFromIndexSignature: true
+Changes made:
+- allowJs: false (enforce TypeScript-only codebase)
+- noFallthroughCasesInSwitch: true (prevent switch fallthrough bugs)
+- Explicitly exclude legacy .js files from compilation
 
-Explicitly exclude .js files:
-- scripts/**/*.js
-- prisma/seed.js
-- mobile/
+Discovered significant technical debt:
+- ~300 real type errors in app/scripts/tests
+- ~700 additional errors when stricter flags enabled
+- Errors include: Prisma model name mismatches, missing type definitions,
+  mock type incompatibilities, and property access issues
 
-Deferred for gradual migration (commented out):
+Pragmatic decision - defer strict flags for gradual migration:
+- noUncheckedIndexedAccess (500+ errors)
+- noPropertyAccessFromIndexSignature (200+ errors)  
+- noImplicitOverride, noImplicitReturns
 - exactOptionalPropertyTypes
-- noUnusedLocals
-- noUnusedParameters
+- noUnusedLocals, noUnusedParameters
 
 Files changed:
 - tsconfig.json
+
+See TYPESCRIPT_HARDENING_LESSONS.md for full analysis and migration roadmap.
 
 ----------------------------------------
 COMMIT 4: Code Quality Cleanup

@@ -12,8 +12,8 @@ async function debugUserPermissions() {
     const user = await prisma.user.findUnique({
       where: { id: targetUserId },
       include: {
-        permissionProfile: true,
-        company: true,
+        PermissionProfile: true,
+        Company: true,
       },
     });
 
@@ -27,9 +27,9 @@ async function debugUserPermissions() {
     console.log(`   - Email: ${user.email}`);
     console.log(`   - Role: ${user.role}`);
     console.log(`   - Company ID: ${user.companyId}`);
-    console.log(`   - Company Name: ${user.company?.name}`);
+    console.log(`   - Company Name: ${user.Company?.name}`);
     console.log(
-      `   - Permission Profile: ${user.permissionProfile?.name || "None (using default)"}`,
+      `   - Permission Profile: ${user.PermissionProfile?.name || "None (using default)"}`,
     );
 
     // Check if there's an admin user to simulate the API call
@@ -51,7 +51,7 @@ async function debugUserPermissions() {
         companyId: adminUser.companyId,
       },
       include: {
-        permissionProfile: true,
+        PermissionProfile: true,
       },
     });
 

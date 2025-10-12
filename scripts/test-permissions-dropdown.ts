@@ -51,7 +51,7 @@ async function testPermissionsDropdown() {
     const orderBy: any[] = [];
 
     if (sortBy === "users") {
-      orderBy.push({ users: { _count: sortOrder } });
+      orderBy.push({ User: { _count: sortOrder } });
     } else if (sortBy === "createdAt") {
       orderBy.push({ createdAt: sortOrder });
     } else {
@@ -65,7 +65,7 @@ async function testPermissionsDropdown() {
       where: whereClause,
       include: {
         _count: {
-          select: { users: true },
+          select: { User: true },
         },
       },
       orderBy,

@@ -9,7 +9,7 @@ async function removeDefaultProfile() {
     // Find the Default profile
     const defaultProfile = await prisma.permissionProfile.findFirst({
       where: { name: "Default" },
-      include: { users: true },
+      include: { User: true },
     });
 
     if (!defaultProfile) {
@@ -18,14 +18,14 @@ async function removeDefaultProfile() {
     }
 
     console.log(
-      `Found Default profile with ${defaultProfile.users.length} assigned users`,
+      `Found Default profile with ${defaultProfile.User.length} assigned users`,
     );
 
     // If there are users assigned to Default, we need to reassign them
-    if (defaultProfile.users.length > 0) {
+    if (defaultProfile.User.length > 0) {
       console.log("🔄 Reassigning users from Default profile...");
 
-      for (const user of defaultProfile.users) {
+      for (const user of defaultProfile.User) {
         let targetProfile = null;
 
         if (user.role === "ADMIN") {

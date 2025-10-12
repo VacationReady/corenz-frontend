@@ -54,7 +54,7 @@ async function testPermissionsAPI() {
     const orderBy: any[] = [];
 
     if (sortBy === "users") {
-      orderBy.push({ users: { _count: sortOrder } });
+      orderBy.push({ User: { _count: sortOrder } });
     } else if (sortBy === "createdAt") {
       orderBy.push({ createdAt: sortOrder });
     } else {
@@ -71,7 +71,7 @@ async function testPermissionsAPI() {
       where: whereClause,
       include: {
         _count: {
-          select: { users: true },
+          select: { User: true },
         },
       },
       orderBy,
@@ -101,7 +101,7 @@ async function testPermissionsAPI() {
       },
       include: {
         _count: {
-          select: { users: true },
+          select: { User: true },
         },
       },
       orderBy: [{ builtIn: "desc" }, { name: "asc" }],

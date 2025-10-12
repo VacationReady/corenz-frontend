@@ -9,7 +9,7 @@ async function checkAdminPermissions() {
     const adminUser = await prisma.user.findFirst({
       where: { email: "admin@peoplecore.com" },
       include: {
-        permissionProfile: true,
+        PermissionProfile: true,
       },
     });
 
@@ -20,18 +20,18 @@ async function checkAdminPermissions() {
 
     console.log(`Admin user: ${adminUser.email}`);
     console.log(`Role: ${adminUser.role}`);
-    console.log(`Has permission profile: ${!!adminUser.permissionProfile}`);
+    console.log(`Has permission profile: ${!!adminUser.PermissionProfile}`);
 
-    if (adminUser.permissionProfile) {
-      console.log(`Permission profile: ${adminUser.permissionProfile.name}`);
-      console.log(`Built-in: ${adminUser.permissionProfile.builtIn}`);
+    if (adminUser.PermissionProfile) {
+      console.log(`Permission profile: ${adminUser.PermissionProfile.name}`);
+      console.log(`Built-in: ${adminUser.PermissionProfile.builtIn}`);
     } else {
       console.log("Using default role-based permissions");
     }
 
     // Test permission resolution
-    const permissions = adminUser.permissionProfile
-      ? JSON.parse(adminUser.permissionProfile.permissions as string)
+    const permissions = adminUser.PermissionProfile
+      ? JSON.parse(adminUser.PermissionProfile.permissions as string)
       : {
           dashboard: ["read"],
           approvals: ["read", "edit"],

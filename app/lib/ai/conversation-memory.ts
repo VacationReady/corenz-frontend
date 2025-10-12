@@ -19,6 +19,11 @@ interface ConversationContext {
     lastGeneratedWorkflow?: any;
     lastGeneratedForm?: any;
     pendingFiles?: File[];
+    userPreferences?: {
+      distinctDepartments?: boolean | string[];
+      preferredFormat?: string;
+      [key: string]: any;
+    };
   };
   lastActivity: Date;
 }

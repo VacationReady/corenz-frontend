@@ -9,9 +9,9 @@ async function debugEmployeeUserMapping() {
     // Get all employees with their user information
     const employees = await prisma.employee.findMany({
       include: {
-        user: {
+        User: {
           include: {
-            permissionProfile: true,
+            PermissionProfile: true,
           },
         },
       },
@@ -24,11 +24,11 @@ async function debugEmployeeUserMapping() {
       console.log(`${index + 1}. Employee ID: ${emp.id}`);
       console.log(`   User ID: ${emp.userId}`);
 
-      if (emp.user) {
-        console.log(`   User Email: ${emp.user.email}`);
-        console.log(`   User Role: ${emp.user.role}`);
+      if (emp.User) {
+        console.log(`   User Email: ${emp.User.email}`);
+        console.log(`   User Role: ${emp.User.role}`);
         console.log(
-          `   Permission Profile: ${emp.user.permissionProfile?.name || "Default"}`,
+          `   Permission Profile: ${emp.User.PermissionProfile?.name || "Default"}`,
         );
       } else {
         console.log(`   ⚠️  No associated user found!`);
@@ -39,7 +39,7 @@ async function debugEmployeeUserMapping() {
     // Check if there are any orphaned employees (employees without users)
     const orphanedCount = await prisma.employee.count({
       where: {
-        user: null,
+        User: null,
       },
     });
 
@@ -52,24 +52,18 @@ async function debugEmployeeUserMapping() {
 
     // Check recent employees to see if the target ID might be a recent creation
     const recentEmployees = await prisma.employee.findMany({
-      where: {
-        createdAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
-        },
-      },
       include: {
-        user: true,
+        User: true,
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      take: 10,
+      // Note: Employee model doesn't have createdAt, showing last 10 instead
     });
 
     if (recentEmployees.length > 0) {
       console.log(`\n🕒 Recent employees (last 24 hours):`);
       recentEmployees.forEach((emp, index) => {
         console.log(
-          `${index + 1}. ${emp.id} -> ${emp.user?.email || "No user"}`,
+          `${index + 1}. ${emp.id} -> ${emp.User?.email || "No user"}`,
         );
       });
     }

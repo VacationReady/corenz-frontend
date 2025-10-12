@@ -296,7 +296,7 @@ export async function recoverDepartmentSearch(
       include: {
         _count: {
           select: {
-            Employees: true,
+            Employee: true,
           },
         },
       },
@@ -314,7 +314,7 @@ export async function recoverDepartmentSearch(
         found: true,
         departments: departments.map(d => ({
           ...d,
-          employeeCount: d._count.Employees,
+          employeeCount: d._count.Employee,
         })),
         method: "partial_match",
       };
@@ -360,7 +360,7 @@ export async function recoverDepartmentSearch(
           include: {
             _count: {
               select: {
-                Employees: true,
+                Employee: true,
               },
             },
           },
@@ -378,7 +378,7 @@ export async function recoverDepartmentSearch(
             found: true,
             departments: departments.map(d => ({
               ...d,
-              employeeCount: d._count.Employees,
+              employeeCount: d._count.Employee,
             })),
             method: "synonym_match",
           };

@@ -30,7 +30,7 @@ async function testFixedPermissionsAPI() {
         companyId: adminUser.companyId,
       },
       include: {
-        permissionProfile: true,
+        PermissionProfile: true,
       },
     });
 
@@ -43,7 +43,7 @@ async function testFixedPermissionsAPI() {
     console.log(`   User: ${user.email}`);
     console.log(`   Role: ${user.role}`);
     console.log(
-      `   Permission Profile: ${user.permissionProfile?.name || "Default"}`,
+      `   Permission Profile: ${user.PermissionProfile?.name || "Default"}`,
     );
 
     // Test audit trail query
@@ -55,9 +55,7 @@ async function testFixedPermissionsAPI() {
         note: true,
         oldPermissions: true,
         newPermissions: true,
-        changedBy: {
-          select: { id: true, name: true, email: true },
-        },
+        changedById: true,
         oldProfile: {
           select: { id: true, name: true, description: true, builtIn: true },
         },

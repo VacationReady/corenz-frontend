@@ -19,7 +19,7 @@ async function verifyFix() {
     // Get profiles like the API does
     const profiles = await prisma.permissionProfile.findMany({
       where: { companyId: adminUser.companyId },
-      include: { _count: { select: { users: true } } },
+      include: { _count: { select: { User: true } } },
       orderBy: [{ builtIn: "desc" }, { name: "asc" }],
     });
 

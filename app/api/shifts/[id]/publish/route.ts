@@ -21,7 +21,7 @@ const publishSchema = z.object({
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -29,6 +29,8 @@ export async function POST(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const body = await req.json();
     const data = publishSchema.parse(body);
@@ -60,7 +62,7 @@ export async function POST(
     // Determine which shifts to publish
     const shiftIdsToPublish = data.shiftIds && data.shiftIds.length > 0 
       ? data.shiftIds 
-      : [params.id];
+      : [id];
 
     // Fetch all shifts to publish
     const shifts = await prisma.shift.findMany({

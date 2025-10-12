@@ -27,7 +27,7 @@ const updateShiftSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -35,6 +35,8 @@ export async function GET(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const requestingEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
@@ -58,7 +60,7 @@ export async function GET(
 
     // Fetch shift with related data
     const shift = await prisma.shift.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         Template: true,
         ShiftSwapRequests: {
@@ -162,7 +164,7 @@ export async function GET(
  */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -170,6 +172,8 @@ export async function PUT(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const body = await req.json();
     const data = updateShiftSchema.parse(body);
@@ -198,7 +202,7 @@ export async function PUT(
     }
 
     const shift = await prisma.shift.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!shift) {
@@ -252,7 +256,7 @@ export async function PUT(
 
     // Update shift
     const updatedShift = await prisma.shift.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
       include: {
         Template: true,
@@ -270,7 +274,7 @@ export async function PUT(
         entityId: updatedShift.employeeId || 'unassigned',
         metadata: {
           type: 'SHIFT_UPDATED',
-          shiftId: params.id,
+          shiftId: id,
           changes: data,
         },
       },
@@ -321,7 +325,7 @@ export async function PUT(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -329,6 +333,8 @@ export async function DELETE(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const requestingEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
@@ -354,7 +360,7 @@ export async function DELETE(
     }
 
     const shift = await prisma.shift.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!shift) {
@@ -376,7 +382,7 @@ export async function DELETE(
 
     // Delete shift (cascade will handle related records)
     await prisma.shift.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     // Create audit log
@@ -390,7 +396,7 @@ export async function DELETE(
         entityId: shift.employeeId || 'unassigned',
         metadata: {
           type: 'SHIFT_DELETED',
-          shiftId: params.id,
+          shiftId: id,
           startTime: shift.startTime.toISOString(),
           endTime: shift.endTime.toISOString(),
         },

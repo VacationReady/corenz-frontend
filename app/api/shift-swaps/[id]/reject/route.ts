@@ -16,7 +16,7 @@ const rejectSwapSchema = z.object({
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -24,6 +24,8 @@ export async function POST(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const body = await req.json();
     const data = rejectSwapSchema.parse(body);
@@ -48,7 +50,7 @@ export async function POST(
     }
 
     const swapRequest = await prisma.shiftSwapRequest.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         Shift: true,
       },
@@ -98,7 +100,7 @@ export async function POST(
 
     // Update swap request status
     await prisma.shiftSwapRequest.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         status: 'REJECTED',
         rejectedAt: new Date(),
@@ -149,7 +151,7 @@ export async function POST(
         entityId: requestingEmployee.id,
         metadata: {
           type: 'SHIFT_SWAP_REJECTED',
-          swapRequestId: params.id,
+          swapRequestId: id,
           shiftId: swapRequest.shiftId,
           reason: data.reason,
         },

@@ -10,7 +10,7 @@ import { prisma } from '@/lib/prisma';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,6 +18,8 @@ export async function GET(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const requestingEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
@@ -37,7 +39,7 @@ export async function GET(
     }
 
     const swapRequest = await prisma.shiftSwapRequest.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         Shift: {
           include: {
@@ -136,7 +138,7 @@ export async function GET(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -144,6 +146,8 @@ export async function DELETE(
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id } = await params;
 
     const requestingEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
@@ -163,7 +167,7 @@ export async function DELETE(
     }
 
     const swapRequest = await prisma.shiftSwapRequest.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!swapRequest) {
@@ -188,7 +192,7 @@ export async function DELETE(
 
     // Update status to CANCELLED
     await prisma.shiftSwapRequest.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         status: 'REJECTED',
       },
@@ -210,7 +214,7 @@ export async function DELETE(
           entityId: requestingEmployee.id,
           metadata: {
             type: 'SHIFT_SWAP_CANCELLED',
-            swapRequestId: params.id,
+            swapRequestId: id,
             shiftId: swapRequest.shiftId,
           },
         },

@@ -131,20 +131,21 @@ Updated `tsconfig.json` with stricter compiler options:
 ### Flags Enabled
 
 1. **`allowJs: false`** - Enforces TypeScript-only (`.js` files explicitly excluded)
-2. **`noUncheckedIndexedAccess: true`** - Prevents unchecked array/object access
-3. **`noImplicitOverride: true`** - Requires explicit `override` keyword
-4. **`noFallthroughCasesInSwitch: true`** - Prevents switch fallthrough bugs
-5. **`noImplicitReturns: true`** - Ensures all code paths return values
-6. **`noPropertyAccessFromIndexSignature: true`** - Requires bracket notation for index signatures
+2. **`noFallthroughCasesInSwitch: true`** - Prevents switch fallthrough bugs
 
-### Flags Deferred
+### Flags Deferred (Pragmatic Approach)
 
-Commented out for gradual migration (too many errors in existing code):
+After running `npx tsc --noEmit`, we discovered **700+ type errors** from stricter flags. These are commented out for gradual, file-by-file migration:
+
+- `noUncheckedIndexedAccess` - Prevents unchecked array/object access (500+ errors)
+- `noPropertyAccessFromIndexSignature` - Requires bracket notation (200+ errors)
+- `noImplicitOverride` - Requires explicit `override` keyword
+- `noImplicitReturns` - Ensures all code paths return values
 - `exactOptionalPropertyTypes` - Strict optional property handling
 - `noUnusedLocals` - Unused variable detection
 - `noUnusedParameters` - Unused parameter detection
 
-These can be re-enabled incrementally as the codebase is refactored.
+**Recommendation:** Enable these incrementally, starting with one module at a time, to avoid breaking production builds.
 
 ### Code Fixes
 
@@ -260,7 +261,7 @@ import { prisma } from "@/lib/prisma";
 | Metric | Before | After | Change |
 |--------|--------|-------|--------|
 | **Dependencies** | 932 packages | 932 packages | ±0 (18 removed, 7 added, net -11) |
-| **TypeScript Strict Flags** | 2 | 7 | +5 |
+| **TypeScript Strict Flags** | 2 | 3 (2 active, 7 documented for future) | +1 active |
 | **Env Validation** | None | Zod schema | ✅ Added |
 | **Unused Code Detection** | Manual | Partial automation | 🔄 Ongoing |
 

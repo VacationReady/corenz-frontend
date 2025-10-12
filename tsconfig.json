@@ -32,16 +32,17 @@
     ],
     // Enhanced strictness flags
     "strictNullChecks": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    // Relaxed for gradual migration - re-enable when codebase is ready
-    // "exactOptionalPropertyTypes": true,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    // Disabled for now - creates too many errors in existing code
+    
+    // Deferred for gradual migration - enable file-by-file
+    // These flags catch 700+ errors in existing codebase
+    // "noUncheckedIndexedAccess": true,
+    // "noPropertyAccessFromIndexSignature": true,
+    // "noImplicitOverride": true,
+    // "noImplicitReturns": true,
+    // "exactOptionalPropertyTypes": true,
     // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    "noPropertyAccessFromIndexSignature": true
+    // "noUnusedParameters": true
   },
   "include": [
     "next-env.d.ts",

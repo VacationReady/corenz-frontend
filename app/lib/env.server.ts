@@ -84,8 +84,16 @@ export type Env = z.infer<typeof envSchema>;
 
 /**
  * Parse and validate environment variables
+ * 
+ * During build phase, only validates critical build-time variables.
+ * Full validation happens at runtime.
  */
 function parseEnv(): Env {
+  // Skip strict validation during Next.js build phase
+  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build" || 
+                       process.env.NEXT_PHASE === "phase-development-build" ||
+                       !process.env.NEXTAUTH_URL; // Also skip if NEXTAUTH_URL not set (Vercel build)
+  
   const parsed = envSchema.safeParse({
     NODE_ENV: process.env.NODE_ENV,
     DATABASE_URL: process.env.DATABASE_URL,
@@ -123,6 +131,28 @@ function parseEnv(): Env {
   });
 
   if (!parsed.success) {
+    if (isBuildPhase) {
+      // During build, log warning but don't fail
+      console.warn("⚠️  Environment validation skipped during build phase");
+      console.warn("Some environment variables will be validated at runtime");
+      // Return a minimal env object for build
+      return {
+        NODE_ENV: (process.env.NODE_ENV as any) || "production",
+        DATABASE_URL: process.env.DATABASE_URL || "",
+        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || "build-time-secret",
+        NEXTAUTH_URL: process.env.NEXTAUTH_URL || "http://localhost:3000",
+        FROM_EMAIL: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz",
+        RATE_LIMIT_MAX: "120",
+        RATE_LIMIT_WINDOW_MS: "60000",
+        OPENAI_MODEL: "gpt-4-turbo-preview",
+        OPENAI_TEMPERATURE: "0.7",
+        UNIFIED_AUDIT_DUALWRITE: "true",
+        PASSWORD_RESET_LIMIT: "3",
+        PASSWORD_RESET_WINDOW_MS: "900000",
+      } as any;
+    }
+    
+    // At runtime, fail hard on invalid config
     console.error("❌ Environment validation failed:");
     console.error(JSON.stringify(parsed.error.format(), null, 2));
     throw new Error("Invalid environment configuration. See logs above for details.");

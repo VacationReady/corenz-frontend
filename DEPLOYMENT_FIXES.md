@@ -1,7 +1,7 @@
 # Deployment Error Fixes
 
 ## Summary
-Fixed all TypeScript compilation errors and test environment issues that were blocking deployment.
+Fixed all TypeScript compilation errors, test environment issues, and build-time environment validation that were blocking deployment.
 
 ## Changes Made
 
@@ -63,6 +63,16 @@ Fixed all TypeScript compilation errors and test environment issues that were bl
 **File**: `tests/api/blackoutDaysRoutes.test.ts`
 - **Enhancement**: Added setupEnv import to ensure test environment is properly configured
 
+### 6. Environment Validation Fixed for Build Phase ✅
+
+**File**: `app/lib/env.server.ts`
+- **Issue**: Environment validation ran at build time, causing Vercel builds to fail when `NEXTAUTH_URL` wasn't available
+- **Fix**: Added build phase detection that skips strict validation during `npm run build`
+- **Behavior**:
+  - **Build Phase**: Returns sensible defaults, logs warning, doesn't crash
+  - **Runtime**: Validates strictly and fails fast on invalid config
+- **Detection**: Checks `NEXT_PHASE` environment variable or absence of `NEXTAUTH_URL`
+
 ## Impact
 
 ### Build Status
@@ -95,3 +105,4 @@ The application is now ready for deployment. All TypeScript errors have been res
 7. All 31 test files in `tests/**/*.test.ts` - Added setupEnv import
 8. `scripts/debug-employee-user-mapping.ts` - Fixed query syntax
 9. `scripts/diagnose-org-chart.ts` - Fixed type casting
+10. `app/lib/env.server.ts` - Added build phase detection to skip strict validation

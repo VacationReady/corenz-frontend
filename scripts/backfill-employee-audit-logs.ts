@@ -4,14 +4,15 @@ import { resolve } from "path";
 // Load environment variables from .env.local
 dotenv.config({ path: resolve(__dirname, "../.env.local") });
 
-import { prisma } from "../app/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 /**
  * Backfills EmployeeAuditLog from GlobalAuditLog for historical employee changes
  * This ensures "View History" shows all past changes, not just new ones after dual-write was enabled
  */
 async function backfillEmployeeAuditLogs() {
-  console.log("🔄 Starting EmployeeAuditLog backfill from GlobalAuditLog...\n");
+  console.log("Starting backfill of employee audit logs...\n");
 
   try {
     // Get all EMPLOYEE entity type records from GlobalAuditLog that have field changes
@@ -19,7 +20,7 @@ async function backfillEmployeeAuditLogs() {
       where: {
         entityType: "EMPLOYEE",
         changes: {
-          not: null,
+          not: Prisma.DbNull,
         },
       },
       orderBy: {

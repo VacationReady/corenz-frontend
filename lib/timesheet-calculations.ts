@@ -116,7 +116,11 @@ export function detectComplianceViolations(
   description: string;
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 }> {
-  const violations = [];
+  const violations: Array<{
+    type: 'REST_PERIOD' | 'MEAL_BREAK' | 'REST_BREAK' | 'MAX_HOURS';
+    description: string;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  }> = [];
 
   // Sort shifts by start time
   const sortedShifts = [...shifts].sort(

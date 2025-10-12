@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/lib/prisma';
+import { authOptions } from '@/lib/auth-options';
+import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateShiftCost } from '@/lib/timesheet-calculations';
 
@@ -95,8 +95,8 @@ export async function GET(req: NextRequest) {
 
     // Get employee details
     const employeeIds = shifts
-      .map((s) => s.employeeId)
-      .filter((id): id is string => id !== null);
+      .map((s: any) => s.employeeId)
+      .filter((id: string | null): id is string => id !== null);
 
     const employees = await prisma.employee.findMany({
       where: {
@@ -112,9 +112,9 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const employeeMap = new Map(employees.map((e) => [e.id, e]));
+    const employeeMap = new Map(employees.map((e: any) => [e.id, e]));
 
-    const enrichedShifts = shifts.map((shift) => ({
+    const enrichedShifts = shifts.map((shift: any) => ({
       ...shift,
       employee: shift.employeeId ? employeeMap.get(shift.employeeId) : null,
     }));

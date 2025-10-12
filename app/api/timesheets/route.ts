@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/lib/prisma';
+import { authOptions } from '@/lib/auth-options';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   try {
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Get employee details for each timesheet
-    const employeeIds = [...new Set(timesheets.map((t) => t.employeeId))];
+    const employeeIds = [...new Set(timesheets.map((t: any) => t.employeeId))];
     const employees = await prisma.employee.findMany({
       where: {
         id: { in: employeeIds },
@@ -113,9 +113,9 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const employeeMap = new Map(employees.map((e) => [e.id, e]));
+    const employeeMap = new Map(employees.map((e: any) => [e.id, e]));
 
-    const enrichedTimesheets = timesheets.map((timesheet) => ({
+    const enrichedTimesheets = timesheets.map((timesheet: any) => ({
       ...timesheet,
       employee: employeeMap.get(timesheet.employeeId),
     }));

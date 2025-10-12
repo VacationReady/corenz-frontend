@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/lib/prisma';
+import { authOptions } from '@/lib/auth-options';
+import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { autoScheduleShifts, ShiftRequirement, EmployeeProfile } from '@/lib/auto-scheduler';
 import { differenceInHours } from 'date-fns';
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Fetch availability patterns and recent shifts for each employee
-    const employeeIds = employees.map((e) => e.id);
+    const employeeIds = employees.map((e: { id: string }) => e.id);
 
     const availabilityPatterns = await prisma.availabilityPattern.findMany({
       where: {
@@ -126,11 +126,11 @@ export async function POST(req: NextRequest) {
     });
 
     // Build employee profiles
-    const employeeProfiles: EmployeeProfile[] = employees.map((emp) => {
-      const empPatterns = availabilityPatterns.filter((p) => p.employeeId === emp.id);
-      const empRecentShifts = recentShifts.filter((s) => s.employeeId === emp.id);
+    const employeeProfiles: EmployeeProfile[] = employees.map((emp: any) => {
+      const empPatterns = availabilityPatterns.filter((p: any) => p.employeeId === emp.id);
+      const empRecentShifts = recentShifts.filter((s: any) => s.employeeId === emp.id);
 
-      const currentWeekHours = empRecentShifts.reduce((sum, shift) => {
+      const currentWeekHours = empRecentShifts.reduce((sum: number, shift: any) => {
         return sum + differenceInHours(shift.endTime, shift.startTime);
       }, 0);
 
@@ -141,14 +141,14 @@ export async function POST(req: NextRequest) {
         hourlyRate: emp.hourlyRate ? parseFloat(emp.hourlyRate.toString()) : 0,
         maxHoursPerWeek: 40, // TODO: Get from employee contract
         preferredShifts: [], // TODO: Get from employee preferences
-        availabilityPatterns: empPatterns.map((p) => ({
+        availabilityPatterns: empPatterns.map((p: any) => ({
           dayOfWeek: p.dayOfWeek,
           startTime: p.startTime,
           endTime: p.endTime,
           isAvailable: p.isAvailable,
         })),
         currentWeekHours,
-        recentShifts: empRecentShifts.map((s) => ({
+        recentShifts: empRecentShifts.map((s: any) => ({
           startTime: s.startTime,
           endTime: s.endTime,
           role: s.role,
@@ -172,10 +172,10 @@ export async function POST(req: NextRequest) {
         conflicts: result.conflicts,
         totalCost: result.totalCost,
         utilizationByEmployee: Array.from(result.utilizationByEmployee.entries()).map(
-          ([employeeId, hours]) => ({
+          ([employeeId, hours]: [string, number]) => ({
             employeeId,
             hours,
-            employee: employeeProfiles.find((e) => e.id === employeeId),
+            employee: employeeProfiles.find((e: EmployeeProfile) => e.id === employeeId),
           })
         ),
       },

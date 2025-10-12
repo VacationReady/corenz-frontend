@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/lib/prisma';
+import { authOptions } from '@/lib/auth-options';
+import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { getTimesheetPeriod, calculateHours, calculateOvertime } from '@/lib/timesheet-calculations';
 
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
     // Link clock entries to timesheet
     await prisma.clockEntry.updateMany({
       where: {
-        id: { in: clockEntries.map((e) => e.id) },
+        id: { in: clockEntries.map((e: any) => e.id) },
       },
       data: {
         timesheetId: timesheet.id,
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Create timesheet entries from clock entries
-    const timesheetEntries = clockEntries.map((entry) => ({
+    const timesheetEntries = clockEntries.map((entry: any) => ({
       timesheetId: timesheet.id,
       date: entry.clockInTime,
       startTime: entry.clockInTime,

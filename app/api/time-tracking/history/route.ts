@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/lib/prisma';
+import { authOptions } from '@/lib/auth-options';
+import { prisma } from '@/lib/prisma';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 
 export async function GET(req: NextRequest) {
@@ -95,8 +95,8 @@ export async function GET(req: NextRequest) {
     });
 
     // Calculate summary statistics
-    const completedEntries = entries.filter((e) => e.status === 'COMPLETED');
-    const totalHours = completedEntries.reduce((sum, entry) => {
+    const completedEntries = entries.filter((e: any) => e.status === 'COMPLETED');
+    const totalHours = completedEntries.reduce((sum: number, entry: any) => {
       if (entry.clockOutTime) {
         const duration = entry.clockOutTime.getTime() - entry.clockInTime.getTime();
         return sum + duration / (1000 * 60 * 60);
@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
       summary: {
         totalEntries: entries.length,
         completedEntries: completedEntries.length,
-        activeEntries: entries.filter((e) => e.status === 'ACTIVE').length,
+        activeEntries: entries.filter((e: any) => e.status === 'ACTIVE').length,
         totalHours: totalHours.toFixed(2),
         averageHoursPerDay: completedEntries.length > 0 ? (totalHours / completedEntries.length).toFixed(2) : '0',
       },

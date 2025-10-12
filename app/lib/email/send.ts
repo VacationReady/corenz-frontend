@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { env } from "@/lib/env.server";
 import {
   buildExitInterviewConfirmationICS,
   buildExitInterviewCancellationICS,
@@ -8,9 +9,9 @@ import { createHash, randomBytes } from "crypto";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "./template";
 
-const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@peoplecore.co.nz";
+const FROM_EMAIL = env.FROM_EMAIL;
 
-const HR_INBOX_FALLBACK = process.env.HR_INBOX_EMAIL;
+const HR_INBOX_FALLBACK = env.HR_INBOX_EMAIL;
 
 function isValidEmail(value: string): boolean {
   return /.+@.+\..+/.test(value.trim());

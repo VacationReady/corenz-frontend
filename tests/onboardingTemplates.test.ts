@@ -1,11 +1,7 @@
+import "./setupEnv";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mock } from "node:test";
-
-// Ensure Prisma client can be instantiated without real DB
-process.env.DATABASE_URL =
-  process.env.DATABASE_URL || "postgresql://user:pass@localhost:5432/db";
-
 import { OnboardingStepType } from "@prisma/client";
 import { prisma } from "../app/lib/prisma";
 

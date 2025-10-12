@@ -5,6 +5,8 @@ import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import { AppBody } from "./components/AppBody";
 import { getTenantPalette } from "./lib/tenant-theme-config";
+// Validate environment variables at startup - will throw if invalid
+import "@/lib/env.server";
 
 const inter = Inter({
   subsets: ["latin"],

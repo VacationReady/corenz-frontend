@@ -26,12 +26,41 @@ do update set "token" = excluded."token", "createdAt" = now();
 
 - Provide the resulting `token` to the employee (or let the API send the email) so they can complete `/activate?token=…` and choose a password.
 
-### Environment
+## Environment Configuration
 
-- Set `RESEND_API_KEY` with your Resend API key to use the email testing script:
+All environment variables are validated at application startup using Zod schemas. The application will fail fast with detailed error messages if required variables are missing or invalid.
+
+### Required Variables
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `NEXTAUTH_SECRET`: Minimum 32-character secret for session security  
+- `NEXTAUTH_URL`: Public-facing application URL
+- `FROM_EMAIL`: Valid email address for sending system emails
+
+### Optional Variables
+
+See `.env.local.example` for complete list of optional configuration including:
+- OAuth providers (Google, Azure AD)
+- OpenAI API integration
+- Supabase file storage
+- Redis for distributed rate limiting
+- Email service (Resend)
+
+### Validation Behavior
+
+Environment validation occurs during module load of `app/layout.tsx`. If validation fails:
+1. Detailed error messages are logged to console showing which variables are invalid
+2. Application startup is aborted with a clear error message
+3. No partial initialization occurs - fail fast principle
+
+For tests, import `tests/setupEnv.ts` to inject validated mock environment variables.
+
+### Example Setup
 
 ```bash
-export RESEND_API_KEY=your_api_key
+cp .env.local.example .env.local
+# Edit .env.local with your actual values
+npm run dev
 ```
 
 ### Testing locally

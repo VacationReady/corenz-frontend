@@ -20,6 +20,13 @@ import {
   detectFrustration,
   suggestBetterPhrasing 
 } from "./conversational-intelligence";
+import {
+  generateProactiveSuggestions,
+  generateRichClarification,
+  determineConfidenceStrategy,
+  detectUserPatterns,
+  generateProactiveInsights,
+} from "./advanced-conversational-intelligence";
 import { isApprovalRequest } from "./interpreters/confirmation-detector";
 import { provideCSVGuidance, generateCSVTemplate, analyzeCSVErrors, suggestFieldMapping } from "./csv-assistant";
 import { processSurveyRequest } from "./survey-assistant";
@@ -323,21 +330,39 @@ export async function processUserMessage(
     // Add AI response to conversation
     addMessage(userId, companyId, "assistant", result.message);
 
-    // STEP 3: Generate smart follow-ups if action was successful
+    // STEP 3: Generate smart proactive suggestions if action was successful
     if (result.success && result.actionType && !result.requiresConfirmation) {
       try {
-        const followUps = await generateFollowUps(
-          `${result.actionType}: ${result.message}`,
+        // Use advanced conversational intelligence for better suggestions
+        const proactiveSuggestions = await generateProactiveSuggestions(
+          result.actionType,
           result.result,
           conversationContext
         );
         
-        if (followUps && followUps.length > 0) {
-          result.suggestions = followUps.slice(0, 3);
+        if (proactiveSuggestions && proactiveSuggestions.length > 0) {
+          // Convert to simple string array for backward compatibility
+          result.suggestions = proactiveSuggestions
+            .filter(s => s.confidence > 0.5)
+            .slice(0, 3)
+            .map(s => s.text);
         }
       } catch (error) {
-        console.error("[Follow-up Generation Error]", error);
-        // Don't fail the whole request if follow-ups fail
+        console.error("[Proactive Suggestions Error]", error);
+        // Fallback to old system if advanced intelligence fails
+        try {
+          const followUps = await generateFollowUps(
+            `${result.actionType}: ${result.message}`,
+            result.result,
+            conversationContext
+          );
+          if (followUps && followUps.length > 0) {
+            result.suggestions = followUps.slice(0, 3);
+          }
+        } catch (fallbackError) {
+          console.error("[Fallback Suggestions Error]", fallbackError);
+          // Don't fail the whole request if follow-ups fail
+        }
       }
     }
 

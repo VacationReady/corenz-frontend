@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "es2015",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
+    // Disabled for .js scripts and legacy code - migrate or exclude explicitly
+    "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
     "noImplicitAny": true,
@@ -29,7 +30,18 @@
         "name": "next"
       }
     ],
-    "strictNullChecks": true
+    // Enhanced strictness flags
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    // Relaxed for gradual migration - re-enable when codebase is ready
+    // "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    // Disabled for now - creates too many errors in existing code
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
+    "noPropertyAccessFromIndexSignature": true
   },
   "include": [
     "next-env.d.ts",
@@ -38,5 +50,5 @@
     ".next/types/**/*.ts",
     "types/next-auth.d.ts"
   ],
-  "exclude": ["node_modules", "scripts/**/*", "mobile"]
+  "exclude": ["node_modules", "scripts/**/*.js", "mobile", "prisma/seed.js"]
 }

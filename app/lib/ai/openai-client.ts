@@ -4,17 +4,18 @@
  */
 
 import OpenAI from "openai";
+import { env, features } from "@/lib/env.server";
 
 // Initialize OpenAI client
 export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: env.OPENAI_API_KEY,
 });
 
 // Default model configuration
 export const AI_CONFIG = {
   // Use fine-tuned model if available, otherwise fall back to base model
-  model: process.env.OPENAI_FINE_TUNED_MODEL || process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
-  temperature: parseFloat(process.env.OPENAI_TEMPERATURE || "0.7"),
+  model: env.OPENAI_FINE_TUNED_MODEL || env.OPENAI_MODEL,
+  temperature: env.OPENAI_TEMPERATURE,
   maxTokens: 4096,
   topP: 1,
   frequencyPenalty: 0,
@@ -23,26 +24,26 @@ export const AI_CONFIG = {
 
 // Track which model type is being used
 export const AI_MODEL_INFO = {
-  isFineTuned: !!process.env.OPENAI_FINE_TUNED_MODEL,
+  isFineTuned: !!env.OPENAI_FINE_TUNED_MODEL,
   modelId: AI_CONFIG.model,
-  baseModel: process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
+  baseModel: env.OPENAI_MODEL,
 };
 
 // Check if AI features are enabled
 export function isAIEnabled(): boolean {
-  return !!process.env.OPENAI_API_KEY;
+  return features.openai;
 }
 
 // Validate API key format
 export function validateAPIKey(): { valid: boolean; error?: string } {
-  if (!process.env.OPENAI_API_KEY) {
+  if (!env.OPENAI_API_KEY) {
     return {
       valid: false,
       error: "OPENAI_API_KEY not set. Add it to your .env.local file.",
     };
   }
 
-  if (!process.env.OPENAI_API_KEY.startsWith("sk-")) {
+  if (!env.OPENAI_API_KEY.startsWith("sk-")) {
     return {
       valid: false,
       error: "Invalid OPENAI_API_KEY format. Should start with 'sk-'.",
@@ -61,7 +62,7 @@ export function checkRateLimit(
   windowMs: number = 3600000
 ): { allowed: boolean; remaining: number; resetAt: number } {
   // If no API key configured, skip rate limiting (development mode)
-  if (!process.env.OPENAI_API_KEY) {
+  if (!features.openai) {
     return { allowed: true, remaining: limit, resetAt: Date.now() + windowMs };
   }
 

@@ -1,0 +1,156 @@
+========================================
+RECOMMENDED GIT COMMIT STRUCTURE
+========================================
+
+This file provides recommended commit messages for the hardening work, grouped by topic for Git history clarity.
+
+----------------------------------------
+COMMIT 1: Configuration Enforcement
+----------------------------------------
+
+feat(config): Add Zod-based environment validation
+
+- Create app/lib/env.server.ts with comprehensive Zod schema
+- Validate all environment variables at startup (fail-fast)
+- Export frozen `env` object for type-safe access
+- Add tests/setupEnv.ts for test environment mocks
+- Integrate validation into app/layout.tsx
+- Update .env.local.example with organized sections
+- Document validation behavior in README.md
+
+BREAKING CHANGE: Application now fails at startup if required
+environment variables (DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL,
+FROM_EMAIL) are missing or invalid.
+
+Files changed:
+- app/lib/env.server.ts (new)
+- tests/setupEnv.ts (new)
+- app/layout.tsx
+- app/lib/auth-options.ts
+- app/lib/ai/openai-client.ts
+- app/lib/email/send.ts
+- app/lib/supabase-admin.ts
+- .env.local.example
+- README.md
+- tests/onboardingInstances.test.ts
+- tests/onboardingTemplates.test.ts
+
+----------------------------------------
+COMMIT 2: Dependency Hygiene
+----------------------------------------
+
+chore(deps): Remove 18 unused dependencies and add 7 missing ones
+
+Removed unused packages:
+- @auth/prisma-adapter (duplicate, using @next-auth/prisma-adapter)
+- @hello-pangea/dnd, @reactflow/* (unused flow/drag libraries)
+- @vercel/kv (unused KV client)
+- axios (replaced by native fetch)
+- bcrypt (duplicate, kept bcryptjs)
+- bufferutil, utf-8-validate (unused WebSocket utilities)
+- debug, supports-color (unused utilities)
+- file-saver, jsonwebtoken, react-countup, react-native-web
+- @tiptap/extension-mention (unused rich text extension)
+
+Added missing dependencies:
+- server-only (enforce server-only modules)
+- vitest, jsdom, @testing-library/react (testing infrastructure)
+- dotenv (script environment loading)
+- @fullcalendar/list, @fullcalendar/core (calendar dependencies)
+
+Result: Cleaner dependency tree, reduced bundle size, improved security posture.
+
+----------------------------------------
+COMMIT 3: TypeScript Safety
+----------------------------------------
+
+feat(typescript): Tighten compiler options for better type safety
+
+Enable stricter TypeScript flags:
+- allowJs: false (TypeScript-only codebase)
+- noUncheckedIndexedAccess: true
+- noImplicitOverride: true
+- noFallthroughCasesInSwitch: true
+- noImplicitReturns: true
+- noPropertyAccessFromIndexSignature: true
+
+Explicitly exclude .js files:
+- scripts/**/*.js
+- prisma/seed.js
+- mobile/
+
+Deferred for gradual migration (commented out):
+- exactOptionalPropertyTypes
+- noUnusedLocals
+- noUnusedParameters
+
+Files changed:
+- tsconfig.json
+
+----------------------------------------
+COMMIT 4: Code Quality Cleanup
+----------------------------------------
+
+chore(cleanup): Remove unused imports and fix ESLint errors
+
+- Remove unused Filter icon from admin/action-items page
+- Fix unescaped JSX entities in tenant-admin dashboard
+- Add CI workflow for dependency checking
+
+Files changed:
+- app/(withSidebar)/admin/action-items/page.tsx
+- app/tenant-admin/dashboard/page.tsx
+- .github/workflows/dependency-check.yml (new)
+
+----------------------------------------
+COMMIT 5: Documentation
+----------------------------------------
+
+docs: Add comprehensive hardening summary and migration guide
+
+- Create HARDENING_SUMMARY.md with complete audit trail
+- Document all phases: config, dependencies, TypeScript, cleanup
+- Add migration guide for contributors
+- Include metrics and recommendations for future work
+
+Files changed:
+- HARDENING_SUMMARY.md (new)
+- COMMIT_MESSAGES.txt (new)
+
+========================================
+SINGLE SQUASHED COMMIT (ALTERNATIVE)
+========================================
+
+If you prefer a single commit:
+
+----------------------------------------
+
+feat: Comprehensive frontend hardening (config, deps, types, cleanup)
+
+Phase 1 - Environment Configuration:
+- Add Zod-based validation in app/lib/env.server.ts
+- Fail-fast on missing/invalid environment variables
+- Replace process.env access with type-safe env object
+- Update .env.local.example with organized sections
+
+Phase 2 - Dependency Hygiene:
+- Remove 18 unused dependencies (bcrypt, axios, @vercel/kv, etc.)
+- Add 7 missing dependencies (server-only, vitest, testing libraries)
+- Reduce node_modules footprint and attack surface
+
+Phase 3 - TypeScript Safety:
+- Enable 6 stricter compiler flags (noUncheckedIndexedAccess, etc.)
+- Disable allowJs for TypeScript-only codebase
+- Exclude legacy .js files from compilation
+
+Phase 4 - Code Quality:
+- Remove unused imports
+- Fix ESLint errors (JSX entities)
+- Add CI workflow for dependency checking
+
+See HARDENING_SUMMARY.md for complete details, metrics, and migration guide.
+
+BREAKING CHANGE: Application now requires valid DATABASE_URL,
+NEXTAUTH_SECRET, NEXTAUTH_URL, and FROM_EMAIL at startup.
+
+========================================

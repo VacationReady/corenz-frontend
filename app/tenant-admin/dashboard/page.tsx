@@ -456,7 +456,7 @@ export default function TenantAdminDashboard() {
                       <p className="font-medium">What will be created:</p>
                       <ul className="mt-2 space-y-1 text-xs">
                         <li>✓ Company tenant</li>
-                        <li>✓ Default "General" department</li>
+                        <li>✓ Default &quot;General&quot; department</li>
                         <li>✓ 3 permission profiles (Admin, Manager, Employee)</li>
                         <li>✓ Admin user account</li>
                         <li>✓ Activation email sent</li>

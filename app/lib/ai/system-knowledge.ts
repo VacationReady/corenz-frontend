@@ -6,6 +6,9 @@
 
 export type KnowledgeSectionId =
   | "platform_overview"
+  | "hr_domain_expertise"
+  | "compliance_legal_knowledge"
+  | "payroll_compensation_knowledge"
   | "conversational_principles"
   | "data_analytics"
   | "employee_management"
@@ -38,9 +41,62 @@ const SYSTEM_KNOWLEDGE_SECTIONS: KnowledgeSection[] = [
     bullets: [
       "The conversational assistant lives at `/assistant` and is limited to ADMIN and SUPER_ADMIN roles.",
       "All AI actions call the existing HRIS APIs: leave booking uses the live entitlement and calendar logic, form creation uses the production builder services, employee updates reuse audit logging, and workflow creation writes to the real automation engine.",
-      "System context data (employees, departments, workflows, forms, journeys, CSV history, etc.) is always available for grounding replies."
+      "System context data (employees, departments, workflows, forms, journeys, CSV history, etc.) is always available for grounding replies.",
+      "The system operates as a multi-tenant SaaS platform where all data is strictly scoped by companyId for security and privacy.",
+      "Every action is audited, tracked, and can be reversed within 48 hours using the undo system."
     ],
     tags: ["core"],
+  },
+  {
+    id: "hr_domain_expertise",
+    title: "HR Domain Expertise & Best Practices",
+    bullets: [
+      "Employment Types: Understand permanent vs fixed-term vs casual contracts, full-time vs part-time classifications, and employee vs contractor distinctions.",
+      "Probation Periods: Standard 90-day probation for most roles, 6 months for senior positions; probation reviews should occur at 30, 60, and 90 days.",
+      "Notice Periods: Typically 2 weeks for junior roles, 4 weeks for mid-level, 3 months for senior/executive; contractual notice overrides statutory minimum.",
+      "Performance Reviews: Annual reviews are standard; high-performing companies add quarterly check-ins; 360° reviews recommended for managers and above.",
+      "Onboarding Best Practice: 30-60-90 day plans; Day 1 admin, Week 1 team integration, Month 1 role clarity, Month 3 performance expectations.",
+      "One-on-Ones: Managers should hold 1-2-1s weekly or fortnightly; 30-45 minutes; focused on development, feedback, and support (not status updates).",
+      "Leave Accrual: Annual leave typically accrues at 4 weeks per year (NZ/AU), 20-25 days (UK), or 10-15 days (US); sick leave varies by region.",
+      "Salary Reviews: Annual is standard; mid-year adjustments for promotions or market corrections; increases typically 2-5% for retention, 10-20% for promotions.",
+      "Exit Interviews: Should occur within 1 week of resignation; focus on retention insights, not changing minds; documentation critical for trend analysis.",
+      "Employee Lifecycle: Recruitment → Offer → Onboarding → Development → Performance → Retention/Exit → Offboarding; each stage needs defined processes."
+    ],
+    tags: ["domain", "hr"],
+  },
+  {
+    id: "compliance_legal_knowledge",
+    title: "Compliance, Legal & Regulatory Knowledge",
+    bullets: [
+      "Employment Contracts: Must specify role, hours, location, salary/wage, leave entitlements, notice period, and termination conditions; fixed-term contracts require specific end date or project completion criteria.",
+      "Working Time Regulations: Most jurisdictions limit working hours (48 hours/week in UK, 40 hours/week standard in US); rest breaks required (10-30 min per 4-6 hours); mandatory days off.",
+      "Minimum Wage: Varies by jurisdiction and age; must audit annually; contractors must meet effective hourly rate after expenses; penalties for non-compliance are severe.",
+      "Data Privacy: GDPR (EU/UK) requires consent, right to access, right to deletion, and data portability; similar laws apply in California (CCPA), Australia (Privacy Act), and NZ (Privacy Act 2020).",
+      "Equal Opportunity: Discrimination on basis of age, gender, race, religion, disability, sexual orientation is prohibited; reasonable accommodations required for disabilities.",
+      "Health & Safety: Employer duty of care for physical and mental health; risk assessments required; incident reporting mandatory; return-to-work plans for injuries.",
+      "Redundancy: Fair selection process required; consultation period mandatory; redundancy pay based on tenure (1-2 weeks per year of service typical); re-deployment must be considered first.",
+      "Disciplinary Process: Warning stages (verbal → written → final → dismissal); right to representation; investigation before action; documented at every step; summary dismissal only for gross misconduct.",
+      "Record Keeping: Employment records must be retained 7 years minimum (varies by jurisdiction); payroll records, tax documentation, contracts, and policies must be accessible.",
+      "Right to Work: Employers must verify work authorization; visa expiry tracking critical; penalties for employing unauthorized workers can be substantial."
+    ],
+    tags: ["compliance", "legal"],
+  },
+  {
+    id: "payroll_compensation_knowledge",
+    title: "Payroll & Compensation Expertise",
+    bullets: [
+      "Pay Frequency: Weekly (hospitality, retail), fortnightly (most common in NZ/AU), monthly (professional services); pay cycles must be consistent and communicated.",
+      "Salary vs Hourly: Salaried employees have fixed annual compensation divided by pay periods; hourly employees paid for actual hours worked; overtime rules differ significantly.",
+      "Tax Codes: Each jurisdiction has different tax code systems (PAYE in NZ/UK, W-4 in US); incorrect codes result in over/under-withholding; must update when circumstances change.",
+      "Superannuation/Retirement: Mandatory employer contributions (11% in AU, 3% KiwiSaver in NZ, varies in US 401k); employee can opt for higher contributions; vesting periods may apply.",
+      "Statutory Deductions: Income tax, social security/national insurance, student loans, child support, court orders; employer liable for correct withholding and remittance.",
+      "Allowances & Benefits: Car allowances, phone allowances, meal allowances; some taxable, some exempt; must be clearly defined in employment agreement and payroll system.",
+      "Overtime Rules: Time-and-a-half typically for hours beyond standard (40 hours/week); double-time for holidays; some roles exempt from overtime (managers, professionals).",
+      "Holiday Pay Calculations: Different jurisdictions use different methods (average weekly earnings, day rate, hourly rate); 8% loading may apply; must include regular overtime and allowances.",
+      "Salary Bands: Establish min-mid-max for each role; market benchmarking annually; transparency vs confidentiality balance; pay equity audits increasingly required.",
+      "Bonus & Incentives: Must define eligibility, calculation methodology, payment timing; discretionary vs contractual; tax implications; communication critical for motivation."
+    ],
+    tags: ["payroll", "compensation"],
   },
   {
     id: "conversational_principles",
@@ -51,7 +107,14 @@ const SYSTEM_KNOWLEDGE_SECTIONS: KnowledgeSection[] = [
       "Every change must show a preview and require explicit confirmation before execution.",
       "Collect audit reasons whenever existing data is modified and surface undo instructions (48 hour window) after success.",
       "Never fabricate data: explain limitations or request missing inputs instead of guessing.",
-      "If a request is unsafe or non-compliant (e.g. sharing confidential salary data externally), politely refuse and offer compliant alternatives."
+      "If a request is unsafe or non-compliant (e.g. sharing confidential salary data externally), politely refuse and offer compliant alternatives.",
+      "Confidence Calibration: When confidence is low (<70%), ask clarifying questions with examples; medium confidence (70-90%) suggest interpretation; high confidence (>90%) proceed with action.",
+      "Provide Rich Context: When multiple matches found, show distinguishing details (department, role, tenure, manager) not just names.",
+      "Proactive Suggestions: After successful actions, suggest logical next steps or related actions the user might want to take.",
+      "Error Recovery: If initial approach fails, automatically try variations, fuzzy matching, or synonyms before asking user for clarification.",
+      "Learning Context: Remember user preferences and patterns within conversation (e.g., if they distinguish 'Sales' from 'Sales & Marketing', respect that).",
+      "Emotional Intelligence: Detect frustration, urgency, or confusion in messages and adjust tone accordingly; offer help proactively when user seems stuck.",
+      "Explain Complexity Simply: Break down complex HR concepts into plain language; use analogies and examples; avoid jargon unless specifically asked."
     ],
     tags: ["core", "conversation"],
   },
@@ -272,6 +335,9 @@ export const SYSTEM_KNOWLEDGE_GUARDRAILS = buildGuardrailPrompt();
 
 export const CORE_CONVERSATION_SECTIONS: KnowledgeSectionId[] = [
   "platform_overview",
+  "hr_domain_expertise",
+  "compliance_legal_knowledge",
+  "payroll_compensation_knowledge",
   "conversational_principles",
   "data_analytics",
   "employee_management",

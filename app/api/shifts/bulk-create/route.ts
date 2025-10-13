@@ -84,9 +84,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Shift template not found' }, { status: 404 });
       }
 
-      if (!template.isActive) {
-        return NextResponse.json({ error: 'Shift template is inactive' }, { status: 400 });
-      }
+      // Note: ShiftTemplate model doesn't have isActive field, so we skip this check
     }
 
     // Validate manual shift details if not using template

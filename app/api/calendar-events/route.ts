@@ -145,7 +145,7 @@ export async function GET(req: Request) {
             },
           },
         },
-        location: {
+        Location: {
           select: {
             id: true,
             name: true,

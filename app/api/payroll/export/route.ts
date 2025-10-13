@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
             status: "APPROVED",
           },
           include: {
-            approver: {
+            Decisions: {
               select: {
                 User: {
                   select: {

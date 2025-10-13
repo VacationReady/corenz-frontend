@@ -88,16 +88,26 @@ export function CardHeader({
 export function CardContent({
   children,
   className,
+  transparent,
+  noPadding,
+  ...props
 }: {
   children: React.ReactNode;
   className?: string;
+  transparent?: boolean;
+  noPadding?: boolean;
 }) {
   return (
     <div
       className={clsx(
         "p-6 text-sm text-foreground space-y-3 leading-relaxed",
+        {
+          "bg-transparent": transparent,
+          "p-0": noPadding,
+        },
         className,
       )}
+      {...props}
     >
       {children}
     </div>

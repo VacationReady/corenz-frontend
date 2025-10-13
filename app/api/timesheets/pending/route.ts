@@ -107,12 +107,14 @@ export async function GET(req: NextRequest) {
               },
             },
           },
-          entries: {
+          TimesheetEntries: {
             select: {
+              id: true,
               date: true,
-              clockIn: true,
-              clockOut: true,
-              breakDuration: true,
+              hours: true,
+              startTime: true,
+              endTime: true,
+              breakMinutes: true,
             },
           },
         },

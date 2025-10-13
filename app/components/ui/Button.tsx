@@ -5,9 +5,14 @@ import clsx from "clsx";
 import { Slot } from "@radix-ui/react-slot";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
-  size?: "sm" | "md" | "lg";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger" | "destructive" | "default" | "glass";
+  size?: "sm" | "md" | "lg" | "icon";
   loading?: boolean;
+  loadingText?: string;
+  icon?: React.ReactNode;
+  iconPosition?: "left" | "right";
+  pill?: boolean;
+  glow?: boolean;
   asChild?: boolean;
 }
 
@@ -18,6 +23,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "primary",
       size = "md",
       loading = false,
+      loadingText,
+      icon,
+      iconPosition = "left",
+      pill = false,
+      glow = false,
       disabled,
       type = "submit",
       asChild = false,
@@ -28,6 +38,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const baseClasses =
       "inline-flex items-center justify-center rounded-2xl font-medium transition-glass focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed";
 
+    const normalizedVariant = variant === "destructive" ? "danger" : variant === "default" ? "primary" : variant;
+    
     const variantClasses = {
       primary:
         "bg-primary text-primary-foreground hover:bg-primary/90 shadow-warm hover-lift",
@@ -39,12 +51,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         "hover:bg-accent/50 hover:text-accent-foreground hover:backdrop-blur-md",
       danger:
         "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-warm hover-lift",
-    }[variant];
+      glass:
+        "glass-strong text-foreground hover-glass border-glass",
+    }[normalizedVariant] || variantClasses.primary;
 
     const sizeClasses = {
       sm: "h-8 px-3 text-sm",
       md: "h-10 px-4 text-sm",
       lg: "h-12 px-6 text-base",
+      icon: "h-10 w-10 p-0",
     }[size];
 
     const Comp = asChild ? Slot : "button";
@@ -62,6 +77,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           props.className,
           {
             "opacity-50 cursor-not-allowed": disabled || loading,
+            "rounded-full": pill,
+            "shadow-glow": glow,
           },
         )}
       >
@@ -87,10 +104,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 018 8h-4l3 3 3-3h-4a8 8 0 01-8 8V8l-3 3 3 3v-4z"
               />
             </svg>
-            Loading...
+            {loadingText || "Loading..."}
           </span>
         ) : (
-          children
+          <span className="flex items-center gap-2">
+            {icon && iconPosition === "left" && icon}
+            {children}
+            {icon && iconPosition === "right" && icon}
+          </span>
         )}
       </Comp>
     );

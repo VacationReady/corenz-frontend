@@ -23,3 +23,7 @@ const Input = React.forwardRef<
 Input.displayName = "Input";
 
 export { Input };
+
+// Alias exports for compatibility
+export const SearchInput = Input;
+export const PasswordInput = Input;

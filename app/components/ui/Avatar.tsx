@@ -10,7 +10,20 @@ type AvatarProps = {
   size?: number;
 };
 
-export function Avatar({ src, name, className, size = 32 }: AvatarProps) {
+export function Avatar({ src, name, className, size = 32, children }: AvatarProps & { children?: React.ReactNode }) {
+  // If children provided, render as shadcn-style Avatar wrapper
+  if (children) {
+    return (
+      <div
+        className={cn("relative flex shrink-0 overflow-hidden rounded-full", className)}
+        style={{ width: size, height: size }}
+      >
+        {children}
+      </div>
+    );
+  }
+  
+  // Otherwise use the original Avatar component logic
   const initials = React.useMemo(() => {
     const safe = (name || "").trim();
     if (!safe) return "?";
@@ -52,6 +65,27 @@ export function Avatar({ src, name, className, size = 32 }: AvatarProps) {
       >
         {initials}
       </span>
+    </div>
+  );
+}
+
+// Shadcn-style Avatar subcomponents for compatibility
+export function AvatarImage({ src, alt, className }: { src?: string; alt?: string; className?: string }) {
+  if (!src) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt || "avatar"}
+      className={cn("aspect-square h-full w-full object-cover", className)}
+    />
+  );
+}
+
+export function AvatarFallback({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("flex h-full w-full items-center justify-center rounded-full bg-muted", className)}>
+      {children}
     </div>
   );
 }

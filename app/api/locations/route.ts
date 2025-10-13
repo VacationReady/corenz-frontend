@@ -30,8 +30,6 @@ export async function GET() {
       select: {
         id: true,
         name: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
 

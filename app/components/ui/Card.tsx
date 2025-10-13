@@ -8,6 +8,11 @@ interface CardProps
   action?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  variant?: string;
+  hoverable?: boolean;
+  glow?: boolean;
+  transparent?: boolean;
+  noPadding?: boolean;
 }
 
 export function Card({
@@ -16,12 +21,23 @@ export function Card({
   action,
   children,
   className,
+  variant,
+  hoverable = false,
+  glow = false,
+  transparent = false,
+  noPadding = false,
   ...props
 }: CardProps) {
   return (
     <div
       className={clsx(
         "glass rounded-3xl shadow-glass h-full transition-glass hover-glass hover-lift",
+        {
+          "hover-lift cursor-pointer": hoverable,
+          "shadow-glow": glow,
+          "bg-transparent backdrop-blur-none border-none shadow-none": transparent,
+          "p-0": noPadding,
+        },
         className,
       )}
       {...props}
@@ -126,3 +142,7 @@ export function CardFooter({
     </div>
   );
 }
+
+// Alias exports for compatibility
+export const MetricCard = Card;
+export const FeatureCard = Card;

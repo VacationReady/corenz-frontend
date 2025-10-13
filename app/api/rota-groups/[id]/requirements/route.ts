@@ -168,9 +168,10 @@ export async function POST(
 // DELETE /api/rota-groups/[id]/requirements - Delete all requirements (with optional filter)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {

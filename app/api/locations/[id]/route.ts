@@ -20,7 +20,7 @@ const locationUpdateSchema = z.object({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -29,8 +29,10 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const location = await prisma.location.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!location) {
@@ -54,7 +56,7 @@ export async function GET(
  */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -63,12 +65,14 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const body = await req.json();
     const data = locationUpdateSchema.parse(body);
 
     // Fetch existing location
     const existing = await prisma.location.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existing) {
@@ -93,7 +97,7 @@ export async function PUT(
         where: {
           companyId: session.user.companyId,
           name: data.name,
-          id: { not: params.id },
+          id: { not: id },
         },
       });
 
@@ -106,7 +110,7 @@ export async function PUT(
     }
 
     const location = await prisma.location.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         name: data.name,
       },
@@ -133,7 +137,7 @@ export async function PUT(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -142,8 +146,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const location = await prisma.location.findUnique({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     if (!location) {
@@ -156,7 +162,7 @@ export async function DELETE(
 
     // Soft delete by setting isActive to false
     await prisma.location.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true, message: "Location deleted successfully" });

@@ -13,6 +13,10 @@ interface CardProps
   glow?: boolean;
   transparent?: boolean;
   noPadding?: boolean;
+  value?: string | number;
+  description?: string;
+  change?: string;
+  trend?: "up" | "down" | "neutral";
 }
 
 export function Card({
@@ -26,6 +30,10 @@ export function Card({
   glow = false,
   transparent = false,
   noPadding = false,
+  value,
+  description,
+  change,
+  trend,
   ...props
 }: CardProps) {
   return (

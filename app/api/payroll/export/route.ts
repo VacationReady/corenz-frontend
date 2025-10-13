@@ -193,16 +193,18 @@ export async function POST(req: NextRequest) {
             },
           },
         },
-        entries: {
-          include: {
-            location: {
-              select: {
-                name: true,
-              },
-            },
+        TimesheetEntries: {
+          select: {
+            id: true,
+            date: true,
+            startTime: true,
+            endTime: true,
+            breakMinutes: true,
+            hours: true,
+            notes: true,
           },
         },
-        approvals: {
+        ApprovalStages: {
           where: {
             status: "APPROVED",
           },

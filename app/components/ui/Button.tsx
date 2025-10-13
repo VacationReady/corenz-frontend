@@ -10,7 +10,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   loadingText?: string;
   icon?: React.ReactNode;
-  iconPosition?: "left" | "right";
+  iconPosition?: "left" | "right" | "start" | "end";
   pill?: boolean;
   glow?: boolean;
   asChild?: boolean;
@@ -40,7 +40,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const normalizedVariant = variant === "destructive" ? "danger" : variant === "default" ? "primary" : variant;
     
-    const variantClasses = {
+    const variantClassesMap = {
       primary:
         "bg-primary text-primary-foreground hover:bg-primary/90 shadow-warm hover-lift",
       secondary:
@@ -53,7 +53,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-warm hover-lift",
       glass:
         "glass-strong text-foreground hover-glass border-glass",
-    }[normalizedVariant] || variantClasses.primary;
+    };
+    
+    const variantClasses = variantClassesMap[normalizedVariant] || variantClassesMap.primary;
 
     const sizeClasses = {
       sm: "h-8 px-3 text-sm",
@@ -108,9 +110,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </span>
         ) : (
           <span className="flex items-center gap-2">
-            {icon && iconPosition === "left" && icon}
+            {icon && (iconPosition === "left" || iconPosition === "start") && icon}
             {children}
-            {icon && iconPosition === "right" && icon}
+            {icon && (iconPosition === "right" || iconPosition === "end") && icon}
           </span>
         )}
       </Comp>

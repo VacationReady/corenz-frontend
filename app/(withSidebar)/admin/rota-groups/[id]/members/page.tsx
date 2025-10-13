@@ -163,21 +163,21 @@ export default function RotaGroupMembersPage() {
   }
 
   return (
-    <div className="p-8 min-h-screen">
+    <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
         <Link
           href="/admin/rota-groups"
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Rota Groups
         </Link>
         <div className="flex items-center gap-3 mb-2">
           <span className="text-3xl">{group?.icon || '📋'}</span>
-          <h1 className="text-3xl font-bold text-white">{group?.name}</h1>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{group?.name}</h1>
         </div>
-        <p className="text-gray-400">
+        <p className="text-muted-foreground">
           Manage members and their assigned roles
         </p>
       </div>

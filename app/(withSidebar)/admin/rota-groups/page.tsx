@@ -75,12 +75,12 @@ export default function RotaGroupsPage() {
   }
 
   return (
-    <div className="p-8 space-y-6 min-h-screen">
+    <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Rota Groups</h1>
-          <p className="text-gray-400 mt-1">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">Rota Groups</h1>
+          <p className="text-muted-foreground">
             Manage scheduling pools and shift teams for workforce management
           </p>
         </div>

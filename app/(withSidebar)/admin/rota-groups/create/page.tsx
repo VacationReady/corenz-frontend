@@ -126,30 +126,30 @@ export default function CreateRotaGroupPage() {
   const colorOptions = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#6366F1', '#14B8A6'];
 
   return (
-    <div className="p-8 max-w-4xl mx-auto min-h-screen">
+    <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
         <Link
           href="/admin/rota-groups"
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Rota Groups
         </Link>
-        <h1 className="text-3xl font-bold text-white">Create Rota Group</h1>
-        <p className="text-gray-400 mt-1">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">Create Rota Group</h1>
+        <p className="text-muted-foreground">
           Define a new scheduling pool for your workforce
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Basic Information</h2>
+        <div className="bg-card border rounded-xl p-6 shadow-lg">
+          <h2 className="text-2xl font-bold mb-4">Basic Information</h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium mb-2">
                 Group Name <span className="text-red-400">*</span>
               </label>
               <input
@@ -158,12 +158,12 @@ export default function CreateRotaGroupPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Distribution Center - Night Shift"
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 rounded-lg bg-background border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium mb-2">
                 Description
               </label>
               <textarea
@@ -171,13 +171,13 @@ export default function CreateRotaGroupPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="e.g., Warehouse operations during night hours"
                 rows={3}
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 rounded-lg bg-background border focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium mb-2">
                   Icon
                 </label>
                 <div className="grid grid-cols-5 gap-2">
@@ -189,7 +189,7 @@ export default function CreateRotaGroupPage() {
                       className={`text-2xl p-3 rounded-lg transition-all ${
                         formData.icon === emoji
                           ? 'bg-blue-500/30 border-2 border-blue-500'
-                          : 'bg-gray-800 border border-gray-600 hover:bg-gray-700'
+                          : 'bg-background border hover:bg-muted'
                       }`}
                     >
                       {emoji}
@@ -199,7 +199,7 @@ export default function CreateRotaGroupPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium mb-2">
                   Color
                 </label>
                 <div className="grid grid-cols-4 gap-2">
@@ -223,12 +223,12 @@ export default function CreateRotaGroupPage() {
         </div>
 
         {/* Location & Department */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Location & Department</h2>
+        <div className="bg-card border rounded-xl p-6 shadow-lg">
+          <h2 className="text-2xl font-bold mb-4">Location & Department</h2>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium mb-2">
                 Location
               </label>
               <select
@@ -236,9 +236,9 @@ export default function CreateRotaGroupPage() {
                 onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
                 className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="" className="bg-gray-800 text-white">No location</option>
+                <option value="">No location</option>
                 {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id} className="bg-gray-800 text-white">
+                  <option key={loc.id} value={loc.id}>
                     {loc.name}
                   </option>
                 ))}
@@ -246,7 +246,7 @@ export default function CreateRotaGroupPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium mb-2">
                 Department
               </label>
               <select
@@ -254,9 +254,9 @@ export default function CreateRotaGroupPage() {
                 onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
                 className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="" className="bg-gray-800 text-white">No department</option>
+                <option value="">No department</option>
                 {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id} className="bg-gray-800 text-white">
+                  <option key={dept.id} value={dept.id}>
                     {dept.name}
                   </option>
                 ))}
@@ -266,11 +266,11 @@ export default function CreateRotaGroupPage() {
         </div>
 
         {/* Roles */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-white mb-2">
+        <div className="bg-card border rounded-xl p-6 shadow-lg">
+          <h2 className="text-2xl font-bold mb-2">
             Roles <span className="text-red-400">*</span>
           </h2>
-          <p className="text-sm text-gray-400 mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             Define the roles that exist in this group (e.g., Picker, Packer, Supervisor)
           </p>
           
@@ -316,9 +316,9 @@ export default function CreateRotaGroupPage() {
         </div>
 
         {/* Required Skills */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-white mb-2">Required Skills</h2>
-          <p className="text-sm text-gray-400 mb-4">
+        <div className="bg-card border rounded-xl p-6 shadow-lg">
+          <h2 className="text-2xl font-bold mb-2">Required Skills</h2>
+          <p className="text-sm text-muted-foreground mb-4">
             Skills that all members of this group must have
           </p>
           
@@ -364,9 +364,9 @@ export default function CreateRotaGroupPage() {
         </div>
 
         {/* Optional Tags */}
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-          <h2 className="text-xl font-semibold text-white mb-2">Optional Certifications/Tags</h2>
-          <p className="text-sm text-gray-400 mb-4">
+        <div className="bg-card border rounded-xl p-6 shadow-lg">
+          <h2 className="text-2xl font-bold mb-2">Optional Certifications/Tags</h2>
+          <p className="text-sm text-muted-foreground mb-4">
             Additional qualifications (e.g., Forklift License, First Aid)
           </p>
           
@@ -423,7 +423,7 @@ export default function CreateRotaGroupPage() {
           </button>
           <Link
             href="/admin/rota-groups"
-            className="px-6 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-all"
+            className="px-6 py-3 rounded-lg bg-muted hover:bg-muted/80 font-medium transition-all"
           >
             Cancel
           </Link>

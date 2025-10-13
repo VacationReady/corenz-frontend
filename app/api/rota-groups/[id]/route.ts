@@ -89,9 +89,10 @@ export async function GET(
 // PUT /api/rota-groups/[id] - Update rota group
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {
@@ -173,9 +174,10 @@ export async function PUT(
 // DELETE /api/rota-groups/[id] - Delete rota group
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {

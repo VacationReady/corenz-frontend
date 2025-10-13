@@ -81,9 +81,10 @@ export async function GET(
 // PUT /api/rota-groups/[id]/members/[employeeId] - Update member roles
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; employeeId: string } }
+  { params }: { params: Promise<{ id: string; employeeId: string }> }
 ) {
   try {
+    const { id, employeeId } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {
@@ -150,9 +151,10 @@ export async function PUT(
 // DELETE /api/rota-groups/[id]/members/[employeeId] - Remove member from group
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; employeeId: string } }
+  { params }: { params: Promise<{ id: string; employeeId: string }> }
 ) {
   try {
+    const { id, employeeId } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {

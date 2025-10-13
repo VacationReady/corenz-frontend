@@ -91,9 +91,10 @@ export async function GET(
 // POST /api/rota-groups/[id]/members - Add member(s) to rota group
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {

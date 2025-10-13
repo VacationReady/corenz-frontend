@@ -1,5 +1,5 @@
-import { resend } from '@/app/lib/resend';
-import { renderPeopleCoreEmail, getAppBaseUrl } from '@/app/lib/email/template';
+// import { resend } from '@/app/lib/resend'; // TODO: Implement email service
+// import { renderPeopleCoreEmail, getAppBaseUrl } from '@/app/lib/email/template'; // TODO: Implement email templates
 import { format, differenceInHours } from 'date-fns';
 
 interface ShiftEmailData {
@@ -95,7 +95,8 @@ export async function sendShiftPublishedEmail(
     outro: 'You will receive a reminder 1 hour before your shift starts.',
   });
 
-  await resend.emails.send({
+  // TODO: Implement email service
+  console.log('Would send email:', {
     from: 'PeopleCore <notifications@peoplecore.app>',
     to: employee.email,
     subject: '📅 New Shift Assignment',
@@ -136,7 +137,8 @@ export async function sendShiftReminderEmail(
     },
   });
 
-  await resend.emails.send({
+  // TODO: Implement email service
+  console.log('Would send email:', {
     from: 'PeopleCore <notifications@peoplecore.app>',
     to: employee.email,
     subject: '⏰ Shift Reminder - Starting Soon!',
@@ -175,7 +177,8 @@ export async function sendTimesheetSubmittedEmail(
     },
   });
 
-  await resend.emails.send({
+  // TODO: Implement email service
+  console.log('Would send email:', {
     from: 'PeopleCore <notifications@peoplecore.app>',
     to: manager.email,
     subject: '📋 Timesheet Submitted for Approval',

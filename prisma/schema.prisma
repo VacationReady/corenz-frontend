@@ -479,6 +479,7 @@ model Employee {
   PushNotificationTokens           PushNotificationToken[]
   Timesheets                       Timesheet[]                        @relation("TimesheetEmployee")
   ClockEntries                     ClockEntry[]                       @relation("ClockEntryEmployee")
+  Shifts                           Shift[]                            @relation("ShiftEmployee")
 
   @@unique([companyId, irdNumber])
 }
@@ -1110,6 +1111,7 @@ model Location {
   companyId String?
   Company   Company?   @relation(fields: [companyId], references: [id])
   Employees Employee[]
+  Shifts    Shift[]    @relation("ShiftLocation")
 }
 
 model NewsPost {
@@ -3063,6 +3065,8 @@ model Shift {
   updatedAt           DateTime            @updatedAt
   createdBy           String
   
+  Employee            Employee?           @relation("ShiftEmployee", fields: [employeeId], references: [id])
+  Location            Location?           @relation("ShiftLocation", fields: [locationId], references: [id])
   Template            ShiftTemplate?      @relation(fields: [templateId], references: [id])
   ShiftSwapRequests   ShiftSwapRequest[]
   
@@ -3418,6 +3422,7 @@ enum ConflictType {
   OVERTIME            // Exceeds maximum hours
   UNAVAILABLE         // Employee marked unavailable
   SKILL_MISMATCH      // Employee lacks required skills
+  LEAVE_CONFLICT      // Conflicts with approved leave
 }
 
 enum ConflictSeverity {

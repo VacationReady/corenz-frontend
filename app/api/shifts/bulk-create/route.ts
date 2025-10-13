@@ -272,6 +272,7 @@ export async function POST(req: NextRequest) {
       availabilityPatterns,
       availabilityExceptions,
       employeeSkills,
+      new Map(), // leaveRequests - empty for now
       conflictSettings
     );
 

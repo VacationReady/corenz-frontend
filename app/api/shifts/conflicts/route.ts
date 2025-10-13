@@ -169,6 +169,7 @@ export async function GET(req: NextRequest) {
       availabilityPatterns,
       availabilityExceptions,
       employeeSkills,
+      new Map(), // leaveRequests - empty for now
       conflictSettings
     );
 

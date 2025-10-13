@@ -32,11 +32,10 @@ export async function GET(req: NextRequest) {
         },
       },
       include: {
-        location: {
+        Location: {
           select: {
             id: true,
             name: true,
-            address: true,
           },
         },
       },

@@ -230,6 +230,7 @@ export async function PUT(
       patternsMap,
       exceptionsMap,
       employeeSkills,
+      new Map(), // leaveRequests - empty for now
       {
         minimumRestHours: settings?.minimumRestHours || 11,
         maxHoursPerWeek: 40, // Default max hours per week

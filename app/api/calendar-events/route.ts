@@ -128,7 +128,7 @@ export async function GET(req: Request) {
         } : {}),
       },
       include: {
-        employee: {
+        Employee: {
           include: {
             User: {
               select: {
@@ -157,7 +157,7 @@ export async function GET(req: Request) {
 
     const shiftEvents = await Promise.all(
       shifts.map(async (shift: any) => {
-        const user = shift.employee?.User;
+        const user = shift.Employee?.User;
         const displayName = user?.name || 
           `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 
           'Unknown';
@@ -189,9 +189,9 @@ export async function GET(req: Request) {
           duration: duration.toFixed(1),
           notes: shift.notes,
           employee: {
-            id: shift.employee?.id,
+            id: shift.Employee?.id,
             name: displayName,
-            department: shift.employee?.Department?.name ?? null,
+            department: shift.Employee?.Department?.name ?? null,
             profileImageUrl,
           },
           // Use different color for shifts

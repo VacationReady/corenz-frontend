@@ -22,7 +22,7 @@ import type { EventContentArg } from "@fullcalendar/core";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
-import { Lock } from "lucide-react";
+import { Lock, Clock } from "lucide-react";
 import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
 import { FilterBar } from "@/components/ui/FilterBar";
 import {

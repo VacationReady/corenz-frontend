@@ -69,16 +69,23 @@ export function Card({
 export function CardHeader({
   children,
   className,
+  transparent,
+  ...props
 }: {
   children: React.ReactNode;
   className?: string;
+  transparent?: boolean;
 }) {
   return (
     <div
       className={clsx(
         "glass-subtle border-b border-glass px-6 py-5 rounded-t-3xl",
+        {
+          "bg-transparent border-none": transparent,
+        },
         className,
       )}
+      {...props}
     >
       {children}
     </div>

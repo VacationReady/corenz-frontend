@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
         employeeId: timesheet.employeeId,
         employeeName: timesheet.Employee.User?.name || "Unknown",
         employeeEmail: timesheet.Employee.User?.email || "",
-        employeeAvatar: timesheet.Employee.User?.avatarUrl,
+        employeeAvatar: timesheet.Employee.User?.profileImageUrl,
         department: timesheet.Employee.Department?.name || "Unassigned",
         periodStart: timesheet.periodStart,
         periodEnd: timesheet.periodEnd,

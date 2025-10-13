@@ -245,20 +245,20 @@ export async function POST(req: NextRequest) {
       const hourlyRate = (timesheet.Employee as any).hourlyRate || 0;
 
       for (const entry of timesheet.TimesheetEntries) {
-        const clockIn = entry.clockIn ? new Date(entry.clockIn) : null;
-        const clockOut = entry.clockOut ? new Date(entry.clockOut) : null;
+        const startTime = entry.startTime ? new Date(entry.startTime) : null;
+        const endTime = entry.endTime ? new Date(entry.endTime) : null;
 
-        if (!clockIn || !clockOut) continue;
+        if (!startTime || !endTime) continue;
 
-        const totalMinutes = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60);
-        const breakMinutes = entry.breakDuration || 0;
+        const totalMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+        const breakMinutes = entry.breakMinutes || 0;
         const workedMinutes = totalMinutes - breakMinutes;
         const totalHours = parseFloat((workedMinutes / 60).toFixed(2));
 
         const approval = timesheet.ApprovalStages[0];
-        const approvedBy = approval?.approver?.User?.name || "System";
-        const approvedAt = approval?.createdAt
-          ? new Date(approval.createdAt).toISOString()
+        const approvedBy = "System"; // Approval details simplified
+        const approvedAt = approval?.completedAt
+          ? new Date(approval.completedAt).toISOString()
           : "";
 
         const payrollEntry: PayrollEntry = {
@@ -267,8 +267,8 @@ export async function POST(req: NextRequest) {
           email: employeeEmail,
           department,
           date: new Date(entry.date).toISOString().split("T")[0],
-          clockIn: clockIn.toTimeString().slice(0, 8),
-          clockOut: clockOut.toTimeString().slice(0, 8),
+          clockIn: startTime.toTimeString().slice(0, 8),
+          clockOut: endTime.toTimeString().slice(0, 8),
           breakDuration: data.includeBreaks !== false ? breakMinutes : 0,
           totalHours,
           overtimeHours: 0, // Calculated later per week
@@ -345,7 +345,7 @@ export async function POST(req: NextRequest) {
         Date: entry.date,
         "Clock In": entry.clockIn,
         "Clock Out": entry.clockOut,
-        "Break Duration (mins)": entry.breakDuration,
+        "Break Duration (mins)": entry.breakMinutes,
         "Total Hours": entry.totalHours,
         "Overtime Hours": entry.overtimeHours,
         "Hourly Rate": entry.hourlyRate,

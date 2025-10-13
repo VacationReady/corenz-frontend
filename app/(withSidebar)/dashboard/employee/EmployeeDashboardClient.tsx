@@ -4,6 +4,7 @@ import React from "react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
+import { TodaysShiftWidget } from "@/components/dashboard/TodaysShiftWidget";
 import { Calendar, User, Bell } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
@@ -115,6 +116,7 @@ export default function EmployeeDashboardClient({
 }) {
   return (
     <>
+      {employeeId && <TodaysShiftWidget employeeId={employeeId} />}
       {employeeId && <UpcomingLeave employeeId={employeeId} />}
       {employeeId && <UnifiedActionItems employeeId={employeeId} />}
       <QuickActions employeeId={employeeId} />

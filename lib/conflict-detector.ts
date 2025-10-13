@@ -1,4 +1,4 @@
-import { differenceInHours, areIntervalsOverlapping } from 'date-fns';
+import { differenceInHours, areIntervalsOverlapping, format } from 'date-fns';
 
 export interface Shift {
   id: string;
@@ -23,22 +23,32 @@ export interface AvailabilityException {
 }
 
 export interface Conflict {
-  type: 'DOUBLE_BOOKING' | 'REST_PERIOD' | 'OVERTIME' | 'UNAVAILABLE' | 'SKILL_MISMATCH';
+  type: 'DOUBLE_BOOKING' | 'REST_PERIOD' | 'OVERTIME' | 'UNAVAILABLE' | 'SKILL_MISMATCH' | 'LEAVE_CONFLICT';
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   description: string;
   shift1Id?: string;
   shift2Id?: string;
   employeeId: string;
+  leaveRequestId?: string;
 }
 
 /**
  * Detect scheduling conflicts for shifts
  */
+export interface LeaveRequest {
+  id: string;
+  startDate: Date;
+  endDate: Date;
+  approvalStatus: string;
+  eventCategoryName?: string;
+}
+
 export function detectScheduleConflicts(
   shifts: Shift[],
   availabilityPatterns: Map<string, AvailabilityPattern[]>,
   availabilityExceptions: Map<string, AvailabilityException[]>,
   employeeSkills: Map<string, string[]>,
+  leaveRequests: Map<string, LeaveRequest[]>,
   settings: {
     minimumRestHours: number;
     maxHoursPerWeek: number;
@@ -160,6 +170,39 @@ export function detectScheduleConflicts(
             description: `Employee missing required skills: ${missingSkills.join(', ')}`,
             shift1Id: shift.id,
             employeeId,
+          });
+        }
+      }
+    }
+  }
+
+  // Check leave request conflicts
+  for (const [employeeId, employeeShifts] of shiftsByEmployee) {
+    const employeeLeave = leaveRequests.get(employeeId) || [];
+    
+    for (const shift of employeeShifts) {
+      for (const leave of employeeLeave) {
+        // Only check approved leave
+        if (leave.approvalStatus !== 'APPROVED') continue;
+        
+        // Check if shift falls within leave period
+        const shiftDate = new Date(shift.startTime);
+        const leaveStart = new Date(leave.startDate);
+        const leaveEnd = new Date(leave.endDate);
+        
+        // Set to start of day for comparison
+        shiftDate.setHours(0, 0, 0, 0);
+        leaveStart.setHours(0, 0, 0, 0);
+        leaveEnd.setHours(23, 59, 59, 999);
+        
+        if (shiftDate >= leaveStart && shiftDate <= leaveEnd) {
+          conflicts.push({
+            type: 'LEAVE_CONFLICT',
+            severity: 'CRITICAL',
+            description: `Employee has approved ${leave.eventCategoryName || 'leave'} from ${format(leaveStart, 'MMM d')} to ${format(leaveEnd, 'MMM d')}`,
+            shift1Id: shift.id,
+            employeeId,
+            leaveRequestId: leave.id,
           });
         }
       }

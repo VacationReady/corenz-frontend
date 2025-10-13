@@ -500,8 +500,10 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const renderEventContent = (content: EventContentArg) => {
     const isBlackout = Boolean(content.event.extendedProps?.isBlackout);
     const isBankHoliday = Boolean(content.event.extendedProps?.isBankHoliday);
+    const isShift = (content.event.extendedProps as any)?.type === 'shift';
     const categoryName = (content.event.extendedProps as any)?.categoryName as string | null;
     const employee = (content.event.extendedProps as any)?.employee as any | undefined;
+    
     if (isBankHoliday) {
       return (
         <div className="flex items-center gap-1 text-[11px] font-medium text-emerald-700">
@@ -515,6 +517,63 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           <span className="inline-block w-2 h-2 bg-[repeating-linear-gradient(45deg,#fecaca,#fecaca_4px,#ffffff_4px,#ffffff_8px)] border border-red-400"></span>
           <Lock className="h-3 w-3" /> Blackout
         </div>
+      );
+    }
+    if (isShift) {
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <div className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-black/5 cursor-pointer">
+              <Clock className="h-3 w-3 flex-shrink-0" />
+              <span className="text-[11px] font-medium truncate max-w-[110px]">
+                {content.timeText}
+              </span>
+              <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={16} />
+            </div>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-72">
+            <div className="flex items-center gap-3">
+              <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={32} />
+              <div className="min-w-0">
+                <div className="font-semibold text-sm truncate">{employee?.name || 'Shift'}</div>
+                {employee?.department ? (
+                  <div className="text-xs text-gray-500 truncate">{employee.department}</div>
+                ) : null}
+              </div>
+            </div>
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4 text-blue-600" />
+                <span className="font-medium">{content.timeText}</span>
+              </div>
+              {content.event.extendedProps?.duration ? (
+                <div className="text-xs text-gray-600">
+                  Duration: {content.event.extendedProps.duration} hours
+                </div>
+              ) : null}
+              {content.event.extendedProps?.locationName ? (
+                <div className="text-xs text-gray-600">
+                  Location: {String(content.event.extendedProps.locationName)}
+                </div>
+              ) : null}
+              {content.event.extendedProps?.notes ? (
+                <div className="text-xs text-gray-700 mt-2 p-2 bg-gray-50 rounded">
+                  {String(content.event.extendedProps.notes)}
+                </div>
+              ) : null}
+              {employee?.id ? (
+                <div className="pt-2 flex gap-2">
+                  <Button asChild variant="secondary" size="sm">
+                    <a href={`/admin/timesheets/hub`}>View Timesheets</a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={`/employees/${employee.id}/overview`}>View Profile</a>
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          </PopoverContent>
+        </Popover>
       );
     }
     return (

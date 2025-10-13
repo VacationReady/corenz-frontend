@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { format } from 'date-fns';
-// import { sendEmail } from '@/lib/email'; // TODO: Implement email notifications
+import { sendShiftPublishedEmail } from '@/lib/email/shift-notifications';
 
 const publishSchema = z.object({
   shiftIds: z.array(z.string()).optional(), // For batch publishing
@@ -134,6 +134,23 @@ export async function POST(
     const notificationResults: { success: number; failed: number } = { success: 0, failed: 0 };
     
     if (data.notifyEmployees && assignedShifts.length > 0) {
+      // Fetch location data for shifts that have locations
+      const shiftsWithLocations = await prisma.shift.findMany({
+        where: {
+          id: { in: assignedShifts.filter(s => s.locationId).map(s => s.id) },
+        },
+        include: {
+          location: {
+            select: {
+              name: true,
+              address: true,
+            },
+          },
+        },
+      });
+
+      const locationMap = new Map(shiftsWithLocations.map(s => [s.id, s.location]));
+
       for (const shift of assignedShifts) {
         if (!shift.employeeId) continue;
 
@@ -141,24 +158,20 @@ export async function POST(
         if (!employee) continue;
 
         try {
-          // TODO: Implement email notification
-          // await sendEmail({
-          //   to: employee.User.email,
-          //   subject: 'New Shift Assignment',
-          //   html: `
-          //     <h2>New Shift Assigned</h2>
-          //     <p>Hi ${employee.User.name},</p>
-          //     <p>You have been assigned a new shift:</p>
-          //     <ul>
-          //       <li><strong>Date:</strong> ${format(shift.startTime, 'MMMM d, yyyy')}</li>
-          //       <li><strong>Time:</strong> ${format(shift.startTime, 'h:mm a')} - ${format(shift.endTime, 'h:mm a')}</li>
-          //       <li><strong>Duration:</strong> ${Math.round((shift.endTime.getTime() - shift.startTime.getTime()) / (1000 * 60 * 60) * 10) / 10} hours</li>
-          //       ${shift.notes ? `<li><strong>Notes:</strong> ${shift.notes}</li>` : ''}
-          //     </ul>
-          //     ${shift.requiresConfirmation ? '<p><strong>Please confirm your availability for this shift.</strong></p>' : ''}
-          //     <p>Log in to view your schedule.</p>
-          //   `,
-          // });
+          await sendShiftPublishedEmail(
+            { name: employee.User.name, email: employee.User.email },
+            {
+              id: shift.id,
+              startTime: shift.startTime,
+              endTime: shift.endTime,
+              breakDuration: shift.breakDuration,
+              notes: shift.notes,
+              role: shift.role,
+              requiresConfirmation: shift.requiresConfirmation,
+              location: shift.locationId ? locationMap.get(shift.id) || null : null,
+            },
+            requestingEmployee.companyId
+          );
           notificationResults.success++;
         } catch (error) {
           console.error(`Failed to send notification to ${employee.User.email}:`, error);

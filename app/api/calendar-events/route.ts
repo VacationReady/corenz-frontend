@@ -59,7 +59,7 @@ export async function GET(req: Request) {
       orderBy: { startDate: "desc" },
     });
 
-    const events = await Promise.all(
+    const leaveEvents = await Promise.all(
       leaveRequests.map(async (req: any) => {
         const user = req.Employee?.User;
         const displayName =
@@ -85,6 +85,7 @@ export async function GET(req: Request) {
           start: req.startDate,
           end: req.endDate,
           allDay: true,
+          type: "leave",
           reason: req.reason ?? null,
           categoryName: req.EventCategory?.name ?? null,
           eventCategoryId: req.EventCategory?.id ?? null,
@@ -107,7 +108,101 @@ export async function GET(req: Request) {
       }),
     );
 
-    return NextResponse.json(events);
+    // Fetch published shifts in date range
+    const shifts = await prisma.shift.findMany({
+      where: {
+        companyId: session.user.companyId,
+        isPublished: true,
+        employeeId: { not: null }, // Only assigned shifts
+        startTime: {
+          gte: hasValidFrom ? fromDate : undefined,
+          lte: hasValidTo ? toDate : undefined,
+        },
+        ...(department ? {
+          employee: {
+            Department: { is: { name: department } }
+          }
+        } : {}),
+        ...(departmentId ? {
+          departmentId
+        } : {}),
+      },
+      include: {
+        employee: {
+          include: {
+            User: {
+              select: {
+                name: true,
+                firstName: true,
+                lastName: true,
+                profileImageUrl: true,
+              },
+            },
+            Department: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { startTime: 'asc' },
+    });
+
+    const shiftEvents = await Promise.all(
+      shifts.map(async (shift: any) => {
+        const user = shift.employee?.User;
+        const displayName = user?.name || 
+          `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 
+          'Unknown';
+
+        let profileImageUrl: string | null = null;
+        if (user?.profileImageUrl) {
+          try {
+            const { data: signed } = await supabase.storage
+              .from('documents')
+              .createSignedUrl(user.profileImageUrl, 60 * 5);
+            profileImageUrl = signed?.signedUrl ?? null;
+          } catch (_err) {
+            profileImageUrl = null;
+          }
+        }
+
+        const duration = (new Date(shift.endTime).getTime() - new Date(shift.startTime).getTime()) / (1000 * 60 * 60);
+
+        return {
+          id: shift.id,
+          title: `🕒 ${displayName} - ${shift.role || 'Shift'}`,
+          start: shift.startTime,
+          end: shift.endTime,
+          allDay: false,
+          type: 'shift',
+          shiftId: shift.id,
+          locationName: shift.location?.name ?? null,
+          locationId: shift.location?.id ?? null,
+          duration: duration.toFixed(1),
+          notes: shift.notes,
+          employee: {
+            id: shift.employee?.id,
+            name: displayName,
+            department: shift.employee?.Department?.name ?? null,
+            profileImageUrl,
+          },
+          // Use different color for shifts
+          backgroundColor: '#3B82F6',
+          borderColor: '#2563EB',
+          textColor: '#FFFFFF',
+        };
+      })
+    );
+
+    return NextResponse.json([...leaveEvents, ...shiftEvents]);
   } catch (error) {
     console.error("[CALENDAR_EVENTS_GET]", error);
     return NextResponse.json(

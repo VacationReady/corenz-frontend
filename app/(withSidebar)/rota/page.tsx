@@ -342,8 +342,7 @@ export default function RotaPage() {
 
       {/* Main Content */}
       <div className="p-8 space-y-6">
-
-      {/* Filters Panel */}
+        {/* Filters Panel */}
       {showFilters && (
         <div className="bg-card backdrop-blur-md border border-border rounded-xl p-6 shadow-lg">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -475,6 +474,7 @@ export default function RotaPage() {
             collapsible={true}
           />
         </div>
+      </div>
       </div>
 
       {/* Selected Shift Detail Modal */}

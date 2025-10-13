@@ -186,6 +186,32 @@ export async function POST() {
               tx.actionItem.deleteMany({
                 where: { relatedEmployeeId: { in: ids } },
               }),
+            // Time tracking related deletions
+            (ids) =>
+              tx.timesheet.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.clockEntry.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.shift.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.availabilityPattern.deleteMany({
+                where: { employeeId: { in: ids } },
+              }),
+            (ids) =>
+              tx.shiftSwapRequest.deleteMany({
+                where: {
+                  OR: [
+                    { requesterEmployeeId: { in: ids } },
+                    { targetEmployeeId: { in: ids } },
+                  ],
+                },
+              }),
             // Ensure any employee-bound documents are removed
             (ids) =>
               tx.document.deleteMany({
@@ -276,6 +302,13 @@ export async function POST() {
         const eventCategories = await tx.eventCategory.deleteMany({
           where: { companyId, systemDefined: false },
         });
+        // Time tracking company-level data
+        const timeTrackingSettings = await tx.timeTrackingSettings.deleteMany({
+          where: { companyId },
+        });
+        const shiftTemplates = await tx.shiftTemplate.deleteMany({
+          where: { companyId },
+        });
 
         return {
           removedEmployees,
@@ -286,6 +319,8 @@ export async function POST() {
           removedGenderOptions: genderOptions.count,
           removedEventCategories: eventCategories.count,
           removedEventRules: eventRules.count + eventRuleOverrides.count,
+          removedTimeTrackingSettings: timeTrackingSettings.count,
+          removedShiftTemplates: shiftTemplates.count,
         } as const;
       },
       {

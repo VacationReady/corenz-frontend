@@ -17,9 +17,10 @@ const addMultipleMembersSchema = z.object({
 // GET /api/rota-groups/[id]/members - List members of a rota group
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {
@@ -29,7 +30,7 @@ export async function GET(
     // Verify rota group exists and belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
     });
@@ -43,7 +44,7 @@ export async function GET(
 
     const members = await prisma.rotaGroupMember.findMany({
       where: {
-        rotaGroupId: params.id,
+        rotaGroupId: id,
         isActive: true,
       },
       include: {
@@ -114,7 +115,7 @@ export async function POST(
     // Verify rota group exists and belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -149,12 +150,12 @@ export async function POST(
         return prisma.rotaGroupMember.upsert({
           where: {
             rotaGroupId_employeeId: {
-              rotaGroupId: params.id,
+              rotaGroupId: id,
               employeeId: member.employeeId,
             },
           },
           create: {
-            rotaGroupId: params.id,
+            rotaGroupId: id,
             employeeId: member.employeeId,
             assignedRoles: member.assignedRoles,
             isActive: true,

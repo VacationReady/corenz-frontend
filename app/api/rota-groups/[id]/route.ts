@@ -22,9 +22,10 @@ const updateRotaGroupSchema = z.object({
 // GET /api/rota-groups/[id] - Get single rota group
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {
@@ -33,7 +34,7 @@ export async function GET(
 
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
       include: {
@@ -103,7 +104,7 @@ export async function PUT(
     // Verify ownership
     const existing = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -135,7 +136,7 @@ export async function PUT(
     }
 
     const rotaGroup = await prisma.rotaGroup.update({
-      where: { id: params.id },
+      where: { id: id },
       data: validatedData,
       include: {
         Location: {
@@ -184,7 +185,7 @@ export async function DELETE(
     // Verify ownership
     const existing = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
       include: {
@@ -215,7 +216,7 @@ export async function DELETE(
     }
 
     await prisma.rotaGroup.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({ success: true });

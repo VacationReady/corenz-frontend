@@ -13,9 +13,10 @@ const updateMemberSchema = z.object({
 // GET /api/rota-groups/[id]/members/[employeeId] - Get single member
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; employeeId: string } }
+  { params }: { params: Promise<{ id: string; employeeId: string }> }
 ) {
   try {
+    const { id, employeeId } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {
@@ -25,7 +26,7 @@ export async function GET(
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
     });
@@ -40,8 +41,8 @@ export async function GET(
     const member = await prisma.rotaGroupMember.findUnique({
       where: {
         rotaGroupId_employeeId: {
-          rotaGroupId: params.id,
-          employeeId: params.employeeId,
+          rotaGroupId: id,
+          employeeId,
         },
       },
       include: {
@@ -95,7 +96,7 @@ export async function PUT(
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -110,8 +111,8 @@ export async function PUT(
     const member = await prisma.rotaGroupMember.update({
       where: {
         rotaGroupId_employeeId: {
-          rotaGroupId: params.id,
-          employeeId: params.employeeId,
+          rotaGroupId: id,
+          employeeId: employeeId,
         },
       },
       data: validatedData,
@@ -161,7 +162,7 @@ export async function DELETE(
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -176,8 +177,8 @@ export async function DELETE(
     // Check if employee has upcoming shifts in this group
     const upcomingShifts = await prisma.shift.count({
       where: {
-        rotaGroupId: params.id,
-        employeeId: params.employeeId,
+        rotaGroupId: id,
+        employeeId: employeeId,
         startTime: {
           gte: new Date(),
         },
@@ -198,8 +199,8 @@ export async function DELETE(
     await prisma.rotaGroupMember.update({
       where: {
         rotaGroupId_employeeId: {
-          rotaGroupId: params.id,
-          employeeId: params.employeeId,
+          rotaGroupId: id,
+          employeeId: employeeId,
         },
       },
       data: {

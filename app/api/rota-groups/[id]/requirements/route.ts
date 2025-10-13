@@ -23,9 +23,10 @@ const batchRequirementsSchema = z.object({
 // GET /api/rota-groups/[id]/requirements - Get all requirements for a rota group
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {
@@ -35,7 +36,7 @@ export async function GET(
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -53,7 +54,7 @@ export async function GET(
     const isActive = searchParams.get('isActive');
 
     const where: any = {
-      rotaGroupId: params.id,
+      rotaGroupId: id,
     };
 
     if (dayOfWeek !== null) where.dayOfWeek = parseInt(dayOfWeek);
@@ -106,7 +107,7 @@ export async function POST(
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -141,7 +142,7 @@ export async function POST(
           data: {
             ...req,
             companyId: session.user.companyId,
-            rotaGroupId: params.id,
+            rotaGroupId: id,
           },
         });
       })
@@ -178,7 +179,7 @@ export async function DELETE(
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id: id,
         companyId: session.user.companyId,
       },
     });
@@ -195,7 +196,7 @@ export async function DELETE(
     const role = searchParams.get('role');
 
     const where: any = {
-      rotaGroupId: params.id,
+      rotaGroupId: id,
     };
 
     if (dayOfWeek !== null) where.dayOfWeek = parseInt(dayOfWeek);

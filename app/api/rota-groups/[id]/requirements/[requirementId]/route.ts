@@ -6,9 +6,10 @@ import { prisma } from '@/lib/prisma';
 // DELETE /api/rota-groups/[id]/requirements/[requirementId] - Delete single requirement
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; requirementId: string } }
+  { params }: { params: Promise<{ id: string; requirementId: string }> }
 ) {
   try {
+    const { id, requirementId } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {
@@ -18,7 +19,7 @@ export async function DELETE(
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
     });
@@ -33,8 +34,8 @@ export async function DELETE(
     // Delete the requirement
     await prisma.shiftRequirement.delete({
       where: {
-        id: params.requirementId,
-        rotaGroupId: params.id,
+        id: requirementId,
+        rotaGroupId: id,
       },
     });
 

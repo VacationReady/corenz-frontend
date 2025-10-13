@@ -23,9 +23,10 @@ interface CoverageGap {
 // GET /api/rota-groups/[id]/coverage - Analyze staffing coverage
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.companyId) {
@@ -43,7 +44,7 @@ export async function GET(
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
-        id: params.id,
+        id,
         companyId: session.user.companyId,
       },
       include: {
@@ -78,7 +79,7 @@ export async function GET(
     // Get all shifts for this week
     const shifts = await prisma.shift.findMany({
       where: {
-        rotaGroupId: params.id,
+        rotaGroupId: id,
         startTime: {
           gte: weekStartDate,
           lte: weekEndDate,

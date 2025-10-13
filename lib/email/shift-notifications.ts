@@ -1,5 +1,5 @@
 // import { resend } from '@/app/lib/resend'; // TODO: Implement email service
-import { renderPeopleCoreEmail, getAppBaseUrl } from '@/app/lib/email/template';
+import { renderPeopleCoreEmail, getAppBaseUrl } from '../../app/lib/email/template';
 import { format, differenceInHours } from 'date-fns';
 
 interface ShiftEmailData {

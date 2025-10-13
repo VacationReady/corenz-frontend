@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
-import { prisma } from "@/lib/prisma";
-import { auditLog } from "@/lib/audit";
+import { authOptions } from "../../../lib/auth-options";
+import { prisma } from "../../../lib/prisma";
+import { auditLog } from "../../../lib/audit";
 import { Prisma, Role } from "@prisma/client";
 
 const RESET_EMAIL_DOMAIN = "reset.peoplecore.invalid";
@@ -207,7 +207,7 @@ export async function POST() {
               tx.shiftSwapRequest.deleteMany({
                 where: {
                   OR: [
-                    { requesterEmployeeId: { in: ids } },
+                    { requesterId: { in: ids } },
                     { targetEmployeeId: { in: ids } },
                   ],
                 },

@@ -228,6 +228,7 @@ model Company {
   PersonaProfiles                     PersonaProfile[]
   CompanyObjectives                   CompanyObjective[]
   TenantSwitchTokens                  TenantSwitchToken[]
+  RotaGroups                          RotaGroup[]
 }
 
 model ContractTypeOption {
@@ -268,6 +269,7 @@ model Department {
   User_User_departmentIdToDepartment User[]                        @relation("User_departmentIdToDepartment")
   Document                           Document[]                    @relation("DocumentDepartments")
   OnboardingTemplate                 OnboardingTemplate[]          @relation("OnboardingTemplateDepartments")
+  RotaGroups                         RotaGroup[]
 
   @@unique([companyId, name])
   @@unique([companyId, code])
@@ -480,6 +482,7 @@ model Employee {
   Timesheets                       Timesheet[]                        @relation("TimesheetEmployee")
   ClockEntries                     ClockEntry[]                       @relation("ClockEntryEmployee")
   Shifts                           Shift[]                            @relation("ShiftEmployee")
+  RotaGroupMemberships             RotaGroupMember[]                  @relation("RotaGroupMembers")
 
   @@unique([companyId, irdNumber])
 }
@@ -1106,12 +1109,13 @@ model LeaveRequest {
 }
 
 model Location {
-  id        String     @id
-  name      String     @unique
-  companyId String?
-  Company   Company?   @relation(fields: [companyId], references: [id])
-  Employees Employee[]
-  Shifts    Shift[]    @relation("ShiftLocation")
+  id         String      @id
+  name       String      @unique
+  companyId  String?
+  Company    Company?    @relation(fields: [companyId], references: [id])
+  Employees  Employee[]
+  Shifts     Shift[]     @relation("ShiftLocation")
+  RotaGroups RotaGroup[]
 }
 
 model NewsPost {
@@ -3025,22 +3029,25 @@ model TimesheetApprovalDecision {
 }
 
 model ShiftTemplate {
-  id          String   @id @default(cuid())
-  companyId   String
-  name        String
-  description String?
-  startTime   String   // HH:MM format
-  endTime     String   // HH:MM format
-  breakDuration Int    @default(0) // minutes
-  color       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String      @id @default(cuid())
+  companyId     String
+  name          String
+  startTime     String      // HH:MM format
+  endTime       String      // HH:MM format
+  breakDuration Int         @default(30) // minutes
+  role          String?
+  requiredSkills String[]   @default([])
+  departmentId  String?
+  locationId    String?
+  rotaGroupId   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   
-  Shifts      Shift[]
+  Shifts        Shift[]
+  RotaGroup     RotaGroup?  @relation(fields: [rotaGroupId], references: [id], onDelete: SetNull)
   
-  @@index([companyId, isActive])
   @@unique([companyId, name])
+  @@index([rotaGroupId])
 }
 
 model Shift {
@@ -3050,6 +3057,7 @@ model Shift {
   templateId          String?
   departmentId        String?
   locationId          String?
+  rotaGroupId         String?
   startTime           DateTime
   endTime             DateTime
   breakDuration       Int                 @default(0) // minutes
@@ -3068,12 +3076,14 @@ model Shift {
   Employee            Employee?           @relation("ShiftEmployee", fields: [employeeId], references: [id])
   Location            Location?           @relation("ShiftLocation", fields: [locationId], references: [id])
   Template            ShiftTemplate?      @relation(fields: [templateId], references: [id])
+  RotaGroup           RotaGroup?          @relation(fields: [rotaGroupId], references: [id], onDelete: SetNull)
   ShiftSwapRequests   ShiftSwapRequest[]
   
   @@index([companyId, startTime])
   @@index([employeeId, startTime])
   @@index([departmentId, startTime])
   @@index([isPublished])
+  @@index([rotaGroupId])
 }
 
 model ShiftSwapRequest {
@@ -3144,6 +3154,81 @@ model ScheduleConflict {
   
   @@index([companyId, resolvedAt])
   @@index([employeeId, resolvedAt])
+}
+
+// ============================================
+// ROTA GROUPS (WORKFORCE MANAGEMENT)
+// ============================================
+
+model RotaGroup {
+  id              String   @id @default(cuid())
+  companyId       String
+  name            String   // "Distribution Center - Night Shift"
+  description     String?
+  locationId      String?
+  departmentId    String?
+  roles           String[] @default([]) // ["Picker", "Packer", "Forklift Operator"]
+  requiredSkills  String[] @default([]) // ["RF Scanner", "Inventory System"]
+  optionalTags    String[] @default([]) // ["Forklift License", "Hazmat Cert"]
+  color           String?  // "#8B5CF6" for calendar display
+  icon            String?  // "🏭" visual identifier
+  isActive        Boolean  @default(true)
+  displayOrder    Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  Company           Company           @relation(fields: [companyId], references: [id])
+  Location          Location?         @relation(fields: [locationId], references: [id])
+  Department        Department?       @relation(fields: [departmentId], references: [id])
+  Members           RotaGroupMember[]
+  ShiftTemplates    ShiftTemplate[]
+  ShiftRequirements ShiftRequirement[]
+  Shifts            Shift[]
+  
+  @@unique([companyId, name])
+  @@index([companyId, isActive])
+  @@index([locationId])
+  @@index([departmentId])
+}
+
+model RotaGroupMember {
+  id            String   @id @default(cuid())
+  rotaGroupId   String
+  employeeId    String
+  assignedRoles String[] @default([]) // Roles employee can fill in this group
+  isActive      Boolean  @default(true)
+  addedAt       DateTime @default(now())
+  addedBy       String?
+  
+  RotaGroup     RotaGroup @relation(fields: [rotaGroupId], references: [id], onDelete: Cascade)
+  Employee      Employee  @relation("RotaGroupMembers", fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  @@unique([rotaGroupId, employeeId])
+  @@index([rotaGroupId])
+  @@index([employeeId])
+  @@index([isActive])
+}
+
+model ShiftRequirement {
+  id            String        @id @default(cuid())
+  companyId     String
+  rotaGroupId   String
+  dayOfWeek     Int           // 0=Sunday, 6=Saturday
+  startTime     String        // "07:00"
+  endTime       String        // "15:00"
+  role          String        // "Barista"
+  quantity      Int           @default(1) // Number needed
+  priority      ShiftPriority @default(NORMAL)
+  breakDuration Int           @default(30)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  RotaGroup     RotaGroup @relation(fields: [rotaGroupId], references: [id], onDelete: Cascade)
+  
+  @@index([rotaGroupId])
+  @@index([companyId, isActive])
+  @@index([dayOfWeek])
 }
 
 model PayrollExport {
@@ -3430,6 +3515,13 @@ enum ConflictSeverity {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+enum ShiftPriority {
+  CRITICAL
+  HIGH
+  NORMAL
+  LOW
 }
 
 enum ViolationSeverity {

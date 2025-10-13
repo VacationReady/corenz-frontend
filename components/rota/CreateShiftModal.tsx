@@ -33,6 +33,26 @@ interface Location {
   name: string;
 }
 
+interface RotaGroup {
+  id: string;
+  name: string;
+  icon?: string;
+  color?: string;
+  roles: string[];
+  Location?: { name: string };
+  Department?: { name: string };
+  _count: {
+    Members: number;
+  };
+}
+
+interface GroupMember {
+  id: string;
+  employeeId: string;
+  assignedRoles: string[];
+  Employee: Employee;
+}
+
 interface Conflict {
   type: string;
   severity: string;
@@ -50,6 +70,8 @@ export default function CreateShiftModal({
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [rotaGroups, setRotaGroups] = useState<RotaGroup[]>([]);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [checkingConflicts, setCheckingConflicts] = useState(false);
@@ -59,6 +81,8 @@ export default function CreateShiftModal({
     employeeId: preselectedEmployeeId || '',
     departmentId: '',
     locationId: '',
+    rotaGroupId: '',
+    selectedRole: '',
     startTime: preselectedDate ? format(preselectedDate, "yyyy-MM-dd'T'09:00") : '',
     endTime: preselectedDate ? format(preselectedDate, "yyyy-MM-dd'T'17:00") : '',
     breakDuration: 30,
@@ -74,8 +98,17 @@ export default function CreateShiftModal({
       fetchEmployees();
       fetchDepartments();
       fetchLocations();
+      fetchRotaGroups();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (formData.rotaGroupId) {
+      fetchGroupMembers(formData.rotaGroupId);
+    } else {
+      setGroupMembers([]);
+    }
+  }, [formData.rotaGroupId]);
 
   useEffect(() => {
     if (formData.employeeId && formData.startTime && formData.endTime) {
@@ -110,6 +143,26 @@ export default function CreateShiftModal({
       setLocations(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching locations:', error);
+    }
+  };
+
+  const fetchRotaGroups = async () => {
+    try {
+      const response = await fetch('/api/rota-groups');
+      const data = await response.json();
+      setRotaGroups(data.rotaGroups || []);
+    } catch (error) {
+      console.error('Error fetching rota groups:', error);
+    }
+  };
+
+  const fetchGroupMembers = async (groupId: string) => {
+    try {
+      const response = await fetch(`/api/rota-groups/${groupId}/members`);
+      const data = await response.json();
+      setGroupMembers(data.members || []);
+    } catch (error) {
+      console.error('Error fetching group members:', error);
     }
   };
 
@@ -175,10 +228,11 @@ export default function CreateShiftModal({
           employeeId: formData.employeeId || null,
           departmentId: formData.departmentId || null,
           locationId: formData.locationId || null,
+          rotaGroupId: formData.rotaGroupId || null,
           startTime: new Date(formData.startTime).toISOString(),
           endTime: new Date(formData.endTime).toISOString(),
           breakDuration: formData.breakDuration,
-          role: formData.role || null,
+          role: formData.selectedRole || formData.role || null,
           notes: formData.notes || null,
           requiresConfirmation: formData.requiresConfirmation,
         }),
@@ -205,6 +259,8 @@ export default function CreateShiftModal({
       employeeId: '',
       departmentId: '',
       locationId: '',
+      rotaGroupId: '',
+      selectedRole: '',
       startTime: '',
       endTime: '',
       breakDuration: 30,
@@ -215,6 +271,7 @@ export default function CreateShiftModal({
     setErrors({});
     setConflicts([]);
     setSearchQuery('');
+    setGroupMembers([]);
   };
 
   const handleClose = () => {
@@ -222,10 +279,21 @@ export default function CreateShiftModal({
     onClose();
   };
 
-  const filteredEmployees = employees.filter(emp =>
+  // Filter employees by rota group and role if selected
+  const availableEmployees = formData.rotaGroupId && formData.selectedRole
+    ? groupMembers
+        .filter(member => member.assignedRoles.includes(formData.selectedRole))
+        .map(member => member.Employee)
+    : formData.rotaGroupId
+    ? groupMembers.map(member => member.Employee)
+    : employees;
+
+  const filteredEmployees = availableEmployees.filter(emp =>
     emp.User.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.User.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const selectedGroup = rotaGroups.find(g => g.id === formData.rotaGroupId);
 
   const criticalConflicts = conflicts.filter(
     c => c.severity === 'CRITICAL' || c.severity === 'HIGH'
@@ -268,6 +336,61 @@ export default function CreateShiftModal({
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Rota Group Selection */}
+          {rotaGroups.length > 0 && (
+            <div className="bg-blue-500/10 backdrop-blur-md border border-blue-500/30 rounded-lg p-4">
+              <label className="block text-sm font-medium text-white mb-2">
+                📍 Which team are you scheduling?
+              </label>
+              <select
+                value={formData.rotaGroupId}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  rotaGroupId: e.target.value,
+                  selectedRole: '',
+                  employeeId: '',
+                })}
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="" className="bg-gray-800 text-white">All Employees (No Filter)</option>
+                {rotaGroups.map((group) => (
+                  <optgroup key={group.id} label={`${group.icon || '📋'} ${group.name}`}>
+                    <option value={group.id} className="bg-gray-800 text-white">
+                      {group.icon || '📋'} {group.name} ({group._count.Members} employees)
+                    </option>
+                  </optgroup>
+                ))}
+              </select>
+              <p className="text-xs text-gray-400 mt-2">
+                💡 Select a team to only show qualified employees for this location/role
+              </p>
+            </div>
+          )}
+
+          {/* Role Selection (if group selected) */}
+          {formData.rotaGroupId && selectedGroup && selectedGroup.roles.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Role for this Shift
+              </label>
+              <select
+                value={formData.selectedRole}
+                onChange={(e) => setFormData({ ...formData, selectedRole: e.target.value, employeeId: '' })}
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="" className="bg-gray-800 text-white">Select Role First</option>
+                {selectedGroup.roles.map((role) => {
+                  const qualifiedCount = groupMembers.filter(m => m.assignedRoles.includes(role)).length;
+                  return (
+                    <option key={role} value={role} className="bg-gray-800 text-white">
+                      {role} ({qualifiedCount} qualified)
+                    </option>
+                  );
+                })}
+              </select>
             </div>
           )}
 

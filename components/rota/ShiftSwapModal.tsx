@@ -103,15 +103,15 @@ export default function ShiftSwapModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div
-        className="bg-gradient-to-br from-purple-900/90 via-indigo-900/90 to-blue-900/90 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white/10 backdrop-blur-md border-b border-white/20 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-gray-800 backdrop-blur-md border-b border-gray-700 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-500/20 p-2 rounded-lg">
+            <div className="bg-blue-600 p-2 rounded-lg border border-blue-500">
               <ArrowRightLeft className="w-6 h-6 text-blue-400" />
             </div>
             <div>
@@ -121,7 +121,7 @@ export default function ShiftSwapModal({
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+            className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-gray-700 rounded-lg"
           >
             <X className="w-5 h-5" />
           </button>
@@ -148,7 +148,7 @@ export default function ShiftSwapModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Shift Details */}
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-5 space-y-3">
+          <div className="bg-gray-800 backdrop-blur-md border border-gray-700 rounded-xl p-5 space-y-3 shadow-md">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-blue-400" />
               Shift Details
@@ -156,7 +156,7 @@ export default function ShiftSwapModal({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-start gap-3">
-                <div className="bg-blue-500/20 p-2 rounded-lg">
+                <div className="bg-blue-600 p-2 rounded-lg border border-blue-500">
                   <Calendar className="w-4 h-4 text-blue-400" />
                 </div>
                 <div>
@@ -168,11 +168,11 @@ export default function ShiftSwapModal({
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="bg-purple-500/20 p-2 rounded-lg">
+                <div className="bg-purple-600 p-2 rounded-lg border border-purple-500">
                   <Clock className="w-4 h-4 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wide">Time</p>
+                  <p className="text-xs text-gray-300 uppercase tracking-wide font-semibold">Time</p>
                   <p className="text-white font-semibold">
                     {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
                   </p>
@@ -182,7 +182,7 @@ export default function ShiftSwapModal({
 
               {shift.location && (
                 <div className="flex items-start gap-3">
-                  <div className="bg-green-500/20 p-2 rounded-lg">
+                  <div className="bg-green-600 p-2 rounded-lg border border-green-500">
                     <MapPin className="w-4 h-4 text-green-400" />
                   </div>
                   <div>
@@ -197,7 +197,7 @@ export default function ShiftSwapModal({
 
               {shift.role && (
                 <div className="flex items-start gap-3">
-                  <div className="bg-amber-500/20 p-2 rounded-lg">
+                  <div className="bg-amber-600 p-2 rounded-lg border border-amber-500">
                     <User className="w-4 h-4 text-amber-400" />
                   </div>
                   <div>
@@ -209,7 +209,7 @@ export default function ShiftSwapModal({
             </div>
 
             {shift.notes && (
-              <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="mt-4 pt-4 border-t border-gray-700">
                 <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Notes</p>
                 <p className="text-gray-300 text-sm">{shift.notes}</p>
               </div>
@@ -225,7 +225,7 @@ export default function ShiftSwapModal({
               <select
                 value={targetEmployeeId || ''}
                 onChange={(e) => setTargetEmployeeId(e.target.value || null)}
-                className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                className="w-full bg-gray-800 backdrop-blur-md border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
                 required
               >
                 <option value="" className="bg-gray-900">
@@ -259,7 +259,7 @@ export default function ShiftSwapModal({
                 onChange={(e) => setRequestMessage(e.target.value)}
                 placeholder="Add a reason or note about this swap request..."
                 rows={4}
-                className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none"
+                className="w-full bg-gray-800 backdrop-blur-md border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none shadow-sm"
                 maxLength={500}
               />
               <p className="text-xs text-gray-400 mt-1 text-right">
@@ -269,11 +269,11 @@ export default function ShiftSwapModal({
           </div>
 
           {/* Info Box */}
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex gap-3">
+          <div className="bg-blue-900/40 border border-blue-600 rounded-xl p-4 flex gap-3 shadow-md">
             <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="text-blue-200 text-sm font-semibold">What happens next?</p>
-              <ul className="text-blue-300/80 text-xs space-y-1">
+              <p className="text-blue-300 text-sm font-semibold">What happens next?</p>
+              <ul className="text-gray-200 text-xs space-y-1">
                 <li>• The selected employee (or all team members) will be notified</li>
                 <li>• They can accept or decline your request</li>
                 <li>• If accepted and manager approval is required, your manager will review it</li>
@@ -283,19 +283,19 @@ export default function ShiftSwapModal({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+          <div className="flex items-center gap-3 pt-4 border-t border-gray-700">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting || success}
-              className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || success}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">

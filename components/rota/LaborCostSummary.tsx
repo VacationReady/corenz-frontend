@@ -53,20 +53,20 @@ export default function LaborCostSummary({
     : 0;
 
   return (
-    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden">
+    <div className="bg-gray-900 backdrop-blur-md border border-gray-700 rounded-xl overflow-hidden shadow-lg">
       {/* Header */}
       <div 
-        className={`p-6 border-b border-white/10 ${collapsible ? 'cursor-pointer hover:bg-white/5' : ''}`}
+        className={`p-6 border-b border-gray-700 bg-gray-800/50 ${collapsible ? 'cursor-pointer hover:bg-gray-800' : ''}`}
         onClick={() => collapsible && setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-green-500/20 border border-green-500/30">
-              <DollarSign className="w-6 h-6 text-green-400" />
+            <div className="p-3 rounded-lg bg-green-600 border border-green-500">
+              <DollarSign className="w-6 h-6 text-white" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white">Labor Cost Summary</h3>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-300">
                 {dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()}
               </p>
             </div>
@@ -78,7 +78,7 @@ export default function LaborCostSummary({
                   e.stopPropagation();
                   onExport();
                 }}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all"
+                className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white transition-all"
                 title="Export to payroll"
               >
                 <Download className="w-4 h-4" />
@@ -94,24 +94,24 @@ export default function LaborCostSummary({
       {isExpanded && (
         <>
           {/* Total Cost */}
-          <div className="p-6 border-b border-white/10">
+          <div className="p-6 border-b border-gray-700 bg-gray-900/50">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center">
-                <div className="text-sm text-gray-400 mb-1">Total Cost</div>
+                <div className="text-sm text-gray-300 font-semibold mb-1">Total Cost</div>
                 <div className="text-3xl font-bold text-white">
                   ${data.totalCost.toFixed(2)}
                 </div>
               </div>
               
               <div className="text-center">
-                <div className="text-sm text-gray-400 mb-1">Regular Hours</div>
-                <div className="text-2xl font-semibold text-gray-300">
+                <div className="text-sm text-gray-300 font-semibold mb-1">Regular Hours</div>
+                <div className="text-2xl font-semibold text-white">
                   ${data.regularCost.toFixed(2)}
                 </div>
               </div>
               
               <div className="text-center">
-                <div className="text-sm text-gray-400 mb-1">Overtime</div>
+                <div className="text-sm text-gray-300 font-semibold mb-1">Overtime</div>
                 <div className="text-2xl font-semibold text-amber-400">
                   ${data.overtimeCost.toFixed(2)}
                   {overtimePercent > 0 && (
@@ -124,18 +124,18 @@ export default function LaborCostSummary({
 
           {/* Budget Comparison */}
           {data.budgeted !== undefined && (
-            <div className="p-6 border-b border-white/10">
-              <h4 className="text-sm font-semibold text-gray-300 mb-3">Budget Comparison</h4>
+            <div className="p-6 border-b border-gray-700 bg-gray-900/50">
+              <h4 className="text-sm font-semibold text-white mb-3">Budget Comparison</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm text-gray-400 mb-1">Budgeted</div>
-                  <div className="text-xl font-semibold text-gray-300">
+                  <div className="text-sm text-gray-300 mb-1">Budgeted</div>
+                  <div className="text-xl font-semibold text-white">
                     ${data.budgeted.toFixed(2)}
                   </div>
                 </div>
                 
                 <div>
-                  <div className="text-sm text-gray-400 mb-1">Variance</div>
+                  <div className="text-sm text-gray-300 mb-1">Variance</div>
                   <div className={`text-xl font-semibold flex items-center gap-2 ${
                     isOverBudget ? 'text-red-400' : 'text-green-400'
                   }`}>
@@ -168,8 +168,8 @@ export default function LaborCostSummary({
 
           {/* Department Breakdown */}
           {data.departmentBreakdown.length > 0 && (
-            <div className="p-6">
-              <h4 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
+            <div className="p-6 bg-gray-900/50">
+              <h4 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
                 Department Breakdown
               </h4>
@@ -178,22 +178,22 @@ export default function LaborCostSummary({
                   const deptPercent = (dept.cost / data.totalCost) * 100;
                   
                   return (
-                    <div key={dept.departmentId} className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-all">
+                    <div key={dept.departmentId} className="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-all border border-gray-700">
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <div className="font-medium text-white">{dept.departmentName}</div>
-                          <div className="text-xs text-gray-400">
+                          <div className="font-semibold text-white">{dept.departmentName}</div>
+                          <div className="text-xs text-gray-300">
                             {dept.employeeCount} employee{dept.employeeCount !== 1 ? 's' : ''} · {dept.hours.toFixed(1)} hours
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold text-white">${dept.cost.toFixed(2)}</div>
-                          <div className="text-xs text-gray-400">{deptPercent.toFixed(1)}%</div>
+                          <div className="font-bold text-white">${dept.cost.toFixed(2)}</div>
+                          <div className="text-xs text-gray-300">{deptPercent.toFixed(1)}%</div>
                         </div>
                       </div>
                       
                       {/* Progress bar */}
-                      <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                      <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
                         <div 
                           className="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all"
                           style={{ width: `${deptPercent}%` }}
@@ -209,8 +209,8 @@ export default function LaborCostSummary({
           {/* Empty State */}
           {data.departmentBreakdown.length === 0 && (
             <div className="p-12 text-center">
-              <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-400">No department data available</p>
+              <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-200">No department data available</p>
             </div>
           )}
         </>

@@ -143,10 +143,10 @@ export default function ShiftCard({
 
   if (compact) {
     return (
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-3 hover:bg-white/15 transition-all">
+      <div className="bg-gray-800 backdrop-blur-md border border-gray-700 rounded-lg p-3 hover:bg-gray-700 transition-all shadow-md">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-gray-400" />
+            <Clock className="w-4 h-4 text-blue-400" />
             <span className="text-sm font-medium text-white">
               {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
             </span>
@@ -155,8 +155,8 @@ export default function ShiftCard({
         </div>
         
         {shift.employee && (
-          <div className="flex items-center gap-2 text-sm text-gray-300">
-            <User className="w-4 h-4 text-gray-400" />
+          <div className="flex items-center gap-2 text-sm text-gray-200">
+            <User className="w-4 h-4 text-blue-400" />
             <span>{shift.employee.User.name}</span>
           </div>
         )}
@@ -165,7 +165,7 @@ export default function ShiftCard({
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all">
+    <div className="bg-gray-900 backdrop-blur-md border border-gray-700 rounded-xl p-6 hover:bg-gray-800 transition-all shadow-lg">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -191,7 +191,7 @@ export default function ShiftCard({
             {onEdit && (
               <button
                 onClick={onEdit}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all"
+                className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white transition-all"
                 title="Edit shift"
               >
                 <Edit className="w-4 h-4" />
@@ -213,21 +213,21 @@ export default function ShiftCard({
 
       {/* Time & Duration */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <div className="flex items-center gap-2 text-gray-300">
+        <div className="flex items-center gap-2 text-gray-200">
           <Clock className="w-5 h-5 text-blue-400" />
           <div>
-            <div className="text-sm text-gray-400">Time</div>
-            <div className="font-medium">
+            <div className="text-sm text-gray-300">Time</div>
+            <div className="font-semibold text-white">
               {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
             </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 text-gray-300">
+        <div className="flex items-center gap-2 text-gray-200">
           <Clock className="w-5 h-5 text-blue-400" />
           <div>
-            <div className="text-sm text-gray-400">Duration</div>
-            <div className="font-medium">
+            <div className="text-sm text-gray-300">Duration</div>
+            <div className="font-semibold text-white">
               {durationHours.toFixed(1)} hours
               {shift.breakDuration > 0 && (
                 <span className="text-sm text-gray-400 ml-2">
@@ -247,15 +247,15 @@ export default function ShiftCard({
               <img
                 src={shift.employee.User.profileImageUrl}
                 alt={shift.employee.User.name}
-                className="w-10 h-10 rounded-full border-2 border-white/20"
+                className="w-10 h-10 rounded-full border-2 border-blue-500"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-blue-500/20 border-2 border-blue-500/30 flex items-center justify-center">
-                <User className="w-5 h-5 text-blue-400" />
+              <div className="w-10 h-10 rounded-full bg-blue-600 border-2 border-blue-500 flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
               </div>
             )}
             <div>
-              <div className="text-sm text-gray-400">Employee</div>
+              <div className="text-sm text-gray-300">Employee</div>
               <div className="font-medium text-white">{shift.employee.User.name}</div>
               {shift.employee.Department && (
                 <div className="text-xs text-gray-400">{shift.employee.Department.name}</div>
@@ -263,21 +263,21 @@ export default function ShiftCard({
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-gray-400">
-            <User className="w-5 h-5" />
+          <div className="flex items-center gap-2 text-gray-300">
+            <User className="w-5 h-5 text-gray-400" />
             <div>
               <div className="text-sm">Employee</div>
-              <div className="font-medium">Unassigned</div>
+              <div className="font-medium text-white">Unassigned</div>
             </div>
           </div>
         )}
 
         {shift.department && (
-          <div className="flex items-center gap-2 text-gray-300">
+          <div className="flex items-center gap-2 text-gray-200">
             <Building2 className="w-5 h-5 text-purple-400" />
             <div>
-              <div className="text-sm text-gray-400">Department</div>
-              <div className="font-medium">{shift.department.name}</div>
+              <div className="text-sm text-gray-300">Department</div>
+              <div className="font-semibold text-white">{shift.department.name}</div>
             </div>
           </div>
         )}
@@ -286,11 +286,11 @@ export default function ShiftCard({
       {/* Location & Cost */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {shift.location && (
-          <div className="flex items-center gap-2 text-gray-300">
+          <div className="flex items-center gap-2 text-gray-200">
             <MapPin className="w-5 h-5 text-green-400" />
             <div>
-              <div className="text-sm text-gray-400">Location</div>
-              <div className="font-medium">{shift.location.name}</div>
+              <div className="text-sm text-gray-300">Location</div>
+              <div className="font-semibold text-white">{shift.location.name}</div>
               {shift.location.address && (
                 <div className="text-xs text-gray-400">{shift.location.address}</div>
               )}
@@ -299,10 +299,10 @@ export default function ShiftCard({
         )}
 
         {shift.cost !== null && shift.cost !== undefined && (
-          <div className="flex items-center gap-2 text-gray-300">
+          <div className="flex items-center gap-2 text-gray-200">
             <DollarSign className="w-5 h-5 text-green-400" />
             <div>
-              <div className="text-sm text-gray-400">Labor Cost</div>
+              <div className="text-sm text-gray-300">Labor Cost</div>
               <div className="font-medium text-green-400">
                 ${typeof shift.cost === 'number' ? shift.cost.toFixed(2) : parseFloat(String(shift.cost)).toFixed(2)}
               </div>
@@ -313,17 +313,17 @@ export default function ShiftCard({
 
       {/* Role & Notes */}
       {(shift.role || shift.notes) && (
-        <div className="border-t border-white/10 pt-4 mt-4 space-y-2">
+        <div className="border-t border-gray-700 pt-4 mt-4 space-y-2">
           {shift.role && (
             <div>
-              <span className="text-sm text-gray-400">Role:</span>
+              <span className="text-sm text-gray-300 font-semibold">Role:</span>
               <span className="ml-2 text-white">{shift.role}</span>
             </div>
           )}
           {shift.notes && (
             <div>
-              <span className="text-sm text-gray-400">Notes:</span>
-              <p className="mt-1 text-gray-300 text-sm">{shift.notes}</p>
+              <span className="text-sm text-gray-300 font-semibold">Notes:</span>
+              <p className="mt-1 text-gray-200 text-sm">{shift.notes}</p>
             </div>
           )}
         </div>
@@ -331,7 +331,7 @@ export default function ShiftCard({
 
       {/* Actions */}
       {showActions && (onPublish || onConfirm) && (
-        <div className="border-t border-white/10 pt-4 mt-4 flex gap-2">
+        <div className="border-t border-gray-700 pt-4 mt-4 flex gap-2">
           {onPublish && !shift.isPublished && (
             <button
               onClick={onPublish}

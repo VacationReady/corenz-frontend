@@ -270,9 +270,9 @@ export default function RotaPage() {
   if (status === 'loading' || isLoading) {
     return (
       <div className="p-8">
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 animate-pulse">
-          <div className="h-8 bg-white/20 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-white/20 rounded w-1/2"></div>
+        <div className="bg-gray-900 backdrop-blur-md border border-gray-700 rounded-xl p-6 animate-pulse">
+          <div className="h-8 bg-gray-700 rounded w-1/3 mb-4"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/2"></div>
         </div>
       </div>
     );
@@ -303,7 +303,7 @@ export default function RotaPage() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium transition-all flex items-center gap-2"
+            className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white font-medium transition-all flex items-center gap-2 shadow-md"
           >
             <Filter className="w-4 h-4" />
             Filters
@@ -330,7 +330,7 @@ export default function RotaPage() {
 
       {/* Filters Panel */}
       {showFilters && (
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6">
+        <div className="bg-gray-900 backdrop-blur-md border border-gray-700 rounded-xl p-6 shadow-lg">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -339,7 +339,7 @@ export default function RotaPage() {
               <select
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm"
               >
                 <option value="" className="bg-gray-800 text-white">All Departments</option>
                 {/* TODO: Load departments dynamically */}
@@ -380,7 +380,7 @@ export default function RotaPage() {
 
       {/* Conflict Warnings */}
       {criticalConflicts.length > 0 && (
-        <div className="bg-amber-500/10 backdrop-blur-md border border-amber-500/30 rounded-xl p-6">
+        <div className="bg-amber-900/40 backdrop-blur-md border border-amber-600 rounded-xl p-6 shadow-lg">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-6 h-6 text-amber-400 flex-shrink-0 mt-1" />
             <div className="flex-1">
@@ -389,7 +389,7 @@ export default function RotaPage() {
               </h3>
               <div className="space-y-2">
                 {criticalConflicts.slice(0, 3).map((conflict, idx) => (
-                  <div key={idx} className="text-sm text-gray-300">
+                  <div key={idx} className="text-sm text-gray-200 font-medium">
                     <span className="font-medium">{conflict.employee?.name}:</span> {conflict.description}
                   </div>
                 ))}
@@ -406,7 +406,7 @@ export default function RotaPage() {
 
       {/* Bulk Actions */}
       {selectedShiftIds.size > 0 && (
-        <div className="bg-blue-500/10 backdrop-blur-md border border-blue-500/30 rounded-xl p-4">
+        <div className="bg-blue-900/40 backdrop-blur-md border border-blue-600 rounded-xl p-4 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="text-white">
               {selectedShiftIds.size} shift{selectedShiftIds.size !== 1 ? 's' : ''} selected
@@ -414,7 +414,7 @@ export default function RotaPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setSelectedShiftIds(new Set())}
-                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium transition-all"
+                className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white font-medium transition-all"
               >
                 Clear
               </button>
@@ -464,14 +464,14 @@ export default function RotaPage() {
 
       {/* Selected Shift Detail Modal */}
       {selectedShift && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-white">Shift Details</h2>
                 <button
                   onClick={() => setSelectedShift(null)}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all"
+                  className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-all"
                 >
                   ×
                 </button>

@@ -302,16 +302,16 @@ export default function CreateShiftModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-900 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-gray-900 border-b border-white/10 p-6 flex items-center justify-between">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-gray-800 border-b border-gray-700 p-6 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-white">Create New Shift</h2>
             <p className="text-gray-400 text-sm mt-1">Schedule a new shift for an employee</p>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all"
+            className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-all"
           >
             <X className="w-5 h-5" />
           </button>
@@ -320,7 +320,7 @@ export default function CreateShiftModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Conflict Warning */}
           {criticalConflicts.length > 0 && (
-            <div className="bg-amber-500/10 backdrop-blur-md border border-amber-500/30 rounded-lg p-4">
+            <div className="bg-amber-900/40 backdrop-blur-md border border-amber-600 rounded-lg p-4 shadow-md">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
@@ -341,7 +341,7 @@ export default function CreateShiftModal({
 
           {/* Rota Group Selection */}
           {rotaGroups.length > 0 && (
-            <div className="bg-blue-500/10 backdrop-blur-md border border-blue-500/30 rounded-lg p-4">
+            <div className="bg-blue-900/40 backdrop-blur-md border border-blue-600 rounded-lg p-4 shadow-md">
               <label className="block text-sm font-medium text-white mb-2">
                 📍 Which team are you scheduling?
               </label>
@@ -364,7 +364,7 @@ export default function CreateShiftModal({
                   </optgroup>
                 ))}
               </select>
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-gray-300 mt-2">
                 💡 Select a team to only show qualified employees for this location/role
               </p>
             </div>
@@ -436,7 +436,7 @@ export default function CreateShiftModal({
                 type="datetime-local"
                 value={formData.startTime}
                 onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                 required
               />
               {errors.startTime && (
@@ -452,7 +452,7 @@ export default function CreateShiftModal({
                 type="datetime-local"
                 value={formData.endTime}
                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                 required
               />
               {errors.endTime && (
@@ -470,7 +470,7 @@ export default function CreateShiftModal({
               type="number"
               value={formData.breakDuration}
               onChange={(e) => setFormData({ ...formData, breakDuration: parseInt(e.target.value) || 0 })}
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
               min="0"
               step="15"
             />
@@ -528,7 +528,7 @@ export default function CreateShiftModal({
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
               placeholder="e.g., Server, Cashier, Manager"
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
             />
           </div>
 
@@ -542,7 +542,7 @@ export default function CreateShiftModal({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Any additional information about this shift..."
               rows={3}
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
             />
           </div>
 
@@ -553,7 +553,7 @@ export default function CreateShiftModal({
               id="requiresConfirmation"
               checked={formData.requiresConfirmation}
               onChange={(e) => setFormData({ ...formData, requiresConfirmation: e.target.checked })}
-              className="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-2 focus:ring-blue-500"
             />
             <label htmlFor="requiresConfirmation" className="text-sm text-gray-300">
               Require employee confirmation before shift becomes active
@@ -568,11 +568,11 @@ export default function CreateShiftModal({
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+          <div className="flex items-center gap-3 pt-4 border-t border-gray-700">
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white font-medium transition-all"
+              className="flex-1 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white font-medium transition-all"
             >
               Cancel
             </button>

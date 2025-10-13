@@ -163,7 +163,7 @@ export default function AvailabilityGrid({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="bg-purple-500/20 p-2 rounded-lg">
+          <div className="bg-purple-600 p-2 rounded-lg border border-purple-500">
             <Calendar className="w-6 h-6 text-purple-400" />
           </div>
           <div>
@@ -204,7 +204,7 @@ export default function AvailabilityGrid({
             ) : (
               <button
                 onClick={() => setEditMode(true)}
-                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-semibold transition-all flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-semibold transition-all flex items-center gap-2 shadow-md"
               >
                 <Clock className="w-4 h-4" />
                 Edit Availability
@@ -230,8 +230,8 @@ export default function AvailabilityGrid({
       )}
 
       {/* Availability Grid */}
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden">
-        <div className="divide-y divide-white/10">
+      <div className="bg-gray-900 backdrop-blur-md border border-gray-700 rounded-xl overflow-hidden shadow-lg">
+        <div className="divide-y divide-gray-700">
           {DAYS_OF_WEEK.map((day) => {
             const status = getDayStatus(day.value);
             const pattern = localPatterns.find((p) => p.dayOfWeek === day.value);
@@ -251,15 +251,15 @@ export default function AvailabilityGrid({
                       disabled={!editMode || readOnly}
                       className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-sm transition-all ${
                         status.available
-                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          ? 'bg-green-700 text-white border border-green-500'
+                          : 'bg-red-700 text-white border border-red-500'
                       } ${editMode && !readOnly ? 'cursor-pointer hover:scale-105' : 'cursor-default'}`}
                     >
                       {day.short}
                     </button>
                     <div>
                       <p className="text-white font-semibold">{day.label}</p>
-                      <p className={`text-xs ${status.available ? 'text-green-400' : 'text-red-400'}`}>
+                      <p className={`text-xs font-medium ${status.available ? 'text-green-400' : 'text-red-400'}`}>
                         {status.label}
                       </p>
                     </div>
@@ -316,11 +316,11 @@ export default function AvailabilityGrid({
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex gap-3">
+      <div className="bg-blue-900/40 border border-blue-600 rounded-xl p-4 flex gap-3 shadow-md">
         <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
         <div className="space-y-2">
-          <p className="text-blue-200 text-sm font-semibold">How it works</p>
-          <ul className="text-blue-300/80 text-xs space-y-1">
+          <p className="text-blue-300 text-sm font-semibold">How it works</p>
+          <ul className="text-gray-200 text-xs space-y-1">
             <li>• Click a day to toggle between available and unavailable</li>
             <li>• Set specific time ranges when you're available</li>
             <li>• Gray days default to available unless specified</li>
@@ -332,7 +332,7 @@ export default function AvailabilityGrid({
 
       {/* Upcoming Exceptions */}
       {exceptions.length > 0 && (
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-5">
+        <div className="bg-gray-900 backdrop-blur-md border border-gray-700 rounded-xl p-5 shadow-lg">
           <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-amber-400" />
             Upcoming Exceptions
@@ -343,13 +343,13 @@ export default function AvailabilityGrid({
               return (
                 <div
                   key={exception.id}
-                  className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                  className="flex items-center justify-between p-3 bg-gray-800 rounded-lg border border-gray-700"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border-2 ${
                       exception.isAvailable
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-red-500/20 text-red-400'
+                        ? 'bg-green-700 text-white border-green-500'
+                        : 'bg-red-700 text-white border-red-500'
                     }`}>
                       <Calendar className="w-5 h-5" />
                     </div>

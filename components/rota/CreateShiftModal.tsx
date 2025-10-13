@@ -283,17 +283,17 @@ export default function CreateShiftModal({
                 placeholder="Search employees..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <select
               value={formData.employeeId}
               onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">Unassigned (Open Shift)</option>
+              <option value="" className="bg-gray-800 text-white">Unassigned (Open Shift)</option>
               {filteredEmployees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
+                <option key={emp.id} value={emp.id} className="bg-gray-800 text-white">
                   {emp.User.name} {emp.Department ? `- ${emp.Department.name}` : ''}
                 </option>
               ))}
@@ -365,11 +365,11 @@ export default function CreateShiftModal({
               <select
                 value={formData.departmentId}
                 onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">No Department</option>
+                <option value="" className="bg-gray-800 text-white">No Department</option>
                 {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
+                  <option key={dept.id} value={dept.id} className="bg-gray-800 text-white">
                     {dept.name}
                   </option>
                 ))}
@@ -383,11 +383,11 @@ export default function CreateShiftModal({
               <select
                 value={formData.locationId}
                 onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">No Location</option>
+                <option value="" className="bg-gray-800 text-white">No Location</option>
                 {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
+                  <option key={loc.id} value={loc.id} className="bg-gray-800 text-white">
                     {loc.name}
                   </option>
                 ))}

@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/Select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw, Download, Users, Clock, AlertCircle } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
 
 interface EmployeeStatus {
   id: string;
@@ -54,8 +53,6 @@ export default function LiveAttendancePage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
 
   const loadData = async () => {
     try {
@@ -75,8 +72,6 @@ export default function LiveAttendancePage() {
 
   useEffect(() => {
     loadData();
-    loadDepartments();
-    loadLocations();
   }, [selectedDepartment, selectedLocation]);
 
   useEffect(() => {
@@ -88,72 +83,6 @@ export default function LiveAttendancePage() {
 
     return () => clearInterval(interval);
   }, [autoRefresh, selectedDepartment, selectedLocation]);
-
-  const loadDepartments = async () => {
-    try {
-      const response = await fetch('/api/departments');
-      const result = await response.json();
-      setDepartments(Array.isArray(result) ? result : []);
-    } catch (error) {
-      console.error('Error loading departments:', error);
-    }
-  };
-
-  const loadLocations = async () => {
-    try {
-      const response = await fetch('/api/locations');
-      const result = await response.json();
-      setLocations(Array.isArray(result) ? result : []);
-    } catch (error) {
-      console.error('Error loading locations:', error);
-    }
-  };
-
-  const handleExport = () => {
-    if (!data) return;
-
-    try {
-      // Generate CSV content
-      const headers = ['Name', 'Email', 'Department', 'Location', 'Status', 'Clock In Time', 'Hours Worked'];
-      const rows = data.employees.map(emp => [
-        emp.name,
-        emp.email,
-        emp.department || 'N/A',
-        emp.location || 'N/A',
-        emp.status,
-        emp.clockInTime ? new Date(emp.clockInTime).toLocaleString() : 'N/A',
-        emp.hoursWorked ? emp.hoursWorked.toFixed(2) : '0'
-      ]);
-
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-      ].join('\n');
-
-      // Create and download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `live_attendance_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: 'Success',
-        description: 'Attendance data exported successfully',
-      });
-    } catch (error) {
-      console.error('Export error:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to export attendance data',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const getStatusColor = (status: string) => {
     return status === 'CLOCKED_IN' ? 'bg-green-500' : 'bg-gray-500';
@@ -222,7 +151,7 @@ export default function LiveAttendancePage() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Now
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -237,11 +166,7 @@ export default function LiveAttendancePage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Departments</SelectItem>
-            {departments.map((dept) => (
-              <SelectItem key={dept.id} value={dept.id}>
-                {dept.name}
-              </SelectItem>
-            ))}
+            {/* Add department options from API */}
           </SelectContent>
         </Select>
 
@@ -251,11 +176,7 @@ export default function LiveAttendancePage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Locations</SelectItem>
-            {locations.map((loc) => (
-              <SelectItem key={loc.id} value={loc.id}>
-                {loc.name}
-              </SelectItem>
-            ))}
+            {/* Add location options from API */}
           </SelectContent>
         </Select>
       </div>

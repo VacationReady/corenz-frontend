@@ -151,34 +151,6 @@ export async function GET(req: NextRequest) {
       employeeSkills.set(employee.id, []);
     }
 
-    // Fetch approved leave requests for the date range
-    const leaveRequests = await prisma.leaveRequest.findMany({
-      where: {
-        employeeId: { in: employeeIds },
-        approvalStatus: 'APPROVED',
-        startDate: { lte: parseISO(endDate) },
-        endDate: { gte: parseISO(startDate) },
-      },
-      include: {
-        EventCategory: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-
-    const leaveByEmployee = new Map<string, any[]>();
-    for (const leave of leaveRequests) {
-      if (!leaveByEmployee.has(leave.employeeId)) {
-        leaveByEmployee.set(leave.employeeId, []);
-      }
-      leaveByEmployee.get(leave.employeeId)!.push({
-        ...leave,
-        eventCategoryName: leave.EventCategory?.name,
-      });
-    }
-
     // Get time tracking settings
     const settings = await prisma.timeTrackingSettings.findUnique({
       where: { companyId: requestingEmployee.companyId },
@@ -197,7 +169,6 @@ export async function GET(req: NextRequest) {
       availabilityPatterns,
       availabilityExceptions,
       employeeSkills,
-      leaveByEmployee,
       conflictSettings
     );
 

@@ -15,9 +15,6 @@ import { startOfWeek, endOfWeek, format } from 'date-fns';
 import RotaCalendar from '@/components/rota/RotaCalendar';
 import ShiftCard from '@/components/rota/ShiftCard';
 import LaborCostSummary from '@/components/rota/LaborCostSummary';
-import CreateShiftModal from '@/components/rota/CreateShiftModal';
-import EditShiftModal from '@/components/rota/EditShiftModal';
-import { toast } from '@/hooks/use-toast';
 
 interface Shift {
   id: string;
@@ -78,16 +75,6 @@ export default function RotaPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCostSummary, setShowCostSummary] = useState(true);
   
-  // Modal states
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingShift, setEditingShift] = useState<Shift | null>(null);
-  const [preselectedDate, setPreselectedDate] = useState<Date | undefined>(undefined);
-  
-  // Filter data
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
-  
   // Filter states
   const [dateRange, setDateRange] = useState({
     start: startOfWeek(new Date(), { weekStartsOn: 1 }),
@@ -104,8 +91,6 @@ export default function RotaPage() {
     if (status === 'authenticated') {
       fetchShifts();
       fetchConflicts();
-      fetchDepartments();
-      fetchEmployees();
     }
   }, [status, dateRange, departmentFilter, employeeFilter, isPublishedFilter]);
 
@@ -155,26 +140,6 @@ export default function RotaPage() {
     }
   };
 
-  const fetchDepartments = async () => {
-    try {
-      const response = await fetch('/api/departments');
-      const data = await response.json();
-      setDepartments(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching departments:', error);
-    }
-  };
-
-  const fetchEmployees = async () => {
-    try {
-      const response = await fetch('/api/employees?status=active');
-      const data = await response.json();
-      setEmployees(data.employees || []);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-    }
-  };
-
   const handlePublishSelected = async () => {
     if (selectedShiftIds.size === 0) return;
 
@@ -192,20 +157,13 @@ export default function RotaPage() {
       if (!response.ok) throw new Error('Failed to publish shifts');
 
       const data = await response.json();
-      toast({
-        title: 'Success',
-        description: data.message || `${shiftIdsArray.length} shift(s) published successfully`,
-      });
+      alert(data.message);
       
       setSelectedShiftIds(new Set());
       fetchShifts();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error publishing shifts:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to publish shifts',
-        variant: 'destructive',
-      });
+      alert('Failed to publish shifts');
     }
   };
 
@@ -215,92 +173,19 @@ export default function RotaPage() {
         method: 'DELETE',
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete shift');
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Shift deleted successfully',
-      });
+      if (!response.ok) throw new Error('Failed to delete shift');
 
       fetchShifts();
       setSelectedShift(null);
-      setEditingShift(null);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting shift:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete shift',
-        variant: 'destructive',
-      });
-      throw error;
+      alert('Failed to delete shift');
     }
   };
 
   const handleAutoSchedule = async () => {
-    toast({
-      title: 'Auto-Schedule',
-      description: 'AI-powered auto-scheduling is coming in Phase 6. This feature will optimize shift assignments based on availability, skills, and labor costs.',
-    });
-  };
-
-  const handleExportToPayroll = async () => {
-    try {
-      const params = new URLSearchParams({
-        startDate: dateRange.start.toISOString(),
-        endDate: dateRange.end.toISOString(),
-        format: 'csv',
-      });
-
-      if (departmentFilter) params.append('departmentId', departmentFilter);
-
-      const response = await fetch(`/api/payroll/export?${params}`);
-      if (!response.ok) throw new Error('Failed to export payroll data');
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `payroll_${format(dateRange.start, 'yyyy-MM-dd')}_${format(dateRange.end, 'yyyy-MM-dd')}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: 'Success',
-        description: 'Payroll data exported successfully',
-      });
-    } catch (error: any) {
-      console.error('Error exporting payroll:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to export payroll data',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleCreateShift = () => {
-    setPreselectedDate(undefined);
-    setShowCreateModal(true);
-  };
-
-  const handleDateClick = (date: Date) => {
-    setPreselectedDate(date);
-    setShowCreateModal(true);
-  };
-
-  const handleEditShift = (shift: Shift) => {
-    setEditingShift(shift);
-    setShowEditModal(true);
-  };
-
-  const handleShiftSuccess = () => {
-    fetchShifts();
-    fetchConflicts();
+    // TODO: Implement auto-schedule functionality
+    alert('Auto-schedule feature coming soon!');
   };
 
   // Calculate labor cost summary
@@ -409,7 +294,7 @@ export default function RotaPage() {
           </button>
 
           <button
-            onClick={handleCreateShift}
+            onClick={() => {/* TODO: Open create shift modal */}}
             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -432,11 +317,7 @@ export default function RotaPage() {
                 className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Departments</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
+                {/* TODO: Load departments dynamically */}
               </select>
             </div>
 
@@ -450,11 +331,7 @@ export default function RotaPage() {
                 className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Employees</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.User.name} {emp.Department ? `- ${emp.Department.name}` : ''}
-                  </option>
-                ))}
+                {/* TODO: Load employees dynamically */}
               </select>
             </div>
 
@@ -536,8 +413,8 @@ export default function RotaPage() {
             shifts={shifts}
             conflicts={conflicts}
             onShiftClick={(shift: any) => setSelectedShift(shift)}
-            onDateClick={handleDateClick}
-            onShiftEdit={handleEditShift}
+            onDateClick={(date: Date) => {/* TODO: Open create shift modal with date */}}
+            onShiftEdit={(shift: any) => {/* TODO: Open edit modal */}}
             onShiftDelete={handleDeleteShift}
             showActions={true}
           />
@@ -548,7 +425,7 @@ export default function RotaPage() {
           <LaborCostSummary
             data={laborCostData}
             dateRange={dateRange}
-            onExport={handleExportToPayroll}
+            onExport={() => {/* TODO: Export to payroll */}}
             collapsible={true}
           />
         </div>
@@ -571,38 +448,15 @@ export default function RotaPage() {
               
               <ShiftCard
                 shift={selectedShift}
-                onEdit={() => handleEditShift(selectedShift)}
+                onEdit={() => {/* TODO: Open edit modal */}}
                 onDelete={() => handleDeleteShift(selectedShift.id)}
-                onPublish={() => handlePublishSelected()}
+                onPublish={() => {/* TODO: Publish shift */}}
                 showActions={true}
               />
             </div>
           </div>
         </div>
       )}
-
-      {/* Create Shift Modal */}
-      <CreateShiftModal
-        isOpen={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-          setPreselectedDate(undefined);
-        }}
-        onSuccess={handleShiftSuccess}
-        preselectedDate={preselectedDate}
-      />
-
-      {/* Edit Shift Modal */}
-      <EditShiftModal
-        isOpen={showEditModal}
-        shift={editingShift}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingShift(null);
-        }}
-        onSuccess={handleShiftSuccess}
-        onDelete={handleDeleteShift}
-      />
     </div>
   );
 }

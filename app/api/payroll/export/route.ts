@@ -25,6 +25,7 @@ type PayrollEntry = {
   clockIn: string;
   clockOut: string;
   breakDuration: number;
+  breakMinutes?: number;
   totalHours: number;
   overtimeHours: number;
   hourlyRate: number;
@@ -274,7 +275,7 @@ export async function POST(req: NextRequest) {
           overtimeHours: 0, // Calculated later per week
           hourlyRate,
           totalCost: parseFloat((totalHours * hourlyRate).toFixed(2)),
-          location: entry.location?.name || "",
+          location: "", // Location not available on TimesheetEntry
           notes: data.includeNotes !== false ? (entry.notes || "") : "",
           status: timesheet.approvalStatus,
           approvedBy,
@@ -345,7 +346,7 @@ export async function POST(req: NextRequest) {
         Date: entry.date,
         "Clock In": entry.clockIn,
         "Clock Out": entry.clockOut,
-        "Break Duration (mins)": entry.breakMinutes,
+        "Break Duration (mins)": entry.breakDuration,
         "Total Hours": entry.totalHours,
         "Overtime Hours": entry.overtimeHours,
         "Hourly Rate": entry.hourlyRate,

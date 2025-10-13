@@ -152,16 +152,23 @@ export function CardDescription({
 export function CardFooter({
   children,
   className,
+  transparent,
+  ...props
 }: {
   children: React.ReactNode;
   className?: string;
+  transparent?: boolean;
 }) {
   return (
     <div
       className={clsx(
         "border-t border-glass px-6 py-5 glass-subtle rounded-b-3xl",
+        {
+          "bg-transparent border-none": transparent,
+        },
         className,
       )}
+      {...props}
     >
       {children}
     </div>

@@ -132,11 +132,11 @@ export async function GET(req: NextRequest) {
       let totalHours = 0;
 
       for (const entry of timesheet.TimesheetEntries) {
-        if (entry.clockIn && entry.clockOut) {
-          const clockIn = new Date(entry.clockIn);
-          const clockOut = new Date(entry.clockOut);
-          const totalMinutes = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60);
-          const breakMinutes = entry.breakDuration || 0;
+        if (entry.startTime && entry.endTime) {
+          const startTime = new Date(entry.startTime);
+          const endTime = new Date(entry.endTime);
+          const totalMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+          const breakMinutes = entry.breakMinutes || 0;
           const workedMinutes = totalMinutes - breakMinutes;
           totalHours += workedMinutes / 60;
         }

@@ -76,8 +76,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Geofence is configured in TimeTrackingSettings.geofenceLocations, not per location
-
     const location = await prisma.location.create({
       data: {
         id: crypto.randomUUID(),

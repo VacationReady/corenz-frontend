@@ -208,16 +208,11 @@ export async function POST(req: NextRequest) {
           where: {
             status: "APPROVED",
           },
-          include: {
-            Decisions: {
-              select: {
-                User: {
-                  select: {
-                    name: true,
-                  },
-                },
-              },
-            },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            completedAt: true,
           },
           orderBy: {
             createdAt: "desc",

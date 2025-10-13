@@ -6,7 +6,7 @@ interface CardProps
   title?: React.ReactNode;
   icon?: React.ReactNode;
   action?: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   variant?: string;
   hoverable?: boolean;
@@ -61,7 +61,7 @@ export function Card({
           </div>
         </CardHeader>
       )}
-      <CardContent>{children}</CardContent>
+      {children && <CardContent>{children}</CardContent>}
     </div>
   );
 }

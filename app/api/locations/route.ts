@@ -76,14 +76,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get default geofence radius from settings if not provided
-    let geofenceRadius = data.geofenceRadius;
-    if (!geofenceRadius && (data.latitude !== undefined || data.longitude !== undefined)) {
-      const settings = await prisma.timeTrackingSettings.findUnique({
-        where: { companyId: session.user.companyId },
-      });
-      geofenceRadius = settings?.geofenceRadius || 100;
-    }
+    // Geofence is configured in TimeTrackingSettings.geofenceLocations, not per location
 
     const location = await prisma.location.create({
       data: {

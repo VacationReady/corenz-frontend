@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LogOut, X, Target } from "lucide-react";
+import { LogOut, X, Target, ClipboardList, CalendarClock, Users as UsersIcon } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 
@@ -37,6 +37,8 @@ export default function ManagerSidebar({
     { label: "Dashboard", href: "/dashboard" },
     { label: "Employees", href: "/employees" },
     { label: "Calendar", href: "/calendar" },
+    { label: "Team Schedule", href: "/rota" },
+    { label: "Timesheets", href: "/admin/timesheets/hub" },
     { label: "Performance", href: "/performance" },
     { label: "Tasks", href: "/tasks" },
     { label: "Org Chart", href: "/org-chart" },

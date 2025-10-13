@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import ShiftSwapModal from '@/components/rota/ShiftSwapModal';
 import AvailabilityGrid from '@/components/rota/AvailabilityGrid';
+import { toast } from '@/hooks/use-toast';
 
 interface Shift {
   id: string;
@@ -179,9 +180,18 @@ export default function EmployeeSchedulePage() {
         throw new Error(data.error || 'Failed to accept swap');
       }
 
+      toast({
+        title: 'Success',
+        description: 'Shift swap accepted successfully',
+      });
+
       await loadData();
     } catch (error: any) {
-      alert(error.message);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to accept swap',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -200,9 +210,18 @@ export default function EmployeeSchedulePage() {
         throw new Error(data.error || 'Failed to reject swap');
       }
 
+      toast({
+        title: 'Success',
+        description: 'Shift swap rejected',
+      });
+
       await loadData();
     } catch (error: any) {
-      alert(error.message);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to reject swap',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -219,9 +238,18 @@ export default function EmployeeSchedulePage() {
         throw new Error(data.error || 'Failed to cancel swap');
       }
 
+      toast({
+        title: 'Success',
+        description: 'Swap request cancelled',
+      });
+
       await loadData();
     } catch (error: any) {
-      alert(error.message);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to cancel swap',
+        variant: 'destructive',
+      });
     }
   };
 

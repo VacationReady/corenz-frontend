@@ -89,6 +89,12 @@ const holidaySettings = [
     icon: <Share2 className="h-5 w-5" />,
     description: "Design layered approval chains for complex workflows",
   },
+  {
+    title: "Time Tracking",
+    href: "/admin/settings/time-tracking",
+    icon: <Clock className="h-5 w-5" />,
+    description: "Configure timesheet, shift, and clock in/out settings",
+  },
 ];
 
 const formSettings = [
@@ -292,7 +298,7 @@ export default function SettingsIndexPage() {
       setCompletionData(JSON.parse(savedProgress));
     } else {
       setCompletionData({
-        holidays: { completed: 2, total: 7 },
+        holidays: { completed: 2, total: 8 }, // Updated to include time tracking
         documents: { completed: 0, total: 1 },
         workflows: { completed: 1, total: 3 }, // Updated to include onboarding in journeys
         forms: { completed: 0, total: 3 },

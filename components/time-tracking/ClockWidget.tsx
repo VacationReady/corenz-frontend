@@ -46,7 +46,9 @@ export default function ClockWidget({
   const [currentTime, setCurrentTime] = useState(new Date());
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string>();
+  const [photoFile, setPhotoFile] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Update current time every second
   useEffect(() => {
@@ -111,7 +113,7 @@ export default function ClockWidget({
       }
 
       const needsPhoto = requirePhoto === 'CLOCK_IN' || requirePhoto === 'BOTH';
-      if (needsPhoto && !photoUrl) {
+      if (needsPhoto && !photoFile) {
         alert('Please upload a photo to clock in');
         setActionLoading(false);
         return;
@@ -119,10 +121,10 @@ export default function ClockWidget({
 
       const clockData: ClockData = {
         location: locationData,
-        photoUrl,
         notes,
       };
 
+      let clockInResponse;
       if (onClockIn) {
         await onClockIn(clockData);
       } else {
@@ -136,12 +138,36 @@ export default function ClockWidget({
           const error = await response.json();
           throw new Error(error.error || 'Failed to clock in');
         }
+
+        clockInResponse = await response.json();
+      }
+
+      // Upload photo if provided
+      if (photoFile && clockInResponse?.entry?.id) {
+        try {
+          const uploadResponse = await fetch('/api/time-tracking/upload-photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              entryId: clockInResponse.entry.id,
+              photoType: 'clockIn',
+              photoBase64: photoFile,
+            }),
+          });
+
+          if (!uploadResponse.ok) {
+            console.error('Photo upload failed, but clock-in succeeded');
+          }
+        } catch (photoError) {
+          console.error('Photo upload error:', photoError);
+        }
       }
 
       // Refresh status
       await fetchStatus();
       setNotes('');
       setPhotoUrl(undefined);
+      setPhotoFile(null);
     } catch (error: any) {
       alert(error.message || 'Failed to clock in');
     } finally {
@@ -165,7 +191,7 @@ export default function ClockWidget({
       }
 
       const needsPhoto = requirePhoto === 'BOTH';
-      if (needsPhoto && !photoUrl) {
+      if (needsPhoto && !photoFile) {
         alert('Please upload a photo to clock out');
         setActionLoading(false);
         return;
@@ -173,10 +199,10 @@ export default function ClockWidget({
 
       const clockData: ClockData = {
         location: locationData,
-        photoUrl,
         notes,
       };
 
+      let clockOutResponse;
       if (onClockOut) {
         await onClockOut(clockData);
       } else {
@@ -190,12 +216,36 @@ export default function ClockWidget({
           const error = await response.json();
           throw new Error(error.error || 'Failed to clock out');
         }
+
+        clockOutResponse = await response.json();
+      }
+
+      // Upload photo if provided
+      if (photoFile && status?.activeEntry?.id) {
+        try {
+          const uploadResponse = await fetch('/api/time-tracking/upload-photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              entryId: status.activeEntry.id,
+              photoType: 'clockOut',
+              photoBase64: photoFile,
+            }),
+          });
+
+          if (!uploadResponse.ok) {
+            console.error('Photo upload failed, but clock-out succeeded');
+          }
+        } catch (photoError) {
+          console.error('Photo upload error:', photoError);
+        }
       }
 
       // Refresh status
       await fetchStatus();
       setNotes('');
       setPhotoUrl(undefined);
+      setPhotoFile(null);
     } catch (error: any) {
       alert(error.message || 'Failed to clock out');
     } finally {
@@ -272,19 +322,42 @@ export default function ClockWidget({
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
-                // In production, upload to storage and get URL
+                setUploadingPhoto(true);
                 const reader = new FileReader();
-                reader.onload = (e) => setPhotoUrl(e.target?.result as string);
+                reader.onload = (e) => {
+                  const base64 = e.target?.result as string;
+                  setPhotoFile(base64);
+                  setPhotoUrl(base64);
+                  setUploadingPhoto(false);
+                };
+                reader.onerror = () => {
+                  setUploadingPhoto(false);
+                  alert('Failed to read photo file');
+                };
                 reader.readAsDataURL(file);
               }
             }}
+            disabled={uploadingPhoto}
             className="block w-full text-sm text-gray-500
               file:mr-4 file:py-2 file:px-4
               file:rounded-full file:border-0
               file:text-sm file:font-semibold
               file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100"
+              hover:file:bg-blue-100
+              disabled:opacity-50 disabled:cursor-not-allowed"
           />
+          {uploadingPhoto && (
+            <p className="text-xs text-gray-500 mt-1">Reading photo...</p>
+          )}
+          {photoUrl && (
+            <div className="mt-2">
+              <img
+                src={photoUrl}
+                alt="Preview"
+                className="h-20 w-20 object-cover rounded-lg border-2 border-blue-200"
+              />
+            </div>
+          )}
         </div>
       )}
 

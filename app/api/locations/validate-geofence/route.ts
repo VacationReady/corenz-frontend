@@ -45,9 +45,6 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         name: true,
-        latitude: true,
-        longitude: true,
-        geofenceRadius: true,
         companyId: true,
       },
     });

@@ -265,7 +265,7 @@ export async function POST(req: NextRequest) {
           : "";
 
         const payrollEntry: PayrollEntry = {
-          employeeId: timesheet.EmployeeId,
+          employeeId: timesheet.employeeId,
           employeeName,
           email: employeeEmail,
           department,
@@ -287,16 +287,16 @@ export async function POST(req: NextRequest) {
         payrollEntries.push(payrollEntry);
 
         // Group by employee
-        if (!employeeMap.has(timesheet.EmployeeId)) {
-          employeeMap.set(timesheet.EmployeeId, {
-            employeeId: timesheet.EmployeeId,
+        if (!employeeMap.has(timesheet.employeeId)) {
+          employeeMap.set(timesheet.employeeId, {
+            employeeId: timesheet.employeeId,
             name: employeeName,
             email: employeeEmail,
             department,
             entries: [],
           });
         }
-        employeeMap.get(timesheet.EmployeeId)!.entries.push({
+        employeeMap.get(timesheet.employeeId)!.entries.push({
           date: payrollEntry.date,
           clockIn: payrollEntry.clockIn,
           clockOut: payrollEntry.clockOut,

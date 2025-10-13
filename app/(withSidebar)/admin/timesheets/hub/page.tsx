@@ -323,7 +323,7 @@ export default function AdminTimesheetHubPage() {
               <Input
                 placeholder="Search by name..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>

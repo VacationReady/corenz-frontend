@@ -477,6 +477,8 @@ model Employee {
   ActionItems                      ActionItem[]                   @relation("Employee_ActionItem_Related")
   JourneyInstances                 JourneyInstance[]
   PushNotificationTokens           PushNotificationToken[]
+  Timesheets                       Timesheet[]                        @relation("TimesheetEmployee")
+  ClockEntries                     ClockEntry[]                       @relation("ClockEntryEmployee")
 
   @@unique([companyId, irdNumber])
 }
@@ -2925,6 +2927,7 @@ model ClockEntry {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   
+  Employee        Employee       @relation("ClockEntryEmployee", fields: [employeeId], references: [id])
   Timesheet       Timesheet?     @relation(fields: [timesheetId], references: [id])
   
   @@index([employeeId, clockInTime])
@@ -2951,6 +2954,7 @@ model Timesheet {
   createdAt           DateTime               @default(now())
   updatedAt           DateTime               @updatedAt
   
+  Employee            Employee               @relation("TimesheetEmployee", fields: [employeeId], references: [id])
   ClockEntries        ClockEntry[]
   TimesheetEntries    TimesheetEntry[]
   ApprovalStages      TimesheetApprovalStage[]

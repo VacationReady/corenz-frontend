@@ -25,16 +25,11 @@ export async function GET() {
     const locations = await prisma.location.findMany({
       where: {
         companyId: session.user.companyId,
-        isActive: true,
       },
       orderBy: { name: "asc" },
       select: {
         id: true,
         name: true,
-        latitude: true,
-        longitude: true,
-        geofenceRadius: true,
-        isActive: true,
         createdAt: true,
         updatedAt: true,
       },

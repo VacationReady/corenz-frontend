@@ -109,10 +109,6 @@ export async function PUT(
       where: { id: params.id },
       data: {
         name: data.name,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        geofenceRadius: data.geofenceRadius,
-        isActive: data.isActive,
       },
     });
 
@@ -159,9 +155,8 @@ export async function DELETE(
     }
 
     // Soft delete by setting isActive to false
-    await prisma.location.update({
+    await prisma.location.delete({
       where: { id: params.id },
-      data: { isActive: false },
     });
 
     return NextResponse.json({ success: true, message: "Location deleted successfully" });

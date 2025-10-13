@@ -202,7 +202,7 @@ export default function TimeTrackingSettingsPage() {
                     </div>
                     <Select
                       value={settings.defaultApprovalWorkflow}
-                      onValueChange={(value) =>
+                      onValueChange={(value: string) =>
                         updateSetting("defaultApprovalWorkflow", value as any)
                       }
                     >
@@ -304,7 +304,7 @@ export default function TimeTrackingSettingsPage() {
                     </div>
                     <Slider
                       value={[settings.minimumRestHours]}
-                      onValueChange={([value]) => updateSetting("minimumRestHours", value)}
+                      onValueChange={([value]: number[]) => updateSetting("minimumRestHours", value)}
                       min={0}
                       max={24}
                       step={1}
@@ -329,7 +329,7 @@ export default function TimeTrackingSettingsPage() {
                     </div>
                     <Slider
                       value={[settings.overtimeThreshold]}
-                      onValueChange={([value]) => updateSetting("overtimeThreshold", value)}
+                      onValueChange={([value]: number[]) => updateSetting("overtimeThreshold", value)}
                       min={20}
                       max={80}
                       step={1}
@@ -429,7 +429,7 @@ export default function TimeTrackingSettingsPage() {
                       </div>
                       <Slider
                         value={[settings.geofenceRadius]}
-                        onValueChange={([value]) => updateSetting("geofenceRadius", value)}
+                        onValueChange={([value]: number[]) => updateSetting("geofenceRadius", value)}
                         min={50}
                         max={5000}
                         step={50}
@@ -475,7 +475,7 @@ export default function TimeTrackingSettingsPage() {
                       </div>
                       <Slider
                         value={[settings.minBreakDuration]}
-                        onValueChange={([value]) => updateSetting("minBreakDuration", value)}
+                        onValueChange={([value]: number[]) => updateSetting("minBreakDuration", value)}
                         min={0}
                         max={120}
                         step={5}

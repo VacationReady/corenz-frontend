@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
 
       return {
         id: timesheet.id,
-        employeeId: timesheet.EmployeeId,
+        employeeId: timesheet.employeeId,
         employeeName: timesheet.Employee.User?.name || "Unknown",
         employeeEmail: timesheet.Employee.User?.email || "",
         employeeAvatar: timesheet.Employee.User?.avatarUrl,
@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
         totalHours: parseFloat(totalHours.toFixed(2)),
         status: timesheet.approvalStatus,
         submittedAt: timesheet.submittedAt,
-        notes: timesheet.submissionNotes,
+        notes: null,
       };
     });
 

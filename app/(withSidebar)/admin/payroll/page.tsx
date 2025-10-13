@@ -149,7 +149,7 @@ export default function PayrollExportPage() {
 
       toast({
         title: "Export Successful",
-        description: `Payroll data exported as ${format}`,
+        description: `Payroll data exported as ${exportFormat}`,
       });
     } catch (error) {
       toast({

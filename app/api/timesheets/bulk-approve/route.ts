@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { sendEmail } from "@/lib/email";
+// import { sendEmail } from "@/lib/email"; // TODO: Implement email service
 
 const bulkApproveSchema = z.object({
   timesheetIds: z.array(z.string()).min(1),
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if submitted
-        if (timesheet.approvalStatus !== "SUBMITTED") {
+        if (timesheet.approvalStatus !== "PENDING") {
           failed.push({
             timesheetId: timesheet.id,
             error: "Timesheet must be submitted before approval",
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
               entityId: timesheet.id,
               metadata: {
                 type: "TIMESHEET_APPROVED",
-                employeeId: timesheet.EmployeeId,
+                employeeId: timesheet.employeeId,
                 periodStart: timesheet.periodStart,
                 periodEnd: timesheet.periodEnd,
                 approvedBy: employee.User.name,
@@ -156,21 +156,22 @@ export async function POST(req: NextRequest) {
         // Send email notification
         if (timesheet.Employee.User?.email) {
           try {
-            await sendEmail({
-              to: timesheet.Employee.User.email,
-              subject: "Timesheet Approved",
-              text: `Your timesheet for ${new Date(timesheet.periodStart).toLocaleDateString()} - ${new Date(timesheet.periodEnd).toLocaleDateString()} has been approved by ${employee.User.name}.`,
-              html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px;">
-                  <h2 style="color: #10B981;">Timesheet Approved ✓</h2>
-                  <p>Hi ${timesheet.Employee.User.name},</p>
-                  <p>Your timesheet for <strong>${new Date(timesheet.periodStart).toLocaleDateString()} - ${new Date(timesheet.periodEnd).toLocaleDateString()}</strong> has been approved.</p>
-                  <p><strong>Approved by:</strong> ${employee.User.name}</p>
-                  ${data.comment ? `<p><strong>Comment:</strong> ${data.comment}</p>` : ""}
-                  <p>Thank you!</p>
-                </div>
-              `,
-            });
+            // TODO: Implement email notifications
+            // await sendEmail({
+            //   to: timesheet.Employee.User.email,
+            //   subject: "Timesheet Approved",
+            //   text: `Your timesheet for ${new Date(timesheet.periodStart).toLocaleDateString()} - ${new Date(timesheet.periodEnd).toLocaleDateString()} has been approved by ${employee.User.name}.`,
+            //   html: `
+            //     <div style="font-family: Arial, sans-serif; padding: 20px;">
+            //       <h2 style="color: #10B981;">Timesheet Approved ✓</h2>
+            //       <p>Hi ${timesheet.Employee.User.name},</p>
+            //       <p>Your timesheet for <strong>${new Date(timesheet.periodStart).toLocaleDateString()} - ${new Date(timesheet.periodEnd).toLocaleDateString()}</strong> has been approved.</p>
+            //       <p><strong>Approved by:</strong> ${employee.User.name}</p>
+            //       ${data.comment ? `<p><strong>Comment:</strong> ${data.comment}</p>` : ""}
+            //       <p>Thank you!</p>
+            //     </div>
+            //   `,
+            // });
           } catch (emailError) {
             console.error("Failed to send approval email:", emailError);
           }

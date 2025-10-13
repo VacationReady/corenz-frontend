@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, subWeeks, subMonths, subQuarters } from "date-fns";
 
 type Timesheet = {
   id: string;
@@ -43,6 +43,9 @@ export default function AdminTimesheetHubPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [periodFilter, setPeriodFilter] = useState<"all" | "week" | "month" | "quarter" | "custom">("all");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [previewSheet, setPreviewSheet] = useState<Timesheet | null>(null);
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; reason: string }>({
     open: false,
@@ -59,15 +62,45 @@ export default function AdminTimesheetHubPage() {
 
   useEffect(() => {
     fetchData();
-  }, [departmentFilter]);
+  }, [departmentFilter, periodFilter, customStartDate, customEndDate]);
+
+  const getDateRangeParams = () => {
+    const params = new URLSearchParams();
+    
+    if (periodFilter === "week") {
+      const start = startOfWeek(new Date(), { weekStartsOn: 1 });
+      const end = endOfWeek(new Date(), { weekStartsOn: 1 });
+      params.append("startDate", start.toISOString());
+      params.append("endDate", end.toISOString());
+    } else if (periodFilter === "month") {
+      const start = startOfMonth(new Date());
+      const end = endOfMonth(new Date());
+      params.append("startDate", start.toISOString());
+      params.append("endDate", end.toISOString());
+    } else if (periodFilter === "quarter") {
+      const start = startOfQuarter(new Date());
+      const end = endOfQuarter(new Date());
+      params.append("startDate", start.toISOString());
+      params.append("endDate", end.toISOString());
+    } else if (periodFilter === "custom" && customStartDate && customEndDate) {
+      params.append("startDate", new Date(customStartDate).toISOString());
+      params.append("endDate", new Date(customEndDate).toISOString());
+    }
+    
+    if (departmentFilter && departmentFilter !== "all") {
+      params.append("departmentId", departmentFilter);
+    }
+    
+    return params;
+  };
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      const params = getDateRangeParams();
+      
       const [timesheetsRes, deptsRes] = await Promise.all([
-        fetch(
-          `/api/timesheets/pending?${departmentFilter && departmentFilter !== "all" ? `departmentId=${departmentFilter}` : ""}`
-        ),
+        fetch(`/api/timesheets/pending?${params.toString()}`),
         fetch("/api/departments"),
       ]);
 
@@ -300,7 +333,23 @@ export default function AdminTimesheetHubPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Time Period</Label>
+              <Select value={periodFilter} onValueChange={(value: any) => setPeriodFilter(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Time" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="quarter">This Quarter</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label>Department</Label>
               <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
@@ -327,6 +376,28 @@ export default function AdminTimesheetHubPage() {
               />
             </div>
           </div>
+
+          {/* Custom Date Range */}
+          {periodFilter === "custom" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/10">
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <Input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

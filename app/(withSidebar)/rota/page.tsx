@@ -15,6 +15,8 @@ import { startOfWeek, endOfWeek, format } from 'date-fns';
 import RotaCalendar from '@/components/rota/RotaCalendar';
 import ShiftCard from '@/components/rota/ShiftCard';
 import LaborCostSummary from '@/components/rota/LaborCostSummary';
+import CreateShiftModal from '@/components/rota/CreateShiftModal';
+import EditShiftModal from '@/components/rota/EditShiftModal';
 
 interface Shift {
   id: string;
@@ -74,6 +76,10 @@ export default function RotaPage() {
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showCostSummary, setShowCostSummary] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedDateForCreate, setSelectedDateForCreate] = useState<Date | undefined>();
+  const [shiftToEdit, setShiftToEdit] = useState<Shift | null>(null);
   
   // Filter states
   const [dateRange, setDateRange] = useState({
@@ -184,8 +190,27 @@ export default function RotaPage() {
   };
 
   const handleAutoSchedule = async () => {
-    // TODO: Implement auto-schedule functionality
-    alert('Auto-schedule feature coming soon!');
+    try {
+      const response = await fetch('/api/shifts/auto-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: dateRange.start.toISOString(),
+          endDate: dateRange.end.toISOString(),
+          departmentId: departmentFilter || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Auto-schedule not yet implemented');
+      }
+
+      const data = await response.json();
+      alert(`Auto-scheduled ${data.shiftsCreated} shifts`);
+      fetchShifts();
+    } catch (error) {
+      alert('Auto-schedule feature coming soon!');
+    }
   };
 
   // Calculate labor cost summary
@@ -294,7 +319,7 @@ export default function RotaPage() {
           </button>
 
           <button
-            onClick={() => {/* TODO: Open create shift modal */}}
+            onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -413,8 +438,14 @@ export default function RotaPage() {
             shifts={shifts}
             conflicts={conflicts}
             onShiftClick={(shift: any) => setSelectedShift(shift)}
-            onDateClick={(date: Date) => {/* TODO: Open create shift modal with date */}}
-            onShiftEdit={(shift: any) => {/* TODO: Open edit modal */}}
+            onDateClick={(date: Date) => {
+              setSelectedDateForCreate(date);
+              setShowCreateModal(true);
+            }}
+            onShiftEdit={(shift: any) => {
+              setShiftToEdit(shift);
+              setShowEditModal(true);
+            }}
             onShiftDelete={handleDeleteShift}
             showActions={true}
           />
@@ -448,14 +479,63 @@ export default function RotaPage() {
               
               <ShiftCard
                 shift={selectedShift}
-                onEdit={() => {/* TODO: Open edit modal */}}
+                onEdit={() => {
+                  setShiftToEdit(selectedShift);
+                  setShowEditModal(true);
+                  setSelectedShift(null);
+                }}
                 onDelete={() => handleDeleteShift(selectedShift.id)}
-                onPublish={() => {/* TODO: Publish shift */}}
+                onPublish={async () => {
+                  try {
+                    const response = await fetch(`/api/shifts/${selectedShift.id}/publish`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ notifyEmployees: true }),
+                    });
+                    if (response.ok) {
+                      alert('Shift published successfully');
+                      fetchShifts();
+                      setSelectedShift(null);
+                    }
+                  } catch (error) {
+                    alert('Failed to publish shift');
+                  }
+                }}
                 showActions={true}
               />
             </div>
           </div>
         </div>
+      )}
+
+      {/* Create Shift Modal */}
+      <CreateShiftModal
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false);
+          setSelectedDateForCreate(undefined);
+        }}
+        onSuccess={() => {
+          fetchShifts();
+          fetchConflicts();
+        }}
+        preselectedDate={selectedDateForCreate}
+      />
+
+      {/* Edit Shift Modal */}
+      {shiftToEdit && (
+        <EditShiftModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setShiftToEdit(null);
+          }}
+          onSuccess={() => {
+            fetchShifts();
+            fetchConflicts();
+          }}
+          shift={shiftToEdit}
+        />
       )}
     </div>
   );

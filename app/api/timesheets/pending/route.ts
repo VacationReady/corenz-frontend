@@ -54,24 +54,24 @@ export async function GET(req: NextRequest) {
 
     // Build where clause
     const whereClause: any = {
-      employee: {
+      Employee: {
         companyId: employee.companyId,
       },
-      status: "SUBMITTED",
+      approvalStatus: "SUBMITTED",
     };
 
     // Manager can only see their department
     if (isManager && !isAdmin) {
-      whereClause.employee = {
-        ...whereClause.employee,
+      whereClause.Employee = {
+        ...whereClause.Employee,
         departmentId: employee.departmentId,
       };
     }
 
     // Apply filters
     if (departmentId) {
-      whereClause.employee = {
-        ...whereClause.employee,
+      whereClause.Employee = {
+        ...whereClause.Employee,
         departmentId,
       };
     }

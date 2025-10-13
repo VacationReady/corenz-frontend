@@ -29,7 +29,7 @@ export default function PayrollExportPage() {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [exportFormat, setExportFormat] = useState<"CSV" | "EXCEL" | "JSON">("CSV");
-  const [departmentId, setDepartmentId] = useState<string>("");
+  const [departmentId, setDepartmentId] = useState<string>("all");
   const [includeBreaks, setIncludeBreaks] = useState(true);
   const [includeNotes, setIncludeNotes] = useState(true);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -78,7 +78,7 @@ export default function PayrollExportPage() {
           startDate: startDate.toISOString().split("T")[0],
           endDate: endDate.toISOString().split("T")[0],
           format: "JSON",
-          departmentId: departmentId || undefined,
+          departmentId: departmentId && departmentId !== "all" ? departmentId : undefined,
           includeBreaks,
           includeNotes,
         }),
@@ -127,7 +127,7 @@ export default function PayrollExportPage() {
           startDate: startDate.toISOString().split("T")[0],
           endDate: endDate.toISOString().split("T")[0],
           format: exportFormat,
-          departmentId: departmentId || undefined,
+          departmentId: departmentId && departmentId !== "all" ? departmentId : undefined,
           includeBreaks,
           includeNotes,
         }),
@@ -289,7 +289,7 @@ export default function PayrollExportPage() {
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Departments</SelectItem>
+                    <SelectItem value="all">All Departments</SelectItem>
                     {departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}

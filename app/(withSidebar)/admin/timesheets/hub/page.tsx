@@ -41,7 +41,7 @@ export default function AdminTimesheetHubPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [departmentFilter, setDepartmentFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [previewSheet, setPreviewSheet] = useState<Timesheet | null>(null);
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; reason: string }>({
@@ -66,7 +66,7 @@ export default function AdminTimesheetHubPage() {
       setLoading(true);
       const [timesheetsRes, deptsRes] = await Promise.all([
         fetch(
-          `/api/timesheets/pending?${departmentFilter ? `departmentId=${departmentFilter}` : ""}`
+          `/api/timesheets/pending?${departmentFilter && departmentFilter !== "all" ? `departmentId=${departmentFilter}` : ""}`
         ),
         fetch("/api/departments"),
       ]);
@@ -308,7 +308,7 @@ export default function AdminTimesheetHubPage() {
                   <SelectValue placeholder="All Departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Departments</SelectItem>
+                  <SelectItem value="all">All Departments</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept.id} value={dept.id}>
                       {dept.name}

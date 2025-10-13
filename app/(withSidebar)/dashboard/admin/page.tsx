@@ -68,14 +68,14 @@ export default async function AdminDashboardPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="h-full bg-gradient-to-br from-background via-background to-primary/5">
       {/* Ambient background effect */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[hsl(var(--sunset-2))]/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 flex flex-col w-full h-screen overflow-hidden">
+      <div className="relative z-10 flex flex-col w-full h-full overflow-y-auto">
         {/* Enhanced Hero Profile Card */}
         <div className="p-6">
           <div className="glass-premium rounded-3xl shadow-premium p-8 hover-lift-premium transition-premium">

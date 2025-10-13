@@ -23,8 +23,10 @@ export default async function SurveysLayout({
   }
 
   return (
-    <div className="flex h-full">
-      {Sidebar}
+    <div className="flex h-screen">
+      <div className="flex-shrink-0">
+        {Sidebar}
+      </div>
       <div className="flex-1 overflow-hidden">
         {children}
       </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { calculateShiftCost } from '@/lib/timesheet-calculations';
 
@@ -33,6 +34,15 @@ export async function GET(req: NextRequest) {
     const departmentId = searchParams.get('departmentId');
     const employeeId = searchParams.get('employeeId');
     const isPublished = searchParams.get('isPublished');
+    const pageParam = searchParams.get('page');
+    const pageSizeParam = searchParams.get('pageSize');
+
+    const page = Math.max(1, Number.parseInt(pageParam || '1', 10));
+    const pageSize = Math.min(
+      Math.max(10, Number.parseInt(pageSizeParam || '50', 10)),
+      200
+    );
+    const skip = (page - 1) * pageSize;
 
     // Get requesting user's employee record
     const requestingEmployee = await prisma.employee.findUnique({
@@ -82,46 +92,200 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // Fetch shifts
-    const shifts = await prisma.shift.findMany({
-      where,
-      include: {
-        Template: true,
-      },
-      orderBy: {
-        startTime: 'asc',
-      },
-    });
-
-    // Get employee details
-    const employeeIds = shifts
-      .map((s: any) => s.employeeId)
-      .filter((id: string | null): id is string => id !== null);
-
-    const employees = await prisma.employee.findMany({
-      where: {
-        id: { in: employeeIds },
-      },
-      include: {
-        User: {
-          select: {
-            name: true,
-            profileImageUrl: true,
+    const [shifts, totalCount, companySettings] = await prisma.$transaction([
+      prisma.shift.findMany({
+        where,
+        include: {
+          Template: true,
+          Employee: {
+            include: {
+              User: {
+                select: {
+                  name: true,
+                  email: true,
+                  profileImageUrl: true,
+                },
+              },
+              Department: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          Department: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          Location: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+            },
           },
         },
-      },
-    });
+        orderBy: [
+          { startTime: 'asc' },
+          { id: 'asc' },
+        ],
+        skip,
+        take: pageSize,
+      }),
+      prisma.shift.count({ where }),
+      prisma.timeTrackingSettings.findUnique({
+        where: { companyId: requestingEmployee.companyId },
+      }),
+    ]);
 
-    const employeeMap = new Map(employees.map((e: any) => [e.id, e]));
+    const normalizedShifts = shifts.map(({
+      Employee,
+      Department,
+      Location,
+      ...rest
+    }) => ({
+      ...rest,
+      employee: Employee
+        ? {
+            id: Employee.id,
+            User: Employee.User,
+            Department: Employee.Department,
+          }
+        : null,
+      department: Department,
+      location: Location,
+    }));
 
-    const enrichedShifts = shifts.map((shift: any) => ({
-      ...shift,
-      employee: shift.employeeId ? employeeMap.get(shift.employeeId) : null,
+    const overtimeThreshold = companySettings?.overtimeThreshold
+      ? Number(companySettings.overtimeThreshold)
+      : 40;
+
+    const filters: Prisma.Sql[] = [
+      Prisma.sql`"companyId" = ${requestingEmployee.companyId}`,
+    ];
+
+    if (startDate && endDate) {
+      filters.push(
+        Prisma.sql`"startTime" BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}`
+      );
+    }
+    if (where.employeeId) {
+      filters.push(Prisma.sql`"employeeId" = ${where.employeeId}`);
+    }
+    if (where.departmentId) {
+      filters.push(Prisma.sql`"departmentId" = ${where.departmentId}`);
+    }
+    if (where.isPublished !== undefined) {
+      filters.push(Prisma.sql`"isPublished" = ${where.isPublished}`);
+    }
+
+    const whereClause = filters.length
+      ? Prisma.sql`WHERE ${Prisma.join(filters, Prisma.sql` AND `)}`
+      : Prisma.sql``;
+
+    const [summaryRow] = await prisma.$queryRaw<
+      Array<{
+        scheduledhours: number;
+        overtimehours: number;
+        publishedcount: bigint;
+        unpublishedcount: bigint;
+        totalcost: number;
+      }>
+    >(
+      Prisma.sql`
+        WITH base AS (
+          SELECT
+            "id",
+            "isPublished",
+            GREATEST(
+              EXTRACT(EPOCH FROM ("endTime" - "startTime")) / 3600 - ("breakDuration"::numeric / 60),
+              0
+            ) AS hours,
+            COALESCE("cost"::numeric, 0) AS cost
+          FROM "Shift"
+          ${whereClause}
+        )
+        SELECT
+          COALESCE(SUM(hours), 0) AS scheduledhours,
+          COALESCE(SUM(GREATEST(hours - ${overtimeThreshold}, 0)), 0) AS overtimehours,
+          COALESCE(SUM(CASE WHEN "isPublished" THEN 1 ELSE 0 END), 0) AS publishedcount,
+          COALESCE(SUM(CASE WHEN "isPublished" THEN 0 ELSE 1 END), 0) AS unpublishedcount,
+          COALESCE(SUM(cost), 0) AS totalcost
+        FROM base;
+      `
+    );
+
+    const departmentBreakdownRaw = await prisma.$queryRaw<
+      Array<{
+        departmentid: string | null;
+        hours: number;
+        cost: number;
+        employeecount: bigint;
+        shiftcount: bigint;
+      }>
+    >(
+      Prisma.sql`
+        SELECT
+          "departmentId" AS departmentid,
+          COALESCE(SUM(
+            GREATEST(
+              EXTRACT(EPOCH FROM ("endTime" - "startTime")) / 3600 - ("breakDuration"::numeric / 60),
+              0
+            )
+          ), 0) AS hours,
+          COALESCE(SUM("cost"::numeric), 0) AS cost,
+          COUNT(DISTINCT "employeeId") AS employeecount,
+          COUNT(*) AS shiftcount
+        FROM "Shift"
+        ${whereClause}
+        GROUP BY "departmentId"
+      `
+    );
+
+    const departmentIds = departmentBreakdownRaw
+      .map(entry => entry.departmentid)
+      .filter((id): id is string => Boolean(id));
+
+    const departments = departmentIds.length
+      ? await prisma.department.findMany({
+          where: { id: { in: departmentIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+
+    const departmentMap = new Map(departments.map(dept => [dept.id, dept.name]));
+
+    const departmentBreakdown = departmentBreakdownRaw.map(entry => ({
+      departmentId: entry.departmentid ?? 'unassigned',
+      departmentName: entry.departmentid
+        ? departmentMap.get(entry.departmentid) ?? 'Unknown Department'
+        : 'Unassigned',
+      cost: Number(entry.cost ?? 0),
+      hours: Number(entry.hours ?? 0),
+      employeeCount: Number(entry.employeecount ?? 0),
+      shiftCount: Number(entry.shiftcount ?? 0),
     }));
 
     return NextResponse.json({
-      shifts: enrichedShifts,
-      total: shifts.length,
+      shifts: normalizedShifts,
+      pagination: {
+        page,
+        pageSize,
+        totalItems: totalCount,
+        totalPages: Math.ceil(totalCount / pageSize),
+        hasMore: page * pageSize < totalCount,
+      },
+      summary: {
+        totalCost: Number(summaryRow?.totalcost ?? 0),
+        scheduledHours: Number(summaryRow?.scheduledhours ?? 0),
+        overtimeHours: Number(summaryRow?.overtimehours ?? 0),
+        publishedCount: Number(summaryRow?.publishedcount ?? 0),
+        unpublishedCount: Number(summaryRow?.unpublishedcount ?? 0),
+      },
+      departmentBreakdown,
     });
   } catch (error) {
     console.error('Shifts fetch error:', error);

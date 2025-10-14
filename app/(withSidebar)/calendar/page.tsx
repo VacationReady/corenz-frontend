@@ -76,6 +76,7 @@ const PUBLIC_HOLIDAY_REGION_LABELS: Record<string, string> = {
 function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(false);
@@ -129,8 +130,16 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   };
 
   useEffect(() => {
-    fetchDepartments();
-    setLoading(false);
+    const loadInitialData = async () => {
+      try {
+        await fetchDepartments();
+        setLoading(false);
+      } catch (error) {
+        console.error("Error loading initial data:", error);
+        setLoading(false);
+      }
+    };
+    loadInitialData();
   }, []);
 
   useEffect(() => {
@@ -161,24 +170,60 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/event-categories");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const res = await fetch("/api/event-categories", {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache',
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
         if (res.ok) {
           const cats = await res.json();
           setCategoryOptions((cats || []).map((c: any) => ({ label: c.name, value: c.id })));
+        } else {
+          console.error("Failed to fetch event categories:", res.status, res.statusText);
         }
-      } catch (_err) {}
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          console.error("Request timeout for event categories");
+        } else {
+          console.error("Failed to fetch event categories:", err);
+        }
+      } finally {
+        setDataLoading(false);
+      }
     })();
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/locations");
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const res = await fetch("/api/locations", {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache',
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
         if (res.ok) {
           const items = await res.json();
           setLocationOptions((items || []).map((l: any) => ({ label: l.name, value: l.id })));
         }
-      } catch (_err) {}
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error("Failed to fetch locations:", err);
+        }
+      }
     })();
   }, []);
 
@@ -843,7 +888,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           bankHolidayLabel={templateLabel}
         />
         <div className="bg-white rounded-xl overflow-hidden">
-          {loading ? (
+          {loading || dataLoading ? (
             <SectionSkeleton showContainer={false} rows={1} lineClassName="h-[520px] w-full" />
           ) : (
             <FullCalendar

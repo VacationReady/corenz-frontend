@@ -23,9 +23,6 @@ import {
   Target,
   ClipboardList,
   CalendarClock,
-  Radio,
-  DollarSign,
-  UsersRound,
 } from "lucide-react";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 import {
@@ -173,9 +170,6 @@ const hrToolsLinks = [
   { href: "/analytics", icon: LineChart, label: "Analytics" },
   { href: "/admin/timesheets/hub", icon: ClipboardList, label: "Timesheets" },
   { href: "/rota", icon: CalendarClock, label: "Rota/Shifts" },
-  { href: "/admin/rota-groups", icon: UsersRound, label: "Rota Groups" },
-  { href: "/admin/live-attendance", icon: Radio, label: "Live Attendance" },
-  { href: "/admin/payroll", icon: DollarSign, label: "Payroll Export" },
   { href: "/org-chart", icon: Network, label: "Org Chart" },
   { href: "/news", icon: Megaphone, label: "News" },
   { href: "/surveys", icon: BarChart3, label: "Surveys" },

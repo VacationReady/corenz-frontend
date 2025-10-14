@@ -10,6 +10,7 @@ import {
   Sparkles,
   Download,
   ChevronDown,
+  Settings,
 } from 'lucide-react';
 import { startOfWeek, endOfWeek, format } from 'date-fns';
 import RotaCalendar from '@/components/rota/RotaCalendar';
@@ -552,6 +553,17 @@ export default function RotaPage() {
           shift={shiftToEdit}
         />
       )}
+
+      {/* Fixed Settings Button - Bottom Right */}
+      <Link
+        href="/rota/settings"
+        className="fixed bottom-8 right-8 z-50 flex flex-col items-center gap-2 p-4 rounded-xl bg-card hover:bg-accent border-2 border-border shadow-2xl transition-all hover:shadow-3xl hover:scale-105 group backdrop-blur-md"
+      >
+        <Settings className="w-6 h-6 text-card-foreground group-hover:text-primary transition-colors group-hover:rotate-90 duration-300" />
+        <span className="text-sm font-medium text-card-foreground group-hover:text-primary transition-colors">
+          Settings
+        </span>
+      </Link>
     </div>
   );
 }

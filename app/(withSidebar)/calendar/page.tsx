@@ -189,7 +189,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           console.error("Failed to fetch event categories:", res.status, res.statusText);
         }
       } catch (err) {
-        if (err.name === 'AbortError') {
+        if (err instanceof Error && err.name === 'AbortError') {
           console.error("Request timeout for event categories");
         } else {
           console.error("Failed to fetch event categories:", err);
@@ -220,7 +220,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           setLocationOptions((items || []).map((l: any) => ({ label: l.name, value: l.id })));
         }
       } catch (err) {
-        if (err.name !== 'AbortError') {
+        if (!(err instanceof Error && err.name === 'AbortError')) {
           console.error("Failed to fetch locations:", err);
         }
       }

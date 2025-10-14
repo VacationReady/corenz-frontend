@@ -279,9 +279,9 @@ export async function GET(req: Request) {
         departmentBreakdownMap.set(departmentKey, deptEntry);
 
         const locationKey = employee.locationId ?? "__unassigned";
-        const locationName =
-          locations.find((loc) => loc.id === employee.locationId)?.name ||
-          (employee.locationId ? employee.locationId : "Unassigned");
+        const locationName = employee.locationId
+          ? (locations.find((loc) => loc.id === employee.locationId)?.name ?? "Unknown Location")
+          : "Unassigned";
         const locationEntry =
           locationBreakdownMap.get(locationKey) ?? {
             id: employee.locationId ?? null,

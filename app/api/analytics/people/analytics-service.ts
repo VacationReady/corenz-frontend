@@ -232,7 +232,9 @@ function computeExplorerDatasets(
     dimensionSelectors.push(["department", departmentId, departmentName]);
 
     const locationId = employee.locationId ?? "unassigned";
-    const locationName = options.locationMap.get(locationId) ?? "Unassigned";
+    const locationName = employee.locationId 
+      ? (options.locationMap.get(employee.locationId) ?? "Unknown Location")
+      : "Unassigned";
     dimensionSelectors.push(["location", locationId, locationName]);
 
     const employmentType = employee.employmentType?.trim();

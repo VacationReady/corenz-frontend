@@ -702,7 +702,7 @@ export default function AnalyticsDashboard() {
                       ))
                     )}
                   </div>
-                  <div className="flex w/full flex-col gap-4 lg:w-1/2">
+                  <div className="flex w-full flex-col gap-4 lg:w-1/2">
                     <div className="h-64 w-full">
                       {employmentData.length === 0 ? (
                         <div className="flex h-full items-center justify-center rounded-2xl bg-white/60 text-sm text-muted-foreground dark:bg-slate-900/40">
@@ -872,25 +872,23 @@ export default function AnalyticsDashboard() {
                           dataKey="value"
                           radius={[8, 8, 0, 0]}
                           fill="#6366f1"
-                          onClick={(barItem) => {
-                            const label =
-                              barItem && "payload" in barItem
-                                ? (barItem.payload as (typeof tenureBands)[number] | undefined)?.label
-                                : undefined;
-
-                            if (label) {
+                          onClick={(_, index) => {
+                            const chartData = tenureBands[index];
+                            if (chartData && chartData.label) {
                               const tenureBandMap: Record<string, string> = {
                                 "Under 1 year": "under_1",
                                 "1 - 3 years": "1_to_3",
                                 "3 - 5 years": "3_to_5",
                                 "5+ years": "5_plus"
                               };
-                              const bandKey = tenureBandMap[label] || label.toLowerCase().replace(/\s+/g, "_");
+                              const bandKey =
+                                tenureBandMap[chartData.label] ||
+                                chartData.label.toLowerCase().replace(/\s+/g, "_");
                               handleDrillDown(
                                 "tenureBand",
                                 bandKey,
-                                `${label} Tenure Band`,
-                                `Employees with ${label} tenure`
+                                `${chartData.label} Tenure Band`,
+                                `Employees with ${chartData.label} tenure`
                               );
                             }
                           }}

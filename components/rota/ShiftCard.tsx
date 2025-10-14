@@ -1,18 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import type { MouseEvent } from 'react';
 import { format } from 'date-fns';
-import { 
-  Clock, 
-  MapPin, 
-  User, 
-  Edit, 
-  Trash2, 
-  CheckCircle, 
+import {
+  Clock,
+  MapPin,
+  User,
+  Edit,
+  Trash2,
+  CheckCircle,
   XCircle,
   AlertCircle,
   DollarSign,
   Building2,
+  Square,
+  CheckSquare,
 } from 'lucide-react';
 
 interface ShiftCardProps {
@@ -46,31 +49,47 @@ interface ShiftCardProps {
     location?: {
       id: string;
       name: string;
-      address?: string | null;
     } | null;
   };
+  onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onPublish?: () => void;
   onConfirm?: () => void;
   showActions?: boolean;
   compact?: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 export default function ShiftCard({
   shift,
+  onClick,
   onEdit,
   onDelete,
   onPublish,
   onConfirm,
   showActions = true,
   compact = false,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: ShiftCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const startTime = new Date(shift.startTime);
   const endTime = new Date(shift.endTime);
   const durationHours = ((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)) - (shift.breakDuration / 60);
+
+  const handleCardClick = () => {
+    onClick?.();
+  };
+
+  const handleToggleSelect = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onToggleSelect?.();
+  };
 
   const getStatusBadge = () => {
     const statusConfig = {
@@ -127,9 +146,10 @@ export default function ShiftCard({
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     if (!onDelete) return;
-    
+
     const confirmed = window.confirm('Are you sure you want to delete this shift?');
     if (!confirmed) return;
 
@@ -141,9 +161,31 @@ export default function ShiftCard({
     }
   };
 
+  const handleEdit = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onEdit?.();
+  };
+
+  const handlePublish = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onPublish?.();
+  };
+
+  const handleConfirm = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onConfirm?.();
+  };
+
   if (compact) {
     return (
-      <div className="bg-gray-800 backdrop-blur-md border border-gray-700 rounded-lg p-3 hover:bg-gray-700 transition-all shadow-md">
+      <div
+        className={`bg-gray-800 backdrop-blur-md border ${
+          selected ? 'border-primary/60' : 'border-gray-700'
+        } rounded-lg p-3 hover:bg-gray-700 transition-all shadow-md ${
+          onClick ? 'cursor-pointer' : ''
+        }`}
+        onClick={handleCardClick}
+      >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-blue-400" />
@@ -151,9 +193,26 @@ export default function ShiftCard({
               {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
             </span>
           </div>
-          {getStatusBadge()}
+          <div className="flex items-center gap-2">
+            {getStatusBadge()}
+            {selectable && (
+              <button
+                type="button"
+                onClick={handleToggleSelect}
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-medium transition-all ${
+                  selected
+                    ? 'bg-primary/20 border-primary/40 text-primary-foreground'
+                    : 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600'
+                }`}
+                aria-pressed={selected}
+              >
+                {selected ? <CheckSquare className="w-3 h-3" /> : <Square className="w-3 h-3" />}
+                {selected ? 'Selected' : 'Select'}
+              </button>
+            )}
+          </div>
         </div>
-        
+
         {shift.employee && (
           <div className="flex items-center gap-2 text-sm text-gray-200">
             <User className="w-4 h-4 text-blue-400" />
@@ -165,7 +224,16 @@ export default function ShiftCard({
   }
 
   return (
-    <div className="bg-gray-900 backdrop-blur-md border border-gray-700 rounded-xl p-6 hover:bg-gray-800 transition-all shadow-lg">
+    <div
+      className={`bg-gray-900 backdrop-blur-md border ${
+        selected ? 'border-primary/60' : 'border-gray-700'
+      } rounded-xl p-6 hover:bg-gray-800 transition-all shadow-lg ${
+        onClick ? 'cursor-pointer' : ''
+      }`}
+      onClick={handleCardClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : -1}
+    >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -188,9 +256,24 @@ export default function ShiftCard({
         
         {showActions && (
           <div className="flex items-center gap-2">
+            {selectable && (
+              <button
+                type="button"
+                onClick={handleToggleSelect}
+                className={`p-2 rounded-lg border transition-all ${
+                  selected
+                    ? 'bg-primary/20 border-primary/40 text-primary-foreground'
+                    : 'bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700'
+                }`}
+                aria-pressed={selected}
+                title={selected ? 'Deselect shift' : 'Select shift'}
+              >
+                {selected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+              </button>
+            )}
             {onEdit && (
               <button
-                onClick={onEdit}
+                onClick={handleEdit}
                 className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white transition-all"
                 title="Edit shift"
               >
@@ -291,9 +374,6 @@ export default function ShiftCard({
             <div>
               <div className="text-sm text-gray-300">Location</div>
               <div className="font-semibold text-white">{shift.location.name}</div>
-              {shift.location.address && (
-                <div className="text-xs text-gray-400">{shift.location.address}</div>
-              )}
             </div>
           </div>
         )}
@@ -334,7 +414,7 @@ export default function ShiftCard({
         <div className="border-t border-gray-700 pt-4 mt-4 flex gap-2">
           {onPublish && !shift.isPublished && (
             <button
-              onClick={onPublish}
+              onClick={handlePublish}
               className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all"
             >
               Publish Shift
@@ -342,7 +422,7 @@ export default function ShiftCard({
           )}
           {onConfirm && shift.requiresConfirmation && !shift.confirmedAt && (
             <button
-              onClick={onConfirm}
+              onClick={handleConfirm}
               className="flex-1 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-all"
             >
               Confirm Attendance

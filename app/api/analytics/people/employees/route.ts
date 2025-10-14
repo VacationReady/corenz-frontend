@@ -28,6 +28,11 @@ export async function GET(req: NextRequest) {
   try {
     let whereClause: any = { companyId };
 
+    // Common reference dates used by multiple filters
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     // Build filter based on filterType
     switch (filterType) {
       case "all":
@@ -55,8 +60,6 @@ export async function GET(req: NextRequest) {
         break;
       case "newHires":
         // Employees who started in the last 30 days
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         whereClause.startDate = {
           gte: thirtyDaysAgo,
         };
@@ -70,8 +73,7 @@ export async function GET(req: NextRequest) {
         break;
       case "contractsExpiring":
         // Employees with contracts expiring in the next 60 days
-        const now = new Date();
-        const sixtyDaysAhead = new Date();
+        const sixtyDaysAhead = new Date(now);
         sixtyDaysAhead.setDate(sixtyDaysAhead.getDate() + 60);
         whereClause.contractEndDate = {
           gte: now,

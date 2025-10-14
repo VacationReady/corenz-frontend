@@ -63,9 +63,11 @@ export async function GET(req: NextRequest) {
         break;
       case "departures":
         // Employees who left in the last 30 days
+        const thirtyDaysAgoForDepartures = new Date();
+        thirtyDaysAgoForDepartures.setDate(thirtyDaysAgoForDepartures.getDate() - 30);
         whereClause.OR = [
-          { lastWorkingDate: { gte: thirtyDaysAgo } },
-          { offboardingDate: { gte: thirtyDaysAgo } },
+          { lastWorkingDate: { gte: thirtyDaysAgoForDepartures } },
+          { offboardingDate: { gte: thirtyDaysAgoForDepartures } },
         ];
         break;
       case "contractsExpiring":

@@ -872,20 +872,22 @@ export default function AnalyticsDashboard() {
                           dataKey="value" 
                           radius={[8, 8, 0, 0]} 
                           fill="#6366f1"
-                          onClick={(data) => {
-                            if (data && data.label) {
+                          onClick={(data, index, event) => {
+                            // Access the label from the chart data using the index
+                            const chartData = tenureBands[index];
+                            if (chartData && chartData.label) {
                               const tenureBandMap: Record<string, string> = {
                                 "Under 1 year": "under_1",
                                 "1 - 3 years": "1_to_3", 
                                 "3 - 5 years": "3_to_5",
                                 "5+ years": "5_plus"
                               };
-                              const bandKey = tenureBandMap[data.label] || data.label.toLowerCase().replace(/\s+/g, "_");
+                              const bandKey = tenureBandMap[chartData.label] || chartData.label.toLowerCase().replace(/\s+/g, "_");
                               handleDrillDown(
                                 "tenureBand",
                                 bandKey,
-                                `${data.label} Tenure Band`,
-                                `Employees with ${data.label} tenure`
+                                `${chartData.label} Tenure Band`,
+                                `Employees with ${chartData.label} tenure`
                               );
                             }
                           }}

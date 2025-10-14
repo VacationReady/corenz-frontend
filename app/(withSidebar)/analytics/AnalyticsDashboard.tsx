@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
+import { useSession } from "next-auth/react";
 import {
   Bar,
   BarChart,
@@ -53,6 +54,7 @@ import {
 } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Input } from "@/components/ui/Input";
+import { EmployeeListModal } from "@/components/analytics/EmployeeListModal";
 
 const fetcher = async (url: string) => {
   const response = await fetch(url, { credentials: "include" });
@@ -175,6 +177,7 @@ const PRIORITY_BADGES: Record<AnalyticsInsight["priority"], string> = {
 };
 
 export default function AnalyticsDashboard() {
+  const { data: session } = useSession();
   const [selectedDepartment, setSelectedDepartment] = useState<string | undefined>();
   const [selectedLocation, setSelectedLocation] = useState<string | undefined>();
   const [rangeInMonths, setRangeInMonths] = useState<number>(12);
@@ -183,6 +186,21 @@ export default function AnalyticsDashboard() {
   const [aiInsights, setAiInsights] = useState<AnalyticsInsight[]>([]);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  
+  // Drill-down modal state
+  const [drillDownModal, setDrillDownModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    filterType: string;
+    filterValue: string;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+    filterType: "",
+    filterValue: "",
+  });
 
   const analyticsUrl = useMemo(() => {
     const params = new URLSearchParams();
@@ -314,6 +332,31 @@ export default function AnalyticsDashboard() {
     } finally {
       setIsGeneratingAI(false);
     }
+  };
+
+  const handleDrillDown = (
+    filterType: string,
+    filterValue: string,
+    title: string,
+    description: string
+  ) => {
+    setDrillDownModal({
+      isOpen: true,
+      title,
+      description,
+      filterType,
+      filterValue,
+    });
+  };
+
+  const closeDrillDownModal = () => {
+    setDrillDownModal({
+      isOpen: false,
+      title: "",
+      description: "",
+      filterType: "",
+      filterValue: "",
+    });
   };
 
   return (
@@ -467,16 +510,37 @@ export default function AnalyticsDashboard() {
                 change={formattedHeadcountChange}
                 trend={headcountTrend}
                 icon={<Users className="h-5 w-5" />}
+                hoverable
+                onClick={() => handleDrillDown(
+                  "all",
+                  "all",
+                  "All Active Employees",
+                  "Complete list of all active employees in your organization"
+                )}
               />
               <MetricCard
                 title="New hires (30d)"
                 value={data.metrics.newHiresLast30Days.toLocaleString()}
                 icon={<UserPlus className="h-5 w-5 text-emerald-500" />}
+                hoverable
+                onClick={() => handleDrillDown(
+                  "newHires",
+                  "newHires",
+                  "New Hires (Last 30 Days)",
+                  "Employees who started in the last 30 days"
+                )}
               />
               <MetricCard
                 title="Departures (30d)"
                 value={data.metrics.departuresLast30Days.toLocaleString()}
                 icon={<UserMinus className="h-5 w-5 text-rose-500" />}
+                hoverable
+                onClick={() => handleDrillDown(
+                  "departures",
+                  "departures",
+                  "Recent Departures (Last 30 Days)",
+                  "Employees who left in the last 30 days"
+                )}
               />
               <MetricCard
                 title="Average tenure"
@@ -509,6 +573,13 @@ export default function AnalyticsDashboard() {
                 title="Contracts expiring (60d)"
                 value={data.metrics.upcomingContractEndings60d.toLocaleString()}
                 icon={<CalendarClock className="h-5 w-5 text-amber-500" />}
+                hoverable
+                onClick={() => handleDrillDown(
+                  "contractsExpiring",
+                  "contractsExpiring",
+                  "Contracts Expiring (Next 60 Days)",
+                  "Employees with contracts expiring in the next 60 days"
+                )}
               />
             </div>
 
@@ -567,7 +638,13 @@ export default function AnalyticsDashboard() {
                     {(data.breakdowns.byDepartment ?? []).map((dept) => (
                       <div
                         key={dept.id ?? dept.name}
-                        className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40"
+                        className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
+                        onClick={() => handleDrillDown(
+                          "department",
+                          dept.id || "unassigned",
+                          `${dept.name} Department`,
+                          `All employees in the ${dept.name} department`
+                        )}
                       >
                         <div>
                           <p className="text-sm font-medium text-foreground">{dept.name}</p>
@@ -604,7 +681,13 @@ export default function AnalyticsDashboard() {
                       locationData.map((location) => (
                         <div
                           key={location.id ?? location.name}
-                          className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40"
+                          className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
+                          onClick={() => handleDrillDown(
+                            "location",
+                            location.id || "unassigned",
+                            `${location.name} Location`,
+                            `All employees at the ${location.name} location`
+                          )}
                         >
                           <div>
                             <p className="text-sm font-medium text-foreground">{location.name}</p>
@@ -653,7 +736,16 @@ export default function AnalyticsDashboard() {
                     </div>
                     <div className="space-y-2">
                       {(data.breakdowns.byEmploymentType ?? []).map((item, index) => (
-                        <div key={item.label} className="flex items-center justify-between">
+                        <div 
+                          key={item.label} 
+                          className="flex items-center justify-between hover:bg-white/60 dark:hover:bg-slate-900/40 rounded-lg px-2 py-1 cursor-pointer transition-colors"
+                          onClick={() => handleDrillDown(
+                            "employmentType",
+                            item.label.toLowerCase(),
+                            `${item.label} Employees`,
+                            `All employees with ${item.label} employment type`
+                          )}
+                        >
                           <div className="flex items-center gap-3">
                             <span
                               className="h-3 w-3 rounded-full"
@@ -685,7 +777,13 @@ export default function AnalyticsDashboard() {
                   {(data.breakdowns.byJobRole ?? []).map((role) => (
                     <div
                       key={role.id ?? role.name}
-                      className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40"
+                      className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
+                      onClick={() => handleDrillDown(
+                        "jobRole",
+                        role.id || "unassigned",
+                        `${role.name} Job Role`,
+                        `All employees with the ${role.name} job role`
+                      )}
                     >
                       <div>
                         <p className="text-sm font-medium text-foreground">{role.name}</p>
@@ -770,7 +868,28 @@ export default function AnalyticsDashboard() {
                           formatter={(value: number) => [`${value.toLocaleString()} employees`, "Employees"]}
                           contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
                         />
-                        <Bar dataKey="value" radius={[8, 8, 0, 0]} fill="#6366f1" />
+                        <Bar 
+                          dataKey="value" 
+                          radius={[8, 8, 0, 0]} 
+                          fill="#6366f1"
+                          onClick={(data) => {
+                            if (data && data.label) {
+                              const tenureBandMap: Record<string, string> = {
+                                "Under 1 year": "under_1",
+                                "1 - 3 years": "1_to_3", 
+                                "3 - 5 years": "3_to_5",
+                                "5+ years": "5_plus"
+                              };
+                              const bandKey = tenureBandMap[data.label] || data.label.toLowerCase().replace(/\s+/g, "_");
+                              handleDrillDown(
+                                "tenureBand",
+                                bandKey,
+                                `${data.label} Tenure Band`,
+                                `Employees with ${data.label} tenure`
+                              );
+                            }
+                          }}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
@@ -852,6 +971,16 @@ export default function AnalyticsDashboard() {
           </div>
         )}
       </div>
+
+      <EmployeeListModal
+        isOpen={drillDownModal.isOpen}
+        onClose={closeDrillDownModal}
+        title={drillDownModal.title}
+        description={drillDownModal.description}
+        filterType={drillDownModal.filterType as any}
+        filterValue={drillDownModal.filterValue}
+        companyId={session?.user?.companyId || ""}
+      />
     </PageShell>
   );
 }

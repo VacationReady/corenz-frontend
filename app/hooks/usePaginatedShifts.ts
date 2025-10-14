@@ -17,10 +17,10 @@ export interface ShiftRecord {
     id: string;
     User: {
       name: string;
-      email?: string;
+      email: string;
       profileImageUrl?: string | null;
     };
-    Department?: { id?: string; name?: string } | null;
+    Department?: { id: string; name: string } | null;
   } | null;
   department?: {
     id: string;
@@ -29,7 +29,6 @@ export interface ShiftRecord {
   location?: {
     id: string;
     name: string;
-    address?: string | null;
   } | null;
 }
 

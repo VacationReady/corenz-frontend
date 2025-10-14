@@ -46,12 +46,11 @@ interface ShiftCardProps {
       id: string;
       name: string;
     } | null;
-  location?: {
-    id: string;
-    name: string;
-    address?: string | null;
-  } | null;
-};
+    location?: {
+      id: string;
+      name: string;
+    } | null;
+  };
   onClick?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -375,9 +374,6 @@ export default function ShiftCard({
             <div>
               <div className="text-sm text-gray-300">Location</div>
               <div className="font-semibold text-white">{shift.location.name}</div>
-              {shift.location.address && (
-                <div className="text-xs text-gray-400">{shift.location.address}</div>
-              )}
             </div>
           </div>
         )}

@@ -6,6 +6,35 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { calculateShiftCost } from '@/lib/timesheet-calculations';
 
+const shiftInclude = {
+  Template: true,
+  Employee: {
+    include: {
+      User: {
+        select: {
+          name: true,
+          email: true,
+          profileImageUrl: true,
+        },
+      },
+      Department: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+  Location: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+} satisfies Prisma.ShiftInclude;
+
+type ShiftWithRelations = Prisma.ShiftGetPayload<{ include: typeof shiftInclude }>;
+
 const createShiftSchema = z.object({
   employeeId: z.string().optional(),
   templateId: z.string().optional(),
@@ -95,39 +124,7 @@ export async function GET(req: NextRequest) {
     const [shifts, totalCount, companySettings] = await prisma.$transaction([
       prisma.shift.findMany({
         where,
-        include: {
-          Template: true,
-          Employee: {
-            include: {
-              User: {
-                select: {
-                  name: true,
-                  email: true,
-                  profileImageUrl: true,
-                },
-              },
-              Department: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-          Department: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          Location: {
-            select: {
-              id: true,
-              name: true,
-              address: true,
-            },
-          },
-        },
+        include: shiftInclude,
         orderBy: [
           { startTime: 'asc' },
           { id: 'asc' },
@@ -140,24 +137,6 @@ export async function GET(req: NextRequest) {
         where: { companyId: requestingEmployee.companyId },
       }),
     ]);
-
-    const normalizedShifts = shifts.map(({
-      Employee,
-      Department,
-      Location,
-      ...rest
-    }) => ({
-      ...rest,
-      employee: Employee
-        ? {
-            id: Employee.id,
-            User: Employee.User,
-            Department: Employee.Department,
-          }
-        : null,
-      department: Department,
-      location: Location,
-    }));
 
     const overtimeThreshold = companySettings?.overtimeThreshold
       ? Number(companySettings.overtimeThreshold)
@@ -183,7 +162,7 @@ export async function GET(req: NextRequest) {
     }
 
     const whereClause = filters.length
-      ? Prisma.sql`WHERE ${Prisma.join(filters, Prisma.sql` AND `)}`
+      ? Prisma.sql`WHERE ${Prisma.join(filters, ' AND ')}`
       : Prisma.sql``;
 
     const [summaryRow] = await prisma.$queryRaw<
@@ -245,18 +224,49 @@ export async function GET(req: NextRequest) {
       `
     );
 
-    const departmentIds = departmentBreakdownRaw
+    const rawShifts = shifts as ShiftWithRelations[];
+    const shiftDepartmentIds = rawShifts
+      .map(shift => shift.departmentId)
+      .filter((id): id is string => Boolean(id));
+
+    const departmentIdsFromBreakdown = departmentBreakdownRaw
       .map(entry => entry.departmentid)
       .filter((id): id is string => Boolean(id));
 
-    const departments = departmentIds.length
+    const referencedDepartmentIds = Array.from(
+      new Set([...departmentIdsFromBreakdown, ...shiftDepartmentIds])
+    );
+
+    const departments = referencedDepartmentIds.length
       ? await prisma.department.findMany({
-          where: { id: { in: departmentIds } },
+          where: { id: { in: referencedDepartmentIds } },
           select: { id: true, name: true },
         })
       : [];
 
     const departmentMap = new Map(departments.map(dept => [dept.id, dept.name]));
+
+    const normalizedShifts = rawShifts.map(({
+      Employee,
+      Location,
+      ...rest
+    }) => ({
+      ...rest,
+      employee: Employee
+        ? {
+            id: Employee.id,
+            User: Employee.User,
+            Department: Employee.Department,
+          }
+        : null,
+      department: rest.departmentId
+        ? {
+            id: rest.departmentId,
+            name: departmentMap.get(rest.departmentId) ?? 'Unknown Department',
+          }
+        : null,
+      location: Location,
+    }));
 
     const departmentBreakdown = departmentBreakdownRaw.map(entry => ({
       departmentId: entry.departmentid ?? 'unassigned',

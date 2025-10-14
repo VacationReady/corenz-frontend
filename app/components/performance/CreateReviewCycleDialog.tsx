@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,8 +23,11 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/Badge";
+import { MultiSelect } from "@/components/ui/MultiSelect";
 import { toast } from "sonner";
-import { Users, Calendar, Shield, Mail } from "lucide-react";
+import { Users, Shield, Mail, Filter } from "lucide-react";
+import { usePerformanceReferenceData } from "@/hooks/usePerformanceReferenceData";
+import { cn } from "@/lib/utils";
 
 interface Employee {
   id: string;
@@ -42,18 +45,36 @@ interface CreateReviewCycleDialogProps {
   onSuccess?: () => void;
 }
 
-export function CreateReviewCycleDialog({
-  open,
-  onOpenChange,
-  onSuccess,
-}: CreateReviewCycleDialogProps) {
-  const [loading, setLoading] = useState(false);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
-  const [jobRoles, setJobRoles] = useState<{ id: string; name: string }[]>([]);
-  const [templates, setTemplates] = useState<{ id: string; name: string }[]>([]);
+const wizardSteps = [
+  {
+    key: "details" as const,
+    title: "Cycle details",
+    description: "Define the cadence, template, and timelines for this review cycle.",
+  },
+  {
+    key: "audience" as const,
+    title: "Participants",
+    description: "Target the employees who should take part in this cycle.",
+  },
+  {
+    key: "review" as const,
+    title: "Review & notifications",
+    description: "Confirm participants, anonymity, and communications before launch.",
+  },
+];
 
-  // Form state
+type WizardStep = (typeof wizardSteps)[number]["key"];
+
+export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: CreateReviewCycleDialogProps) {
+  const [loading, setLoading] = useState(false);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+  const { employees, departments, jobRoles, templates, employeesLoading } = usePerformanceReferenceData({
+    enabled: open,
+    templateType: "REVIEW",
+    includeEmployees: true,
+  });
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"PROBATION" | "QUARTERLY" | "SEMI_ANNUAL" | "ANNUAL" | "AD_HOC">("ANNUAL");
@@ -66,78 +87,58 @@ export function CreateReviewCycleDialog({
   const [isAnonymousPeer, setIsAnonymousPeer] = useState(true);
   const [sendEmail, setSendEmail] = useState(true);
 
-  // Participant selection
   const [selectionMode, setSelectionMode] = useState<"individual" | "filtered">("filtered");
   const [selectedParticipants, setSelectedParticipants] = useState<Set<string>>(new Set());
-  
-  // Filters
-  const [filterDepartments, setFilterDepartments] = useState<string[]>([]);
-  const [filterJobRoles, setFilterJobRoles] = useState<string[]>([]);
+
+  const [filterDepartments, setFilterDepartments] = useState<string[]>(["all"]);
+  const [filterJobRoles, setFilterJobRoles] = useState<string[]>(["all"]);
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("active");
   const [searchQuery, setSearchQuery] = useState("");
+  const [participantPage, setParticipantPage] = useState(0);
+  const pageSize = 25;
 
-  useEffect(() => {
-    if (open) {
-      loadData();
-    }
-  }, [open]);
+  const departmentOptions = useMemo(
+    () =>
+      departments.map((department) => ({
+        label: department.name,
+        value: department.id,
+      })),
+    [departments]
+  );
 
-  const loadData = async () => {
-    try {
-      // Load employees
-      const empRes = await fetch("/api/employees");
-      if (empRes.ok) {
-        const data = await empRes.json();
-        setEmployees(data.employees || []);
-      }
-
-      // Load departments
-      const deptRes = await fetch("/api/departments");
-      if (deptRes.ok) {
-        const data = await deptRes.json();
-        setDepartments(data.departments || []);
-      }
-
-      // Load job roles
-      const roleRes = await fetch("/api/job-roles");
-      if (roleRes.ok) {
-        const data = await roleRes.json();
-        setJobRoles(data.jobRoles || []);
-      }
-
-      // Load templates
-      const templateRes = await fetch("/api/performance/templates?type=REVIEW");
-      if (templateRes.ok) {
-        const data = await templateRes.json();
-        setTemplates(data.templates || []);
-      }
-    } catch (error) {
-      console.error("Failed to load data:", error);
-    }
-  };
+  const jobRoleOptions = useMemo(
+    () =>
+      jobRoles.map((role) => ({
+        label: role.name,
+        value: role.id,
+      })),
+    [jobRoles]
+  );
 
   const filteredEmployees = useMemo(() => {
-    return employees.filter((emp) => {
-      // Status filter
+    return employees.filter((emp: Employee) => {
       if (filterStatus === "active" && !emp.isActive) return false;
       if (filterStatus === "inactive" && emp.isActive) return false;
 
-      // Department filter
-      if (filterDepartments.length > 0 && emp.departmentId) {
-        if (!filterDepartments.includes(emp.departmentId)) return false;
+      if (!filterDepartments.includes("all")) {
+        if (!emp.departmentId || !filterDepartments.includes(emp.departmentId)) {
+          return false;
+        }
       }
 
-      // Job role filter
-      if (filterJobRoles.length > 0 && emp.jobRoleId) {
-        if (!filterJobRoles.includes(emp.jobRoleId)) return false;
+      if (!filterJobRoles.includes("all")) {
+        if (!emp.jobRoleId || !filterJobRoles.includes(emp.jobRoleId)) {
+          return false;
+        }
       }
 
-      // Search query
       if (searchQuery) {
-        const query = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase();
         const fullName = `${emp.firstName} ${emp.lastName}`.toLowerCase();
         const email = emp.email.toLowerCase();
-        if (!fullName.includes(query) && !email.includes(query)) return false;
+        if (!fullName.includes(q) && !email.includes(q)) {
+          return false;
+        }
       }
 
       return true;
@@ -147,25 +148,72 @@ export function CreateReviewCycleDialog({
   const participantIds = useMemo(() => {
     if (selectionMode === "individual") {
       return Array.from(selectedParticipants);
-    } else {
-      // Filtered mode - use all filtered employees
-      return filteredEmployees.map(e => e.id);
     }
+    return filteredEmployees.map((employee) => employee.id);
   }, [selectionMode, selectedParticipants, filteredEmployees]);
 
+  const paginatedEmployees = useMemo(() => {
+    const pages: Employee[][] = [];
+    for (let i = 0; i < filteredEmployees.length; i += pageSize) {
+      pages.push(filteredEmployees.slice(i, i + pageSize));
+    }
+    return pages;
+  }, [filteredEmployees]);
+
+  const currentEmployeesPage = paginatedEmployees[participantPage] ?? [];
+
+  const step = wizardSteps[currentStepIndex];
+
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setType("ANNUAL");
+    setTemplateId("");
+    setStartDate("");
+    setEndDate("");
+    setSelfReviewDeadline("");
+    setManagerReviewDeadline("");
+    setPeerReviewDeadline("");
+    setIsAnonymousPeer(true);
+    setSendEmail(true);
+    setSelectionMode("filtered");
+    setSelectedParticipants(new Set());
+    setFilterDepartments(["all"]);
+    setFilterJobRoles(["all"]);
+    setFilterStatus("active");
+    setSearchQuery("");
+    setParticipantPage(0);
+    setCurrentStepIndex(0);
+  };
+
+  const validateStep = (stepKey: WizardStep) => {
+    if (stepKey === "details") {
+      if (!name.trim()) {
+        toast.error("Please enter a cycle name");
+        return false;
+      }
+      if (!startDate || !endDate) {
+        toast.error("Please select start and end dates");
+        return false;
+      }
+      if (new Date(startDate) > new Date(endDate)) {
+        toast.error("End date must be after the start date");
+        return false;
+      }
+    }
+
+    if (stepKey === "audience") {
+      if (participantIds.length === 0) {
+        toast.error("Please select at least one participant");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleSubmit = async () => {
-    if (!name.trim()) {
-      toast.error("Please enter a cycle name");
-      return;
-    }
-
-    if (!startDate || !endDate) {
-      toast.error("Please select start and end dates");
-      return;
-    }
-
-    if (participantIds.length === 0) {
-      toast.error("Please select at least one participant");
+    if (!validateStep("audience")) {
       return;
     }
 
@@ -199,22 +247,7 @@ export function CreateReviewCycleDialog({
         throw new Error(error.error || "Failed to create review cycle");
       }
 
-      const { cycle } = await res.json();
-
-      // Send email notifications if enabled
-      if (sendEmail) {
-        await fetch("/api/notifications/review-cycle-created", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cycleId: cycle.id,
-            participantIds,
-          }),
-        }).catch(console.error); // Don't fail if email fails
-      }
-
       toast.success("Review cycle created successfully");
-      
       onSuccess?.();
       onOpenChange(false);
       resetForm();
@@ -226,362 +259,435 @@ export function CreateReviewCycleDialog({
     }
   };
 
-  const resetForm = () => {
-    setName("");
-    setDescription("");
-    setType("ANNUAL");
-    setTemplateId("");
-    setStartDate("");
-    setEndDate("");
-    setSelfReviewDeadline("");
-    setManagerReviewDeadline("");
-    setPeerReviewDeadline("");
-    setIsAnonymousPeer(true);
-    setSendEmail(true);
-    setSelectionMode("filtered");
-    setSelectedParticipants(new Set());
-    setFilterDepartments([]);
-    setFilterJobRoles([]);
-    setFilterStatus("active");
-    setSearchQuery("");
+  const goToNextStep = () => {
+    const currentKey = wizardSteps[currentStepIndex].key;
+    if (!validateStep(currentKey)) {
+      return;
+    }
+
+    if (currentStepIndex === wizardSteps.length - 1) {
+      void handleSubmit();
+      return;
+    }
+
+    setCurrentStepIndex((index) => Math.min(index + 1, wizardSteps.length - 1));
+  };
+
+  const goToPreviousStep = () => {
+    setCurrentStepIndex((index) => Math.max(index - 1, 0));
+  };
+
+  const toggleParticipant = (employeeId: string) => {
+    setSelectedParticipants((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(employeeId)) {
+        updated.delete(employeeId);
+      } else {
+        updated.add(employeeId);
+      }
+      return updated;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setSelectionMode("individual");
+    setSelectedParticipants(new Set(filteredEmployees.map((employee) => employee.id)));
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          resetForm();
+        }
+        onOpenChange(nextOpen);
+      }}
+    >
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Create 360° Review Cycle
+            Create Review Cycle
           </DialogTitle>
           <DialogDescription>
-            Launch a comprehensive performance review cycle with self, manager, and peer reviews
+            {wizardSteps.map((wizardStep, index) => (
+              <div key={wizardStep.key} className="mt-2 flex items-center gap-2 text-sm">
+                <div
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
+                    index === currentStepIndex
+                      ? "bg-primary text-primary-foreground"
+                      : index < currentStepIndex
+                      ? "bg-green-100 text-green-700"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {index + 1}
+                </div>
+                <div>
+                  <p className="font-medium">{wizardStep.title}</p>
+                  <p className="text-xs text-muted-foreground">{wizardStep.description}</p>
+                </div>
+              </div>
+            ))}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Basic Details */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Cycle Name *</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Q4 2025 Performance Review"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional cycle description"
-                rows={2}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="type">Review Type</Label>
-              <Select value={type} onValueChange={(v: any) => setType(v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PROBATION">Probation Review</SelectItem>
-                  <SelectItem value="QUARTERLY">Quarterly Review</SelectItem>
-                  <SelectItem value="SEMI_ANNUAL">Semi-Annual Review</SelectItem>
-                  <SelectItem value="ANNUAL">Annual Review</SelectItem>
-                  <SelectItem value="AD_HOC">Ad-Hoc Review</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {templates.length > 0 && (
-              <div>
-                <Label htmlFor="template">Review Template (Optional)</Label>
-                <Select value={templateId} onValueChange={setTemplateId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">No template</SelectItem>
-                    {templates.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          {/* Dates & Deadlines */}
-          <div className="space-y-4 border-t pt-4">
-            <div>
-              <Label className="font-semibold flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Cycle Timeline
-              </Label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="startDate">Start Date *</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="endDate">End Date *</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm font-medium">Review Deadlines (Optional)</p>
-              
-              <div>
-                <Label htmlFor="selfReviewDeadline">Self-Review Deadline</Label>
-                <Input
-                  id="selfReviewDeadline"
-                  type="date"
-                  value={selfReviewDeadline}
-                  onChange={(e) => setSelfReviewDeadline(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="managerReviewDeadline">Manager Review Deadline</Label>
-                <Input
-                  id="managerReviewDeadline"
-                  type="date"
-                  value={managerReviewDeadline}
-                  onChange={(e) => setManagerReviewDeadline(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="peerReviewDeadline">Peer Review Deadline</Label>
-                <Input
-                  id="peerReviewDeadline"
-                  type="date"
-                  value={peerReviewDeadline}
-                  onChange={(e) => setPeerReviewDeadline(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Privacy Settings */}
-          <div className="space-y-3 border-t pt-4">
-            <Label className="font-semibold flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Privacy Settings
-            </Label>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="anonymousPeer"
-                checked={isAnonymousPeer}
-                onCheckedChange={(checked) => setIsAnonymousPeer(checked as boolean)}
-              />
-              <Label htmlFor="anonymousPeer">
-                Make peer reviews anonymous
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground ml-6">
-              Peer reviewers' identities will be hidden from the person being reviewed
-            </p>
-          </div>
-
-          {/* Participant Selection */}
-          <div className="space-y-4 border-t pt-4">
-            <div>
-              <Label className="font-semibold flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Select Participants *
-              </Label>
-              <p className="text-sm text-muted-foreground mb-3">
-                Choose employees who will be part of this review cycle
-              </p>
-
-              <RadioGroup value={selectionMode} onValueChange={(v: any) => setSelectionMode(v)}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="filtered" id="filtered" />
-                  <Label htmlFor="filtered">Select by filters (recommended for large teams)</Label>
+          {step.key === "details" && (
+            <div className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Cycle name *</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="e.g., H1 2025 Performance Reviews"
+                  />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="individual" id="individual" />
-                  <Label htmlFor="individual">Select individuals manually</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="type">Cycle type</Label>
+                  <Select value={type} onValueChange={(value: any) => setType(value)}>
+                    <SelectTrigger id="type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PROBATION">Probation</SelectItem>
+                      <SelectItem value="QUARTERLY">Quarterly</SelectItem>
+                      <SelectItem value="SEMI_ANNUAL">Semi-annual</SelectItem>
+                      <SelectItem value="ANNUAL">Annual</SelectItem>
+                      <SelectItem value="AD_HOC">Ad hoc</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </RadioGroup>
-            </div>
+              </div>
 
-            {selectionMode === "filtered" && (
-              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Outline objectives and expectations for this review cycle"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="template">Template</Label>
+                  <Select value={templateId} onValueChange={setTemplateId}>
+                    <SelectTrigger id="template">
+                      <SelectValue placeholder="Select a template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No template</SelectItem>
+                      {templates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="selfReview">Self review deadline</Label>
+                  <Input
+                    id="selfReview"
+                    type="date"
+                    value={selfReviewDeadline}
+                    onChange={(event) => setSelfReviewDeadline(event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="startDate">Start date *</Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endDate">End date *</Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={endDate}
+                    onChange={(event) => setEndDate(event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="managerDeadline">Manager review deadline</Label>
+                  <Input
+                    id="managerDeadline"
+                    type="date"
+                    value={managerReviewDeadline}
+                    onChange={(event) => setManagerReviewDeadline(event.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="peerDeadline">Peer review deadline</Label>
+                  <Input
+                    id="peerDeadline"
+                    type="date"
+                    value={peerReviewDeadline}
+                    onChange={(event) => setPeerReviewDeadline(event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-4">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="anonymousPeers"
+                    checked={isAnonymousPeer}
+                    onCheckedChange={(checked) => setIsAnonymousPeer(!!checked)}
+                  />
+                  <Label htmlFor="anonymousPeers" className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" /> Keep peer review responses anonymous
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Peers can share candid feedback without attribution. Manager and self reviews remain identifiable.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {step.key === "audience" && (
+            <div className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Selection strategy</Label>
+                  <RadioGroup value={selectionMode} onValueChange={(value: "individual" | "filtered") => setSelectionMode(value)}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="individual" id="participants-individual" />
+                      <Label htmlFor="participants-individual">Manually select employees</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="filtered" id="participants-filtered" />
+                      <Label htmlFor="participants-filtered">Use filters and auto-include</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="status">Employment status</Label>
+                  <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+                    <SelectTrigger id="status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All employees</SelectItem>
+                      <SelectItem value="active">Active employees</SelectItem>
+                      <SelectItem value="inactive">Inactive employees</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="search">Search</Label>
                   <Input
                     id="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by name or email"
+                    value={searchQuery}
+                    onChange={(event) => {
+                      setSearchQuery(event.target.value);
+                      setParticipantPage(0);
+                    }}
                   />
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Status</Label>
-                    <Select value={filterStatus} onValueChange={(v: any) => setFilterStatus(v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Employees</SelectItem>
-                        <SelectItem value="active">Active Only</SelectItem>
-                        <SelectItem value="inactive">Inactive Only</SelectItem>
-                      </SelectContent>
-                    </Select>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Departments</Label>
+                  <MultiSelect
+                    options={departmentOptions}
+                    selected={filterDepartments}
+                    onChange={(values) => {
+                      setFilterDepartments(values.length ? values : ["all"]);
+                      setParticipantPage(0);
+                    }}
+                    placeholder="All departments"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Job roles</Label>
+                  <MultiSelect
+                    options={jobRoleOptions}
+                    selected={filterJobRoles}
+                    onChange={(values) => {
+                      setFilterJobRoles(values.length ? values : ["all"]);
+                      setParticipantPage(0);
+                    }}
+                    placeholder="All roles"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border bg-muted/40 p-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <span>
+                    {filteredEmployees.length} employees match the filters. {participantIds.length} selected.
+                  </span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={selectAllFiltered}>
+                  Select all matches
+                </Button>
+              </div>
+
+              {selectionMode === "individual" && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Participants</h4>
+                    <Badge variant="outline">Page {participantPage + 1}</Badge>
+                  </div>
+                  <div className="rounded-lg border">
+                    {employeesLoading ? (
+                      <div className="py-8 text-center text-sm text-muted-foreground">Loading employees…</div>
+                    ) : currentEmployeesPage.length === 0 ? (
+                      <div className="py-8 text-center text-sm text-muted-foreground">No employees match these filters</div>
+                    ) : (
+                      currentEmployeesPage.map((employee) => {
+                        const checked = selectedParticipants.has(employee.id);
+                        return (
+                          <label
+                            key={employee.id}
+                            className="flex cursor-pointer items-center justify-between border-b px-4 py-3 last:border-b-0 hover:bg-muted/60"
+                          >
+                            <div>
+                              <p className="font-medium">
+                                {employee.firstName} {employee.lastName}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{employee.email}</p>
+                            </div>
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleParticipant(employee.id)}
+                            />
+                          </label>
+                        );
+                      })
+                    )}
                   </div>
 
-                  {departments.length > 0 && (
-                    <div>
-                      <Label>Departments</Label>
-                      <Select
-                        value={filterDepartments.length === 0 ? "all" : filterDepartments[0]}
-                        onValueChange={(v) =>
-                          setFilterDepartments(v === "all" ? [] : [v])
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All departments" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Departments</SelectItem>
-                          {departments.map((d) => (
-                            <SelectItem key={d.id} value={d.id}>
-                              {d.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  {paginatedEmployees.length > 1 && (
+                    <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
+                      <span>
+                        Showing {participantPage * pageSize + 1}-
+                        {Math.min((participantPage + 1) * pageSize, filteredEmployees.length)} of {filteredEmployees.length}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={participantPage === 0}
+                          onClick={() => setParticipantPage((page) => Math.max(page - 1, 0))}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={participantPage >= paginatedEmployees.length - 1}
+                          onClick={() =>
+                            setParticipantPage((page) =>
+                              Math.min(page + 1, paginatedEmployees.length - 1)
+                            )
+                          }
+                        >
+                          Next
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
+              )}
 
-                {jobRoles.length > 0 && (
-                  <div>
-                    <Label>Job Role</Label>
-                    <Select
-                      value={filterJobRoles.length === 0 ? "all" : filterJobRoles[0]}
-                      onValueChange={(v) =>
-                        setFilterJobRoles(v === "all" ? [] : [v])
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All roles" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Roles</SelectItem>
-                        {jobRoles.map((r) => (
-                          <SelectItem key={r.id} value={r.id}>
-                            {r.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+              {selectionMode === "filtered" && (
+                <div className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+                  All employees who match the filters above will be enrolled automatically. Updates to employee data or org
+                  structures will be respected on launch day.
+                </div>
+              )}
+            </div>
+          )}
+
+          {step.key === "review" && (
+            <div className="space-y-6">
+              <div className="rounded-lg border p-4">
+                <h4 className="font-semibold">Cycle summary</h4>
+                <div className="mt-3 grid gap-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Name</span>
+                    <span className="font-medium">{name || "—"}</span>
                   </div>
-                )}
-
-                <div className="pt-2">
-                  <Badge variant="secondary">
-                    {filteredEmployees.length} employee(s) match these filters
-                  </Badge>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Type</span>
+                    <span className="font-medium">{type.replace(/_/g, " ")}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Schedule</span>
+                    <span className="font-medium">
+                      {startDate || "—"} → {endDate || "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Participants</span>
+                    <span className="font-medium">{participantIds.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Peer anonymity</span>
+                    <span className="font-medium">{isAnonymousPeer ? "Enabled" : "Disabled"}</span>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {selectionMode === "individual" && (
-              <div className="max-h-64 overflow-y-auto border rounded-lg p-3 space-y-2">
-                {employees
-                  .filter((e) => e.isActive)
-                  .map((emp) => (
-                    <div key={emp.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`emp-${emp.id}`}
-                        checked={selectedParticipants.has(emp.id)}
-                        onCheckedChange={(checked) => {
-                          const newSet = new Set(selectedParticipants);
-                          if (checked) {
-                            newSet.add(emp.id);
-                          } else {
-                            newSet.delete(emp.id);
-                          }
-                          setSelectedParticipants(newSet);
-                        }}
-                      />
-                      <Label htmlFor={`emp-${emp.id}`} className="flex-1 cursor-pointer">
-                        {emp.firstName} {emp.lastName}
-                        <span className="text-sm text-muted-foreground ml-2">
-                          ({emp.email})
-                        </span>
-                      </Label>
-                    </div>
-                  ))}
+              <div className="space-y-3 rounded-lg border p-4">
+                <h4 className="font-semibold">Notifications</h4>
+                <div className="flex items-center space-x-3">
+                  <Checkbox id="sendEmail" checked={sendEmail} onCheckedChange={(checked) => setSendEmail(!!checked)} />
+                  <Label htmlFor="sendEmail" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" /> Send launch emails to all participants
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Participants receive kickoff instructions and their relevant deadlines. Reminder emails follow the schedule
+                  configured in your notification settings.
+                </p>
               </div>
-            )}
 
-            {participantIds.length > 0 && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>{participantIds.length} participant(s) selected</span>
+              <div className="rounded-lg border bg-muted/30 p-4 text-xs text-muted-foreground">
+                Once launched, this cycle will appear in the performance workspace and progress tracking dashboards. You can
+                make adjustments or pause the cycle from the review management page at any time.
               </div>
-            )}
-          </div>
-
-          {/* Email Notification */}
-          <div className="space-y-2 border-t pt-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="sendEmail"
-                checked={sendEmail}
-                onCheckedChange={(checked) => setSendEmail(checked as boolean)}
-              />
-              <Label htmlFor="sendEmail" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Send email notifications to participants
-              </Label>
             </div>
-            <p className="text-xs text-muted-foreground ml-6">
-              Participants will receive notifications when the review cycle starts and reminders before deadlines
-            </p>
-          </div>
+          )}
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={loading}
-          >
+        <DialogFooter className="flex items-center justify-between">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Creating..." : "Create Review Cycle"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" disabled={currentStepIndex === 0 || loading} onClick={goToPreviousStep}>
+              Back
+            </Button>
+            <Button onClick={goToNextStep} disabled={loading}>
+              {currentStepIndex === wizardSteps.length - 1 ? "Launch cycle" : "Continue"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

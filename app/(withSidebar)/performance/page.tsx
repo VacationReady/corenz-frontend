@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
@@ -20,48 +20,27 @@ import {
   Plus,
   ArrowRight,
   ListTodo,
-  MessageSquare,
-  FileText,
   Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatLondon, formatLondonDate } from "@/lib/time";
 import { ScheduleMeetingDialog } from "@/components/performance/ScheduleMeetingDialog";
 import { CreateReviewCycleDialog } from "@/components/performance/CreateReviewCycleDialog";
+import { MultiSelect } from "@/components/ui/MultiSelect";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { usePerformanceData, Objective, Meeting } from "@/hooks/usePerformanceData";
+import { usePerformanceReferenceData } from "@/hooks/usePerformanceReferenceData";
+import { Input } from "@/components/ui/Input";
+import { cn } from "@/lib/utils";
 
-interface Objective {
+interface EmployeeSummary {
   id: string;
-  title: string;
-  description?: string;
-  status: string;
-  progress: number;
-  priority: string;
-  dueDate?: string;
-  type: string;
-  Owner?: { firstName: string; lastName: string };
-  keyResults?: Array<{
-    id: string;
-    title: string;
-    currentValue: number;
-    targetValue: number;
-    unit?: string;
-  }>;
-}
-
-interface Meeting {
-  id: string;
-  title: string;
-  scheduledAt: string;
-  status: string;
-  duration: number;
-  participantIds: string[];
-  Organizer: { firstName: string; lastName: string };
-  actionItems?: Array<{
-    id: string;
-    title: string;
-    status: string;
-    dueDate?: string;
-  }>;
+  firstName: string;
+  lastName: string;
+  email: string;
+  departmentId: string | null;
+  jobRoleId: string | null;
+  isActive: boolean;
 }
 
 const statusColors = {
@@ -80,90 +59,146 @@ const priorityColors = {
   CRITICAL: "bg-red-200 text-red-700",
 };
 
+const timeframeOptions = [
+  { label: "30 days", value: 30 },
+  { label: "60 days", value: 60 },
+  { label: "90 days", value: 90 },
+];
+
+const objectiveStatusFilters = [
+  { value: "ALL", label: "All" },
+  { value: "IN_PROGRESS", label: "In Progress" },
+  { value: "AT_RISK", label: "At Risk" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "NOT_STARTED", label: "Not Started" },
+];
+
 export default function PerformancePage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
-  const [objectives, setObjectives] = useState<Objective[]>([]);
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [stats, setStats] = useState({
-    totalObjectives: 0,
-    completedObjectives: 0,
-    atRiskObjectives: 0,
-    upcomingMeetings: 0,
-    pendingActionItems: 0,
-  });
-  
-  // Dialog states
+  const [timeframe, setTimeframe] = useState<number>(30);
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>(["all"]);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(["all"]);
+  const [objectiveStatus, setObjectiveStatus] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [objectivePage, setObjectivePage] = useState(0);
+
   const [showScheduleMeeting, setShowScheduleMeeting] = useState(false);
   const [showCreateReviewCycle, setShowCreateReviewCycle] = useState(false);
 
-  // Check if user can manage templates
-  const canManageTemplates = 
+  const canManageTemplates =
     session?.user?.role === "ADMIN" ||
     session?.user?.role === "SUPER_ADMIN" ||
     session?.user?.role === "MANAGER";
 
+  const { departments, jobRoles, employees } = usePerformanceReferenceData({
+    enabled: Boolean(session),
+    includeEmployees: true,
+  });
+
+  const { objectives, meetings, stats, isLoading, error, refresh } = usePerformanceData({
+    timeframeDays: timeframe,
+  });
+
   useEffect(() => {
-    if (session) {
-      loadData();
+    if (error) {
+      toast.error(error.message || "Failed to load performance data");
     }
-  }, [session]);
+  }, [error]);
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      // Load objectives
-      const objRes = await fetch("/api/objectives?includeKeyResults=true");
-      if (objRes.ok) {
-        const { objectives: objData } = await objRes.json();
-        setObjectives(objData);
+  useEffect(() => {
+    setObjectivePage(0);
+  }, [selectedDepartments, selectedRoles, objectiveStatus, searchQuery, timeframe]);
 
-        // Calculate stats
-        const total = objData.length;
-        const completed = objData.filter((o: Objective) => o.status === "COMPLETED").length;
-        const atRisk = objData.filter((o: Objective) => o.status === "AT_RISK").length;
-        setStats((prev) => ({
-          ...prev,
-          totalObjectives: total,
-          completedObjectives: completed,
-          atRiskObjectives: atRisk,
-        }));
+  const departmentOptions = useMemo(
+    () =>
+      departments.map((department) => ({
+        label: department.name,
+        value: department.id,
+      })),
+    [departments]
+  );
+
+  const roleOptions = useMemo(
+    () =>
+      jobRoles.map((role) => ({
+        label: role.name,
+        value: role.id,
+      })),
+    [jobRoles]
+  );
+
+  const employeeIndex = useMemo(() => {
+    const index = new Map<string, EmployeeSummary>();
+    employees.forEach((employee: EmployeeSummary) => {
+      index.set(employee.id, employee);
+    });
+    return index;
+  }, [employees]);
+
+  const filteredObjectives = useMemo(() => {
+    return objectives.filter((objective: Objective) => {
+      const matchesStatus = objectiveStatus === "ALL" || objective.status === objectiveStatus;
+
+      const owner = objective.Owner;
+      const departmentMatch = selectedDepartments.includes("all")
+        ? true
+        : owner?.department?.id
+        ? selectedDepartments.includes(owner.department.id)
+        : false;
+
+      const roleMatch = selectedRoles.includes("all")
+        ? true
+        : owner?.jobRole?.id
+        ? selectedRoles.includes(owner.jobRole.id)
+        : false;
+
+      const searchMatch = searchQuery
+        ? objective.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          objective.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        : true;
+
+      return matchesStatus && departmentMatch && roleMatch && searchMatch;
+    });
+  }, [objectiveStatus, objectives, searchQuery, selectedDepartments, selectedRoles]);
+
+  const filteredMeetings = useMemo(() => {
+    return meetings.filter((meeting: Meeting) => {
+      if (selectedDepartments.includes("all") && selectedRoles.includes("all")) {
+        return true;
       }
 
-      // Load upcoming meetings
-      const now = new Date();
-      const nextMonth = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const meetingsRes = await fetch(
-        `/api/performance/meetings?from=${now.toISOString()}&to=${nextMonth.toISOString()}`
-      );
-      if (meetingsRes.ok) {
-        const { meetings: meetingData } = await meetingsRes.json();
-        setMeetings(meetingData);
+      const participantEmployees = meeting.participantIds
+        .map((participantId) => employeeIndex.get(participantId))
+        .filter(Boolean) as EmployeeSummary[];
 
-        const upcomingCount = meetingData.filter(
-          (m: Meeting) => m.status === "SCHEDULED"
-        ).length;
-        const actionItemsCount = meetingData.reduce(
-          (sum: number, m: Meeting) =>
-            sum + (m.actionItems?.filter((ai) => ai.status !== "COMPLETED").length || 0),
-          0
-        );
+      const departmentMatch = selectedDepartments.includes("all")
+        ? true
+        : participantEmployees.some((employee) =>
+            employee.departmentId ? selectedDepartments.includes(employee.departmentId) : false
+          );
 
-        setStats((prev) => ({
-          ...prev,
-          upcomingMeetings: upcomingCount,
-          pendingActionItems: actionItemsCount,
-        }));
-      }
-    } catch (error) {
-      console.error("Failed to load performance data:", error);
-      toast.error("Failed to load performance data");
-    } finally {
-      setLoading(false);
+      const roleMatch = selectedRoles.includes("all")
+        ? true
+        : participantEmployees.some((employee) =>
+            employee.jobRoleId ? selectedRoles.includes(employee.jobRoleId) : false
+          );
+
+      return departmentMatch && roleMatch;
+    });
+  }, [meetings, selectedDepartments, selectedRoles, employeeIndex]);
+
+  const paginatedObjectives = useMemo(() => {
+    const pageSize = 10;
+    const pages: Objective[][] = [];
+    for (let i = 0; i < filteredObjectives.length; i += pageSize) {
+      pages.push(filteredObjectives.slice(i, i + pageSize));
     }
-  };
+    return { pages, pageSize };
+  }, [filteredObjectives]);
+
+  const visibleObjectives = paginatedObjectives.pages[objectivePage] ?? [];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -185,7 +220,11 @@ export default function PerformancePage() {
     return "bg-red-500";
   };
 
-  if (loading) {
+  const refreshData = () => {
+    refresh();
+  };
+
+  if (isLoading) {
     return (
       <PageShell
         title="Performance Management"
@@ -208,15 +247,94 @@ export default function PerformancePage() {
       icon={<Target className="h-6 w-6" />}
       action={
         canManageTemplates && (
-          <Button onClick={() => router.push("/performance/templates/new")}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Template
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={refreshData}>
+              Refresh Data
+            </Button>
+            <Button onClick={() => router.push("/performance/templates/new")}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Template
+            </Button>
+          </div>
         )
       }
     >
       <div className="space-y-6">
-        {/* Stats Overview */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Performance Filters</CardTitle>
+            <CardDescription>
+              Slice your performance data by timeframe, department, and role to focus on what matters.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1">
+                <span className="text-xs font-medium uppercase text-muted-foreground">Timeframe</span>
+                <div className="flex items-center gap-2">
+                  {timeframeOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      variant={timeframe === option.value ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTimeframe(option.value)}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-xs font-medium uppercase text-muted-foreground">Departments</span>
+                <MultiSelect
+                  options={departmentOptions}
+                  selected={selectedDepartments}
+                  onChange={(values) => setSelectedDepartments(values.length ? values : ["all"])}
+                  placeholder="Filter departments"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-xs font-medium uppercase text-muted-foreground">Roles</span>
+                <MultiSelect
+                  options={roleOptions}
+                  selected={selectedRoles}
+                  onChange={(values) => setSelectedRoles(values.length ? values : ["all"])}
+                  placeholder="Filter job roles"
+                />
+              </div>
+
+            <div className="space-y-1">
+              <span className="text-xs font-medium uppercase text-muted-foreground">Objective Status</span>
+              <Select value={objectiveStatus} onValueChange={setObjectiveStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {objectiveStatusFilters.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="space-y-1">
+                <span className="text-xs font-medium uppercase text-muted-foreground">Search objectives</span>
+                <Input
+                  placeholder="Search by title or description"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -225,9 +343,7 @@ export default function PerformancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalObjectives}</div>
-              <p className="text-xs text-muted-foreground">
-                Across all levels
-              </p>
+              <p className="text-xs text-muted-foreground">Across all levels</p>
             </CardContent>
           </Card>
 
@@ -253,9 +369,7 @@ export default function PerformancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.atRiskObjectives}</div>
-              <p className="text-xs text-muted-foreground">
-                Require attention
-              </p>
+              <p className="text-xs text-muted-foreground">Require attention</p>
             </CardContent>
           </Card>
 
@@ -266,9 +380,7 @@ export default function PerformancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.upcomingMeetings}</div>
-              <p className="text-xs text-muted-foreground">
-                Next 30 days
-              </p>
+              <p className="text-xs text-muted-foreground">Next {timeframe} days</p>
             </CardContent>
           </Card>
 
@@ -279,14 +391,11 @@ export default function PerformancePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.pendingActionItems}</div>
-              <p className="text-xs text-muted-foreground">
-                Pending completion
-              </p>
+              <p className="text-xs text-muted-foreground">Pending completion</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -298,19 +407,16 @@ export default function PerformancePage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            {/* Quick Actions */}
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>
-                  Common performance management tasks
-                </CardDescription>
+                <CardDescription>Common performance management tasks</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-3">
                 <Button
                   variant="outline"
                   className="h-auto flex-col items-start p-4"
-                  onClick={() => setActiveTab("objectives")}
+                  onClick={() => router.push("/performance/objectives/new")}
                 >
                   <Target className="mb-2 h-5 w-5" />
                   <span className="font-semibold">Create Objective</span>
@@ -345,7 +451,6 @@ export default function PerformancePage() {
               </CardContent>
             </Card>
 
-            {/* At Risk Objectives */}
             {stats.atRiskObjectives > 0 && (
               <Card>
                 <CardHeader>
@@ -353,9 +458,7 @@ export default function PerformancePage() {
                     <AlertCircle className="h-5 w-5 text-orange-600" />
                     Objectives At Risk
                   </CardTitle>
-                  <CardDescription>
-                    These objectives need immediate attention
-                  </CardDescription>
+                  <CardDescription>These objectives need immediate attention</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -380,12 +483,14 @@ export default function PerformancePage() {
                                   {obj.Owner.firstName} {obj.Owner.lastName}
                                 </span>
                               )}
-                              {obj.dueDate && (
-                                <span>Due {formatLondonDate(obj.dueDate)}</span>
-                              )}
+                              {obj.dueDate && <span>Due {formatLondonDate(obj.dueDate)}</span>}
                             </div>
                           </div>
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/performance/objectives/${obj.id}`)}
+                          >
                             <ArrowRight className="h-4 w-4" />
                           </Button>
                         </div>
@@ -395,20 +500,17 @@ export default function PerformancePage() {
               </Card>
             )}
 
-            {/* Upcoming Meetings */}
             <Card>
               <CardHeader>
                 <CardTitle>Upcoming 1-2-1s</CardTitle>
                 <CardDescription>Your scheduled performance conversations</CardDescription>
               </CardHeader>
               <CardContent>
-                {meetings.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-8">
-                    No meetings scheduled
-                  </p>
+                {filteredMeetings.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No meetings scheduled</p>
                 ) : (
                   <div className="space-y-3">
-                    {meetings.slice(0, 5).map((meeting) => (
+                    {filteredMeetings.slice(0, 5).map((meeting) => (
                       <div
                         key={meeting.id}
                         className="flex items-center justify-between rounded-lg border p-3"
@@ -430,7 +532,11 @@ export default function PerformancePage() {
                             </span>
                           </div>
                         </div>
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/performance/meetings/${meeting.id}`)}
+                        >
                           <ArrowRight className="h-4 w-4" />
                         </Button>
                       </div>
@@ -442,28 +548,26 @@ export default function PerformancePage() {
           </TabsContent>
 
           <TabsContent value="objectives" className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold">All Objectives</h3>
-                <p className="text-sm text-muted-foreground">
-                  Cascading goals across the organization
-                </p>
+                <p className="text-sm text-muted-foreground">Cascading goals across the organization</p>
               </div>
-              <Button>
+              <Button onClick={() => router.push("/performance/objectives/new")}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Objective
               </Button>
             </div>
 
-            {objectives.length === 0 ? (
+            {filteredObjectives.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                  <Target className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No objectives yet</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <Target className="mb-4 h-12 w-12 text-muted-foreground" />
+                  <h3 className="mb-2 text-lg font-semibold">No objectives yet</h3>
+                  <p className="mb-4 text-sm text-muted-foreground">
                     Start by creating your first objective to track progress
                   </p>
-                  <Button>
+                  <Button onClick={() => router.push("/performance/objectives/new")}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create First Objective
                   </Button>
@@ -471,7 +575,7 @@ export default function PerformancePage() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {objectives.map((objective) => (
+                {visibleObjectives.map((objective) => (
                   <Card key={objective.id}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -487,21 +591,18 @@ export default function PerformancePage() {
                             </Badge>
                           </div>
                           {objective.description && (
-                            <CardDescription className="mt-2">
-                              {objective.description}
-                            </CardDescription>
+                            <CardDescription className="mt-2">{objective.description}</CardDescription>
                           )}
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      {/* Progress Bar */}
                       <div className="mb-4">
-                        <div className="flex items-center justify-between text-sm mb-2">
+                        <div className="mb-2 flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Progress</span>
                           <span className="font-medium">{objective.progress}%</span>
                         </div>
-                        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-2 w-full rounded-full bg-gray-200">
                           <div
                             className={`h-full ${getProgressColor(objective.progress)} transition-all`}
                             style={{ width: `${objective.progress}%` }}
@@ -509,14 +610,13 @@ export default function PerformancePage() {
                         </div>
                       </div>
 
-                      {/* Key Results */}
                       {objective.keyResults && objective.keyResults.length > 0 && (
                         <div className="space-y-2">
                           <h4 className="text-sm font-semibold">Key Results</h4>
                           {objective.keyResults.map((kr) => (
                             <div
                               key={kr.id}
-                              className="flex items-center justify-between text-sm p-2 rounded bg-muted/50"
+                              className="flex items-center justify-between rounded bg-muted/50 p-2 text-sm"
                             >
                               <span>{kr.title}</span>
                               <span className="font-medium">
@@ -528,7 +628,6 @@ export default function PerformancePage() {
                         </div>
                       )}
 
-                      {/* Footer */}
                       <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
                         <div className="flex items-center gap-4">
                           {objective.Owner && (
@@ -536,17 +635,54 @@ export default function PerformancePage() {
                               Owner: {objective.Owner.firstName} {objective.Owner.lastName}
                             </span>
                           )}
-                          {objective.dueDate && (
-                            <span>Due {formatLondonDate(objective.dueDate)}</span>
-                          )}
+                          {objective.dueDate && <span>Due {formatLondonDate(objective.dueDate)}</span>}
                         </div>
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => router.push(`/performance/objectives/${objective.id}`)}
+                        >
                           View Details
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
+
+                {paginatedObjectives.pages.length > 1 && (
+                  <div className="flex items-center justify-between border-t pt-4">
+                    <p className="text-xs text-muted-foreground">
+                      Showing {objectivePage * paginatedObjectives.pageSize + 1}-
+                      {Math.min((objectivePage + 1) * paginatedObjectives.pageSize, filteredObjectives.length)} of {" "}
+                      {filteredObjectives.length} objectives
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={objectivePage === 0}
+                        onClick={() => setObjectivePage((page) => Math.max(page - 1, 0))}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-xs">
+                        Page {objectivePage + 1} of {paginatedObjectives.pages.length}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={objectivePage >= paginatedObjectives.pages.length - 1}
+                        onClick={() =>
+                          setObjectivePage((page) =>
+                            Math.min(page + 1, paginatedObjectives.pages.length - 1)
+                          )
+                        }
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
@@ -554,9 +690,9 @@ export default function PerformancePage() {
           <TabsContent value="meetings" className="space-y-4">
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">1-2-1 Meetings</h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <Calendar className="mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="mb-2 text-lg font-semibold">1-2-1 Meetings</h3>
+                <p className="mb-4 text-sm text-muted-foreground">
                   Schedule and manage performance conversations
                 </p>
                 <Button onClick={() => setShowScheduleMeeting(true)}>
@@ -565,14 +701,50 @@ export default function PerformancePage() {
                 </Button>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Meeting Timeline</CardTitle>
+                <CardDescription>Recently completed and upcoming conversations</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {filteredMeetings.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No meetings in this timeframe</p>
+                ) : (
+                  filteredMeetings.map((meeting) => (
+                    <div
+                      key={meeting.id}
+                      className="flex items-start justify-between rounded-lg border p-3"
+                    >
+                      <div>
+                        <p className="font-medium">{meeting.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatLondon(meeting.scheduledAt)} • {meeting.duration} minutes • {meeting.participantIds.length} participants
+                        </p>
+                      </div>
+                      <Badge
+                        className={cn(
+                          "uppercase",
+                          meeting.status === "COMPLETED" && "bg-green-100 text-green-700",
+                          meeting.status === "SCHEDULED" && "bg-blue-100 text-blue-700",
+                          meeting.status === "CANCELLED" && "bg-red-100 text-red-700"
+                        )}
+                      >
+                        {meeting.status.replace(/_/g, " ")}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="reviews" className="space-y-4">
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Review Cycles</h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <Calendar className="mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="mb-2 text-lg font-semibold">Review Cycles</h3>
+                <p className="mb-4 text-sm text-muted-foreground">
                   Launch quarterly, semi-annual, or annual performance review cycles
                 </p>
                 <Button onClick={() => setShowCreateReviewCycle(true)}>
@@ -581,14 +753,27 @@ export default function PerformancePage() {
                 </Button>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Cycle Health Summary</CardTitle>
+                <CardDescription>Monitor active and recently closed review cycles.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Review cycle analytics are being expanded with richer completion and calibration insights. Use the template
+                  builder to configure structured workflows and consolidate reviewer assignments.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="360" className="space-y-4">
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <Layers className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">360° Reviews</h3>
-                <p className="text-sm text-muted-foreground mb-4">
+                <Layers className="mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="mb-2 text-lg font-semibold">360° Reviews</h3>
+                <p className="mb-4 text-sm text-muted-foreground">
                   Multi-rater feedback from peers, managers, and direct reports
                 </p>
                 <Button onClick={() => router.push("/performance/templates/new?type=360")}>
@@ -602,10 +787,11 @@ export default function PerformancePage() {
           <TabsContent value="insights" className="space-y-4">
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Performance Insights</h3>
-                <p className="text-sm text-muted-foreground">
-                  Analytics and trends coming soon
+                <TrendingUp className="mb-4 h-12 w-12 text-muted-foreground" />
+                <h3 className="mb-2 text-lg font-semibold">Performance Insights</h3>
+                <p className="text-center text-sm text-muted-foreground">
+                  Analytics and trends are being expanded with predictive scoring and turnover risk. In the meantime use the
+                  filters above to drill into department performance.
                 </p>
               </CardContent>
             </Card>
@@ -613,17 +799,16 @@ export default function PerformancePage() {
         </Tabs>
       </div>
 
-      {/* Dialogs */}
       <ScheduleMeetingDialog
         open={showScheduleMeeting}
         onOpenChange={setShowScheduleMeeting}
-        onSuccess={loadData}
+        onSuccess={refreshData}
       />
-      
+
       <CreateReviewCycleDialog
         open={showCreateReviewCycle}
         onOpenChange={setShowCreateReviewCycle}
-        onSuccess={loadData}
+        onSuccess={refreshData}
       />
     </PageShell>
   );

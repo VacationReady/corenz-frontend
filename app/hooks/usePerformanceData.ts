@@ -1,0 +1,152 @@
+import { useMemo } from "react";
+import useSWR from "swr";
+
+const fetcher = async (url: string) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    const errorPayload = await response.json().catch(() => ({}));
+    const message = (errorPayload && (errorPayload.error || errorPayload.message)) || "Request failed";
+    throw new Error(message);
+  }
+  return response.json();
+};
+
+interface UsePerformanceDataOptions {
+  timeframeDays?: number;
+}
+
+interface ObjectiveKeyResult {
+  id: string;
+  title: string;
+  currentValue: number;
+  targetValue: number;
+  unit?: string;
+}
+
+interface ObjectiveOwner {
+  firstName: string;
+  lastName: string;
+  department?: { id: string; name: string } | null;
+  jobRole?: { id: string; name: string } | null;
+}
+
+export interface Objective {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  progress: number;
+  priority: string;
+  dueDate?: string;
+  type: string;
+  Owner?: ObjectiveOwner | null;
+  keyResults?: ObjectiveKeyResult[];
+}
+
+interface MeetingActionItem {
+  id: string;
+  title: string;
+  status: string;
+  dueDate?: string;
+}
+
+export interface Meeting {
+  id: string;
+  title: string;
+  scheduledAt: string;
+  status: string;
+  duration: number;
+  participantIds: string[];
+  Organizer: { firstName: string; lastName: string };
+  actionItems?: MeetingActionItem[];
+}
+
+export interface PerformanceStats {
+  totalObjectives: number;
+  completedObjectives: number;
+  inProgressObjectives: number;
+  atRiskObjectives: number;
+  overdueObjectives: number;
+  upcomingMeetings: number;
+  completedMeetings: number;
+  pendingActionItems: number;
+}
+
+export function usePerformanceData({ timeframeDays = 30 }: UsePerformanceDataOptions = {}) {
+  const objectivesKey = "/api/objectives?includeKeyResults=true";
+
+  const meetingsWindowKey = useMemo(() => {
+    const now = new Date();
+    const from = now.toISOString();
+    const to = new Date(now.getTime() + timeframeDays * 24 * 60 * 60 * 1000).toISOString();
+    return `/api/performance/meetings?from=${from}&to=${to}`;
+  }, [timeframeDays]);
+
+  const {
+    data: objectivesData,
+    error: objectivesError,
+    isLoading: objectivesLoading,
+    mutate: mutateObjectives,
+  } = useSWR<{ objectives: Objective[] }>(objectivesKey, fetcher, {
+    revalidateOnFocus: false,
+  });
+
+  const {
+    data: meetingsData,
+    error: meetingsError,
+    isLoading: meetingsLoading,
+    mutate: mutateMeetings,
+  } = useSWR<{ meetings: Meeting[] }>(meetingsWindowKey, fetcher, {
+    revalidateOnFocus: false,
+    keepPreviousData: true,
+  });
+
+  const stats: PerformanceStats = useMemo(() => {
+    const objectives = objectivesData?.objectives ?? [];
+    const meetings = meetingsData?.meetings ?? [];
+
+    const nowDate = new Date();
+
+    const totalObjectives = objectives.length;
+    const completedObjectives = objectives.filter((obj) => obj.status === "COMPLETED").length;
+    const inProgressObjectives = objectives.filter((obj) => obj.status === "IN_PROGRESS").length;
+    const atRiskObjectives = objectives.filter((obj) => obj.status === "AT_RISK").length;
+    const overdueObjectives = objectives.filter((obj) => {
+      if (!obj.dueDate) return false;
+      const due = new Date(obj.dueDate);
+      return due < nowDate && obj.status !== "COMPLETED";
+    }).length;
+
+    const upcomingMeetings = meetings.filter((meeting) => meeting.status === "SCHEDULED").length;
+    const completedMeetings = meetings.filter((meeting) => meeting.status === "COMPLETED").length;
+    const pendingActionItems = meetings.reduce((sum, meeting) => {
+      const openItems = meeting.actionItems?.filter((ai) => ai.status !== "COMPLETED").length ?? 0;
+      return sum + openItems;
+    }, 0);
+
+    return {
+      totalObjectives,
+      completedObjectives,
+      inProgressObjectives,
+      atRiskObjectives,
+      overdueObjectives,
+      upcomingMeetings,
+      completedMeetings,
+      pendingActionItems,
+    };
+  }, [meetingsData?.meetings, objectivesData?.objectives]);
+
+  const refresh = () => {
+    void mutateObjectives();
+    void mutateMeetings();
+  };
+
+  return {
+    objectives: objectivesData?.objectives ?? [],
+    meetings: meetingsData?.meetings ?? [],
+    stats,
+    isLoading: objectivesLoading || meetingsLoading,
+    error: objectivesError ?? meetingsError,
+    refresh,
+  };
+}

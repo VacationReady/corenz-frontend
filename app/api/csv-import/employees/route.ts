@@ -6,6 +6,402 @@ import { z } from "zod";
 import { parse } from "csv-parse/sync";
 import { auditLog } from "@/lib/audit";
 import { Prisma, TaxCode, Role } from "@prisma/client";
+import { employeeDomainConfig } from "@/lib/csv-import/domains/employees";
+
+const EMPLOYEE_TEMPLATE_HEADERS = [
+  "firstName",
+  "lastName",
+  "email",
+  "phoneNumber",
+  "dateOfBirth",
+  "gender",
+  "street",
+  "city",
+  "postcode",
+  "country",
+  "nationalId",
+  "pronouns",
+  "residencyStatus",
+  "holidayTotalBalance",
+  "holidayCarryover",
+  "holidayCurrentBalance",
+  "holidayYear",
+  "departmentName",
+  "jobRoleName",
+  "employmentType",
+  "contractType",
+  "siteLocation",
+  "startDate",
+  "contractEndDate",
+  "workingPatternName",
+  "managerEmail",
+  "lineManagerName",
+  "salaryAmount",
+  "hourlyRate",
+  "bankAccountNumber",
+  "irdNumber",
+  "taxCode",
+  "kiwiSaverEnrolled",
+  "kiwiSaverContribution",
+  "emergencyContactName",
+  "emergencyContactRelationship",
+  "emergencyContactPhone",
+  "emergencyContactEmail",
+  "driverLicenceType",
+  "driverLicenceNumber",
+  "driverLicenceIssueDate",
+  "driverLicenceExpiryDate",
+  "trainingCourse",
+  "trainingProvider",
+  "trainingDateCompleted",
+  "trainingExpiryDate",
+  "employmentCheckType",
+  "employmentCheckDocumentNumber",
+  "employmentCheckIssueDate",
+  "employmentCheckExpiryDate",
+] as const;
+
+const BASE_TEMPLATE_HEADERS: string[] = ["firstName", "lastName", "email"];
+
+const EMPLOYEE_SUB_TEMPLATE_FIELD_MAP: Record<string, string[]> = {
+  core: [
+    "firstName",
+    "lastName",
+    "email",
+    "phoneNumber",
+    "dateOfBirth",
+    "gender",
+    "street",
+    "city",
+    "postcode",
+    "country",
+    "nationalId",
+    "pronouns",
+    "residencyStatus",
+    "emergencyContactName",
+    "emergencyContactRelationship",
+    "emergencyContactPhone",
+    "emergencyContactEmail",
+  ],
+  employment: [
+    "departmentName",
+    "jobRoleName",
+    "employmentType",
+    "contractType",
+    "siteLocation",
+    "startDate",
+    "contractEndDate",
+    "workingPatternName",
+    "managerEmail",
+    "lineManagerName",
+    "holidayTotalBalance",
+    "holidayCarryover",
+    "holidayCurrentBalance",
+    "holidayYear",
+    "salaryAmount",
+    "hourlyRate",
+  ],
+  payroll: [
+    "salaryAmount",
+    "hourlyRate",
+    "bankAccountNumber",
+    "irdNumber",
+    "taxCode",
+    "kiwiSaverEnrolled",
+    "kiwiSaverContribution",
+  ],
+  compliance: [
+    "driverLicenceType",
+    "driverLicenceNumber",
+    "driverLicenceIssueDate",
+    "driverLicenceExpiryDate",
+    "employmentCheckType",
+    "employmentCheckDocumentNumber",
+    "employmentCheckIssueDate",
+    "employmentCheckExpiryDate",
+  ],
+  training: [
+    "trainingCourse",
+    "trainingProvider",
+    "trainingDateCompleted",
+    "trainingExpiryDate",
+  ],
+};
+
+const EMPLOYEE_SUB_TEMPLATE_IDS = new Set(
+  (employeeDomainConfig.subTemplates ?? []).map(subTemplate => subTemplate.id),
+);
+
+const parseSubTemplateScope = (value: unknown): string[] | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const queue: unknown[] = Array.isArray(value) ? [...value] : [value];
+  const rawEntries: string[] = [];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+
+    if (current === null || current === undefined) {
+      continue;
+    }
+
+    if (Array.isArray(current)) {
+      queue.push(...current);
+      continue;
+    }
+
+    // Ignore file/blob inputs from FormData
+    if (typeof File !== "undefined" && current instanceof File) {
+      continue;
+    }
+
+    if (typeof current === "string") {
+      const trimmed = current.trim();
+      if (!trimmed) {
+        continue;
+      }
+
+      // Attempt to parse JSON arrays (e.g. '["core","payroll"]')
+      if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            queue.push(...parsed);
+            continue;
+          }
+        } catch (error) {
+          // Fall back to treating the value as a comma-delimited string
+        }
+      }
+
+      rawEntries.push(trimmed);
+      continue;
+    }
+
+    if (typeof current === "object") {
+      // Handle URLSearchParams-style objects that expose toString()
+      if (typeof (current as { toString?: () => string }).toString === "function") {
+        const stringified = (current as { toString: () => string }).toString();
+        if (stringified) {
+          queue.push(stringified);
+        }
+      }
+    }
+  }
+
+  const tokens = rawEntries
+    .flatMap(entry => entry.split(","))
+    .map(token => token.trim())
+    .filter(token => token.length > 0);
+
+  if (tokens.length === 0) {
+    return null;
+  }
+
+  const seen = new Set<string>();
+  const scope: string[] = [];
+
+  for (const token of tokens) {
+    if (!EMPLOYEE_SUB_TEMPLATE_IDS.has(token) || seen.has(token)) {
+      continue;
+    }
+
+    seen.add(token);
+    scope.push(token);
+  }
+
+  return scope.length > 0 ? scope : null;
+};
+
+const filterHeadersByScope = (scope: string[] | null): string[] => {
+  if (!scope || scope.length === 0) {
+    return [...EMPLOYEE_TEMPLATE_HEADERS];
+  }
+
+  const allowed = new Set<string>(BASE_TEMPLATE_HEADERS);
+  scope.forEach(subTemplateId => {
+    const fields = EMPLOYEE_SUB_TEMPLATE_FIELD_MAP[subTemplateId];
+    if (fields) {
+      fields.forEach(field => allowed.add(field));
+    }
+  });
+
+  return EMPLOYEE_TEMPLATE_HEADERS.filter(header => allowed.has(header));
+};
+
+const validateHeaders = (headers: string[], scope: string[] | null): boolean => {
+  if (!scope || scope.length === 0) {
+    return true;
+  }
+
+  const expected = new Set(filterHeadersByScope(scope));
+  const headerSet = new Set(headers.map(header => header.trim()));
+
+  // All expected headers must be present, but allow additional columns for forward compatibility
+  for (const expectedHeader of expected) {
+    if (!headerSet.has(expectedHeader)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const filterSampleRow = (
+  row: Record<string, string | undefined>,
+  headers: string[],
+): Record<string, string> => {
+  const filtered: Record<string, string> = {};
+  headers.forEach(header => {
+    filtered[header] = row[header] ?? "";
+  });
+  return filtered;
+};
+
+const extractScopeFromRequest = (request: NextRequest): string[] | null => {
+  const searchParams = request.nextUrl.searchParams;
+  const searchValues: Array<string | null> = [
+    ...searchParams.getAll("subTemplates"),
+    ...searchParams.getAll("subTemplates[]"),
+    searchParams.get("scope"),
+  ];
+
+  return parseSubTemplateScope(searchValues.filter(value => value !== null));
+};
+
+const extractScopeFromBodyOrQuery = (
+  request: NextRequest,
+  source: FormData,
+): string[] | null => {
+  const formValues: FormDataEntryValue[] = [
+    ...source.getAll("subTemplates"),
+    ...source.getAll("subTemplates[]"),
+  ];
+
+  const scopeFromForm = parseSubTemplateScope(formValues);
+  if (scopeFromForm) {
+    return scopeFromForm;
+  }
+
+  const scopeField = source.get("scope");
+  if (scopeField) {
+    const scope = parseSubTemplateScope(scopeField);
+    if (scope) {
+      return scope;
+    }
+  }
+
+  return extractScopeFromRequest(request);
+};
+
+const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
+  {
+    firstName: "John",
+    lastName: "Doe",
+    email: "john.doe@company.com",
+    phoneNumber: "+64 21 555 0101",
+    dateOfBirth: "1990-01-15",
+    gender: "Male",
+    street: "123 Main St",
+    city: "Auckland",
+    postcode: "1010",
+    country: "New Zealand",
+    nationalId: "ABC123456",
+    pronouns: "he/him",
+    residencyStatus: "Citizen",
+    holidayTotalBalance: "25",
+    holidayCarryover: "3",
+    holidayCurrentBalance: "18",
+    holidayYear: "2024",
+    departmentName: "Engineering",
+    jobRoleName: "Software Engineer",
+    employmentType: "Full Time",
+    contractType: "Permanent",
+    siteLocation: "Auckland HQ",
+    startDate: "2024-01-08",
+    contractEndDate: "",
+    workingPatternName: "Standard 40hr",
+    managerEmail: "engineering.lead@company.com",
+    lineManagerName: "Amelia Clark",
+    salaryAmount: "85000",
+    hourlyRate: "",
+    bankAccountNumber: "12-1234-1234567-00",
+    irdNumber: "123-456-789",
+    taxCode: "M",
+    kiwiSaverEnrolled: "Yes",
+    kiwiSaverContribution: "3",
+    emergencyContactName: "Jane Doe",
+    emergencyContactRelationship: "Spouse",
+    emergencyContactPhone: "+64 21 555 0102",
+    emergencyContactEmail: "jane.doe@example.com",
+    driverLicenceType: "Full",
+    driverLicenceNumber: "DL123456",
+    driverLicenceIssueDate: "2022-02-10",
+    driverLicenceExpiryDate: "2032-02-09",
+    trainingCourse: "Health & Safety Induction",
+    trainingProvider: "Safety First Ltd",
+    trainingDateCompleted: "2024-01-15",
+    trainingExpiryDate: "2026-01-15",
+    employmentCheckType: "Right to Work",
+    employmentCheckDocumentNumber: "RTW-2024-001",
+    employmentCheckIssueDate: "2023-12-01",
+    employmentCheckExpiryDate: "2025-12-01",
+  },
+  {
+    firstName: "Jane",
+    lastName: "Smith",
+    email: "jane.smith@company.com",
+    phoneNumber: "+64 21 555 0202",
+    dateOfBirth: "1985-05-20",
+    gender: "Female",
+    street: "456 Harbour View Rd",
+    city: "Wellington",
+    postcode: "6011",
+    country: "New Zealand",
+    nationalId: "XYZ987654",
+    pronouns: "she/her",
+    residencyStatus: "Permanent Resident",
+    holidayTotalBalance: "30",
+    holidayCarryover: "5",
+    holidayCurrentBalance: "22",
+    holidayYear: "2024",
+    departmentName: "Marketing",
+    jobRoleName: "Marketing Manager",
+    employmentType: "Full Time",
+    contractType: "Fixed Term",
+    siteLocation: "Wellington Hub",
+    startDate: "2023-09-01",
+    contractEndDate: "2025-08-31",
+    workingPatternName: "Hybrid 32hr",
+    managerEmail: "marketing.director@company.com",
+    lineManagerName: "Liam Johnson",
+    salaryAmount: "92000",
+    hourlyRate: "",
+    bankAccountNumber: "98-7654-0987654-00",
+    irdNumber: "987-654-321",
+    taxCode: "ME SL",
+    kiwiSaverEnrolled: "No",
+    kiwiSaverContribution: "",
+    emergencyContactName: "John Smith",
+    emergencyContactRelationship: "Partner",
+    emergencyContactPhone: "+64 21 555 0203",
+    emergencyContactEmail: "john.smith@example.com",
+    driverLicenceType: "Restricted",
+    driverLicenceNumber: "DL654321",
+    driverLicenceIssueDate: "2021-07-01",
+    driverLicenceExpiryDate: "2026-07-01",
+    trainingCourse: "Advanced Leadership",
+    trainingProvider: "People Leaders NZ",
+    trainingDateCompleted: "2023-11-20",
+    trainingExpiryDate: "",
+    employmentCheckType: "Police Vetting",
+    employmentCheckDocumentNumber: "PV-2023-045",
+    employmentCheckIssueDate: "2023-11-15",
+    employmentCheckExpiryDate: "2025-11-15",
+  },
+];
 
 const employeeImportSchema = z.object({
   // Personal information
@@ -276,6 +672,8 @@ export async function POST(request: NextRequest) {
       parseBooleanFlag(request.nextUrl.searchParams.get("allowUpdates")) ??
       false;
 
+    const subTemplateScope = extractScopeFromBodyOrQuery(request, formData);
+
     const file = formData.get("file") as File;
 
     if (!file) {
@@ -291,6 +689,16 @@ export async function POST(request: NextRequest) {
 
     if (records.length === 0) {
       return NextResponse.json({ error: "CSV file is empty" }, { status: 400 });
+    }
+
+    if (!validateHeaders(Object.keys(records[0] ?? {}), subTemplateScope)) {
+      return NextResponse.json(
+        {
+          error:
+            "The uploaded CSV does not match the selected template scope. Please download a fresh template and try again.",
+        },
+        { status: 400 },
+      );
     }
 
     const results = {
@@ -1277,6 +1685,7 @@ export async function POST(request: NextRequest) {
         importType: "EMPLOYEES",
         errors: results.errors,
         allowUpdates,
+        subTemplates: subTemplateScope ?? "all",
       },
     });
 
@@ -1291,12 +1700,14 @@ export async function POST(request: NextRequest) {
 }
 
 // Template generation endpoint
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const subTemplateScope = extractScopeFromRequest(request);
 
     // Get sample data for template
     const departments = await prisma.department.findMany({
@@ -1314,170 +1725,36 @@ export async function GET() {
       take: 3,
     });
 
-    // Create template CSV content
-    const headers = [
-      "firstName",
-      "lastName",
-      "email",
-      "phoneNumber",
-      "dateOfBirth",
-      "gender",
-      "street",
-      "city",
-      "postcode",
-      "country",
-      "nationalId",
-      "pronouns",
-      "residencyStatus",
-      "holidayTotalBalance",
-      "holidayCarryover",
-      "holidayCurrentBalance",
-      "holidayYear",
-      "departmentName",
-      "jobRoleName",
-      "employmentType",
-      "contractType",
-      "siteLocation",
-      "startDate",
-      "contractEndDate",
-      "workingPatternName",
-      "managerEmail",
-      "lineManagerName",
-      "salaryAmount",
-      "hourlyRate",
-      "bankAccountNumber",
-      "irdNumber",
-      "taxCode",
-      "kiwiSaverEnrolled",
-      "kiwiSaverContribution",
-      "emergencyContactName",
-      "emergencyContactRelationship",
-      "emergencyContactPhone",
-      "emergencyContactEmail",
-      "driverLicenceType",
-      "driverLicenceNumber",
-      "driverLicenceIssueDate",
-      "driverLicenceExpiryDate",
-      "trainingCourse",
-      "trainingProvider",
-      "trainingDateCompleted",
-      "trainingExpiryDate",
-      "employmentCheckType",
-      "employmentCheckDocumentNumber",
-      "employmentCheckIssueDate",
-      "employmentCheckExpiryDate",
-    ];
+    const headers = filterHeadersByScope(subTemplateScope);
 
-    const sampleData = [
-      [
-        "John",
-        "Doe",
-        "john.doe@company.com",
-        "+64 21 555 0101",
-        "1990-01-15",
-        "Male",
-        "123 Main St",
-        "Auckland",
-        "1010",
-        "New Zealand",
-        "ABC123456",
-        "he/him",
-        "Citizen",
-        "25",
-        "3",
-        "18",
-        "2024",
-        departments[0]?.name || "Engineering",
-        jobRoles[0]?.name || "Software Engineer",
-        "Full Time",
-        "Permanent",
-        "Auckland HQ",
-        "2024-01-08",
-        "",
-        workingPatterns[0]?.name || "Standard 40hr",
-        "engineering.lead@company.com",
-        "Amelia Clark",
-        "85000",
-        "",
-        "12-1234-1234567-00",
-        "123-456-789",
-        "M",
-        "Yes",
-        "3",
-        "Jane Doe",
-        "Spouse",
-        "+64 21 555 0102",
-        "jane.doe@example.com",
-        "Full",
-        "DL123456",
-        "2022-02-10",
-        "2032-02-09",
-        "Health & Safety Induction",
-        "Safety First Ltd",
-        "2024-01-15",
-        "2026-01-15",
-        "Right to Work",
-        "RTW-2024-001",
-        "2023-12-01",
-        "2025-12-01",
-      ],
-      [
-        "Jane",
-        "Smith",
-        "jane.smith@company.com",
-        "+64 21 555 0202",
-        "1985-05-20",
-        "Female",
-        "456 Harbour View Rd",
-        "Wellington",
-        "6011",
-        "New Zealand",
-        "XYZ987654",
-        "she/her",
-        "Permanent Resident",
-        "30",
-        "5",
-        "22",
-        "2024",
-        departments[1]?.name || "Marketing",
-        jobRoles[1]?.name || "Marketing Manager",
-        "Full Time",
-        "Fixed Term",
-        "Wellington Hub",
-        "2023-09-01",
-        "2025-08-31",
-        workingPatterns[1]?.name || "Hybrid 32hr",
-        "marketing.director@company.com",
-        "Liam Johnson",
-        "92000",
-        "",
-        "98-7654-0987654-00",
-        "987-654-321",
-        "ME SL",
-        "No",
-        "",
-        "John Smith",
-        "Partner",
-        "+64 21 555 0203",
-        "john.smith@example.com",
-        "Restricted",
-        "DL654321",
-        "2021-07-01",
-        "2026-07-01",
-        "Advanced Leadership",
-        "People Leaders NZ",
-        "2023-11-20",
-        "",
-        "Police Vetting",
-        "PV-2023-045",
-        "2023-11-15",
-        "2025-11-15",
-      ],
-    ];
+    const enrichedSampleRows = EMPLOYEE_SAMPLE_ROWS.map((row, index) => {
+      if (index === 0) {
+        return {
+          ...row,
+          departmentName: departments[0]?.name || row.departmentName,
+          jobRoleName: jobRoles[0]?.name || row.jobRoleName,
+          workingPatternName: workingPatterns[0]?.name || row.workingPatternName,
+        };
+      }
 
-    const csvContent = [headers.join(","), ...sampleData.map((row) => row.map((cell) => `"${cell}"`).join(","))].join(
-      "\n"
-    );
+      if (index === 1) {
+        return {
+          ...row,
+          departmentName: departments[1]?.name || row.departmentName,
+          jobRoleName: jobRoles[1]?.name || row.jobRoleName,
+          workingPatternName: workingPatterns[1]?.name || row.workingPatternName,
+        };
+      }
+
+      return row;
+    });
+
+    const sampleData = enrichedSampleRows.map(row => filterSampleRow(row, headers));
+
+    const csvContent = [
+      headers.join(","),
+      ...sampleData.map(row => headers.map(header => JSON.stringify(row[header] ?? "")).join(",")),
+    ].join("\n");
 
     return new NextResponse(csvContent, {
       headers: {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useState, useRef, useEffect, useMemo, type ChangeEvent } from "react";
+
 import { useSession } from "next-auth/react";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
@@ -15,7 +16,6 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import {
   Dialog,
   DialogContent,
@@ -26,321 +26,118 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/Badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/Checkbox";
-import {
-  Upload,
-  Download,
-  FileText,
-  CheckCircle,
-  AlertTriangle,
-  Users,
-  Building,
-  Calendar,
-  DollarSign,
-  Phone,
-  Mail,
-  MapPin,
-  CreditCard,
-  Clock,
-  Info,
-  Eye,
-  X,
-  ListChecks,
-  RefreshCcw,
-  Target,
-  Send,
-  Filter,
-  Loader2,
-} from "lucide-react";
+import { Download, FileText, CheckCircle, AlertTriangle, Clock, Eye, X, RefreshCcw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import SendWelcomeEmailModal from "@/components/employees/SendWelcomeEmailModal";
+import { CSV_IMPORT_DOMAIN_CONFIGS, getDomainConfig, type CSVImportDomainId } from "@/lib/csv-import/domains";
+import type { CSVImportDomainConfig } from "@/lib/csv-import/types";
+import { TemplateGuidance } from "./components/TemplateGuidance";
+import { ImportTypeSelector } from "./components/ImportTypeSelector";
+import { ActivationStatusCard } from "./components/ActivationStatusCard";
+import { ImportInstructionsCard } from "./components/ImportInstructionsCard";
+import { FileUploadCard } from "./components/FileUploadCard";
+import { ImportProgressCard } from "./components/ImportProgressCard";
+import { EmployeeActivationOptions } from "./components/EmployeeActivationOptions";
+import { EmployeeWelcomeRollout } from "./components/EmployeeWelcomeRollout";
+import { SubTemplateSelector } from "./components/SubTemplateSelector";
+import { ImportActivationSummary } from "./components/ImportActivationSummary";
+import { ImportResultsCard } from "./components/ImportResultsCard";
+import type {
+  ActivationOptions,
+  ActivationStats,
+  EmployeeActivationStatus,
+  ImportProgress,
+  ImportResult,
+  ImportType,
+  SelectableOption,
+  WelcomeEmailSummary,
+  WelcomeFilters,
+} from "./types";
 
-interface ImportResult {
-  total: number;
-  successful: number;
-  failed: number;
-  errors: Array<{ row: number; errors: string[] }>;
-  created: Array<{ id: string; email: string; name: string }>;
-  updated: Array<{ id: string; email: string; name: string }>;
-  activation?: {
-    total: number;
-    activated: number;
-    emailsSent: number;
-    permissionsChecked: number;
-    managersPromoted: number;
-    errors: Array<{ employeeId: string; error: string }>;
-    details: Array<{
-      employeeId: string;
-      name: string;
-      email: string;
-      status: string;
-      actions: string[];
-    }>;
-  };
-}
-
-interface ImportProgress {
-  status: "idle" | "uploading" | "processing" | "completed" | "error";
-  progress: number;
-  message: string;
-  result?: ImportResult;
-}
-
-type ImportType = "departments" | "job-roles" | "working-patterns" | "employees";
-
-interface WelcomeEmailSummary {
-  targeted: number;
-  sent: number;
-  skipped: number;
-  errors: Array<{ employeeId: string; email: string; reason: string }>;
-}
-
-interface ActivationStats {
-  total: number;
-  emailSent: number;
-  emailNotSent: number;
-  activated: number;
-  pendingActivation: number;
-}
-
-interface EmployeeActivationStatus {
-  id: string;
-  userId: string;
-  name: string;
-  email: string;
-  department: string | null;
-  departmentId: string | null;
-  jobRole: string | null;
-  jobRoleId: string | null;
-  welcomeEmailSentAt: string | null;
-  isActivated: boolean;
-  status: "no_email" | "email_sent_pending" | "activated";
-}
-
-interface WelcomeFilters {
-  departmentIds: string[];
-  locationIds: string[];
-  nameQuery: string;
-}
-
-interface SelectableOption {
-  id: string;
-  name: string;
-}
-
-interface ImportFieldGroup {
-  title: string;
-  description?: string;
-  fields: Array<{ label: string; required?: boolean; note?: string }>;
-}
-
-interface ImportTypeInfo {
-  title: string;
-  description: string;
-  icon: ReactNode;
-  dependencies: string;
-  templateFile: string;
-  fieldGroups: ImportFieldGroup[];
-  keyNotes?: string[];
-}
-
-const importSequence: Array<{ label: string; value: ImportType }> = [
-  { label: "Departments", value: "departments" },
-  { label: "Job Roles", value: "job-roles" },
-  { label: "Working Patterns", value: "working-patterns" },
-  { label: "Employees", value: "employees" },
+const DEFAULT_IMPORT_SEQUENCE: ImportType[] = [
+  "departments",
+  "job-roles",
+  "working-patterns",
+  "employees",
 ];
 
-const getImportLabel = (type: ImportType) =>
-  importSequence.find(step => step.value === type)?.label ?? type;
+const importSequence: Array<{ label: string; value: ImportType }> = DEFAULT_IMPORT_SEQUENCE.map(value => {
+  const config = getDomainConfig(value);
+  return {
+    value,
+    label: config.label,
+  };
+});
+
+const allDomainIds = Object.keys(CSV_IMPORT_DOMAIN_CONFIGS) as CSVImportDomainId[];
+const allImportTypes: ImportType[] = Array.from(new Set([...DEFAULT_IMPORT_SEQUENCE, ...allDomainIds]));
+
+const importTypeOptions = allImportTypes.map(value => {
+  const config = getDomainConfig(value);
+  return {
+    value,
+    label: config.label,
+    icon: config.icon,
+  };
+});
+
+const getImportLabel = (type: ImportType) => getDomainConfig(type).label;
+
+const getDefaultTemplate = (config: CSVImportDomainConfig) => {
+  if (config.templates.length === 0) {
+    return undefined;
+  }
+
+  return (
+    config.templates.find(template => template.id === config.defaultTemplateId) ??
+    config.templates[0]
+  );
+};
+
+const getDefaultSubTemplateSelection = (config?: CSVImportDomainConfig) => {
+  if (!config?.subTemplates || config.subTemplates.length === 0) {
+    return [] as string[];
+  }
+
+  const defaults = config.subTemplates
+    .filter(subTemplate => subTemplate.defaultSelected)
+    .map(subTemplate => subTemplate.id);
+
+  if (defaults.length > 0) {
+    return defaults;
+  }
+
+  return config.subTemplates.map(subTemplate => subTemplate.id);
+};
 
 const ALLOW_UPDATES_STORAGE_KEY = "csv-import-allow-employee-updates";
 
-const getImportTypeInfo = (type: ImportType): ImportTypeInfo => {
-  switch (type) {
-    case "departments":
-      return {
-        title: "Departments",
-        description: "Organisational units, cost centres, and reporting structures",
-        icon: <Building className="h-5 w-5" />,
-        dependencies: "None – foundational data",
-        templateFile: "01_departments_template.csv",
-        fieldGroups: [
-          {
-            title: "Core details",
-            fields: [
-              { label: "name", required: true },
-              { label: "description" },
-              { label: "headEmail", note: "Must match an existing user" },
-              { label: "code" },
-              { label: "active" },
-            ],
-          },
-        ],
-      };
-    case "job-roles":
-      return {
-        title: "Job Roles",
-        description: "Job titles, levels, and pay bands for your organisation",
-        icon: <Users className="h-5 w-5" />,
-        dependencies: "Requires departments to be imported first",
-        templateFile: "02_job_roles_template.csv",
-        fieldGroups: [
-          {
-            title: "Role definition",
-            fields: [
-              { label: "name", required: true },
-              { label: "departmentName", required: true, note: "Must match a department" },
-              { label: "description" },
-              { label: "level" },
-              { label: "payGrade" },
-              { label: "active" },
-            ],
-          },
-        ],
-      };
-    case "working-patterns":
-      return {
-        title: "Working Patterns",
-        description: "Standard hours templates, shifts, and flexible schedules",
-        icon: <Clock className="h-5 w-5" />,
-        dependencies: "None – can be imported independently",
-        templateFile: "03_working_patterns_template.csv",
-        keyNotes: [
-          "Enter hours as decimal values (e.g. 7.5 for 7 hours 30 minutes).",
-          "Leave a day blank or set to 0 if no hours are worked on that day.",
-        ],
-        fieldGroups: [
-          {
-            title: "Pattern meta",
-            fields: [
-              { label: "name", required: true },
-              { label: "description" },
-              { label: "patternType" },
-              { label: "active" },
-            ],
-          },
-          {
-            title: "Weekly hours",
-            description: "Number of hours worked on each day of the week",
-            fields: [
-              { label: "mondayHours" },
-              { label: "tuesdayHours" },
-              { label: "wednesdayHours" },
-              { label: "thursdayHours" },
-              { label: "fridayHours" },
-              { label: "saturdayHours" },
-              { label: "sundayHours" },
-            ],
-          },
-        ],
-      };
-    case "employees":
-    default:
-      return {
-        title: "Employees",
-        description: "Full employee record including people data, payroll, compliance, and onboarding essentials",
-        icon: <Users className="h-5 w-5" />,
-        dependencies: "Requires departments, job roles, and working patterns",
-        templateFile: "04_employees_template.csv",
-        keyNotes: [
-          "Keep firstName and lastName as the first two columns in every CSV to guarantee accurate matching.",
-          "Dates should use the ISO format YYYY-MM-DD. Leave cells blank if data is not yet available.",
-        ],
-        fieldGroups: [
-          {
-            title: "Personal information",
-            description: "Matches the Personal Info panel in the employee profile",
-            fields: [
-              { label: "firstName", required: true },
-              { label: "lastName", required: true },
-              { label: "email", required: true },
-              { label: "phoneNumber" },
-              { label: "dateOfBirth" },
-              { label: "gender" },
-              { label: "street" },
-              { label: "city" },
-              { label: "postcode" },
-              { label: "country" },
-              { label: "nationalId" },
-              { label: "pronouns" },
-              { label: "residencyStatus" },
-            ],
-          },
-          {
-            title: "Holiday & leave setup",
-            description: "Seed Annual Leave balances ready for go-live",
-            fields: [
-              { label: "holidayTotalBalance" },
-              { label: "holidayCarryover" },
-              { label: "holidayCurrentBalance" },
-              { label: "holidayYear" },
-            ],
-          },
-          {
-            title: "Employment details",
-            fields: [
-              { label: "departmentName", note: "Must match an imported department" },
-              { label: "jobRoleName", note: "Must match an imported job role" },
-              { label: "employmentType" },
-              { label: "contractType" },
-              { label: "siteLocation" },
-              { label: "startDate" },
-              { label: "contractEndDate" },
-              { label: "workingPatternName", note: "Must match an imported working pattern" },
-              {
-                label: "lineManagerName",
-                note: "Full name of the line manager used to build reporting lines",
-              },
-              { label: "salaryAmount" },
-              { label: "hourlyRate" },
-            ],
-          },
-          {
-            title: "Emergency contacts",
-            fields: [
-              { label: "emergencyContactName" },
-              { label: "emergencyContactRelationship" },
-              { label: "emergencyContactPhone" },
-              { label: "emergencyContactEmail" },
-            ],
-          },
-          {
-            title: "Banking & payroll",
-            fields: [
-              { label: "bankAccountNumber" },
-              { label: "irdNumber" },
-              { label: "taxCode" },
-              { label: "kiwiSaverEnrolled" },
-              { label: "kiwiSaverContribution" },
-            ],
-          },
-          {
-            title: "Driver licence",
-            fields: [
-              { label: "driverLicenceType" },
-              { label: "driverLicenceNumber" },
-              { label: "driverLicenceIssueDate" },
-              { label: "driverLicenceExpiryDate" },
-            ],
-          },
-          {
-            title: "Training & compliance",
-            fields: [
-              { label: "trainingCourse" },
-              { label: "trainingProvider" },
-              { label: "trainingDateCompleted" },
-              { label: "trainingExpiryDate" },
-              { label: "employmentCheckType" },
-              { label: "employmentCheckDocumentNumber" },
-              { label: "employmentCheckIssueDate" },
-              { label: "employmentCheckExpiryDate" },
-            ],
-          },
-        ],
-      };
-  }
+const ImportSummaryStats = ({ result }: { result: ImportResult }) => {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-green-600">{result.created.length}</div>
+          <div className="text-sm text-muted-foreground">Created</div>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold text-blue-600">{result.updated.length}</div>
+          <div className="text-sm text-muted-foreground">Updated</div>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold text-red-600">{result.failed}</div>
+          <div className="text-sm text-muted-foreground">Failed</div>
+        </div>
+        <div className="text-center">
+          <div className="text-2xl font-bold text-indigo-600">{result.total}</div>
+          <div className="text-sm text-muted-foreground">Total processed</div>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground text-center md:text-left">
+        Successful rows: {result.successful}
+      </p>
+    </div>
+  );
 };
 
 export default function CSVImportPage() {
@@ -355,7 +152,7 @@ export default function CSVImportPage() {
   const [showResults, setShowResults] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [showActivationOptions, setShowActivationOptions] = useState(false);
-  const [activationOptions, setActivationOptions] = useState({
+  const [activationOptions, setActivationOptions] = useState<ActivationOptions>({
     sendEmails: true,
     checkPermissions: true,
     promoteManagers: true,
@@ -388,8 +185,19 @@ export default function CSVImportPage() {
   const [loadingActivationStatus, setLoadingActivationStatus] = useState(false);
   const [showActivationDashboard, setShowActivationDashboard] = useState(false);
   const [showSendWelcomeModal, setShowSendWelcomeModal] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const importInfo = getImportTypeInfo(selectedImportType);
+  const [selectedSubTemplates, setSelectedSubTemplates] = useState<string[]>(() =>
+    getDefaultSubTemplateSelection(getDomainConfig("departments")),
+  );
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const selectedDomainConfig = getDomainConfig(selectedImportType);
+  const selectedTemplate = getDefaultTemplate(selectedDomainConfig);
+  const defaultSubTemplateSelection = useMemo(
+    () => getDefaultSubTemplateSelection(selectedDomainConfig),
+    [selectedDomainConfig],
+  );
+  const hasSubTemplates = Boolean(
+    selectedDomainConfig.subTemplates && selectedDomainConfig.subTemplates.length > 0,
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -524,7 +332,11 @@ export default function CSVImportPage() {
     welcomeMetadataLoading,
   ]);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    setSelectedSubTemplates(defaultSubTemplateSelection);
+  }, [selectedImportType, defaultSubTemplateSelection]);
+
+  const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -547,6 +359,11 @@ export default function CSVImportPage() {
   const handleImport = async () => {
     if (!selectedFile) return;
 
+    if (hasSubTemplates && selectedSubTemplates.length === 0) {
+      toast.error("Select at least one template scope before importing.");
+      return;
+    }
+
     const currentType = selectedImportType;
     const currentTypeLabel = getImportLabel(currentType);
 
@@ -561,6 +378,9 @@ export default function CSVImportPage() {
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("allowUpdates", allowUpdates ? "true" : "false");
+      if (hasSubTemplates && selectedSubTemplates.length > 0) {
+        formData.append("subTemplates", selectedSubTemplates.join(","));
+      }
 
       setImportProgress({
         status: "processing",
@@ -637,14 +457,31 @@ export default function CSVImportPage() {
 
   const handleDownloadTemplate = async () => {
     try {
-      const response = await fetch(`/api/csv-import/${selectedImportType}`);
+      if (hasSubTemplates && selectedSubTemplates.length === 0) {
+        toast.error("Select at least one template scope before downloading.");
+        return;
+      }
+
+      const searchParams = new URLSearchParams();
+      if (hasSubTemplates && selectedSubTemplates.length > 0) {
+        searchParams.set("subTemplates", selectedSubTemplates.join(","));
+      }
+
+      const endpoint = searchParams.toString()
+        ? `/api/csv-import/${selectedImportType}?${searchParams.toString()}`
+        : `/api/csv-import/${selectedImportType}`;
+
+      const response = await fetch(endpoint);
       if (!response.ok) throw new Error("Failed to download template");
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${selectedImportType}_import_template.csv`;
+      const scopeSuffix = hasSubTemplates && selectedSubTemplates.length > 0
+        ? `_${selectedSubTemplates.join("-")}`
+        : "";
+      a.download = `${selectedImportType}${scopeSuffix}_import_template.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -896,6 +733,27 @@ export default function CSVImportPage() {
     }
   };
 
+  const handleActivationOptionChange = (option: keyof ActivationOptions, value: boolean) => {
+    setActivationOptions(previous => ({
+      ...previous,
+      [option]: value,
+    }));
+  };
+
+  const handleToggleWelcomeEmailOptions = () => {
+    setShowWelcomeEmailOptions(previous => {
+      if (previous) {
+        setWelcomeSummary(null);
+        setWelcomeMetadataLoaded(false);
+      }
+      return !previous;
+    });
+  };
+
+  const handleAllowUpdatesChange = (checked: boolean) => {
+    setAllowUpdates(checked);
+  };
+
   const getStatusIcon = () => {
     switch (importProgress.status) {
       case "completed":
@@ -932,7 +790,11 @@ export default function CSVImportPage() {
       showHomeIcon={false}
       action={
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleDownloadTemplate}>
+          <Button
+            variant="outline"
+            onClick={handleDownloadTemplate}
+            disabled={hasSubTemplates && selectedSubTemplates.length === 0}
+          >
             <Download className="w-4 h-4 mr-2" />
             Download Template
           </Button>
@@ -1010,973 +872,115 @@ export default function CSVImportPage() {
       <div className="space-y-6">
         {/* Employee Activation Status Card */}
         {activationStats && activationStats.emailNotSent > 0 && (
-          <Card className="border-amber-200 bg-amber-50/50">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Mail className="h-5 w-5 text-amber-600" />
-                  <CardTitle className="text-amber-900">Pending Employee Activations</CardTitle>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowActivationDashboard(!showActivationDashboard)}
-                >
-                  {showActivationDashboard ? "Hide Details" : "View Details"}
-                </Button>
-              </div>
-              <CardDescription>
-                {activationStats.emailNotSent} employee{activationStats.emailNotSent === 1 ? "" : "s"} haven't received welcome emails yet
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-white rounded-lg border">
-                  <div className="text-2xl font-bold text-gray-900">{activationStats.total}</div>
-                  <div className="text-xs text-muted-foreground">Total Employees</div>
-                </div>
-                <div className="text-center p-3 bg-white rounded-lg border">
-                  <div className="text-2xl font-bold text-green-600">{activationStats.emailSent}</div>
-                  <div className="text-xs text-muted-foreground">Emails Sent</div>
-                </div>
-                <div className="text-center p-3 bg-white rounded-lg border">
-                  <div className="text-2xl font-bold text-blue-600">{activationStats.pendingActivation}</div>
-                  <div className="text-xs text-muted-foreground">Pending Activation</div>
-                </div>
-                <div className="text-center p-3 bg-white rounded-lg border">
-                  <div className="text-2xl font-bold text-green-600">{activationStats.activated}</div>
-                  <div className="text-xs text-muted-foreground">Activated</div>
-                </div>
-              </div>
-
-              {showActivationDashboard && (
-                <div className="space-y-3 pt-4 border-t">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-sm">Employee Status</h4>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => setShowSendWelcomeModal(true)}
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Send Welcome Emails
-                    </Button>
-                  </div>
-                  
-                  <div className="max-h-96 overflow-y-auto space-y-2">
-                    {activationEmployees
-                      .filter(emp => emp.status !== "activated")
-                      .map(emp => (
-                        <div
-                          key={emp.id}
-                          className="flex items-center justify-between p-3 bg-white rounded-lg border text-sm"
-                        >
-                          <div className="flex-1">
-                            <div className="font-medium">{emp.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {emp.email} • {emp.department || "No department"} • {emp.jobRole || "No role"}
-                            </div>
-                          </div>
-                          <Badge
-                            variant={
-                              emp.status === "no_email"
-                                ? "destructive"
-                                : emp.status === "email_sent_pending"
-                                ? "secondary"
-                                : "default"
-                            }
-                          >
-                            {emp.status === "no_email"
-                              ? "No Email"
-                              : emp.status === "email_sent_pending"
-                              ? "Email Sent"
-                              : "Activated"}
-                          </Badge>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ActivationStatusCard
+            stats={activationStats}
+            employees={activationEmployees}
+            showDashboard={showActivationDashboard}
+            onToggleDashboard={() => setShowActivationDashboard(previous => !previous)}
+            onOpenSendWelcomeModal={() => setShowSendWelcomeModal(true)}
+          />
         )}
 
-        {/* Import Type Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="h-5 w-5" />
-              Select Import Type
-            </CardTitle>
-            <CardDescription>
-              Choose the type of data you want to import
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="import-type">Import Type</Label>
-              <Select value={selectedImportType} onValueChange={(value: ImportType) => setSelectedImportType(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="departments">
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4" />
-                      Departments
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="job-roles">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      Job Roles
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="working-patterns">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Working Patterns
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="employees">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      Employees
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <ImportTypeSelector
+          options={importTypeOptions}
+          value={selectedImportType}
+          onChange={setSelectedImportType}
+          selectedConfig={selectedDomainConfig}
+          selectedTemplate={selectedTemplate}
+        />
 
-            {/* Import Type Info */}
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-start gap-3">
-                {importInfo.icon}
-                <div className="flex-1 space-y-2">
-                  <div>
-                    <h4 className="font-medium">{importInfo.title}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {importInfo.description}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                    <span>
-                      <strong>Dependencies:</strong> {importInfo.dependencies}
-                    </span>
-                    <span>
-                      <strong>Template file:</strong> {importInfo.templateFile}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {hasSubTemplates && selectedDomainConfig.subTemplates && (
+          <SubTemplateSelector
+            subTemplates={selectedDomainConfig.subTemplates}
+            selectedSubTemplates={selectedSubTemplates}
+            defaultSelectedSubTemplates={defaultSubTemplateSelection}
+            onSelectionChange={setSelectedSubTemplates}
+          />
+        )}
 
-        {/* Import Instructions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Info className="h-5 w-5" />
-              Import Instructions
-            </CardTitle>
-            <CardDescription>
-              Follow these steps to import {importInfo.title.toLowerCase()} data via CSV
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Quick Start Option */}
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-start gap-3">
-                <Download className="h-5 w-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-blue-900">Quick Start</h4>
-                  <p className="text-sm text-blue-700 mb-2">
-                    New to CSV imports? Use the "Download All" button above to get all templates at once with detailed instructions.
-                  </p>
-                  <p className="text-xs text-blue-600">
-                    Includes: Departments → Job Roles → Working Patterns → Employees (in correct order)
-                  </p>
-                </div>
-              </div>
-            </div>
+        <ImportInstructionsCard
+          domain={selectedDomainConfig}
+          template={selectedTemplate}
+          importSequence={importSequence}
+          activeImportType={selectedImportType}
+        />
 
-            {importInfo.keyNotes && importInfo.keyNotes.length > 0 && (
-              <Alert className="border-primary/20 bg-primary/5">
-                <AlertTitle>Implementation notes</AlertTitle>
-                <AlertDescription>
-                  <ul className="list-disc list-inside space-y-1">
-                    {importInfo.keyNotes.map((note, index) => (
-                      <li key={index}>{note}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
+        <TemplateGuidance
+          config={selectedDomainConfig}
+          importOrder={importSequence}
+          activeImportType={selectedImportType}
+        />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">1</span>
-                </div>
-                <div>
-                  <h4 className="font-medium">Download Template</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Get the CSV template with all required fields
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">2</span>
-                </div>
-                <div>
-                  <h4 className="font-medium">Fill Data</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Add {importInfo.title.toLowerCase()} information to the CSV file
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">3</span>
-                </div>
-                <div>
-                  <h4 className="font-medium">Upload File</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Select and upload your completed CSV file
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-primary">4</span>
-                </div>
-                <div>
-                  <h4 className="font-medium">Review & Import</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Review validation results and complete import
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border rounded-lg p-4">
-              <h4 className="font-medium flex items-center gap-2">
-                <ListChecks className="h-4 w-4" />
-                Recommended import order
-              </h4>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {importSequence.map((step, index) => (
-                  <Badge
-                    key={step.value}
-                    variant={step.value === selectedImportType ? "default" : "outline"}
-                    className="flex items-center gap-2"
-                  >
-                    <span className="text-xs font-semibold">{index + 1}</span>
-                    {step.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* File Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Upload CSV File
-            </CardTitle>
-            <CardDescription>
-              Select a CSV file containing employee data to import
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="csv-file">CSV File</Label>
-              <Input
-                id="csv-file"
-                type="file"
-                accept=".csv"
-                onChange={handleFileSelect}
-                ref={fileInputRef}
-                disabled={importProgress.status === "processing" || importProgress.status === "uploading"}
-              />
-              {selectedFile && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileText className="h-4 w-4" />
-                  {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
-                </div>
-              )}
-            </div>
-
-            {validationErrors.length > 0 && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <ul className="list-disc list-inside">
-                    {validationErrors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {selectedImportType === "employees" && (
-              <div className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 p-4 space-y-3">
-                <div className="space-y-1">
-                  <h4 className="text-sm font-medium">Existing employee updates</h4>
-                  <p className="text-xs text-muted-foreground">
-                    Enable this option to merge new personal, employment, and payroll details for people who already exist in
-                    PeopleCore.
-                  </p>
-                </div>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <Label htmlFor="allow-updates" className="text-sm font-medium">
-                      Allow updates for existing employees
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Matching emails will be updated while new rows are created as usual.
-                    </p>
-                  </div>
-                  <Switch
-                    id="allow-updates"
-                    checked={allowUpdates}
-                    onCheckedChange={setAllowUpdates}
-                    disabled={importProgress.status === "processing" || importProgress.status === "uploading"}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <Button
-                onClick={handleImport}
-                disabled={!selectedFile || validationErrors.length > 0 || importProgress.status === "processing" || importProgress.status === "uploading"}
-                className="flex-1"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Import {importInfo.title}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <FileUploadCard
+          domain={selectedDomainConfig}
+          selectedImportType={selectedImportType}
+          selectedFile={selectedFile}
+          validationErrors={validationErrors}
+          allowUpdates={allowUpdates}
+          fileInputRef={fileInputRef}
+          onAllowUpdatesChange={handleAllowUpdatesChange}
+          onFileSelect={handleFileSelect}
+          onImport={handleImport}
+          onResetUpload={resetImport}
+          disableActions={importProgress.status === "processing" || importProgress.status === "uploading"}
+        />
 
         {/* Import Progress */}
         {importProgress.status !== "idle" && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {getStatusIcon()}
-                Import Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {lastImportedType && (
-                <div className="text-sm text-muted-foreground">
-                  Import summary for {getImportLabel(lastImportedType)}
-                </div>
-              )}
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className={getStatusColor()}>{importProgress.message}</span>
-                  <span className="text-muted-foreground">{importProgress.progress}%</span>
-                </div>
-                <Progress value={importProgress.progress} className="w-full" />
-              </div>
+          <ImportProgressCard
+            statusIcon={getStatusIcon()}
+            statusColor={getStatusColor()}
+            message={importProgress.message}
+            progress={importProgress.progress}
+            summaryLabel={
+              lastImportedType ? `Import summary for ${getImportLabel(lastImportedType)}` : undefined
+            }
+          >
+            {importProgress.status === "completed" && importProgress.result && (
+              <div className="space-y-4">
+                <ImportSummaryStats result={importProgress.result} />
 
-              {importProgress.status === "completed" && importProgress.result && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        {importProgress.result.created.length}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Created</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
-                        {importProgress.result.updated.length}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Updated</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-red-600">
-                        {importProgress.result.failed}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Failed</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-indigo-600">
-                        {importProgress.result.total}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Total processed</div>
-                    </div>
+                {selectedImportType === "employees" && (
+                  <div className="border-t pt-4 space-y-4">
+                    <EmployeeActivationOptions
+                      createdCount={importProgress.result.created.length}
+                      showActivationOptions={showActivationOptions}
+                      activationOptions={activationOptions}
+                      onToggleOptions={() => setShowActivationOptions(previous => !previous)}
+                      onChangeOption={handleActivationOptionChange}
+                      onActivateEmployees={handleActivateEmployees}
+                    />
+
+                    <EmployeeWelcomeRollout
+                      showWelcomeEmailOptions={showWelcomeEmailOptions}
+                      onToggleWelcomeEmailOptions={handleToggleWelcomeEmailOptions}
+                      welcomeMetadataError={welcomeMetadataError}
+                      welcomeMetadataLoading={welcomeMetadataLoading}
+                      availableDepartments={availableDepartments}
+                      availableLocations={availableLocations}
+                      welcomeFilters={welcomeFilters}
+                      onFiltersChange={setWelcomeFilters}
+                      isSendingWelcomeEmails={isSendingWelcomeEmails}
+                      onSendEmails={handleSendWelcomeEmails}
+                      welcomeSummary={welcomeSummary}
+                    />
                   </div>
-                  <p className="text-xs text-muted-foreground text-center md:text-left">
-                    Successful rows: {importProgress.result.successful}
-                  </p>
+                )}
 
-                  {/* Employee Activation Options */}
-                  {selectedImportType === "employees" && (
-                    <div className="border-t pt-4 space-y-4">
-                      {importProgress.result.created && importProgress.result.created.length > 0 && (
-                        <div>
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <h4 className="font-medium">Employee Activation</h4>
-                              <p className="text-sm text-muted-foreground">
-                                Activate imported employees and send welcome emails
-                              </p>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setShowActivationOptions(!showActivationOptions)}
-                            >
-                              {showActivationOptions ? "Hide Options" : "Show Options"}
-                            </Button>
-                          </div>
-
-                          {showActivationOptions && (
-                            <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                              <div className="space-y-3">
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="checkbox"
-                                    id="sendEmails"
-                                    checked={activationOptions.sendEmails}
-                                    onChange={(e) =>
-                                      setActivationOptions(prev => ({
-                                        ...prev,
-                                        sendEmails: e.target.checked,
-                                      }))
-                                    }
-                                    className="rounded"
-                                  />
-                                  <label htmlFor="sendEmails" className="text-sm font-medium">
-                                    Send activation emails
-                                  </label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="checkbox"
-                                    id="checkPermissions"
-                                    checked={activationOptions.checkPermissions}
-                                    onChange={(e) =>
-                                      setActivationOptions(prev => ({
-                                        ...prev,
-                                        checkPermissions: e.target.checked,
-                                      }))
-                                    }
-                                    className="rounded"
-                                  />
-                                  <label htmlFor="checkPermissions" className="text-sm font-medium">
-                                    Assign default permissions
-                                  </label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="checkbox"
-                                    id="promoteManagers"
-                                    checked={activationOptions.promoteManagers}
-                                    onChange={(e) =>
-                                      setActivationOptions(prev => ({
-                                        ...prev,
-                                        promoteManagers: e.target.checked,
-                                      }))
-                                    }
-                                    className="rounded"
-                                  />
-                                  <label htmlFor="promoteManagers" className="text-sm font-medium">
-                                    Auto-promote employees with direct reports to manager
-                                  </label>
-                                </div>
-                              </div>
-
-                              <Button onClick={handleActivateEmployees} className="w-full">
-                                <Mail className="w-4 h-4 mr-2" />
-                                Activate {importProgress.result.created.length} Employees
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Welcome email rollout */}
-                      <div className="rounded-lg border bg-muted/40 p-4 space-y-4">
-                        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                          <div className="space-y-1">
-                            <h4 className="font-medium">Send welcome emails</h4>
-                            <p className="text-sm text-muted-foreground">
-                              Invite employees to activate their PeopleCore accounts on demand.
-                            </p>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            type="button"
-                            onClick={() => {
-                              setShowWelcomeEmailOptions(prev => !prev);
-                              if (showWelcomeEmailOptions) {
-                                // Reset state when hiding
-                                setWelcomeSummary(null);
-                                setWelcomeMetadataLoaded(false);
-                              }
-                            }}
-                          >
-                            {showWelcomeEmailOptions ? "Hide welcome email" : "Send welcome email"}
-                          </Button>
-                        </div>
-
-                        {showWelcomeEmailOptions && (
-                          <div className="space-y-4">
-                            {welcomeMetadataError && (
-                              <Alert variant="destructive">
-                                <AlertTitle>Filter data unavailable</AlertTitle>
-                                <AlertDescription>{welcomeMetadataError}</AlertDescription>
-                              </Alert>
-                            )}
-
-                            <div className="grid gap-4 md:grid-cols-2">
-                              {/* Gradual rollout card */}
-                              <Card className="border-primary/40 bg-primary/5">
-                                <CardHeader>
-                                  <CardTitle className="flex items-center gap-2">
-                                    <Target className="h-5 w-5 text-primary" />
-                                    Gradual rollout
-                                  </CardTitle>
-                                  <CardDescription>
-                                    Filter by department, location, or name to stagger invites.
-                                  </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                  {welcomeMetadataLoading ? (
-                                    <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                      Loading filter options…
-                                    </div>
-                                  ) : (
-                                    <div className="space-y-4">
-                                      <div>
-                                        <div className="flex items-center justify-between gap-2">
-                                          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                            Departments
-                                          </Label>
-                                          {welcomeFilters.departmentIds.length > 0 && (
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              type="button"
-                                              onClick={() =>
-                                                setWelcomeFilters(prev => ({
-                                                  ...prev,
-                                                  departmentIds: [],
-                                                }))
-                                              }
-                                            >
-                                              Clear
-                                            </Button>
-                                          )}
-                                        </div>
-                                        <div className="mt-2 max-h-32 space-y-2 overflow-y-auto rounded-xl border bg-background p-3">
-                                          {availableDepartments.length === 0 ? (
-                                            <p className="text-xs text-muted-foreground">
-                                              No departments available yet.
-                                            </p>
-                                          ) : (
-                                            availableDepartments.map(department => {
-                                              const checkboxId = `welcome-department-${department.id}`;
-                                              const isChecked = welcomeFilters.departmentIds.includes(department.id);
-                                              return (
-                                                <label
-                                                  key={department.id}
-                                                  htmlFor={checkboxId}
-                                                  className="flex items-center gap-2 text-sm"
-                                                >
-                                                  <Checkbox
-                                                    id={checkboxId}
-                                                    checked={isChecked}
-                                                    onCheckedChange={checked =>
-                                                      setWelcomeFilters(prev => ({
-                                                        ...prev,
-                                                        departmentIds:
-                                                          checked === true
-                                                            ? Array.from(
-                                                                new Set([
-                                                                  ...prev.departmentIds,
-                                                                  department.id,
-                                                                ]),
-                                                              )
-                                                            : prev.departmentIds.filter(id => id !== department.id),
-                                                      }))
-                                                    }
-                                                  />
-                                                  <span>{department.name}</span>
-                                                </label>
-                                              );
-                                            })
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      <div>
-                                        <div className="flex items-center justify-between gap-2">
-                                          <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                            Locations
-                                          </Label>
-                                          {welcomeFilters.locationIds.length > 0 && (
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              type="button"
-                                              onClick={() =>
-                                                setWelcomeFilters(prev => ({
-                                                  ...prev,
-                                                  locationIds: [],
-                                                }))
-                                              }
-                                            >
-                                              Clear
-                                            </Button>
-                                          )}
-                                        </div>
-                                        <div className="mt-2 max-h-32 space-y-2 overflow-y-auto rounded-xl border bg-background p-3">
-                                          {availableLocations.length === 0 ? (
-                                            <p className="text-xs text-muted-foreground">
-                                              No locations available yet.
-                                            </p>
-                                          ) : (
-                                            availableLocations.map(location => {
-                                              const checkboxId = `welcome-location-${location.id}`;
-                                              const isChecked = welcomeFilters.locationIds.includes(location.id);
-                                              return (
-                                                <label
-                                                  key={location.id}
-                                                  htmlFor={checkboxId}
-                                                  className="flex items-center gap-2 text-sm"
-                                                >
-                                                  <Checkbox
-                                                    id={checkboxId}
-                                                    checked={isChecked}
-                                                    onCheckedChange={checked =>
-                                                      setWelcomeFilters(prev => ({
-                                                        ...prev,
-                                                        locationIds:
-                                                          checked === true
-                                                            ? Array.from(
-                                                                new Set([
-                                                                  ...prev.locationIds,
-                                                                  location.id,
-                                                                ]),
-                                                              )
-                                                            : prev.locationIds.filter(id => id !== location.id),
-                                                      }))
-                                                    }
-                                                  />
-                                                  <span>{location.name}</span>
-                                                </label>
-                                              );
-                                            })
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      <div className="space-y-2">
-                                        <Label
-                                          htmlFor="welcome-name-query"
-                                          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-                                        >
-                                          Names or emails
-                                        </Label>
-                                        <Input
-                                          id="welcome-name-query"
-                                          placeholder="Search by name or email"
-                                          value={welcomeFilters.nameQuery}
-                                          onChange={event =>
-                                            setWelcomeFilters(prev => ({
-                                              ...prev,
-                                              nameQuery: event.target.value,
-                                            }))
-                                          }
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                          Separate multiple names or email fragments with commas.
-                                        </p>
-                                      </div>
-
-                                      <Button
-                                        type="button"
-                                        variant="primary"
-                                        size="sm"
-                                        className="w-full"
-                                        disabled={isSendingWelcomeEmails || welcomeMetadataLoading}
-                                        onClick={() => handleSendWelcomeEmails("gradual")}
-                                      >
-                                        {isSendingWelcomeEmails ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <Filter className="h-4 w-4" />
-                                        )}
-                                        <span>Send to matching employees</span>
-                                      </Button>
-                                    </div>
-                                  )}
-                                </CardContent>
-                              </Card>
-
-                              {/* Send to all card */}
-                              <Card>
-                                <CardHeader>
-                                  <CardTitle className="flex items-center gap-2">
-                                    <Send className="h-5 w-5 text-primary" />
-                                    Send to everyone
-                                  </CardTitle>
-                                  <CardDescription>
-                                    Notify every employee who hasn’t activated their account yet.
-                                  </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                  <p className="text-sm text-muted-foreground">
-                                    Perfect for launch day—this will email all inactive employees with a fresh
-                                    activation link so they can set their password and get started straight away.
-                                  </p>
-                                  <Button
-                                    type="button"
-                                    variant="primary"
-                                    size="sm"
-                                    className="w-full"
-                                    disabled={isSendingWelcomeEmails}
-                                    onClick={() => handleSendWelcomeEmails("all")}
-                                  >
-                                    {isSendingWelcomeEmails ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Mail className="h-4 w-4" />
-                                    )}
-                                    <span>Send to all inactive employees</span>
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                            </div>
-
-                            {welcomeSummary && (
-                              <Alert>
-                                <AlertTitle>Welcome email summary</AlertTitle>
-                                <AlertDescription>
-                                  <div className="space-y-1 text-sm">
-                                    <p>
-                                      {welcomeSummary.sent} of {welcomeSummary.targeted} employee
-                                      {welcomeSummary.targeted === 1 ? "" : "s"} received an invite.
-                                    </p>
-                                    {welcomeSummary.skipped > 0 && (
-                                      <p>
-                                        {welcomeSummary.skipped} employee
-                                        {welcomeSummary.skipped === 1 ? " was" : "s were"} skipped because they already had
-                                        active accounts or were missing contact details.
-                                      </p>
-                                    )}
-                                    {welcomeSummary.errors.length > 0 && (
-                                      <div className="space-y-1">
-                                        <p>
-                                          {welcomeSummary.errors.length} email
-                                          {welcomeSummary.errors.length === 1 ? "" : "s"} could not be sent:
-                                        </p>
-                                        <ul className="list-disc list-inside text-xs">
-                                          {welcomeSummary.errors.map(error => (
-                                            <li key={error.employeeId}>
-                                              {error.email}: {error.reason}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                  </div>
-                                </AlertDescription>
-                              </Alert>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Activation Results */}
-                  {importProgress.result.activation && (
-                    <div className="border-t pt-4">
-                      <h4 className="font-medium text-green-600 mb-2">Activation Results:</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-green-600">
-                            {importProgress.result.activation.activated}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Activated</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-blue-600">
-                            {importProgress.result.activation.emailsSent}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Emails Sent</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-purple-600">
-                            {importProgress.result.activation.managersPromoted}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Managers Promoted</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-orange-600">
-                            {importProgress.result.activation.permissionsChecked}
-                          </div>
-                          <div className="text-xs text-muted-foreground">Permissions Checked</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {importProgress.result.activation && (
+                  <ImportActivationSummary activationResult={importProgress.result.activation} />
+                )}
+              </div>
+            )}
+          </ImportProgressCard>
         )}
 
         {/* Import Results */}
         {showResults && importProgress.result && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5" />
-                Import Results
-              </CardTitle>
-              <CardDescription>
-                Detailed results of the CSV import process
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Successfully Created Employees */}
-              {importProgress.result.created.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2 flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    Successfully Created ({importProgress.result.created.length})
-                  </h4>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {importProgress.result.created.map((employee, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded border">
-                        <div>
-                          <div className="font-medium">{employee.name}</div>
-                          <div className="text-sm text-muted-foreground">{employee.email}</div>
-                        </div>
-                        <Badge className="bg-green-100 text-green-800">Created</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {importProgress.result.updated.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2 flex items-center gap-2">
-                    <RefreshCcw className="h-4 w-4 text-blue-600" />
-                    Updated ({importProgress.result.updated.length})
-                  </h4>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {importProgress.result.updated.map((employee, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded border">
-                        <div>
-                          <div className="font-medium">{employee.name}</div>
-                          <div className="text-sm text-muted-foreground">{employee.email}</div>
-                        </div>
-                        <Badge className="bg-blue-100 text-blue-800">Updated</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Errors */}
-              {importProgress.result.errors.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    Errors ({importProgress.result.errors.length})
-                  </h4>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {importProgress.result.errors.map((error, index) => (
-                      <div key={index} className="p-2 bg-red-50 rounded border">
-                        <div className="font-medium text-red-800">Row {error.row}</div>
-                        <ul className="text-sm text-red-700 mt-1">
-                          {error.errors.map((err, errIndex) => (
-                            <li key={errIndex} className="list-disc list-inside">{err}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ImportResultsCard result={importProgress.result} />
         )}
 
-        {/* Supported Fields */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Template Field Blueprint
-            </CardTitle>
-            <CardDescription>
-              Complete list of fields that can be imported for {importInfo.title.toLowerCase()}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-start gap-3">
-              {importInfo.icon}
-              <div>
-                <h4 className="font-medium">{importInfo.title} template structure</h4>
-                <p className="text-sm text-muted-foreground">
-                  Review the grouped columns below before preparing your CSV to minimise rework during onboarding.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {importInfo.fieldGroups.map((group, index) => (
-                <div key={index} className="border rounded-lg p-4 bg-muted/40 space-y-3">
-                  <div>
-                    <h5 className="font-medium">{group.title}</h5>
-                    {group.description && (
-                      <p className="text-sm text-muted-foreground">{group.description}</p>
-                    )}
-                  </div>
-                  <ul className="space-y-2">
-                    {group.fields.map((field, fieldIndex) => (
-                      <li key={fieldIndex} className="rounded-md border bg-background/50 p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium">{field.label}</span>
-                          <span
-                            className={`text-[10px] font-semibold uppercase tracking-wide ${
-                              field.required ? "text-primary" : "text-muted-foreground"
-                            }`}
-                          >
-                            {field.required ? "Required" : "Optional"}
-                          </span>
-                        </div>
-                        {field.note && (
-                          <p className="text-xs text-muted-foreground mt-1">{field.note}</p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Template field guidance moved into TemplateGuidance component */}
       </div>
 
       {/* Send Welcome Email Modal */}

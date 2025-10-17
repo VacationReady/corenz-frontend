@@ -59,6 +59,8 @@ const DEFAULT_IMPORT_SEQUENCE: ImportType[] = [
   "job-roles",
   "working-patterns",
   "employees",
+  "payroll",
+  "training",
 ];
 
 const importSequence: Array<{ label: string; value: ImportType }> = DEFAULT_IMPORT_SEQUENCE.map(value => {

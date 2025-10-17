@@ -27,6 +27,7 @@ const ImportInstructionsCardComponent = ({
   activeImportType,
 }: ImportInstructionsCardProps) => {
   const keyNotes = template?.keyNotes ?? [];
+  const quickStartSequence = importSequence.map(step => step.label).join(" \u2192 ");
 
   return (
     <Card>
@@ -49,7 +50,7 @@ const ImportInstructionsCardComponent = ({
                 New to CSV imports? Use the "Download All" button above to get all templates at once with detailed instructions.
               </p>
               <p className="text-xs text-blue-600">
-                Includes: Departments → Job Roles → Working Patterns → Employees (in correct order)
+                Includes: {quickStartSequence} (in correct order)
               </p>
             </div>
           </div>

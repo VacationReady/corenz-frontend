@@ -1,4 +1,4 @@
-import type { CSVImportDomainId } from "@/lib/csv-import/types";
+import type { CSVImportDomainId } from "@/lib/csv-import/domains";
 
 export interface ImportResult {
   total: number;

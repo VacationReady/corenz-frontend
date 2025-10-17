@@ -10,12 +10,8 @@ import {
 } from "@/components/ui/Card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import type {
-  CSVImportDomainConfig,
-  CSVImportDomainId,
-  CSVImportIconName,
-  CSVImportTemplate,
-} from "@/lib/csv-import/types";
+import type { CSVImportDomainConfig, CSVImportIconName, CSVImportTemplate } from "@/lib/csv-import/types";
+import type { CSVImportDomainId } from "@/lib/csv-import/domains";
 import { renderDomainIcon } from "./icon-map";
 
 interface ImportTypeOption {

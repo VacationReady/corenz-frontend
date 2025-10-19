@@ -4,7 +4,7 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
   id: "employees",
   label: "Employees",
   description:
-    "Full employee record including people data, payroll, compliance, and onboarding essentials",
+    "Core employee record covering personal details, employment context, emergency contacts, and driver licensing",
   icon: "users",
   dependencies: "Requires departments, job roles, and working patterns",
   defaultTemplateId: "employees-all",
@@ -13,7 +13,7 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
       id: "employees-all",
       title: "Employee Master Template",
       description:
-        "Comprehensive template covering core employee information, employment details, payroll, compliance, and training",
+        "Comprehensive template covering core employee information, employment details, leave setup, emergency contacts, and driver licensing",
       templateFile: "04_employees_template.csv",
       keyNotes: [
         "Keep firstName and lastName as the first two columns in every CSV to guarantee accurate matching.",
@@ -77,8 +77,6 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
               label: "lineManagerName",
               note: "Full name of the line manager used to build reporting lines",
             },
-            { key: "salaryAmount", label: "salaryAmount" },
-            { key: "hourlyRate", label: "hourlyRate" },
           ],
         },
         {
@@ -94,44 +92,12 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
           ],
         },
         {
-          title: "Banking & payroll",
-          fields: [
-            { key: "bankAccountNumber", label: "bankAccountNumber" },
-            { key: "irdNumber", label: "irdNumber" },
-            { key: "taxCode", label: "taxCode" },
-            { key: "kiwiSaverEnrolled", label: "kiwiSaverEnrolled" },
-            { key: "kiwiSaverContribution", label: "kiwiSaverContribution" },
-          ],
-        },
-        {
           title: "Driver licence",
           fields: [
             { key: "driverLicenceType", label: "driverLicenceType" },
             { key: "driverLicenceNumber", label: "driverLicenceNumber" },
             { key: "driverLicenceIssueDate", label: "driverLicenceIssueDate" },
             { key: "driverLicenceExpiryDate", label: "driverLicenceExpiryDate" },
-          ],
-        },
-        {
-          title: "Training & compliance",
-          fields: [
-            { key: "trainingCourse", label: "trainingCourse" },
-            { key: "trainingProvider", label: "trainingProvider" },
-            { key: "trainingDateCompleted", label: "trainingDateCompleted" },
-            { key: "trainingExpiryDate", label: "trainingExpiryDate" },
-            { key: "employmentCheckType", label: "employmentCheckType" },
-            {
-              key: "employmentCheckDocumentNumber",
-              label: "employmentCheckDocumentNumber",
-            },
-            {
-              key: "employmentCheckIssueDate",
-              label: "employmentCheckIssueDate",
-            },
-            {
-              key: "employmentCheckExpiryDate",
-              label: "employmentCheckExpiryDate",
-            },
           ],
         },
       ],
@@ -152,21 +118,9 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
       templateId: "employees-all",
     },
     {
-      id: "payroll",
-      label: "Payroll",
-      description: "Include banking, tax, and KiwiSaver information",
-      templateId: "employees-all",
-    },
-    {
       id: "compliance",
       label: "Compliance",
-      description: "Include driver licence and employment checks",
-      templateId: "employees-all",
-    },
-    {
-      id: "training",
-      label: "Training",
-      description: "Include training course history and expiry dates",
+      description: "Include driver licence information",
       templateId: "employees-all",
     },
   ],

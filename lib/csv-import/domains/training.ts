@@ -23,7 +23,6 @@ export const trainingDomainConfig: CSVImportDomainConfig = {
           title: "Employee matching",
           fields: [
             { key: "email", label: "email", required: true },
-            { key: "employeeCode", label: "employeeCode" },
           ],
         },
         {

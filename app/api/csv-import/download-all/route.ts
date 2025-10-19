@@ -354,6 +354,30 @@ export async function GET() {
 
     zip.file("04_employees_template.csv", employeeCsvContent);
 
+    // 5. Payroll CSV (fetch from existing endpoint to keep logic in sync)
+    const payrollResponse = await fetch("/api/csv-import/payroll", {
+      headers: {
+        Cookie: requestHeadersToCookieString(headers()),
+      },
+    });
+
+    if (payrollResponse.ok) {
+      const payrollCsv = await payrollResponse.text();
+      zip.file("05_payroll_template.csv", payrollCsv);
+    }
+
+    // 6. Training CSV
+    const trainingResponse = await fetch("/api/csv-import/training", {
+      headers: {
+        Cookie: requestHeadersToCookieString(headers()),
+      },
+    });
+
+    if (trainingResponse.ok) {
+      const trainingCsv = await trainingResponse.text();
+      zip.file("06_training_template.csv", trainingCsv);
+    }
+
     // 5. Import Instructions README
     const readmeContent = `# CSV Import Templates
 
@@ -367,6 +391,8 @@ Please import the files in this exact order:
 2. **02_job_roles_template.csv** - Job roles (requires departments)
 3. **03_working_patterns_template.csv** - Working patterns (no dependencies)
 4. **04_employees_template.csv** - Employees (requires departments, job roles, and working patterns)
+5. **05_payroll_template.csv** - Payroll (requires employees)
+6. **06_training_template.csv** - Training & employment checks (requires employees)
 
 ## Field Requirements
 

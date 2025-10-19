@@ -357,9 +357,11 @@ export async function GET() {
 
     // 5. Payroll CSV (fetch from existing endpoint to keep logic in sync)
     const cookieHeader = cookies().toString();
-    const incomingHeaders = headers();
+    const incomingHeaders = await headers();
+    const protocol = incomingHeaders.get("x-forwarded-proto") ?? "https";
+    const host = incomingHeaders.get("host");
 
-    const payrollResponse = await fetch(`${incomingHeaders.get("x-forwarded-proto") ?? "https"}://${incomingHeaders.get("host")}/api/csv-import/payroll`, {
+    const payrollResponse = await fetch(`${protocol}://${host}/api/csv-import/payroll`, {
       headers: {
         Cookie: cookieHeader,
       },
@@ -371,7 +373,7 @@ export async function GET() {
     }
 
     // 6. Training CSV
-    const trainingResponse = await fetch(`${incomingHeaders.get("x-forwarded-proto") ?? "https"}://${incomingHeaders.get("host")}/api/csv-import/training`, {
+    const trainingResponse = await fetch(`${protocol}://${host}/api/csv-import/training`, {
       headers: {
         Cookie: cookieHeader,
       },

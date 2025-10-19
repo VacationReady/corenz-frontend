@@ -73,6 +73,11 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
               note: "Must match an imported working pattern",
             },
             {
+              key: "managerEmail",
+              label: "managerEmail",
+              note: "Email address of the employee's line manager (optional)",
+            },
+            {
               key: "lineManagerName",
               label: "lineManagerName",
               note: "Full name of the line manager used to build reporting lines",

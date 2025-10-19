@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { parse } from "csv-parse/sync";
 import { auditLog } from "@/lib/audit";
-import { Prisma, TaxCode, Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { employeeDomainConfig } from "@/lib/csv-import/domains/employees";
 
 const EMPLOYEE_TEMPLATE_HEADERS = [
@@ -36,13 +36,6 @@ const EMPLOYEE_TEMPLATE_HEADERS = [
   "workingPatternName",
   "managerEmail",
   "lineManagerName",
-  "salaryAmount",
-  "hourlyRate",
-  "bankAccountNumber",
-  "irdNumber",
-  "taxCode",
-  "kiwiSaverEnrolled",
-  "kiwiSaverContribution",
   "emergencyContactName",
   "emergencyContactRelationship",
   "emergencyContactPhone",
@@ -51,14 +44,6 @@ const EMPLOYEE_TEMPLATE_HEADERS = [
   "driverLicenceNumber",
   "driverLicenceIssueDate",
   "driverLicenceExpiryDate",
-  "trainingCourse",
-  "trainingProvider",
-  "trainingDateCompleted",
-  "trainingExpiryDate",
-  "employmentCheckType",
-  "employmentCheckDocumentNumber",
-  "employmentCheckIssueDate",
-  "employmentCheckExpiryDate",
 ] as const;
 
 const BASE_TEMPLATE_HEADERS: string[] = ["firstName", "lastName", "email"];
@@ -98,33 +83,12 @@ const EMPLOYEE_SUB_TEMPLATE_FIELD_MAP: Record<string, string[]> = {
     "holidayCarryover",
     "holidayCurrentBalance",
     "holidayYear",
-    "salaryAmount",
-    "hourlyRate",
-  ],
-  payroll: [
-    "salaryAmount",
-    "hourlyRate",
-    "bankAccountNumber",
-    "irdNumber",
-    "taxCode",
-    "kiwiSaverEnrolled",
-    "kiwiSaverContribution",
   ],
   compliance: [
     "driverLicenceType",
     "driverLicenceNumber",
     "driverLicenceIssueDate",
     "driverLicenceExpiryDate",
-    "employmentCheckType",
-    "employmentCheckDocumentNumber",
-    "employmentCheckIssueDate",
-    "employmentCheckExpiryDate",
-  ],
-  training: [
-    "trainingCourse",
-    "trainingProvider",
-    "trainingDateCompleted",
-    "trainingExpiryDate",
   ],
 };
 
@@ -325,13 +289,6 @@ const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
     workingPatternName: "Standard 40hr",
     managerEmail: "engineering.lead@company.com",
     lineManagerName: "Amelia Clark",
-    salaryAmount: "85000",
-    hourlyRate: "",
-    bankAccountNumber: "12-1234-1234567-00",
-    irdNumber: "123-456-789",
-    taxCode: "M",
-    kiwiSaverEnrolled: "Yes",
-    kiwiSaverContribution: "3",
     emergencyContactName: "Jane Doe",
     emergencyContactRelationship: "Spouse",
     emergencyContactPhone: "+64 21 555 0102",
@@ -340,14 +297,6 @@ const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
     driverLicenceNumber: "DL123456",
     driverLicenceIssueDate: "2022-02-10",
     driverLicenceExpiryDate: "2032-02-09",
-    trainingCourse: "Health & Safety Induction",
-    trainingProvider: "Safety First Ltd",
-    trainingDateCompleted: "2024-01-15",
-    trainingExpiryDate: "2026-01-15",
-    employmentCheckType: "Right to Work",
-    employmentCheckDocumentNumber: "RTW-2024-001",
-    employmentCheckIssueDate: "2023-12-01",
-    employmentCheckExpiryDate: "2025-12-01",
   },
   {
     firstName: "Jane",
@@ -377,13 +326,6 @@ const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
     workingPatternName: "Hybrid 32hr",
     managerEmail: "marketing.director@company.com",
     lineManagerName: "Liam Johnson",
-    salaryAmount: "92000",
-    hourlyRate: "",
-    bankAccountNumber: "98-7654-0987654-00",
-    irdNumber: "987-654-321",
-    taxCode: "ME SL",
-    kiwiSaverEnrolled: "No",
-    kiwiSaverContribution: "",
     emergencyContactName: "John Smith",
     emergencyContactRelationship: "Partner",
     emergencyContactPhone: "+64 21 555 0203",
@@ -392,14 +334,6 @@ const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
     driverLicenceNumber: "DL654321",
     driverLicenceIssueDate: "2021-07-01",
     driverLicenceExpiryDate: "2026-07-01",
-    trainingCourse: "Advanced Leadership",
-    trainingProvider: "People Leaders NZ",
-    trainingDateCompleted: "2023-11-20",
-    trainingExpiryDate: "",
-    employmentCheckType: "Police Vetting",
-    employmentCheckDocumentNumber: "PV-2023-045",
-    employmentCheckIssueDate: "2023-11-15",
-    employmentCheckExpiryDate: "2025-11-15",
   },
 ];
 
@@ -440,10 +374,6 @@ const employeeImportSchema = z.object({
   managerEmail: z.string().optional(),
   lineManagerName: z.string().optional(),
   lineManager: z.string().optional(),
-  salaryAmount: z.string().optional(),
-  salary: z.string().optional(),
-  hourlyRate: z.string().optional(),
-  hourly: z.string().optional(),
 
   // Emergency contacts
   emergencyContactName: z.string().optional(),
@@ -451,28 +381,11 @@ const employeeImportSchema = z.object({
   emergencyContactPhone: z.string().optional(),
   emergencyContactEmail: z.string().optional(),
 
-  // Payroll & compliance
-  bankAccountNumber: z.string().optional(),
-  irdNumber: z.string().optional(),
-  taxCode: z.string().optional(),
-  kiwiSaverEnrolled: z.string().optional(),
-  kiwiSaverContribution: z.string().optional(),
-
   // Driver licence
   driverLicenceType: z.string().optional(),
   driverLicenceNumber: z.string().optional(),
   driverLicenceIssueDate: z.string().optional(),
   driverLicenceExpiryDate: z.string().optional(),
-
-  // Training & compliance
-  trainingCourse: z.string().optional(),
-  trainingProvider: z.string().optional(),
-  trainingDateCompleted: z.string().optional(),
-  trainingExpiryDate: z.string().optional(),
-  employmentCheckType: z.string().optional(),
-  employmentCheckDocumentNumber: z.string().optional(),
-  employmentCheckIssueDate: z.string().optional(),
-  employmentCheckExpiryDate: z.string().optional(),
 });
 
 type EmployeeImportData = z.infer<typeof employeeImportSchema>;
@@ -492,25 +405,6 @@ const parseOptionalNumber = (value: string | undefined, label: string): number |
     throw new Error(`Invalid ${label} "${trimmed}". Please provide a numeric value.`);
   }
   return parsed;
-};
-
-const parseOptionalInteger = (value: string | undefined, label: string): number | undefined => {
-  const trimmed = trimToUndefined(value);
-  if (!trimmed) return undefined;
-  const parsed = Number.parseInt(trimmed, 10);
-  if (!Number.isFinite(parsed)) {
-    throw new Error(`Invalid ${label} "${trimmed}". Please provide a whole number.`);
-  }
-  return parsed;
-};
-
-const parseOptionalBoolean = (value: string | undefined, label: string): boolean | undefined => {
-  const trimmed = trimToUndefined(value);
-  if (!trimmed) return undefined;
-  const normalised = trimmed.toLowerCase();
-  if (["yes", "true", "1", "y"].includes(normalised)) return true;
-  if (["no", "false", "0", "n"].includes(normalised)) return false;
-  throw new Error(`Invalid ${label} "${value}". Use Yes/No or True/False.`);
 };
 
 const parseOptionalDate = (value: string | undefined, label: string): Date | undefined => {
@@ -547,57 +441,6 @@ const normaliseContractType = (value: string | undefined): string | undefined =>
     );
   }
   return mapped;
-};
-
-const TAX_CODE_LOOKUP: Record<string, TaxCode> = {
-  M: TaxCode.M,
-  ME: TaxCode.ME,
-  "M SL": TaxCode.M_SL,
-  MSL: TaxCode.M_SL,
-  M_SL: TaxCode.M_SL,
-  "ME SL": TaxCode.ME_SL,
-  MESL: TaxCode.ME_SL,
-  ME_SL: TaxCode.ME_SL,
-  SB: TaxCode.SB,
-  "SB SL": TaxCode.SB_SL,
-  SBSL: TaxCode.SB_SL,
-  SB_SL: TaxCode.SB_SL,
-  S: TaxCode.S,
-  "S SL": TaxCode.S_SL,
-  SSL: TaxCode.S_SL,
-  S_SL: TaxCode.S_SL,
-  SH: TaxCode.SH,
-  "SH SL": TaxCode.SH_SL,
-  SHSL: TaxCode.SH_SL,
-  SH_SL: TaxCode.SH_SL,
-  ST: TaxCode.ST,
-  "ST SL": TaxCode.ST_SL,
-  STSL: TaxCode.ST_SL,
-  ST_SL: TaxCode.ST_SL,
-  SA: TaxCode.SA,
-  "SA SL": TaxCode.SA_SL,
-  SASL: TaxCode.SA_SL,
-  SA_SL: TaxCode.SA_SL,
-  SL: TaxCode.SL,
-  SED: TaxCode.SED,
-  STC: TaxCode.STC,
-  CAE: TaxCode.CAE,
-  EDW: TaxCode.EDW,
-  ND: TaxCode.ND,
-  NS: TaxCode.NS,
-  NC: TaxCode.NC,
-  NCC: TaxCode.NCC,
-  WT: TaxCode.WT,
-  P: TaxCode.P,
-};
-
-const normaliseTaxCode = (value: string | undefined): TaxCode | undefined => {
-  const trimmed = trimToUndefined(value);
-  if (!trimmed) return undefined;
-  const upper = trimmed.toUpperCase();
-  const withSpaces = upper.replace(/[_-]+/g, " ");
-  const condensed = withSpaces.replace(/\s+/g, "");
-  return TAX_CODE_LOOKUP[withSpaces] || TAX_CODE_LOOKUP[condensed];
 };
 
 const promoteManagerIfNeeded = async (
@@ -809,31 +652,14 @@ export async function POST(request: NextRequest) {
         const city = trimToUndefined(validatedData.city);
         const postcode = trimToUndefined(validatedData.postcode) ?? trimToUndefined(validatedData.postalCode);
         const country = trimToUndefined(validatedData.country);
-        const nationalId = trimToUndefined(validatedData.nationalId);
-        const pronouns = trimToUndefined(validatedData.pronouns);
-        const residencyStatus = trimToUndefined(validatedData.residencyStatus);
-
-        const holidayTotalBalance = parseOptionalNumber(validatedData.holidayTotalBalance, "holidayTotalBalance");
-        const holidayCarryover = parseOptionalNumber(validatedData.holidayCarryover, "holidayCarryover");
-        const holidayCurrentBalance = parseOptionalNumber(validatedData.holidayCurrentBalance, "holidayCurrentBalance");
-        const holidayYearInput = trimToUndefined(validatedData.holidayYear);
-        let holidayYear: number | undefined;
-        let holidayCarryoverExpiry: Date | undefined;
-        if (holidayYearInput) {
-          const parsedYear = Number.parseInt(holidayYearInput, 10);
-          if (!Number.isFinite(parsedYear) || parsedYear < 1900 || parsedYear > 2100) {
-            throw new Error(
-              `Invalid holidayYear "${holidayYearInput}". Please provide a four-digit year (e.g. 2025).`
-            );
-          }
-          holidayYear = parsedYear;
-          holidayCarryoverExpiry = new Date(parsedYear, 11, 31);
+        const emergencyContactName = trimToUndefined(validatedData.emergencyContactName);
+        const emergencyContactRelationship = trimToUndefined(validatedData.emergencyContactRelationship);
+        const emergencyContactPhone = trimToUndefined(validatedData.emergencyContactPhone);
+        const emergencyContactEmail = trimToUndefined(validatedData.emergencyContactEmail);
+        if (emergencyContactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emergencyContactEmail)) {
+          throw new Error(`Invalid emergencyContactEmail "${emergencyContactEmail}". Provide a valid email.`);
         }
 
-        const departmentName = trimToUndefined(validatedData.departmentName);
-        const jobRoleName = trimToUndefined(validatedData.jobRoleName) ?? trimToUndefined(validatedData.jobTitle);
-        const employmentType = normaliseEmploymentType(validatedData.employmentType);
-        const contractType = normaliseContractType(validatedData.contractType);
         const siteLocation = trimToUndefined(validatedData.siteLocation);
         const startDate = parseOptionalDate(validatedData.startDate, "startDate");
         const contractEndDate = parseOptionalDate(validatedData.contractEndDate, "contractEndDate");
@@ -847,108 +673,10 @@ export async function POST(request: NextRequest) {
           throw new Error(`Invalid managerEmail "${managerEmail}". Provide a valid email address.`);
         }
 
-        const salaryAmount = parseOptionalNumber(
-          validatedData.salaryAmount ?? validatedData.salary,
-          "salaryAmount"
-        );
-        const hourlyRate = parseOptionalNumber(
-          validatedData.hourlyRate ?? validatedData.hourly,
-          "hourlyRate"
-        );
-        const bankAccountNumber = trimToUndefined(validatedData.bankAccountNumber);
-        const irdNumber = trimToUndefined(validatedData.irdNumber);
-        const taxCodeInput = trimToUndefined(validatedData.taxCode);
-        const taxCode = normaliseTaxCode(validatedData.taxCode);
-        if (taxCodeInput && !taxCode) {
-          throw new Error(
-            `Invalid taxCode "${validatedData.taxCode}". Please use a valid New Zealand tax code (e.g. M, M SL, S, etc.).`
-          );
-        }
-        const kiwiSaverEnrolled = parseOptionalBoolean(validatedData.kiwiSaverEnrolled, "kiwiSaverEnrolled");
-        const kiwiSaverContribution = parseOptionalInteger(
-          validatedData.kiwiSaverContribution,
-          "kiwiSaverContribution"
-        );
-
-        const emergencyContactName = trimToUndefined(validatedData.emergencyContactName);
-        const emergencyContactRelationship = trimToUndefined(validatedData.emergencyContactRelationship);
-        const emergencyContactPhone = trimToUndefined(validatedData.emergencyContactPhone);
-        const emergencyContactEmail = trimToUndefined(validatedData.emergencyContactEmail);
-        if (emergencyContactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emergencyContactEmail)) {
-          throw new Error(`Invalid emergencyContactEmail "${emergencyContactEmail}". Provide a valid email.`);
-        }
-
-        const driverLicenceType = trimToUndefined(validatedData.driverLicenceType);
-        const driverLicenceNumber = trimToUndefined(validatedData.driverLicenceNumber);
-        const driverLicenceIssueDate = parseOptionalDate(
-          validatedData.driverLicenceIssueDate,
-          "driverLicenceIssueDate"
-        );
-        const driverLicenceExpiryDate = parseOptionalDate(
-          validatedData.driverLicenceExpiryDate,
-          "driverLicenceExpiryDate"
-        );
-
-        if (
-          driverLicenceType ||
-          driverLicenceNumber ||
-          driverLicenceIssueDate ||
-          driverLicenceExpiryDate
-        ) {
-          if (!driverLicenceType || !driverLicenceNumber || !driverLicenceIssueDate || !driverLicenceExpiryDate) {
-            throw new Error(
-              "Driver licence section requires type, number, issue date, and expiry date when any field is provided."
-            );
-          }
-        }
-
-        const trainingCourse = trimToUndefined(validatedData.trainingCourse);
-        const trainingProvider = trimToUndefined(validatedData.trainingProvider);
-        const trainingDateCompleted = parseOptionalDate(
-          validatedData.trainingDateCompleted,
-          "trainingDateCompleted"
-        );
-        const trainingExpiryDate = parseOptionalDate(
-          validatedData.trainingExpiryDate,
-          "trainingExpiryDate"
-        );
-
-        if (trainingCourse || trainingProvider || trainingDateCompleted) {
-          if (!trainingCourse || !trainingProvider || !trainingDateCompleted) {
-            throw new Error(
-              "Training section requires course, provider, and date completed when any training data is supplied."
-            );
-          }
-        }
-
-        const employmentCheckType = trimToUndefined(validatedData.employmentCheckType);
-        const employmentCheckDocumentNumber = trimToUndefined(validatedData.employmentCheckDocumentNumber);
-        const employmentCheckIssueDate = parseOptionalDate(
-          validatedData.employmentCheckIssueDate,
-          "employmentCheckIssueDate"
-        );
-        const employmentCheckExpiryDate = parseOptionalDate(
-          validatedData.employmentCheckExpiryDate,
-          "employmentCheckExpiryDate"
-        );
-
-        if (
-          employmentCheckType ||
-          employmentCheckDocumentNumber ||
-          employmentCheckIssueDate ||
-          employmentCheckExpiryDate
-        ) {
-          if (
-            !employmentCheckType ||
-            !employmentCheckDocumentNumber ||
-            !employmentCheckIssueDate ||
-            !employmentCheckExpiryDate
-          ) {
-            throw new Error(
-              "Employment check section requires type, document number, issue date, and expiry date when any value is provided."
-            );
-          }
-        }
+        const departmentName = trimToUndefined(validatedData.departmentName);
+        const jobRoleName = trimToUndefined(validatedData.jobRoleName) ?? trimToUndefined(validatedData.jobTitle);
+        const employmentType = normaliseEmploymentType(validatedData.employmentType);
+        const contractType = normaliseContractType(validatedData.contractType);
 
         // Find department (must exist)
         let department = null;
@@ -1119,11 +847,7 @@ export async function POST(request: NextRequest) {
           if (emergencyContactRelationship !== undefined) {
             userUpdateData.emergencyContactRelationship = emergencyContactRelationship;
           }
-          if (nationalId !== undefined) userUpdateData.nationalId = nationalId;
-          if (pronouns !== undefined) userUpdateData.pronouns = pronouns;
-          if (residencyStatus !== undefined) userUpdateData.residencyStatus = residencyStatus;
           if (genderOptionId !== undefined) userUpdateData.genderOptionId = genderOptionId;
-          // Skip manager assignment during initial import - will be handled in second pass
 
           user = await prisma.user.update({
             where: { id: existingUserWithEmployee.id },
@@ -1131,20 +855,11 @@ export async function POST(request: NextRequest) {
           });
 
           const employeeUpdateData: Record<string, unknown> = {};
-          if (bankAccountNumber !== undefined) employeeUpdateData.bankAccountNumber = bankAccountNumber;
           if (contractType !== undefined) employeeUpdateData.contractType = contractType;
           if (employmentType !== undefined) employeeUpdateData.employmentType = employmentType;
-          if (salaryAmount !== undefined) employeeUpdateData.salaryAmount = salaryAmount;
-          if (hourlyRate !== undefined) employeeUpdateData.hourlyRate = hourlyRate;
           if (startDate !== undefined) employeeUpdateData.startDate = startDate ?? null;
           if (contractEndDate !== undefined) employeeUpdateData.contractEndDate = contractEndDate ?? null;
           if (siteLocation !== undefined) employeeUpdateData.siteLocation = siteLocation;
-          if (irdNumber !== undefined) employeeUpdateData.irdNumber = irdNumber;
-          if (taxCodeInput !== undefined) employeeUpdateData.taxCode = taxCode ?? null;
-          if (kiwiSaverEnrolled !== undefined) employeeUpdateData.kiwiSaverEnrolled = kiwiSaverEnrolled;
-          if (kiwiSaverContribution !== undefined) {
-            employeeUpdateData.kiwiSaverContribution = kiwiSaverContribution;
-          }
           if (department) employeeUpdateData.departmentId = department.id;
           if (jobRole) employeeUpdateData.jobRoleId = jobRole.id;
           if (workingPattern) employeeUpdateData.workingPatternId = workingPattern.id;
@@ -1156,18 +871,11 @@ export async function POST(request: NextRequest) {
             create: {
               id: crypto.randomUUID(),
               userId: existingUserWithEmployee.id,
-              bankAccountNumber,
               contractType,
               employmentType,
-              salaryAmount,
-              hourlyRate,
               startDate: startDate ?? null,
               contractEndDate: contractEndDate ?? null,
               siteLocation,
-              irdNumber,
-              taxCode: taxCode ?? null,
-              kiwiSaverEnrolled,
-              kiwiSaverContribution,
               departmentId: department?.id,
               jobRoleId: jobRole?.id,
               workingPatternId: workingPattern?.id,
@@ -1211,18 +919,11 @@ export async function POST(request: NextRequest) {
             data: {
               id: crypto.randomUUID(),
               userId: user.id,
-              bankAccountNumber,
               contractType,
               employmentType,
-              salaryAmount,
-              hourlyRate,
               startDate: startDate ?? null,
               contractEndDate: contractEndDate ?? null,
               siteLocation,
-              irdNumber,
-              taxCode: taxCode ?? null,
-              kiwiSaverEnrolled,
-              kiwiSaverContribution,
               departmentId: department?.id,
               jobRoleId: jobRole?.id,
               workingPatternId: workingPattern?.id,
@@ -1360,106 +1061,6 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        if (trainingCourse) {
-          let course = await prisma.course.findFirst({
-            where: {
-              name: { equals: trainingCourse, mode: "insensitive" },
-              OR: [{ companyId: session.user.companyId }, { companyId: null }],
-            },
-          });
-
-          if (!course) {
-            course = await prisma.course.create({
-              data: {
-                id: crypto.randomUUID(),
-                name: trainingCourse,
-                companyId: session.user.companyId,
-              },
-            });
-          }
-
-          let provider = await prisma.trainingProvider.findFirst({
-            where: {
-              name: { equals: trainingProvider!, mode: "insensitive" },
-              OR: [{ companyId: session.user.companyId }, { companyId: null }],
-            },
-          });
-
-          if (!provider) {
-            provider = await prisma.trainingProvider.create({
-              data: {
-                id: crypto.randomUUID(),
-                name: trainingProvider!,
-                companyId: session.user.companyId,
-              },
-            });
-          }
-
-          const existingTraining = await prisma.trainingRecord.findFirst({
-            where: {
-              employeeId: employee.id,
-              courseId: course.id,
-              providerId: provider.id,
-            },
-          });
-
-          if (existingTraining) {
-            await prisma.trainingRecord.update({
-              where: { id: existingTraining.id },
-              data: {
-                dateCompleted: trainingDateCompleted!,
-                expiryDate: trainingExpiryDate ?? null,
-                updatedAt: new Date(),
-              },
-            });
-          } else {
-            await prisma.trainingRecord.create({
-              data: {
-                id: crypto.randomUUID(),
-                employeeId: employee.id,
-                courseId: course.id,
-                providerId: provider.id,
-                dateCompleted: trainingDateCompleted!,
-                expiryDate: trainingExpiryDate ?? null,
-                updatedAt: new Date(),
-              },
-            });
-          }
-        }
-
-        if (employmentCheckType) {
-          const existingCheck = await prisma.employmentCheck.findFirst({
-            where: {
-              employeeId: employee.id,
-              typeOfCheck: employmentCheckType,
-            },
-          });
-
-          if (existingCheck) {
-            await prisma.employmentCheck.update({
-              where: { id: existingCheck.id },
-              data: {
-                documentNumber: employmentCheckDocumentNumber!,
-                dateOfIssue: employmentCheckIssueDate!,
-                expiryDate: employmentCheckExpiryDate!,
-                updatedAt: new Date(),
-              },
-            });
-          } else {
-            await prisma.employmentCheck.create({
-              data: {
-                id: crypto.randomUUID(),
-                employeeId: employee.id,
-                typeOfCheck: employmentCheckType,
-                documentNumber: employmentCheckDocumentNumber!,
-                dateOfIssue: employmentCheckIssueDate!,
-                expiryDate: employmentCheckExpiryDate!,
-                updatedAt: new Date(),
-              },
-            });
-          }
-        }
-
         // Create audit log entry
         await auditLog({
           entityType: "EMPLOYEE",
@@ -1486,11 +1087,6 @@ export async function POST(request: NextRequest) {
               carryover: holidayCarryover,
               currentBalance: holidayCurrentBalance,
               holidayYear,
-            },
-            compliance: {
-              driverLicenceCreated: Boolean(driverLicenceType),
-              trainingRecordCreated: Boolean(trainingCourse),
-              employmentCheckCreated: Boolean(employmentCheckType),
             },
             updateMode: canUpdateExistingUser,
           },

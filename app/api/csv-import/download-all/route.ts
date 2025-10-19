@@ -214,13 +214,6 @@ export async function GET() {
       "workingPatternName",
       "managerEmail",
       "lineManagerName",
-      "salaryAmount",
-      "hourlyRate",
-      "bankAccountNumber",
-      "irdNumber",
-      "taxCode",
-      "kiwiSaverEnrolled",
-      "kiwiSaverContribution",
       "emergencyContactName",
       "emergencyContactRelationship",
       "emergencyContactPhone",
@@ -229,14 +222,6 @@ export async function GET() {
       "driverLicenceNumber",
       "driverLicenceIssueDate",
       "driverLicenceExpiryDate",
-      "trainingCourse",
-      "trainingProvider",
-      "trainingDateCompleted",
-      "trainingExpiryDate",
-      "employmentCheckType",
-      "employmentCheckDocumentNumber",
-      "employmentCheckIssueDate",
-      "employmentCheckExpiryDate",
     ];
 
     const employeeSampleData = [
@@ -268,13 +253,6 @@ export async function GET() {
         workingPatterns[0]?.name || "Standard 40hr",
         "engineering.lead@company.com",
         "Amelia Clark",
-        "85000",
-        "",
-        "12-1234-1234567-00",
-        "123-456-789",
-        "M",
-        "Yes",
-        "3",
         "Jane Doe",
         "Spouse",
         "+64 21 555 0102",
@@ -283,14 +261,6 @@ export async function GET() {
         "DL123456",
         "2022-02-10",
         "2032-02-09",
-        "Health & Safety Induction",
-        "Safety First Ltd",
-        "2024-01-15",
-        "2026-01-15",
-        "Right to Work",
-        "RTW-2024-001",
-        "2023-12-01",
-        "2025-12-01",
       ],
       [
         "Jane",
@@ -320,13 +290,6 @@ export async function GET() {
         workingPatterns[1]?.name || "Hybrid 32hr",
         "marketing.director@company.com",
         "Liam Johnson",
-        "92000",
-        "",
-        "98-7654-0987654-00",
-        "987-654-321",
-        "ME SL",
-        "No",
-        "",
         "John Smith",
         "Partner",
         "+64 21 555 0203",
@@ -335,17 +298,8 @@ export async function GET() {
         "DL654321",
         "2021-07-01",
         "2026-07-01",
-        "Advanced Leadership",
-        "People Leaders NZ",
-        "2023-11-20",
-        "",
-        "Police Vetting",
-        "PV-2023-045",
-        "2023-11-15",
-        "2025-11-15",
       ],
     ];
-
     const employeeCsvContent = [
       employeeHeaders.join(","),
       ...employeeSampleData.map((row) =>
@@ -417,7 +371,7 @@ Please import the files in this exact order:
 ### Employees
 - **Required**: firstName, lastName, email (keep these as the first columns)
 - **Recommended**: departmentName, jobRoleName, workingPatternName, employmentType, contractType, startDate, managerEmail and/or lineManagerName
-- **Optional**: Holiday balances, payroll & bank data, KiwiSaver settings, emergency contacts, driver licence, training, employment checks
+- **Optional**: Holiday balances, emergency contacts, driver licence details
 - **Formatting**:
   - Dates must use YYYY-MM-DD
   - Tax codes follow NZ IRD format (e.g. M, ME SL, S)

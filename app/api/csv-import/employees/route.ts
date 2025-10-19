@@ -652,6 +652,9 @@ export async function POST(request: NextRequest) {
         const city = trimToUndefined(validatedData.city);
         const postcode = trimToUndefined(validatedData.postcode) ?? trimToUndefined(validatedData.postalCode);
         const country = trimToUndefined(validatedData.country);
+        const nationalId = trimToUndefined(validatedData.nationalId);
+        const pronouns = trimToUndefined(validatedData.pronouns);
+        const residencyStatus = trimToUndefined(validatedData.residencyStatus);
         const emergencyContactName = trimToUndefined(validatedData.emergencyContactName);
         const emergencyContactRelationship = trimToUndefined(validatedData.emergencyContactRelationship);
         const emergencyContactPhone = trimToUndefined(validatedData.emergencyContactPhone);
@@ -660,10 +663,41 @@ export async function POST(request: NextRequest) {
           throw new Error(`Invalid emergencyContactEmail "${emergencyContactEmail}". Provide a valid email.`);
         }
 
+        const holidayTotalBalance = parseOptionalNumber(validatedData.holidayTotalBalance, "holidayTotalBalance");
+        const holidayCarryover = parseOptionalNumber(validatedData.holidayCarryover, "holidayCarryover");
+        const holidayCurrentBalance = parseOptionalNumber(
+          validatedData.holidayCurrentBalance,
+          "holidayCurrentBalance"
+        );
+        const holidayYearInput = trimToUndefined(validatedData.holidayYear);
+        let holidayYear: number | undefined;
+        let holidayCarryoverExpiry: Date | undefined;
+        if (holidayYearInput) {
+          const parsedYear = Number.parseInt(holidayYearInput, 10);
+          if (!Number.isFinite(parsedYear) || parsedYear < 1900 || parsedYear > 2100) {
+            throw new Error(
+              `Invalid holidayYear "${holidayYearInput}". Please provide a four-digit year (e.g. 2025).`
+            );
+          }
+          holidayYear = parsedYear;
+          holidayCarryoverExpiry = new Date(parsedYear, 11, 31);
+        }
+
         const siteLocation = trimToUndefined(validatedData.siteLocation);
         const startDate = parseOptionalDate(validatedData.startDate, "startDate");
         const contractEndDate = parseOptionalDate(validatedData.contractEndDate, "contractEndDate");
         const workingPatternName = trimToUndefined(validatedData.workingPatternName);
+
+        const driverLicenceType = trimToUndefined(validatedData.driverLicenceType);
+        const driverLicenceNumber = trimToUndefined(validatedData.driverLicenceNumber);
+        const driverLicenceIssueDate = parseOptionalDate(
+          validatedData.driverLicenceIssueDate,
+          "driverLicenceIssueDate"
+        );
+        const driverLicenceExpiryDate = parseOptionalDate(
+          validatedData.driverLicenceExpiryDate,
+          "driverLicenceExpiryDate"
+        );
 
         const managerEmail = trimToUndefined(validatedData.managerEmail);
         const lineManagerName =
@@ -847,6 +881,9 @@ export async function POST(request: NextRequest) {
           if (emergencyContactRelationship !== undefined) {
             userUpdateData.emergencyContactRelationship = emergencyContactRelationship;
           }
+          if (nationalId !== undefined) userUpdateData.nationalId = nationalId;
+          if (pronouns !== undefined) userUpdateData.pronouns = pronouns;
+          if (residencyStatus !== undefined) userUpdateData.residencyStatus = residencyStatus;
           if (genderOptionId !== undefined) userUpdateData.genderOptionId = genderOptionId;
 
           user = await prisma.user.update({

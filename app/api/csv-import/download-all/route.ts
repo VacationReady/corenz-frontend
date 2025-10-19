@@ -1,3 +1,4 @@
+import { cookies, headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
@@ -355,9 +356,12 @@ export async function GET() {
     zip.file("04_employees_template.csv", employeeCsvContent);
 
     // 5. Payroll CSV (fetch from existing endpoint to keep logic in sync)
-    const payrollResponse = await fetch("/api/csv-import/payroll", {
+    const cookieHeader = cookies().toString();
+    const incomingHeaders = headers();
+
+    const payrollResponse = await fetch(`${incomingHeaders.get("x-forwarded-proto") ?? "https"}://${incomingHeaders.get("host")}/api/csv-import/payroll`, {
       headers: {
-        Cookie: requestHeadersToCookieString(headers()),
+        Cookie: cookieHeader,
       },
     });
 
@@ -367,9 +371,9 @@ export async function GET() {
     }
 
     // 6. Training CSV
-    const trainingResponse = await fetch("/api/csv-import/training", {
+    const trainingResponse = await fetch(`${incomingHeaders.get("x-forwarded-proto") ?? "https"}://${incomingHeaders.get("host")}/api/csv-import/training`, {
       headers: {
-        Cookie: requestHeadersToCookieString(headers()),
+        Cookie: cookieHeader,
       },
     });
 

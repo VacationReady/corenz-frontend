@@ -77,7 +77,7 @@ export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess }: Schedul
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [templateId, setTemplateId] = useState<string>("");
+  const [templateId, setTemplateId] = useState<string>("none");
   const [scheduledAt, setScheduledAt] = useState("");
   const [duration, setDuration] = useState(60);
   const [location, setLocation] = useState("");
@@ -168,7 +168,7 @@ export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess }: Schedul
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setTemplateId("");
+    setTemplateId("none");
     setScheduledAt("");
     setDuration(60);
     setLocation("");
@@ -219,7 +219,7 @@ export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess }: Schedul
       const payload: any = {
         title,
         description,
-        templateId: templateId || undefined,
+        templateId: templateId === "none" ? undefined : templateId,
         participantIds,
         scheduledAt,
         duration,
@@ -371,7 +371,7 @@ export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess }: Schedul
                       <SelectValue placeholder="Select a template" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No template</SelectItem>
+                      <SelectItem value="none">No template</SelectItem>
                       {templates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           {template.name}

@@ -51,6 +51,10 @@ export default function SendWelcomeEmailModal({
   onClose,
   onSendEmails,
 }: SendWelcomeEmailModalProps) {
+  const ALL_DEPARTMENTS_OPTION = "__all_departments__";
+  const ALL_JOB_ROLES_OPTION = "__all_job_roles__";
+  const ALL_LOCATIONS_OPTION = "__all_locations__";
+  const ALL_STATUS_OPTION = "__all_status__";
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
@@ -61,10 +65,10 @@ export default function SendWelcomeEmailModal({
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>("");
-  const [selectedJobRoleId, setSelectedJobRoleId] = useState<string>("");
-  const [selectedLocationId, setSelectedLocationId] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>(ALL_DEPARTMENTS_OPTION);
+  const [selectedJobRoleId, setSelectedJobRoleId] = useState<string>(ALL_JOB_ROLES_OPTION);
+  const [selectedLocationId, setSelectedLocationId] = useState<string>(ALL_LOCATIONS_OPTION);
+  const [statusFilter, setStatusFilter] = useState<string>(ALL_STATUS_OPTION);
 
   // Load data when modal opens
   useEffect(() => {
@@ -126,23 +130,23 @@ export default function SendWelcomeEmailModal({
       }
 
       // Department filter
-      if (selectedDepartmentId && employee.departmentId !== selectedDepartmentId) {
+      if (selectedDepartmentId !== ALL_DEPARTMENTS_OPTION && employee.departmentId !== selectedDepartmentId) {
         return false;
       }
 
       // Job role filter
-      if (selectedJobRoleId && employee.jobRoleId !== selectedJobRoleId) {
+      if (selectedJobRoleId !== ALL_JOB_ROLES_OPTION && employee.jobRoleId !== selectedJobRoleId) {
         return false;
       }
 
       // Location filter (assuming location is stored in employee data)
-      if (selectedLocationId) {
+      if (selectedLocationId !== ALL_LOCATIONS_OPTION) {
         // This would need to be implemented based on how location is stored
         // For now, we'll skip this filter
       }
 
       // Status filter
-      if (statusFilter && employee.status !== statusFilter) {
+      if (statusFilter !== ALL_STATUS_OPTION && employee.status !== statusFilter) {
         return false;
       }
 
@@ -171,10 +175,10 @@ export default function SendWelcomeEmailModal({
   // Clear all filters
   const clearFilters = () => {
     setSearchQuery("");
-    setSelectedDepartmentId("");
-    setSelectedJobRoleId("");
-    setSelectedLocationId("");
-    setStatusFilter("");
+    setSelectedDepartmentId(ALL_DEPARTMENTS_OPTION);
+    setSelectedJobRoleId(ALL_JOB_ROLES_OPTION);
+    setSelectedLocationId(ALL_LOCATIONS_OPTION);
+    setStatusFilter(ALL_STATUS_OPTION);
     setSelectedEmployeeIds([]);
   };
 
@@ -211,7 +215,12 @@ export default function SendWelcomeEmailModal({
     }
   };
 
-  const hasActiveFilters = searchQuery || selectedDepartmentId || selectedJobRoleId || selectedLocationId || statusFilter;
+  const hasActiveFilters =
+    Boolean(searchQuery) ||
+    selectedDepartmentId !== ALL_DEPARTMENTS_OPTION ||
+    selectedJobRoleId !== ALL_JOB_ROLES_OPTION ||
+    selectedLocationId !== ALL_LOCATIONS_OPTION ||
+    statusFilter !== ALL_STATUS_OPTION;
 
   return (
     <Modal
@@ -285,7 +294,7 @@ export default function SendWelcomeEmailModal({
                   <SelectValue placeholder="All departments" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All departments</SelectItem>
+                  <SelectItem value={ALL_DEPARTMENTS_OPTION}>All departments</SelectItem>
                   {departments.map(dept => (
                     <SelectItem key={dept.id} value={dept.id}>
                       <div className="flex items-center gap-2">
@@ -306,7 +315,7 @@ export default function SendWelcomeEmailModal({
                   <SelectValue placeholder="All job roles" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All job roles</SelectItem>
+                  <SelectItem value={ALL_JOB_ROLES_OPTION}>All job roles</SelectItem>
                   {jobRoles.map(role => (
                     <SelectItem key={role.id} value={role.id}>
                       <div className="flex items-center gap-2">
@@ -327,7 +336,7 @@ export default function SendWelcomeEmailModal({
                   <SelectValue placeholder="All locations" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All locations</SelectItem>
+                  <SelectItem value={ALL_LOCATIONS_OPTION}>All locations</SelectItem>
                   {locations.map(location => (
                     <SelectItem key={location.id} value={location.id}>
                       <div className="flex items-center gap-2">
@@ -348,7 +357,7 @@ export default function SendWelcomeEmailModal({
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value={ALL_STATUS_OPTION}>All statuses</SelectItem>
                   <SelectItem value="no_email">No Email Sent</SelectItem>
                   <SelectItem value="email_sent_pending">Email Sent (Pending)</SelectItem>
                   <SelectItem value="activated">Activated</SelectItem>

@@ -193,13 +193,18 @@ export default function CSVImportPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const selectedDomainConfig = getDomainConfig(selectedImportType);
   const selectedTemplate = getDefaultTemplate(selectedDomainConfig);
-  const defaultSubTemplateSelection = useMemo(
-    () => getDefaultSubTemplateSelection(selectedDomainConfig),
-    [selectedDomainConfig],
-  );
-  const hasSubTemplates = Boolean(
-    selectedDomainConfig.subTemplates && selectedDomainConfig.subTemplates.length > 0,
-  );
+  const defaultSubTemplateSelection = useMemo(() => {
+    if (selectedImportType === "employees") {
+      return [];
+    }
+    return getDefaultSubTemplateSelection(selectedDomainConfig);
+  }, [selectedDomainConfig, selectedImportType]);
+  const hasSubTemplates = useMemo(() => {
+    if (selectedImportType === "employees") {
+      return false;
+    }
+    return Boolean(selectedDomainConfig.subTemplates && selectedDomainConfig.subTemplates.length > 0);
+  }, [selectedDomainConfig, selectedImportType]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -335,6 +340,10 @@ export default function CSVImportPage() {
   ]);
 
   useEffect(() => {
+    if (selectedImportType === "employees") {
+      setSelectedSubTemplates([]);
+      return;
+    }
     setSelectedSubTemplates(defaultSubTemplateSelection);
   }, [selectedImportType, defaultSubTemplateSelection]);
 

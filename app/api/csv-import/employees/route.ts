@@ -40,6 +40,10 @@ const EMPLOYEE_TEMPLATE_HEADERS = [
   "emergencyContactRelationship",
   "emergencyContactPhone",
   "emergencyContactEmail",
+  "employmentCheckType",
+  "employmentCheckDocumentNumber",
+  "employmentCheckIssueDate",
+  "employmentCheckExpiryDate",
   "driverLicenceType",
   "driverLicenceNumber",
   "driverLicenceIssueDate",
@@ -83,12 +87,20 @@ const EMPLOYEE_SUB_TEMPLATE_FIELD_MAP: Record<string, string[]> = {
     "holidayCarryover",
     "holidayCurrentBalance",
     "holidayYear",
+    "employmentCheckType",
+    "employmentCheckDocumentNumber",
+    "employmentCheckIssueDate",
+    "employmentCheckExpiryDate",
   ],
   compliance: [
     "driverLicenceType",
     "driverLicenceNumber",
     "driverLicenceIssueDate",
     "driverLicenceExpiryDate",
+    "employmentCheckType",
+    "employmentCheckDocumentNumber",
+    "employmentCheckIssueDate",
+    "employmentCheckExpiryDate",
   ],
 };
 
@@ -293,6 +305,10 @@ const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
     emergencyContactRelationship: "Spouse",
     emergencyContactPhone: "+64 21 555 0102",
     emergencyContactEmail: "jane.doe@example.com",
+    employmentCheckType: "Passport",
+    employmentCheckDocumentNumber: "P123456789",
+    employmentCheckIssueDate: "2022-02-10",
+    employmentCheckExpiryDate: "2032-02-09",
     driverLicenceType: "Full",
     driverLicenceNumber: "DL123456",
     driverLicenceIssueDate: "2022-02-10",
@@ -330,6 +346,10 @@ const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
     emergencyContactRelationship: "Partner",
     emergencyContactPhone: "+64 21 555 0203",
     emergencyContactEmail: "john.smith@example.com",
+    employmentCheckType: "Visa",
+    employmentCheckDocumentNumber: "V987654321",
+    employmentCheckIssueDate: "2021-03-01",
+    employmentCheckExpiryDate: "2024-03-01",
     driverLicenceType: "Restricted",
     driverLicenceNumber: "DL654321",
     driverLicenceIssueDate: "2021-07-01",
@@ -374,6 +394,10 @@ const employeeImportSchema = z.object({
   managerEmail: z.string().optional(),
   lineManagerName: z.string().optional(),
   lineManager: z.string().optional(),
+  employmentCheckType: z.string().optional(),
+  employmentCheckDocumentNumber: z.string().optional(),
+  employmentCheckIssueDate: z.string().optional(),
+  employmentCheckExpiryDate: z.string().optional(),
 
   // Emergency contacts
   emergencyContactName: z.string().optional(),
@@ -697,6 +721,17 @@ export async function POST(request: NextRequest) {
         const driverLicenceExpiryDate = parseOptionalDate(
           validatedData.driverLicenceExpiryDate,
           "driverLicenceExpiryDate"
+        );
+
+        const employmentCheckType = trimToUndefined(validatedData.employmentCheckType);
+        const employmentCheckDocumentNumber = trimToUndefined(validatedData.employmentCheckDocumentNumber);
+        const employmentCheckIssueDate = parseOptionalDate(
+          validatedData.employmentCheckIssueDate,
+          "employmentCheckIssueDate"
+        );
+        const employmentCheckExpiryDate = parseOptionalDate(
+          validatedData.employmentCheckExpiryDate,
+          "employmentCheckExpiryDate"
         );
 
         const managerEmail = trimToUndefined(validatedData.managerEmail);
@@ -1061,6 +1096,55 @@ export async function POST(request: NextRequest) {
                 relationship: emergencyContactRelationship ?? null,
                 phone: emergencyContactPhone ?? null,
                 email: emergencyContactEmail ?? null,
+              },
+            });
+          }
+        }
+
+        if (
+          employmentCheckType !== undefined ||
+          employmentCheckDocumentNumber !== undefined ||
+          employmentCheckIssueDate !== undefined ||
+          employmentCheckExpiryDate !== undefined
+        ) {
+          if (
+            !employmentCheckType ||
+            !employmentCheckDocumentNumber ||
+            !employmentCheckIssueDate ||
+            !employmentCheckExpiryDate
+          ) {
+            throw new Error(
+              "Employment check section requires employmentCheckType, employmentCheckDocumentNumber, employmentCheckIssueDate, and employmentCheckExpiryDate when any value is provided.",
+            );
+          }
+
+          const existingCheck = await prisma.employmentCheck.findFirst({
+            where: {
+              employeeId: employee.id,
+              typeOfCheck: employmentCheckType,
+            },
+          });
+
+          if (existingCheck) {
+            await prisma.employmentCheck.update({
+              where: { id: existingCheck.id },
+              data: {
+                documentNumber: employmentCheckDocumentNumber,
+                dateOfIssue: employmentCheckIssueDate,
+                expiryDate: employmentCheckExpiryDate,
+                updatedAt: new Date(),
+              },
+            });
+          } else {
+            await prisma.employmentCheck.create({
+              data: {
+                id: crypto.randomUUID(),
+                employeeId: employee.id,
+                typeOfCheck: employmentCheckType,
+                documentNumber: employmentCheckDocumentNumber,
+                dateOfIssue: employmentCheckIssueDate,
+                expiryDate: employmentCheckExpiryDate,
+                updatedAt: new Date(),
               },
             });
           }

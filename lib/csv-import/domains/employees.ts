@@ -103,6 +103,19 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
             { key: "driverLicenceNumber", label: "driverLicenceNumber" },
             { key: "driverLicenceIssueDate", label: "driverLicenceIssueDate" },
             { key: "driverLicenceExpiryDate", label: "driverLicenceExpiryDate" },
+            { key: "employmentCheckType", label: "employmentCheckType" },
+            {
+              key: "employmentCheckDocumentNumber",
+              label: "employmentCheckDocumentNumber",
+            },
+            {
+              key: "employmentCheckIssueDate",
+              label: "employmentCheckIssueDate",
+            },
+            {
+              key: "employmentCheckExpiryDate",
+              label: "employmentCheckExpiryDate",
+            },
           ],
         },
       ],
@@ -125,7 +138,7 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
     {
       id: "compliance",
       label: "Compliance",
-      description: "Include driver licence information",
+      description: "Include compliance information such as driver licence and employment checks",
       templateId: "employees-all",
     },
   ],

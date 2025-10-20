@@ -24,7 +24,30 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(records);
+    const normalized = records.map(({ Document, Course, TrainingProvider, ...rest }) => ({
+      ...rest,
+      document: Document
+        ? {
+            id: Document.id,
+            name: Document.name,
+            url: Document.url,
+          }
+        : null,
+      course: Course
+        ? {
+            id: Course.id,
+            name: Course.name,
+          }
+        : null,
+      provider: TrainingProvider
+        ? {
+            id: TrainingProvider.id,
+            name: TrainingProvider.name,
+          }
+        : null,
+    }));
+
+    return NextResponse.json(normalized);
   } catch (error) {
     console.error("Error fetching training records:", error);
     return NextResponse.json(

@@ -7,10 +7,65 @@ import { authOptions } from "@/lib/auth-options";
 import { isAdminOrManager as isAdminOrManagerHelper } from "@/lib/roles";
 import { PageShell } from "@/components/ui/PageShell";
 import { User } from "lucide-react";
- 
+import {
+  format,
+  addYears,
+  addMonths,
+  isAfter,
+  differenceInYears,
+  differenceInMonths,
+  differenceInDays,
+  formatDistanceStrict,
+} from "date-fns";
+
 import { prisma } from "@/lib/prisma";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
 import ProfileAvatarUploader from "./ProfileAvatarWrapper";
+
+function formatTenure(start: Date, end: Date) {
+  if (isAfter(start, end)) {
+    const untilStart = formatDistanceStrict(end, start);
+    return `Starts in ${untilStart}`;
+  }
+
+  const totalMonths = differenceInMonths(end, start);
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths - years * 12;
+  const afterMonths = addMonths(start, years * 12 + months);
+  const days = differenceInDays(end, afterMonths);
+
+  const parts: string[] = [];
+  if (years > 0) {
+    parts.push(`${years} ${years === 1 ? "year" : "years"}`);
+  }
+  if (months > 0) {
+    parts.push(`${months} ${months === 1 ? "month" : "months"}`);
+  }
+  if (days > 0 && parts.length < 2) {
+    parts.push(`${days} ${days === 1 ? "day" : "days"}`);
+  }
+
+  if (!parts.length) {
+    return "Less than a day";
+  }
+
+  return parts.join(", ");
+}
+
+function computeNextAnniversary(start: Date, reference: Date) {
+  if (isAfter(start, reference)) {
+    return start;
+  }
+
+  const yearsSinceStart = differenceInYears(reference, start);
+  let candidate = addYears(start, yearsSinceStart + 1);
+
+  if (!isAfter(candidate, reference)) {
+    candidate = addYears(candidate, 1);
+  }
+
+  return candidate;
+}
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -29,6 +84,15 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
         where: { EventCategory: { isActive: true } },
       },
       Department: { select: { name: true } },
+      EmergencyContact: {
+        select: {
+          id: true,
+          name: true,
+          relationship: true,
+          phone: true,
+          email: true,
+        },
+      },
       User: {
         select: {
           firstName: true,
@@ -67,6 +131,56 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
   const signedProfileUrl = employee.User.profileImageUrl
     ? await getDownloadUrl(employee.User.profileImageUrl)
     : null;
+
+  const now = new Date();
+  const startDate = employee.startDate ? new Date(employee.startDate) : null;
+  const formattedStartDate = startDate ? format(startDate, "MMM d, yyyy") : "Not provided";
+  const tenureDisplay = startDate ? formatTenure(startDate, now) : null;
+  const nextAnniversary = startDate ? computeNextAnniversary(startDate, now) : null;
+  const nextAnniversaryDisplay =
+    nextAnniversary ? `${format(nextAnniversary, "MMM d, yyyy")} (in ${formatDistanceStrict(now, nextAnniversary)})` : null;
+  const systemJoinedDisplay = format(employee.User.createdAt, "MMM d, yyyy");
+  const totalLeaveBalance = employee.LeaveEntitlement.length
+    ? employee.LeaveEntitlement.reduce((acc: number, entitlement: any) => {
+        const remaining = (entitlement.totalDays ?? 0) - (entitlement.usedDays ?? 0);
+        return acc + remaining;
+      }, 0)
+    : null;
+
+  const salaryAmount = employee.salaryAmount ? Number(employee.salaryAmount) : null;
+  const hourlyRate = employee.hourlyRate ? Number(employee.hourlyRate) : null;
+  const currencyFormatter = new Intl.NumberFormat("en-NZ", {
+    style: "currency",
+    currency: "NZD",
+  });
+  const kiwiSaverStatus =
+    employee.kiwiSaverEnrolled === null || employee.kiwiSaverEnrolled === undefined
+      ? "Not provided"
+      : employee.kiwiSaverEnrolled
+      ? `Enrolled${employee.kiwiSaverContribution !== null && employee.kiwiSaverContribution !== undefined ? ` (${employee.kiwiSaverContribution}% contribution)` : ""}`
+      : "Not enrolled";
+
+  const insights = [
+    {
+      label: "Length of service",
+      value: tenureDisplay ?? "Add a start date to calculate tenure",
+    },
+    {
+      label: "Next anniversary",
+      value: nextAnniversaryDisplay ?? "Add a start date to unlock this insight",
+    },
+    {
+      label: "In system since",
+      value: systemJoinedDisplay,
+    },
+    {
+      label: "Total leave balance",
+      value:
+        totalLeaveBalance !== null
+          ? `${totalLeaveBalance} day${totalLeaveBalance === 1 ? "" : "s"} remaining`
+          : "No leave data yet",
+    },
+  ];
 
   return (
     <PageShell
@@ -107,11 +221,22 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
 
           <Card>
             <div className="border-b p-4">
-              <h2 className="text-lg font-semibold">Demographic</h2>
+              <h2 className="text-lg font-semibold">Insights</h2>
             </div>
-            <div className="p-4 space-y-1 text-sm">
-              <p><strong>Start date:</strong> {employee.User.createdAt.toDateString()}</p>
-              <Link href={`/employees/${employee.id}/demographic`} className="text-blue-600 underline text-sm">Manage</Link>
+            <div className="p-4 space-y-2 text-sm">
+              <div className="space-y-2">
+                {insights.map((insight) => (
+                  <p key={insight.label}>
+                    <strong>{insight.label}:</strong> {insight.value}
+                  </p>
+                ))}
+              </div>
+              <Link
+                href={`/employees/${employee.id}/demographic`}
+                className="text-blue-600 underline text-sm"
+              >
+                Manage
+              </Link>
             </div>
           </Card>
 
@@ -119,9 +244,33 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             <div className="border-b p-4">
               <h2 className="text-lg font-semibold">Bank & Payroll</h2>
             </div>
-            <div className="p-4 space-y-1 text-sm">
-              <p><strong>Bank:</strong> Hidden</p>
-              <Link href={`/employees/${employee.id}/bank-payroll`} className="text-blue-600 underline text-sm">Manage</Link>
+            <div className="p-4 space-y-2 text-sm">
+              {isAdminOrManager ? (
+                <div className="space-y-1">
+                  <p>
+                    <strong>Bank account:</strong> {employee.bankAccountNumber || "Not provided"}
+                  </p>
+                  <p>
+                    <strong>Salary:</strong> {salaryAmount !== null ? currencyFormatter.format(salaryAmount) : "Not provided"}
+                  </p>
+                  <p>
+                    <strong>Hourly rate:</strong> {hourlyRate !== null ? currencyFormatter.format(hourlyRate) : "Not provided"}
+                  </p>
+                  <p>
+                    <strong>KiwiSaver:</strong> {kiwiSaverStatus}
+                  </p>
+                </div>
+              ) : (
+                <p>
+                  <strong>Access restricted:</strong> Contact an administrator.
+                </p>
+              )}
+              <Link
+                href={`/employees/${employee.id}/bank-payroll`}
+                className="text-blue-600 underline text-sm"
+              >
+                Manage
+              </Link>
             </div>
           </Card>
 
@@ -129,9 +278,29 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
             <div className="border-b p-4">
               <h2 className="text-lg font-semibold">Emergency Contacts</h2>
             </div>
-            <div className="p-4 space-y-1 text-sm">
-              <p className="text-muted-foreground">Manage next-of-kin and contacts</p>
-              <Link href={`/employees/${employee.id}/emergency-contacts`} className="text-blue-600 underline text-sm">Manage</Link>
+            <div className="p-4 space-y-2 text-sm">
+              {employee.EmergencyContact.length ? (
+                <div className="space-y-2">
+                  {employee.EmergencyContact.map((contact) => (
+                    <div key={contact.id} className="space-y-0.5">
+                      <p>
+                        <strong>{contact.name}</strong>
+                        {contact.relationship ? ` • ${contact.relationship}` : ""}
+                      </p>
+                      {contact.phone ? <p>Phone: {contact.phone}</p> : null}
+                      {contact.email ? <p>Email: {contact.email}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No emergency contacts recorded.</p>
+              )}
+              <Link
+                href={`/employees/${employee.id}/emergency-contacts`}
+                className="text-blue-600 underline text-sm"
+              >
+                Manage
+              </Link>
             </div>
           </Card>
 
@@ -140,6 +309,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
               <h2 className="text-lg font-semibold">Employment Details</h2>
             </div>
             <div className="p-4 space-y-1 text-sm">
+              <p><strong>Start date:</strong> {formattedStartDate}</p>
               <p><strong>Status:</strong> {employee.isActive ? "Active" : "Inactive"}</p>
               <p>
                 <strong>Department:</strong>{" "}

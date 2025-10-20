@@ -43,6 +43,7 @@ interface ScheduleMeetingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  employeeId?: string;
 }
 
 const wizardSteps = [
@@ -65,7 +66,7 @@ const wizardSteps = [
 
 type WizardStep = (typeof wizardSteps)[number]["key"];
 
-export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess }: ScheduleMeetingDialogProps) {
+export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess, employeeId }: ScheduleMeetingDialogProps) {
   const [loading, setLoading] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
@@ -88,8 +89,10 @@ export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess }: Schedul
   const [recurrenceType, setRecurrenceType] = useState<"daily" | "weekly" | "biweekly" | "monthly">("weekly");
   const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
 
-  const [selectionMode, setSelectionMode] = useState<"individual" | "filtered">("individual");
-  const [selectedParticipants, setSelectedParticipants] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState<"individual" | "filtered">(employeeId ? "individual" : "individual");
+  const [selectedParticipants, setSelectedParticipants] = useState<Set<string>>(
+    () => (employeeId ? new Set([employeeId]) : new Set())
+  );
 
   const [filterDepartments, setFilterDepartments] = useState<string[]>(["all"]);
   const [filterJobRoles, setFilterJobRoles] = useState<string[]>(["all"]);
@@ -117,7 +120,8 @@ export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess }: Schedul
   );
 
   const filteredEmployees = useMemo(() => {
-    return employees.filter((emp: Employee) => {
+    const scoped = employeeId ? employees.filter((emp: Employee) => emp.id === employeeId) : employees;
+    return scoped.filter((emp: Employee) => {
       if (filterStatus === "active" && !emp.isActive) return false;
       if (filterStatus === "inactive" && emp.isActive) return false;
 

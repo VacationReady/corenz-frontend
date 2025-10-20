@@ -13,6 +13,8 @@ const fetcher = async (url: string) => {
 
 interface UsePerformanceDataOptions {
   timeframeDays?: number;
+  employeeId?: string;
+  participantId?: string;
 }
 
 interface ObjectiveKeyResult {
@@ -72,15 +74,26 @@ export interface PerformanceStats {
   pendingActionItems: number;
 }
 
-export function usePerformanceData({ timeframeDays = 30 }: UsePerformanceDataOptions = {}) {
-  const objectivesKey = "/api/objectives?includeKeyResults=true";
+export function usePerformanceData({ timeframeDays = 30, employeeId, participantId }: UsePerformanceDataOptions = {}) {
+  const objectivesKey = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("includeKeyResults", "true");
+    if (employeeId) {
+      params.set("employeeId", employeeId);
+    }
+    return `/api/objectives?${params.toString()}`;
+  }, [employeeId]);
 
   const meetingsWindowKey = useMemo(() => {
     const now = new Date();
     const from = now.toISOString();
     const to = new Date(now.getTime() + timeframeDays * 24 * 60 * 60 * 1000).toISOString();
-    return `/api/performance/meetings?from=${from}&to=${to}`;
-  }, [timeframeDays]);
+    const params = new URLSearchParams({ from, to });
+    if (participantId) {
+      params.set("participantId", participantId);
+    }
+    return `/api/performance/meetings?${params.toString()}`;
+  }, [participantId, timeframeDays]);
 
   const {
     data: objectivesData,

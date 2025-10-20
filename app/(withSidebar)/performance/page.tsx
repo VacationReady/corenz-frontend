@@ -73,7 +73,11 @@ const objectiveStatusFilters = [
   { value: "NOT_STARTED", label: "Not Started" },
 ];
 
-export default function PerformancePage() {
+interface PerformancePageProps {
+  employeeId?: string;
+}
+
+export default function PerformancePage({ employeeId }: PerformancePageProps = {}) {
   const { data: session } = useSession();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
@@ -92,6 +96,8 @@ export default function PerformancePage() {
     session?.user?.role === "SUPER_ADMIN" ||
     session?.user?.role === "MANAGER";
 
+  const isEmployeeContext = Boolean(employeeId);
+
   const { departments, jobRoles, employees } = usePerformanceReferenceData({
     enabled: Boolean(session),
     includeEmployees: true,
@@ -99,6 +105,8 @@ export default function PerformancePage() {
 
   const { objectives, meetings, stats, isLoading, error, refresh } = usePerformanceData({
     timeframeDays: timeframe,
+    employeeId,
+    participantId: employeeId,
   });
 
   useEffect(() => {
@@ -224,11 +232,24 @@ export default function PerformancePage() {
     refresh();
   };
 
+  const pageTitle = isEmployeeContext ? "Employee Performance" : "Performance Management";
+  const pageDescription = isEmployeeContext
+    ? "Objectives, meetings, and reviews focused on this employee."
+    : "Manage objectives, 1-2-1s, and performance reviews";
+
+  const handleCreateObjective = () => {
+    if (employeeId) {
+      router.push(`/performance/objectives/new?employeeId=${employeeId}`);
+      return;
+    }
+    router.push("/performance/objectives/new");
+  };
+
   if (isLoading) {
     return (
       <PageShell
-        title="Performance Management"
-        description="Manage objectives, 1-2-1s, and performance reviews"
+        title={pageTitle}
+        description={pageDescription}
         icon={<Target className="h-6 w-6" />}
       >
         <Card>
@@ -242,98 +263,104 @@ export default function PerformancePage() {
 
   return (
     <PageShell
-      title="Performance Management"
-      description="Manage objectives, 1-2-1s, and performance reviews"
+      title={pageTitle}
+      description={pageDescription}
       icon={<Target className="h-6 w-6" />}
       action={
-        canManageTemplates && (
+        canManageTemplates && !isEmployeeContext ? (
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={refreshData}>
               Refresh Data
             </Button>
-            <Button onClick={() => router.push("/performance/templates/new")}>
+            <Button onClick={() => router.push("/performance/templates/new") }>
               <Plus className="mr-2 h-4 w-4" />
               Add Template
             </Button>
           </div>
-        )
+        ) : isEmployeeContext ? (
+          <Button variant="outline" onClick={refreshData}>
+            Refresh Data
+          </Button>
+        ) : undefined
       }
     >
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Performance Filters</CardTitle>
-            <CardDescription>
-              Slice your performance data by timeframe, department, and role to focus on what matters.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {!isEmployeeContext && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Performance Filters</CardTitle>
+              <CardDescription>
+                Slice your performance data by timeframe, department, and role to focus on what matters.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-medium uppercase text-muted-foreground">Timeframe</span>
+                  <div className="flex items-center gap-2">
+                    {timeframeOptions.map((option) => (
+                      <Button
+                        key={option.value}
+                        variant={timeframe === option.value ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setTimeframe(option.value)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-medium uppercase text-muted-foreground">Departments</span>
+                  <MultiSelect
+                    options={departmentOptions}
+                    selected={selectedDepartments}
+                    onChange={(values) => setSelectedDepartments(values.length ? values : ["all"])}
+                    placeholder="Filter departments"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-medium uppercase text-muted-foreground">Roles</span>
+                  <MultiSelect
+                    options={roleOptions}
+                    selected={selectedRoles}
+                    onChange={(values) => setSelectedRoles(values.length ? values : ["all"])}
+                    placeholder="Filter job roles"
+                  />
+                </div>
+
               <div className="space-y-1">
-                <span className="text-xs font-medium uppercase text-muted-foreground">Timeframe</span>
-                <div className="flex items-center gap-2">
-                  {timeframeOptions.map((option) => (
-                    <Button
-                      key={option.value}
-                      variant={timeframe === option.value ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setTimeframe(option.value)}
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
+                <span className="text-xs font-medium uppercase text-muted-foreground">Objective Status</span>
+                <Select value={objectiveStatus} onValueChange={setObjectiveStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {objectiveStatusFilters.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="space-y-1">
+                  <span className="text-xs font-medium uppercase text-muted-foreground">Search objectives</span>
+                  <Input
+                    placeholder="Search by title or description"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                  />
                 </div>
               </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-medium uppercase text-muted-foreground">Departments</span>
-                <MultiSelect
-                  options={departmentOptions}
-                  selected={selectedDepartments}
-                  onChange={(values) => setSelectedDepartments(values.length ? values : ["all"])}
-                  placeholder="Filter departments"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-xs font-medium uppercase text-muted-foreground">Roles</span>
-                <MultiSelect
-                  options={roleOptions}
-                  selected={selectedRoles}
-                  onChange={(values) => setSelectedRoles(values.length ? values : ["all"])}
-                  placeholder="Filter job roles"
-                />
-              </div>
-
-            <div className="space-y-1">
-              <span className="text-xs font-medium uppercase text-muted-foreground">Objective Status</span>
-              <Select value={objectiveStatus} onValueChange={setObjectiveStatus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {objectiveStatusFilters.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            </div>
-
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div className="space-y-1">
-                <span className="text-xs font-medium uppercase text-muted-foreground">Search objectives</span>
-                <Input
-                  placeholder="Search by title or description"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Card>
@@ -416,7 +443,7 @@ export default function PerformancePage() {
                 <Button
                   variant="outline"
                   className="h-auto flex-col items-start p-4"
-                  onClick={() => router.push("/performance/objectives/new")}
+                  onClick={handleCreateObjective}
                 >
                   <Target className="mb-2 h-5 w-5" />
                   <span className="font-semibold">Create Objective</span>
@@ -553,7 +580,7 @@ export default function PerformancePage() {
                 <h3 className="text-lg font-semibold">All Objectives</h3>
                 <p className="text-sm text-muted-foreground">Cascading goals across the organization</p>
               </div>
-              <Button onClick={() => router.push("/performance/objectives/new")}>
+              <Button onClick={handleCreateObjective}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Objective
               </Button>
@@ -567,7 +594,7 @@ export default function PerformancePage() {
                   <p className="mb-4 text-sm text-muted-foreground">
                     Start by creating your first objective to track progress
                   </p>
-                  <Button onClick={() => router.push("/performance/objectives/new")}>
+                  <Button onClick={handleCreateObjective}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create First Objective
                   </Button>

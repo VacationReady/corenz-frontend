@@ -208,16 +208,24 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Summary cards */}
-          <Card>
-            <div className="border-b p-4">
-              <h2 className="text-lg font-semibold">Contact Info</h2>
-            </div>
-            <div className="p-4 space-y-1 text-sm">
-              <p><strong>Email:</strong> {employee.User.email}</p>
-              <p><strong>Phone:</strong> {employee.User.phone || "N/A"}</p>
-              <Link href={`/employees/${employee.id}/contact-info`} className="text-blue-600 underline text-sm">Manage</Link>
-            </div>
-          </Card>
+          <Link
+            href={`/employees/${employee.id}/contact-info`}
+            className="group block focus:outline-none"
+            aria-label="Manage contact info"
+          >
+            <Card
+              hoverable
+              className="group-focus-visible:ring-2 group-focus-visible:ring-primary/50"
+            >
+              <div className="border-b p-4">
+                <h2 className="text-lg font-semibold">Contact Info</h2>
+              </div>
+              <div className="p-4 space-y-1 text-sm">
+                <p><strong>Email:</strong> {employee.User.email}</p>
+                <p><strong>Phone:</strong> {employee.User.phone || "N/A"}</p>
+              </div>
+            </Card>
+          </Link>
 
           <Card>
             <div className="border-b p-4">
@@ -231,102 +239,110 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
                   </p>
                 ))}
               </div>
-              <Link
-                href={`/employees/${employee.id}/demographic`}
-                className="text-blue-600 underline text-sm"
-              >
-                Manage
-              </Link>
             </div>
           </Card>
 
-          <Card>
-            <div className="border-b p-4">
-              <h2 className="text-lg font-semibold">Bank & Payroll</h2>
-            </div>
-            <div className="p-4 space-y-2 text-sm">
-              {isAdminOrManager ? (
-                <div className="space-y-1">
+          <Link
+            href={`/employees/${employee.id}/bank-payroll`}
+            className="group block focus:outline-none"
+            aria-label="Manage bank and payroll"
+          >
+            <Card
+              hoverable
+              className="group-focus-visible:ring-2 group-focus-visible:ring-primary/50"
+            >
+              <div className="border-b p-4">
+                <h2 className="text-lg font-semibold">Bank & Payroll</h2>
+              </div>
+              <div className="p-4 space-y-2 text-sm">
+                {isAdminOrManager ? (
+                  <div className="space-y-1">
+                    <p>
+                      <strong>Bank account:</strong> {employee.bankAccountNumber || "Not provided"}
+                    </p>
+                    <p>
+                      <strong>Salary:</strong> {salaryAmount !== null ? currencyFormatter.format(salaryAmount) : "Not provided"}
+                    </p>
+                    <p>
+                      <strong>Hourly rate:</strong> {hourlyRate !== null ? currencyFormatter.format(hourlyRate) : "Not provided"}
+                    </p>
+                    <p>
+                      <strong>KiwiSaver:</strong> {kiwiSaverStatus}
+                    </p>
+                  </div>
+                ) : (
                   <p>
-                    <strong>Bank account:</strong> {employee.bankAccountNumber || "Not provided"}
+                    <strong>Access restricted:</strong> Contact an administrator.
                   </p>
-                  <p>
-                    <strong>Salary:</strong> {salaryAmount !== null ? currencyFormatter.format(salaryAmount) : "Not provided"}
-                  </p>
-                  <p>
-                    <strong>Hourly rate:</strong> {hourlyRate !== null ? currencyFormatter.format(hourlyRate) : "Not provided"}
-                  </p>
-                  <p>
-                    <strong>KiwiSaver:</strong> {kiwiSaverStatus}
-                  </p>
-                </div>
-              ) : (
+                )}
+              </div>
+            </Card>
+          </Link>
+
+          <Link
+            href={`/employees/${employee.id}/emergency-contacts`}
+            className="group block focus:outline-none"
+            aria-label="Manage emergency contacts"
+          >
+            <Card
+              hoverable
+              className="group-focus-visible:ring-2 group-focus-visible:ring-primary/50"
+            >
+              <div className="border-b p-4">
+                <h2 className="text-lg font-semibold">Emergency Contacts</h2>
+              </div>
+              <div className="p-4 space-y-2 text-sm">
+                {employee.EmergencyContact.length ? (
+                  <div className="space-y-2">
+                    {employee.EmergencyContact.map((contact) => (
+                      <div key={contact.id} className="space-y-0.5">
+                        <p>
+                          <strong>{contact.name}</strong>
+                          {contact.relationship ? ` • ${contact.relationship}` : ""}
+                        </p>
+                        {contact.phone ? <p>Phone: {contact.phone}</p> : null}
+                        {contact.email ? <p>Email: {contact.email}</p> : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No emergency contacts recorded.</p>
+                )}
+              </div>
+            </Card>
+          </Link>
+
+          <Link
+            href={`/employees/${employee.id}/employment-details`}
+            className="group block focus:outline-none"
+            aria-label="Manage employment details"
+          >
+            <Card
+              hoverable
+              className="group-focus-visible:ring-2 group-focus-visible:ring-primary/50"
+            >
+              <div className="border-b p-4">
+                <h2 className="text-lg font-semibold">Employment Details</h2>
+              </div>
+              <div className="p-4 space-y-1 text-sm">
+                <p><strong>Start date:</strong> {formattedStartDate}</p>
+                <p><strong>Status:</strong> {employee.isActive ? "Active" : "Inactive"}</p>
                 <p>
-                  <strong>Access restricted:</strong> Contact an administrator.
+                  <strong>Department:</strong>{" "}
+                  {employee.Department?.name || employee.User.Department_User_departmentIdToDepartment?.name || "N/A"}
                 </p>
-              )}
-              <Link
-                href={`/employees/${employee.id}/bank-payroll`}
-                className="text-blue-600 underline text-sm"
-              >
-                Manage
-              </Link>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="border-b p-4">
-              <h2 className="text-lg font-semibold">Emergency Contacts</h2>
-            </div>
-            <div className="p-4 space-y-2 text-sm">
-              {employee.EmergencyContact.length ? (
-                <div className="space-y-2">
-                  {employee.EmergencyContact.map((contact) => (
-                    <div key={contact.id} className="space-y-0.5">
-                      <p>
-                        <strong>{contact.name}</strong>
-                        {contact.relationship ? ` • ${contact.relationship}` : ""}
-                      </p>
-                      {contact.phone ? <p>Phone: {contact.phone}</p> : null}
-                      {contact.email ? <p>Email: {contact.email}</p> : null}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p>No emergency contacts recorded.</p>
-              )}
-              <Link
-                href={`/employees/${employee.id}/emergency-contacts`}
-                className="text-blue-600 underline text-sm"
-              >
-                Manage
-              </Link>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="border-b p-4">
-              <h2 className="text-lg font-semibold">Employment Details</h2>
-            </div>
-            <div className="p-4 space-y-1 text-sm">
-              <p><strong>Start date:</strong> {formattedStartDate}</p>
-              <p><strong>Status:</strong> {employee.isActive ? "Active" : "Inactive"}</p>
-              <p>
-                <strong>Department:</strong>{" "}
-                {employee.Department?.name || employee.User.Department_User_departmentIdToDepartment?.name || "N/A"}
-              </p>
-              <p>
-                <strong>Manager:</strong>{" "}
-                {employee.User.User
-                  ? `${employee.User.User.firstName ?? ""} ${employee.User.User.lastName ?? ""}`.trim() || "N/A"
-                  : "N/A"}
-              </p>
-              <p>
-                <strong>Location:</strong> {employee.siteLocation || "N/A"}
-              </p>
-              <Link href={`/employees/${employee.id}/employment-details`} className="text-blue-600 underline text-sm">Manage</Link>
-            </div>
-          </Card>
+                <p>
+                  <strong>Manager:</strong>{" "}
+                  {employee.User.User
+                    ? `${employee.User.User.firstName ?? ""} ${employee.User.User.lastName ?? ""}`.trim() || "N/A"
+                    : "N/A"}
+                </p>
+                <p>
+                  <strong>Location:</strong> {employee.siteLocation || "N/A"}
+                </p>
+              </div>
+            </Card>
+          </Link>
 
           {/* Leave Balances + Leave Booking */}
           <Card>

@@ -468,4 +468,333 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
         <Card>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <CardHeader>
-              <div class名字
+              <TabsList className="grid w-full grid-cols-3 bg-muted">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="objectives">Objectives</TabsTrigger>
+                <TabsTrigger value="meetings">1-2-1 Meetings</TabsTrigger>
+              </TabsList>
+            </CardHeader>
+
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                    <CardDescription>Accelerate performance management workflows</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button className="w-full justify-start" onClick={handleCreateObjective}>
+                      <Target className="mr-2 h-4 w-4" /> Create Objective
+                    </Button>
+                    <Button className="w-full justify-start" onClick={() => setShowScheduleMeeting(true)}>
+                      <Calendar className="mr-2 h-4 w-4" /> Schedule Meeting
+                    </Button>
+                    <Button
+                      className="w-full justify-start"
+                      onClick={() => setShowCreateReviewCycle(true)}
+                      disabled={!canManageTemplates}
+                    >
+                      <Layers className="mr-2 h-4 w-4" /> Create Review Cycle
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle>Pipeline Summary</CardTitle>
+                    <CardDescription>Track OKRs, 1-2-1s, and progress signals.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm text-muted-foreground">
+                    <p>
+                      Objectives funnel the most critical priorities. Use filters to scope by department or role to
+                      surface the biggest risks.
+                    </p>
+                    <p>
+                      Meetings keep momentum. Schedule regular 1-2-1s and review cycles to maintain alignment and
+                      accountability.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-dashed">
+                  <CardHeader>
+                    <CardTitle>Need deeper insights?</CardTitle>
+                    <CardDescription>
+                      The insights tab will soon show predictive attrition risk and coaching opportunities.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm text-muted-foreground">
+                    <p>Use objectives for strategic alignment, meetings for coaching, and reviews for accountability.</p>
+                    <Button variant="outline" className="w-full justify-start" onClick={refreshData}>
+                      <TrendingUp className="mr-2 h-4 w-4" /> Refresh Data
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Focus Objectives</CardTitle>
+                  <CardDescription>Keep the highest-impact goals on track.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {visibleObjectives.slice(0, 3).map((objective) => (
+                    <div key={objective.id} className="rounded-lg border p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(objective.status)}
+                            <span className="text-sm font-semibold">{objective.title}</span>
+                            <Badge variant="outline" className="text-[10px] uppercase">
+                              {objective.type}
+                            </Badge>
+                            <Badge className={priorityColors[objective.priority as keyof typeof priorityColors]}>
+                              {objective.priority}
+                            </Badge>
+                          </div>
+                          {objective.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">{objective.description}</p>
+                          )}
+                        </div>
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          {objective.Owner && (
+                            <p>
+                              {objective.Owner.firstName} {objective.Owner.lastName}
+                            </p>
+                          )}
+                          {objective.dueDate && <p>Due {formatLondonDate(objective.dueDate)}</p>}
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Progress</span>
+                          <span>{objective.progress}%</span>
+                        </div>
+                        <div className="mt-2 h-2 rounded-full bg-muted">
+                          <div
+                            className={cn("h-2 rounded-full", getProgressColor(objective.progress))}
+                            style={{ width: `${objective.progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {visibleObjectives.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No objectives match these filters.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="objectives" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">All Objectives</h3>
+                  <p className="text-sm text-muted-foreground">Cascading goals across the organisation</p>
+                </div>
+                <Button onClick={handleCreateObjective}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Objective
+                </Button>
+              </div>
+
+              {filteredObjectives.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                    <Target className="mb-4 h-12 w-12 text-muted-foreground" />
+                    <h3 className="mb-2 text-lg font-semibold">No objectives yet</h3>
+                    <p className="mb-4 text-sm text-muted-foreground">
+                      Start by creating your first objective to track progress
+                    </p>
+                    <Button onClick={handleCreateObjective}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create First Objective
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {visibleObjectives.map((objective) => (
+                    <Card key={objective.id}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(objective.status)}
+                              <CardTitle className="text-base">{objective.title}</CardTitle>
+                              <Badge variant="outline" className="text-xs">
+                                {objective.type}
+                              </Badge>
+                              <Badge className={priorityColors[objective.priority as keyof typeof priorityColors]}>
+                                {objective.priority}
+                              </Badge>
+                            </div>
+                            {objective.description && (
+                              <CardDescription className="mt-2">{objective.description}</CardDescription>
+                            )}
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="mb-4">
+                          <div className="mb-2 flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Progress</span>
+                            <span className="font-medium">{objective.progress}%</span>
+                          </div>
+                          <div className="h-2 w-full rounded-full bg-gray-200">
+                            <div
+                              className={`h-full ${getProgressColor(objective.progress)} transition-all`}
+                              style={{ width: `${objective.progress}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {objective.keyResults && objective.keyResults.length > 0 && (
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold">Key Results</h4>
+                            {objective.keyResults.map((kr) => (
+                              <div
+                                key={kr.id}
+                                className="flex items-center justify-between rounded bg-muted/50 p-2 text-sm"
+                              >
+                                <span>{kr.title}</span>
+                                <span className="font-medium">
+                                  {kr.currentValue} / {kr.targetValue}
+                                  {kr.unit && ` ${kr.unit}`}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                          <div className="flex items-center gap-4">
+                            {objective.Owner && (
+                              <span>
+                                Owner: {objective.Owner.firstName} {objective.Owner.lastName}
+                              </span>
+                            )}
+                            {objective.dueDate && <span>Due {formatLondonDate(objective.dueDate)}</span>}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/performance/objectives/${objective.id}`)}
+                          >
+                            View Details
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {paginatedObjectives.pages.length > 1 && (
+                    <div className="flex items-center justify-between border-t pt-4">
+                      <p className="text-xs text-muted-foreground">
+                        Showing {objectivePage * paginatedObjectives.pageSize + 1}-
+                        {Math.min((objectivePage + 1) * paginatedObjectives.pageSize, filteredObjectives.length)} of {" "}
+                        {filteredObjectives.length} objectives
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={objectivePage === 0}
+                          onClick={() => setObjectivePage((page) => Math.max(page - 1, 0))}
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-xs">
+                          Page {objectivePage + 1} of {paginatedObjectives.pages.length}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={objectivePage >= paginatedObjectives.pages.length - 1}
+                          onClick={() =>
+                            setObjectivePage((page) =>
+                              Math.min(page + 1, paginatedObjectives.pages.length - 1)
+                            )
+                          }
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="meetings" className="space-y-4">
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                  <Calendar className="mb-4 h-12 w-12 text-muted-foreground" />
+                  <h3 className="mb-2 text-lg font-semibold">1-2-1 Meetings</h3>
+                  <p className="mb-4 text-sm text-muted-foreground">
+                    Schedule and manage performance conversations
+                  </p>
+                  <Button onClick={() => setShowScheduleMeeting(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Schedule Meeting
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Meeting Timeline</CardTitle>
+                  <CardDescription>Recently completed and upcoming conversations</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {filteredMeetings.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No meetings in this timeframe</p>
+                  ) : (
+                    filteredMeetings.map((meeting) => (
+                      <div
+                        key={meeting.id}
+                        className="flex items-start justify-between rounded-lg border p-3"
+                      >
+                        <div>
+                          <p className="font-medium">{meeting.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatLondon(meeting.scheduledAt)} • {meeting.duration} minutes • {meeting.participantIds.length} participants
+                          </p>
+                        </div>
+                        <Badge
+                          className={cn(
+                            "uppercase",
+                            meeting.status === "COMPLETED" && "bg-green-100 text-green-700",
+                            meeting.status === "SCHEDULED" && "bg-blue-100 text-blue-700",
+                            meeting.status === "CANCELLED" && "bg-red-100 text-red-700"
+                          )}
+                        >
+                          {meeting.status.replace(/_/g, " ")}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </Card>
+
+        <ScheduleMeetingDialog
+          open={showScheduleMeeting}
+          onOpenChange={setShowScheduleMeeting}
+          onSuccess={refreshData}
+          employeeId={employeeId}
+        />
+
+        <CreateReviewCycleDialog
+          open={showCreateReviewCycle}
+          onOpenChange={setShowCreateReviewCycle}
+          onSuccess={refreshData}
+        />
+      </div>
+    </PageShell>
+  );
+}

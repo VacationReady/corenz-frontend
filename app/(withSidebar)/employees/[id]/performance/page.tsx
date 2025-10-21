@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import PerformancePage from "@/app/(withSidebar)/performance/page";
+import PerformancePage from "@/components/performance/PerformancePage";
 
 export default function EmployeePerformancePage() {
   const params = useParams();

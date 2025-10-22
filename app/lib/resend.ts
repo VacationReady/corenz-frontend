@@ -8,8 +8,21 @@ export const resend = apiKey
       emails: {
         async send() {
           // Test fallback: avoid external calls
-          return { id: "test-email", simulated: true } as any;
+          return {
+            data: { id: "test-email", simulated: true },
+            error: null,
+          } as any;
         },
       },
     } as unknown as Resend);
+
+const DEFAULT_PEOPLECORE_FROM = "PeopleCore <noreply@peoplecore.co.nz>";
+
+const configuredFromEmail = process.env.RESEND_FROM_EMAIL?.trim();
+
+export const PEOPLECORE_FROM_EMAIL = configuredFromEmail
+  ? configuredFromEmail.includes("<")
+    ? configuredFromEmail
+    : `PeopleCore <${configuredFromEmail}>`
+  : DEFAULT_PEOPLECORE_FROM;
 

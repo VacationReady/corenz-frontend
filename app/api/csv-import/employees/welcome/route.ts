@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { randomBytes, randomUUID } from "crypto";
-import { resend } from "@/lib/resend";
+import { PEOPLECORE_FROM_EMAIL, resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 import { auditLog } from "@/lib/audit";
 
@@ -193,13 +193,23 @@ export async function POST(request: NextRequest) {
           ],
         });
 
-        await resend.emails.send({
-          from: "PeopleCore <noreply@peoplecore.com>",
+        const sendResponse = await resend.emails.send({
+          from: PEOPLECORE_FROM_EMAIL,
           to: [user.email],
           subject: "Activate your PeopleCore account",
           html,
           text,
         });
+
+        const sendError = (sendResponse as { error?: { message?: string } | string | null } | null)?.error;
+
+        if (sendError) {
+          const message =
+            typeof sendError === "string"
+              ? sendError
+              : sendError?.message ?? "Failed to send welcome email";
+          throw new Error(message);
+        }
 
         // Track that welcome email was sent
         await prisma.user.update({

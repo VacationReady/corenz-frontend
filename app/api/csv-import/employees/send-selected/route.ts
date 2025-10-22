@@ -124,13 +124,23 @@ export async function POST(request: NextRequest) {
           ],
         });
 
-        await resend.emails.send({
+        const sendResponse = await resend.emails.send({
           from: "PeopleCore <noreply@peoplecore.com>",
           to: [user.email],
           subject: "Activate your PeopleCore account",
           html,
           text,
         });
+
+        const sendError = (sendResponse as { error?: { message?: string } | string | null } | null)?.error;
+
+        if (sendError) {
+          const message =
+            typeof sendError === "string"
+              ? sendError
+              : sendError?.message ?? "Failed to send welcome email";
+          throw new Error(message);
+        }
 
         // Track that welcome email was sent
         await prisma.user.update({

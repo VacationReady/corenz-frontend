@@ -8,7 +8,10 @@ export const resend = apiKey
       emails: {
         async send() {
           // Test fallback: avoid external calls
-          return { id: "test-email", simulated: true } as any;
+          return {
+            data: { id: "test-email", simulated: true },
+            error: null,
+          } as any;
         },
       },
     } as unknown as Resend);

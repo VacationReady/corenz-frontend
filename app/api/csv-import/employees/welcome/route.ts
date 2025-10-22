@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { randomBytes, randomUUID } from "crypto";
-import { resend } from "@/lib/resend";
+import { PEOPLECORE_FROM_EMAIL, resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 import { auditLog } from "@/lib/audit";
 
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
         });
 
         const sendResponse = await resend.emails.send({
-          from: "PeopleCore <noreply@peoplecore.com>",
+          from: PEOPLECORE_FROM_EMAIL,
           to: [user.email],
           subject: "Activate your PeopleCore account",
           html,

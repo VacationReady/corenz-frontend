@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 type CompletionPayload = Record<string, unknown>;
 
@@ -140,7 +141,7 @@ export async function POST(
         data: {
           id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           onboardingStepInstanceId: stepId,
-          response: completionPayload,
+          response: completionPayload as Prisma.InputJsonValue,
         },
       });
     }

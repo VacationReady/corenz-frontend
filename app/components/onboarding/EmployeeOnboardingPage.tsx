@@ -188,7 +188,12 @@ export default function EmployeeOnboardingPage({
             Try again below. If the issue persists, please refresh the page or
             contact your administrator.
           </p>
-          <Button variant="secondary" onClick={fetchOnboarding}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              void fetchOnboarding();
+            }}
+          >
             Retry loading onboarding
           </Button>
         </Card>
@@ -260,7 +265,6 @@ export default function EmployeeOnboardingPage({
             <EmptyState
               title="No onboarding yet"
               description="Your onboarding isn't ready just yet. Please reach out to your HR team if you believe this is a mistake or need assistance getting started."
-              illustration={<IllustrationOnboarding />}
               className="p-8"
             />
           </Card>

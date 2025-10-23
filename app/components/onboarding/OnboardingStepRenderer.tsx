@@ -100,8 +100,11 @@ export default function OnboardingStepRenderer({
       : [];
 
   const payrollFieldDefaults = () => {
-    const fields = Array.isArray(metadata.requiredFields) ? metadata.requiredFields : [];
-    return fields.reduce<Record<string, string>>((acc, field) => {
+    const fields: string[] = Array.isArray(metadata.requiredFields)
+      ? metadata.requiredFields.filter((field: unknown): field is string => typeof field === "string")
+      : [];
+
+    return fields.reduce((acc: Record<string, string>, field) => {
       acc[field] = metadata.defaults?.[field] ? String(metadata.defaults[field]) : "";
       return acc;
     }, {});

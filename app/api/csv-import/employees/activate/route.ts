@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { randomBytes } from "crypto";
-import { resend } from "@/lib/resend";
+import { PEOPLECORE_FROM_EMAIL, resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 import { auditLog } from "@/lib/audit";
 
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
             });
 
             await resend.emails.send({
-              from: "PeopleCore <noreply@peoplecore.com>",
+              from: PEOPLECORE_FROM_EMAIL,
               to: [employee.User.email],
               subject: "Welcome to PeopleCore - Activate Your Account",
               html,

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 type InsightFilters = {
 	templateId?: string;
@@ -221,7 +222,7 @@ export async function getOnboardingInsights(
 				gte: new Date(),
 				lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
 			},
-			onboardingStatus: { equals: null },
+			onboardingStatus: { equals: Prisma.JsonNull },
 		},
 	});
 

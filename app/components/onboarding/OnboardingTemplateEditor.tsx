@@ -17,7 +17,18 @@ import {
   FileEdit,
   Info,
   RotateCcw,
+  Tool,
+  KeySquare,
+  CalendarClock,
+  UserRoundPlus,
+  ShieldCheck,
+  Wallet,
+  HeartPulse,
+  Target,
+  Smile,
+  Workflow,
 } from "lucide-react";
+import Checkbox from "@/components/ui/Checkbox";
 import { toast } from "sonner";
 import {
   Accordion,
@@ -32,21 +43,43 @@ import { StepsDroppableArea } from "./builder/StepsDroppableArea";
 
 // --- Step Types
 const STEP_TYPES = [
-  {
-    value: "acknowledge-document",
-    label: "Acknowledge Document",
-    icon: FileText,
-  },
-  { value: "upload-document", label: "Upload Document", icon: UploadCloud },
-  { value: "fill-form", label: "Fill Form", icon: FileEdit },
-  { value: "instructions", label: "Welcome/Instructions", icon: Info },
+	{ value: "acknowledge-document", label: "Acknowledge Document", icon: FileText },
+	{ value: "upload-document", label: "Upload Document", icon: UploadCloud },
+	{ value: "collect-document", label: "Collect Existing Document", icon: UploadCloud },
+	{ value: "fill-form", label: "Fill Form", icon: FileEdit },
+	{ value: "instructions", label: "Welcome/Instructions", icon: Info },
+	{ value: "training-assignment", label: "Assign Training", icon: ShieldCheck },
+	{ value: "equipment-checklist", label: "Equipment Checklist", icon: Tool },
+	{ value: "system-access", label: "System Access", icon: KeySquare },
+	{ value: "manager-checkin", label: "Manager Check-in", icon: CalendarClock },
+	{ value: "buddy-introduction", label: "Buddy Introduction", icon: UserRoundPlus },
+	{ value: "compliance-training", label: "Compliance Training", icon: ShieldCheck },
+	{ value: "payroll-setup", label: "Payroll Setup", icon: Wallet },
+	{ value: "benefits-enrollment", label: "Benefits Enrollment", icon: HeartPulse },
+	{ value: "probation-goals", label: "Probation Goals", icon: Target },
+	{ value: "welcome-survey", label: "Welcome Survey", icon: Smile },
+	{ value: "journey-automation", label: "Journey Automation", icon: Workflow },
 ];
 
 const dbTypeToUi: Record<string, string> = {
-  ACKNOWLEDGE_DOCUMENT: "acknowledge-document",
-  UPLOAD_DOCUMENT: "upload-document",
-  INSTRUCTION: "instructions",
-  FORM_FILL: "fill-form",
+	ACKNOWLEDGE_DOCUMENT: "acknowledge-document",
+	UPLOAD_DOCUMENT: "upload-document",
+	COLLECT_DOCUMENT: "collect-document",
+	INSTRUCTION: "instructions",
+	FORM_FILL: "fill-form",
+	FILL_FORM_BY_SLUG: "fill-form",
+	CREATE_TASK: "create-task",
+	TRAINING_ASSIGNMENT: "training-assignment",
+	EQUIPMENT_CHECKLIST: "equipment-checklist",
+	SYSTEM_ACCESS: "system-access",
+	MANAGER_CHECKIN: "manager-checkin",
+	BUDDY_INTRODUCTION: "buddy-introduction",
+	COMPLIANCE_TRAINING: "compliance-training",
+	PAYROLL_SETUP: "payroll-setup",
+	BENEFITS_ENROLLMENT: "benefits-enrollment",
+	PROBATION_GOALS: "probation-goals",
+	WELCOME_SURVEY: "welcome-survey",
+	JOURNEY_AUTOMATION: "journey-automation",
 };
 
 const dbUploadTypeToUi: Record<string, string> = {
@@ -55,6 +88,56 @@ const dbUploadTypeToUi: Record<string, string> = {
   DRIVER_LICENSE: "driver-licence",
   TRAINING_CERTIFICATE: "training-certificate",
   OTHER: "other",
+};
+
+const defaultMetadataByType: Record<string, any> = {
+	"equipment-checklist": {
+		items: [
+			{ id: "laptop", label: "Laptop issued", completed: false },
+			{ id: "phone", label: "Phone issued", completed: false },
+			{ id: "accessories", label: "Accessories provided", completed: false },
+		],
+	},
+	"system-access": {
+		systems: [
+			{ id: "email", name: "Email", granted: false },
+			{ id: "hris", name: "HRIS", granted: false },
+			{ id: "payroll", name: "Payroll", granted: false },
+		],
+	},
+	"manager-checkin": {
+		timeline: [
+			{ id: "week1", label: "Week 1" },
+			{ id: "week4", label: "Week 4" },
+			{ id: "week12", label: "Week 12" },
+		],
+		template: "Please schedule a check-in focusing on progress, blockers, and support needs.",
+	},
+	"buddy-introduction": {
+		notes: "Introduce your buddy and set up a first meeting.",
+	},
+	"compliance-training": {
+		courses: [{ id: "health-safety", title: "Health & Safety" }],
+	},
+	"payroll-setup": {
+		requiredFields: ["bankDetails", "taxCode"],
+	},
+	"benefits-enrollment": {
+		links: [],
+	},
+	"probation-goals": {
+		milestones: [
+			{ id: "goal1", title: "Initial Objectives", completed: false },
+			{ id: "goal2", title: "Development Goals", completed: false },
+		],
+	},
+	"welcome-survey": {
+		questionSet: "welcome-baseline",
+	},
+	"journey-automation": {
+		journeyTemplateId: null,
+		trigger: "on_start",
+	},
 };
 
 // --- Key generator utility
@@ -77,6 +160,7 @@ function createStep(type: string) {
     documentId: "",
     formId: "", // For reusable forms
     formFields: [], // For inline fields (backward compatibility)
+    metadata: defaultMetadataByType[type] ? structuredClone(defaultMetadataByType[type]) : {},
   };
 }
 

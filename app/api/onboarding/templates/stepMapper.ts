@@ -9,6 +9,20 @@ const typeMap: Record<string, OnboardingStepType> = {
   "upload-document": OnboardingStepType.UPLOAD_DOCUMENT,
   instructions: OnboardingStepType.INSTRUCTION,
   "fill-form": OnboardingStepType.FORM_FILL,
+  "collect-document": OnboardingStepType.COLLECT_DOCUMENT,
+  "fill-form-by-slug": OnboardingStepType.FILL_FORM_BY_SLUG,
+  "create-task": OnboardingStepType.CREATE_TASK,
+  "training-assignment": OnboardingStepType.TRAINING_ASSIGNMENT,
+  "equipment-checklist": OnboardingStepType.EQUIPMENT_CHECKLIST,
+  "system-access": OnboardingStepType.SYSTEM_ACCESS,
+  "manager-checkin": OnboardingStepType.MANAGER_CHECKIN,
+  "buddy-introduction": OnboardingStepType.BUDDY_INTRODUCTION,
+  "compliance-training": OnboardingStepType.COMPLIANCE_TRAINING,
+  "payroll-setup": OnboardingStepType.PAYROLL_SETUP,
+  "benefits-enrollment": OnboardingStepType.BENEFITS_ENROLLMENT,
+  "probation-goals": OnboardingStepType.PROBATION_GOALS,
+  "welcome-survey": OnboardingStepType.WELCOME_SURVEY,
+  "journey-automation": OnboardingStepType.JOURNEY_AUTOMATION,
 };
 
 const uploadTypeMap: Record<string, OnboardingUploadType> = {
@@ -57,7 +71,12 @@ export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
             order: i + 1,
           };
           if (mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT) {
-            return { ...base, documentId: step.documentId || null };
+            return {
+              ...base,
+              documentId: step.documentId || null,
+              instruction: step.description || "",
+              metadata: step.metadata || Prisma.DbNull,
+            };
           }
           if (mappedType === OnboardingStepType.UPLOAD_DOCUMENT) {
             return {
@@ -65,15 +84,30 @@ export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
               uploadType: step.uploadType
                 ? uploadTypeMap[step.uploadType] || null
                 : null,
+              instruction: step.description || "",
+              metadata: step.metadata || Prisma.DbNull,
             };
           }
           if (mappedType === OnboardingStepType.INSTRUCTION) {
-            return { ...base, instruction: step.description || "" };
+            return {
+              ...base,
+              instruction: step.description || "",
+              metadata: step.metadata || Prisma.DbNull,
+            };
           }
           if (mappedType === OnboardingStepType.FORM_FILL) {
-            return { ...base, formId: step.formId || null };
+            return {
+              ...base,
+              formId: step.formId || null,
+              instruction: step.description || "",
+              metadata: step.metadata || Prisma.DbNull,
+            };
           }
-          return undefined;
+          return {
+            ...base,
+            instruction: step.description || "",
+            metadata: step.metadata || Prisma.DbNull,
+          };
         })
         .filter(isStep) as Prisma.OnboardingStepCreateInput[])
     : [];

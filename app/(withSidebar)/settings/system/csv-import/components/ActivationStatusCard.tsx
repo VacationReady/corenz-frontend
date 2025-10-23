@@ -93,70 +93,51 @@ const ActivationStatusCardComponent = ({
 
         {showDashboard && (
           <div className="space-y-3 pt-4 border-t">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-                <h4 className="font-medium text-sm text-amber-900">Employee Status</h4>
-                <div className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-white p-1">
-                  {["all", "not_sent", "sent"].map(option => {
-                    const isActive =
-                      (option === "all" && statusFilter === "all") ||
-                      (option === "not_sent" && statusFilter === "not_sent") ||
-                      (option === "sent" && statusFilter === "sent");
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-sm">Employee Status</h4>
+              <Button variant="primary" size="sm" onClick={onOpenSendWelcomeModal}>
+                <Send className="w-4 h-4 mr-2" />
+                Send Welcome Emails
+              </Button>
+            </div>
 
-                    const label =
-                      option === "all"
-                        ? "All"
-                        : option === "not_sent"
-                        ? "Email Not Sent"
-                        : "Email Sent";
-
-                    return (
-                      <Button
-                        key={option}
-                        type="button"
-                        size="sm"
-                        variant={isActive ? "primary" : "ghost"}
-                        className={
-                          isActive
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Filter className="w-3 h-3" />
+                <span>Filter:</span>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Filter className="w-3 h-3" />
-                  <span>Filter:</span>
-                </div>
-                <Button
-                  variant={statusFilter === "all" ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setStatusFilter("all")}
-                  className="h-7 text-xs"
-                >
-                  All ({employees.length})
-                </Button>
-                <Button
-                  variant={statusFilter === "no_email" ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setStatusFilter("no_email")}
-                  className="h-7 text-xs"
-                >
-                  No Email ({statusCounts.no_email})
-                </Button>
-                <Button
-                  variant={statusFilter === "email_sent_pending" ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setStatusFilter("email_sent_pending")}
-                  className="h-7 text-xs"
-                >
-                  Email Sent ({statusCounts.email_sent_pending})
-                </Button>
-                <Button
-                  variant={statusFilter === "activated" ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setStatusFilter("activated")}
-                  className="h-7 text-xs"
-                >
-                  Activated ({statusCounts.activated})
-                </Button>
-              </div>
+              <Button
+                variant={statusFilter === "all" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("all")}
+                className="h-7 text-xs"
+              >
+                All ({employees.length})
+              </Button>
+              <Button
+                variant={statusFilter === "no_email" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("no_email")}
+                className="h-7 text-xs"
+              >
+                No Email ({statusCounts.no_email})
+              </Button>
+              <Button
+                variant={statusFilter === "email_sent_pending" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("email_sent_pending")}
+                className="h-7 text-xs"
+              >
+                Email Sent ({statusCounts.email_sent_pending})
+              </Button>
+              <Button
+                variant={statusFilter === "activated" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("activated")}
+                className="h-7 text-xs"
+              >
+                Activated ({statusCounts.activated})
+              </Button>
             </div>
 
             <div className="max-h-96 overflow-y-auto space-y-2">
@@ -175,33 +156,25 @@ const ActivationStatusCardComponent = ({
                       <div className="text-xs text-muted-foreground">
                         {employee.email} • {employee.department || "No department"} • {employee.jobRole || "No role"}
                       </div>
-                  key={employee.id}
-                  className="flex items-center justify-between p-3 bg-white rounded-lg border text-sm"
-                >
-                  <div className="flex-1">
-                    <div className="font-medium">{employee.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {employee.email} • {employee.department || "No department"} • {employee.jobRole || "No role"}
                     </div>
-                  </div>
-                  <Badge
-                    variant="default"
-                    className={
-                      employee.status === "no_email"
-                        ? "bg-gray-100 text-gray-800 border-gray-300"
+                    <Badge
+                      variant="default"
+                      className={
+                        employee.status === "no_email"
+                          ? "bg-gray-100 text-gray-800 border-gray-300"
+                          : employee.status === "email_sent_pending"
+                          ? "bg-orange-100 text-orange-800 border-orange-300"
+                          : "bg-green-100 text-green-800 border-green-300"
+                      }
+                    >
+                      {employee.status === "no_email"
+                        ? "No Email"
                         : employee.status === "email_sent_pending"
-                        ? "bg-orange-100 text-orange-800 border-orange-300"
-                        : "bg-green-100 text-green-800 border-green-300"
-                    }
-                  >
-                    {employee.status === "no_email"
-                      ? "No Email"
-                      : employee.status === "email_sent_pending"
-                      ? "Email Sent"
-                      : "Activated"}
-                  </Badge>
-                </div>
-              ))
+                        ? "Email Sent"
+                        : "Activated"}
+                    </Badge>
+                  </div>
+                ))
               )}
             </div>
           </div>

@@ -882,7 +882,7 @@ export default function CSVImportPage() {
     >
       <div className="space-y-6">
         {/* Employee Activation Status Card */}
-        {activationStats && activationStats.emailNotSent > 0 && (
+        {activationStats && activationStats.total > 0 && (
           <ActivationStatusCard
             stats={activationStats}
             employees={activationEmployees}

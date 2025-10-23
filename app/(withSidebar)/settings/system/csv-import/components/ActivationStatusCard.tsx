@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import {
   Card,
   CardContent,
@@ -10,8 +10,10 @@ import {
 } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Mail, Send } from "lucide-react";
+import { Mail, Send, Filter } from "lucide-react";
 import type { ActivationStats, EmployeeActivationStatus } from "../types";
+
+type StatusFilter = "all" | "no_email" | "email_sent_pending" | "activated";
 
 interface ActivationStatusCardProps {
   stats: ActivationStats;
@@ -28,7 +30,12 @@ const ActivationStatusCardComponent = ({
   onToggleDashboard,
   onOpenSendWelcomeModal,
 }: ActivationStatusCardProps) => {
-  const pendingEmployees = employees.filter(employee => employee.status !== "activated");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  
+  const filteredEmployees = employees.filter(employee => {
+    if (statusFilter === "all") return true;
+    return employee.status === statusFilter;
+  });
 
   return (
     <Card className="border-amber-200 bg-amber-50/50">
@@ -36,14 +43,14 @@ const ActivationStatusCardComponent = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-amber-600" />
-            <CardTitle className="text-amber-900">Pending Employee Activations</CardTitle>
+            <CardTitle className="text-amber-900">Employee Activation Status</CardTitle>
           </div>
           <Button variant="outline" size="sm" onClick={onToggleDashboard}>
             {showDashboard ? "Hide Details" : "View Details"}
           </Button>
         </div>
         <CardDescription>
-          {stats.emailNotSent} employee{stats.emailNotSent === 1 ? "" : "s"} haven't received welcome emails yet
+          {stats.activated} activated • {stats.pendingActivation} pending • {stats.emailNotSent} not sent
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -76,8 +83,53 @@ const ActivationStatusCardComponent = ({
               </Button>
             </div>
 
+            {/* Status Filter Buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Filter className="w-3 h-3" />
+                <span>Filter:</span>
+              </div>
+              <Button
+                variant={statusFilter === "all" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("all")}
+                className="h-7 text-xs"
+              >
+                All ({employees.length})
+              </Button>
+              <Button
+                variant={statusFilter === "no_email" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("no_email")}
+                className="h-7 text-xs"
+              >
+                No Email ({employees.filter(e => e.status === "no_email").length})
+              </Button>
+              <Button
+                variant={statusFilter === "email_sent_pending" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("email_sent_pending")}
+                className="h-7 text-xs"
+              >
+                Email Sent ({employees.filter(e => e.status === "email_sent_pending").length})
+              </Button>
+              <Button
+                variant={statusFilter === "activated" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("activated")}
+                className="h-7 text-xs"
+              >
+                Activated ({employees.filter(e => e.status === "activated").length})
+              </Button>
+            </div>
+
             <div className="max-h-96 overflow-y-auto space-y-2">
-              {pendingEmployees.map(employee => (
+              {filteredEmployees.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  No employees found with the selected filter.
+                </div>
+              ) : (
+                filteredEmployees.map(employee => (
                 <div
                   key={employee.id}
                   className="flex items-center justify-between p-3 bg-white rounded-lg border text-sm"
@@ -89,12 +141,13 @@ const ActivationStatusCardComponent = ({
                     </div>
                   </div>
                   <Badge
-                    variant={
+                    variant="default"
+                    className={
                       employee.status === "no_email"
-                        ? "destructive"
+                        ? "bg-gray-100 text-gray-800 border-gray-300"
                         : employee.status === "email_sent_pending"
-                        ? "secondary"
-                        : "default"
+                        ? "bg-orange-100 text-orange-800 border-orange-300"
+                        : "bg-green-100 text-green-800 border-green-300"
                     }
                   >
                     {employee.status === "no_email"
@@ -104,7 +157,8 @@ const ActivationStatusCardComponent = ({
                       : "Activated"}
                   </Badge>
                 </div>
-              ))}
+              ))
+              )}
             </div>
           </div>
         )}

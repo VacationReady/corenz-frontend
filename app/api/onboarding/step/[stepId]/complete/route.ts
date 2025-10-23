@@ -6,6 +6,59 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
+type CompletionPayload = Record<string, unknown>;
+
+function extractCompletionPayload(body: any, stepType?: string): CompletionPayload | null {
+  if (!body || typeof body !== "object") {
+    if (stepType === "ACKNOWLEDGE_DOCUMENT") {
+      return { acknowledged: true };
+    }
+    if (stepType === "UPLOAD_DOCUMENT") {
+      return { uploaded: true };
+    }
+    return null;
+  }
+
+  const allowedKeys = [
+    "formResponse",
+    "trainingModules",
+    "equipmentChecklist",
+    "systemAccess",
+    "managerCheckins",
+    "buddyNotes",
+    "complianceCourses",
+    "payrollValues",
+    "benefitLinks",
+    "probationGoals",
+    "surveyResponse",
+    "questionSet",
+    "journeyAutomation",
+    "collected",
+  ];
+
+  const payload: CompletionPayload = {};
+
+  for (const key of allowedKeys) {
+    if (body[key] !== undefined) {
+      payload[key] = body[key];
+    }
+  }
+
+  if (stepType === "ACKNOWLEDGE_DOCUMENT" && payload.acknowledged === undefined) {
+    payload.acknowledged = true;
+  }
+
+  if (stepType === "UPLOAD_DOCUMENT" && payload.uploaded === undefined) {
+    payload.uploaded = true;
+  }
+
+  if (Object.keys(payload).length === 0) {
+    return null;
+  }
+
+  return payload;
+}
+
 // Util: Parse JSON body (works for Next.js App Router POST)
 async function parseBody(request: NextRequest) {
   try {
@@ -80,13 +133,14 @@ export async function POST(
       },
     });
 
-    // 3. Save step response (form data, if present)
-    if (body.formResponse) {
+    // 3. Save step response (supports new payload structures)
+    const completionPayload = extractCompletionPayload(body, stepInstance.OnboardingStep?.type);
+    if (completionPayload) {
       await prisma.onboardingStepResponse.create({
         data: {
           id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           onboardingStepInstanceId: stepId,
-          response: body.formResponse, // must be JSON-serializable
+          response: completionPayload,
         },
       });
     }

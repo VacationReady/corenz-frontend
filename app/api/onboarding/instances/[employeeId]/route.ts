@@ -33,14 +33,20 @@ export async function GET(
       where: { employeeId, status: { in: ["active", "in_progress"] } },
       orderBy: { startedAt: "desc" },
       include: {
-        OnboardingStepInstance: true, // OnboardingStepInstance records (instance-specific status)
+        OnboardingStepInstance: {
+          include: {
+            OnboardingStepResponse: {
+              orderBy: { createdAt: "desc" },
+            },
+          },
+        },
         OnboardingTemplate: {
           include: {
             OnboardingStep: {
               include: {
                 Document: true,
-                Form: { select: { id: true, name: true } },
-              }, // include linked document for ACK steps
+                Form: { select: { id: true, name: true, formType: true } },
+              },
             },
           },
         },
@@ -58,6 +64,7 @@ export async function GET(
     const mergedSteps = await Promise.all(
       instance.OnboardingTemplate.OnboardingStep.map(async (tStep) => {
         const instStep = instance.OnboardingStepInstance.find((i) => i.stepId === tStep.id);
+        const latestResponse = instStep?.OnboardingStepResponse?.[0]?.response ?? undefined;
         let url: string | null = null;
         if (tStep.Document?.url) {
           const { data: signed } = await supabase.storage
@@ -81,6 +88,15 @@ export async function GET(
               }
             : undefined,
           formId: tStep.formId ?? undefined,
+          form: tStep.Form
+            ? {
+                id: tStep.Form.id,
+                name: tStep.Form.name,
+                formType: tStep.Form.formType ?? undefined,
+              }
+            : undefined,
+          metadata: tStep.metadata ?? undefined,
+          existingResponse: latestResponse,
           order: tStep.order,
           status: instStep?.status || "pending",
         };

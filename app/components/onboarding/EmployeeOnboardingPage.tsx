@@ -265,6 +265,7 @@ export default function EmployeeOnboardingPage({
             />
           </Card>
         )
+      }
       </div>
     );
   }

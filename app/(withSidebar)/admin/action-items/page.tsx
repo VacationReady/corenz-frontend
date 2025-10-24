@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -159,16 +160,19 @@ export default function AdminActionItemsPage() {
     );
   }
 
+  const breadcrumbs = {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Action Items", isCurrentPage: true },
+    ],
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Action Items Hub</h1>
-          <p className="text-muted-foreground mt-1">
-            Global overview of all outstanding work across your organization
-          </p>
-        </div>
+    <PageShell
+      title="Action Items Hub"
+      description="Global overview of all outstanding work across your organization"
+      breadcrumbs={breadcrumbs}
+      action={
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => mutate()}>
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -179,8 +183,10 @@ export default function AdminActionItemsPage() {
             Export
           </Button>
         </div>
-      </div>
-
+      }
+      className="bg-transparent"
+    >
+      <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -437,6 +443,7 @@ export default function AdminActionItemsPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </PageShell>
   );
 }

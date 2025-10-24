@@ -7,6 +7,7 @@ import { z } from "zod";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl } from "@/lib/email/template";
 import { buildDocumentNotificationEmail } from "@/lib/email/documentNotifications";
+import { createActionItem, createActionItemsBulk } from "@/lib/action-items-helper";
 
 const optionalStringFromForm = z.preprocess(
   (val) => {
@@ -222,6 +223,101 @@ export async function POST(req: Request) {
       },
     });
 
+    const acknowledgementDueDate = signatureDueAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    let employeeForDocument: { id: string; userId: string | null } | null = null;
+
+    if (document.employeeId) {
+      employeeForDocument = await prisma.employee.findFirst({
+        where: { id: document.employeeId, companyId: document.companyId },
+        select: { id: true, userId: true },
+      });
+    }
+
+    let employeesInScope: { id: string; userId: string | null }[] | null = null;
+
+    if (!document.employeeId && (requiresAck || requiresSignature)) {
+      const departmentIds = document.Department.map((d) => d.id);
+      const jobRoleIds = document.JobRole.map((j) => j.id);
+
+      if (
+        (!departmentIds || departmentIds.length === 0) &&
+        (!jobRoleIds || jobRoleIds.length === 0)
+      ) {
+        employeesInScope = await prisma.employee.findMany({
+          where: {
+            isActive: true,
+            User: { companyId: document.companyId },
+          },
+          select: { id: true, userId: true },
+        });
+      } else {
+        employeesInScope = await prisma.employee.findMany({
+          where: {
+            isActive: true,
+            User: { companyId: document.companyId },
+            OR: [
+              departmentIds && departmentIds.length > 0
+                ? { departmentId: { in: departmentIds } }
+                : undefined,
+              jobRoleIds && jobRoleIds.length > 0
+                ? { jobRoleId: { in: jobRoleIds } }
+                : undefined,
+            ].filter(Boolean) as any,
+          },
+          select: { id: true, userId: true },
+        });
+      }
+    }
+
+    if (requiresAck) {
+      if (document.employeeId && employeeForDocument?.userId) {
+        await createActionItem({
+          companyId: document.companyId,
+          type: "DOCUMENT_ACKNOWLEDGEMENT",
+          title: `Acknowledge document: ${document.name}`,
+          description: document.category || undefined,
+          assignedToId: employeeForDocument.userId,
+          relatedEmployeeId: document.employeeId,
+          dueDate: acknowledgementDueDate,
+          priority: "HIGH",
+          metadata: {
+            documentId: document.id,
+            documentName: document.name,
+            documentPath: document.path,
+            documentCategory: document.category,
+            requiresSignature,
+          },
+        });
+      }
+
+      if (!document.employeeId && Array.isArray(employeesInScope) && employeesInScope.length > 0) {
+        const actionItemsPayload = employeesInScope
+          .filter((emp) => emp.userId)
+          .map((emp) => ({
+            companyId: document.companyId,
+            type: "DOCUMENT_ACKNOWLEDGEMENT",
+            title: `Acknowledge document: ${document.name}`,
+            description: document.category || undefined,
+            assignedToId: emp.userId as string,
+            relatedEmployeeId: emp.id,
+            dueDate: acknowledgementDueDate,
+            priority: "HIGH" as const,
+            metadata: {
+              documentId: document.id,
+              documentName: document.name,
+              documentPath: document.path,
+              documentCategory: document.category,
+              requiresSignature,
+            },
+          }));
+
+        if (actionItemsPayload.length > 0) {
+          await createActionItemsBulk(actionItemsPayload);
+        }
+      }
+    }
+
     // --- BEGIN: Persist signature scopes if enabled ---
     if (requiresSignature) {
       if (Array.isArray(signerEmployees) && signerEmployees.length > 0) {
@@ -257,15 +353,9 @@ export async function POST(req: Request) {
 
     // --- BEGIN: Send Resend email for employee docs with requiresAck/Signature ---
     if (!deferNotifications && (requiresAck || requiresSignature) && document.employeeId) {
-      const employee = await prisma.employee.findFirst({
-        where: { id: document.employeeId, companyId: document.companyId },
-        select: { userId: true },
-      });
-      console.log("Employee found:", employee);
-
-      if (employee?.userId) {
+      if (employeeForDocument?.userId) {
         const user = await prisma.user.findFirst({
-          where: { id: employee.userId, companyId: document.companyId },
+          where: { id: employeeForDocument.userId, companyId: document.companyId },
           select: { email: true, name: true },
         });
         console.log("User found for notification:", user);
@@ -300,46 +390,15 @@ export async function POST(req: Request) {
       (requiresAck || requiresSignature) &&
       !document.employeeId // Company doc (not employee-specific)
     ) {
-      const departmentIds = document.Department.map((d) => d.id);
-      const jobRoleIds = document.JobRole.map((j) => j.id);
-
-      let employees: { id: string; userId: string }[] = [];
-      if (
-        (!departmentIds || departmentIds.length === 0) &&
-        (!jobRoleIds || jobRoleIds.length === 0)
-      ) {
-        employees = await prisma.employee.findMany({
-          where: {
-            isActive: true,
-            User: { companyId: document.companyId },
-          },
-          select: { id: true, userId: true },
-        });
-      } else {
-        employees = await prisma.employee.findMany({
-          where: {
-            isActive: true,
-            User: { companyId: document.companyId },
-            OR: [
-              departmentIds && departmentIds.length > 0
-                ? { departmentId: { in: departmentIds } }
-                : undefined,
-              jobRoleIds && jobRoleIds.length > 0
-                ? { jobRoleId: { in: jobRoleIds } }
-                : undefined,
-            ].filter(Boolean) as any,
-          },
-          select: { id: true, userId: true },
-        });
-      }
+      const scopedEmployees = employeesInScope ?? [];
       console.log(
         "Company doc notification: Employees in scope:",
-        employees.length,
+        scopedEmployees.length,
       );
 
       const users = await prisma.user.findMany({
         where: {
-          id: { in: employees.map((e) => e.userId) },
+          id: { in: scopedEmployees.map((e) => e.userId).filter(Boolean) as string[] },
           email: { not: "" },
           companyId: document.companyId,
         },

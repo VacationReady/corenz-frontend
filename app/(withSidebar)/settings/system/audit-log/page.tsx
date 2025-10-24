@@ -55,6 +55,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { format } from "date-fns";
+import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 
 interface AuditLogEntry {
   id: string;
@@ -119,6 +120,94 @@ const actionOptions = [
   { value: "ACTIVATED", label: "Activated" },
   { value: "DEACTIVATED", label: "Deactivated" },
 ];
+
+type NormalizedChange = {
+  field?: string | null;
+  oldValue?: unknown;
+  newValue?: unknown;
+  reason?: string | null;
+};
+
+function normalizeAuditChanges(changes: any): NormalizedChange[] {
+  if (!changes) return [];
+
+  const mapChange = (change: any): NormalizedChange => ({
+    field: change?.field ?? change?.attribute ?? change?.name ?? null,
+    oldValue:
+      change?.oldValue ??
+      change?.previousValue ??
+      change?.from ??
+      change?.before ??
+      null,
+    newValue:
+      change?.newValue ??
+      change?.currentValue ??
+      change?.to ??
+      change?.after ??
+      null,
+    reason: change?.reason ?? change?.note ?? change?.description ?? null,
+  });
+
+  if (Array.isArray(changes)) {
+    return changes.map(mapChange);
+  }
+
+  if (typeof changes === "object") {
+    if ("field" in changes || "oldValue" in changes || "newValue" in changes) {
+      return [mapChange(changes)];
+    }
+
+    return Object.entries(changes).map(([fieldKey, value]) => {
+      if (value && typeof value === "object") {
+        return {
+          field: fieldKey,
+          oldValue:
+            value?.oldValue ??
+            value?.previousValue ??
+            value?.old ??
+            value?.from ??
+            value?.before ??
+            null,
+          newValue:
+            value?.newValue ??
+            value?.currentValue ??
+            value?.new ??
+            value?.to ??
+            value?.after ??
+            null,
+          reason: value?.reason ?? value?.note ?? value?.description ?? null,
+        };
+      }
+
+      return {
+        field: fieldKey,
+        oldValue: value,
+      };
+    });
+  }
+
+  return [];
+}
+
+function formatAuditValueOrEmpty(value: unknown): string {
+  if (value === null || value === undefined) {
+    return formatAuditValue("");
+  }
+
+  if (typeof value === "string") {
+    return formatAuditValue(value);
+  }
+
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return formatAuditValue(String(value));
+    }
+  }
+
+  return formatAuditValue(String(value));
+}
 
 export default function AuditLogPage() {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
@@ -369,6 +458,19 @@ export default function AuditLogPage() {
     
     return log.entityId;
   };
+
+  const normalizedSelectedLogChanges = selectedLog
+    ? normalizeAuditChanges(selectedLog.changes)
+    : [];
+
+  const meaningfulChanges = normalizedSelectedLogChanges.filter((change) => {
+    const hasOldValue = change.oldValue !== undefined && change.oldValue !== null;
+    const hasNewValue = change.newValue !== undefined && change.newValue !== null;
+    const hasReason = typeof change.reason === "string" && change.reason.trim() !== "";
+    return hasOldValue || hasNewValue || hasReason;
+  });
+
+  const hasStructuredSelectedLogChanges = meaningfulChanges.length > 0;
 
   return (
     <PageShell
@@ -755,21 +857,54 @@ export default function AuditLogPage() {
                 </div>
 
                 {selectedLog.changes && (
-                  <div>
-                    <Label className="text-sm font-medium">Changes</Label>
-                    <pre className="text-sm bg-muted p-4 rounded mt-2 overflow-auto max-h-64">
-                      {JSON.stringify(selectedLog.changes, null, 2)}
-                    </pre>
-                  </div>
-                )}
-
-                {selectedLog.metadata && (
-                  <div>
-                    <Label className="text-sm font-medium">Metadata</Label>
-                    <pre className="text-sm bg-muted p-4 rounded mt-2 overflow-auto max-h-64">
-                      {JSON.stringify(selectedLog.metadata, null, 2)}
-                    </pre>
-                  </div>
+                  hasStructuredSelectedLogChanges ? (
+                    <div>
+                      <Label className="text-sm font-medium">Changes</Label>
+                      <div className="space-y-4 mt-2">
+                        {meaningfulChanges.map((change, index) => (
+                          <div
+                            key={`${change.field ?? "change"}-${index}`}
+                            className="border rounded-lg p-4 bg-gray-50"
+                          >
+                            {typeof change.field === "string" && change.field.trim() !== "" && (
+                              <div className="text-sm font-medium text-gray-700 mb-3">
+                                {labelForField(change.field)}
+                              </div>
+                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <span className="text-xs font-semibold uppercase text-gray-500">Previous</span>
+                                <div className="mt-1 p-3 rounded border bg-red-50 text-sm text-gray-900 whitespace-pre-wrap">
+                                  {formatAuditValueOrEmpty(change.oldValue)}
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-xs font-semibold uppercase text-gray-500">Updated</span>
+                                <div className="mt-1 p-3 rounded border bg-emerald-50 text-sm text-gray-900 whitespace-pre-wrap">
+                                  {formatAuditValueOrEmpty(change.newValue)}
+                                </div>
+                              </div>
+                            </div>
+                            {typeof change.reason === "string" && change.reason.trim() !== "" && (
+                              <div className="mt-4">
+                                <span className="text-xs font-semibold uppercase text-gray-500">Reason</span>
+                                <div className="mt-1 p-3 rounded border bg-blue-50 text-sm text-gray-900">
+                                  {change.reason}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label className="text-sm font-medium">Changes</Label>
+                      <pre className="text-sm bg-muted p-4 rounded mt-2 overflow-auto max-h-64">
+                        {JSON.stringify(selectedLog.changes, null, 2)}
+                      </pre>
+                    </div>
+                  )
                 )}
               </div>
             )}

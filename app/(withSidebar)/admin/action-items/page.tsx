@@ -152,6 +152,68 @@ export default function AdminActionItemsPage() {
     }
   };
 
+  const handleView = (item: ActionItemWithDetails) => {
+    const type = item.type || "";
+    const metadata = (item.metadata || {}) as Record<string, any>;
+
+    if (type.includes("PERFORMANCE")) {
+      router.push(`/performance?actionItemId=${item.id}`);
+      return;
+    }
+
+    if (type.includes("LEAVE")) {
+      router.push(`/calendar?actionItemId=${item.id}`);
+      return;
+    }
+
+    if (type === "SURVEY" || type === "SURVEY_COMPLETION") {
+      const surveyId = metadata?.surveyId || metadata?.SurveyId;
+      if (surveyId) {
+        router.push(`/surveys/complete/${surveyId}?actionItemId=${item.id}`);
+      } else {
+        router.push(`/surveys`);
+      }
+      return;
+    }
+
+    if (type.includes("DOCUMENT")) {
+      const documentId = metadata?.documentId;
+      if (documentId) {
+        router.push(`/documents?open=${documentId}`);
+      } else {
+        router.push(`/documents`);
+      }
+      return;
+    }
+
+    if (type.includes("ONBOARDING")) {
+      router.push(`/onboarding`);
+      return;
+    }
+
+    if (type.includes("OFFBOARDING")) {
+      router.push(`/offboarding`);
+      return;
+    }
+
+    if (type.includes("MEETING")) {
+      router.push(`/performance/meetings?actionItemId=${item.id}`);
+      return;
+    }
+
+    const urlLike = metadata?.url || metadata?.link || metadata?.path;
+    if (typeof urlLike === "string" && urlLike.length) {
+      if (/^https?:\/\//i.test(urlLike)) {
+        window.open(urlLike, "_blank", "noopener,noreferrer");
+      } else {
+        router.push(urlLike);
+      }
+      return;
+    }
+
+    toast.info("No view destination configured for this action item yet.");
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -393,16 +455,7 @@ export default function AdminActionItemsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          // Navigate to relevant page based on type
-                          if (item.type.includes("PERFORMANCE")) {
-                            router.push(`/performance?actionItemId=${item.id}`);
-                          } else if (item.type.includes("LEAVE")) {
-                            router.push(`/calendar?actionItemId=${item.id}`);
-                          } else if (item.type === "SURVEY") {
-                            router.push(`/surveys`);
-                          }
-                        }}
+                        onClick={() => handleView(item)}
                       >
                         View
                       </Button>

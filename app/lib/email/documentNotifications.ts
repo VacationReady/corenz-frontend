@@ -18,6 +18,14 @@ function formatDueDate(value?: Date | string | null): string | null {
   return date.toLocaleString();
 }
 
+function extractFirstName(value?: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const [firstName] = trimmed.split(/\s+/);
+  return firstName || null;
+}
+
 export function buildDocumentNotificationEmail({
   recipientName,
   documentName,
@@ -32,7 +40,7 @@ export function buildDocumentNotificationEmail({
 
   const formattedDue = formatDueDate(signatureDueAt);
   const safeCategory = category || "General";
-  const greetingName = recipientName?.trim() || "there";
+  const greetingName = extractFirstName(recipientName) || "there";
   const actionPhrase = requiresSignature ? "signature" : "acknowledgement";
   const buttonLabel = requiresSignature ? "View & Sign Document" : "View Document";
 

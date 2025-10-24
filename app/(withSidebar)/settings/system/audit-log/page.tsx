@@ -122,66 +122,92 @@ const actionOptions = [
 ];
 
 type NormalizedChange = {
-  field?: string | null;
+  field?: string;
   oldValue?: unknown;
   newValue?: unknown;
-  reason?: string | null;
+  reason?: string;
 };
 
-function normalizeAuditChanges(changes: any): NormalizedChange[] {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getFirstDefined<T>(
+  obj: Record<string, unknown>,
+  keys: string[],
+): T | undefined {
+  for (const key of keys) {
+    const value = obj[key];
+    if (value !== undefined && value !== null) {
+      return value as T;
+    }
+  }
+  return undefined;
+}
+
+function mapChange(change: Record<string, unknown>): NormalizedChange {
+  const field = getFirstDefined<string>(change, ["field", "attribute", "name"]);
+  const oldValue = getFirstDefined<unknown>(change, [
+    "oldValue",
+    "previousValue",
+    "old",
+    "from",
+    "before",
+  ]);
+  const newValue = getFirstDefined<unknown>(change, [
+    "newValue",
+    "currentValue",
+    "new",
+    "to",
+    "after",
+  ]);
+  const reason = getFirstDefined<string>(change, ["reason", "note", "description"]);
+
+  return {
+    ...(field ? { field } : {}),
+    ...(oldValue !== undefined ? { oldValue } : {}),
+    ...(newValue !== undefined ? { newValue } : {}),
+    ...(reason ? { reason } : {}),
+  };
+}
+
+function normalizeAuditChanges(changes: unknown): NormalizedChange[] {
   if (!changes) return [];
 
-  const mapChange = (change: any): NormalizedChange => ({
-    field: change?.field ?? change?.attribute ?? change?.name ?? null,
-    oldValue:
-      change?.oldValue ??
-      change?.previousValue ??
-      change?.from ??
-      change?.before ??
-      null,
-    newValue:
-      change?.newValue ??
-      change?.currentValue ??
-      change?.to ??
-      change?.after ??
-      null,
-    reason: change?.reason ?? change?.note ?? change?.description ?? null,
-  });
-
   if (Array.isArray(changes)) {
-    return changes.map(mapChange);
+    return changes
+      .map((item) => {
+        if (isRecord(item)) {
+          return mapChange(item);
+        }
+        return item !== undefined
+          ? ({ newValue: item } as NormalizedChange)
+          : ({} as NormalizedChange);
+      })
+      .filter((change) => Object.keys(change).length > 0);
   }
 
-  if (typeof changes === "object") {
-    if ("field" in changes || "oldValue" in changes || "newValue" in changes) {
-      return [mapChange(changes)];
+  if (isRecord(changes)) {
+    const singular = mapChange(changes);
+    if (Object.keys(singular).length > 0) {
+      return [singular];
     }
 
     return Object.entries(changes).map(([fieldKey, value]) => {
-      if (value && typeof value === "object") {
+      if (isRecord(value)) {
+        const normalized = mapChange(value);
+        const field = normalized.field ?? fieldKey;
         return {
-          field: fieldKey,
-          oldValue:
-            value?.oldValue ??
-            value?.previousValue ??
-            value?.old ??
-            value?.from ??
-            value?.before ??
-            null,
-          newValue:
-            value?.newValue ??
-            value?.currentValue ??
-            value?.new ??
-            value?.to ??
-            value?.after ??
-            null,
-          reason: value?.reason ?? value?.note ?? value?.description ?? null,
+          field,
+          ...(normalized.oldValue !== undefined ? { oldValue: normalized.oldValue } : {}),
+          ...(normalized.newValue !== undefined ? { newValue: normalized.newValue } : {}),
+          ...(normalized.reason ? { reason: normalized.reason } : {}),
         };
       }
 
       return {
         field: fieldKey,
-        oldValue: value,
+        ...(value !== undefined ? { newValue: value } : {}),
       };
     });
   }

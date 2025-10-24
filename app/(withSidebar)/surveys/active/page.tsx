@@ -34,12 +34,12 @@ interface ActiveSurvey {
   name: string;
   templateName: string;
   sentDate: string;
-  deadline: string;
+  deadline: string | null;
   totalRecipients: number;
   responses: number;
   responseRate: number;
   status: "active" | "paused" | "completed" | "expired";
-  daysRemaining: number;
+  daysRemaining: number | null;
 }
 
 export default function ActiveSurveysPage() {
@@ -52,11 +52,34 @@ export default function ActiveSurveysPage() {
         const res = await fetch("/api/surveys?status=ACTIVE");
         if (res.ok) {
           const data = await res.json();
+          const now = new Date();
+          const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
           // Normalize status to lowercase for UI consistency
-          const normalizedSurveys = (data.surveys || []).map((survey: any) => ({
-            ...survey,
-            status: survey.status.toLowerCase(),
-          }));
+          const normalizedSurveys = (data.surveys || []).reduce(
+            (acc: ActiveSurvey[], survey: any) => {
+              const deadlineValue = survey.deadline ?? null;
+              const deadlineDate = deadlineValue ? new Date(deadlineValue) : null;
+
+              if (deadlineDate && deadlineDate.getTime() < now.getTime()) {
+                return acc;
+              }
+
+              const daysRemaining = deadlineDate
+                ? Math.max(0, Math.ceil((deadlineDate.getTime() - now.getTime()) / MS_PER_DAY))
+                : null;
+
+              acc.push({
+                ...survey,
+                status: (survey.status || "").toLowerCase(),
+                deadline: deadlineValue,
+                daysRemaining,
+              });
+
+              return acc;
+            },
+            []
+          );
           setSurveys(normalizedSurveys);
         } else {
           setSurveys([]);
@@ -234,7 +257,7 @@ export default function ActiveSurveysPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {surveys.filter(s => s.daysRemaining <= 3 && s.daysRemaining >= 0).length}
+                {surveys.filter(s => typeof s.daysRemaining === "number" && s.daysRemaining <= 3).length}
               </div>
             </CardContent>
           </Card>
@@ -293,7 +316,9 @@ export default function ActiveSurveysPage() {
                         <div>
                           <div className="text-muted-foreground">Deadline</div>
                           <div className="font-medium">
-                            {new Date(survey.deadline).toLocaleDateString()}
+                            {survey.deadline
+                              ? new Date(survey.deadline).toLocaleDateString()
+                              : "No deadline"}
                           </div>
                         </div>
                         <div>
@@ -310,7 +335,7 @@ export default function ActiveSurveysPage() {
                         </div>
                       </div>
 
-                      {survey.daysRemaining >= 0 && (
+                      {typeof survey.daysRemaining === "number" && (
                         <div className="mt-3 flex items-center gap-2">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">
@@ -318,7 +343,7 @@ export default function ActiveSurveysPage() {
                               ? "Due today" 
                               : `${survey.daysRemaining} days remaining`}
                           </span>
-                          {survey.daysRemaining <= 3 && survey.daysRemaining >= 0 && (
+                          {survey.daysRemaining <= 3 && (
                             <Badge variant="destructive" className="text-xs">
                               Urgent
                             </Badge>

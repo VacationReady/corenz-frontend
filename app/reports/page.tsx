@@ -179,7 +179,7 @@ export default function ReportsPage() {
             {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
           <Button onClick={() => router.push("/reports/builder-new")}>
-            + New Report Builder
+            + New Report
           </Button>
         </div>
       }

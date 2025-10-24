@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, X, Save } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 interface Location {
   id: string;
@@ -17,6 +18,7 @@ interface Department {
 
 export default function CreateRotaGroupPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -63,27 +65,45 @@ export default function CreateRotaGroupPage() {
     setLoading(true);
 
     try {
+      const payload = {
+        ...formData,
+        locationId: formData.locationId || undefined,
+        departmentId: formData.departmentId || undefined,
+      };
+
       const response = await fetch('/api/rota-groups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          locationId: formData.locationId || null,
-          departmentId: formData.departmentId || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        alert(error.error || 'Failed to create rota group');
+        const error = await response.json().catch(() => null);
+        const description =
+          (error?.details && Array.isArray(error.details) && error.details[0]?.message) ||
+          error?.error ||
+          'Failed to create rota group';
+        toast({
+          title: 'Unable to create rota group',
+          description,
+          variant: 'destructive',
+        });
         return;
       }
 
       const data = await response.json();
+      toast({
+        title: 'Rota group created',
+        description: `${formData.name} is ready to configure.`,
+      });
       router.push(`/admin/rota-groups/${data.rotaGroup.id}/members`);
     } catch (error) {
       console.error('Error creating rota group:', error);
-      alert('Failed to create rota group');
+      toast({
+        title: 'Failed to create rota group',
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }

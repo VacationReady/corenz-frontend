@@ -95,17 +95,18 @@ export default function PersonalInfoSaveButton({
       }
 
       // Compute changes
-      const changes = annotateChanges(computeChanges(payload), payload);
+      const annotatedChanges = annotateChanges(computeChanges(payload), payload);
+      const actionableChanges = annotatedChanges.filter((change) => !change.implicit);
 
-      if (changes.length === 0) {
+      if (actionableChanges.length === 0) {
         toast.success("No changes to save");
         unsavedChanges?.markSaved();
         return;
       }
 
       // Check if any changes require reasons (existing values being updated or synthetic changes)
-      if (changes.some(changeRequiresReason)) {
-        setPendingChanges(changes);
+      if (actionableChanges.some(changeRequiresReason)) {
+        setPendingChanges(actionableChanges);
         setPendingPayload(payload);
         setIsReasonModalOpen(true);
         return;

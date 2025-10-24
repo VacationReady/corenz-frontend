@@ -398,7 +398,34 @@ async function main() {
     });
   }
 
-  // =============== 8) Locations ===============
+  // =============== 8) Employment Type Options ===============
+  const employmentTypeOptions = [
+    { label: "Permanent", order: 1 },
+    { label: "Part Time", order: 2 },
+    { label: "Contractor", order: 3 },
+    { label: "Zero Hours", order: 4 },
+  ];
+  for (const option of employmentTypeOptions) {
+    await prisma.employmentTypeOption.upsert({
+      where: {
+        companyId_label: {
+          companyId: company.id,
+          label: option.label,
+        },
+      },
+      update: {
+        order: option.order,
+      },
+      create: {
+        id: randomUUID(),
+        companyId: company.id,
+        label: option.label,
+        order: option.order,
+      },
+    });
+  }
+
+  // =============== 9) Locations ===============
   const locations = [
     "Auckland","Wellington","Christchurch","Hamilton","Tauranga","Dunedin",
     "Queenstown","Napier","Palmerston North","London","Manchester",
@@ -411,7 +438,7 @@ async function main() {
     });
   }
 
-  // =============== 9) Event Categories + Rules ===============
+  // =============== 10) Event Categories + Rules ===============
   const systemCategories = [
     { name: "Annual Leave", categoryType: "TIME_OFF", requiresApproval: true,  adminOnly: false, color: "#008000", systemDefined: true },
     { name: "Sickness",     categoryType: "TIME_OFF", requiresApproval: false, adminOnly: false, color: "#FF0000", systemDefined: true },
@@ -462,7 +489,7 @@ async function main() {
     });
   }
 
-  // =============== 10) Field Metadata (Reporting) ===============
+  // =============== 11) Field Metadata (Reporting) ===============
   const fieldMetadataData = [
     // User
     { model: "user", field: "email",      label: "Email",       fieldType: "string" },
@@ -497,7 +524,7 @@ async function main() {
   });
   console.log("✅ Field metadata seeded.");
 
-  // =============== 11) Expiry Rules ===============
+  // =============== 12) Expiry Rules ===============
   const expiryRules = [
     { category: "Employment Checks", daysBefore: 28, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
     { category: "Driver Licence",    daysBefore: 30, notifyAdmin: true, notifyManager: true, notifyEmployee: true },

@@ -49,6 +49,19 @@ interface Employee {
   };
 }
 
+const sortEmployees = (list: Employee[]) =>
+  [...list].sort((a, b) => {
+    const lastNameCompare = (a.lastName || "").localeCompare(b.lastName || "", undefined, {
+      sensitivity: "base",
+    });
+    if (lastNameCompare !== 0) return lastNameCompare;
+    const firstNameCompare = (a.firstName || "").localeCompare(b.firstName || "", undefined, {
+      sensitivity: "base",
+    });
+    if (firstNameCompare !== 0) return firstNameCompare;
+    return (a.email || "").localeCompare(b.email || "", undefined, { sensitivity: "base" });
+  });
+
 function EmployeesContent() {
   const { data: session } = useSession();
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -89,7 +102,8 @@ function EmployeesContent() {
       // Employees
       if (empRes.ok) {
         const data = await empRes.json();
-        setEmployees(Array.isArray(data) ? data : []);
+        const employeesData: Employee[] = Array.isArray(data) ? data : [];
+        setEmployees(sortEmployees(employeesData));
       } else {
         const msg = await empRes.json().catch(() => ({}));
         console.error("employees fetch failed", msg);

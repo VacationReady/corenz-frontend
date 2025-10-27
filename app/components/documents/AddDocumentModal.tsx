@@ -372,6 +372,8 @@ export default function AddDocumentModal({
                     : setSelectedDepartments(values)
                 }
                 placeholder="Select department(s)"
+                searchable
+                searchPlaceholder="Search departments..."
               />
             </div>
             <div>
@@ -385,6 +387,8 @@ export default function AddDocumentModal({
                     : setSelectedJobRoles(values)
                 }
                 placeholder="Select job role(s)"
+                searchable
+                searchPlaceholder="Search job roles..."
               />
             </div>
           </>

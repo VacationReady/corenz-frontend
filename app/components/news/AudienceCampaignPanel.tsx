@@ -256,6 +256,7 @@ export default function AudienceCampaignPanel({
       {/* Smart Presets */}
       <div className="space-y-3">
         <button
+          type="button"
           onClick={() => setExpandedSection(expandedSection === "presets" ? null : "presets")}
           className="w-full flex items-center justify-between p-4 bg-card rounded-xl hover:bg-muted/50 transition-all"
         >
@@ -284,6 +285,7 @@ export default function AudienceCampaignPanel({
             >
               {audiencePresets.map((preset) => (
                 <motion.button
+                  type="button"
                   key={preset.id}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -321,6 +323,7 @@ export default function AudienceCampaignPanel({
       {/* Custom Audience Builder */}
       <div className="space-y-3">
         <button
+          type="button"
           onClick={() => setExpandedSection(expandedSection === "custom" ? null : "custom")}
           className="w-full flex items-center justify-between p-4 bg-card rounded-xl hover:bg-muted/50 transition-all"
         >
@@ -429,6 +432,7 @@ export default function AudienceCampaignPanel({
               {/* Clear Selection */}
               <div className="pt-2 border-t border-border">
                 <button
+                  type="button"
                   onClick={() => {
                     onChange({ type: "all" });
                     setSelectedPreset("everyone");
@@ -447,6 +451,7 @@ export default function AudienceCampaignPanel({
       {showScheduling && (
         <div className="space-y-3">
           <button
+            type="button"
             onClick={() => setExpandedSection(expandedSection === "schedule" ? null : "schedule")}
             className="w-full flex items-center justify-between p-4 bg-card rounded-xl hover:bg-muted/50 transition-all"
           >
@@ -516,6 +521,7 @@ export default function AudienceCampaignPanel({
       {showNotifications && (
         <div className="space-y-3">
           <button
+            type="button"
             onClick={() => setExpandedSection(expandedSection === "notify" ? null : "notify")}
             className="w-full flex items-center justify-between p-4 bg-card rounded-xl hover:bg-muted/50 transition-all"
           >
@@ -580,7 +586,10 @@ export default function AudienceCampaignPanel({
                 </label>
 
                 <div className="pt-3 border-t border-border">
-                  <button className="flex items-center gap-2 text-sm text-primary hover:underline">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
                     <Plus className="w-4 h-4" />
                     Add custom notification channel
                   </button>

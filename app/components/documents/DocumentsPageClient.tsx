@@ -702,8 +702,14 @@ function DocumentsContent() {
                 <MultiSelect
                   options={departmentsList}
                   selected={uploadDepartments}
-                  onChange={setUploadDepartments}
-                  placeholder="Select departments..."
+                  onChange={(values) =>
+                    values.includes("all")
+                      ? setUploadDepartments(["all"])
+                      : setUploadDepartments(values)
+                  }
+                  placeholder="Select department(s)"
+                  searchable
+                  searchPlaceholder="Search departments..."
                 />
               </div>
               <div>
@@ -711,8 +717,14 @@ function DocumentsContent() {
                 <MultiSelect
                   options={jobRolesList}
                   selected={uploadJobRoles}
-                  onChange={setUploadJobRoles}
-                  placeholder="Select job roles..."
+                  onChange={(values) =>
+                    values.includes("all")
+                      ? setUploadJobRoles(["all"])
+                      : setUploadJobRoles(values)
+                  }
+                  placeholder="Select job role(s)"
+                  searchable
+                  searchPlaceholder="Search job roles..."
                 />
               </div>
               <div className="mt-2 space-y-3">

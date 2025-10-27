@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useRef, useMemo } from "react";
+import { Fragment, useRef, useMemo, useState } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { Check, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -20,6 +20,8 @@ interface MultiSelectProps {
   onValueChange?: (values: string[]) => void;
   placeholder?: string;
   disabled?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
 }
 
 export function MultiSelect({
@@ -30,8 +32,11 @@ export function MultiSelect({
   onValueChange,
   placeholder = "Select options...",
   disabled = false,
+  searchable = false,
+  searchPlaceholder = "Search...",
 }: MultiSelectProps) {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [query, setQuery] = useState("");
 
   const resolvedSelected = selected ?? value ?? [];
   const handleChange = onChange ?? onValueChange;
@@ -52,6 +57,17 @@ export function MultiSelect({
     const hasAll = options.some((opt) => opt.value === "all");
     return hasAll ? options : [allOption, ...options];
   }, [options, allOption]);
+
+  const displayedOptions = useMemo(() => {
+    if (!searchable) return fullOptions;
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return fullOptions;
+    return fullOptions.filter((option) =>
+      option.value === allOption.value
+        ? true
+        : option.label.toLowerCase().includes(normalizedQuery),
+    );
+  }, [fullOptions, query, searchable, allOption.value]);
 
   console.log("Options (final):", fullOptions);
   console.log("Selected (values):", resolvedSelected);
@@ -98,6 +114,7 @@ export function MultiSelect({
       <Menu.Button
         ref={menuButtonRef}
         as={Button}
+        type="button"
         variant="ghost"
         disabled={disabled}
         className={cn(
@@ -127,41 +144,61 @@ export function MultiSelect({
         leave="transition ease-in duration-75"
         leaveFrom="opacity-100 scale-100"
         leaveTo="opacity-0 scale-95"
+        afterLeave={() => setQuery("")}
       >
         <Menu.Items
           static
-          className="absolute mt-2 w-full rounded-md bg-white border shadow-lg z-[9999] max-h-60 overflow-auto"
+          className="absolute mt-2 w-full rounded-md bg-white border shadow-lg z-[9999]"
         >
-          {fullOptions.map((option) => (
-            <div key={option.value} className="w-full">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleValue(option.value);
-                  menuButtonRef.current?.focus(); // ✅ Keep dropdown open
-                }}
-                disabled={disabled}
-                className={cn(
-                  "flex w-full items-center px-3 py-2 text-sm text-left",
-                  disabled && "opacity-50 cursor-not-allowed",
-                  resolvedSelected.includes(option.value)
-                    ? "bg-gray-50"
-                    : "hover:bg-gray-100",
-                )}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    resolvedSelected.includes(option.value)
-                      ? "opacity-100"
-                      : "opacity-0",
-                  )}
-                />
-                {option.label}
-              </button>
+          {searchable && (
+            <div className="sticky top-0 z-10 bg-white px-3 py-2 border-b">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={searchPlaceholder}
+                className="w-full rounded-md border border-gray-200 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
             </div>
-          ))}
+          )}
+          <div className="max-h-60 overflow-auto">
+            {displayedOptions.length > 0 ? (
+              displayedOptions.map((option) => (
+                <div key={option.value} className="w-full">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleValue(option.value);
+                      menuButtonRef.current?.focus(); // ✅ Keep dropdown open
+                    }}
+                    disabled={disabled}
+                    className={cn(
+                      "flex w-full items-center px-3 py-2 text-sm text-left",
+                      disabled && "opacity-50 cursor-not-allowed",
+                      resolvedSelected.includes(option.value)
+                        ? "bg-gray-50"
+                        : "hover:bg-gray-100",
+                    )}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        resolvedSelected.includes(option.value)
+                          ? "opacity-100"
+                          : "opacity-0",
+                      )}
+                    />
+                    {option.label}
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                No options found
+              </div>
+            )}
+          </div>
         </Menu.Items>
       </Transition>
     </Menu>

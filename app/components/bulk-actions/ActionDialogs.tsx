@@ -29,6 +29,9 @@ export interface Option {
   label: string;
 }
 
+const KEEP_EXISTING_DEPARTMENT = "__keep-existing-department__";
+const KEEP_EXISTING_JOB_ROLE = "__keep-existing-job-role__";
+
 export interface SelectedEmployeeSummary {
   id: string;
   name: string;
@@ -68,8 +71,8 @@ export function DepartmentBulkActionDialog({
   jobRoles,
   onCompleted,
 }: DepartmentDialogProps) {
-  const [departmentId, setDepartmentId] = useState<string>("");
-  const [jobRoleId, setJobRoleId] = useState<string>("");
+  const [departmentId, setDepartmentId] = useState<string>(KEEP_EXISTING_DEPARTMENT);
+  const [jobRoleId, setJobRoleId] = useState<string>(KEEP_EXISTING_JOB_ROLE);
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -161,9 +164,12 @@ export function DepartmentBulkActionDialog({
 
   const employeeIds = useMemo(() => selectedSummaries.map((e) => e.id), [selectedSummaries]);
 
+  const hasDepartmentChange = departmentId !== KEEP_EXISTING_DEPARTMENT;
+  const hasJobRoleChange = jobRoleId !== KEEP_EXISTING_JOB_ROLE;
+
   const canSubmit =
     employeeIds.length > 0 &&
-    (departmentId !== "" || jobRoleId !== "") &&
+    (hasDepartmentChange || hasJobRoleChange) &&
     reason.trim().length > 3 &&
     !submitting;
 
@@ -187,8 +193,8 @@ export function DepartmentBulkActionDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           employeeIds,
-          departmentId: departmentId || undefined,
-          jobRoleId: jobRoleId || undefined,
+          departmentId: hasDepartmentChange ? departmentId : undefined,
+          jobRoleId: hasJobRoleChange ? jobRoleId : undefined,
           reason,
         }),
       });
@@ -205,8 +211,8 @@ export function DepartmentBulkActionDialog({
         }`,
       });
       onCompleted?.(payload);
-      setDepartmentId("");
-      setJobRoleId("");
+      setDepartmentId(KEEP_EXISTING_DEPARTMENT);
+      setJobRoleId(KEEP_EXISTING_JOB_ROLE);
       setReason("");
       setSelectedIds(new Set());
       onOpenChange(false);
@@ -340,7 +346,7 @@ export function DepartmentBulkActionDialog({
                 <SelectValue placeholder="Keep existing departments" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Keep existing departments</SelectItem>
+                <SelectItem value={KEEP_EXISTING_DEPARTMENT}>Keep existing departments</SelectItem>
                 {departments.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -359,7 +365,7 @@ export function DepartmentBulkActionDialog({
                 <SelectValue placeholder="Keep existing job roles" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Keep existing job roles</SelectItem>
+                <SelectItem value={KEEP_EXISTING_JOB_ROLE}>Keep existing job roles</SelectItem>
                 {jobRoles.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}

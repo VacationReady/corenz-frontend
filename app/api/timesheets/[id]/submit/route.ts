@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
+import {
+  cancelPendingTimesheetApprovalActionItems,
+  resolveActionItemAssigneeUserId,
+  upsertTimesheetApprovalActionItem,
+} from '@/lib/action-items-helper';
 // import { sendEmail } from '@/lib/email'; // TODO: Implement email service
 
 export async function POST(
@@ -39,6 +44,18 @@ export async function POST(
       where: { id: id },
       include: {
         TimesheetEntries: true,
+        Employee: {
+          select: {
+            id: true,
+            User: {
+              select: {
+                firstName: true,
+                lastName: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -74,6 +91,16 @@ export async function POST(
     const settings = await prisma.timeTrackingSettings.findUnique({
       where: { companyId: requestingEmployee.companyId },
     });
+
+    const employeeName = timesheet.Employee?.User
+      ? `${timesheet.Employee.User.firstName ?? ''} ${timesheet.Employee.User.lastName ?? ''}`.trim() ||
+        timesheet.Employee.User.name ||
+        requestingEmployee.User?.name ||
+        'Employee'
+      : requestingEmployee.User?.name || 'Employee';
+
+    // Clear any lingering pending approval action items (resubmissions)
+    await cancelPendingTimesheetApprovalActionItems(id);
 
     // Update timesheet status
     await prisma.timesheet.update({
@@ -134,7 +161,7 @@ export async function POST(
               continue;
             }
 
-            await prisma.timesheetApprovalDecision.create({
+            const decision = await prisma.timesheetApprovalDecision.create({
               data: {
                 stageId: approvalStage.id,
                 approverId,
@@ -143,6 +170,25 @@ export async function POST(
                 isActive: stage.order === 1, // Active if first stage
               },
             });
+
+            if (stage.order === 1) {
+              const assignedToId = await resolveActionItemAssigneeUserId(decision.approverId);
+              if (assignedToId) {
+                await upsertTimesheetApprovalActionItem({
+                  companyId: requestingEmployee.companyId,
+                  assignedToId,
+                  relatedEmployeeId: timesheet.employeeId,
+                  timesheetId: timesheet.id,
+                  decisionId: decision.id,
+                  stageId: approvalStage.id,
+                  stageName: approvalStage.name,
+                  periodStart: timesheet.periodStart,
+                  periodEnd: timesheet.periodEnd,
+                  totalHours: Number(timesheet.totalHours),
+                  employeeName,
+                });
+              }
+            }
           }
         }
 

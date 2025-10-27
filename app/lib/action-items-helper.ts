@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 
+const TIMESHEET_ACTION_ITEM_PREFIX = "timesheet-approval-";
+
+const buildTimesheetActionItemId = (decisionId: string) => `${TIMESHEET_ACTION_ITEM_PREFIX}${decisionId}`;
+
 export interface CreateActionItemParams {
   companyId: string;
   type: string;
@@ -11,6 +15,174 @@ export interface CreateActionItemParams {
   dueDate?: Date;
   priority?: "HIGH" | "MEDIUM" | "LOW";
   metadata?: any;
+}
+
+interface UpsertTimesheetApprovalActionItemParams {
+  companyId: string;
+  assignedToId: string | null;
+  relatedEmployeeId: string;
+  timesheetId: string;
+  decisionId: string;
+  stageId: string;
+  stageName?: string | null;
+  periodStart: Date;
+  periodEnd: Date;
+  totalHours?: number | null;
+  employeeName: string;
+}
+
+const formatDate = (date: Date) => date.toISOString().split("T")[0];
+
+export async function upsertTimesheetApprovalActionItem({
+  companyId,
+  assignedToId,
+  relatedEmployeeId,
+  timesheetId,
+  decisionId,
+  stageId,
+  stageName,
+  periodStart,
+  periodEnd,
+  totalHours,
+  employeeName,
+}: UpsertTimesheetApprovalActionItemParams) {
+  if (!assignedToId) return;
+
+  const actionItemId = buildTimesheetActionItemId(decisionId);
+  const periodLabel = `${formatDate(periodStart)} - ${formatDate(periodEnd)}`;
+
+  const title = `Approve timesheet for ${employeeName}`;
+  const description = `Timesheet period ${periodLabel}${stageName ? ` • ${stageName}` : ""}`;
+
+  const metadata = {
+    timesheetId,
+    decisionId,
+    stageId,
+    stageName,
+    periodStart: periodStart.toISOString(),
+    periodEnd: periodEnd.toISOString(),
+    totalHours: typeof totalHours === "number" ? totalHours : totalHours ? Number(totalHours) : undefined,
+    label: periodLabel,
+  };
+
+  const dueDate = periodEnd instanceof Date ? periodEnd : new Date(periodEnd);
+
+  await prisma.actionItem.upsert({
+    where: { id: actionItemId },
+    create: {
+      id: actionItemId,
+      companyId,
+      type: "TIMESHEET_APPROVAL",
+      title,
+      description,
+      assignedToId,
+      relatedEmployeeId,
+      status: "PENDING",
+      priority: "HIGH",
+      dueDate,
+      metadata,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    update: {
+      title,
+      description,
+      assignedToId,
+      relatedEmployeeId,
+      status: "PENDING",
+      priority: "HIGH",
+      dueDate,
+      metadata,
+      completedAt: null,
+      updatedAt: new Date(),
+    },
+  });
+}
+
+export async function completeTimesheetApprovalActionItem(decisionId: string) {
+  const actionItemId = buildTimesheetActionItemId(decisionId);
+  try {
+    await prisma.actionItem.update({
+      where: { id: actionItemId },
+      data: {
+        status: "COMPLETED",
+        completedAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  } catch (error) {
+    // Ignore if the action item was not found
+  }
+}
+
+export async function cancelTimesheetApprovalActionItem(decisionId: string) {
+  const actionItemId = buildTimesheetActionItemId(decisionId);
+  try {
+    await prisma.actionItem.update({
+      where: { id: actionItemId },
+      data: {
+        status: "CANCELLED",
+        updatedAt: new Date(),
+      },
+    });
+  } catch (error) {
+    // Ignore if the action item was not found
+  }
+}
+
+export async function cancelTimesheetApprovalActionItems(decisionIds: string[]) {
+  if (decisionIds.length === 0) return;
+  await prisma.actionItem.updateMany({
+    where: {
+      id: {
+        in: decisionIds.map((id) => buildTimesheetActionItemId(id)),
+      },
+    },
+    data: {
+      status: "CANCELLED",
+      updatedAt: new Date(),
+    },
+  });
+}
+
+export async function cancelPendingTimesheetApprovalActionItems(timesheetId: string) {
+  await prisma.actionItem.updateMany({
+    where: {
+      status: "PENDING",
+      metadata: {
+        path: ["timesheetId"],
+        equals: timesheetId,
+      },
+    },
+    data: {
+      status: "CANCELLED",
+      updatedAt: new Date(),
+    },
+  });
+}
+
+export async function resolveActionItemAssigneeUserId(approverId: string) {
+  if (!approverId) return null;
+
+  const approverEmployee = await prisma.employee.findFirst({
+    where: {
+      OR: [{ id: approverId }, { userId: approverId }],
+    },
+    select: {
+      userId: true,
+    },
+  });
+
+  if (approverEmployee?.userId) {
+    return approverEmployee.userId;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: approverId },
+    select: { id: true },
+  });
+
+  return user?.id ?? null;
 }
 
 /**

@@ -3,6 +3,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import {
+  cancelPendingTimesheetApprovalActionItems,
+  cancelTimesheetApprovalActionItems,
+  completeTimesheetApprovalActionItem,
+  resolveActionItemAssigneeUserId,
+  upsertTimesheetApprovalActionItem,
+} from '@/lib/action-items-helper';
 // import { sendEmail } from '@/lib/email'; // TODO: Implement email service
 
 const approveSchema = z.object({
@@ -54,6 +61,18 @@ export async function POST(
             order: 'asc',
           },
         },
+        Employee: {
+          select: {
+            id: true,
+            User: {
+              select: {
+                firstName: true,
+                lastName: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -92,6 +111,8 @@ export async function POST(
       },
     });
 
+    await completeTimesheetApprovalActionItem(userDecision.id);
+
     // Check if stage is complete based on mode
     const stageDecisions = await prisma.timesheetApprovalDecision.findMany({
       where: { stageId: activeStage.id },
@@ -113,12 +134,44 @@ export async function POST(
           where: { id: nextDecision.id },
           data: { isActive: true },
         });
+        const assignedToId = await resolveActionItemAssigneeUserId(nextDecision.approverId);
+        if (assignedToId) {
+          const employeeName = timesheet.Employee?.User
+            ? `${timesheet.Employee.User.firstName ?? ''} ${timesheet.Employee.User.lastName ?? ''}`.trim() ||
+              timesheet.Employee.User.name ||
+              requestingEmployee.User?.name ||
+              'Employee'
+            : requestingEmployee.User?.name || 'Employee';
+
+          await upsertTimesheetApprovalActionItem({
+            companyId: requestingEmployee.companyId,
+            assignedToId,
+            relatedEmployeeId: timesheet.employeeId,
+            timesheetId: timesheet.id,
+            decisionId: nextDecision.id,
+            stageId: activeStage.id,
+            stageName: activeStage.name,
+            periodStart: timesheet.periodStart,
+            periodEnd: timesheet.periodEnd,
+            totalHours: Number(timesheet.totalHours),
+            employeeName,
+          });
+        }
       } else {
         stageComplete = true;
       }
     }
 
     if (stageComplete) {
+      if (activeStage.mode === 'FIRST_RESPONDER') {
+        const remainingDecisionIds = stageDecisions
+          .filter((d) => d.id !== userDecision.id && d.status === 'PENDING')
+          .map((d) => d.id);
+        if (remainingDecisionIds.length > 0) {
+          await cancelTimesheetApprovalActionItems(remainingDecisionIds);
+        }
+      }
+
       // Mark stage as complete
       await prisma.timesheetApprovalStage.update({
         where: { id: activeStage.id },
@@ -146,6 +199,38 @@ export async function POST(
           where: { stageId: nextStage.id },
           data: { isActive: true },
         });
+
+        const nextStageDecisions = await prisma.timesheetApprovalDecision.findMany({
+          where: { stageId: nextStage.id },
+        });
+
+        const employeeName = timesheet.Employee?.User
+          ? `${timesheet.Employee.User.firstName ?? ''} ${timesheet.Employee.User.lastName ?? ''}`.trim() ||
+            timesheet.Employee.User.name ||
+            requestingEmployee.User?.name ||
+            'Employee'
+          : requestingEmployee.User?.name || 'Employee';
+
+        await Promise.all(
+          nextStageDecisions.map(async (decision) => {
+            const assignedToId = await resolveActionItemAssigneeUserId(decision.approverId);
+            if (!assignedToId) return;
+
+            await upsertTimesheetApprovalActionItem({
+              companyId: requestingEmployee.companyId,
+              assignedToId,
+              relatedEmployeeId: timesheet.employeeId,
+              timesheetId: timesheet.id,
+              decisionId: decision.id,
+              stageId: nextStage.id,
+              stageName: nextStage.name,
+              periodStart: timesheet.periodStart,
+              periodEnd: timesheet.periodEnd,
+              totalHours: Number(timesheet.totalHours),
+              employeeName,
+            });
+          })
+        );
 
         // Send notifications to next stage approvers
         const nextStageDecisions = await prisma.timesheetApprovalDecision.findMany({
@@ -192,6 +277,8 @@ export async function POST(
           },
         });
 
+        await cancelPendingTimesheetApprovalActionItems(timesheet.id);
+
         // Notify employee
         const employee = await prisma.employee.findUnique({
           where: { id: timesheet.employeeId },
@@ -222,23 +309,6 @@ export async function POST(
       }
     }
 
-    // Create audit log
-    await prisma.globalAuditLog.create({
-      data: {
-        id: `audit-${Date.now()}-${Math.random()}`,
-        actorId: session.user.id,
-        companyId: requestingEmployee.companyId,
-        action: 'UPDATED',
-        entityType: 'EMPLOYEE',
-        entityId: timesheet.employeeId,
-        metadata: {
-          type: 'TIMESHEET_APPROVED',
-          timesheetId: id,
-          stage: activeStage.name,
-        },
-      },
-    });
-
     // Fetch updated timesheet
     const updatedTimesheet = await prisma.timesheet.findUnique({
       where: { id: id },
@@ -249,6 +319,18 @@ export async function POST(
           },
           orderBy: {
             order: 'asc',
+          },
+        },
+        Employee: {
+          select: {
+            id: true,
+            User: {
+              select: {
+                firstName: true,
+                lastName: true,
+                name: true,
+              },
+            },
           },
         },
       },

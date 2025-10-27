@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { cancelPendingTimesheetApprovalActionItems } from "@/lib/action-items-helper";
 // import { sendEmail } from "@/lib/email"; // TODO: Implement email service
 
 const bulkApproveSchema = z.object({
@@ -131,6 +132,8 @@ export async function POST(req: NextRequest) {
           });
 
           // Create approval record - skipped (approval stages managed separately)
+
+          await cancelPendingTimesheetApprovalActionItems(timesheet.id);
 
           // Create audit log
           await tx.globalAuditLog.create({

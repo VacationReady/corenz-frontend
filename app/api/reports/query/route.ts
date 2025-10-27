@@ -88,6 +88,8 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
     const hasEmploymentCheck = fields.some((f) => f.startsWith("EmploymentCheck."));
     const hasTrainingRecord = fields.some((f) => f.startsWith("TrainingRecord."));
     const hasEmployeeOffboarding = fields.some((f) => f.startsWith("EmployeeOffboarding."));
+    const anchorToUserRoot =
+        !hasLeave && !hasDriverLicence && !hasEmploymentCheck && !hasTrainingRecord && !hasEmployeeOffboarding;
     const result: string[] = [];
     for (const f of fields) {
         let maybeAnchored = f;
@@ -141,6 +143,23 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             if (!result.includes(employeePath)) result.push(employeePath);
             if (!result.includes("_computed.jobRoleName")) result.push("_computed.jobRoleName");
             continue;
+        }
+        if (anchorToUserRoot) {
+            if (f.startsWith("Employee.")) {
+                const anchored = `User.${f}`;
+                if (!result.includes(anchored)) result.push(anchored);
+                continue;
+            }
+            if (f.startsWith("Department.")) {
+                const anchored = `User.Employee.${f}`;
+                if (!result.includes(anchored)) result.push(anchored);
+                continue;
+            }
+            if (f.startsWith("WorkingPattern.")) {
+                const anchored = `User.Employee.${f}`;
+                if (!result.includes(anchored)) result.push(anchored);
+                continue;
+            }
         }
         // Ensure Working Pattern name is resolvable when requested via model alias
         if (

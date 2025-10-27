@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Button from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Check, X, Eye, Filter, Users, Clock, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, Check, X, Eye, Filter, Users, Clock, Calendar as CalendarIcon, Sparkles } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import MyTimesheetsPanel from "@/components/time-tracking/MyTimesheetsPanel";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, subWeeks, subMonths, subQuarters } from "date-fns";
 
 type Timesheet = {
@@ -52,6 +54,7 @@ export default function AdminTimesheetHubPage() {
     reason: "",
   });
   const [processing, setProcessing] = useState(false);
+  const [activeTab, setActiveTab] = useState<"approvals" | "my-timesheets">("approvals");
   const { toast } = useToast();
 
   // Statistics
@@ -263,364 +266,353 @@ export default function AdminTimesheetHubPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          Timesheet Approval Hub
-        </h1>
-        <p className="text-muted-foreground">Review and approve employee timesheets</p>
-      </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card className="backdrop-blur-md bg-white/10 border-white/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Pending</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-500" />
-              <p className="text-2xl font-bold">{totalPending}</p>
+    <div className="container mx-auto max-w-7xl space-y-8 p-6">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-blue-600/30 via-indigo-500/20 to-purple-600/30 p-8 shadow-2xl backdrop-blur">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white/70">
+              <Sparkles className="h-4 w-4 text-emerald-300" />
+              Unified timesheet workspace
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="backdrop-blur-md bg-white/10 border-white/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Hours</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-purple-500" />
-              <p className="text-2xl font-bold">{totalHours.toFixed(1)}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="backdrop-blur-md bg-white/10 border-white/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Avg Hours/Employee</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-green-500" />
-              <p className="text-2xl font-bold">{avgHours.toFixed(1)}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="backdrop-blur-md bg-white/10 border-white/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Oldest Submission</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-amber-500" />
-              <p className="text-sm font-bold">
-                {oldestSubmission ? format(new Date(oldestSubmission), "MMM d") : "N/A"}
+            <div>
+              <h1 className="text-3xl font-bold text-white lg:text-4xl">Timesheet Hub</h1>
+              <p className="mt-2 max-w-xl text-sm text-white/80 lg:text-base">
+                Approve your team&rsquo;s submissions and manage your own hours without leaving this page.
               </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card className="backdrop-blur-md bg-white/10 border-white/20 mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="w-5 h-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Time Period</Label>
-              <Select value={periodFilter} onValueChange={(value: any) => setPeriodFilter(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Time" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="quarter">This Quarter</SelectItem>
-                  <SelectItem value="custom">Custom Range</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Department</Label>
-              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Departments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Search Employee</Label>
-              <Input
-                placeholder="Search by name..."
-                value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-              />
-            </div>
           </div>
-
-          {/* Custom Date Range */}
-          {periodFilter === "custom" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/10">
-              <div className="space-y-2">
-                <Label>Start Date</Label>
-                <Input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomStartDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>End Date</Label>
-                <Input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomEndDate(e.target.value)}
-                />
+          <div className="grid grid-cols-2 gap-3 text-sm text-white/80 sm:grid-cols-4 lg:text-base">
+            <div className="rounded-2xl border border-white/20 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-wide text-white/50">Pending</p>
+              <div className="mt-2 flex items-center gap-2 text-2xl font-semibold text-white">
+                <Users className="h-5 w-5 text-sky-300" />
+                {totalPending}
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Bulk Actions Toolbar */}
-      {selectedIds.size > 0 && (
-        <div className="mb-4 p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-between">
-          <div className="flex items-center gap-3 text-white">
-            <Checkbox checked={true} onCheckedChange={() => setSelectedIds(new Set())} />
-            <span className="font-medium">{selectedIds.size} selected</span>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setSelectedIds(new Set())}>
-              Clear Selection
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => setRejectDialog({ open: true, reason: "" })}
-              disabled={processing}
-            >
-              <X className="w-4 h-4 mr-2" />
-              Reject Selected
-            </Button>
-            <Button
-              variant="default"
-              className="bg-green-600 hover:bg-green-700"
-              onClick={handleBulkApprove}
-              disabled={processing}
-            >
-              {processing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Check className="w-4 h-4 mr-2" />
-              )}
-              Approve Selected
-            </Button>
+            <div className="rounded-2xl border border-white/20 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-wide text-white/50">Total hours</p>
+              <div className="mt-2 flex items-center gap-2 text-2xl font-semibold text-white">
+                <Clock className="h-5 w-5 text-purple-300" />
+                {totalHours.toFixed(1)}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/20 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-wide text-white/50">Avg / employee</p>
+              <div className="mt-2 flex items-center gap-2 text-2xl font-semibold text-white">
+                <Clock className="h-5 w-5 text-emerald-300" />
+                {avgHours.toFixed(1)}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/20 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-wide text-white/50">Oldest submitted</p>
+              <div className="mt-2 flex items-center gap-2 text-base font-semibold text-white">
+                <CalendarIcon className="h-5 w-5 text-amber-300" />
+                {oldestSubmission ? format(new Date(oldestSubmission), "MMM d") : "N/A"}
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Timesheet Table */}
-      <Card className="backdrop-blur-md bg-white/10 border-white/20">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Pending Timesheets</CardTitle>
-            <Button variant="outline" size="sm" onClick={handleSelectAll}>
-              {selectedIds.size === filteredTimesheets.length ? "Deselect All" : "Select All"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {filteredTimesheets.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No pending timesheets</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredTimesheets.map((timesheet) => (
-                <div
-                  key={timesheet.id}
-                  className="flex items-center gap-4 p-4 rounded-lg border border-white/10 hover:bg-white/5 transition-colors"
-                >
-                  <Checkbox
-                    checked={selectedIds.has(timesheet.id)}
-                    onCheckedChange={() => handleToggleSelect(timesheet.id)}
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as "approvals" | "my-timesheets")}
+        className="space-y-6"
+      >
+        <TabsList className="bg-muted/30 p-1">
+          <TabsTrigger value="approvals">Team Approvals</TabsTrigger>
+          <TabsTrigger value="my-timesheets">My Timesheets</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="approvals" className="space-y-6">
+          <Card className="border-white/20 bg-white/10 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filters
+              </CardTitle>
+              <CardDescription>Focus the approval queue by date range, department, or teammate.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Time Period</Label>
+                  <Select value={periodFilter} onValueChange={(value: any) => setPeriodFilter(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Time</SelectItem>
+                      <SelectItem value="week">This Week</SelectItem>
+                      <SelectItem value="month">This Month</SelectItem>
+                      <SelectItem value="quarter">This Quarter</SelectItem>
+                      <SelectItem value="custom">Custom Range</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Search Employee</Label>
+                  <Input
+                    placeholder="Search by name..."
+                    value={searchQuery}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                   />
-
-                  <Avatar className="w-10 h-10">
-                    <AvatarImage src={timesheet.employeeAvatar} />
-                    <AvatarFallback>
-                      {timesheet.employeeName
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="flex-1">
-                    <p className="font-medium">{timesheet.employeeName}</p>
-                    <p className="text-sm text-muted-foreground">{timesheet.department}</p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
-                      {format(new Date(timesheet.periodStart), "MMM d")} -{" "}
-                      {format(new Date(timesheet.periodEnd), "MMM d, yyyy")}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {timesheet.totalHours.toFixed(2)} hours
-                    </p>
-                  </div>
-
-                  <Badge variant="secondary">{timesheet.status}</Badge>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPreviewSheet(timesheet)}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => handleIndividualApprove(timesheet.id)}
-                    >
-                      <Check className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Preview Sheet */}
-      <Sheet open={!!previewSheet} onOpenChange={(open) => !open && setPreviewSheet(null)}>
-        <SheetContent className="w-[400px] sm:w-[540px]">
-          <SheetHeader>
-            <SheetTitle>Timesheet Details</SheetTitle>
-            <SheetDescription>Review timesheet before approving</SheetDescription>
-          </SheetHeader>
-          {previewSheet && (
-            <div className="mt-6 space-y-6">
-              <div className="flex items-center gap-3">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={previewSheet.employeeAvatar} />
-                  <AvatarFallback>
-                    {previewSheet.employeeName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{previewSheet.employeeName}</p>
-                  <p className="text-sm text-muted-foreground">{previewSheet.department}</p>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Period:</span>
-                  <span className="font-medium">
-                    {format(new Date(previewSheet.periodStart), "MMM d")} -{" "}
-                    {format(new Date(previewSheet.periodEnd), "MMM d, yyyy")}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Hours:</span>
-                  <span className="font-medium">{previewSheet.totalHours.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Submitted:</span>
-                  <span className="font-medium">
-                    {format(new Date(previewSheet.submittedAt), "MMM d, yyyy")}
-                  </span>
-                </div>
-              </div>
-
-              {previewSheet.notes && (
-                <div>
-                  <p className="text-sm font-medium mb-2">Notes:</p>
-                  <p className="text-sm text-muted-foreground p-3 bg-white/5 rounded-lg">
-                    {previewSheet.notes}
-                  </p>
+              {periodFilter === "custom" && (
+                <div className="grid grid-cols-1 gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Start Date</Label>
+                    <Input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomStartDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>End Date</Label>
+                    <Input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomEndDate(e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
 
-              <div className="flex gap-3 pt-4">
+          {selectedIds.size > 0 && (
+            <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-blue-600/80 to-purple-600/80 p-4 text-white shadow-lg shadow-blue-500/20 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3">
+                <Checkbox checked onCheckedChange={() => setSelectedIds(new Set())} className="border-white/70" />
+                <span className="text-sm font-medium tracking-wide">
+                  {selectedIds.size} timesheet{selectedIds.size > 1 ? "s" : ""} selected
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => setSelectedIds(new Set())}>
+                  Clear Selection
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="bg-white/10 hover:bg-white/20"
+                  onClick={() => setRejectDialog({ open: true, reason: "" })}
+                  disabled={processing}
+                >
+                  <X className="mr-2 h-4 w-4" /> Reject Selected
+                </Button>
                 <Button
                   variant="default"
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                  onClick={() => handleIndividualApprove(previewSheet.id)}
+                  className="bg-emerald-500 hover:bg-emerald-600"
+                  onClick={handleBulkApprove}
+                  disabled={processing}
                 >
-                  <Check className="w-4 h-4 mr-2" />
-                  Approve
+                  {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                  Approve Selected
                 </Button>
               </div>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
 
-      {/* Reject Dialog */}
-      <Dialog open={rejectDialog.open} onOpenChange={(open) => setRejectDialog({ ...rejectDialog, open })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Timesheets</DialogTitle>
-            <DialogDescription>
-              Please provide a reason for rejecting {selectedIds.size} timesheet(s)
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <Textarea
-              placeholder="Enter rejection reason..."
-              value={rejectDialog.reason}
-              onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
-              rows={4}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialog({ open: false, reason: "" })}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleBulkReject}
-              disabled={!rejectDialog.reason.trim() || processing}
-            >
-              {processing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          <Card className="border-white/20 bg-white/10 backdrop-blur">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg font-semibold">Pending Timesheets</CardTitle>
+                  <CardDescription>Oldest submissions rise to the top so nothing is missed.</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                  {selectedIds.size === filteredTimesheets.length ? "Deselect All" : "Select All"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {filteredTimesheets.length === 0 ? (
+                <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-white/20 bg-white/5 py-12 text-center text-muted-foreground">
+                  <Users className="h-12 w-12 opacity-40" />
+                  <div>
+                    <p className="font-medium">No pending timesheets</p>
+                    <p className="text-sm text-muted-foreground/80">You&rsquo;re all caught up for now.</p>
+                  </div>
+                </div>
               ) : (
-                <X className="w-4 h-4 mr-2" />
+                <div className="space-y-2">
+                  {filteredTimesheets.map((timesheet) => (
+                    <div
+                      key={timesheet.id}
+                      className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20 hover:bg-white/10 md:flex-row md:items-center"
+                    >
+                      <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedIds.has(timesheet.id)}
+                          onCheckedChange={() => handleToggleSelect(timesheet.id)}
+                        />
+                        <Avatar className="h-11 w-11">
+                          <AvatarImage src={timesheet.employeeAvatar} />
+                          <AvatarFallback>
+                            {timesheet.employeeName
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold">{timesheet.employeeName}</p>
+                          <p className="text-sm text-muted-foreground">{timesheet.department}</p>
+                        </div>
+                      </div>
+
+                      <div className="ml-auto flex w-full flex-col items-start gap-2 text-sm text-muted-foreground md:w-auto md:items-end">
+                        <div className="font-medium text-foreground">
+                          {format(new Date(timesheet.periodStart), "MMM d")} – {format(new Date(timesheet.periodEnd), "MMM d, yyyy")}
+                        </div>
+                        <div>{timesheet.totalHours.toFixed(2)} hours</div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{timesheet.status}</Badge>
+                        <Button variant="outline" size="sm" onClick={() => setPreviewSheet(timesheet)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="bg-emerald-500 hover:bg-emerald-600"
+                          onClick={() => handleIndividualApprove(timesheet.id)}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
-              Reject
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </CardContent>
+          </Card>
+
+          <Sheet open={!!previewSheet} onOpenChange={(open) => !open && setPreviewSheet(null)}>
+            <SheetContent className="w-[400px] sm:w-[540px]">
+              <SheetHeader>
+                <SheetTitle>Timesheet Details</SheetTitle>
+                <SheetDescription>Review the summary before approving.</SheetDescription>
+              </SheetHeader>
+              {previewSheet && (
+                <div className="mt-6 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={previewSheet.employeeAvatar} />
+                      <AvatarFallback>
+                        {previewSheet.employeeName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{previewSheet.employeeName}</p>
+                      <p className="text-sm text-muted-foreground">{previewSheet.department}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 rounded-2xl border border-muted/40 bg-muted/10 p-4 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Period</span>
+                      <span className="font-medium text-foreground">
+                        {format(new Date(previewSheet.periodStart), "MMM d")} – {format(new Date(previewSheet.periodEnd), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Total Hours</span>
+                      <span className="font-medium text-foreground">{previewSheet.totalHours.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Submitted</span>
+                      <span className="font-medium text-foreground">
+                        {format(new Date(previewSheet.submittedAt), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {previewSheet.notes && (
+                    <div>
+                      <p className="text-sm font-medium">Notes</p>
+                      <p className="mt-2 rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-muted-foreground">
+                        {previewSheet.notes}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      variant="default"
+                      className="flex-1 bg-emerald-500 hover:bg-emerald-600"
+                      onClick={() => handleIndividualApprove(previewSheet.id)}
+                    >
+                      <Check className="mr-2 h-4 w-4" /> Approve
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </SheetContent>
+          </Sheet>
+
+          <Dialog open={rejectDialog.open} onOpenChange={(open) => setRejectDialog({ ...rejectDialog, open })}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reject Timesheets</DialogTitle>
+                <DialogDescription>
+                  Provide context for rejecting {selectedIds.size} timesheet{selectedIds.size === 1 ? "" : "s"}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <Textarea
+                  placeholder="Enter rejection reason..."
+                  value={rejectDialog.reason}
+                  onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
+                  rows={4}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setRejectDialog({ open: false, reason: "" })}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleBulkReject}
+                  disabled={!rejectDialog.reason.trim() || processing}
+                >
+                  {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                  Reject
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
+        <TabsContent value="my-timesheets" className="space-y-6">
+          <MyTimesheetsPanel variant="embedded" />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -317,6 +317,7 @@ export async function POST(req: Request) {
         if (
           sanitizedSelectedFields.includes("WorkingPattern.name") ||
           sanitizedSelectedFields.includes("Employee.WorkingPattern.name") ||
+          sanitizedSelectedFields.includes("User.Employee.WorkingPattern.name") ||
           sanitizedSelectedFields.includes("LeaveRequest.Employee.WorkingPattern.name") ||
           sanitizedSelectedFields.includes("DriverLicence.Employee.WorkingPattern.name") ||
           sanitizedSelectedFields.includes("EmploymentCheck.Employee.WorkingPattern.name") ||
@@ -327,7 +328,7 @@ export async function POST(req: Request) {
             sanitizedSelectedFields.push("_computed.workingPatternName");
           }
           // Also include latest assignment relation for fallback resolution
-          const needsEmployee = sanitizedSelectedFields.some((f) => f.startsWith("Employee."));
+          const needsEmployee = sanitizedSelectedFields.some((f) => f.startsWith("Employee.") || f.startsWith("User.Employee."));
           const needsLeave = sanitizedSelectedFields.some((f) => f.startsWith("LeaveRequest."));
           const needsDriverLicence = sanitizedSelectedFields.some((f) => f.startsWith("DriverLicence."));
           const needsEmploymentCheck = sanitizedSelectedFields.some((f) => f.startsWith("EmploymentCheck."));
@@ -361,6 +362,7 @@ export async function POST(req: Request) {
 
         // If Employee.startDate is requested, include computed earliest assignment date as fallback
         if (sanitizedSelectedFields.includes("Employee.startDate") || 
+            sanitizedSelectedFields.includes("User.Employee.startDate") ||
             sanitizedSelectedFields.includes("DriverLicence.Employee.startDate") ||
             sanitizedSelectedFields.includes("EmploymentCheck.Employee.startDate") ||
             sanitizedSelectedFields.includes("TrainingRecord.Employee.startDate") ||
@@ -384,7 +386,7 @@ export async function POST(req: Request) {
             sanitizedSelectedFields.push("TrainingRecord.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
           } else if (needsEmployeeOffboarding) {
             sanitizedSelectedFields.push("EmployeeOffboarding.Employee.EmployeeWorkingPatternAssignment.effectiveDate");
-          } else {
+          } else if (sanitizedSelectedFields.some((f) => f.startsWith("Employee.") || f.startsWith("User.Employee."))) {
             sanitizedSelectedFields.push("Employee.EmployeeWorkingPatternAssignment.effectiveDate");
           }
         }

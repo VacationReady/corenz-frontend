@@ -41,6 +41,42 @@ function getNested(obj: any, path: string): any {
   }, obj);
 }
 
+function appendUnique(list: string[], value: string | undefined) {
+  if (!value) return;
+  if (!list.includes(value)) list.push(value);
+}
+
+const COLUMN_FALLBACKS: Record<string, string[]> = {
+  "Employee.User.firstName": ["firstName", "User.firstName"],
+  "Employee.User.lastName": ["lastName", "User.lastName"],
+  "Employee.User.email": ["email", "User.email"],
+  "Employee.User.phone": ["phone", "User.phone"],
+  "Employee.Department.name": [
+    "User.Department_User_departmentIdToDepartment.name",
+    "User.Employee.Department.name",
+    "department",
+  ],
+  "User.Department_User_departmentIdToDepartment.name": [
+    "User.Employee.Department.name",
+    "Employee.Department.name",
+    "department",
+  ],
+  "Employee.JobRole.name": ["_computed.jobRoleName", "jobRole", "User.JobRole.name"],
+  "Employee.startDate": ["User.Employee.startDate", "_computed.effectiveStartDate"],
+  "User.Employee.startDate": ["Employee.startDate", "_computed.effectiveStartDate"],
+  "Employee.WorkingPattern.name": [
+    "WorkingPattern.name",
+    "LeaveRequest.Employee.WorkingPattern.name",
+    "_computed.workingPatternName",
+  ],
+  "WorkingPattern.name": ["Employee.WorkingPattern.name", "_computed.workingPatternName"],
+  "_computed.remainingEntitlement": ["remainingEntitlement"],
+  "LeaveEntitlement.EventCategory.name": ["EventCategory.name"],
+  "LeaveEntitlement.totalDays": ["totalDays"],
+  "LeaveEntitlement.usedDays": ["usedDays"],
+  "LeaveEntitlement.carryoverDays": ["carryoverDays"],
+};
+
 function parseFieldsParam(value: string | null | undefined): string[] {
   if (!value) return [];
 
@@ -661,40 +697,50 @@ export default function ReportsPreviewClient() {
 
       // Build candidate accessor paths to be resilient across engines
       const candidates: string[] = [];
-      // 1) Exact path (works for custom engine where root object keeps model)
-      candidates.push(field);
-      // 2) Drop the root model segment (works for dynamic engine output)
+      appendUnique(candidates, field);
       if (keys.length > 1) {
-        candidates.push(keys.slice(1).join("."));
+        appendUnique(candidates, keys.slice(1).join("."));
       }
-      // 3) Common denormalisations from custom queries
-      if (field === "Employee.User.firstName") candidates.push("firstName");
-      if (field === "Employee.User.lastName") candidates.push("lastName");
-      if (field === "Employee.User.email") candidates.push("email");
-      if (field === "Employee.User.phone") candidates.push("phone");
-      if (field === "Employee.Department.name") candidates.push("department");
-      if (field === "User.Department_User_departmentIdToDepartment.name") {
-        candidates.push(
-          "User.Employee.Department.name",
-          "Employee.Department.name",
-          "department",
-        );
+
+      if (field.startsWith("User.")) {
+        const withoutUser = field.slice("User.".length);
+        appendUnique(candidates, withoutUser);
+        if (withoutUser.startsWith("Employee.")) {
+          const withoutEmployee = withoutUser.slice("Employee.".length);
+          appendUnique(candidates, withoutUser);
+          appendUnique(candidates, withoutEmployee);
+        }
       }
-      if (field === "Employee.Department.name") {
-        candidates.push("User.Department_User_departmentIdToDepartment.name", "User.Employee.Department.name");
+
+      if (field.startsWith("Employee.User.")) {
+        const asUser = field.slice("Employee.".length);
+        appendUnique(candidates, asUser);
+        appendUnique(candidates, asUser.slice("User.".length));
       }
-      if (field === "Employee.JobRole.name") candidates.push("jobRole", "User.JobRole.name");
-      if (field === "Employee.startDate") {
-        candidates.push("User.Employee.startDate", "_computed.effectiveStartDate");
-      }
-      if (field === "User.Employee.startDate") {
-        candidates.push("Employee.startDate", "_computed.effectiveStartDate");
-      }
-      if (field === "LeaveEntitlement.EventCategory.name") candidates.push("EventCategory.name");
-      if (field === "LeaveEntitlement.totalDays") candidates.push("totalDays", "LeaveEntitlement.totalDays");
-      if (field === "LeaveEntitlement.usedDays") candidates.push("usedDays", "LeaveEntitlement.usedDays");
-      if (field === "LeaveEntitlement.carryoverDays") candidates.push("carryoverDays", "LeaveEntitlement.carryoverDays");
-      if (field === "_computed.remainingEntitlement") candidates.push("_computed.remainingEntitlement", "remainingEntitlement");
+
+      const contextPrefixes = [
+        "LeaveRequest",
+        "DriverLicence",
+        "EmploymentCheck",
+        "TrainingRecord",
+        "EmployeeOffboarding",
+      ];
+      contextPrefixes.forEach((prefix) => {
+        const prefixToken = `${prefix}.`;
+        if (field.startsWith(prefixToken)) {
+          const withoutContext = field.slice(prefixToken.length);
+          appendUnique(candidates, withoutContext);
+          if (withoutContext.startsWith("Employee.")) {
+            const withoutEmployee = withoutContext.slice("Employee.".length);
+            appendUnique(candidates, withoutEmployee);
+            if (withoutEmployee.startsWith("User.")) {
+              appendUnique(candidates, withoutEmployee.slice("User.".length));
+            }
+          }
+        }
+      });
+
+      (COLUMN_FALLBACKS[field] || []).forEach((candidate) => appendUnique(candidates, candidate));
 
       // Choose the first candidate that resolves for any fetched row
       let accessorKey = candidates[0] || field;

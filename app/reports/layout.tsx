@@ -32,7 +32,9 @@ export default async function SectionLayout({
       <div className="flex-shrink-0">
         {Sidebar}
       </div>
-      <main className="flex-1 overflow-hidden">{children}</main>
+      <main className="flex-1 overflow-y-auto overflow-x-hidden bg-content-panel">
+        {children}
+      </main>
     </div>
   );
 }

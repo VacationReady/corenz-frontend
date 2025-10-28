@@ -51,14 +51,14 @@ interface Employee {
 
 const sortEmployees = (list: Employee[]) =>
   [...list].sort((a, b) => {
-    const lastNameCompare = (a.lastName || "").localeCompare(b.lastName || "", undefined, {
-      sensitivity: "base",
-    });
-    if (lastNameCompare !== 0) return lastNameCompare;
     const firstNameCompare = (a.firstName || "").localeCompare(b.firstName || "", undefined, {
       sensitivity: "base",
     });
     if (firstNameCompare !== 0) return firstNameCompare;
+    const lastNameCompare = (a.lastName || "").localeCompare(b.lastName || "", undefined, {
+      sensitivity: "base",
+    });
+    if (lastNameCompare !== 0) return lastNameCompare;
     return (a.email || "").localeCompare(b.email || "", undefined, { sensitivity: "base" });
   });
 

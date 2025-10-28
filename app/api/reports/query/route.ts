@@ -122,7 +122,7 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
         ) {
             // Include both source paths so the computed can resolve, plus the computed field
             let userPath = "User.JobRole.name";
-            let employeePath = "Employee.JobRole.name";
+            let employeePath = anchorToUserRoot ? "User.Employee.JobRole.name" : "Employee.JobRole.name";
             if (hasLeave) {
                 userPath = "LeaveRequest.Employee.User.JobRole.name";
                 employeePath = "LeaveRequest.Employee.JobRole.name";
@@ -142,6 +142,50 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             if (!result.includes(userPath)) result.push(userPath);
             if (!result.includes(employeePath)) result.push(employeePath);
             if (!result.includes("_computed.jobRoleName")) result.push("_computed.jobRoleName");
+            continue;
+        }
+
+        if (
+            f === "User.Department_User_departmentIdToDepartment.name" ||
+            f === "User.department.name" ||
+            f === "Department.name" ||
+            maybeAnchored === "LeaveRequest.Employee.Department.name" ||
+            maybeAnchored === "DriverLicence.Employee.Department.name" ||
+            maybeAnchored === "EmploymentCheck.Employee.Department.name" ||
+            maybeAnchored === "TrainingRecord.Employee.Department.name" ||
+            maybeAnchored === "EmployeeOffboarding.Employee.Department.name"
+        ) {
+            if (hasLeave) {
+                const deptPath = "LeaveRequest.Employee.Department.name";
+                const userDeptPath = "LeaveRequest.Employee.User.Department_User_departmentIdToDepartment.name";
+                if (!result.includes(userDeptPath)) result.push(userDeptPath);
+                if (!result.includes(deptPath)) result.push(deptPath);
+            } else if (hasDriverLicence) {
+                const deptPath = "DriverLicence.Employee.Department.name";
+                const userDeptPath = "DriverLicence.Employee.User.Department_User_departmentIdToDepartment.name";
+                if (!result.includes(userDeptPath)) result.push(userDeptPath);
+                if (!result.includes(deptPath)) result.push(deptPath);
+            } else if (hasEmploymentCheck) {
+                const deptPath = "EmploymentCheck.Employee.Department.name";
+                const userDeptPath = "EmploymentCheck.Employee.User.Department_User_departmentIdToDepartment.name";
+                if (!result.includes(userDeptPath)) result.push(userDeptPath);
+                if (!result.includes(deptPath)) result.push(deptPath);
+            } else if (hasTrainingRecord) {
+                const deptPath = "TrainingRecord.Employee.Department.name";
+                const userDeptPath = "TrainingRecord.Employee.User.Department_User_departmentIdToDepartment.name";
+                if (!result.includes(userDeptPath)) result.push(userDeptPath);
+                if (!result.includes(deptPath)) result.push(deptPath);
+            } else if (hasEmployeeOffboarding) {
+                const deptPath = "EmployeeOffboarding.Employee.Department.name";
+                const userDeptPath = "EmployeeOffboarding.Employee.User.Department_User_departmentIdToDepartment.name";
+                if (!result.includes(userDeptPath)) result.push(userDeptPath);
+                if (!result.includes(deptPath)) result.push(deptPath);
+            } else {
+                const userDeptPath = "User.Department_User_departmentIdToDepartment.name";
+                const employeeDeptPath = "User.Employee.Department.name";
+                if (!result.includes(userDeptPath)) result.push(userDeptPath);
+                if (!result.includes(employeeDeptPath)) result.push(employeeDeptPath);
+            }
             continue;
         }
         if (anchorToUserRoot) {

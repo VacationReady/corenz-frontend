@@ -636,10 +636,6 @@ export default function ReportsPreviewClient() {
       ]);
       fields = fields.filter((f) => !hideJR.has(f));
     }
-    // If start date is selected, include a computed fallback too, then prefer the explicit one in columns
-    if (fields.includes("Employee.startDate") && !fields.includes("_computed.effectiveStartDate")) {
-      fields = [...fields, "_computed.effectiveStartDate"];
-    }
     return fields;
   }, [effectiveSelectedFields]);
 
@@ -677,7 +673,23 @@ export default function ReportsPreviewClient() {
       if (field === "Employee.User.email") candidates.push("email");
       if (field === "Employee.User.phone") candidates.push("phone");
       if (field === "Employee.Department.name") candidates.push("department");
+      if (field === "User.Department_User_departmentIdToDepartment.name") {
+        candidates.push(
+          "User.Employee.Department.name",
+          "Employee.Department.name",
+          "department",
+        );
+      }
+      if (field === "Employee.Department.name") {
+        candidates.push("User.Department_User_departmentIdToDepartment.name", "User.Employee.Department.name");
+      }
       if (field === "Employee.JobRole.name") candidates.push("jobRole", "User.JobRole.name");
+      if (field === "Employee.startDate") {
+        candidates.push("User.Employee.startDate", "_computed.effectiveStartDate");
+      }
+      if (field === "User.Employee.startDate") {
+        candidates.push("Employee.startDate", "_computed.effectiveStartDate");
+      }
       if (field === "LeaveEntitlement.EventCategory.name") candidates.push("EventCategory.name");
       if (field === "LeaveEntitlement.totalDays") candidates.push("totalDays", "LeaveEntitlement.totalDays");
       if (field === "LeaveEntitlement.usedDays") candidates.push("usedDays", "LeaveEntitlement.usedDays");

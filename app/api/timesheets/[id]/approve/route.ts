@@ -233,10 +233,6 @@ export async function POST(
         );
 
         // Send notifications to next stage approvers
-        const nextStageDecisions = await prisma.timesheetApprovalDecision.findMany({
-          where: { stageId: nextStage.id },
-        });
-
         for (const decision of nextStageDecisions) {
           const approverEmployee = await prisma.employee.findUnique({
             where: { id: decision.approverId },

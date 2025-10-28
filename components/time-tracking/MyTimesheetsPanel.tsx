@@ -7,21 +7,36 @@ import ClockWidget from './ClockWidget';
 import TimesheetCard from './TimesheetCard';
 import TimesheetDetailView from './TimesheetDetailView';
 
+type TimesheetListItem = {
+  id: string;
+  periodStart: string | Date;
+  periodEnd: string | Date;
+  totalHours: string | number;
+  regularHours: string | number;
+  overtimeHours: string | number;
+  approvalStatus: string;
+  submittedAt?: string | Date | null;
+  approvedAt?: string | Date | null;
+  employee?: {
+    User: {
+      name: string | null;
+      profileImageUrl?: string | null;
+    };
+    Department?: {
+      name: string;
+    } | null;
+  };
+  [key: string]: any;
+};
+
 interface MyTimesheetsPanelProps {
   variant?: 'page' | 'embedded';
-}
-
-interface TimesheetSummary {
-  id: string;
-  approvalStatus: string;
-  submittedAt?: string | null;
-  [key: string]: any;
 }
 
 export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPanelProps) {
   const { status } = useSession();
 
-  const [timesheets, setTimesheets] = useState<TimesheetSummary[]>([]);
+  const [timesheets, setTimesheets] = useState<TimesheetListItem[]>([]);
   const [selectedTimesheet, setSelectedTimesheet] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -133,7 +148,7 @@ export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPane
     }
   };
 
-  const handleViewTimesheet = (timesheet: TimesheetSummary) => {
+  const handleViewTimesheet = (timesheet: TimesheetListItem) => {
     void fetchTimesheetDetails(timesheet.id);
   };
 

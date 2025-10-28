@@ -7,6 +7,12 @@ import { ArrowLeft, LifeBuoy } from "lucide-react";
 
 import { FullScreenHeader } from "@/components/ui/FullScreenHeader";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function ActivateClient() {
   const router = useRouter();
@@ -43,6 +49,15 @@ export default function ActivateClient() {
   const passwordsMatch = password.length > 0 && password === confirmPassword;
   const meetsAllRequirements =
     hasMinLength && hasUppercase && hasNumber && hasSpecial && passwordsMatch;
+  const missingRequirements = useMemo(() => {
+    const requirements: string[] = [];
+    if (!hasMinLength) requirements.push("at least 6 characters");
+    if (!hasUppercase) requirements.push("an uppercase letter (A–Z)");
+    if (!hasNumber) requirements.push("a number (0–9)");
+    if (!hasSpecial) requirements.push("a special character (!@#$% etc.)");
+    if (!passwordsMatch) requirements.push("matching passwords");
+    return requirements;
+  }, [hasMinLength, hasUppercase, hasNumber, hasSpecial, passwordsMatch]);
 
   useEffect(() => {
     if (!token) {
@@ -206,13 +221,40 @@ export default function ActivateClient() {
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             {success && <p className="text-green-600 text-sm">{success}</p>}
-            <button
-              type="submit"
-              className="w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition"
-              disabled={loading || !meetsAllRequirements}
-            >
-              {loading ? "Submitting..." : "Set Password"}
-            </button>
+            {missingRequirements.length && !loading ? (
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="block w-full">
+                      <button
+                        type="submit"
+                        className="w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition"
+                        disabled
+                        aria-disabled
+                      >
+                        Set Password
+                      </button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[260px] space-y-1 text-left text-xs">
+                    <p className="font-semibold">Finish the checklist to enable Set Password:</p>
+                    <ul className="list-disc space-y-1 pl-4">
+                      {missingRequirements.map((requirement) => (
+                        <li key={requirement}>{requirement}</li>
+                      ))}
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <button
+                type="submit"
+                className="w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition"
+                disabled={loading || !meetsAllRequirements}
+              >
+                {loading ? "Submitting..." : "Set Password"}
+              </button>
+            )}
           </form>
         </div>
       </div>

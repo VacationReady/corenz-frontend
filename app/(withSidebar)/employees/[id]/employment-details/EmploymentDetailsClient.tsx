@@ -73,6 +73,22 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
     })();
   }, [employeeId]);
 
+  useEffect(() => {
+    if (!form?.siteLocation || form.locationId || locations.length === 0) {
+      return;
+    }
+    const match = locations.find(
+      (location) => location.name?.toLowerCase() === form.siteLocation.toLowerCase(),
+    );
+    if (!match) {
+      return;
+    }
+    setForm((previous: any) => ({ ...previous, locationId: match.id }));
+    setInitialValues((previous: any | null) =>
+      previous ? { ...previous, locationId: match.id } : previous,
+    );
+  }, [form?.siteLocation, form?.locationId, locations]);
+
   // Load employees for manager dropdown (exclude current employee)
   useEffect(() => {
     (async () => {
@@ -241,7 +257,9 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
                 onValueChange={(v) => setForm((f: any) => ({ ...f, locationId: v }))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select site location" />
+                  <SelectValue
+                    placeholder={form.siteLocation ? `Current: ${form.siteLocation}` : "Select site location"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map((l) => (

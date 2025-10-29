@@ -107,6 +107,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const calendarRef = useRef<FullCalendar | null>(null);
   const blackoutKeyHashRef = useRef<string>("");
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
+  const [holidayDefaultDate, setHolidayDefaultDate] = useState<Date | null>(null);
 
   const inspectorBlackoutKey = inspectorDate
     ? `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth() + 1).padStart(2, "0")}-${String(inspectorDate.getDate()).padStart(2, "0")}`
@@ -927,6 +928,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           if (!open) {
             setInspectorDate(null);
             setSelectedDay(null);
+            setHolidayDefaultDate(null);
           }
         }}
       >
@@ -957,6 +959,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
               size="sm"
               onClick={() => {
                 if (inspectorDate) {
+                  setHolidayDefaultDate(new Date(inspectorDate));
                   setHolidayModalOpen(true);
                 } else {
                   toast.error("Select a day to add a holiday");
@@ -1050,7 +1053,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       <AddHolidayModal
         open={holidayModalOpen}
         setOpen={setHolidayModalOpen}
-        defaultDate={inspectorDate}
+        defaultDate={holidayDefaultDate}
         onSubmitted={refreshCalendar}
       />
     </PageShell>

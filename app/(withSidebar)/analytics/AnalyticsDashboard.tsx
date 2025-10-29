@@ -623,7 +623,7 @@ export default function AnalyticsDashboard() {
             </Card>
 
             <div className="grid gap-6 xl:grid-cols-3">
-              <Card>
+              <Card className="flex flex-col">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Building2 className="h-5 w-5 text-primary" />
@@ -633,8 +633,8 @@ export default function AnalyticsDashboard() {
                     Active employees by department with total records alongside live HR data.
                   </p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+                <CardContent className="flex flex-1 flex-col">
+                  <div className="flex-1 space-y-3 overflow-y-auto pr-1">
                     {(data.breakdowns.byDepartment ?? []).map((dept) => (
                       <div
                         key={dept.id ?? dept.name}
@@ -763,7 +763,7 @@ export default function AnalyticsDashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="flex flex-col">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="h-5 w-5 text-primary" />
@@ -773,34 +773,37 @@ export default function AnalyticsDashboard() {
                     Understand which job families hold the majority of active talent.
                   </p>
                 </CardHeader>
-                <CardContent className="max-h-72 space-y-3 overflow-y-auto pr-1">
-                  {(data.breakdowns.byJobRole ?? []).map((role) => (
-                    <div
-                      key={role.id ?? role.name}
-                      className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
-                      onClick={() => handleDrillDown(
-                        "jobRole",
-                        role.id || "unassigned",
-                        `${role.name} Job Role`,
-                        `All employees with the ${role.name} job role`
-                      )}
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{role.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {role.active.toLocaleString()} active · {role.total.toLocaleString()} total
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
-                        {role.active}
-                      </Badge>
-                    </div>
-                  ))}
-                  {(data.breakdowns.byJobRole ?? []).length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      Assign job roles to employees to view this breakdown.
-                    </p>
-                  )}
+                <CardContent className="flex flex-1 flex-col">
+                  <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                    {(data.breakdowns.byJobRole ?? []).length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Assign job roles to employees to view this breakdown.
+                      </p>
+                    ) : (
+                      (data.breakdowns.byJobRole ?? []).map((role) => (
+                        <div
+                          key={role.id ?? role.name}
+                          className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
+                          onClick={() => handleDrillDown(
+                            "jobRole",
+                            role.id || "unassigned",
+                            `${role.name} Job Role`,
+                            `All employees with the ${role.name} job role`
+                          )}
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{role.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {role.active.toLocaleString()} active · {role.total.toLocaleString()} total
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
+                            {role.active}
+                          </Badge>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>

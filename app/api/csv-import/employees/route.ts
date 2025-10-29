@@ -591,7 +591,7 @@ export async function POST(request: NextRequest) {
 
     // Pre-load reference data to avoid repeated database queries
     console.log("Pre-loading reference data...");
-    const [departments, jobRoles, workingPatterns, genderOptions, existingUsers] = await Promise.all([
+    const [departments, jobRoles, workingPatterns, genderOptions, existingUsers, locations] = await Promise.all([
       prisma.department.findMany({
         where: { companyId: session.user.companyId },
         select: { id: true, name: true },
@@ -612,6 +612,10 @@ export async function POST(request: NextRequest) {
         where: { companyId: session.user.companyId },
         select: { id: true, email: true, firstName: true, lastName: true, name: true },
       }),
+      prisma.location.findMany({
+        where: { OR: [{ companyId: session.user.companyId }, { companyId: null }] },
+        select: { id: true, name: true },
+      }),
     ]);
 
     // Create lookup maps for faster access
@@ -620,6 +624,10 @@ export async function POST(request: NextRequest) {
     const workingPatternMap = new Map(workingPatterns.map(wp => [wp.name.toLowerCase(), wp]));
     const genderOptionMap = new Map(genderOptions.map(go => [go.label.toLowerCase(), go]));
     const userEmailMap = new Map(existingUsers.map(u => [u.email.toLowerCase(), u]));
+    const locationMap = new Map(
+      locations
+        .map((location) => [location.name.toLowerCase(), location] as const),
+    );
 
     // Process records in batches to avoid timeouts
     const BATCH_SIZE = 25; // Reduced batch size for better performance
@@ -708,6 +716,8 @@ export async function POST(request: NextRequest) {
         }
 
         const siteLocation = trimToUndefined(validatedData.siteLocation);
+        const location = siteLocation ? locationMap.get(siteLocation.toLowerCase()) ?? null : null;
+        const resolvedLocationId = location?.id;
         const startDate = parseOptionalDate(validatedData.startDate, "startDate");
         const contractEndDate = parseOptionalDate(validatedData.contractEndDate, "contractEndDate");
         const workingPatternName = trimToUndefined(validatedData.workingPatternName);
@@ -932,6 +942,7 @@ export async function POST(request: NextRequest) {
           if (startDate !== undefined) employeeUpdateData.startDate = startDate ?? null;
           if (contractEndDate !== undefined) employeeUpdateData.contractEndDate = contractEndDate ?? null;
           if (siteLocation !== undefined) employeeUpdateData.siteLocation = siteLocation;
+          if (resolvedLocationId !== undefined) employeeUpdateData.locationId = resolvedLocationId;
           if (department) employeeUpdateData.departmentId = department.id;
           if (jobRole) employeeUpdateData.jobRoleId = jobRole.id;
           if (workingPattern) employeeUpdateData.workingPatternId = workingPattern.id;
@@ -951,6 +962,7 @@ export async function POST(request: NextRequest) {
               departmentId: department?.id,
               jobRoleId: jobRole?.id,
               workingPatternId: workingPattern?.id,
+              locationId: resolvedLocationId ?? null,
               companyId: session.user.companyId,
               isActive: true,
             },
@@ -999,6 +1011,7 @@ export async function POST(request: NextRequest) {
               departmentId: department?.id,
               jobRoleId: jobRole?.id,
               workingPatternId: workingPattern?.id,
+              locationId: resolvedLocationId ?? null,
               companyId: session.user.companyId,
               isActive: true,
             },

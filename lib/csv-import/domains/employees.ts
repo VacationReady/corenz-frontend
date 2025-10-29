@@ -64,7 +64,11 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
             },
             { key: "employmentType", label: "employmentType" },
             { key: "contractType", label: "contractType" },
-            { key: "siteLocation", label: "siteLocation" },
+            {
+              key: "siteLocation",
+              label: "siteLocation",
+              note: "Matched to an existing location name to assign locationId",
+            },
             { key: "startDate", label: "startDate" },
             { key: "contractEndDate", label: "contractEndDate" },
             {

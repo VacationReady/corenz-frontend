@@ -1,0 +1,89 @@
+.padlockWrapper {
+  width: fit-content;
+}
+
+.padlockHalo {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(248, 113, 113, 0.35), transparent 65%),
+    radial-gradient(circle at 70% 70%, rgba(251, 191, 36, 0.35), transparent 60%);
+  filter: blur(30px);
+  animation: padlockPulse 4.2s ease-in-out infinite;
+}
+
+.padlockContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 7rem;
+  height: 7rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+  box-shadow:
+    0 20px 40px rgba(15, 23, 42, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(15, 23, 42, 0.5);
+  overflow: hidden;
+}
+
+.padlockInner {
+  position: absolute;
+  inset: 10%;
+  border-radius: 9999px;
+  background: linear-gradient(160deg, rgba(51, 65, 85, 1), rgba(15, 23, 42, 0.92));
+  filter: blur(0.5px);
+}
+
+.padlockIcon {
+  position: relative;
+  z-index: 1;
+  animation: padlockFloat 3.6s ease-in-out infinite;
+}
+
+.padlockShadow {
+  position: absolute;
+  bottom: -1.2rem;
+  width: 60%;
+  height: 0.8rem;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.25);
+  filter: blur(8px);
+  animation: padlockShadow 3.6s ease-in-out infinite;
+}
+
+@keyframes padlockFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes padlockPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes padlockShadow {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    opacity: 0.18;
+    transform: translateY(4px) scale(0.9);
+  }
+}

@@ -20,6 +20,7 @@ async function backfillSiteLocation() {
   });
 
   let updated = 0;
+  const unmatched = new Map<string, number>();
 
   for (const employee of employees) {
     const siteLocation = employee.siteLocation?.trim();
@@ -29,6 +30,7 @@ async function backfillSiteLocation() {
 
     const locationId = lookup.get(siteLocation.toLowerCase());
     if (!locationId) {
+      unmatched.set(siteLocation, (unmatched.get(siteLocation) ?? 0) + 1);
       continue;
     }
 
@@ -40,7 +42,16 @@ async function backfillSiteLocation() {
     updated += 1;
   }
 
-  console.log(`✅ Backfill complete. Updated ${updated} employee location assignments.`);
+  console.log(
+    `✅ Backfill complete. Checked ${employees.length} employees and updated ${updated} location assignments.`,
+  );
+
+  if (unmatched.size > 0) {
+    console.log("⚠️  Unmatched site locations (no location name found):");
+    for (const [name, count] of unmatched.entries()) {
+      console.log(`   • ${name} (employees: ${count})`);
+    }
+  }
 }
 
 backfillSiteLocation()

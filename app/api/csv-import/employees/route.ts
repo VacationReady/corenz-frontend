@@ -626,6 +626,7 @@ export async function POST(request: NextRequest) {
     const userEmailMap = new Map(existingUsers.map(u => [u.email.toLowerCase(), u]));
     const locationMap = new Map(
       locations
+        .filter((location) => location.name)
         .map((location) => [location.name.toLowerCase(), location] as const),
     );
 
@@ -716,8 +717,49 @@ export async function POST(request: NextRequest) {
         }
 
         const siteLocation = trimToUndefined(validatedData.siteLocation);
-        const location = siteLocation ? locationMap.get(siteLocation.toLowerCase()) ?? null : null;
+        let location = siteLocation
+          ? locationMap.get(siteLocation.toLowerCase()) ?? null
+          : null;
+
+        if (siteLocation && !location) {
+          const locationKey = siteLocation.toLowerCase();
+
+          try {
+            const createdLocation = await prisma.location.create({
+              data: {
+                id: crypto.randomUUID(),
+                name: siteLocation,
+                companyId: session.user.companyId,
+              },
+              select: { id: true, name: true },
+            });
+
+            location = createdLocation;
+            locationMap.set(locationKey, createdLocation);
+          } catch (error) {
+            if (
+              error instanceof Prisma.PrismaClientKnownRequestError &&
+              error.code === "P2002"
+            ) {
+              const existingLocation = await prisma.location.findFirst({
+                where: {
+                  name: { equals: siteLocation, mode: "insensitive" },
+                },
+                select: { id: true, name: true },
+              });
+
+              if (existingLocation) {
+                location = existingLocation;
+                locationMap.set(locationKey, existingLocation);
+              }
+            } else {
+              throw error;
+            }
+          }
+        }
+
         const resolvedLocationId = location?.id;
+
         const startDate = parseOptionalDate(validatedData.startDate, "startDate");
         const contractEndDate = parseOptionalDate(validatedData.contractEndDate, "contractEndDate");
         const workingPatternName = trimToUndefined(validatedData.workingPatternName);

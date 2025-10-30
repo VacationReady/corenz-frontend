@@ -148,7 +148,9 @@ export async function GET(req: Request) {
         select: { departmentId: true },
       });
 
-      const orConditions = [{ userId: session.user.id }];
+      const orConditions: Prisma.EmployeeWhereInput[] = [
+        { userId: session.user.id },
+      ];
 
       if (requestorEmployee?.departmentId) {
         orConditions.push({ departmentId: requestorEmployee.departmentId });

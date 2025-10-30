@@ -623,7 +623,7 @@ export default function AnalyticsDashboard() {
             </Card>
 
             <div className="grid gap-6 xl:grid-cols-3">
-              <Card className="flex flex-col">
+              <Card>
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Building2 className="h-5 w-5 text-primary" />
@@ -633,8 +633,8 @@ export default function AnalyticsDashboard() {
                     Active employees by department with total records alongside live HR data.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 flex-col">
-                  <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                <CardContent className="space-y-4">
+                  <div className="h-72 space-y-3 overflow-y-auto pr-1">
                     {(data.breakdowns.byDepartment ?? []).map((dept) => (
                       <div
                         key={dept.id ?? dept.name}
@@ -763,7 +763,7 @@ export default function AnalyticsDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="flex flex-col">
+              <Card>
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="h-5 w-5 text-primary" />
@@ -773,12 +773,12 @@ export default function AnalyticsDashboard() {
                     Understand which job families hold the majority of active talent.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 flex-col">
-                  <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                <CardContent className="space-y-3">
+                  <div className="h-72 space-y-3 overflow-y-auto pr-1">
                     {(data.breakdowns.byJobRole ?? []).length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                         Assign job roles to employees to view this breakdown.
-                      </p>
+                      </div>
                     ) : (
                       (data.breakdowns.byJobRole ?? []).map((role) => (
                         <div

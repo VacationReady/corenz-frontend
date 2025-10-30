@@ -262,7 +262,12 @@ export async function canAccessEmployee(
 
   const target = await prisma.employee.findUnique({
     where: { id: targetEmployeeId, companyId: requestor.companyId },
-    select: { userId: true, User: { select: { managerId: true } } },
+    select: {
+      id: true,
+      userId: true,
+      departmentId: true,
+      User: { select: { managerId: true } },
+    },
   });
 
   if (!target) return false;
@@ -271,6 +276,25 @@ export async function canAccessEmployee(
   if (target.userId === requestor.id) return true;
 
   // Manager access (only if they directly manage the target)
-  return target.User?.managerId === requestor.id;
+  // NOTE: For managers, we rely on the User.managerId relation
+  if (requestor.role === "MANAGER") {
+    return target.User?.managerId === requestor.id;
+  }
+
+  if (requestor.role === "EMPLOYEE") {
+    const requestorEmployee = await prisma.employee.findFirst({
+      where: { userId: requestor.id, companyId: requestor.companyId },
+      select: { departmentId: true },
+    });
+
+    if (!requestorEmployee?.departmentId || !target.departmentId) {
+      return false;
+    }
+
+    return requestorEmployee.departmentId === target.departmentId;
+  }
+
+  return false;
 }
 
+// ... (rest of the code remains the same)

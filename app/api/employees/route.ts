@@ -139,6 +139,22 @@ export async function GET(req: Request) {
           id: { in: allowedUserIds.length > 0 ? allSubordinateUserIds : ["no-match"] }, // Ensure empty array doesn't return all
         };
       }
+    } else if (session.user.role === "EMPLOYEE") {
+      const requestorEmployee = await prisma.employee.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: session.user.companyId,
+        },
+        select: { departmentId: true },
+      });
+
+      const orConditions = [{ userId: session.user.id }];
+
+      if (requestorEmployee?.departmentId) {
+        orConditions.push({ departmentId: requestorEmployee.departmentId });
+      }
+
+      whereCondition.OR = orConditions;
     }
 
     const employees = await prisma.employee.findMany({

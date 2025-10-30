@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import NotificationsSectionBadge from "@/components/ui/NotificationsSectionBadge";
+import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
+import { canAccessEmployee } from "@/lib/permissions";
 
 export default async function EmployeeLayout({
   children,
@@ -14,6 +16,14 @@ export default async function EmployeeLayout({
 }) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !session.user.companyId) {
+    return (
+      <UnauthorizedAccess
+        title="Unauthorised access"
+        description="You do not have permission to view this employee profile."
+      />
+    );
+  }
   const employee = await prisma.employee.findFirst({
     where: { id, companyId: session?.user?.companyId || "" },
     include: {
@@ -29,6 +39,24 @@ export default async function EmployeeLayout({
 
   if (!employee) {
     return <div>Employee not found.</div>;
+  }
+
+  const allowed = await canAccessEmployee(
+    {
+      id: session.user.id,
+      role: session.user.role as any,
+      companyId: session.user.companyId,
+    },
+    employee.id,
+  );
+
+  if (!allowed) {
+    return (
+      <UnauthorizedAccess
+        title="Unauthorised access"
+        description="You can only view colleagues within your department."
+      />
+    );
   }
 
   const userRole = employee.User?.role || "EMPLOYEE";

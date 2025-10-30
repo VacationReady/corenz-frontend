@@ -30,27 +30,44 @@ export async function sendLeaveNotification({
     const { html, text } = renderPeopleCoreEmail({
       preheader: `${employeeName}'s ${type} leave is ${status.toLowerCase()}`,
       title: "Leave Request Notification",
+      heroBadge: "Leave management",
+      heroSubtitle: `${employeeName}'s ${type.toLowerCase()} leave details at a glance`,
       intro: [
         approverName ? `Hi ${approverName},` : "Hello,",
-        `This is a notification regarding ${employeeName}'s leave request.`,
+        `${employeeName} has submitted a ${type.toLowerCase()} leave request. Here's a quick summary to review before taking action.`,
       ],
       sections: [
         {
+          eyebrow: "Request snapshot",
           title: "Leave Details",
-          description: [
+          highlight: true,
+          bulletPoints: [
             `Employee: ${employeeName}`,
             `Type: ${type}`,
             `Dates: ${formattedStart} to ${formattedEnd}`,
             `Status: ${status}`,
           ],
         },
+        {
+          description: [
+            "Respond promptly so the employee can plan with confidence.",
+            "You can manage this request and see supporting context from the approvals workspace.",
+          ],
+        },
       ],
-      ctas: {
-        label: "Review Request",
-        href: `${baseUrl}/dashboard/approvals`,
-      },
+      ctas: [
+        {
+          label: "Review request", // sentence case reads nicer in button
+          href: `${baseUrl}/dashboard/approvals`,
+        },
+        {
+          label: "Open PeopleCore",
+          href: baseUrl,
+        },
+      ],
       outro: [
-        "PeopleCore HRIS System",
+        "Ngā mihi nui,",
+        "The PeopleCore team",
       ],
     });
 

@@ -1,11 +1,14 @@
 const BRAND = {
-  background: "#f1f5f9",
+  background: "#f6f9fc",
   surface: "#ffffff",
-  primary: "#2563eb",
-  primaryDark: "#1d4ed8",
+  surfaceMuted: "#f1f5f9",
+  primary: "#0ea5e9",
+  primaryDark: "#0284c7",
+  accent: "#6366f1",
+  accentSoft: "#dbeafe",
   text: "#0f172a",
-  muted: "#475569",
-  border: "#e2e8f0",
+  muted: "#64748b",
+  border: "#d6e0ef",
 };
 
 export interface EmailTemplateCTA {
@@ -15,15 +18,19 @@ export interface EmailTemplateCTA {
 
 export interface EmailTemplateSection {
   title?: string;
+  eyebrow?: string;
   description?: string | string[];
   bulletPoints?: string[];
   html?: string;
   text?: string | string[];
+  highlight?: boolean;
 }
 
 export interface PeopleCoreEmailTemplate {
   preheader?: string;
   title: string;
+  heroBadge?: string;
+  heroSubtitle?: string;
   intro?: string | string[];
   sections?: EmailTemplateSection[];
   outro?: string | string[];
@@ -32,7 +39,7 @@ export interface PeopleCoreEmailTemplate {
 }
 
 const DEFAULT_FOOTER =
-  "You're receiving this message because your organisation uses PeopleCore. This inbox is unattended.";
+  "You're receiving this email because your organisation uses PeopleCore — the New Zealand HR platform. This inbox is not monitored.";
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => {
@@ -100,6 +107,12 @@ export function renderPeopleCoreEmail(
   const sections = template.sections ?? [];
   const footer = template.footer || DEFAULT_FOOTER;
   const logoUrl = getLogoUrl();
+  const heroBadge = template.heroBadge;
+  const heroSubtitle = template.heroSubtitle ?? preheader;
+  const ctaGradient = `linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.accent} 100%)`;
+  const heroBackground =
+    "linear-gradient(135deg, rgba(14,165,233,0.18) 0%, rgba(99,102,241,0.18) 55%, rgba(168,85,247,0.18) 100%)";
+  const containerShadow = "0 35px 65px rgba(15, 23, 42, 0.12)";
 
   const sectionHtml = sections
     .map((section) => {
@@ -112,7 +125,7 @@ export function renderPeopleCoreEmail(
           description
             .map(
               (line) =>
-                `<p style="margin: 0 0 12px 0; color: ${BRAND.text}; font-size: 15px; line-height: 1.6;">${escapeHtml(
+                `<p style="margin: 0 0 14px 0; color: ${BRAND.text}; font-size: 15px; line-height: 1.7;">${escapeHtml(
                   line,
                 )}</p>`,
             )
@@ -122,10 +135,15 @@ export function renderPeopleCoreEmail(
 
       if (points.length) {
         bodyParts.push(
-          `<ul style="margin: 0 0 12px 0; padding-left: 20px; color: ${BRAND.text}; font-size: 15px; line-height: 1.6;">${points
+          `<ul style="margin: 0 0 12px 0; padding: 0; list-style: none;">${points
             .map(
               (point) =>
-                `<li style=\"margin-bottom: 6px;\">${escapeHtml(point)}</li>`,
+                `<li style="margin: 0 0 12px 0; display: flex; align-items: flex-start; gap: 12px;">
+                  <span style="margin-top: 7px; flex-shrink: 0; width: 10px; height: 10px; border-radius: 999px; background: ${BRAND.accent};"></span>
+                  <span style="flex: 1; color: ${BRAND.text}; font-size: 15px; line-height: 1.7;">${escapeHtml(
+                    point,
+                  )}</span>
+                </li>`,
             )
             .join("")}</ul>`,
         );
@@ -133,7 +151,7 @@ export function renderPeopleCoreEmail(
 
       if (section.html) {
         bodyParts.push(
-          `<div style="margin: 0 0 12px 0; font-size: 15px; line-height: 1.6; color: ${BRAND.text};">${section.html}</div>`,
+          `<div style="margin: 0 0 12px 0; font-size: 15px; line-height: 1.7; color: ${BRAND.text};">${section.html}</div>`,
         );
       }
 
@@ -141,32 +159,73 @@ export function renderPeopleCoreEmail(
         return "";
       }
 
+      const eyebrowHtml = section.eyebrow
+        ? `<p style="margin: 0 0 10px 0; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: ${BRAND.muted};">${escapeHtml(
+            section.eyebrow,
+          )}</p>`
+        : "";
+
       const titleHtml = section.title
-        ? `<h3 style="margin: 0 0 12px 0; color: ${BRAND.primary}; font-size: 18px;">${escapeHtml(
+        ? `<h3 style="margin: 0 0 14px 0; color: ${BRAND.primaryDark}; font-size: 20px;">${escapeHtml(
             section.title,
           )}</h3>`
         : "";
 
-      return `<section style="padding: 20px; border: 1px solid ${BRAND.border}; border-radius: 16px; background: ${BRAND.surface}; margin-bottom: 16px;">${titleHtml}${bodyParts.join(
-        "",
-      )}</section>`;
+      const highlightBackground =
+        "linear-gradient(135deg, rgba(14,165,233,0.12) 0%, rgba(99,102,241,0.12) 100%)";
+      const background = section.highlight ? highlightBackground : BRAND.surface;
+      const borderColor = section.highlight ? `${BRAND.primary}26` : BRAND.border;
+      const shadow = section.highlight
+        ? "0 20px 40px rgba(15, 23, 42, 0.12)"
+        : "0 12px 28px rgba(15, 23, 42, 0.06)";
+
+      return `<table role="presentation" width="100%" style="margin: 0 0 20px 0; border-collapse: separate; border-spacing: 0;">
+        <tr>
+          <td style="padding: 24px 28px; border-radius: 20px; background: ${background}; border: 1px solid ${borderColor}; box-shadow: ${shadow};">
+            ${eyebrowHtml}${titleHtml}${bodyParts.join("")}
+          </td>
+        </tr>
+      </table>`;
     })
     .filter(Boolean)
     .join("");
 
   const ctaHtml = ctas
+    .map((cta, index) => {
+      const isPrimary = index === 0;
+      const background = isPrimary ? ctaGradient : BRAND.surfaceMuted;
+      const color = isPrimary ? "#ffffff" : BRAND.primaryDark;
+      const border = isPrimary ? "none" : `1px solid ${BRAND.border}`;
+      const shadow = isPrimary
+        ? "box-shadow: 0 15px 30px rgba(14, 165, 233, 0.35);"
+        : "box-shadow: none;";
+      return `<a href="${cta.href}" style="display:inline-block; padding: 14px 28px; border-radius: 9999px; font-weight: 600; font-size: 16px; text-decoration: none; margin: 0 12px 12px 0; background: ${background}; color: ${color}; border: ${border}; ${shadow}">${escapeHtml(
+        cta.label,
+      )}</a>`;
+    })
+    .join("");
+
+  const introHtml = intro
     .map(
-      (cta) =>
-        `<a href="${cta.href}" style="display: inline-block; background: ${BRAND.primary}; color: #ffffff; padding: 14px 28px; border-radius: 9999px; font-weight: 600; font-size: 16px; text-decoration: none; margin: 0 8px 12px 0;">${escapeHtml(
-          cta.label,
-        )}</a>`,
+      (line) =>
+        `<p style="margin: 0 0 18px 0; font-size: 17px; line-height: 1.75; color: ${BRAND.text};">${escapeHtml(
+          line,
+        )}</p>`,
     )
     .join("");
+
+  const sectionBlock = sectionHtml
+    ? `<div style="margin: ${intro.length ? "28px 0 0" : "0"};">${sectionHtml}</div>`
+    : "";
+
+  const ctaBlock = ctaHtml
+    ? `<div style="margin: ${sectionHtml ? "28px 0 16px" : "24px 0 16px"};">${ctaHtml}</div>`
+    : "";
 
   const outroHtml = outro
     .map(
       (line) =>
-        `<p style="margin: 0 0 12px 0; color: ${BRAND.muted}; font-size: 14px; line-height: 1.6;">${escapeHtml(
+        `<p style="margin: 0 0 14px 0; color: ${BRAND.muted}; font-size: 14px; line-height: 1.7;">${escapeHtml(
           line,
         )}</p>`,
     )
@@ -179,40 +238,53 @@ export function renderPeopleCoreEmail(
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(template.title)}</title>
   </head>
-  <body style="margin:0; padding:0; background-color:${BRAND.background}; font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; color:${BRAND.text};">
+  <body style="margin:0; padding:0; background-color:${BRAND.background}; background-image: radial-gradient(circle at top left, rgba(99,102,241,0.18), rgba(255,255,255,0) 55%), radial-gradient(circle at bottom right, rgba(14,165,233,0.18), rgba(255,255,255,0) 60%); font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; color:${BRAND.text};">
     <span style="display:none; visibility:hidden; opacity:0; color:transparent; height:0; width:0;">${escapeHtml(
       preheader,
     )}</span>
-    <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="background-color:${BRAND.background}; padding: 32px 16px;">
+    <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="width:100%; background-color:transparent; padding: 48px 16px;">
       <tr>
-        <td align="center">
-          <table role="presentation" width="100%" style="max-width:640px; background:${BRAND.surface}; border-radius:24px; box-shadow:0 20px 45px rgba(15, 23, 42, 0.08); overflow:hidden; border:1px solid ${BRAND.border};">
+        <td align="center" style="width: 100%;">
+          <table role="presentation" width="100%" style="max-width:680px; background:${BRAND.surface}; border-radius:28px; box-shadow:${containerShadow}; overflow:hidden; border:1px solid ${BRAND.border};">
             <tr>
-              <td style="background: linear-gradient(135deg, rgba(37,99,235,0.12) 0%, rgba(124,58,237,0.12) 100%); padding: 28px 32px; text-align:left;">
-                <img src="${logoUrl}" alt="PeopleCore" style="height: 32px; width: auto; display: block; margin-bottom: 16px;" />
-                <h1 style="margin: 0; font-size: 26px; line-height: 1.2; color: ${BRAND.text};">${escapeHtml(
-                  template.title,
-                )}</h1>
+              <td style="padding: 40px 40px 36px; background: ${heroBackground}; border-bottom: 1px solid ${BRAND.border};">
+                <table role="presentation" width="100%" style="border-collapse: collapse;">
+                  <tr>
+                    <td align="left" style="vertical-align: top;">
+                      <img src="${logoUrl}" alt="PeopleCore" style="height: 32px; width: auto; display: block; margin-bottom: 18px;" />
+                      ${
+                        heroBadge
+                          ? `<span style="display:inline-block; padding: 6px 14px; border-radius: 999px; background: rgba(255,255,255,0.28); color: ${BRAND.primaryDark}; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px;">${escapeHtml(
+                              heroBadge,
+                            )}</span>`
+                          : ""
+                      }
+                      <h1 style="margin: 0; font-size: 28px; line-height: 1.25; color: ${BRAND.text};">${escapeHtml(
+                        template.title,
+                      )}</h1>
+                      ${
+                        heroSubtitle
+                          ? `<p style="margin: 12px 0 0 0; font-size: 16px; line-height: 1.7; color: ${BRAND.muted}; max-width: 520px;">${escapeHtml(
+                              heroSubtitle,
+                            )}</p>`
+                          : ""
+                      }
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
-              <td style="padding: 32px;">
-                ${intro
-                  .map(
-                    (line) =>
-                      `<p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.7; color: ${BRAND.text};">${escapeHtml(
-                        line,
-                      )}</p>`,
-                  )
-                  .join("")}
-                ${sectionHtml}
-                ${ctaHtml ? `<div style="margin: 24px 0;">${ctaHtml}</div>` : ""}
+              <td style="padding: 36px 40px 32px; background:${BRAND.surface};">
+                ${introHtml}
+                ${sectionBlock}
+                ${ctaBlock}
                 ${outroHtml}
               </td>
             </tr>
             <tr>
-              <td style="background-color:${BRAND.background}; padding: 20px 32px; text-align: center; border-top: 1px solid ${BRAND.border};">
-                <p style="margin:0; font-size:12px; color:${BRAND.muted}; line-height:1.5;">${escapeHtml(
+              <td style="background:${BRAND.surfaceMuted}; padding: 24px 32px; text-align: center; border-top: 1px solid ${BRAND.border};">
+                <p style="margin:0; font-size:12px; color:${BRAND.muted}; line-height:1.6;">${escapeHtml(
                   footer,
                 )}</p>
               </td>
@@ -249,19 +321,47 @@ export function renderPeopleCoreEmail(
 
   const textCtas = ctas.map((cta) => `${cta.label}: ${cta.href}`);
 
-  const text = [
-    template.title.toUpperCase(),
-    "",
-    preheader,
-    "",
-    ...intro,
-    "",
-    ...textSections.flatMap((block) => [block, ""]),
-    ...outro,
-    ...(textCtas.length ? ["", ...textCtas] : []),
-    "",
-    footer,
-  ]
+  const textParts: string[] = [];
+  textParts.push(template.title.toUpperCase());
+  if (heroBadge) {
+    textParts.push(heroBadge.toUpperCase());
+  }
+  if (heroSubtitle && heroSubtitle !== template.title) {
+    textParts.push(heroSubtitle);
+  }
+  textParts.push("");
+  textParts.push(preheader);
+  textParts.push("");
+
+  if (intro.length) {
+    textParts.push(...intro);
+    textParts.push("");
+  }
+
+  if (textSections.length) {
+    for (const block of textSections) {
+      textParts.push(block);
+      textParts.push("");
+    }
+  }
+
+  if (outro.length) {
+    textParts.push(...outro);
+    textParts.push("");
+  }
+
+  if (textCtas.length) {
+    textParts.push(...textCtas);
+    textParts.push("");
+  }
+
+  while (textParts.length > 0 && textParts[textParts.length - 1] === "") {
+    textParts.pop();
+  }
+  textParts.push("");
+  textParts.push(footer);
+
+  const text = textParts
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

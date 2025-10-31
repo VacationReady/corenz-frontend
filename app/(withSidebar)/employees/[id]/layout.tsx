@@ -20,7 +20,7 @@ export default async function EmployeeLayout({
     return (
       <UnauthorizedAccess
         title="Unauthorised access"
-        description="You do not have permission to view this employee profile."
+        description="You can only view your own details. If you think this is a mistake, please contact your administrator."
       />
     );
   }
@@ -54,7 +54,7 @@ export default async function EmployeeLayout({
     return (
       <UnauthorizedAccess
         title="Unauthorised access"
-        description="You can only view colleagues within your department."
+        description="You can only view your own details. If you think this is a mistake, please contact your administrator."
       />
     );
   }

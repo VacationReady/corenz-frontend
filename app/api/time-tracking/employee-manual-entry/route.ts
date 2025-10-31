@@ -37,10 +37,14 @@ export async function POST(req: NextRequest) {
     // Check if manual entry is allowed for this company
     const settings = await prisma.timeTrackingSettings.findUnique({
       where: { companyId: requestingEmployee.companyId },
-      select: { allowManualEntry: true },
     });
 
-    if (!settings?.allowManualEntry) {
+    const manualEntryAllowed =
+      settings && (settings as any).allowManualEntry !== undefined
+        ? Boolean((settings as any).allowManualEntry)
+        : true;
+
+    if (!manualEntryAllowed) {
       return NextResponse.json(
         { error: 'Manual time entry is not enabled for your organization' },
         { status: 403 }

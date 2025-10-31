@@ -603,7 +603,7 @@ export default function AnalyticsDashboard() {
                     <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                     <Tooltip
                       contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
-                      formatter={(value: number) => value.toLocaleString()}
+                      formatter={(value: number | string) => Number(value).toLocaleString()}
                     />
                     <Legend wrapperStyle={{ paddingTop: 8 }} />
                     <Bar dataKey="hires" name="Hires" fill="#10b981" radius={[8, 8, 0, 0]} />
@@ -623,7 +623,8 @@ export default function AnalyticsDashboard() {
             </Card>
 
             <div className="grid gap-6 xl:grid-cols-3">
-              <Card className="flex !h-auto max-h-[420px] flex-col overflow-hidden">
+              {/* Headcount by department */}
+              <Card className="flex !h-auto max-h-[420px] xl:h-[420px] flex-col overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Building2 className="h-5 w-5 text-primary" />
@@ -634,7 +635,7 @@ export default function AnalyticsDashboard() {
                   </p>
                 </CardHeader>
                 <CardContent className="flex flex-1 min-h-0 flex-col gap-4 overflow-hidden !space-y-0">
-                  <div className="flex-1 space-y-3 overflow-y-auto pr-1 min-h-0">
+                  <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
                     {(data.breakdowns.byDepartment ?? []).map((dept) => (
                       <div
                         key={dept.id ?? dept.name}
@@ -661,7 +662,8 @@ export default function AnalyticsDashboard() {
                 </CardContent>
               </Card>
 
-              <Card>
+              {/* Location & employment mix */}
+              <Card className="flex flex-col overflow-hidden xl:h-[420px]">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <MapPin className="h-5 w-5 text-primary" />
@@ -671,12 +673,12 @@ export default function AnalyticsDashboard() {
                     Compare where your people work today and how their employment agreements are distributed.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-6 lg:flex-row lg:items-start">
-                  <div className="flex-1 space-y-3 pr-1 max-h-72 overflow-y-auto">
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-6 overflow-hidden lg:flex-row lg:items-start">
+                  <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
                     {locationData.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                         No location data yet. Add locations to your company profile to unlock this view.
-                      </p>
+                      </div>
                     ) : (
                       locationData.map((location) => (
                         <div
@@ -702,8 +704,8 @@ export default function AnalyticsDashboard() {
                       ))
                     )}
                   </div>
-                  <div className="flex w-full flex-col gap-4 lg:w-1/2">
-                    <div className="h-64 w-full">
+                  <div className="flex w-full flex-col gap-4 lg:w-1/2 lg:min-h-0">
+                    <div className="flex-1 min-h-[200px]">
                       {employmentData.length === 0 ? (
                         <div className="flex h-full items-center justify-center rounded-2xl bg-white/60 text-sm text-muted-foreground dark:bg-slate-900/40">
                           Add employment types to view mix insights
@@ -725,7 +727,7 @@ export default function AnalyticsDashboard() {
                             </Pie>
                             <Tooltip
                               formatter={(value: number, label: string) => [
-                                `${value.toLocaleString()} active`,
+                                `${Number(value).toLocaleString()} active`,
                                 label,
                               ]}
                               contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
@@ -734,10 +736,10 @@ export default function AnalyticsDashboard() {
                         </ResponsiveContainer>
                       )}
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 overflow-y-auto pr-1 lg:max-h-[180px]">
                       {(data.breakdowns.byEmploymentType ?? []).map((item, index) => (
-                        <div 
-                          key={item.label} 
+                        <div
+                          key={item.label}
                           className="flex items-center justify-between hover:bg-white/60 dark:hover:bg-slate-900/40 rounded-lg px-2 py-1 cursor-pointer transition-colors"
                           onClick={() => handleDrillDown(
                             "employmentType",
@@ -763,7 +765,8 @@ export default function AnalyticsDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="flex !h-auto max-h-[420px] flex-col overflow-hidden">
+              {/* Job role coverage */}
+              <Card className="flex !h-auto max-h-[420px] xl:h-[420px] flex-col overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="h-5 w-5 text-primary" />
@@ -774,7 +777,7 @@ export default function AnalyticsDashboard() {
                   </p>
                 </CardHeader>
                 <CardContent className="flex flex-1 min-h-0 flex-col gap-3 overflow-hidden !space-y-0">
-                  <div className="flex-1 space-y-3 overflow-y-auto pr-1 min-h-0">
+                  <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
                     {(data.breakdowns.byJobRole ?? []).length === 0 ? (
                       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                         Assign job roles to employees to view this breakdown.

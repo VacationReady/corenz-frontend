@@ -623,7 +623,7 @@ export default function AnalyticsDashboard() {
             </Card>
 
             <div className="grid gap-6 xl:grid-cols-3">
-              <Card className="flex h-[420px] flex-col overflow-hidden">
+              <Card className="flex !h-auto max-h-[420px] flex-col overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Building2 className="h-5 w-5 text-primary" />
@@ -633,7 +633,7 @@ export default function AnalyticsDashboard() {
                     Active employees by department with total records alongside live HR data.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-4 overflow-hidden">
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-4 overflow-hidden !space-y-0">
                   <div className="flex-1 space-y-3 overflow-y-auto pr-1 min-h-0">
                     {(data.breakdowns.byDepartment ?? []).map((dept) => (
                       <div
@@ -763,7 +763,7 @@ export default function AnalyticsDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="flex h-[420px] flex-col overflow-hidden">
+              <Card className="flex !h-auto max-h-[420px] flex-col overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="h-5 w-5 text-primary" />
@@ -773,7 +773,7 @@ export default function AnalyticsDashboard() {
                     Understand which job families hold the majority of active talent.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-3 overflow-hidden">
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-3 overflow-hidden !space-y-0">
                   <div className="flex-1 space-y-3 overflow-y-auto pr-1 min-h-0">
                     {(data.breakdowns.byJobRole ?? []).length === 0 ? (
                       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

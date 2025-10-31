@@ -182,12 +182,12 @@ export default function EmployeeTimesheetPage() {
 
   // Show main timesheet list view
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 text-slate-900">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">My Timesheets</h1>
-          <p className="text-gray-400">Track your hours and submit timesheets for approval</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">My Timesheets</h1>
+          <p className="text-slate-600">Track your hours and submit timesheets for approval</p>
         </div>
         
         <button
@@ -211,12 +211,12 @@ export default function EmployeeTimesheetPage() {
       <ClockWidget />
 
       {/* Current Period Summary */}
-      <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur-md border border-white/20 rounded-xl p-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
-          <Calendar className="w-6 h-6 text-blue-400" />
-          <h2 className="text-xl font-semibold text-white">Current Period</h2>
+          <Calendar className="w-6 h-6 text-blue-600" />
+          <h2 className="text-xl font-semibold text-slate-900">Current Period</h2>
         </div>
-        <p className="text-gray-400 mb-4">
+        <p className="text-slate-600 mb-4">
           Your hours for the current pay period will appear here once you clock in/out.
           Generate a timesheet when you're ready to submit for approval.
         </p>
@@ -231,13 +231,13 @@ export default function EmployeeTimesheetPage() {
 
       {/* Past Timesheets */}
       <div>
-        <h2 className="text-2xl font-bold text-white mb-4">Past Timesheets</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-4">Past Timesheets</h2>
         
         {timesheets.length === 0 ? (
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-12 text-center">
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No Timesheets Yet</h3>
-            <p className="text-gray-400 mb-6">
+          <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+            <Calendar className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-slate-900 mb-2">No Timesheets Yet</h3>
+            <p className="text-slate-600 mb-6">
               Start by clocking in/out, then generate your first timesheet.
             </p>
             <button

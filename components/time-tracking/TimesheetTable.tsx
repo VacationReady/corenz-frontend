@@ -38,12 +38,12 @@ export default function TimesheetTable({
 
   if (isLoading) {
     return (
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="animate-pulse space-y-4">
-          <div className="h-10 bg-white/20 rounded"></div>
-          <div className="h-16 bg-white/20 rounded"></div>
-          <div className="h-16 bg-white/20 rounded"></div>
-          <div className="h-16 bg-white/20 rounded"></div>
+          <div className="h-10 bg-slate-200 rounded"></div>
+          <div className="h-16 bg-slate-200 rounded"></div>
+          <div className="h-16 bg-slate-200 rounded"></div>
+          <div className="h-16 bg-slate-200 rounded"></div>
         </div>
       </div>
     );
@@ -51,10 +51,10 @@ export default function TimesheetTable({
 
   if (entries.length === 0) {
     return (
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-12 text-center">
-        <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-white mb-2">No Entries Yet</h3>
-        <p className="text-gray-400">
+      <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+        <Clock className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+        <h3 className="text-xl font-semibold text-slate-900 mb-2">No Entries Yet</h3>
+        <p className="text-slate-600">
           Clock in/out entries will appear here once they are recorded.
         </p>
       </div>
@@ -62,38 +62,38 @@ export default function TimesheetTable({
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden">
+    <div className="rounded-2xl border border-slate-200/60 bg-white/90 backdrop-blur-xl overflow-hidden shadow-xl shadow-slate-900/10">
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-black/30 border-b border-white/10">
+          <thead className="bg-slate-900 text-white">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Date
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Clock In
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Clock Out
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Break
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Hours
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Type
               </th>
               {editable && (
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                   Actions
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/10">
+          <tbody className="divide-y divide-slate-100">
             {entries.map((entry) => {
               const date = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
               const startTime = typeof entry.startTime === 'string' ? new Date(entry.startTime) : entry.startTime;
@@ -101,46 +101,49 @@ export default function TimesheetTable({
               const hours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
 
               return (
-                <tr key={entry.id} className="hover:bg-white/5 transition-colors">
+                <tr
+                  key={entry.id}
+                  className="odd:bg-white even:bg-slate-50/70 hover:bg-blue-50/60 transition-colors"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-white">
+                    <div className="text-sm font-semibold text-slate-900">
                       {format(date, 'EEE, MMM d')}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-300">
+                    <div className="text-sm text-slate-600 font-medium">
                       {format(startTime, 'h:mm a')}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-300">
+                    <div className="text-sm text-slate-600 font-medium">
                       {format(endTime, 'h:mm a')}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-300">
+                    <div className="text-sm text-slate-600 font-medium">
                       {entry.breakMinutes} min
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-white">
+                      <span className="text-base font-semibold text-slate-900">
                         {hours.toFixed(2)}
                       </span>
                       {entry.isOvertime && (
-                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full border border-amber-500/30">
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
                           OT
                         </span>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${
                       entry.entryType === 'CLOCK'
-                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        ? 'bg-blue-100 text-blue-700 border-blue-200'
                         : entry.entryType === 'MANUAL'
-                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                        : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                        ? 'bg-purple-100 text-purple-700 border-purple-200'
+                        : 'bg-orange-100 text-orange-700 border-orange-200'
                     }`}>
                       {entry.entryType}
                     </span>
@@ -151,19 +154,19 @@ export default function TimesheetTable({
                         {onEdit && (
                           <button
                             onClick={() => onEdit(entry)}
-                            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                             title="Edit entry"
                           >
-                            <Edit2 className="w-4 h-4 text-blue-400" />
+                            <Edit2 className="w-4 h-4 text-blue-600" />
                           </button>
                         )}
                         {onDelete && entry.entryType !== 'CLOCK' && (
                           <button
                             onClick={() => onDelete(entry.id)}
-                            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                             title="Delete entry"
                           >
-                            <Trash2 className="w-4 h-4 text-red-400" />
+                            <Trash2 className="w-4 h-4 text-rose-600" />
                           </button>
                         )}
                       </div>
@@ -173,15 +176,15 @@ export default function TimesheetTable({
               );
             })}
           </tbody>
-          <tfoot className="bg-black/30 border-t border-white/10">
+          <tfoot className="bg-slate-900/95 text-white">
             <tr>
               <td colSpan={editable ? 4 : 4} className="px-6 py-4 text-right">
-                <span className="text-sm font-semibold text-gray-300 uppercase">
+                <span className="text-sm font-semibold uppercase tracking-[0.12em] text-white/70">
                   Total Hours:
                 </span>
               </td>
               <td className="px-6 py-4">
-                <span className="text-lg font-bold text-white">
+                <span className="text-xl font-bold">
                   {totalHours.toFixed(2)}
                 </span>
               </td>
@@ -192,7 +195,7 @@ export default function TimesheetTable({
       </div>
 
       {/* Mobile Cards */}
-      <div className="md:hidden divide-y divide-white/10">
+      <div className="md:hidden divide-y divide-slate-200 bg-white/95">
         {entries.map((entry) => {
           const date = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
           const startTime = typeof entry.startTime === 'string' ? new Date(entry.startTime) : entry.startTime;
@@ -200,32 +203,32 @@ export default function TimesheetTable({
           const hours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
 
           return (
-            <div key={entry.id} className="p-4">
+            <div key={entry.id} className="p-4 bg-white/70">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <div className="text-sm font-semibold text-white mb-1">
+                  <div className="text-sm font-semibold text-slate-900 mb-1">
                     {format(date, 'EEE, MMM d')}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-slate-500">
                     {format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-lg font-bold text-white">{hours.toFixed(2)}h</div>
+                  <div className="text-lg font-bold text-slate-900">{hours.toFixed(2)}h</div>
                   {entry.isOvertime && (
-                    <span className="text-xs text-amber-400">Overtime</span>
+                    <span className="text-xs text-amber-600">Overtime</span>
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center gap-4 text-xs text-gray-400">
+              <div className="flex items-center gap-4 text-xs text-slate-500">
                 <span>Break: {entry.breakMinutes} min</span>
                 <span className={`px-2 py-0.5 rounded-full ${
                   entry.entryType === 'CLOCK'
-                    ? 'bg-blue-500/20 text-blue-400'
+                    ? 'bg-blue-100 text-blue-700'
                     : entry.entryType === 'MANUAL'
-                    ? 'bg-purple-500/20 text-purple-400'
-                    : 'bg-orange-500/20 text-orange-400'
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-orange-100 text-orange-700'
                 }`}>
                   {entry.entryType}
                 </span>
@@ -244,7 +247,7 @@ export default function TimesheetTable({
                   {onDelete && entry.entryType !== 'CLOCK' && (
                     <button
                       onClick={() => onDelete(entry.id)}
-                      className="flex-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs rounded-lg transition-colors"
+                      className="flex-1 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs rounded-lg transition-colors"
                     >
                       Delete
                     </button>
@@ -255,10 +258,10 @@ export default function TimesheetTable({
           );
         })}
         
-        <div className="p-4 bg-black/30">
+        <div className="p-4 bg-slate-900 text-white">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-300">Total Hours</span>
-            <span className="text-xl font-bold text-white">{totalHours.toFixed(2)}</span>
+            <span className="text-sm font-semibold uppercase tracking-[0.12em] text-white/60">Total Hours</span>
+            <span className="text-xl font-bold">{totalHours.toFixed(2)}</span>
           </div>
         </div>
       </div>

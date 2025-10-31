@@ -162,6 +162,7 @@ export default async function EmployeeLayout({
   console.log("=== END DEBUG INFO ===");
 
   const menu = [
+    { href: "/employees", label: "Employees" },
     { href: `/employees/${id}/overview`, label: "Overview" },
     {
       href: `/employees/${id}/personal-information`,

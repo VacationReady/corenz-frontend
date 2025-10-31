@@ -62,38 +62,38 @@ export default function TimesheetTable({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+    <div className="rounded-2xl border border-slate-200/60 bg-white/90 backdrop-blur-xl overflow-hidden shadow-xl shadow-slate-900/10">
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-slate-100 border-b border-slate-200">
+          <thead className="bg-slate-900 text-white">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Date
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Clock In
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Clock Out
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Break
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Hours
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Type
               </th>
               {editable && (
-                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                   Actions
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-slate-100">
             {entries.map((entry) => {
               const date = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
               const startTime = typeof entry.startTime === 'string' ? new Date(entry.startTime) : entry.startTime;
@@ -101,30 +101,33 @@ export default function TimesheetTable({
               const hours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
 
               return (
-                <tr key={entry.id} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={entry.id}
+                  className="odd:bg-white even:bg-slate-50/70 hover:bg-blue-50/60 transition-colors"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-slate-900">
+                    <div className="text-sm font-semibold text-slate-900">
                       {format(date, 'EEE, MMM d')}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-slate-600">
+                    <div className="text-sm text-slate-600 font-medium">
                       {format(startTime, 'h:mm a')}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-slate-600">
+                    <div className="text-sm text-slate-600 font-medium">
                       {format(endTime, 'h:mm a')}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-slate-600">
+                    <div className="text-sm text-slate-600 font-medium">
                       {entry.breakMinutes} min
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-slate-900">
+                      <span className="text-base font-semibold text-slate-900">
                         {hours.toFixed(2)}
                       </span>
                       {entry.isOvertime && (
@@ -135,12 +138,12 @@ export default function TimesheetTable({
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${
                       entry.entryType === 'CLOCK'
-                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                        ? 'bg-blue-100 text-blue-700 border-blue-200'
                         : entry.entryType === 'MANUAL'
-                        ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                        : 'bg-orange-100 text-orange-700 border border-orange-200'
+                        ? 'bg-purple-100 text-purple-700 border-purple-200'
+                        : 'bg-orange-100 text-orange-700 border-orange-200'
                     }`}>
                       {entry.entryType}
                     </span>
@@ -173,15 +176,15 @@ export default function TimesheetTable({
               );
             })}
           </tbody>
-          <tfoot className="bg-slate-100 border-t border-slate-200">
+          <tfoot className="bg-slate-900/95 text-white">
             <tr>
               <td colSpan={editable ? 4 : 4} className="px-6 py-4 text-right">
-                <span className="text-sm font-semibold text-slate-600 uppercase">
+                <span className="text-sm font-semibold uppercase tracking-[0.12em] text-white/70">
                   Total Hours:
                 </span>
               </td>
               <td className="px-6 py-4">
-                <span className="text-lg font-bold text-slate-900">
+                <span className="text-xl font-bold">
                   {totalHours.toFixed(2)}
                 </span>
               </td>
@@ -192,7 +195,7 @@ export default function TimesheetTable({
       </div>
 
       {/* Mobile Cards */}
-      <div className="md:hidden divide-y divide-slate-200">
+      <div className="md:hidden divide-y divide-slate-200 bg-white/95">
         {entries.map((entry) => {
           const date = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
           const startTime = typeof entry.startTime === 'string' ? new Date(entry.startTime) : entry.startTime;
@@ -200,7 +203,7 @@ export default function TimesheetTable({
           const hours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
 
           return (
-            <div key={entry.id} className="p-4">
+            <div key={entry.id} className="p-4 bg-white/70">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <div className="text-sm font-semibold text-slate-900 mb-1">
@@ -255,10 +258,10 @@ export default function TimesheetTable({
           );
         })}
         
-        <div className="p-4 bg-slate-100">
+        <div className="p-4 bg-slate-900 text-white">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-slate-600">Total Hours</span>
-            <span className="text-xl font-bold text-slate-900">{totalHours.toFixed(2)}</span>
+            <span className="text-sm font-semibold uppercase tracking-[0.12em] text-white/60">Total Hours</span>
+            <span className="text-xl font-bold">{totalHours.toFixed(2)}</span>
           </div>
         </div>
       </div>

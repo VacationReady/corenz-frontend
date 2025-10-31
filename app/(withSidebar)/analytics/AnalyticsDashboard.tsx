@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -624,7 +625,7 @@ export default function AnalyticsDashboard() {
 
             <div className="grid gap-6 xl:grid-cols-3">
               {/* Headcount by department */}
-              <Card className="flex !h-auto max-h-[420px] xl:h-[420px] flex-col overflow-hidden">
+              <Card className="flex h-[420px] flex-col">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Building2 className="h-5 w-5 text-primary" />
@@ -634,36 +635,38 @@ export default function AnalyticsDashboard() {
                     Active employees by department with total records alongside live HR data.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-4 overflow-hidden !space-y-0">
-                  <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
-                    {(data.breakdowns.byDepartment ?? []).map((dept) => (
-                      <div
-                        key={dept.id ?? dept.name}
-                        className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
-                        onClick={() => handleDrillDown(
-                          "department",
-                          dept.id || "unassigned",
-                          `${dept.name} Department`,
-                          `All employees in the ${dept.name} department`
-                        )}
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{dept.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {dept.active.toLocaleString()} active · {dept.total.toLocaleString()} total
-                          </p>
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-4 !space-y-0 pb-6">
+                  <ScrollArea className="flex-1 min-h-0 pr-1">
+                    <div className="space-y-3">
+                      {(data.breakdowns.byDepartment ?? []).map((dept) => (
+                        <div
+                          key={dept.id ?? dept.name}
+                          className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
+                          onClick={() => handleDrillDown(
+                            "department",
+                            dept.id || "unassigned",
+                            `${dept.name} Department`,
+                            `All employees in the ${dept.name} department`
+                          )}
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{dept.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {dept.active.toLocaleString()} active · {dept.total.toLocaleString()} total
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
+                            {dept.active}
+                          </Badge>
                         </div>
-                        <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
-                          {dept.active}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </CardContent>
               </Card>
 
               {/* Location & employment mix */}
-              <Card className="flex flex-col overflow-hidden xl:h-[420px]">
+              <Card className="flex h-[420px] flex-col">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <MapPin className="h-5 w-5 text-primary" />
@@ -673,39 +676,42 @@ export default function AnalyticsDashboard() {
                     Compare where your people work today and how their employment agreements are distributed.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-6 overflow-hidden lg:flex-row lg:items-stretch">
-                  <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
-                    {locationData.length === 0 ? (
-                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        No location data yet. Add locations to your company profile to unlock this view.
-                      </div>
-                    ) : (
-                      locationData.map((location) => (
-                        <div
-                          key={location.id ?? location.name}
-                          className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
-                          onClick={() => handleDrillDown(
-                            "location",
-                            location.id || "unassigned",
-                            `${location.name} Location`,
-                            `All employees at the ${location.name} location`
-                          )}
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{location.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {location.active.toLocaleString()} active · {location.total.toLocaleString()} total
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
-                            {location.active}
-                          </Badge>
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-6 !space-y-0 pb-6 lg:flex-row lg:items-stretch">
+                  <ScrollArea className="flex-1 min-h-0 pr-1">
+                    <div className="space-y-3">
+                      {locationData.length === 0 ? (
+                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                          No location data yet. Add locations to your company profile to unlock this view.
                         </div>
-                      ))
-                    )}
-                  </div>
-                  <div className="flex w-full flex-col gap-4 lg:w-1/2 lg:min-h-0">
-                    <div className="flex-1 min-h-[200px] lg:h-full lg:min-h-0">
+                      ) : (
+                        locationData.map((location) => (
+                          <div
+                            key={location.id ?? location.name}
+                            className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
+                            onClick={() => handleDrillDown(
+                              "location",
+                              location.id || "unassigned",
+                              `${location.name} Location`,
+                              `All employees at the ${location.name} location`
+                            )}
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{location.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {location.active.toLocaleString()} active · {location.total.toLocaleString()} total
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
+                              {location.active}
+                            </Badge>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+
+                  <div className="flex w-full min-h-0 flex-col gap-4 lg:w-1/2">
+                    <div className="flex-1 min-h-[200px] lg:min-h-0">
                       {employmentData.length === 0 ? (
                         <div className="flex h-full items-center justify-center rounded-2xl bg-white/60 text-sm text-muted-foreground dark:bg-slate-900/40">
                           Add employment types to view mix insights
@@ -736,37 +742,40 @@ export default function AnalyticsDashboard() {
                         </ResponsiveContainer>
                       )}
                     </div>
-                    <div className="space-y-2 overflow-y-auto pr-1 lg:flex-1 lg:min-h-0">
-                      {(data.breakdowns.byEmploymentType ?? []).map((item, index) => (
-                        <div
-                          key={item.label}
-                          className="flex items-center justify-between hover:bg-white/60 dark:hover:bg-slate-900/40 rounded-lg px-2 py-1 cursor-pointer transition-colors"
-                          onClick={() => handleDrillDown(
-                            "employmentType",
-                            item.label.toLowerCase(),
-                            `${item.label} Employees`,
-                            `All employees with ${item.label} employment type`
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span
-                              className="h-3 w-3 rounded-full"
-                              style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                            />
-                            <span className="text-sm text-foreground">{item.label}</span>
+
+                    <ScrollArea className="lg:flex-1 lg:min-h-0 pr-1">
+                      <div className="space-y-2">
+                        {(data.breakdowns.byEmploymentType ?? []).map((item, index) => (
+                          <div
+                            key={item.label}
+                            className="flex items-center justify-between hover:bg-white/60 dark:hover:bg-slate-900/40 rounded-lg px-2 py-1 cursor-pointer transition-colors"
+                            onClick={() => handleDrillDown(
+                              "employmentType",
+                              item.label.toLowerCase(),
+                              `${item.label} Employees`,
+                              `All employees with ${item.label} employment type`
+                            )}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span
+                                className="h-3 w-3 rounded-full"
+                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                              />
+                              <span className="text-sm text-foreground">{item.label}</span>
+                            </div>
+                            <span className="text-sm font-medium text-muted-foreground">
+                              {item.value.toLocaleString()} active
+                            </span>
                           </div>
-                          <span className="text-sm font-medium text-muted-foreground">
-                            {item.value.toLocaleString()} active
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Job role coverage */}
-              <Card className="flex !h-auto max-h-[420px] xl:h-[420px] flex-col overflow-hidden">
+              <Card className="flex h-[420px] flex-col">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="h-5 w-5 text-primary" />
@@ -776,37 +785,39 @@ export default function AnalyticsDashboard() {
                     Understand which job families hold the majority of active talent.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-3 overflow-hidden !space-y-0">
-                  <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
-                    {(data.breakdowns.byJobRole ?? []).length === 0 ? (
-                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                        Assign job roles to employees to view this breakdown.
-                      </div>
-                    ) : (
-                      (data.breakdowns.byJobRole ?? []).map((role) => (
-                        <div
-                          key={role.id ?? role.name}
-                          className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
-                          onClick={() => handleDrillDown(
-                            "jobRole",
-                            role.id || "unassigned",
-                            `${role.name} Job Role`,
-                            `All employees with the ${role.name} job role`
-                          )}
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{role.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {role.active.toLocaleString()} active · {role.total.toLocaleString()} total
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
-                            {role.active}
-                          </Badge>
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-3 !space-y-0 pb-6">
+                  <ScrollArea className="flex-1 min-h-0 pr-1">
+                    <div className="space-y-3">
+                      {(data.breakdowns.byJobRole ?? []).length === 0 ? (
+                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                          Assign job roles to employees to view this breakdown.
                         </div>
-                      ))
-                    )}
-                  </div>
+                      ) : (
+                        (data.breakdowns.byJobRole ?? []).map((role) => (
+                          <div
+                            key={role.id ?? role.name}
+                            className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
+                            onClick={() => handleDrillDown(
+                              "jobRole",
+                              role.id || "unassigned",
+                              `${role.name} Job Role`,
+                              `All employees with the ${role.name} job role`
+                            )}
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{role.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {role.active.toLocaleString()} active · {role.total.toLocaleString()} total
+                              </p>
+                            </div>
+                            <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
+                              {role.active}
+                            </Badge>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
                 </CardContent>
               </Card>
             </div>

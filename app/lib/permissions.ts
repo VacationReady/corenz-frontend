@@ -275,23 +275,14 @@ export async function canAccessEmployee(
   // Self-access
   if (target.userId === requestor.id) return true;
 
+  if (requestor.role === "EMPLOYEE") {
+    return false;
+  }
+
   // Manager access (only if they directly manage the target)
   // NOTE: For managers, we rely on the User.managerId relation
   if (requestor.role === "MANAGER") {
     return target.User?.managerId === requestor.id;
-  }
-
-  if (requestor.role === "EMPLOYEE") {
-    const requestorEmployee = await prisma.employee.findFirst({
-      where: { userId: requestor.id, companyId: requestor.companyId },
-      select: { departmentId: true },
-    });
-
-    if (!requestorEmployee?.departmentId || !target.departmentId) {
-      return false;
-    }
-
-    return requestorEmployee.departmentId === target.departmentId;
   }
 
   return false;

@@ -603,7 +603,7 @@ export default function AnalyticsDashboard() {
                     <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                     <Tooltip
                       contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
-                      formatter={(value: number) => value.toLocaleString()}
+                      formatter={(value: number | string) => Number(value).toLocaleString()}
                     />
                     <Legend wrapperStyle={{ paddingTop: 8 }} />
                     <Bar dataKey="hires" name="Hires" fill="#10b981" radius={[8, 8, 0, 0]} />
@@ -623,7 +623,8 @@ export default function AnalyticsDashboard() {
             </Card>
 
             <div className="grid gap-6 xl:grid-cols-3">
-              <Card className="flex flex-col overflow-hidden xl:h-[420px]">
+              {/* Headcount by department */}
+              <Card className="flex !h-auto max-h-[420px] xl:h-[420px] flex-col overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Building2 className="h-5 w-5 text-primary" />
@@ -661,6 +662,7 @@ export default function AnalyticsDashboard() {
                 </CardContent>
               </Card>
 
+              {/* Location & employment mix */}
               <Card className="flex flex-col overflow-hidden xl:h-[420px]">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -725,7 +727,7 @@ export default function AnalyticsDashboard() {
                             </Pie>
                             <Tooltip
                               formatter={(value: number, label: string) => [
-                                `${value.toLocaleString()} active`,
+                                `${Number(value).toLocaleString()} active`,
                                 label,
                               ]}
                               contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
@@ -763,7 +765,8 @@ export default function AnalyticsDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="flex flex-col overflow-hidden xl:h-[420px]">
+              {/* Job role coverage */}
+              <Card className="flex !h-auto max-h-[420px] xl:h-[420px] flex-col overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="h-5 w-5 text-primary" />

@@ -673,7 +673,7 @@ export default function AnalyticsDashboard() {
                     Compare where your people work today and how their employment agreements are distributed.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-6 overflow-hidden lg:flex-row lg:items-start">
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-6 overflow-hidden lg:flex-row lg:items-stretch">
                   <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
                     {locationData.length === 0 ? (
                       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -705,7 +705,7 @@ export default function AnalyticsDashboard() {
                     )}
                   </div>
                   <div className="flex w-full flex-col gap-4 lg:w-1/2 lg:min-h-0">
-                    <div className="flex-1 min-h-[200px]">
+                    <div className="flex-1 min-h-[200px] lg:h-full lg:min-h-0">
                       {employmentData.length === 0 ? (
                         <div className="flex h-full items-center justify-center rounded-2xl bg-white/60 text-sm text-muted-foreground dark:bg-slate-900/40">
                           Add employment types to view mix insights
@@ -736,7 +736,7 @@ export default function AnalyticsDashboard() {
                         </ResponsiveContainer>
                       )}
                     </div>
-                    <div className="space-y-2 overflow-y-auto pr-1 lg:max-h-[180px]">
+                    <div className="space-y-2 overflow-y-auto pr-1 lg:flex-1 lg:min-h-0">
                       {(data.breakdowns.byEmploymentType ?? []).map((item, index) => (
                         <div
                           key={item.label}
@@ -1326,7 +1326,7 @@ function InsightsList({ insights }: { insights: AnalyticsInsight[] }) {
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{insight.summary}</p>
           {insight.action && (
-            <p className="mt-3 text-xs font-medium text-primary/80">
+            <p className="mt-3 text-xs text-primary/80">
               Recommended action: {insight.action}
             </p>
           )}

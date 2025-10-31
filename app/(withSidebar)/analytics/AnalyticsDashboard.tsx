@@ -603,7 +603,7 @@ export default function AnalyticsDashboard() {
                     <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                     <Tooltip
                       contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
-                      formatter={(value: number) => value.toLocaleString()}
+                      formatter={(value: number | string) => Number(value).toLocaleString()}
                     />
                     <Legend wrapperStyle={{ paddingTop: 8 }} />
                     <Bar dataKey="hires" name="Hires" fill="#10b981" radius={[8, 8, 0, 0]} />
@@ -623,7 +623,8 @@ export default function AnalyticsDashboard() {
             </Card>
 
             <div className="grid gap-6 xl:grid-cols-3">
-              <Card className="flex flex-col xl:h-[420px]">
+              {/* Headcount by department */}
+              <Card className="flex !h-auto max-h-[420px] xl:h-[420px] flex-col overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Building2 className="h-5 w-5 text-primary" />
@@ -633,7 +634,7 @@ export default function AnalyticsDashboard() {
                     Active employees by department with total records alongside live HR data.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-4 !space-y-0">
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-4 overflow-hidden !space-y-0">
                   <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
                     {(data.breakdowns.byDepartment ?? []).map((dept) => (
                       <div
@@ -661,7 +662,8 @@ export default function AnalyticsDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="flex flex-col xl:h-[420px]">
+              {/* Location & employment mix */}
+              <Card className="flex flex-col overflow-hidden xl:h-[420px]">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <MapPin className="h-5 w-5 text-primary" />
@@ -671,7 +673,7 @@ export default function AnalyticsDashboard() {
                     Compare where your people work today and how their employment agreements are distributed.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-6 lg:flex-row lg:items-stretch">
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-6 overflow-hidden lg:flex-row lg:items-stretch">
                   <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
                     {locationData.length === 0 ? (
                       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -725,7 +727,7 @@ export default function AnalyticsDashboard() {
                             </Pie>
                             <Tooltip
                               formatter={(value: number, label: string) => [
-                                `${value.toLocaleString()} active`,
+                                `${Number(value).toLocaleString()} active`,
                                 label,
                               ]}
                               contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
@@ -763,7 +765,8 @@ export default function AnalyticsDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="flex flex-col xl:h-[420px]">
+              {/* Job role coverage */}
+              <Card className="flex !h-auto max-h-[420px] xl:h-[420px] flex-col overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="h-5 w-5 text-primary" />
@@ -773,7 +776,7 @@ export default function AnalyticsDashboard() {
                     Understand which job families hold the majority of active talent.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-3 !space-y-0">
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-3 overflow-hidden !space-y-0">
                   <div className="flex-1 min-h-0 space-y-3 overflow-y-auto pr-1">
                     {(data.breakdowns.byJobRole ?? []).length === 0 ? (
                       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -1323,7 +1326,7 @@ function InsightsList({ insights }: { insights: AnalyticsInsight[] }) {
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{insight.summary}</p>
           {insight.action && (
-            <p className="mt-3 text-xs font-medium text-primary/80">
+            <p className="mt-3 text-xs text-primary/80">
               Recommended action: {insight.action}
             </p>
           )}

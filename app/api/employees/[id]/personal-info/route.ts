@@ -46,7 +46,11 @@ export async function PATCH(
     const updates: Record<string, any> = {};
     for (const key of allowed) {
       if (Object.prototype.hasOwnProperty.call(updateFields, key)) {
-        updates[key] = updateFields[key as string];
+        if (key === "email" && typeof updateFields[key] === "string") {
+          updates[key] = updateFields[key].trim();
+        } else {
+          updates[key] = updateFields[key as string];
+        }
       }
     }
 
@@ -55,10 +59,62 @@ export async function PATCH(
     }
 
     const before = employee.User;
+    const oldEmail = before.email ?? null;
+    let pendingEmailNotification: {
+      newEmail: string;
+      oldEmail: string | null;
+      employeeName: string;
+    } | null = null;
 
     // Compute diffs before update
     const diffs = computeDiffs(before, { ...before, ...updates }, allowed);
-    
+
+    const emailUpdateValue = typeof updates.email === "string" ? updates.email : undefined;
+    if (typeof emailUpdateValue === "string" && emailUpdateValue.trim() === "") {
+      return NextResponse.json(
+        { error: "Email cannot be left empty." },
+        { status: 400 },
+      );
+    }
+
+    if (emailUpdateValue) {
+      const normalizedEmail = emailUpdateValue.trim();
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          AND: [
+            { email: { equals: normalizedEmail, mode: "insensitive" } as any },
+            { id: { not: before.id } },
+          ],
+        },
+        select: { id: true, companyId: true },
+      });
+
+      if (existingUser) {
+        const sameCompany = existingUser.companyId === session.user.companyId;
+        return NextResponse.json(
+          {
+            error: sameCompany
+              ? "Another user in your company already uses this email address."
+              : "This email is already registered with another PeopleCore account. Please use a different email.",
+          },
+          { status: 400 },
+        );
+      }
+
+      if (normalizedEmail !== emailUpdateValue) {
+        updates.email = normalizedEmail;
+      }
+
+      if (normalizedEmail !== (oldEmail ?? "")) {
+        const employeeName = `${before.firstName ?? ""} ${before.lastName ?? ""}`.trim() || normalizedEmail;
+        pendingEmailNotification = {
+          newEmail: normalizedEmail,
+          oldEmail,
+          employeeName,
+        };
+      }
+    }
+
     // Check if reasons are required and provided
     if (diffs.length > 0) {
       const requiresReasons = diffs.some(diffRequiresReason);
@@ -127,6 +183,55 @@ export async function PATCH(
         where: { id: before.id },
         data: updates,
       });
+
+      if (pendingEmailNotification) {
+        try {
+          const appBaseUrl = getAppBaseUrl();
+          const { newEmail, oldEmail: previousEmail, employeeName } = pendingEmailNotification;
+          const previousDisplay = previousEmail ?? "Not previously set";
+          const { html, text } = renderPeopleCoreEmail({
+            preheader: `Your PeopleCore login email is now ${newEmail}.`,
+            title: "Your PeopleCore login email has changed",
+            intro: [
+              `Hi ${employeeName},`,
+              "An administrator has updated the email address associated with your PeopleCore account.",
+            ],
+            sections: [
+              {
+                title: "Updated details",
+                description: [
+                  `Previous email: ${previousDisplay}`,
+                  `New email: ${newEmail}`,
+                ],
+              },
+              {
+                title: "What to do next",
+                description: [
+                  `Use ${newEmail} the next time you sign in to PeopleCore.`,
+                  "If you did not expect this change, please contact your HR administrator immediately.",
+                ],
+              },
+            ],
+            ctas: {
+              label: "Sign in to PeopleCore",
+              href: `${appBaseUrl}/login`,
+            },
+            outro: [
+              "This is an automated notification from PeopleCore HRIS.",
+            ],
+          });
+
+          await resend.emails.send({
+            from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz",
+            to: newEmail,
+            subject: "Your PeopleCore login email has been updated",
+            html,
+            text,
+          });
+        } catch (emailError) {
+          console.error("Failed to send email change notification:", emailError);
+        }
+      }
     }
 
     if (isAdmin) {

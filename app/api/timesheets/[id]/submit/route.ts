@@ -7,9 +7,8 @@ import {
   resolveActionItemAssigneeUserId,
   upsertTimesheetApprovalActionItem,
 } from '@/lib/action-items-helper';
-import { resend } from '@/app/lib/resend';
-import { renderPeopleCoreEmail, getAppBaseUrl } from '@/app/lib/email/template';
-import { PEOPLECORE_FROM_EMAIL } from '@/app/lib/resend';
+import { resend, PEOPLECORE_FROM_EMAIL } from '@/lib/resend';
+import { renderPeopleCoreEmail, getAppBaseUrl } from '@/lib/email/template';
 
 export async function POST(
   req: NextRequest,

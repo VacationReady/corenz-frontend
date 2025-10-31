@@ -14,8 +14,17 @@ export default function EmployeeTimesheetPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  const [timesheets, setTimesheets] = useState<any[]>([]);
-  const [selectedTimesheet, setSelectedTimesheet] = useState<any | null>(null);
+  type Timesheet = {
+    id: string;
+    approvalStatus: string;
+    submittedAt?: string | Date | null;
+    TimesheetEntries?: unknown[];
+    ClockEntries?: unknown[];
+    [key: string]: unknown;
+  };
+
+  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
+  const [selectedTimesheet, setSelectedTimesheet] = useState<Timesheet | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +127,7 @@ export default function EmployeeTimesheetPage() {
         throw new Error(data.error || 'Failed to submit timesheet');
       }
 
-      setSelectedTimesheet((previous) => {
+      setSelectedTimesheet((previous: Timesheet | null) => {
         if (!data?.timesheet) {
           return previous;
         }

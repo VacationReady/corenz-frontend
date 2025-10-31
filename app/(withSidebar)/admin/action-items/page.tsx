@@ -78,6 +78,7 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
   MEETING_ACTION_ITEM: "Meeting Follow-up",
   BULK_UPDATE_APPROVAL: "Bulk Update Approval",
   FORM_COMPLETION: "Form Completion",
+  TIMESHEET_APPROVAL: "Timesheet Approval",
   TASK: "Task",
 };
 
@@ -344,6 +345,7 @@ export default function AdminActionItemsPage() {
               <option value="all">All Types</option>
               <option value="PERFORMANCE">Performance Reviews</option>
               <option value="LEAVE">Leave Requests</option>
+              <option value="TIMESHEET">Timesheets</option>
               <option value="SURVEY">Surveys</option>
               <option value="DOCUMENT">Documents</option>
               <option value="ONBOARDING">Onboarding</option>

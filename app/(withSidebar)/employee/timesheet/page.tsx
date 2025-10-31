@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Plus } from 'lucide-react';
+import { Calendar, Plus, PlusCircle } from 'lucide-react';
 import ClockWidget from '@/components/time-tracking/ClockWidget';
 import TimesheetCard from '@/components/time-tracking/TimesheetCard';
 import TimesheetDetailView from '@/components/time-tracking/TimesheetDetailView';
+import AddManualEntryDialog from '@/components/time-tracking/AddManualEntryDialog';
 import { useToast } from '@/hooks/use-toast';
 
 export default function EmployeeTimesheetPage() {
@@ -27,6 +28,7 @@ export default function EmployeeTimesheetPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showManualEntryDialog, setShowManualEntryDialog] = useState(false);
 
   // Fetch timesheets
   useEffect(() => {
@@ -227,14 +229,23 @@ export default function EmployeeTimesheetPage() {
           <p className="text-slate-600">Track your hours and submit timesheets for approval</p>
         </div>
         
-        <button
-          onClick={handleGenerateTimesheet}
-          disabled={actionLoading}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
-        >
-          <Plus className="w-5 h-5" />
-          Generate Timesheet
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowManualEntryDialog(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium shadow-sm"
+          >
+            <PlusCircle className="w-5 h-5" />
+            Add Entry
+          </button>
+          <button
+            onClick={handleGenerateTimesheet}
+            disabled={actionLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            Generate Timesheet
+          </button>
+        </div>
       </div>
 
       {/* Error Message */}
@@ -306,6 +317,13 @@ export default function EmployeeTimesheetPage() {
           </div>
         )}
       </div>
+
+      {/* Manual Entry Dialog */}
+      <AddManualEntryDialog
+        open={showManualEntryDialog}
+        onClose={() => setShowManualEntryDialog(false)}
+        onSuccess={fetchTimesheets}
+      />
     </div>
   );
 }

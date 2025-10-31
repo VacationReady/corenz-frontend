@@ -14,10 +14,9 @@ export default function EmployeeTimesheetPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  type Timesheet = {
-    id: string;
-    approvalStatus: string;
-    submittedAt?: string | Date | null;
+  type TimesheetSummary = React.ComponentProps<typeof TimesheetCard>['timesheet'];
+
+  type Timesheet = TimesheetSummary & {
     TimesheetEntries?: unknown[];
     ClockEntries?: unknown[];
     [key: string]: unknown;

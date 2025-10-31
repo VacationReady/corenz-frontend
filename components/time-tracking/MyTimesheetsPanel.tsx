@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Calendar, Plus } from 'lucide-react';
+import { Calendar, Plus, PlusCircle } from 'lucide-react';
 import ClockWidget from './ClockWidget';
 import TimesheetCard from './TimesheetCard';
 import TimesheetDetailView from './TimesheetDetailView';
+import AddManualEntryDialog from './AddManualEntryDialog';
 
 type TimesheetListItem = {
   id: string;
@@ -41,6 +42,7 @@ export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPane
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showManualEntryDialog, setShowManualEntryDialog] = useState(false);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -174,14 +176,23 @@ export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPane
             </p>
           </div>
         </div>
-        <button
-          onClick={handleGenerateTimesheet}
-          disabled={actionLoading}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-white text-blue-600 hover:bg-white/90 disabled:bg-white/60 disabled:text-blue-400 transition px-4 py-3 font-semibold shadow-lg shadow-blue-500/30"
-        >
-          <Plus className="w-5 h-5" />
-          {actionLoading ? 'Working...' : 'Generate Timesheet'}
-        </button>
+        <div className="flex flex-wrap gap-3 justify-end">
+          <button
+            onClick={() => setShowManualEntryDialog(true)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition px-4 py-3 font-semibold shadow-lg shadow-emerald-500/30"
+          >
+            <PlusCircle className="w-5 h-5" />
+            Add Entry
+          </button>
+          <button
+            onClick={handleGenerateTimesheet}
+            disabled={actionLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-white text-blue-600 hover:bg-white/90 disabled:bg-white/60 disabled:text-blue-400 transition px-4 py-3 font-semibold shadow-lg shadow-blue-500/30"
+          >
+            <Plus className="w-5 h-5" />
+            {actionLoading ? 'Working...' : 'Generate Timesheet'}
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
@@ -321,6 +332,12 @@ export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPane
           <ClockWidget />
         </div>
       </div>
+
+      <AddManualEntryDialog
+        open={showManualEntryDialog}
+        onClose={() => setShowManualEntryDialog(false)}
+        onSuccess={fetchTimesheets}
+      />
     </div>
   );
 }

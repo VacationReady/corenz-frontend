@@ -604,7 +604,7 @@ export default function AnalyticsDashboard() {
                     <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                     <Tooltip
                       contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
-                      formatter={(value: number) => value.toLocaleString()}
+                      formatter={(value: number | string) => Number(value).toLocaleString()}
                     />
                     <Legend wrapperStyle={{ paddingTop: 8 }} />
                     <Bar dataKey="hires" name="Hires" fill="#10b981" radius={[8, 8, 0, 0]} />
@@ -624,6 +624,7 @@ export default function AnalyticsDashboard() {
             </Card>
 
             <div className="grid gap-6 xl:grid-cols-3">
+              {/* Headcount by department */}
               <Card className="flex h-[420px] flex-col">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -638,32 +639,33 @@ export default function AnalyticsDashboard() {
                   <ScrollArea className="flex-1 min-h-0 pr-1">
                     <div className="space-y-3">
                       {(data.breakdowns.byDepartment ?? []).map((dept) => (
-                      <div
-                        key={dept.id ?? dept.name}
-                        className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
-                        onClick={() => handleDrillDown(
-                          "department",
-                          dept.id || "unassigned",
-                          `${dept.name} Department`,
-                          `All employees in the ${dept.name} department`
-                        )}
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{dept.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {dept.active.toLocaleString()} active · {dept.total.toLocaleString()} total
-                          </p>
+                        <div
+                          key={dept.id ?? dept.name}
+                          className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
+                          onClick={() => handleDrillDown(
+                            "department",
+                            dept.id || "unassigned",
+                            `${dept.name} Department`,
+                            `All employees in the ${dept.name} department`
+                          )}
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{dept.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {dept.active.toLocaleString()} active · {dept.total.toLocaleString()} total
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
+                            {dept.active}
+                          </Badge>
                         </div>
-                        <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
-                          {dept.active}
-                        </Badge>
-                      </div>
                       ))}
                     </div>
                   </ScrollArea>
                 </CardContent>
               </Card>
 
+              {/* Location & employment mix */}
               <Card className="flex h-[420px] flex-col">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -707,6 +709,7 @@ export default function AnalyticsDashboard() {
                       )}
                     </div>
                   </ScrollArea>
+
                   <div className="flex w-full min-h-0 flex-col gap-4 lg:w-1/2">
                     <div className="flex-1 min-h-[200px] lg:min-h-0">
                       {employmentData.length === 0 ? (
@@ -730,7 +733,7 @@ export default function AnalyticsDashboard() {
                             </Pie>
                             <Tooltip
                               formatter={(value: number, label: string) => [
-                                `${value.toLocaleString()} active`,
+                                `${Number(value).toLocaleString()} active`,
                                 label,
                               ]}
                               contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
@@ -739,6 +742,7 @@ export default function AnalyticsDashboard() {
                         </ResponsiveContainer>
                       )}
                     </div>
+
                     <ScrollArea className="lg:flex-1 lg:min-h-0 pr-1">
                       <div className="space-y-2">
                         {(data.breakdowns.byEmploymentType ?? []).map((item, index) => (
@@ -770,6 +774,7 @@ export default function AnalyticsDashboard() {
                 </CardContent>
               </Card>
 
+              {/* Job role coverage */}
               <Card className="flex h-[420px] flex-col">
                 <CardHeader className="border-none bg-transparent pb-2">
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -1332,7 +1337,7 @@ function InsightsList({ insights }: { insights: AnalyticsInsight[] }) {
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{insight.summary}</p>
           {insight.action && (
-            <p className="mt-3 text-xs font-medium text-primary/80">
+            <p className="mt-3 text-xs text-primary/80">
               Recommended action: {insight.action}
             </p>
           )}

@@ -50,17 +50,17 @@ export default function TimesheetCard({
   const statusConfig = {
     PENDING: {
       label: 'Draft',
-      color: 'bg-amber-500/20 text-amber-600 border-amber-500/30',
+      color: 'bg-amber-100 text-amber-700 border-amber-200',
       icon: AlertCircle,
     },
     APPROVED: {
       label: 'Approved',
-      color: 'bg-green-500/20 text-green-600 border-green-500/30',
+      color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
       icon: CheckCircle,
     },
     DECLINED: {
       label: 'Rejected',
-      color: 'bg-red-500/20 text-red-600 border-red-500/30',
+      color: 'bg-rose-100 text-rose-700 border-rose-200',
       icon: XCircle,
     },
   };
@@ -77,22 +77,22 @@ export default function TimesheetCard({
 
   if (isLoading) {
     return (
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 animate-pulse">
-        <div className="h-6 bg-white/20 rounded w-1/3 mb-4"></div>
-        <div className="h-4 bg-white/20 rounded w-1/2 mb-2"></div>
-        <div className="h-4 bg-white/20 rounded w-2/3"></div>
+      <div className="bg-white border border-slate-200 rounded-xl p-6 animate-pulse shadow-sm">
+        <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
+        <div className="h-4 bg-slate-200 rounded w-1/2 mb-2"></div>
+        <div className="h-4 bg-slate-200 rounded w-2/3"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 hover:bg-white/15 transition-all shadow-xl">
+    <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <Calendar className="w-5 h-5 text-blue-400" />
-            <h3 className="text-lg font-semibold text-white">
+            <Calendar className="w-5 h-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-slate-900">
               {format(periodStart, 'MMM d')} - {format(periodEnd, 'MMM d, yyyy')}
             </h3>
           </div>
@@ -106,15 +106,15 @@ export default function TimesheetCard({
                   className="w-6 h-6 rounded-full"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-6 h-6 rounded-full bg-blue-600/10 text-blue-700 flex items-center justify-center text-xs font-bold">
                   {timesheet.employee.User.name?.charAt(0) || 'E'}
                 </div>
               )}
-              <span className="text-sm text-gray-300">
+              <span className="text-sm text-slate-600">
                 {timesheet.employee.User.name}
               </span>
               {timesheet.employee.Department && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-slate-500">
                   • {timesheet.employee.Department.name}
                 </span>
               )}
@@ -130,38 +130,38 @@ export default function TimesheetCard({
 
       {/* Hours Summary */}
       <div className="grid grid-cols-3 gap-4 mb-4">
-        <div className="bg-black/20 rounded-lg p-3">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-blue-400" />
-            <span className="text-xs text-gray-400">Total Hours</span>
+            <Clock className="w-4 h-4 text-blue-600" />
+            <span className="text-xs text-slate-500">Total Hours</span>
           </div>
-          <p className="text-2xl font-bold text-white">{totalHours.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-slate-900">{totalHours.toFixed(2)}</p>
         </div>
 
-        <div className="bg-black/20 rounded-lg p-3">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-green-400" />
-            <span className="text-xs text-gray-400">Regular</span>
+            <Clock className="w-4 h-4 text-emerald-600" />
+            <span className="text-xs text-slate-500">Regular</span>
           </div>
-          <p className="text-2xl font-bold text-white">
+          <p className="text-2xl font-bold text-slate-900">
             {(typeof timesheet.regularHours === 'string' 
               ? parseFloat(timesheet.regularHours) 
               : timesheet.regularHours).toFixed(2)}
           </p>
         </div>
 
-        <div className="bg-black/20 rounded-lg p-3">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
           <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-amber-400" />
-            <span className="text-xs text-gray-400">Overtime</span>
+            <Clock className="w-4 h-4 text-amber-600" />
+            <span className="text-xs text-slate-500">Overtime</span>
           </div>
-          <p className="text-2xl font-bold text-white">{overtimeHours.toFixed(2)}</p>
+          <p className="text-2xl font-bold text-slate-900">{overtimeHours.toFixed(2)}</p>
         </div>
       </div>
 
       {/* Submission Info */}
       {timesheet.submittedAt && (
-        <div className="text-xs text-gray-400 mb-4">
+        <div className="text-xs text-slate-500 mb-4">
           Submitted {format(
             typeof timesheet.submittedAt === 'string' 
               ? new Date(timesheet.submittedAt) 
@@ -185,7 +185,7 @@ export default function TimesheetCard({
         {onEdit && timesheet.approvalStatus === 'PENDING' && !timesheet.submittedAt && (
           <button
             onClick={onEdit}
-            className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors text-sm font-medium border border-white/20"
+            className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors text-sm font-medium"
           >
             Edit
           </button>
@@ -194,7 +194,7 @@ export default function TimesheetCard({
         {onSubmit && timesheet.approvalStatus === 'PENDING' && !timesheet.submittedAt && (
           <button
             onClick={onSubmit}
-            className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
+            className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm font-medium"
           >
             Submit
           </button>

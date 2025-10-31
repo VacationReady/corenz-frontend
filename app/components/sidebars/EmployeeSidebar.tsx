@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, LayoutDashboard, Calendar, Clock, User, X, Target, ClipboardList, CalendarClock } from "lucide-react";
+import { LogOut, LayoutDashboard, Calendar, Clock, User, Users, X, Target, ClipboardList, CalendarClock } from "lucide-react";
 import { signOut } from "next-auth/react";
 import clsx from "clsx";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
@@ -40,6 +40,7 @@ export default function EmployeeSidebar({
       href: "/dashboard",
       icon: <LayoutDashboard size={18} />,
     },
+    { label: "Employees", href: "/employees", icon: <Users size={18} /> },
     { label: "Calendar", href: "/calendar", icon: <Calendar size={18} /> },
     { label: "My Timesheet", href: "/employee/timesheet", icon: <ClipboardList size={18} /> },
     { label: "My Schedule", href: "/employee/schedule", icon: <CalendarClock size={18} /> },

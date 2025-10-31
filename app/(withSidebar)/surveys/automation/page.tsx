@@ -243,9 +243,9 @@ export default function SurveyAutomationPage() {
                 This saves time and ensures consistent feedback collection.
               </p>
               <Button asChild variant="primary">
-                <Link href="/surveys/automation/new">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Automation
+                <Link href="/surveys/automation/new" className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  <span>Create Your First Automation</span>
                 </Link>
               </Button>
             </CardContent>

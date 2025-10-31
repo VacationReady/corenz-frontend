@@ -7,10 +7,12 @@ import { Calendar, Plus } from 'lucide-react';
 import ClockWidget from '@/components/time-tracking/ClockWidget';
 import TimesheetCard from '@/components/time-tracking/TimesheetCard';
 import TimesheetDetailView from '@/components/time-tracking/TimesheetDetailView';
+import { useToast } from '@/hooks/use-toast';
 
 export default function EmployeeTimesheetPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { toast } = useToast();
   
   const [timesheets, setTimesheets] = useState<any[]>([]);
   const [selectedTimesheet, setSelectedTimesheet] = useState<any | null>(null);
@@ -104,25 +106,52 @@ export default function EmployeeTimesheetPage() {
     try {
       setActionLoading(true);
       setError(null);
-      
+
       const response = await fetch(`/api/timesheets/${selectedTimesheet.id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
-      
+
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Failed to submit timesheet');
       }
-      
-      const data = await response.json();
-      setSelectedTimesheet(data.timesheet);
-      
+
+      setSelectedTimesheet((previous) => {
+        if (!data?.timesheet) {
+          return previous;
+        }
+
+        if (!previous) {
+          return data.timesheet;
+        }
+
+        return {
+          ...previous,
+          ...data.timesheet,
+          TimesheetEntries:
+            data.timesheet.TimesheetEntries ?? previous.TimesheetEntries,
+          ClockEntries: data.timesheet.ClockEntries ?? previous.ClockEntries,
+        };
+      });
+
       // Refresh timesheets list
       await fetchTimesheets();
+
+      toast({
+        title: 'Timesheet submitted',
+        description: 'Your timesheet has been sent for approval.',
+      });
     } catch (err: any) {
       console.error('Error submitting timesheet:', err);
-      setError(err.message || 'Failed to submit timesheet');
+      const message = err?.message || 'Failed to submit timesheet';
+      setError(message);
+      toast({
+        title: 'Submission failed',
+        description: message,
+        variant: 'destructive',
+      });
     } finally {
       setActionLoading(false);
     }

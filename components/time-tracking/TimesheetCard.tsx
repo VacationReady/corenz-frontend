@@ -47,12 +47,7 @@ export default function TimesheetCard({
     ? new Date(timesheet.periodEnd) 
     : timesheet.periodEnd;
 
-  const statusConfig = {
-    PENDING: {
-      label: 'Draft',
-      color: 'bg-amber-100 text-amber-700 border-amber-200',
-      icon: AlertCircle,
-    },
+  const baseStatusConfig = {
     APPROVED: {
       label: 'Approved',
       color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -63,9 +58,33 @@ export default function TimesheetCard({
       color: 'bg-rose-100 text-rose-700 border-rose-200',
       icon: XCircle,
     },
-  };
+  } as const;
 
-  const status = statusConfig[timesheet.approvalStatus as keyof typeof statusConfig] || statusConfig.PENDING;
+  const status = (() => {
+    if (timesheet.approvalStatus === 'PENDING') {
+      if (timesheet.submittedAt) {
+        return {
+          label: 'Pending Approval',
+          color: 'bg-blue-100 text-blue-700 border-blue-200',
+          icon: Clock,
+        } as const;
+      }
+
+      return {
+        label: 'Draft',
+        color: 'bg-amber-100 text-amber-700 border-amber-200',
+        icon: AlertCircle,
+      } as const;
+    }
+
+    return (
+      baseStatusConfig[timesheet.approvalStatus as keyof typeof baseStatusConfig] ?? {
+        label: 'Draft',
+        color: 'bg-amber-100 text-amber-700 border-amber-200',
+        icon: AlertCircle,
+      }
+    );
+  })();
   const StatusIcon = status.icon;
 
   const totalHours = typeof timesheet.totalHours === 'string' 

@@ -65,6 +65,8 @@ const wizardSteps = [
 
 type WizardStep = (typeof wizardSteps)[number]["key"];
 
+const NO_TEMPLATE_VALUE = "__NO_TEMPLATE__";
+
 export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: CreateReviewCycleDialogProps) {
   const [loading, setLoading] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -78,7 +80,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"PROBATION" | "QUARTERLY" | "SEMI_ANNUAL" | "ANNUAL" | "AD_HOC">("ANNUAL");
-  const [templateId, setTemplateId] = useState<string>("");
+  const [templateId, setTemplateId] = useState<string>(NO_TEMPLATE_VALUE);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selfReviewDeadline, setSelfReviewDeadline] = useState("");
@@ -168,7 +170,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
     setName("");
     setDescription("");
     setType("ANNUAL");
-    setTemplateId("");
+    setTemplateId(NO_TEMPLATE_VALUE);
     setStartDate("");
     setEndDate("");
     setSelfReviewDeadline("");
@@ -223,7 +225,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
         name,
         description,
         type,
-        templateId: templateId || undefined,
+        templateId: templateId === NO_TEMPLATE_VALUE ? undefined : templateId,
         startDate,
         endDate,
         selfReviewDeadline: selfReviewDeadline || undefined,
@@ -383,7 +385,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                       <SelectValue placeholder="Select a template" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No template</SelectItem>
+                      <SelectItem value={NO_TEMPLATE_VALUE}>No template</SelectItem>
                       {templates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           {template.name}

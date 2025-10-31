@@ -102,6 +102,26 @@ export default function TimesheetDetailView({
     });
   }
 
+  const resolvedEntries = (timesheet.TimesheetEntries && timesheet.TimesheetEntries.length > 0
+    ? timesheet.TimesheetEntries
+    : (timesheet.ClockEntries || []).map((entry: any, index: number) => ({
+        id: entry.id || `clock-entry-${index}`,
+        date: entry.clockInTime,
+        startTime: entry.clockInTime,
+        endTime: entry.clockOutTime || entry.clockInTime,
+        breakMinutes: entry.breakMinutes ?? 0,
+        hours: entry.clockOutTime
+          ? (typeof entry.totalHours === 'number'
+              ? entry.totalHours
+              : entry.totalHours
+              ?? 0)
+          : 0,
+        isOvertime: false,
+        notes: entry.notes,
+        entryType: 'CLOCK',
+      }))
+  );
+
   return (
     <div className="space-y-6 text-slate-900">
       {/* Header */}
@@ -189,25 +209,7 @@ export default function TimesheetDetailView({
 
       {/* Timesheet Entries */}
       <TimesheetTable
-        entries={(timesheet.TimesheetEntries && timesheet.TimesheetEntries.length > 0
-          ? timesheet.TimesheetEntries
-          : (timesheet.ClockEntries || []).map((entry: any, index: number) => ({
-              id: entry.id || `clock-entry-${index}`,
-              date: entry.clockInTime,
-              startTime: entry.clockInTime,
-              endTime: entry.clockOutTime || entry.clockInTime,
-              breakMinutes: entry.breakMinutes ?? 0,
-              hours: entry.clockOutTime
-                ? (typeof entry.totalHours === 'number'
-                    ? entry.totalHours
-                    : entry.totalHours
-                    ?? 0)
-                : 0,
-              isOvertime: false,
-              notes: entry.notes,
-              entryType: 'CLOCK',
-            }))
-        }
+        entries={resolvedEntries}
         editable={canEdit}
         isLoading={isLoading}
       />

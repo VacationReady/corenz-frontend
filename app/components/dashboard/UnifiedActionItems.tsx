@@ -129,6 +129,29 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                 }
               }
             });
+          } else if (item.type === 'TIMESHEET_APPROVAL') {
+            // Timesheet approval tasks
+            const metadata = item.metadata || {};
+            const label = metadata.label || '';
+            const totalHours = metadata.totalHours ? `${metadata.totalHours} hours` : '';
+            
+            items.push({
+              id: `action-${item.id}`,
+              type: "approval",
+              title: item.title,
+              subtitle: [label, totalHours].filter(Boolean).join(' • '),
+              urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date()),
+              metadata: item,
+              actionLabel: "Review Timesheet",
+              onAction: async () => {
+                // Navigate to timesheet approval hub
+                if (metadata.timesheetId) {
+                  window.location.href = `/admin/timesheets/hub`;
+                } else {
+                  toast.error('Timesheet data not available');
+                }
+              }
+            });
           } else {
             // Regular workflow tasks
             items.push({

@@ -7,7 +7,9 @@ import {
   resolveActionItemAssigneeUserId,
   upsertTimesheetApprovalActionItem,
 } from '@/lib/action-items-helper';
-// import { sendEmail } from '@/lib/email'; // TODO: Implement email service
+import { resend } from '@/app/lib/resend';
+import { renderPeopleCoreEmail, getAppBaseUrl } from '@/app/lib/email/template';
+import { PEOPLECORE_FROM_EMAIL } from '@/app/lib/resend';
 
 export async function POST(
   req: NextRequest,
@@ -172,7 +174,8 @@ export async function POST(
             });
 
             if (stage.order === 1) {
-              const assignedToId = await resolveActionItemAssigneeUserId(decision.approverId);
+              // approverId is an employeeId, need to get the userId
+              const assignedToId = await resolveActionItemAssigneeUserId(approverId);
               if (assignedToId) {
                 await upsertTimesheetApprovalActionItem({
                   companyId: requestingEmployee.companyId,
@@ -217,20 +220,47 @@ export async function POST(
               },
             });
 
-            if (approverEmployee?.User.email) {
-              // TODO: Implement email notifications
-              // await sendEmail({
-              //   to: approverEmployee.User.email,
-              //   subject: 'Timesheet Approval Required',
-              //   html: `
-              //     <h2>Timesheet Approval Required</h2>
-              //     <p>Hi ${approverEmployee.User.name},</p>
-              //     <p>${requestingEmployee.User.name} has submitted a timesheet for approval.</p>
-              //     <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
-              //     <p><strong>Total Hours:</strong> ${timesheet.totalHours}</p>
-              //     <p>Please review and approve or reject the timesheet.</p>
-              //   `,
-              // });
+            if (approverEmployee?.User?.email) {
+              try {
+                const baseUrl = getAppBaseUrl();
+                const { html, text } = renderPeopleCoreEmail({
+                  preheader: `${employeeName} has submitted a timesheet for approval`,
+                  title: 'Timesheet Approval Required',
+                  heroBadge: 'Time Tracking',
+                  intro: [`Hi ${approverEmployee.User.name},`],
+                  sections: [
+                    {
+                      title: 'Timesheet Submission',
+                      description: [
+                        `${employeeName} has submitted a timesheet for your approval.`,
+                      ],
+                      bulletPoints: [
+                        `Period: ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}`,
+                        `Total Hours: ${Number(timesheet.totalHours).toFixed(2)}`,
+                        `Submitted: ${new Date().toLocaleDateString()}`,
+                      ],
+                    },
+                  ],
+                  ctas: {
+                    label: 'Review Timesheet',
+                    href: `${baseUrl}/admin/timesheets/hub`,
+                  },
+                  outro: [
+                    'Please review and approve or reject this timesheet at your earliest convenience.',
+                  ],
+                });
+
+                await resend.emails.send({
+                  from: PEOPLECORE_FROM_EMAIL,
+                  to: approverEmployee.User.email,
+                  subject: `Timesheet Approval Required - ${employeeName}`,
+                  html,
+                  text,
+                });
+              } catch (emailError) {
+                console.error('Failed to send timesheet approval email:', emailError);
+                // Don't throw - email failures shouldn't break the submission
+              }
             }
           }
         }

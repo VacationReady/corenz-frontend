@@ -42,11 +42,21 @@ export async function GET(req: NextRequest) {
       companyId: requestingEmployee.companyId,
     };
 
-    // If not admin/manager, can only view own timesheets
-    if (!isAdminOrManager) {
+    // If a specific employeeId is requested, use that (with permission check)
+    if (employeeId) {
+      // Admin/Manager can view any employee's timesheets
+      if (isAdminOrManager) {
+        where.employeeId = employeeId;
+      } else if (employeeId === requestingEmployee.id) {
+        // Non-admin/manager can only view their own
+        where.employeeId = requestingEmployee.id;
+      } else {
+        return NextResponse.json({ error: 'Unauthorized to view other employees' }, { status: 403 });
+      }
+    } else {
+      // No employeeId specified - always show requesting user's own timesheets
+      // This prevents managers from accidentally seeing all company timesheets in "My Timesheets"
       where.employeeId = requestingEmployee.id;
-    } else if (employeeId) {
-      where.employeeId = employeeId;
     }
 
     if (status) {

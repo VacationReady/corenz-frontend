@@ -97,10 +97,10 @@ export default function EmployeeTimesheetPage() {
       
       // Refresh timesheets list
       await fetchTimesheets();
-      
-      // Show the new timesheet
-      if (data.timesheet) {
-        setSelectedTimesheet(data.timesheet);
+
+      // Immediately load full details so entries are visible
+      if (data.timesheet?.id) {
+        await fetchTimesheetDetails(data.timesheet.id);
       }
     } catch (err: any) {
       console.error('Error generating timesheet:', err);

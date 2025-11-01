@@ -193,13 +193,14 @@ export function renderPeopleCoreEmail(
   const ctaHtml = ctas
     .map((cta, index) => {
       const isPrimary = index === 0;
-      const background = isPrimary ? ctaGradient : BRAND.surfaceMuted;
+      const backgroundColor = isPrimary ? BRAND.primary : BRAND.surfaceMuted;
+      const backgroundImage = isPrimary ? ctaGradient : "none";
       const color = isPrimary ? "#ffffff" : BRAND.primaryDark;
       const border = isPrimary ? "none" : `1px solid ${BRAND.border}`;
       const shadow = isPrimary
         ? "box-shadow: 0 15px 30px rgba(14, 165, 233, 0.35);"
         : "box-shadow: none;";
-      return `<a href="${cta.href}" style="display:inline-block; padding: 14px 28px; border-radius: 9999px; font-weight: 600; font-size: 16px; text-decoration: none; margin: 0 12px 12px 0; background: ${background}; color: ${color}; border: ${border}; ${shadow}">${escapeHtml(
+      return `<a href="${cta.href}" style="display:inline-block; padding: 14px 28px; border-radius: 9999px; font-weight: 600; font-size: 16px; text-decoration: none; margin: 0 12px 12px 0; background-color: ${backgroundColor}; background-image: ${backgroundImage}; color: ${color}; border: ${border}; ${shadow}">${escapeHtml(
         cta.label,
       )}</a>`;
     })

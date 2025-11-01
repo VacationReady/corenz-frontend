@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Checkbox } from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -95,6 +96,7 @@ export default function AdminActionItemsPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("PENDING");
   const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   // Fetch stats
   const { data: statsData, error: statsError } = useSWR(
@@ -139,14 +141,50 @@ export default function AdminActionItemsPage() {
     }
   };
 
-  const handleBulkAction = async (action: "remind" | "cancel", itemIds: string[]) => {
+  useEffect(() => {
+    setSelectedItems([]);
+  }, [filterType, filterStatus, filterPriority, searchQuery]);
+
+  const handleItemSelection = (itemId: string, checked: boolean) => {
+    setSelectedItems((prev) => {
+      if (checked) {
+        if (prev.includes(itemId)) return prev;
+        return [...prev, itemId];
+      }
+      return prev.filter((id) => id !== itemId);
+    });
+  };
+
+  const clearSelection = () => setSelectedItems([]);
+
+  const handleDeleteSelected = async () => {
+    const pendingIds = items
+      .filter((item) => selectedItems.includes(item.id) && item.status === "PENDING")
+      .map((item) => item.id);
+
+    if (pendingIds.length === 0) {
+      toast.info("Only pending action items can be deleted.");
+      return;
+    }
+
+    await handleBulkAction("delete", pendingIds);
+    setSelectedItems((prev) => prev.filter((id) => !pendingIds.includes(id)));
+  };
+
+  const handleBulkAction = async (action: "remind" | "cancel" | "delete", itemIds: string[]) => {
     try {
       await fetch("/api/admin/action-items/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, itemIds }),
       });
-      toast.success(`${action === "remind" ? "Reminders sent" : "Items cancelled"}`);
+      const successMessage =
+        action === "remind"
+          ? "Reminders sent"
+          : action === "cancel"
+          ? "Items cancelled"
+          : "Items deleted";
+      toast.success(successMessage);
       mutate();
     } catch (error) {
       toast.error("Failed to perform action");
@@ -378,6 +416,19 @@ export default function AdminActionItemsPage() {
                 {items.length} items found
               </CardDescription>
             </div>
+            {selectedItems.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedItems.length} selected
+                </span>
+                <Button variant="outline" size="sm" onClick={clearSelection}>
+                  Clear
+                </Button>
+                <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>
+                  Delete Selected
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -454,6 +505,12 @@ export default function AdminActionItemsPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <Checkbox
+                        aria-label="Select action item"
+                        disabled={item.status !== "PENDING"}
+                        checked={selectedItems.includes(item.id)}
+                        onCheckedChange={(value) => handleItemSelection(item.id, !!value)}
+                      />
                       <Button
                         variant="outline"
                         size="sm"

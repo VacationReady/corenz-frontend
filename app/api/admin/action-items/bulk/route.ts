@@ -40,6 +40,21 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (action === "delete") {
+      await prisma.actionItem.deleteMany({
+        where: {
+          id: { in: itemIds },
+          companyId: session.user.companyId,
+          status: "PENDING",
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `${itemIds.length} items deleted`,
+      });
+    }
+
     if (action === "remind") {
       // Send reminders (implementation would send emails/notifications)
       // For now, just return success

@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
 
     // Build where clause
-    // Show both SUBMITTED timesheets and PENDING timesheets that have been submitted
+    // Show SUBMITTED timesheets and PENDING timesheets with entries (including legacy ones)
     const whereClause: any = {
       Employee: {
         companyId: employee.companyId,
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
         { approvalStatus: "SUBMITTED" },
         { 
           approvalStatus: "PENDING",
-          submittedAt: { not: null }
+          totalHours: { gt: 0 } // Has entries - catches legacy timesheets
         }
       ],
     };

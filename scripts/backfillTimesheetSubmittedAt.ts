@@ -3,15 +3,28 @@ import { prisma } from "@/lib/prisma";
 async function backfillTimesheetSubmittedAt() {
   const pendingTimesheets = await prisma.timesheet.findMany({
     where: {
-      approvalStatus: "PENDING",
+      approvalStatus: {
+        in: ["PENDING", "SUBMITTED"],
+      },
       submittedAt: null,
       totalHours: {
         gt: 0,
+      },
+      Company: {
+        TimeTrackingSettings: {
+          some: {
+            defaultWorkflowId: {
+              not: null,
+            },
+          },
+        },
       },
     },
     select: {
       id: true,
       employeeId: true,
+      companyId: true,
+      approvalStatus: true,
       periodStart: true,
       periodEnd: true,
       createdAt: true,
@@ -39,7 +52,7 @@ async function backfillTimesheetSubmittedAt() {
 
     updatedCount += 1;
     console.log(
-      `Updated timesheet ${timesheet.id} for employee ${timesheet.employeeId} (${timesheet.periodStart.toISOString()} - ${timesheet.periodEnd.toISOString()})`
+      `Updated timesheet ${timesheet.id} (status ${timesheet.approvalStatus}) for employee ${timesheet.employeeId} (${timesheet.periodStart.toISOString()} - ${timesheet.periodEnd.toISOString()})`
     );
   }
 

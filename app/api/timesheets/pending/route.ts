@@ -53,11 +53,18 @@ export async function GET(req: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
 
     // Build where clause
+    // Show both SUBMITTED timesheets and PENDING timesheets that have been submitted
     const whereClause: any = {
       Employee: {
         companyId: employee.companyId,
       },
-      approvalStatus: "SUBMITTED",
+      OR: [
+        { approvalStatus: "SUBMITTED" },
+        { 
+          approvalStatus: "PENDING",
+          submittedAt: { not: null }
+        }
+      ],
     };
 
     // Manager can only see their department

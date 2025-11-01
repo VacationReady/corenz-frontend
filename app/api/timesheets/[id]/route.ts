@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateHours, calculateOvertime } from '@/lib/timesheet-calculations';
+import { cancelPendingTimesheetApprovalActionItems } from '@/lib/action-items-helper';
 
 const updateTimesheetSchema = z.object({
   entries: z.array(
@@ -143,6 +144,7 @@ export async function PUT(
       select: {
         id: true,
         companyId: true,
+        departmentId: true,
         User: {
           select: {
             role: true,
@@ -157,6 +159,13 @@ export async function PUT(
 
     const timesheet = await prisma.timesheet.findUnique({
       where: { id: id },
+      include: {
+        Employee: {
+          select: {
+            departmentId: true,
+          },
+        },
+      },
     });
 
     if (!timesheet) {
@@ -164,12 +173,21 @@ export async function PUT(
     }
 
     // Check permissions
-    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
+    const isAdmin = requestingEmployee.User.role === 'ADMIN';
+    const isManager = requestingEmployee.User.role === 'MANAGER';
     const isOwnTimesheet = timesheet.employeeId === requestingEmployee.id;
 
-    if (!isOwnTimesheet && !isAdminOrManager) {
-      return NextResponse.json({ error: 'Unauthorized to update this timesheet' }, { status: 403 });
+    // Managers can only edit timesheets from their department
+    if (!isOwnTimesheet) {
+      if (!isAdmin && !isManager) {
+        return NextResponse.json({ error: 'Unauthorized to update this timesheet' }, { status: 403 });
+      }
+      if (isManager && timesheet.Employee.departmentId !== requestingEmployee.departmentId) {
+        return NextResponse.json({ error: 'You can only edit timesheets from your department' }, { status: 403 });
+      }
     }
+
+    const isAdminOrManager = isAdmin || isManager;
 
     // Check if timesheet is editable
     const settings = await prisma.timeTrackingSettings.findUnique({
@@ -321,6 +339,7 @@ export async function DELETE(
       select: {
         id: true,
         companyId: true,
+        departmentId: true,
         User: {
           select: {
             role: true,
@@ -335,6 +354,13 @@ export async function DELETE(
 
     const timesheet = await prisma.timesheet.findUnique({
       where: { id: id },
+      include: {
+        Employee: {
+          select: {
+            departmentId: true,
+          },
+        },
+      },
     });
 
     if (!timesheet) {
@@ -342,20 +368,43 @@ export async function DELETE(
     }
 
     // Check permissions
-    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
+    const isAdmin = requestingEmployee.User.role === 'ADMIN';
+    const isManager = requestingEmployee.User.role === 'MANAGER';
     const isOwnTimesheet = timesheet.employeeId === requestingEmployee.id;
 
-    if (!isOwnTimesheet && !isAdminOrManager) {
-      return NextResponse.json({ error: 'Unauthorized to delete this timesheet' }, { status: 403 });
+    // Managers can only delete timesheets from their department
+    if (!isOwnTimesheet) {
+      if (!isAdmin && !isManager) {
+        return NextResponse.json({ error: 'Unauthorized to delete this timesheet' }, { status: 403 });
+      }
+      if (isManager && timesheet.Employee.departmentId !== requestingEmployee.departmentId) {
+        return NextResponse.json({ error: 'You can only delete timesheets from your department' }, { status: 403 });
+      }
     }
 
-    // Can only delete draft timesheets
-    if (timesheet.approvalStatus !== 'PENDING' || timesheet.submittedAt) {
+    const isAdminOrManager = isAdmin || isManager;
+
+    // Employees can only delete draft timesheets that haven't been submitted
+    // Admins/Managers can delete any timesheet (for testing and corrections)
+    if (!isAdminOrManager) {
+      if (timesheet.approvalStatus !== 'PENDING' || timesheet.submittedAt) {
+        return NextResponse.json(
+          { error: 'You can only delete draft timesheets that have not been submitted' },
+          { status: 400 }
+        );
+      }
+    }
+    
+    // Prevent deletion of approved timesheets even for admins (preserve audit trail)
+    if (timesheet.approvalStatus === 'APPROVED') {
       return NextResponse.json(
-        { error: 'Can only delete draft timesheets that have not been submitted' },
+        { error: 'Cannot delete approved timesheets. Please contact support if correction needed.' },
         { status: 400 }
       );
     }
+
+    // Cancel any pending action items for this timesheet
+    await cancelPendingTimesheetApprovalActionItems(id);
 
     // Unlink clock entries
     await prisma.clockEntry.updateMany({

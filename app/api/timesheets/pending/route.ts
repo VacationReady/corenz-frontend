@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
       where: { userId: session.user.id },
       select: {
         id: true,
+        userId: true,
         companyId: true,
         departmentId: true,
         User: {
@@ -54,10 +55,32 @@ export async function GET(req: NextRequest) {
 
     // Build where clause
     // Show SUBMITTED timesheets and PENDING timesheets that have been submitted
+    const employeeFilter: any = {
+      companyId: employee.companyId,
+    };
+
+    const managerFilterGroups: any[] = [];
+
+    if (isManager && !isAdmin) {
+      if (employee.departmentId) {
+        managerFilterGroups.push({ departmentId: employee.departmentId });
+      }
+
+      if (employee.userId) {
+        managerFilterGroups.push({
+          User: {
+            managerId: employee.userId,
+          },
+        });
+      }
+
+      if (managerFilterGroups.length > 0) {
+        employeeFilter.OR = managerFilterGroups;
+      }
+    }
+
     const whereClause: any = {
-      Employee: {
-        companyId: employee.companyId,
-      },
+      Employee: employeeFilter,
       OR: [
         { approvalStatus: "SUBMITTED" },
         {
@@ -69,16 +92,20 @@ export async function GET(req: NextRequest) {
 
     // Manager can only see their department
     if (isManager && !isAdmin) {
-      whereClause.Employee = {
-        ...whereClause.Employee,
-        departmentId: employee.departmentId,
-      };
+      if (!departmentId && employeeFilter.OR) {
+        // already scoped via OR (department or direct reports)
+      } else if (employee.departmentId) {
+        whereClause.Employee = {
+          ...employeeFilter,
+          departmentId: employee.departmentId,
+        };
+      }
     }
 
     // Apply filters
     if (departmentId) {
       whereClause.Employee = {
-        ...whereClause.Employee,
+        ...employeeFilter,
         departmentId,
       };
     }

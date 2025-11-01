@@ -110,8 +110,8 @@ export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPane
 
       await fetchTimesheets();
 
-      if (data.timesheet) {
-        setSelectedTimesheet(data.timesheet);
+      if (data.timesheet?.id) {
+        await fetchTimesheetDetails(data.timesheet.id);
       }
     } catch (err: any) {
       console.error('Error generating timesheet:', err);

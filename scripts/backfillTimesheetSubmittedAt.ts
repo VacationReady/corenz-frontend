@@ -3,21 +3,10 @@ import { prisma } from "@/lib/prisma";
 async function backfillTimesheetSubmittedAt() {
   const pendingTimesheets = await prisma.timesheet.findMany({
     where: {
-      approvalStatus: {
-        in: ["PENDING", "SUBMITTED"],
-      },
+      approvalStatus: "PENDING",
       submittedAt: null,
       totalHours: {
         gt: 0,
-      },
-      Company: {
-        TimeTrackingSettings: {
-          some: {
-            defaultWorkflowId: {
-              not: null,
-            },
-          },
-        },
       },
     },
     select: {

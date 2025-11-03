@@ -112,8 +112,11 @@ export async function POST(
       },
     });
 
+    console.log(`[Timesheet Submit] Timesheet ${id} submitted by ${employeeName}`);
+
     // If there's a default workflow, create approval stages
     if (settings?.defaultWorkflowId) {
+      console.log(`[Timesheet Submit] Found default workflow: ${settings.defaultWorkflowId}`);
       const workflow = await prisma.approvalWorkflow.findUnique({
         where: { id: settings.defaultWorkflowId },
         include: {
@@ -128,7 +131,17 @@ export async function POST(
         },
       });
 
-      if (workflow?.stages) {
+      if (!workflow) {
+        console.error(`[Timesheet Submit] Workflow ${settings.defaultWorkflowId} not found`);
+        return NextResponse.json(
+          { error: 'Approval workflow not found. Please contact your administrator.' },
+          { status: 500 }
+        );
+      }
+
+      if (workflow?.stages && workflow.stages.length > 0) {
+        console.log(`[Timesheet Submit] Creating ${workflow.stages.length} approval stages`);
+        
         // Create approval stages
         for (const stage of workflow.stages) {
           const approvalStage = await prisma.timesheetApprovalStage.create({
@@ -147,26 +160,70 @@ export async function POST(
           for (let i = 0; i < stage.approvers.length; i++) {
             const approver = stage.approvers[i];
 
-            let approverId: string;
+            let approverId: string | null = null;
+            
             if (approver.type === 'USER' && approver.userId) {
               approverId = approver.userId;
+              console.log(`[Timesheet Submit] Stage ${stage.order}: USER approver ${approver.userId}`);
             } else if (approver.type === 'MANAGER') {
               // Resolve the manager's employee record from the submitter's managerId
               const employee = await prisma.employee.findUnique({
                 where: { id: timesheet.employeeId },
-                include: { User: { select: { managerId: true } } },
+                include: { 
+                  User: { 
+                    select: { 
+                      managerId: true,
+                      firstName: true,
+                      lastName: true 
+                    } 
+                  } 
+                },
               });
-              if (!employee?.User?.managerId) continue;
+              
+              if (!employee?.User?.managerId) {
+                console.error(`[Timesheet Submit] Employee ${employeeName} has no manager assigned`);
+                return NextResponse.json(
+                  { 
+                    error: `Cannot submit timesheet: No manager assigned to ${employeeName}. Please contact HR to assign a manager.` 
+                  },
+                  { status: 400 }
+                );
+              }
 
               const managerEmployee = await prisma.employee.findFirst({
                 where: { userId: employee.User.managerId },
-                select: { id: true },
+                select: { 
+                  id: true,
+                  User: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                      email: true
+                    }
+                  }
+                },
               });
 
-              if (!managerEmployee?.id) continue;
+              if (!managerEmployee?.id) {
+                console.error(`[Timesheet Submit] Manager user ID ${employee.User.managerId} has no employee record`);
+                return NextResponse.json(
+                  { 
+                    error: 'Cannot submit timesheet: Manager employee record not found. Please contact your administrator.' 
+                  },
+                  { status: 500 }
+                );
+              }
 
               approverId = managerEmployee.id;
+              const managerName = `${managerEmployee.User?.firstName || ''} ${managerEmployee.User?.lastName || ''}`.trim();
+              console.log(`[Timesheet Submit] Stage ${stage.order}: MANAGER approver ${approverId} (${managerName})`);
             } else {
+              console.warn(`[Timesheet Submit] Unsupported approver type: ${approver.type}`);
+              continue;
+            }
+            
+            if (!approverId) {
+              console.error(`[Timesheet Submit] Could not resolve approverId for approver type ${approver.type}`);
               continue;
             }
 
@@ -184,6 +241,7 @@ export async function POST(
               // approverId is an employeeId, need to get the userId
               const assignedToId = await resolveActionItemAssigneeUserId(approverId);
               if (assignedToId) {
+                console.log(`[Timesheet Submit] Creating action item for user ${assignedToId}`);
                 await upsertTimesheetApprovalActionItem({
                   companyId: requestingEmployee.companyId,
                   assignedToId,
@@ -197,6 +255,9 @@ export async function POST(
                   totalHours: Number(timesheet.totalHours),
                   employeeName,
                 });
+                console.log(`[Timesheet Submit] Action item created successfully`);
+              } else {
+                console.error(`[Timesheet Submit] Could not resolve userId for approver employeeId: ${approverId}`);
               }
             }
           }
@@ -214,6 +275,8 @@ export async function POST(
         });
 
         if (firstStage) {
+          console.log(`[Timesheet Submit] Sending emails to ${firstStage.Decisions.length} approvers`);
+          
           for (const decision of firstStage.Decisions) {
             const approverEmployee = await prisma.employee.findUnique({
               where: { id: decision.approverId },
@@ -222,65 +285,85 @@ export async function POST(
                   select: {
                     email: true,
                     name: true,
+                    firstName: true,
+                    lastName: true,
                   },
                 },
               },
             });
 
-            if (approverEmployee?.User?.email) {
-              try {
-                const baseUrl = getAppBaseUrl();
-                const { html, text } = renderPeopleCoreEmail({
-                  preheader: `${employeeName} just submitted a timesheet for your approval`,
-                  title: 'Timesheet awaiting your approval',
-                  heroBadge: 'Action required',
-                  heroSubtitle: 'Review and approve in PeopleCore',
-                  intro: [`Hi ${approverEmployee.User.name},`],
-                  sections: [
-                    {
-                      eyebrow: 'Submission details',
-                      title: `Timesheet for ${employeeName}`,
-                      description: [
-                        `${employeeName} has sent you their latest timesheet. Review the summary below and approve it when you are ready.`,
-                      ],
-                      bulletPoints: [
-                        `Period: ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}`,
-                        `Total hours: ${Number(timesheet.totalHours).toFixed(2)}`,
-                        `Submitted: ${new Date().toLocaleDateString()}`,
-                      ],
-                      highlight: true,
-                    },
-                    {
-                      title: 'Next steps',
-                      description: [
-                        'Log in to PeopleCore to review the full details, approve the submission, or request changes.',
-                      ],
-                    },
-                  ],
-                  ctas: {
-                    label: 'Review & approve',
-                    href: `${baseUrl}/admin/timesheets/hub`,
-                  },
-                  outro: [
-                    'Thank you for keeping your team’s time tracking up to date.',
-                  ],
-                });
+            if (!approverEmployee?.User?.email) {
+              console.error(`[Timesheet Submit] Approver employee ${decision.approverId} has no email address`);
+              continue;
+            }
 
-                await resend.emails.send({
-                  from: PEOPLECORE_FROM_EMAIL,
-                  to: approverEmployee.User.email,
-                  subject: `Timesheet submitted by ${employeeName}`,
-                  html,
-                  text,
-                });
-              } catch (emailError) {
-                console.error('Failed to send timesheet approval email:', emailError);
-                // Don't throw - email failures shouldn't break the submission
-              }
+            try {
+              const baseUrl = getAppBaseUrl();
+              const approverName = approverEmployee.User.name || 
+                `${approverEmployee.User.firstName || ''} ${approverEmployee.User.lastName || ''}`.trim();
+              
+              console.log(`[Timesheet Submit] Sending email to ${approverEmployee.User.email} (${approverName})`);
+              
+              const { html, text } = renderPeopleCoreEmail({
+                preheader: `${employeeName} just submitted a timesheet for your approval`,
+                title: 'Timesheet awaiting your approval',
+                heroBadge: 'Action required',
+                heroSubtitle: 'Review and approve in PeopleCore',
+                intro: [`Hi ${approverName},`],
+                sections: [
+                  {
+                    eyebrow: 'Submission details',
+                    title: `Timesheet for ${employeeName}`,
+                    description: [
+                      `${employeeName} has sent you their latest timesheet. Review the summary below and approve it when you are ready.`,
+                    ],
+                    bulletPoints: [
+                      `Period: ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}`,
+                      `Total hours: ${Number(timesheet.totalHours).toFixed(2)}`,
+                      `Submitted: ${new Date().toLocaleDateString()}`,
+                    ],
+                    highlight: true,
+                  },
+                  {
+                    title: 'Next steps',
+                    description: [
+                      'Log in to PeopleCore to review the full details, approve the submission, or request changes.',
+                    ],
+                  },
+                ],
+                ctas: {
+                  label: 'Review & approve',
+                  href: `${baseUrl}/admin/timesheets/hub`,
+                },
+                outro: [
+                  'Thank you for keeping your team's time tracking up to date.',
+                ],
+              });
+
+              const emailResult = await resend.emails.send({
+                from: PEOPLECORE_FROM_EMAIL,
+                to: approverEmployee.User.email,
+                subject: `Timesheet submitted by ${employeeName}`,
+                html,
+                text,
+              });
+              
+              console.log(`[Timesheet Submit] Email sent successfully to ${approverEmployee.User.email}:`, emailResult);
+            } catch (emailError) {
+              console.error(`[Timesheet Submit] CRITICAL: Failed to send email to ${approverEmployee.User.email}:`, emailError);
+              // Log the full error for debugging
+              console.error('[Timesheet Submit] Email error details:', JSON.stringify(emailError, null, 2));
+              // Don't throw - email failures shouldn't break the submission, but we log it prominently
             }
           }
+        } else {
+          console.warn(`[Timesheet Submit] No first stage approvers found`);
         }
+      } else {
+        console.warn(`[Timesheet Submit] Workflow has no stages configured`);
       }
+    } else {
+      console.log(`[Timesheet Submit] No default workflow configured - timesheet submitted without approval workflow`);
     }
 
     // Create audit log

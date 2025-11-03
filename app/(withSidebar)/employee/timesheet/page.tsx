@@ -119,12 +119,18 @@ export default function EmployeeTimesheetPage() {
       setActionLoading(true);
       setError(null);
 
+      console.log('[Client] Submitting timesheet:', selectedTimesheet.id);
+
       const response = await fetch(`/api/timesheets/${selectedTimesheet.id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
 
+      console.log('[Client] Submit response status:', response.status);
+
       const data = await response.json();
+
+      console.log('[Client] Submit response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to submit timesheet');

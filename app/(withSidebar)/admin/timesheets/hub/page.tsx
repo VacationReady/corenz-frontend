@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Button from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Check, X, Eye, Filter, Users, Clock, Calendar as CalendarIcon, Sparkles } from "lucide-react";
+import { Loader2, Check, X, Eye, Filter, Users, Clock, Calendar as CalendarIcon, Sparkles, CheckCircle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
@@ -43,6 +43,7 @@ export default function AdminTimesheetHubPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<"pending" | "approved" | "rejected">("pending");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [periodFilter, setPeriodFilter] = useState<"all" | "week" | "month" | "quarter" | "custom">("all");
@@ -58,14 +59,19 @@ export default function AdminTimesheetHubPage() {
   const { toast } = useToast();
 
   // Statistics
-  const totalPending = timesheets.length;
+  const totalCount = timesheets.length;
   const totalHours = timesheets.reduce((sum, t) => sum + t.totalHours, 0);
-  const avgHours = totalPending > 0 ? totalHours / totalPending : 0;
+  const avgHours = totalCount > 0 ? totalHours / totalCount : 0;
   const oldestSubmission = timesheets.length > 0 ? timesheets[0].submittedAt : null;
+  
+  // Status labels
+  const statusLabel = statusFilter === "pending" ? "Pending" : statusFilter === "approved" ? "Approved" : "Rejected";
+  const showBulkActions = statusFilter === "pending"; // Only show bulk actions for pending
 
   useEffect(() => {
     fetchData();
-  }, [departmentFilter, periodFilter, customStartDate, customEndDate]);
+    setSelectedIds(new Set()); // Clear selections when filters change
+  }, [departmentFilter, periodFilter, customStartDate, customEndDate, statusFilter]);
 
   const getDateRangeParams = () => {
     const params = new URLSearchParams();
@@ -93,6 +99,14 @@ export default function AdminTimesheetHubPage() {
     if (departmentFilter && departmentFilter !== "all") {
       params.append("departmentId", departmentFilter);
     }
+    
+    // Add status filter
+    if (statusFilter === "approved") {
+      params.append("status", "APPROVED");
+    } else if (statusFilter === "rejected") {
+      params.append("status", "REJECTED");
+    }
+    // Default (pending) doesn't need status param
     
     return params;
   };
@@ -283,10 +297,10 @@ export default function AdminTimesheetHubPage() {
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm text-white/80 sm:grid-cols-4 lg:text-base">
             <div className="rounded-2xl border border-white/20 bg-black/30 p-4">
-              <p className="text-xs uppercase tracking-wide text-white/50">Pending</p>
+              <p className="text-xs uppercase tracking-wide text-white/50">{statusLabel}</p>
               <div className="mt-2 flex items-center gap-2 text-2xl font-semibold text-white">
                 <Users className="h-5 w-5 text-sky-300" />
-                {totalPending}
+                {totalCount}
               </div>
             </div>
             <div className="rounded-2xl border border-white/20 bg-black/30 p-4">
@@ -334,7 +348,21 @@ export default function AdminTimesheetHubPage() {
               <CardDescription>Focus the approval queue by date range, department, or teammate.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Time Period</Label>
                   <Select value={periodFilter} onValueChange={(value: any) => setPeriodFilter(value)}>
@@ -401,7 +429,7 @@ export default function AdminTimesheetHubPage() {
             </CardContent>
           </Card>
 
-          {selectedIds.size > 0 && (
+          {showBulkActions && selectedIds.size > 0 && (
             <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-blue-600/80 to-purple-600/80 p-4 text-white shadow-lg shadow-blue-500/20 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-3">
                 <Checkbox checked onCheckedChange={() => setSelectedIds(new Set())} className="border-white/70" />
@@ -438,21 +466,37 @@ export default function AdminTimesheetHubPage() {
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg font-semibold">Pending Timesheets</CardTitle>
-                  <CardDescription>Oldest submissions rise to the top so nothing is missed.</CardDescription>
+                  <CardTitle className="text-lg font-semibold">{statusLabel} Timesheets</CardTitle>
+                  <CardDescription>
+                    {statusFilter === "pending" && "Oldest submissions rise to the top so nothing is missed."}
+                    {statusFilter === "approved" && "Most recently approved timesheets shown first."}
+                    {statusFilter === "rejected" && "Most recently rejected timesheets shown first."}
+                  </CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleSelectAll}>
-                  {selectedIds.size === filteredTimesheets.length ? "Deselect All" : "Select All"}
-                </Button>
+                {showBulkActions && (
+                  <Button variant="outline" size="sm" onClick={handleSelectAll}>
+                    {selectedIds.size === filteredTimesheets.length ? "Deselect All" : "Select All"}
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
               {filteredTimesheets.length === 0 ? (
                 <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-white/20 bg-white/5 py-12 text-center text-muted-foreground">
-                  <Users className="h-12 w-12 opacity-40" />
+                  {statusFilter === "approved" ? (
+                    <CheckCircle className="h-12 w-12 opacity-40 text-emerald-400" />
+                  ) : statusFilter === "rejected" ? (
+                    <X className="h-12 w-12 opacity-40 text-red-400" />
+                  ) : (
+                    <Users className="h-12 w-12 opacity-40" />
+                  )}
                   <div>
-                    <p className="font-medium">No pending timesheets</p>
-                    <p className="text-sm text-muted-foreground/80">You&rsquo;re all caught up for now.</p>
+                    <p className="font-medium">No {statusLabel.toLowerCase()} timesheets</p>
+                    <p className="text-sm text-muted-foreground/80">
+                      {statusFilter === "pending" && "You're all caught up for now."}
+                      {statusFilter === "approved" && "No approved timesheets found with current filters."}
+                      {statusFilter === "rejected" && "No rejected timesheets found with current filters."}
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -463,10 +507,12 @@ export default function AdminTimesheetHubPage() {
                       className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20 hover:bg-white/10 md:flex-row md:items-center"
                     >
                       <div className="flex items-center gap-4">
-                        <Checkbox
-                          checked={selectedIds.has(timesheet.id)}
-                          onCheckedChange={() => handleToggleSelect(timesheet.id)}
-                        />
+                        {showBulkActions && (
+                          <Checkbox
+                            checked={selectedIds.has(timesheet.id)}
+                            onCheckedChange={() => handleToggleSelect(timesheet.id)}
+                          />
+                        )}
                         <Avatar className="h-11 w-11">
                           <AvatarImage src={timesheet.employeeAvatar} />
                           <AvatarFallback>
@@ -487,21 +533,34 @@ export default function AdminTimesheetHubPage() {
                           {format(new Date(timesheet.periodStart), "MMM d")} – {format(new Date(timesheet.periodEnd), "MMM d, yyyy")}
                         </div>
                         <div>{timesheet.totalHours.toFixed(2)} hours</div>
+                        {timesheet.approvedAt && (
+                          <div className="text-xs text-emerald-400">
+                            Approved {format(new Date(timesheet.approvedAt), "MMM d, yyyy")}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{timesheet.status}</Badge>
+                        {statusFilter === "approved" ? (
+                          <Badge variant="default" className="bg-emerald-500">Approved</Badge>
+                        ) : statusFilter === "rejected" ? (
+                          <Badge variant="destructive">Rejected</Badge>
+                        ) : (
+                          <Badge variant="secondary">{timesheet.status}</Badge>
+                        )}
                         <Button variant="outline" size="sm" onClick={() => setPreviewSheet(timesheet)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-emerald-500 hover:bg-emerald-600"
-                          onClick={() => handleIndividualApprove(timesheet.id)}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
+                        {showBulkActions && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-emerald-500 hover:bg-emerald-600"
+                            onClick={() => handleIndividualApprove(timesheet.id)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}

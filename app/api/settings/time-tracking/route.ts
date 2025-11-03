@@ -4,9 +4,53 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+/**
+ * Create or get default timesheet approval workflow for a company
+ */
+async function ensureDefaultTimesheetWorkflow(companyId: string): Promise<string> {
+  // Check if a timesheet workflow already exists
+  const existingWorkflow = await prisma.approvalWorkflow.findFirst({
+    where: {
+      companyId,
+      eventCategoryId: 'TIMESHEET_APPROVAL',
+      isActive: true,
+    },
+  });
+
+  if (existingWorkflow) {
+    return existingWorkflow.id;
+  }
+
+  // Create default workflow with single manager approval stage
+  const workflow = await prisma.approvalWorkflow.create({
+    data: {
+      companyId,
+      name: 'Default Timesheet Approval',
+      eventCategoryId: 'TIMESHEET_APPROVAL',
+      scopeType: 'EVERYONE',
+      isActive: true,
+      stages: {
+        create: {
+          name: 'Manager Approval',
+          order: 1,
+          mode: 'SEQUENTIAL',
+          approvers: {
+            create: {
+              type: 'MANAGER',
+              order: 1,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return workflow.id;
+}
+
 const settingsUpdateSchema = z.object({
   // Timesheet settings
-  defaultApprovalWorkflow: z.enum(['SEQUENTIAL', 'UNANIMOUS', 'FIRST_RESPONDER']).optional(),
+  defaultWorkflowId: z.string().optional().nullable(),
   requirePhotos: z.boolean().optional(),
   enableGPSTracking: z.boolean().optional(),
   allowManualEntry: z.boolean().optional(),
@@ -74,10 +118,22 @@ export async function GET(req: NextRequest) {
 
     // Create default settings if they don't exist
     if (!settings) {
+      // Ensure default workflow exists and get its ID
+      const defaultWorkflowId = await ensureDefaultTimesheetWorkflow(employee.companyId);
+      
       settings = await prisma.timeTrackingSettings.create({
         data: {
           companyId: employee.companyId,
+          defaultWorkflowId,
         },
+      });
+    } else if (!settings.defaultWorkflowId) {
+      // If settings exist but no workflow is set, create and assign one
+      const defaultWorkflowId = await ensureDefaultTimesheetWorkflow(employee.companyId);
+      
+      settings = await prisma.timeTrackingSettings.update({
+        where: { companyId: employee.companyId },
+        data: { defaultWorkflowId },
       });
     }
 

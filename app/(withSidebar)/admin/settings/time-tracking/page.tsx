@@ -14,7 +14,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 type TimeTrackingSettings = {
   // Timesheet settings
-  defaultApprovalWorkflow: "SEQUENTIAL" | "UNANIMOUS" | "FIRST_RESPONDER";
   requirePhotos: boolean;
   enableGPSTracking: boolean;
   allowManualEntry: boolean;
@@ -35,7 +34,6 @@ type TimeTrackingSettings = {
 };
 
 const defaultSettings: TimeTrackingSettings = {
-  defaultApprovalWorkflow: "SEQUENTIAL",
   requirePhotos: false,
   enableGPSTracking: false,
   allowManualEntry: true,
@@ -184,37 +182,17 @@ export default function TimeTrackingSettingsPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="approvalWorkflow">Default Approval Workflow</Label>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">
-                            Sequential: Approvers review one after another<br />
-                            Unanimous: All approvers must approve<br />
-                            First Responder: First approval completes the process
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                    <div className="flex items-start gap-2">
+                      <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-blue-900 dark:text-blue-100">Default Approval Workflow</p>
+                        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                          A default timesheet approval workflow (Manager Approval - Sequential) is automatically created and assigned to your company. 
+                          To customize workflows, visit the Approval Workflows section.
+                        </p>
+                      </div>
                     </div>
-                    <Select
-                      value={settings.defaultApprovalWorkflow}
-                      onValueChange={(value: string) =>
-                        updateSetting("defaultApprovalWorkflow", value as any)
-                      }
-                    >
-                      <SelectTrigger id="approvalWorkflow" className="w-64">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="SEQUENTIAL">Sequential</SelectItem>
-                        <SelectItem value="UNANIMOUS">Unanimous</SelectItem>
-                        <SelectItem value="FIRST_RESPONDER">First Responder</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
 
                   <div className="flex items-center justify-between">

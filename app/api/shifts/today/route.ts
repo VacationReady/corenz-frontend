@@ -72,6 +72,15 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Debug logging
+    console.log('[Today API] Employee:', employeeId);
+    console.log('[Today API] Shift found:', !!shift);
+    console.log('[Today API] Working pattern exists:', !!employee?.WorkingPattern);
+    if (employee?.WorkingPattern) {
+      console.log('[Today API] Working pattern name:', employee.WorkingPattern.name);
+      console.log('[Today API] Working pattern weeks:', employee.WorkingPattern.WorkingPatternWeek?.length);
+    }
+
     // Get working pattern for today if no shift
     let workingPattern = null;
     if (!shift && employee?.WorkingPattern) {
@@ -80,9 +89,15 @@ export async function GET(req: NextRequest) {
       const dayName = dayNames[dayOfWeek];
 
       // Find working pattern for today
+      console.log('[Today API] Looking for day:', dayName);
+      console.log('[Today API] Available days:', employee.WorkingPattern.WorkingPatternWeek?.[0]?.WorkingPatternDay?.map((d: any) => d.day));
+      
       const workingDay = employee.WorkingPattern.WorkingPatternWeek?.[0]?.WorkingPatternDay?.find(
         (d: any) => d.day === dayName
       );
+
+      console.log('[Today API] Working day found:', !!workingDay);
+      console.log('[Today API] Working day type:', workingDay?.type);
 
       if (workingDay) {
         // Default working hours based on day type
@@ -118,13 +133,17 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const response = {
       shift: shift || null,
       workingPattern,
       activeClockEntry,
       date: today.toISOString(),
       isWorkingDay: !!(shift || workingPattern),
-    });
+    };
+
+    console.log('[Today API] Final response:', response);
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error fetching today shift:', error);
     return NextResponse.json({ error: 'Failed to fetch shift' }, { status: 500 });

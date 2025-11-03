@@ -22,6 +22,9 @@ export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
     { refreshInterval: 30000 } // Refresh every 30 seconds
   );
 
+  // Temporary debugging
+  console.log('[TodaysShift] API Response:', data);
+
   const handleClockIn = async () => {
     setIsClocking(true);
     try {
@@ -91,6 +94,13 @@ export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
         <div className="text-center py-6">
           <p className="text-sm text-muted-foreground">No shift scheduled today</p>
           <p className="text-xs text-muted-foreground mt-1">Enjoy your day off! 🌟</p>
+          {/* Temporary debugging */}
+          <details className="mt-4 text-left">
+            <summary className="text-xs cursor-pointer text-gray-500">Debug Info</summary>
+            <pre className="text-xs mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded overflow-auto">
+              {JSON.stringify(data, null, 2)}
+            </pre>
+          </details>
         </div>
       ) : (
         <div className="space-y-4">

@@ -18,8 +18,11 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user has permission to view permissions
-    if (!hasPermission(session.user as any, "permissions", "read")) {
+    const { id } = await context.params;
+    const isSelf = session.user.id === id;
+
+    // Allow employees to view their own permissions; others require explicit access
+    if (!isSelf && !hasPermission(session.user as any, "permissions", "read")) {
       return NextResponse.json(
         { error: "Insufficient permissions" },
         { status: 403 },
@@ -27,7 +30,6 @@ export async function GET(
     }
 
     // Get user with their current permission profile
-    const { id } = await context.params;
     const user = await prisma.user.findFirst({
       where: {
         id: id,

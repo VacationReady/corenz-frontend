@@ -10,7 +10,12 @@ import {
   resolveActionItemAssigneeUserId,
   upsertTimesheetApprovalActionItem,
 } from '@/lib/action-items-helper';
-// import { sendEmail } from '@/lib/email'; // TODO: Implement email service
+import { renderPeopleCoreEmail } from '@/lib/email/templates/peoplecore-template';
+import { Resend } from 'resend';
+import { getAppBaseUrl } from '@/lib/utils/url';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const PEOPLECORE_FROM_EMAIL = process.env.PEOPLECORE_FROM_EMAIL || 'noreply@peoplecore.co.nz';
 
 const approveSchema = z.object({
   comments: z.string().optional(),
@@ -289,18 +294,52 @@ export async function POST(
         });
 
         if (employee?.User.email) {
-          // TODO: Implement email notifications
-          // await sendEmail({
-          //   to: employee.User.email,
-          //   subject: 'Timesheet Approved',
-          //   html: `
-          //     <h2>Timesheet Approved</h2>
-          //     <p>Hi ${employee.User.name},</p>
-          //     <p>Your timesheet has been approved.</p>
-          //     <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
-          //     <p><strong>Total Hours:</strong> ${timesheet.totalHours}</p>
-          //   `,
-          // });
+          try {
+            const baseUrl = getAppBaseUrl();
+            const approverName = requestingEmployee.User?.name || 'Your manager';
+            
+            const { html, text } = renderPeopleCoreEmail({
+              preheader: 'Your timesheet has been approved',
+              greeting: `Hi ${employee.User.name || 'there'},`,
+              sections: [
+                {
+                  title: '✅ Timesheet Approved',
+                  description: [
+                    `Great news! ${approverName} has approved your timesheet.`,
+                  ],
+                },
+                {
+                  title: 'Timesheet Details',
+                  bulletPoints: [
+                    `Period: ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}`,
+                    `Total hours: ${Number(timesheet.totalHours).toFixed(2)}`,
+                    `Status: Approved`,
+                  ],
+                  highlight: true,
+                },
+              ],
+              ctas: {
+                label: 'View Timesheet',
+                href: `${baseUrl}/employee/timesheet`,
+              },
+              outro: [
+                'Your timesheet has been processed and is ready for payroll.',
+              ],
+            });
+
+            await resend.emails.send({
+              from: PEOPLECORE_FROM_EMAIL,
+              to: employee.User.email,
+              subject: '✅ Timesheet Approved',
+              html,
+              text,
+            });
+
+            console.log(`[Timesheet Approval] Email sent to employee: ${employee.User.email}`);
+          } catch (emailError) {
+            console.error('[Timesheet Approval] Failed to send approval email:', emailError);
+            // Don't fail the approval if email fails
+          }
         }
       }
     }

@@ -144,9 +144,9 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
               metadata: item,
               actionLabel: "Review Timesheet",
               onAction: async () => {
-                // Navigate to timesheet approval hub
+                // Navigate to timesheet approval hub with preview parameter
                 if (metadata.timesheetId) {
-                  window.location.href = `/admin/timesheets/hub`;
+                  window.location.href = `/admin/timesheets/hub?preview=${metadata.timesheetId}`;
                 } else {
                   toast.error('Timesheet data not available');
                 }

@@ -1,0 +1,201 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+
+/**
+ * GET /api/timesheets/approved
+ * Fetch approved timesheets
+ * Permission: ADMIN or MANAGER
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const employee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        userId: true,
+        companyId: true,
+        departmentId: true,
+        User: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!employee) {
+      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+    }
+
+    const isAdmin = employee.User.role === "ADMIN";
+    const isManager = employee.User.role === "MANAGER";
+
+    if (!isAdmin && !isManager) {
+      return NextResponse.json(
+        { error: "Only admins and managers can view approved timesheets" },
+        { status: 403 }
+      );
+    }
+
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const departmentId = searchParams.get("departmentId");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const limit = parseInt(searchParams.get("limit") || "50");
+    const offset = parseInt(searchParams.get("offset") || "0");
+
+    // Build where clause
+    const employeeFilter: any = {
+      companyId: employee.companyId,
+    };
+
+    const managerFilterGroups: any[] = [];
+
+    if (isManager && !isAdmin) {
+      if (employee.departmentId) {
+        managerFilterGroups.push({ departmentId: employee.departmentId });
+      }
+
+      if (employee.userId) {
+        managerFilterGroups.push({
+          User: {
+            managerId: employee.userId,
+          },
+        });
+      }
+
+      if (managerFilterGroups.length > 0) {
+        employeeFilter.OR = managerFilterGroups;
+      }
+    }
+
+    const whereClause: any = {
+      Employee: employeeFilter,
+      approvalStatus: "APPROVED",
+    };
+
+    // Manager can only see their department
+    if (isManager && !isAdmin) {
+      if (!departmentId && employeeFilter.OR) {
+        // already scoped via OR (department or direct reports)
+      } else if (employee.departmentId) {
+        whereClause.Employee = {
+          ...employeeFilter,
+          departmentId: employee.departmentId,
+        };
+      }
+    }
+
+    // Apply filters
+    if (departmentId) {
+      whereClause.Employee = {
+        ...employeeFilter,
+        departmentId,
+      };
+    }
+
+    if (startDate || endDate) {
+      whereClause.periodStart = {};
+      if (startDate) {
+        whereClause.periodStart.gte = new Date(startDate);
+      }
+      if (endDate) {
+        whereClause.periodStart.lte = new Date(endDate);
+      }
+    }
+
+    // Fetch timesheets with pagination
+    const [timesheets, total] = await Promise.all([
+      prisma.timesheet.findMany({
+        where: whereClause,
+        include: {
+          Employee: {
+            include: {
+              User: {
+                select: {
+                  name: true,
+                  email: true,
+                  profileImageUrl: true,
+                },
+              },
+              Department: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+          TimesheetEntries: {
+            select: {
+              id: true,
+              date: true,
+              hours: true,
+              startTime: true,
+              endTime: true,
+              breakMinutes: true,
+            },
+          },
+        },
+        orderBy: {
+          approvedAt: "desc", // Most recent first
+        },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.timesheet.count({ where: whereClause }),
+    ]);
+
+    // Calculate total hours for each timesheet
+    const enrichedTimesheets = timesheets.map((timesheet) => {
+      let totalHours = 0;
+
+      for (const entry of timesheet.TimesheetEntries) {
+        if (entry.startTime && entry.endTime) {
+          const startTime = new Date(entry.startTime);
+          const endTime = new Date(entry.endTime);
+          const totalMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+          const breakMinutes = entry.breakMinutes || 0;
+          const workedMinutes = totalMinutes - breakMinutes;
+          totalHours += workedMinutes / 60;
+        }
+      }
+
+      return {
+        id: timesheet.id,
+        employeeId: timesheet.employeeId,
+        employeeName: timesheet.Employee.User?.name || "Unknown",
+        employeeEmail: timesheet.Employee.User?.email || "",
+        employeeAvatar: timesheet.Employee.User?.profileImageUrl,
+        department: timesheet.Employee.Department?.name || "Unassigned",
+        periodStart: timesheet.periodStart,
+        periodEnd: timesheet.periodEnd,
+        totalHours: parseFloat(totalHours.toFixed(2)),
+        status: timesheet.approvalStatus,
+        submittedAt: timesheet.submittedAt,
+        approvedAt: timesheet.approvedAt,
+        notes: null,
+      };
+    });
+
+    return NextResponse.json({
+      timesheets: enrichedTimesheets,
+      total,
+      hasMore: offset + limit < total,
+    });
+  } catch (error) {
+    console.error("Approved timesheets fetch error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch approved timesheets" },
+      { status: 500 }
+    );
+  }
+}

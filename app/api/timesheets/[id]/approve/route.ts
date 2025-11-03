@@ -10,12 +10,8 @@ import {
   resolveActionItemAssigneeUserId,
   upsertTimesheetApprovalActionItem,
 } from '@/lib/action-items-helper';
-import { renderPeopleCoreEmail } from '@/lib/email/templates/peoplecore-template';
-import { Resend } from 'resend';
-import { getAppBaseUrl } from '@/lib/utils/url';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-const PEOPLECORE_FROM_EMAIL = process.env.PEOPLECORE_FROM_EMAIL || 'noreply@peoplecore.co.nz';
+import { renderPeopleCoreEmail, getAppBaseUrl } from '@/lib/email/template';
+import { resend, PEOPLECORE_FROM_EMAIL } from '@/lib/resend';
 
 const approveSchema = z.object({
   comments: z.string().optional(),

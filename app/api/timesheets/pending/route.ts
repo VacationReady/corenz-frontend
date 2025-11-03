@@ -205,6 +205,7 @@ export async function GET(req: NextRequest) {
         totalHours: parseFloat(totalHours.toFixed(2)),
         status: timesheet.approvalStatus,
         submittedAt: timesheet.submittedAt,
+        approvedAt: timesheet.approvedAt,
         notes: null,
       };
     });

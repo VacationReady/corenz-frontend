@@ -296,14 +296,12 @@ export async function POST(
             
             const { html, text } = renderPeopleCoreEmail({
               preheader: 'Your timesheet has been approved',
-              greeting: `Hi ${employee.User.name || 'there'},`,
+              title: 'Timesheet Approved',
+              intro: [
+                `Hi ${employee.User.name || 'there'},`,
+                `Great news! ${approverName} has approved your timesheet.`,
+              ],
               sections: [
-                {
-                  title: '✅ Timesheet Approved',
-                  description: [
-                    `Great news! ${approverName} has approved your timesheet.`,
-                  ],
-                },
                 {
                   title: 'Timesheet Details',
                   bulletPoints: [

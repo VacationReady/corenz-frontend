@@ -114,6 +114,74 @@ export async function POST(
 
     console.log(`[Timesheet Submit] Timesheet ${id} submitted by ${employeeName}`);
 
+    // Ensure workflow exists - create if missing
+    if (!settings?.defaultWorkflowId) {
+      console.log('[Timesheet Submit] No workflow configured - auto-creating default workflow');
+      
+      // Create TIMESHEET_APPROVAL event category if it doesn't exist
+      await prisma.eventCategory.upsert({
+        where: {
+          companyId_name: {
+            companyId: requestingEmployee.companyId,
+            name: 'Timesheet Approval',
+          },
+        },
+        update: {},
+        create: {
+          id: 'TIMESHEET_APPROVAL',
+          companyId: requestingEmployee.companyId,
+          name: 'Timesheet Approval',
+          requiresApproval: true,
+          adminOnly: false,
+          isActive: true,
+          categoryType: 'SYSTEM',
+          systemDefined: true,
+          updatedAt: new Date(),
+        },
+      });
+
+      // Create workflow
+      const newWorkflow = await prisma.approvalWorkflow.create({
+        data: {
+          companyId: requestingEmployee.companyId,
+          name: 'Default Timesheet Approval',
+          eventCategoryId: 'TIMESHEET_APPROVAL',
+          scopeType: 'COMPANY',
+          isActive: true,
+          stages: {
+            create: {
+              name: 'Manager Approval',
+              order: 1,
+              mode: 'SEQUENTIAL',
+              approvers: {
+                create: {
+                  type: 'MANAGER',
+                  order: 1,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Update settings
+      await prisma.timeTrackingSettings.upsert({
+        where: { companyId: requestingEmployee.companyId },
+        update: { defaultWorkflowId: newWorkflow.id },
+        create: {
+          companyId: requestingEmployee.companyId,
+          defaultWorkflowId: newWorkflow.id,
+        },
+      });
+
+      console.log(`[Timesheet Submit] Auto-created workflow: ${newWorkflow.id}`);
+      
+      // Re-fetch settings with new workflow
+      settings = await prisma.timeTrackingSettings.findUnique({
+        where: { companyId: requestingEmployee.companyId },
+      });
+    }
+
     // If there's a default workflow, create approval stages
     if (settings?.defaultWorkflowId) {
       console.log(`[Timesheet Submit] Found default workflow: ${settings.defaultWorkflowId}`);

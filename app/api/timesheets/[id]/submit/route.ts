@@ -146,18 +146,26 @@ export async function POST(
           // Create approval decisions for each approver
           for (let i = 0; i < stage.approvers.length; i++) {
             const approver = stage.approvers[i];
-            
+
             let approverId: string;
             if (approver.type === 'USER' && approver.userId) {
               approverId = approver.userId;
             } else if (approver.type === 'MANAGER') {
-              // Get employee's manager through User
+              // Resolve the manager's employee record from the submitter's managerId
               const employee = await prisma.employee.findUnique({
                 where: { id: timesheet.employeeId },
                 include: { User: { select: { managerId: true } } },
               });
               if (!employee?.User?.managerId) continue;
-              approverId = employee.User.managerId;
+
+              const managerEmployee = await prisma.employee.findFirst({
+                where: { userId: employee.User.managerId },
+                select: { id: true },
+              });
+
+              if (!managerEmployee?.id) continue;
+
+              approverId = managerEmployee.id;
             } else {
               continue;
             }
@@ -223,36 +231,45 @@ export async function POST(
               try {
                 const baseUrl = getAppBaseUrl();
                 const { html, text } = renderPeopleCoreEmail({
-                  preheader: `${employeeName} has submitted a timesheet for approval`,
-                  title: 'Timesheet Approval Required',
-                  heroBadge: 'Time Tracking',
+                  preheader: `${employeeName} just submitted a timesheet for your approval`,
+                  title: 'Timesheet awaiting your approval',
+                  heroBadge: 'Action required',
+                  heroSubtitle: 'Review and approve in PeopleCore',
                   intro: [`Hi ${approverEmployee.User.name},`],
                   sections: [
                     {
-                      title: 'Timesheet Submission',
+                      eyebrow: 'Submission details',
+                      title: `Timesheet for ${employeeName}`,
                       description: [
-                        `${employeeName} has submitted a timesheet for your approval.`,
+                        `${employeeName} has sent you their latest timesheet. Review the summary below and approve it when you are ready.`,
                       ],
                       bulletPoints: [
                         `Period: ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}`,
-                        `Total Hours: ${Number(timesheet.totalHours).toFixed(2)}`,
+                        `Total hours: ${Number(timesheet.totalHours).toFixed(2)}`,
                         `Submitted: ${new Date().toLocaleDateString()}`,
+                      ],
+                      highlight: true,
+                    },
+                    {
+                      title: 'Next steps',
+                      description: [
+                        'Log in to PeopleCore to review the full details, approve the submission, or request changes.',
                       ],
                     },
                   ],
                   ctas: {
-                    label: 'Review Timesheet',
+                    label: 'Review & approve',
                     href: `${baseUrl}/admin/timesheets/hub`,
                   },
                   outro: [
-                    'Please review and approve or reject this timesheet at your earliest convenience.',
+                    'Thank you for keeping your team’s time tracking up to date.',
                   ],
                 });
 
                 await resend.emails.send({
                   from: PEOPLECORE_FROM_EMAIL,
                   to: approverEmployee.User.email,
-                  subject: `Timesheet Approval Required - ${employeeName}`,
+                  subject: `Timesheet submitted by ${employeeName}`,
                   html,
                   text,
                 });

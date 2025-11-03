@@ -12,16 +12,16 @@ const settingsUpdateSchema = z.object({
   allowManualEntry: z.boolean().optional(),
 
   // Shift settings
-  minimumRestHours: z.number().int().min(0).max(24).optional(),
-  overtimeThreshold: z.number().int().min(20).max(80).optional(),
+  minimumRestHours: z.coerce.number().int().min(0).max(24).optional(),
+  overtimeThreshold: z.coerce.number().min(20).max(80).optional(),
   requireShiftConfirmation: z.boolean().optional(),
   managerApprovalSwaps: z.boolean().optional(),
 
   // Clock in/out settings
   enableGeofencing: z.boolean().optional(),
-  geofenceRadius: z.number().int().min(50).max(5000).optional(),
+  geofenceRadius: z.coerce.number().int().min(50).max(5000).optional(),
   requireBreaks: z.boolean().optional(),
-  minBreakDuration: z.number().int().min(0).max(120).optional(),
+  minBreakDuration: z.coerce.number().int().min(0).max(120).optional(),
 
   // Export settings
   payrollExportFormat: z.enum(['CSV', 'EXCEL', 'JSON']).optional(),
@@ -81,7 +81,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ settings });
+    // Convert Decimal fields to numbers for frontend compatibility
+    const settingsFormatted = {
+      ...settings,
+      overtimeThreshold: settings.overtimeThreshold ? Number(settings.overtimeThreshold) : 40,
+      overtimeMultiplier: settings.overtimeMultiplier ? Number(settings.overtimeMultiplier) : 1.5,
+    };
+
+    return NextResponse.json({ settings: settingsFormatted });
   } catch (error) {
     console.error('Settings fetch error:', error);
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 });
@@ -157,9 +164,16 @@ export async function PUT(req: NextRequest) {
       },
     });
 
+    // Convert Decimal fields to numbers for frontend compatibility
+    const settingsFormatted = {
+      ...settings,
+      overtimeThreshold: settings.overtimeThreshold ? Number(settings.overtimeThreshold) : 40,
+      overtimeMultiplier: settings.overtimeMultiplier ? Number(settings.overtimeMultiplier) : 1.5,
+    };
+
     return NextResponse.json({
       success: true,
-      settings,
+      settings: settingsFormatted,
       message: 'Time tracking settings updated successfully',
     });
   } catch (error) {

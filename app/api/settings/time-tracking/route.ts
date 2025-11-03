@@ -21,6 +21,28 @@ async function ensureDefaultTimesheetWorkflow(companyId: string): Promise<string
     return existingWorkflow.id;
   }
 
+  // Ensure TIMESHEET_APPROVAL event category exists
+  await prisma.eventCategory.upsert({
+    where: {
+      companyId_name: {
+        companyId,
+        name: 'Timesheet Approval',
+      },
+    },
+    update: {},
+    create: {
+      id: 'TIMESHEET_APPROVAL',
+      companyId,
+      name: 'Timesheet Approval',
+      requiresApproval: true,
+      adminOnly: false,
+      isActive: true,
+      categoryType: 'SYSTEM',
+      systemDefined: true,
+      updatedAt: new Date(),
+    },
+  });
+
   // Create default workflow with single manager approval stage
   const workflow = await prisma.approvalWorkflow.create({
     data: {

@@ -27,7 +27,7 @@ async function ensureDefaultTimesheetWorkflow(companyId: string): Promise<string
       companyId,
       name: 'Default Timesheet Approval',
       eventCategoryId: 'TIMESHEET_APPROVAL',
-      scopeType: 'EVERYONE',
+      scopeType: 'COMPANY',
       isActive: true,
       stages: {
         create: {

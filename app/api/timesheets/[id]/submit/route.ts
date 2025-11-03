@@ -336,7 +336,7 @@ export async function POST(
                   href: `${baseUrl}/admin/timesheets/hub`,
                 },
                 outro: [
-                  'Thank you for keeping your team's time tracking up to date.',
+                  "Thank you for keeping your team's time tracking up to date.",
                 ],
               });
 

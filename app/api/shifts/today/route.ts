@@ -84,27 +84,37 @@ export async function GET(req: NextRequest) {
         (d: any) => d.day === dayName
       );
 
-      if (workingDay && workingDay.type !== 'NON_WORKING') {
+      if (workingDay) {
         // Default working hours based on day type
-        let startTime, endTime;
-        if (workingDay.type === 'FULL_DAY') {
-          startTime = '09:00';
-          endTime = '17:00';
-        } else if (workingDay.type === 'HALF_DAY_AM') {
-          startTime = '09:00';
-          endTime = '13:00';
-        } else if (workingDay.type === 'HALF_DAY_PM') {
-          startTime = '13:00';
-          endTime = '17:00';
+        let startTime: string | undefined;
+        let endTime: string | undefined;
+
+        switch (workingDay.type) {
+          case 'FULL_DAY':
+            startTime = '09:00';
+            endTime = '17:00';
+            break;
+          case 'HALF_DAY_AM':
+            startTime = '09:00';
+            endTime = '13:00';
+            break;
+          case 'HALF_DAY_PM':
+            startTime = '13:00';
+            endTime = '17:00';
+            break;
+          default:
+            break;
         }
 
-        workingPattern = {
-          type: workingDay.type,
-          day: dayName,
-          startTime,
-          endTime,
-          name: employee.WorkingPattern.name,
-        };
+        if (startTime && endTime) {
+          workingPattern = {
+            type: workingDay.type,
+            day: dayName,
+            startTime,
+            endTime,
+            name: employee.WorkingPattern.name,
+          };
+        }
       }
     }
 

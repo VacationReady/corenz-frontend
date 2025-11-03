@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, getDay } from 'date-fns';
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,6 +22,23 @@ export async function GET(req: NextRequest) {
     const todayStart = startOfDay(today);
     const todayEnd = endOfDay(today);
 
+    // Get employee details with working pattern
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: {
+        WorkingPattern: {
+          include: {
+            WorkingPatternWeek: {
+              include: {
+                WorkingPatternDay: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Find scheduled shift
     const shift = await prisma.shift.findFirst({
       where: {
         employeeId,
@@ -44,9 +61,59 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Check for active clock entry
+    const activeClockEntry = await prisma.clockEntry.findFirst({
+      where: {
+        employeeId,
+        status: 'ACTIVE',
+      },
+      orderBy: {
+        clockInTime: 'desc',
+      },
+    });
+
+    // Get working pattern for today if no shift
+    let workingPattern = null;
+    if (!shift && employee?.WorkingPattern) {
+      const dayOfWeek = getDay(today); // 0 = Sunday, 6 = Saturday
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayName = dayNames[dayOfWeek];
+
+      // Find working pattern for today
+      const workingDay = employee.WorkingPattern.WorkingPatternWeek?.[0]?.WorkingPatternDay?.find(
+        (d: any) => d.day === dayName
+      );
+
+      if (workingDay && workingDay.type !== 'NON_WORKING') {
+        // Default working hours based on day type
+        let startTime, endTime;
+        if (workingDay.type === 'FULL_DAY') {
+          startTime = '09:00';
+          endTime = '17:00';
+        } else if (workingDay.type === 'HALF_DAY_AM') {
+          startTime = '09:00';
+          endTime = '13:00';
+        } else if (workingDay.type === 'HALF_DAY_PM') {
+          startTime = '13:00';
+          endTime = '17:00';
+        }
+
+        workingPattern = {
+          type: workingDay.type,
+          day: dayName,
+          startTime,
+          endTime,
+          name: employee.WorkingPattern.name,
+        };
+      }
+    }
+
     return NextResponse.json({
       shift: shift || null,
+      workingPattern,
+      activeClockEntry,
       date: today.toISOString(),
+      isWorkingDay: !!(shift || workingPattern),
     });
   } catch (error) {
     console.error('Error fetching today shift:', error);

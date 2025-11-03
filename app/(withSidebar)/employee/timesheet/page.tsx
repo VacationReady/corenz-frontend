@@ -8,6 +8,7 @@ import ClockWidget from '@/components/time-tracking/ClockWidget';
 import TimesheetCard from '@/components/time-tracking/TimesheetCard';
 import TimesheetDetailView from '@/components/time-tracking/TimesheetDetailView';
 import AddManualEntryDialog from '@/components/time-tracking/AddManualEntryDialog';
+import CurrentPeriodEntries from '@/components/time-tracking/CurrentPeriodEntries';
 import { useToast } from '@/hooks/use-toast';
 import TimesheetSubmissionSuccess from '@/components/time-tracking/TimesheetSubmissionSuccess';
 
@@ -286,23 +287,26 @@ export default function EmployeeTimesheetPage() {
         {/* Clock Widget */}
         <ClockWidget />
 
-        {/* Current Period Summary */}
+        {/* Current Period Entries */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <Calendar className="w-6 h-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-slate-900">Current Period</h2>
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2">
+              <Calendar className="w-6 h-6 text-blue-600" />
+              <h2 className="text-xl font-semibold text-slate-900">Current Period</h2>
+            </div>
+            <p className="text-slate-600 mb-4">
+              Your hours for the current pay period will appear below. Generate a timesheet when you're ready to submit for approval.
+            </p>
+            <button
+              onClick={handleGenerateTimesheet}
+              disabled={actionLoading}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium text-sm"
+            >
+              {actionLoading ? 'Generating...' : 'Generate Current Timesheet'}
+            </button>
           </div>
-          <p className="text-slate-600 mb-4">
-            Your hours for the current pay period will appear here once you clock in/out.
-            Generate a timesheet when you're ready to submit for approval.
-          </p>
-          <button
-            onClick={handleGenerateTimesheet}
-            disabled={actionLoading}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium text-sm"
-          >
-            {actionLoading ? 'Generating...' : 'Generate Current Timesheet'}
-          </button>
+          
+          <CurrentPeriodEntries onRefresh={fetchTimesheets} />
         </div>
 
         {/* Past Timesheets */}

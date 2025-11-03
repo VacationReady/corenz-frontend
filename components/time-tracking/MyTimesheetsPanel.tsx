@@ -7,6 +7,7 @@ import ClockWidget from './ClockWidget';
 import TimesheetCard from './TimesheetCard';
 import TimesheetDetailView from './TimesheetDetailView';
 import AddManualEntryDialog from './AddManualEntryDialog';
+import CurrentPeriodEntries from './CurrentPeriodEntries';
 
 type TimesheetListItem = {
   id: string;
@@ -273,17 +274,21 @@ export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPane
               <div>
                 <h2 className="text-lg font-semibold text-white">Current Period</h2>
                 <p className="text-sm text-white/70">
-                  Generate your timesheet when you are ready to submit for approval.
+                  Your hours for the current pay period are shown below. Generate your timesheet when you are ready to submit for approval.
                 </p>
               </div>
             </div>
             <button
               onClick={handleGenerateTimesheet}
               disabled={actionLoading}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white px-4 py-2 text-sm font-medium transition"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white px-4 py-2 text-sm font-medium transition mb-6"
             >
               {actionLoading ? 'Generating…' : 'Generate Current Timesheet'}
             </button>
+            
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+              <CurrentPeriodEntries onRefresh={fetchTimesheets} />
+            </div>
           </div>
 
           <div>

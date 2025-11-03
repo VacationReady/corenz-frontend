@@ -89,7 +89,7 @@ export async function POST(
     }
 
     // Get company settings to find approval workflow
-    const settings = await prisma.timeTrackingSettings.findUnique({
+    let settings = await prisma.timeTrackingSettings.findUnique({
       where: { companyId: requestingEmployee.companyId },
     });
 

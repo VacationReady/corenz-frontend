@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
       Employee: {
         companyId: employee.companyId,
       },
-      status: "APPROVED",
+      approvalStatus: "APPROVED",
       submittedAt: {
         gte: new Date(data.startDate),
         lte: new Date(data.endDate),

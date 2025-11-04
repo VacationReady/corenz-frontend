@@ -44,7 +44,7 @@ export default function AdminTimesheetHubPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [statusFilter, setStatusFilter] = useState<"pending" | "approved" | "rejected">("pending");
+  const [statusFilter, setStatusFilter] = useState<"pending" | "approved" | "declined">("pending");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [periodFilter, setPeriodFilter] = useState<"all" | "week" | "month" | "quarter" | "custom">("all");
@@ -66,7 +66,7 @@ export default function AdminTimesheetHubPage() {
   const oldestSubmission = timesheets.length > 0 ? timesheets[0].submittedAt : null;
   
   // Status labels
-  const statusLabel = statusFilter === "pending" ? "Pending" : statusFilter === "approved" ? "Approved" : "Rejected";
+  const statusLabel = statusFilter === "pending" ? "Pending" : statusFilter === "approved" ? "Approved" : "Declined";
   const showBulkActions = statusFilter === "pending"; // Only show bulk actions for pending
 
   useEffect(() => {
@@ -104,8 +104,8 @@ export default function AdminTimesheetHubPage() {
     // Add status filter
     if (statusFilter === "approved") {
       params.append("status", "APPROVED");
-    } else if (statusFilter === "rejected") {
-      params.append("status", "REJECTED");
+    } else if (statusFilter === "declined") {
+      params.append("status", "DECLINED");
     }
     // Default (pending) doesn't need status param
     
@@ -359,7 +359,7 @@ export default function AdminTimesheetHubPage() {
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="declined">Declined</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -471,7 +471,7 @@ export default function AdminTimesheetHubPage() {
                   <CardDescription>
                     {statusFilter === "pending" && "Oldest submissions rise to the top so nothing is missed."}
                     {statusFilter === "approved" && "Most recently approved timesheets shown first."}
-                    {statusFilter === "rejected" && "Most recently rejected timesheets shown first."}
+                    {statusFilter === "declined" && "Most recently declined timesheets shown first."}
                   </CardDescription>
                 </div>
                 {showBulkActions && (
@@ -486,7 +486,7 @@ export default function AdminTimesheetHubPage() {
                 <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-white/20 bg-white/5 py-12 text-center text-muted-foreground">
                   {statusFilter === "approved" ? (
                     <CheckCircle className="h-12 w-12 opacity-40 text-emerald-400" />
-                  ) : statusFilter === "rejected" ? (
+                  ) : statusFilter === "declined" ? (
                     <X className="h-12 w-12 opacity-40 text-red-400" />
                   ) : (
                     <Users className="h-12 w-12 opacity-40" />
@@ -496,7 +496,7 @@ export default function AdminTimesheetHubPage() {
                     <p className="text-sm text-muted-foreground/80">
                       {statusFilter === "pending" && "You're all caught up for now."}
                       {statusFilter === "approved" && "No approved timesheets found with current filters."}
-                      {statusFilter === "rejected" && "No rejected timesheets found with current filters."}
+                      {statusFilter === "declined" && "No declined timesheets found with current filters."}
                     </p>
                   </div>
                 </div>
@@ -544,8 +544,8 @@ export default function AdminTimesheetHubPage() {
                       <div className="flex items-center gap-2">
                         {statusFilter === "approved" ? (
                           <Badge variant="default" className="bg-emerald-500">Approved</Badge>
-                        ) : statusFilter === "rejected" ? (
-                          <Badge variant="destructive">Rejected</Badge>
+                        ) : statusFilter === "declined" ? (
+                          <Badge variant="destructive">Declined</Badge>
                         ) : (
                           <Badge variant="secondary">{timesheet.status}</Badge>
                         )}

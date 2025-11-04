@@ -5,8 +5,8 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/timesheets/pending
- * Fetch timesheets by status (defaults to pending/submitted)
- * Query params: status=PENDING|APPROVED|REJECTED (optional)
+ * Fetch timesheets by status (defaults to pending)
+ * Query params: status=PENDING|APPROVED|DECLINED (optional)
  * Permission: ADMIN or MANAGER
  */
 export async function GET(req: NextRequest) {
@@ -51,12 +51,12 @@ export async function GET(req: NextRequest) {
     const departmentId = searchParams.get("departmentId");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
-    const status = searchParams.get("status"); // PENDING, APPROVED, REJECTED
+    const status = searchParams.get("status"); // PENDING, APPROVED, DECLINED
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
     // Build where clause
-    // Show SUBMITTED timesheets and PENDING timesheets that have been submitted
+    // Show PENDING timesheets that have been submitted
     const employeeFilter: any = {
       companyId: employee.companyId,
     };
@@ -85,18 +85,13 @@ export async function GET(req: NextRequest) {
     let statusFilter: any;
     if (status === "APPROVED") {
       statusFilter = { approvalStatus: "APPROVED" };
-    } else if (status === "REJECTED") {
-      statusFilter = { approvalStatus: "REJECTED" };
+    } else if (status === "DECLINED") {
+      statusFilter = { approvalStatus: "DECLINED" };
     } else {
-      // Default to pending/submitted
+      // Default to pending timesheets that have been submitted
       statusFilter = {
-        OR: [
-          { approvalStatus: "SUBMITTED" },
-          {
-            approvalStatus: "PENDING",
-            submittedAt: { not: null },
-          },
-        ],
+        approvalStatus: "PENDING",
+        submittedAt: { not: null },
       };
     }
 
@@ -169,8 +164,8 @@ export async function GET(req: NextRequest) {
         },
         orderBy: status === "APPROVED" 
           ? { approvedAt: "desc" } // Most recent first for approved
-          : status === "REJECTED"
-          ? { updatedAt: "desc" } // Most recent first for rejected
+          : status === "DECLINED"
+          ? { updatedAt: "desc" } // Most recent first for declined
           : { submittedAt: "asc" }, // Oldest first for pending
         take: limit,
         skip: offset,

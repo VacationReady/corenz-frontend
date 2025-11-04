@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
 
     // Build query filters
     const whereClause: any = {
-      employee: {
+      Employee: {
         companyId: employee.companyId,
       },
       status: "APPROVED",
@@ -154,16 +154,16 @@ export async function POST(req: NextRequest) {
 
     // Manager can only see their department
     if (isManager && !isAdmin) {
-      whereClause.employee = {
-        ...whereClause.employee,
+      whereClause.Employee = {
+        ...whereClause.Employee,
         departmentId: employee.departmentId,
       };
     }
 
     // Apply department filter
     if (data.departmentId) {
-      whereClause.employee = {
-        ...whereClause.employee,
+      whereClause.Employee = {
+        ...whereClause.Employee,
         departmentId: data.departmentId,
       };
     }

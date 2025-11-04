@@ -184,7 +184,7 @@ export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
               </Button>
             )}
             <Button
-              onClick={() => router.push('/my-timesheet')}
+              onClick={() => router.push('/employee/timesheet')}
               variant="outline"
               size="sm"
               className="flex-1"

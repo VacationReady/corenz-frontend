@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { TodaysShiftWidget } from "@/components/dashboard/TodaysShiftWidget";
-import { Calendar, User, Bell } from "lucide-react";
+import { Calendar, User } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
@@ -85,29 +85,6 @@ function QuickActions({ employeeId }: { employeeId?: string }) {
   );
 }
 
-function WellbeingSpotlight() {
-  const { data, error, isLoading } = useSWR("/api/wellbeing/tips", fetcher);
-  if (error) return null;
-  return (
-    <DashboardWidget title="Wellbeing Spotlight" icon={Bell}>
-      {isLoading ? (
-        <WidgetLoading />
-      ) : Array.isArray(data) && data.length > 0 ? (
-        <ul className="space-y-2">
-          {data.slice(0, 3).map((tip: any, idx: number) => (
-            <li key={idx} className="text-sm">
-              {tip.title ?? tip.text ?? String(tip)}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          Stay healthy and productive.
-        </p>
-      )}
-    </DashboardWidget>
-  );
-}
 
 export default function EmployeeDashboardClient({
   employeeId,
@@ -120,7 +97,6 @@ export default function EmployeeDashboardClient({
       {employeeId && <UpcomingLeave employeeId={employeeId} />}
       {employeeId && <UnifiedActionItems employeeId={employeeId} />}
       <QuickActions employeeId={employeeId} />
-      <WellbeingSpotlight />
     </>
   );
 }

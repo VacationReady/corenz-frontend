@@ -625,7 +625,7 @@ export default function AnalyticsDashboard() {
 
             <div className="grid gap-6 xl:grid-cols-3">
               {/* Headcount by department */}
-              <Card className="flex flex-col h-[320px] max-h-[320px] overflow-hidden">
+              <Card className="flex flex-col h-[400px] max-h-[400px] overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2 flex-shrink-0">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Building2 className="h-5 w-5 text-primary" />
@@ -635,8 +635,8 @@ export default function AnalyticsDashboard() {
                     Active employees by department with total records alongside live HR data.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4 overflow-hidden">
-                  <ScrollArea className="flex-1 min-h-0 max-h-full pr-1">
+                <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4">
+                  <ScrollArea className="flex-1 min-h-0 pr-1">
                     <div className="space-y-3">
                       {(data.breakdowns.byDepartment ?? []).map((dept) => (
                         <div
@@ -666,7 +666,7 @@ export default function AnalyticsDashboard() {
               </Card>
 
               {/* Location & employment mix */}
-              <Card className="flex flex-col h-[320px] max-h-[320px] overflow-hidden">
+              <Card className="flex flex-col h-[400px] max-h-[400px] overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2 flex-shrink-0">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <MapPin className="h-5 w-5 text-primary" />
@@ -676,8 +676,8 @@ export default function AnalyticsDashboard() {
                     Compare where your people work today and how their employment agreements are distributed.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-4 !space-y-0 pb-4 xl:flex-row xl:items-stretch overflow-hidden">
-                  <ScrollArea className="flex-1 min-h-0 max-h-full pr-1">
+                <CardContent className="flex flex-1 min-h-0 flex-col gap-4 !space-y-0 pb-4 xl:flex-row xl:items-stretch">
+                  <ScrollArea className="flex-1 min-h-0 pr-1">
                     <div className="space-y-3">
                       {locationData.length === 0 ? (
                         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -710,8 +710,8 @@ export default function AnalyticsDashboard() {
                     </div>
                   </ScrollArea>
 
-                  <div className="flex w-full min-h-0 flex-col gap-4 xl:w-1/2 overflow-hidden">
-                    <div className="flex-1 min-h-[160px] xl:min-h-0 overflow-hidden">
+                  <div className="flex w-full min-h-0 flex-col gap-4 xl:w-1/2">
+                    <div className="flex-1 min-h-[160px] xl:min-h-0">
                       {employmentData.length === 0 ? (
                         <div className="flex h-full items-center justify-center rounded-2xl bg-white/60 text-sm text-muted-foreground dark:bg-slate-900/40">
                           Add employment types to view mix insights
@@ -743,7 +743,7 @@ export default function AnalyticsDashboard() {
                       )}
                     </div>
 
-                    <ScrollArea className="xl:flex-1 xl:min-h-0 max-h-[100px] xl:max-h-full pr-1">
+                    <ScrollArea className="xl:flex-1 xl:min-h-0 max-h-[120px] pr-1">
                       <div className="space-y-2">
                         {(data.breakdowns.byEmploymentType ?? []).map((item, index) => (
                           <div
@@ -775,7 +775,7 @@ export default function AnalyticsDashboard() {
               </Card>
 
               {/* Job role coverage */}
-              <Card className="flex flex-col h-[320px] max-h-[320px] overflow-hidden">
+              <Card className="flex flex-col h-[400px] max-h-[400px] overflow-hidden">
                 <CardHeader className="border-none bg-transparent pb-2 flex-shrink-0">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="h-5 w-5 text-primary" />
@@ -785,8 +785,8 @@ export default function AnalyticsDashboard() {
                     Understand which job families hold the majority of active talent.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4 overflow-hidden">
-                  <ScrollArea className="flex-1 min-h-0 max-h-full pr-1">
+                <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4">
+                  <ScrollArea className="flex-1 min-h-0 pr-1">
                     <div className="space-y-3">
                       {(data.breakdowns.byJobRole ?? []).length === 0 ? (
                         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { cancelTimesheetApprovalActionItem } from '@/lib/action-items-helper';
 // import { sendEmail } from '@/lib/email'; // TODO: Implement email service
 
 const rejectSchema = z.object({
@@ -68,6 +69,9 @@ export async function POST(
       where: { id: userDecision.id },
       data: { status: 'DECLINED', comments: data.reason, respondedAt: new Date() },
     });
+
+    // Cancel the action item for this decision
+    await cancelTimesheetApprovalActionItem(userDecision.id);
 
     // Mark stage and timesheet as rejected
     await prisma.timesheetApprovalStage.update({

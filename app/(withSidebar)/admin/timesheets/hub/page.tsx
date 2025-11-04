@@ -18,6 +18,17 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import MyTimesheetsPanel from "@/components/time-tracking/MyTimesheetsPanel";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, subWeeks, subMonths, subQuarters } from "date-fns";
 
+type TimesheetEntry = {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  breakMinutes: number;
+  hours: number;
+  notes?: string | null;
+  isOvertime: boolean;
+};
+
 type Timesheet = {
   id: string;
   employeeId: string;
@@ -31,7 +42,8 @@ type Timesheet = {
   status: string;
   submittedAt: string;
   approvedAt?: string | null;
-  notes?: string;
+  notes?: string | null;
+  entries: TimesheetEntry[];
 };
 
 type Department = {
@@ -610,6 +622,53 @@ export default function AdminTimesheetHubPage() {
                       <span className="font-medium text-foreground">
                         {format(new Date(previewSheet.submittedAt), "MMM d, yyyy")}
                       </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-3 text-sm font-medium">Timesheet Entries</p>
+                    <div className="max-h-[400px] space-y-2 overflow-y-auto">
+                      {previewSheet.entries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm"
+                        >
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="font-medium">
+                              {format(new Date(entry.date), "EEE, MMM d")}
+                            </span>
+                            <Badge variant={entry.isOvertime ? "destructive" : "secondary"} className="text-xs">
+                              {parseFloat(entry.hours.toString()).toFixed(2)}h
+                            </Badge>
+                          </div>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <div className="flex items-center justify-between">
+                              <span>Start:</span>
+                              <span>{format(new Date(entry.startTime), "h:mm a")}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>End:</span>
+                              <span>{format(new Date(entry.endTime), "h:mm a")}</span>
+                            </div>
+                            {entry.breakMinutes > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span>Break:</span>
+                                <span>{entry.breakMinutes} min</span>
+                              </div>
+                            )}
+                            {entry.isOvertime && (
+                              <div className="mt-1 text-xs text-orange-400">
+                                Overtime
+                              </div>
+                            )}
+                            {entry.notes && (
+                              <div className="mt-2 rounded border border-white/5 bg-white/5 p-2">
+                                {entry.notes}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 

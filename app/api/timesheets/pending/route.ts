@@ -140,6 +140,8 @@ export async function GET(req: NextRequest) {
               User: {
                 select: {
                   name: true,
+                  firstName: true,
+                  lastName: true,
                   email: true,
                   profileImageUrl: true,
                 },
@@ -159,6 +161,11 @@ export async function GET(req: NextRequest) {
               startTime: true,
               endTime: true,
               breakMinutes: true,
+              notes: true,
+              isOvertime: true,
+            },
+            orderBy: {
+              date: 'asc',
             },
           },
         },
@@ -188,12 +195,21 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      // Construct employee name from available fields
+      const user = timesheet.Employee.User;
+      let employeeName = "Unknown";
+      if (user?.name) {
+        employeeName = user.name;
+      } else if (user?.firstName || user?.lastName) {
+        employeeName = [user.firstName, user.lastName].filter(Boolean).join(" ");
+      }
+
       return {
         id: timesheet.id,
         employeeId: timesheet.employeeId,
-        employeeName: timesheet.Employee.User?.name || "Unknown",
-        employeeEmail: timesheet.Employee.User?.email || "",
-        employeeAvatar: timesheet.Employee.User?.profileImageUrl,
+        employeeName,
+        employeeEmail: user?.email || "",
+        employeeAvatar: user?.profileImageUrl,
         department: timesheet.Employee.Department?.name || "Unassigned",
         periodStart: timesheet.periodStart,
         periodEnd: timesheet.periodEnd,
@@ -202,6 +218,16 @@ export async function GET(req: NextRequest) {
         submittedAt: timesheet.submittedAt,
         approvedAt: timesheet.approvedAt,
         notes: null,
+        entries: timesheet.TimesheetEntries.map((entry) => ({
+          id: entry.id,
+          date: entry.date,
+          startTime: entry.startTime,
+          endTime: entry.endTime,
+          breakMinutes: entry.breakMinutes,
+          hours: entry.hours,
+          notes: entry.notes,
+          isOvertime: entry.isOvertime,
+        })),
       };
     });
 

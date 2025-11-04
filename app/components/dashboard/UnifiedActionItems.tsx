@@ -377,8 +377,56 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
     setProcessing(item.id);
     try {
       if (item.type === "approval") {
+        // Check if it's a timesheet approval
+        if (item.metadata.type === 'TIMESHEET_APPROVAL') {
+          const timesheetId = item.metadata.metadata?.timesheetId;
+          if (!timesheetId) {
+            toast.error("Timesheet ID not found");
+            setProcessing(null);
+            return;
+          }
+
+          if (action === "decline") {
+            const reason = prompt("Please provide a reason for rejecting this timesheet:");
+            if (!reason || reason.trim() === "") {
+              setProcessing(null);
+              return;
+            }
+
+            const res = await fetch(`/api/timesheets/${timesheetId}/reject`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reason })
+            });
+
+            const result = await res.json();
+            
+            if (result.success) {
+              toast.success("Timesheet rejected");
+              mutateActionItems?.();
+            } else {
+              toast.error(result.error || "Failed to reject timesheet");
+            }
+          } else {
+            // Approve
+            const res = await fetch(`/api/timesheets/${timesheetId}/approve`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({})
+            });
+
+            const result = await res.json();
+            
+            if (result.success) {
+              toast.success("Timesheet approved");
+              mutateActionItems?.();
+            } else {
+              toast.error(result.error || "Failed to approve timesheet");
+            }
+          }
+        }
         // Check if it's an AI bulk update approval
-        if (item.metadata.type === 'BULK_UPDATE_APPROVAL') {
+        else if (item.metadata.type === 'BULK_UPDATE_APPROVAL') {
           const reason = action === "decline" ? prompt("Reason for declining this bulk update:") : undefined;
           if (action === "decline" && !reason) {
             setProcessing(null);

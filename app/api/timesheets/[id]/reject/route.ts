@@ -45,6 +45,19 @@ export async function POST(
     });
 
     if (!timesheet) {
+      // Clean up orphaned action items for this timesheet
+      await prisma.actionItem.updateMany({
+        where: {
+          metadata: {
+            path: ['timesheetId'],
+            equals: id,
+          },
+        },
+        data: {
+          status: 'CANCELLED',
+          updatedAt: new Date(),
+        },
+      });
       return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
     }
 

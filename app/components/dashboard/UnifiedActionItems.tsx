@@ -403,10 +403,11 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
             
             if (result.success) {
               toast.success("Timesheet rejected");
-              mutateActionItems?.();
             } else {
               toast.error(result.error || "Failed to reject timesheet");
             }
+            // Always refresh to remove orphaned action items that may have been cleaned up
+            mutateActionItems?.();
           } else {
             // Approve
             const res = await fetch(`/api/timesheets/${timesheetId}/approve`, {
@@ -419,10 +420,11 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
             
             if (result.success) {
               toast.success("Timesheet approved");
-              mutateActionItems?.();
             } else {
               toast.error(result.error || "Failed to approve timesheet");
             }
+            // Always refresh to remove orphaned action items that may have been cleaned up
+            mutateActionItems?.();
           }
         }
         // Check if it's an AI bulk update approval

@@ -88,13 +88,24 @@ export async function GET(req: NextRequest) {
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const dayName = dayNames[dayOfWeek];
 
+      // Check if working pattern has weeks configured
+      const hasWeeks = employee.WorkingPattern.WorkingPatternWeek && employee.WorkingPattern.WorkingPatternWeek.length > 0;
+      
       // Find working pattern for today
       console.log('[Today API] Looking for day:', dayName);
+      console.log('[Today API] Has weeks:', hasWeeks);
       console.log('[Today API] Available days:', employee.WorkingPattern.WorkingPatternWeek?.[0]?.WorkingPatternDay?.map((d: any) => d.day));
       
-      const workingDay = employee.WorkingPattern.WorkingPatternWeek?.[0]?.WorkingPatternDay?.find(
-        (d: any) => d.day === dayName
-      );
+      if (!hasWeeks) {
+        console.log('[Today API] WARNING: Working pattern has no weeks configured');
+      }
+      
+      // Case-insensitive day matching (handles both "Monday" and "MONDAY")
+      const workingDay = hasWeeks 
+        ? employee.WorkingPattern.WorkingPatternWeek[0].WorkingPatternDay?.find(
+            (d: any) => d.day.toUpperCase() === dayName.toUpperCase()
+          )
+        : null;
 
       console.log('[Today API] Working day found:', !!workingDay);
       console.log('[Today API] Working day type:', workingDay?.type);

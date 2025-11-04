@@ -18,6 +18,7 @@ interface LibraryResponse {
 const engineLabels: Record<ReportLibraryEntry["engine"], string> = {
   dynamic: "Customisable",
   custom: "Specialist",
+  external: "Export Tool",
 };
 
 export default function ReportsLibraryPage() {
@@ -89,6 +90,12 @@ export default function ReportsLibraryPage() {
       router.push(`/reports/builder-new?${params.toString()}`);
     };
 
+    const handleExternalTool = () => {
+      if (entry.externalUrl) {
+        router.push(entry.externalUrl);
+      }
+    };
+
     const getFieldLabel = (key: string) => {
       const meta = hrReportFields.find((f) => f.field === key);
       if (meta?.label) return meta.label;
@@ -125,28 +132,44 @@ export default function ReportsLibraryPage() {
           <CardDescription>{entry.description}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-1 flex-col gap-4">
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
-              Default columns
-            </p>
-            <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
-              {entry.defaultFields.slice(0, 6).map((field) => (
-                <span key={field} className="rounded-full border border-border/60 px-2 py-0.5">
-                  {getFieldLabel(field)}
-                </span>
-              ))}
-              {entry.defaultFields.length > 6 && (
-                <span className="text-muted-foreground/80">+{entry.defaultFields.length - 6} more</span>
-              )}
+          {entry.engine === "external" ? (
+            <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
+              <p className="text-xs text-muted-foreground">
+                Opens a specialized export tool with advanced options for formatting and delivery.
+              </p>
             </div>
-          </div>
+          ) : (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
+                Default columns
+              </p>
+              <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
+                {entry.defaultFields.slice(0, 6).map((field) => (
+                  <span key={field} className="rounded-full border border-border/60 px-2 py-0.5">
+                    {getFieldLabel(field)}
+                  </span>
+                ))}
+                {entry.defaultFields.length > 6 && (
+                  <span className="text-muted-foreground/80">+{entry.defaultFields.length - 6} more</span>
+                )}
+              </div>
+            </div>
+          )}
           <div className="mt-auto flex flex-wrap gap-2">
-            <Button onClick={handlePreview}>
-              <ExternalLink className="h-4 w-4 mr-2" /> Preview
-            </Button>
-            <Button variant="outline" onClick={handleOpenBuilder}>
-              <BarChart3 className="h-4 w-4 mr-2" /> Open in Builder
-            </Button>
+            {entry.engine === "external" ? (
+              <Button onClick={handleExternalTool} className="w-full">
+                <ExternalLink className="h-4 w-4 mr-2" /> Open Payroll Export
+              </Button>
+            ) : (
+              <>
+                <Button onClick={handlePreview}>
+                  <ExternalLink className="h-4 w-4 mr-2" /> Preview
+                </Button>
+                <Button variant="outline" onClick={handleOpenBuilder}>
+                  <BarChart3 className="h-4 w-4 mr-2" /> Open in Builder
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

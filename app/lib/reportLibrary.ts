@@ -6,11 +6,12 @@ export interface ReportLibraryEntry {
   description: string;
   category: string;
   icon: string;
-  engine: "dynamic" | "custom";
+  engine: "dynamic" | "custom" | "external";
   defaultFields: string[];
   suggestedFilters?: ReportFilter[];
   defaultSort?: SortConfig;
   reportType?: string;
+  externalUrl?: string;
 }
 
 export const reportLibrary: ReportLibraryEntry[] = [
@@ -500,6 +501,16 @@ export const reportLibrary: ReportLibraryEntry[] = [
       { field: "Timesheet.approvalStatus", operator: "equals", value: "REJECTED" },
     ],
     defaultSort: { field: "Timesheet.submittedAt", direction: "desc" },
+  },
+  {
+    id: "payroll-export",
+    name: "Payroll Export",
+    description: "Export approved timesheets for payroll processing in CSV, Excel, or JSON format with comprehensive employee and time tracking data.",
+    category: "time-tracking",
+    icon: "💰",
+    engine: "external",
+    defaultFields: [],
+    externalUrl: "/admin/payroll",
   },
 ];
 

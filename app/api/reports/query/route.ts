@@ -474,6 +474,16 @@ export async function POST(req: Request) {
           }
         }
 
+        // If computed approvedByFullName is requested for Timesheet, include the approver User relation
+        if (sanitizedSelectedFields.includes("_computed.approvedByFullName")) {
+          if (!sanitizedSelectedFields.includes("Timesheet.User_Timesheet_approvedByToUser.firstName")) {
+            sanitizedSelectedFields.push("Timesheet.User_Timesheet_approvedByToUser.firstName");
+          }
+          if (!sanitizedSelectedFields.includes("Timesheet.User_Timesheet_approvedByToUser.lastName")) {
+            sanitizedSelectedFields.push("Timesheet.User_Timesheet_approvedByToUser.lastName");
+          }
+        }
+
 		if (sanitizedSelectedFields.length === 0) {
 			return NextResponse.json(
 				{ status: "error", message: "No valid fields selected", data: [] },

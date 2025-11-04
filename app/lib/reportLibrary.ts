@@ -388,7 +388,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
       "Timesheet.regularHours",
       "Timesheet.overtimeHours",
       "Timesheet.approvedAt",
-      "Timesheet.approvedBy",
+      "_computed.approvedByFullName",
     ],
     suggestedFilters: [
       { field: "Timesheet.approvalStatus", operator: "equals", value: "APPROVED" },

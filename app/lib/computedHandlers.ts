@@ -407,5 +407,16 @@ export const computedHandlers: ComputedFieldRegistry = {
   EventCategory: {
     "_computed.normalisedName": (item) => item.name?.toLowerCase() || "",
   },
+
+  // ===========================
+  // Timesheet
+  // ===========================
+  Timesheet: {
+    "_computed.approvedByFullName": (item) => {
+      const first = item?.User_Timesheet_approvedByToUser?.firstName;
+      const last = item?.User_Timesheet_approvedByToUser?.lastName;
+      return [first, last].filter(Boolean).join(" ") || null;
+    },
+  },
 };
 

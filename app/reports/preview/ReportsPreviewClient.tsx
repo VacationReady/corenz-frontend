@@ -126,7 +126,7 @@ function downloadCSV(data: any[], columns: ColumnDefinition[]) {
 }
 
 export default function ReportsPreviewClient() {
-  const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
+  const REQUIRED_FIELDS_USER = ["User.firstName", "User.lastName"];
   const searchParams = useSearchParams();
   const router = useRouter();
   const fieldsParam = searchParams?.get("fields");
@@ -139,11 +139,10 @@ export default function ReportsPreviewClient() {
 
   const initialFields = useMemo(() => {
     const parsed = parseFieldsParam(fieldsParam);
-    // Ensure required fields are present when previewing ad-hoc selections
-    const withRequired = Array.from(new Set([...
-      REQUIRED_FIELDS,
-      ...parsed,
-    ]));
+    // Only enforce User required fields if we're not in a Timesheet context
+    const hasTimesheetFields = parsed.some(f => f.startsWith("Timesheet."));
+    const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
+    const withRequired = Array.from(new Set([...requiredFields, ...parsed]));
     return withRequired;
   }, [fieldsParam]);
 
@@ -152,10 +151,10 @@ export default function ReportsPreviewClient() {
     if (templateIdParam && engineParam === "dynamic") {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
-        return Array.from(new Set([...
-          REQUIRED_FIELDS,
-          ...template.defaultFields,
-        ]));
+        // Don't force User fields for timesheet or other non-User primary model reports
+        const hasTimesheetFields = template.defaultFields.some(f => f.startsWith("Timesheet."));
+        const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
+        return Array.from(new Set([...requiredFields, ...template.defaultFields]));
       }
     }
     return initialFields;
@@ -167,10 +166,9 @@ export default function ReportsPreviewClient() {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
         setLibraryTemplate(template);
-        setSelectedFields(Array.from(new Set([...
-          REQUIRED_FIELDS,
-          ...template.defaultFields,
-        ])));
+        const hasTimesheetFields = template.defaultFields.some(f => f.startsWith("Timesheet."));
+        const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
+        setSelectedFields(Array.from(new Set([...requiredFields, ...template.defaultFields])));
         setActiveFilters(
           template.suggestedFilters?.map((filter, index) => ({
             id: `filter_${index}`,
@@ -188,14 +186,10 @@ export default function ReportsPreviewClient() {
     }
 
     setSelectedFields((current) => {
-      const ensured = Array.from(new Set([...
-        REQUIRED_FIELDS,
-        ...current,
-      ]));
-      const next = Array.from(new Set([...
-        REQUIRED_FIELDS,
-        ...initialFields,
-      ]));
+      const hasTimesheetFields = current.some(f => f.startsWith("Timesheet."));
+      const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
+      const ensured = Array.from(new Set([...requiredFields, ...current]));
+      const next = Array.from(new Set([...requiredFields, ...initialFields]));
       if (
         ensured.length === next.length &&
         ensured.every((field, index) => field === next[index])
@@ -396,10 +390,9 @@ export default function ReportsPreviewClient() {
 
           // Force include required fields for saved reports as well
           const saved = Array.isArray(report.fields) ? report.fields : [];
-          setSelectedFields(Array.from(new Set([...
-            REQUIRED_FIELDS,
-            ...saved,
-          ])));
+          const hasTimesheetFields = saved.some(f => f.startsWith("Timesheet."));
+          const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
+          setSelectedFields(Array.from(new Set([...requiredFields, ...saved])));
         } catch (error) {
           console.error("❌ Error loading report:", error);
         } finally {
@@ -414,10 +407,9 @@ export default function ReportsPreviewClient() {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
         setLibraryTemplate(template);
-        setSelectedFields(Array.from(new Set([...
-          REQUIRED_FIELDS,
-          ...template.defaultFields,
-        ])));
+        const hasTimesheetFields = template.defaultFields.some(f => f.startsWith("Timesheet."));
+        const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
+        setSelectedFields(Array.from(new Set([...requiredFields, ...template.defaultFields])));
         setActiveFilters(
           template.suggestedFilters?.map((filter, index) => ({
             id: `filter_${index}`,

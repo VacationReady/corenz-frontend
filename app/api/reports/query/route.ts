@@ -82,18 +82,53 @@ function anchorFieldToEmployeeOffboarding(field: string): string {
     return field;
 }
 
+// When any Timesheet field is present, anchor other fields to Timesheet
+function anchorFieldToTimesheet(field: string): string {
+    if (field.startsWith("User.")) return field.replace("User.", "Timesheet.Employee.User.");
+    if (field.startsWith("Employee.") && !field.startsWith("Timesheet.Employee.")) return field.replace("Employee.", "Timesheet.Employee.");
+    if (field.startsWith("Department.")) return field.replace("Department.", "Timesheet.Employee.Department.");
+    if (field.startsWith("JobRole.")) return field.replace("JobRole.", "Timesheet.Employee.JobRole.");
+    if (field.startsWith("WorkingPattern.")) return field.replace("WorkingPattern.", "Timesheet.Employee.WorkingPattern.");
+    return field;
+}
+
+// When any TimesheetEntry field is present, anchor other fields to TimesheetEntry
+function anchorFieldToTimesheetEntry(field: string): string {
+    if (field.startsWith("User.")) return field.replace("User.", "TimesheetEntry.Timesheet.Employee.User.");
+    if (field.startsWith("Employee.") && !field.startsWith("TimesheetEntry.Timesheet.Employee.")) return field.replace("Employee.", "TimesheetEntry.Timesheet.Employee.");
+    if (field.startsWith("Department.")) return field.replace("Department.", "TimesheetEntry.Timesheet.Employee.Department.");
+    if (field.startsWith("JobRole.")) return field.replace("JobRole.", "TimesheetEntry.Timesheet.Employee.JobRole.");
+    if (field.startsWith("WorkingPattern.")) return field.replace("WorkingPattern.", "TimesheetEntry.Timesheet.Employee.WorkingPattern.");
+    if (field.startsWith("Timesheet.") && !field.startsWith("TimesheetEntry.Timesheet.")) return field.replace("Timesheet.", "TimesheetEntry.Timesheet.");
+    return field;
+}
+
+// When any TimesheetApprovalDecision field is present, anchor other fields to TimesheetApprovalDecision
+function anchorFieldToTimesheetApprovalDecision(field: string): string {
+    if (field.startsWith("User.")) return field.replace("User.", "TimesheetApprovalDecision.Stage.Timesheet.Employee.User.");
+    if (field.startsWith("Employee.") && !field.startsWith("TimesheetApprovalDecision.Stage.Timesheet.Employee.")) return field.replace("Employee.", "TimesheetApprovalDecision.Stage.Timesheet.Employee.");
+    if (field.startsWith("Department.")) return field.replace("Department.", "TimesheetApprovalDecision.Stage.Timesheet.Employee.Department.");
+    if (field.startsWith("JobRole.")) return field.replace("JobRole.", "TimesheetApprovalDecision.Stage.Timesheet.Employee.JobRole.");
+    if (field.startsWith("WorkingPattern.")) return field.replace("WorkingPattern.", "TimesheetApprovalDecision.Stage.Timesheet.Employee.WorkingPattern.");
+    if (field.startsWith("Timesheet.") && !field.startsWith("TimesheetApprovalDecision.Stage.Timesheet.")) return field.replace("Timesheet.", "TimesheetApprovalDecision.Stage.Timesheet.");
+    return field;
+}
+
 function rewriteFieldsForLeaveContext(fields: string[]): string[] {
     const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
     const hasDriverLicence = fields.some((f) => f.startsWith("DriverLicence."));
     const hasEmploymentCheck = fields.some((f) => f.startsWith("EmploymentCheck."));
     const hasTrainingRecord = fields.some((f) => f.startsWith("TrainingRecord."));
     const hasEmployeeOffboarding = fields.some((f) => f.startsWith("EmployeeOffboarding."));
+    const hasTimesheet = fields.some((f) => f.startsWith("Timesheet."));
+    const hasTimesheetEntry = fields.some((f) => f.startsWith("TimesheetEntry."));
+    const hasTimesheetApprovalDecision = fields.some((f) => f.startsWith("TimesheetApprovalDecision."));
     const anchorToUserRoot =
-        !hasLeave && !hasDriverLicence && !hasEmploymentCheck && !hasTrainingRecord && !hasEmployeeOffboarding;
+        !hasLeave && !hasDriverLicence && !hasEmploymentCheck && !hasTrainingRecord && !hasEmployeeOffboarding && !hasTimesheet && !hasTimesheetEntry && !hasTimesheetApprovalDecision;
     const result: string[] = [];
     for (const f of fields) {
         let maybeAnchored = f;
-        // Priority: LeaveRequest > DriverLicence > EmploymentCheck > TrainingRecord > EmployeeOffboarding
+        // Priority: LeaveRequest > DriverLicence > EmploymentCheck > TrainingRecord > EmployeeOffboarding > TimesheetApprovalDecision > TimesheetEntry > Timesheet
         if (hasLeave) {
             maybeAnchored = anchorFieldToLeave(f);
         } else if (hasDriverLicence) {
@@ -104,6 +139,12 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             maybeAnchored = anchorFieldToTrainingRecord(f);
         } else if (hasEmployeeOffboarding) {
             maybeAnchored = anchorFieldToEmployeeOffboarding(f);
+        } else if (hasTimesheetApprovalDecision) {
+            maybeAnchored = anchorFieldToTimesheetApprovalDecision(f);
+        } else if (hasTimesheetEntry) {
+            maybeAnchored = anchorFieldToTimesheetEntry(f);
+        } else if (hasTimesheet) {
+            maybeAnchored = anchorFieldToTimesheet(f);
         }
         // Always normalize Job Role into a single computed field, independent of context
         if (
@@ -118,7 +159,13 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             maybeAnchored === "TrainingRecord.Employee.User.JobRole.name" ||
             maybeAnchored === "TrainingRecord.Employee.JobRole.name" ||
             maybeAnchored === "EmployeeOffboarding.Employee.User.JobRole.name" ||
-            maybeAnchored === "EmployeeOffboarding.Employee.JobRole.name"
+            maybeAnchored === "EmployeeOffboarding.Employee.JobRole.name" ||
+            maybeAnchored === "Timesheet.Employee.User.JobRole.name" ||
+            maybeAnchored === "Timesheet.Employee.JobRole.name" ||
+            maybeAnchored === "TimesheetEntry.Timesheet.Employee.User.JobRole.name" ||
+            maybeAnchored === "TimesheetEntry.Timesheet.Employee.JobRole.name" ||
+            maybeAnchored === "TimesheetApprovalDecision.Stage.Timesheet.Employee.User.JobRole.name" ||
+            maybeAnchored === "TimesheetApprovalDecision.Stage.Timesheet.Employee.JobRole.name"
         ) {
             // Include both source paths so the computed can resolve, plus the computed field
             let userPath = "User.JobRole.name";
@@ -138,6 +185,15 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             } else if (hasEmployeeOffboarding) {
                 userPath = "EmployeeOffboarding.Employee.User.JobRole.name";
                 employeePath = "EmployeeOffboarding.Employee.JobRole.name";
+            } else if (hasTimesheetApprovalDecision) {
+                userPath = "TimesheetApprovalDecision.Stage.Timesheet.Employee.User.JobRole.name";
+                employeePath = "TimesheetApprovalDecision.Stage.Timesheet.Employee.JobRole.name";
+            } else if (hasTimesheetEntry) {
+                userPath = "TimesheetEntry.Timesheet.Employee.User.JobRole.name";
+                employeePath = "TimesheetEntry.Timesheet.Employee.JobRole.name";
+            } else if (hasTimesheet) {
+                userPath = "Timesheet.Employee.User.JobRole.name";
+                employeePath = "Timesheet.Employee.JobRole.name";
             }
             if (!result.includes(userPath)) result.push(userPath);
             if (!result.includes(employeePath)) result.push(employeePath);
@@ -153,7 +209,10 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             maybeAnchored === "DriverLicence.Employee.Department.name" ||
             maybeAnchored === "EmploymentCheck.Employee.Department.name" ||
             maybeAnchored === "TrainingRecord.Employee.Department.name" ||
-            maybeAnchored === "EmployeeOffboarding.Employee.Department.name"
+            maybeAnchored === "EmployeeOffboarding.Employee.Department.name" ||
+            maybeAnchored === "Timesheet.Employee.Department.name" ||
+            maybeAnchored === "TimesheetEntry.Timesheet.Employee.Department.name" ||
+            maybeAnchored === "TimesheetApprovalDecision.Stage.Timesheet.Employee.Department.name"
         ) {
             if (hasLeave) {
                 const deptPath = "LeaveRequest.Employee.Department.name";
@@ -178,6 +237,21 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             } else if (hasEmployeeOffboarding) {
                 const deptPath = "EmployeeOffboarding.Employee.Department.name";
                 const userDeptPath = "EmployeeOffboarding.Employee.User.Department_User_departmentIdToDepartment.name";
+                if (!result.includes(userDeptPath)) result.push(userDeptPath);
+                if (!result.includes(deptPath)) result.push(deptPath);
+            } else if (hasTimesheetApprovalDecision) {
+                const deptPath = "TimesheetApprovalDecision.Stage.Timesheet.Employee.Department.name";
+                const userDeptPath = "TimesheetApprovalDecision.Stage.Timesheet.Employee.User.Department_User_departmentIdToDepartment.name";
+                if (!result.includes(userDeptPath)) result.push(userDeptPath);
+                if (!result.includes(deptPath)) result.push(deptPath);
+            } else if (hasTimesheetEntry) {
+                const deptPath = "TimesheetEntry.Timesheet.Employee.Department.name";
+                const userDeptPath = "TimesheetEntry.Timesheet.Employee.User.Department_User_departmentIdToDepartment.name";
+                if (!result.includes(userDeptPath)) result.push(userDeptPath);
+                if (!result.includes(deptPath)) result.push(deptPath);
+            } else if (hasTimesheet) {
+                const deptPath = "Timesheet.Employee.Department.name";
+                const userDeptPath = "Timesheet.Employee.User.Department_User_departmentIdToDepartment.name";
                 if (!result.includes(userDeptPath)) result.push(userDeptPath);
                 if (!result.includes(deptPath)) result.push(deptPath);
             } else {
@@ -212,7 +286,10 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             maybeAnchored === "DriverLicence.Employee.WorkingPattern.name" ||
             maybeAnchored === "EmploymentCheck.Employee.WorkingPattern.name" ||
             maybeAnchored === "TrainingRecord.Employee.WorkingPattern.name" ||
-            maybeAnchored === "EmployeeOffboarding.Employee.WorkingPattern.name"
+            maybeAnchored === "EmployeeOffboarding.Employee.WorkingPattern.name" ||
+            maybeAnchored === "Timesheet.Employee.WorkingPattern.name" ||
+            maybeAnchored === "TimesheetEntry.Timesheet.Employee.WorkingPattern.name" ||
+            maybeAnchored === "TimesheetApprovalDecision.Stage.Timesheet.Employee.WorkingPattern.name"
         ) {
             let wpPath = "WorkingPattern.name";
             if (hasLeave) {
@@ -225,6 +302,12 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
                 wpPath = "TrainingRecord.Employee.WorkingPattern.name";
             } else if (hasEmployeeOffboarding) {
                 wpPath = "EmployeeOffboarding.Employee.WorkingPattern.name";
+            } else if (hasTimesheetApprovalDecision) {
+                wpPath = "TimesheetApprovalDecision.Stage.Timesheet.Employee.WorkingPattern.name";
+            } else if (hasTimesheetEntry) {
+                wpPath = "TimesheetEntry.Timesheet.Employee.WorkingPattern.name";
+            } else if (hasTimesheet) {
+                wpPath = "Timesheet.Employee.WorkingPattern.name";
             }
             if (!result.includes(wpPath)) result.push(wpPath);
             continue;
@@ -419,6 +502,10 @@ export async function POST(req: Request) {
                         { field: "EmploymentCheck.Employee.companyId" },
                         { field: "DriverLicence.Employee.companyId" },
                         { field: "EmployeeOffboarding.Employee.companyId" },
+                        { field: "Timesheet.companyId" },
+                        { field: "Timesheet.Employee.companyId" },
+                        { field: "TimesheetEntry.Timesheet.Employee.companyId" },
+                        { field: "TimesheetApprovalDecision.Stage.Timesheet.Employee.companyId" },
                 ] satisfies Array<{
                         field: string;
                         operator?: Operator;

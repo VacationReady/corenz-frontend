@@ -636,7 +636,7 @@ export default function AnalyticsDashboard() {
                   </p>
                 </CardHeader>
                 <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4">
-                  <ScrollArea className="flex-1 min-h-0 pr-1">
+                  <ScrollArea className="h-full max-h-[280px] pr-4">
                     <div className="space-y-3">
                       {(data.breakdowns.byDepartment ?? []).map((dept) => (
                         <div
@@ -677,7 +677,7 @@ export default function AnalyticsDashboard() {
                   </p>
                 </CardHeader>
                 <CardContent className="flex flex-1 min-h-0 flex-col gap-4 !space-y-0 pb-4 xl:flex-row xl:items-stretch">
-                  <ScrollArea className="flex-1 min-h-0 pr-1">
+                  <ScrollArea className="h-full max-h-[280px] xl:max-h-full pr-4">
                     <div className="space-y-3">
                       {locationData.length === 0 ? (
                         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -743,7 +743,7 @@ export default function AnalyticsDashboard() {
                       )}
                     </div>
 
-                    <ScrollArea className="xl:flex-1 xl:min-h-0 max-h-[120px] pr-1">
+                    <ScrollArea className="h-full max-h-[120px] pr-4">
                       <div className="space-y-2">
                         {(data.breakdowns.byEmploymentType ?? []).map((item, index) => (
                           <div
@@ -786,7 +786,7 @@ export default function AnalyticsDashboard() {
                   </p>
                 </CardHeader>
                 <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4">
-                  <ScrollArea className="flex-1 min-h-0 pr-1">
+                  <ScrollArea className="h-full max-h-[280px] pr-4">
                     <div className="space-y-3">
                       {(data.breakdowns.byJobRole ?? []).length === 0 ? (
                         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

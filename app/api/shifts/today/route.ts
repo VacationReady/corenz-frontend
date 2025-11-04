@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
     const todayEnd = endOfDay(today);
 
     // Get employee details with working pattern
+    // Check for working pattern assignments first (with effective dates), then fall back to direct assignment
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
       include: {
@@ -31,6 +32,28 @@ export async function GET(req: NextRequest) {
             WorkingPatternWeek: {
               include: {
                 WorkingPatternDay: true,
+              },
+            },
+          },
+        },
+        EmployeeWorkingPatternAssignment: {
+          where: {
+            effectiveDate: {
+              lte: today,
+            },
+          },
+          orderBy: {
+            effectiveDate: 'desc',
+          },
+          take: 1,
+          include: {
+            WorkingPattern: {
+              include: {
+                WorkingPatternWeek: {
+                  include: {
+                    WorkingPatternDay: true,
+                  },
+                },
               },
             },
           },
@@ -72,29 +95,33 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Determine which working pattern to use (prioritize assignment with effective date)
+    const activeWorkingPattern = employee?.EmployeeWorkingPatternAssignment?.[0]?.WorkingPattern || employee?.WorkingPattern;
+
     // Debug logging
     console.log('[Today API] Employee:', employeeId);
     console.log('[Today API] Shift found:', !!shift);
-    console.log('[Today API] Working pattern exists:', !!employee?.WorkingPattern);
-    if (employee?.WorkingPattern) {
-      console.log('[Today API] Working pattern name:', employee.WorkingPattern.name);
-      console.log('[Today API] Working pattern weeks:', employee.WorkingPattern.WorkingPatternWeek?.length);
+    console.log('[Today API] Has assignment:', !!employee?.EmployeeWorkingPatternAssignment?.[0]);
+    console.log('[Today API] Working pattern exists:', !!activeWorkingPattern);
+    if (activeWorkingPattern) {
+      console.log('[Today API] Working pattern name:', activeWorkingPattern.name);
+      console.log('[Today API] Working pattern weeks:', activeWorkingPattern.WorkingPatternWeek?.length);
     }
 
     // Get working pattern for today if no shift
     let workingPattern = null;
-    if (!shift && employee?.WorkingPattern) {
+    if (!shift && activeWorkingPattern) {
       const dayOfWeek = getDay(today); // 0 = Sunday, 6 = Saturday
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const dayName = dayNames[dayOfWeek];
 
       // Check if working pattern has weeks configured
-      const hasWeeks = employee.WorkingPattern.WorkingPatternWeek && employee.WorkingPattern.WorkingPatternWeek.length > 0;
+      const hasWeeks = activeWorkingPattern.WorkingPatternWeek && activeWorkingPattern.WorkingPatternWeek.length > 0;
       
       // Find working pattern for today
       console.log('[Today API] Looking for day:', dayName);
       console.log('[Today API] Has weeks:', hasWeeks);
-      console.log('[Today API] Available days:', employee.WorkingPattern.WorkingPatternWeek?.[0]?.WorkingPatternDay?.map((d: any) => d.day));
+      console.log('[Today API] Available days:', activeWorkingPattern.WorkingPatternWeek?.[0]?.WorkingPatternDay?.map((d: any) => d.day));
       
       if (!hasWeeks) {
         console.log('[Today API] WARNING: Working pattern has no weeks configured');
@@ -102,7 +129,7 @@ export async function GET(req: NextRequest) {
       
       // Case-insensitive day matching (handles both "Monday" and "MONDAY")
       const workingDay = hasWeeks 
-        ? employee.WorkingPattern.WorkingPatternWeek[0].WorkingPatternDay?.find(
+        ? activeWorkingPattern.WorkingPatternWeek[0].WorkingPatternDay?.find(
             (d: any) => d.day.toUpperCase() === dayName.toUpperCase()
           )
         : null;
@@ -138,7 +165,7 @@ export async function GET(req: NextRequest) {
             day: dayName,
             startTime,
             endTime,
-            name: employee.WorkingPattern.name,
+            name: activeWorkingPattern.name,
           };
         }
       }

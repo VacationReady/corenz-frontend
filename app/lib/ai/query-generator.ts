@@ -1803,62 +1803,149 @@ async function resolveTimesheetEmployee(
   prompt: string,
   companyId: string
 ): Promise<TimesheetEmployeeResolution | null> {
-  const name = extractTimesheetPersonName(prompt);
+  const candidates = extractTimesheetNameCandidates(prompt);
 
-  if (!name) {
+  if (candidates.length === 0) {
     return null;
   }
 
-  const matches = await findEmployeeByName(name.raw, companyId);
+  const ambiguousMatches: Array<{ id: string; name: string; email: string }> = [];
+  let ambiguousRequestedName: string | undefined;
 
-  if (matches.length === 0) {
-    return {
-      kind: "not_found",
-      requestedName: name.raw,
-    };
+  for (const candidate of candidates.slice(0, 4)) {
+    const matches = await findEmployeeByName(candidate, companyId);
+
+    if (matches.length === 1) {
+      return {
+        kind: "resolved",
+        employeeId: matches[0].id,
+        employeeName: matches[0].name,
+      };
+    }
+
+    if (matches.length > 1 && ambiguousMatches.length === 0) {
+      ambiguousRequestedName = toTitleCase(candidate);
+      ambiguousMatches.push(...matches.map((m) => ({ id: m.id, name: m.name, email: m.email })));
+    }
   }
 
-  if (matches.length > 1) {
+  if (ambiguousMatches.length > 0 && ambiguousRequestedName) {
     return {
       kind: "ambiguous",
-      requestedName: name.raw,
-      matches: matches.map((m) => ({ id: m.id, name: m.name, email: m.email })),
+      requestedName: ambiguousRequestedName,
+      matches: ambiguousMatches,
     };
   }
 
   return {
-    kind: "resolved",
-    employeeId: matches[0].id,
-    employeeName: matches[0].name,
+    kind: "not_found",
+    requestedName: toTitleCase(candidates[0]),
   };
 }
 
-function extractTimesheetPersonName(prompt: string):
-  | { first?: string; last?: string; raw: string }
-  | null {
-  const nameMatch = prompt.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/);
+function extractTimesheetNameCandidates(prompt: string): string[] {
+  const lowered = prompt.toLowerCase();
+  const candidates = new Set<string>();
 
-  if (nameMatch) {
-    const raw = nameMatch[1].trim();
-    const parts = raw.split(/\s+/);
-    return {
-      first: parts[0],
-      last: parts.length > 1 ? parts[parts.length - 1] : undefined,
-      raw,
-    };
+  const patterns: RegExp[] = [
+    /hours?\s+(?:did|does|has|have)\s+([a-z][\w\s'-]{1,60}?)\s+(?:work|log|logged|clock|clocked|submit|submitted)/i,
+    /(?:did|does|has|have)\s+([a-z][\w\s'-]{1,60}?)\s+(?:work|log|logged|clock|clocked|submit|submitted)/i,
+    /for\s+([a-z][\w\s'-]{1,60}?)\s+(?:hours?|timesheet|timesheets|work)/i,
+    /about\s+([a-z][\w\s'-]{1,60}?)\s+(?:hours?|timesheet|timesheets|work)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = pattern.exec(prompt);
+    if (match?.[1]) {
+      const cleaned = cleanNameCandidate(match[1]);
+      if (cleaned) {
+        candidates.add(cleaned);
+      }
+    }
   }
 
-  const firstOnlyMatch = prompt.match(/\b(?:for|about|did)\s+([A-Z][a-z]+)\b/);
+  if (candidates.size === 0) {
+    const tokens = lowered
+      .replace(/[^a-z\s'-]/gi, " ")
+      .split(/\s+/)
+      .filter(Boolean);
 
-  if (firstOnlyMatch) {
-    const raw = firstOnlyMatch[1];
-    return {
-      first: raw,
-      raw,
-    };
+    for (let i = 0; i < tokens.length - 1; i++) {
+      const pair = cleanNameCandidate(`${tokens[i]} ${tokens[i + 1]}`);
+      if (pair && pair.split(" ").length === 2) {
+        candidates.add(pair);
+      }
+    }
   }
 
-  return null;
+  return Array.from(candidates).map((name) => name.trim()).filter(Boolean);
+}
+
+function cleanNameCandidate(raw: string): string {
+  const stopWords = new Set([
+    "the",
+    "a",
+    "an",
+    "this",
+    "that",
+    "last",
+    "next",
+    "week",
+    "month",
+    "period",
+    "today",
+    "yesterday",
+    "hours",
+    "hour",
+    "timesheet",
+    "timesheets",
+    "work",
+    "worked",
+    "working",
+    "logged",
+    "log",
+    "clock",
+    "clocked",
+    "for",
+    "did",
+    "does",
+    "has",
+    "have",
+    "any",
+    "many",
+    "how",
+  ]);
+
+  const parts = raw
+    .replace(/[^a-z\s'-]/gi, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  while (parts.length > 0 && stopWords.has(parts[0].toLowerCase())) {
+    parts.shift();
+  }
+
+  while (parts.length > 0 && stopWords.has(parts[parts.length - 1].toLowerCase())) {
+    parts.pop();
+  }
+
+  if (parts.length === 0) {
+    return "";
+  }
+
+  if (parts.length === 1 && parts[0].length < 2) {
+    return "";
+  }
+
+  return parts.join(" ");
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }
 
 function formatHours(value: number): string {

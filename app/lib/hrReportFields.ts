@@ -1457,7 +1457,7 @@ export const hrReportFields: HRReportField[] = [
         },
         {
                 model: "Timesheet",
-                field: "Timesheet.User_Timesheet_approvedByToUser.firstName",
+                field: "Timesheet.Approver.User.firstName",
                 label: "Approver First Name",
                 type: "string",
                 category: "time-tracking",
@@ -1468,7 +1468,7 @@ export const hrReportFields: HRReportField[] = [
         },
         {
                 model: "Timesheet",
-                field: "Timesheet.User_Timesheet_approvedByToUser.lastName",
+                field: "Timesheet.Approver.User.lastName",
                 label: "Approver Last Name",
                 type: "string",
                 category: "time-tracking",
@@ -1486,7 +1486,7 @@ export const hrReportFields: HRReportField[] = [
                 filterable: false,
                 sortable: false,
                 description: "Full name of user who approved the timesheet",
-                dependsOn: ["Timesheet.User_Timesheet_approvedByToUser.firstName", "Timesheet.User_Timesheet_approvedByToUser.lastName"],
+                dependsOn: ["Timesheet.Approver.User.firstName", "Timesheet.Approver.User.lastName"],
                 isPII: true,
         },
         {

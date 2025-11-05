@@ -480,6 +480,7 @@ model Employee {
   JourneyInstances                 JourneyInstance[]
   PushNotificationTokens           PushNotificationToken[]
   Timesheets                       Timesheet[]                        @relation("TimesheetEmployee")
+  ApprovedTimesheets               Timesheet[]                        @relation("TimesheetApprovedByEmployee")
   ClockEntries                     ClockEntry[]                       @relation("ClockEntryEmployee")
   Shifts                           Shift[]                            @relation("ShiftEmployee")
   RotaGroupMemberships             RotaGroupMember[]                  @relation("RotaGroupMembers")
@@ -1665,7 +1666,6 @@ model User {
   CreatedReviewCycles                                                      PerformanceReviewCycle[]
   ReviewSubmissionsAuthored                                                ReviewSubmission[]             @relation("ReviewSubmissionReviewer")
   TenantSwitchTokens                                                       TenantSwitchToken[]
-  Timesheet_Timesheet_approvedByToUser                                     Timesheet[]                    @relation("Timesheet_approvedByToUser")
 
   @@unique([email, companyId])
 }
@@ -2972,7 +2972,7 @@ model Timesheet {
   updatedAt           DateTime               @updatedAt
   
   Employee            Employee               @relation("TimesheetEmployee", fields: [employeeId], references: [id])
-  User_Timesheet_approvedByToUser User?    @relation("Timesheet_approvedByToUser", fields: [approvedBy], references: [id])
+  Approver            Employee?              @relation("TimesheetApprovedByEmployee", fields: [approvedBy], references: [id])
   ClockEntries        ClockEntry[]
   TimesheetEntries    TimesheetEntry[]
   ApprovalStages      TimesheetApprovalStage[]

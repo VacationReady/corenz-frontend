@@ -476,11 +476,11 @@ export async function POST(req: Request) {
 
         // If computed approvedByFullName is requested for Timesheet, include the approver User relation
         if (sanitizedSelectedFields.includes("_computed.approvedByFullName")) {
-          if (!sanitizedSelectedFields.includes("Timesheet.User_Timesheet_approvedByToUser.firstName")) {
-            sanitizedSelectedFields.push("Timesheet.User_Timesheet_approvedByToUser.firstName");
+          if (!sanitizedSelectedFields.includes("Timesheet.Approver.User.firstName")) {
+            sanitizedSelectedFields.push("Timesheet.Approver.User.firstName");
           }
-          if (!sanitizedSelectedFields.includes("Timesheet.User_Timesheet_approvedByToUser.lastName")) {
-            sanitizedSelectedFields.push("Timesheet.User_Timesheet_approvedByToUser.lastName");
+          if (!sanitizedSelectedFields.includes("Timesheet.Approver.User.lastName")) {
+            sanitizedSelectedFields.push("Timesheet.Approver.User.lastName");
           }
         }
 

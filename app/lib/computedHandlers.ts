@@ -413,8 +413,8 @@ export const computedHandlers: ComputedFieldRegistry = {
   // ===========================
   Timesheet: {
     "_computed.approvedByFullName": (item) => {
-      const first = item?.User_Timesheet_approvedByToUser?.firstName;
-      const last = item?.User_Timesheet_approvedByToUser?.lastName;
+      const first = item?.Approver?.User?.firstName;
+      const last = item?.Approver?.User?.lastName;
       return [first, last].filter(Boolean).join(" ") || null;
     },
   },

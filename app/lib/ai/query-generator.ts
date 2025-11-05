@@ -1815,6 +1815,63 @@ async function resolveTimesheetEmployee(
   for (const candidate of candidates.slice(0, 4)) {
     const matches = await findEmployeeByName(candidate, companyId);
 
+    if (matches.length > 0) {
+      const normalizedCandidate = normalizeName(candidate);
+      const exactMatches = matches.filter(
+        (match) => normalizeName(match.name) === normalizedCandidate
+      );
+
+      if (exactMatches.length === 1) {
+        return {
+          kind: "resolved",
+          employeeId: exactMatches[0].id,
+          employeeName: exactMatches[0].name,
+        };
+      }
+
+      if (exactMatches.length > 1) {
+        return {
+          kind: "ambiguous",
+          requestedName: toTitleCase(candidate),
+          matches: exactMatches.map((m) => ({ id: m.id, name: m.name, email: m.email })),
+        };
+      }
+
+      const candidateParts = normalizedCandidate.split(" ").filter(Boolean);
+
+      if (candidateParts.length > 0) {
+        const scoredMatches = matches.map((match) => {
+          const normalizedName = normalizeName(match.name);
+          const nameParts = normalizedName.split(" ").filter(Boolean);
+          let score = 0;
+
+          if (normalizedName === normalizedCandidate) {
+            score += 10;
+          }
+
+          const sharedParts = candidateParts.filter((part) => nameParts.includes(part));
+          score += sharedParts.length;
+
+          return { match, score };
+        });
+
+        scoredMatches.sort((a, b) => b.score - a.score);
+
+        if (scoredMatches[0] && scoredMatches[0].score > 0) {
+          const topScore = scoredMatches[0].score;
+          const secondScore = scoredMatches[1]?.score ?? -1;
+
+          if (topScore > secondScore) {
+            return {
+              kind: "resolved",
+              employeeId: scoredMatches[0].match.id,
+              employeeName: scoredMatches[0].match.name,
+            };
+          }
+        }
+      }
+    }
+
     if (matches.length === 1) {
       return {
         kind: "resolved",
@@ -1946,6 +2003,13 @@ function toTitleCase(value: string): string {
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
+}
+
+function normalizeName(value: string): string {
+  return value
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
 }
 
 function formatHours(value: number): string {

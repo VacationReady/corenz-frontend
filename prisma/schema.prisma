@@ -1665,6 +1665,7 @@ model User {
   CreatedReviewCycles                                                      PerformanceReviewCycle[]
   ReviewSubmissionsAuthored                                                ReviewSubmission[]             @relation("ReviewSubmissionReviewer")
   TenantSwitchTokens                                                       TenantSwitchToken[]
+  Timesheet_Timesheet_approvedByToUser                                     Timesheet[]                    @relation("Timesheet_approvedByToUser")
 
   @@unique([email, companyId])
 }
@@ -2971,6 +2972,7 @@ model Timesheet {
   updatedAt           DateTime               @updatedAt
   
   Employee            Employee               @relation("TimesheetEmployee", fields: [employeeId], references: [id])
+  User_Timesheet_approvedByToUser User?    @relation("Timesheet_approvedByToUser", fields: [approvedBy], references: [id])
   ClockEntries        ClockEntry[]
   TimesheetEntries    TimesheetEntry[]
   ApprovalStages      TimesheetApprovalStage[]

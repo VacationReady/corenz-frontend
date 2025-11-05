@@ -5,6 +5,7 @@
 
 import { openai, AI_CONFIG } from "./openai-client";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import type { ApprovalStatus } from "@prisma/client";
 import { findEmployeeByName } from "./system-context";
 
@@ -54,6 +55,8 @@ LEAVE & ABSENCE:
 - LeaveEntitlement: id, employeeId, eventCategoryId, totalDays, usedDays, balance
 - LeaveApprovalStage: id, leaveRequestId, status, mode, order
 - EventCategory: id, name (e.g., "Annual Leave", "Sick Leave", "Bereavement Leave")
+- Timesheets: id, employeeId, periodStart, periodEnd, approvalStatus, totalHours, submittedAt, approvedAt
+- TimesheetEntry: id, timesheetId, date, startTime, endTime, breakMinutes, hours, notes, entryType
 
 DOCUMENTS & COMPLIANCE:
 - Document: id, employeeId, name, category, requiresSignature, requiresAck, signatureDueAt
@@ -1498,7 +1501,7 @@ async function handleDirectTimesheetQuery(
 
   const dateFilter = deriveTimesheetDateRange(prompt, status);
 
-  if (intent.kind === "hours") {
+  if (intent.kind === "hours" || intent.kind === "entries") {
     const employeeResolution = await resolveTimesheetEmployee(prompt, companyId);
 
     if (!employeeResolution) {
@@ -1513,7 +1516,7 @@ async function handleDirectTimesheetQuery(
       return {
         success: false,
         explanation: message,
-        query: "direct-timesheet-hours",
+        query: "direct-timesheet-employee",
         error: message,
         meta: {
           timesheet: {
@@ -1533,7 +1536,7 @@ async function handleDirectTimesheetQuery(
       return {
         success: false,
         explanation: message,
-        query: "direct-timesheet-hours",
+        query: "direct-timesheet-employee",
         error: message,
         meta: {
           timesheet: {
@@ -1547,42 +1550,118 @@ async function handleDirectTimesheetQuery(
 
     const { employeeId, employeeName } = employeeResolution;
 
-    const hoursResult = await prisma.timesheetEntry.aggregate({
-      _sum: { hours: true },
-      where: {
-        Timesheet: {
-          companyId,
-          employeeId,
-          ...(status ? { approvalStatus: status } : {}),
+    if (intent.kind === "hours") {
+      const hoursResult = await prisma.timesheetEntry.aggregate({
+        _sum: { hours: true },
+        where: {
+          Timesheet: {
+            companyId,
+            employeeId,
+            ...(status ? { approvalStatus: status } : {}),
+          },
+          ...(dateFilter?.start && dateFilter?.end
+            ? {
+                date: {
+                  gte: dateFilter.start,
+                  lte: dateFilter.end,
+                },
+              }
+            : {}),
         },
-        ...(dateFilter?.start && dateFilter?.end
-          ? {
-              date: {
-                gte: dateFilter.start,
-                lte: dateFilter.end,
-              },
-            }
-          : {}),
+      });
+
+      const totalHours = Number(hoursResult._sum?.hours ?? 0);
+      const periodLabel = dateFilter?.label ? ` ${dateFilter.label}` : "";
+      const statusText = status ? ` (${formatTimesheetStatus(status)})` : "";
+      const explanation = `${employeeName} logged ${formatHours(totalHours)} hours${periodLabel}${statusText}.`;
+
+      return {
+        success: true,
+        data: totalHours,
+        explanation,
+        query: "direct-timesheet-hours",
+        meta: {
+          timesheet: {
+            kind: "hours",
+            employeeId,
+            employeeName,
+            totalHours,
+            formattedHours: formatHours(totalHours),
+            dateLabel: dateFilter?.label ?? null,
+            dateRange:
+              dateFilter?.start && dateFilter?.end
+                ? {
+                    start: dateFilter.start.toISOString(),
+                    end: dateFilter.end.toISOString(),
+                  }
+                : null,
+            status: status ?? null,
+            statusLabel: status ? formatTimesheetStatus(status) : null,
+          },
+        },
+      };
+    }
+
+    const entryWhere: Prisma.TimesheetEntryWhereInput = {
+      Timesheet: {
+        companyId,
+        employeeId,
+        ...(status ? { approvalStatus: status } : {}),
+      },
+      ...(dateFilter?.start && dateFilter?.end
+        ? {
+            date: {
+              gte: dateFilter.start,
+              lte: dateFilter.end,
+            },
+          }
+        : {}),
+    };
+
+    const entryRecords = await prisma.timesheetEntry.findMany({
+      where: entryWhere,
+      orderBy: [{ date: "asc" }, { startTime: "asc" }],
+      select: {
+        id: true,
+        date: true,
+        startTime: true,
+        endTime: true,
+        breakMinutes: true,
+        hours: true,
+        notes: true,
+        entryType: true,
       },
     });
 
-    const totalHours = Number(hoursResult._sum?.hours ?? 0);
+    const entries = entryRecords.map((entry) => ({
+      id: entry.id,
+      date: entry.date?.toISOString() ?? null,
+      startTime: entry.startTime?.toISOString() ?? null,
+      endTime: entry.endTime?.toISOString() ?? null,
+      breakMinutes: entry.breakMinutes ?? 0,
+      hours: Number(entry.hours ?? 0),
+      notes: entry.notes ?? null,
+      entryType: entry.entryType ?? null,
+    }));
+
+    const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
     const periodLabel = dateFilter?.label ? ` ${dateFilter.label}` : "";
-    const statusText = status ? ` (${formatTimesheetStatus(status)})` : "";
-    const explanation = `${employeeName} logged ${formatHours(totalHours)} hours${periodLabel}${statusText}.`;
+    const explanation = entries.length
+      ? `Found ${entries.length} time ${entries.length === 1 ? "entry" : "entries"} for ${employeeName}${periodLabel}.`
+      : `I couldn't find any time entries for ${employeeName}${periodLabel}.`;
 
     return {
       success: true,
-      data: totalHours,
+      data: entries,
       explanation,
-      query: "direct-timesheet-hours",
+      query: "direct-timesheet-entries",
       meta: {
         timesheet: {
-          kind: "hours",
+          kind: "entries",
           employeeId,
           employeeName,
-          totalHours,
-          formattedHours: formatHours(totalHours),
+          totalEntries: entries.length,
+          totalHours: Number(totalHours.toFixed(2)),
           dateLabel: dateFilter?.label ?? null,
           dateRange:
             dateFilter?.start && dateFilter?.end
@@ -1593,6 +1672,7 @@ async function handleDirectTimesheetQuery(
               : null,
           status: status ?? null,
           statusLabel: status ? formatTimesheetStatus(status) : null,
+          entries,
         },
       },
     };
@@ -1760,13 +1840,26 @@ function getDayRange(reference: Date, daysAgo: number) {
 function detectTimesheetIntent(
   prompt: string,
   status?: string | undefined
-): { kind: "count" | "hours" } | null {
+): { kind: "count" | "hours" | "entries" } | null {
   const mentionsTimesheet = prompt.includes("timesheet");
   const mentionsHours = /\b(hours?|hrs?)\b/.test(prompt);
   const mentionsWork = /\bwork(?:ed|ing)?\b/.test(prompt) || prompt.includes("logged");
   const wantsCount = /\b(count|how many|number of|has there|have there|are there|any)\b/.test(
     prompt
   );
+  const mentionsEntries =
+    prompt.includes("time entries") ||
+    /\bentries?\b/.test(prompt) ||
+    /\btime\s+entry\b/.test(prompt);
+  const wantsBreakdown =
+    /\bbreakdown\b/.test(prompt) ||
+    /\bdetail(?:ed|s)?\b/.test(prompt) ||
+    /\bshow\b/.test(prompt) ||
+    /\blist\b/.test(prompt);
+
+  if (mentionsEntries || (mentionsTimesheet && wantsBreakdown && mentionsHours)) {
+    return { kind: "entries" };
+  }
 
   if (mentionsHours && (mentionsWork || mentionsTimesheet)) {
     return { kind: "hours" };

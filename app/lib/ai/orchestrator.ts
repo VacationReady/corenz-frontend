@@ -506,6 +506,53 @@ async function handleDataQuery(
       };
     }
 
+    if (timesheetMeta.kind === "entries") {
+      const entries: any[] = Array.isArray(result.data)
+        ? result.data
+        : Array.isArray(timesheetMeta.entries)
+        ? timesheetMeta.entries
+        : [];
+
+      const totalHours = timesheetMeta.totalHours ?? entries.reduce((sum, entry) => sum + (entry.hours ?? 0), 0);
+      const periodSnippet = timesheetMeta.dateLabel ? ` ${timesheetMeta.dateLabel}` : "";
+      const statusSnippet = timesheetMeta.statusLabel ? ` (${timesheetMeta.statusLabel})` : "";
+
+      if (entries.length === 0) {
+        return {
+          success: true,
+          message: `I couldn't find any time entries for ${timesheetMeta.employeeName}${periodSnippet}${statusSnippet}.`,
+          actionType: "query",
+          result: entries,
+        };
+      }
+
+      const bulletList = entries
+        .slice(0, 10)
+        .map((entry: any) => formatTimesheetEntryBullet(entry))
+        .join("\n");
+
+      const moreCount = entries.length > 10 ? entries.length - 10 : 0;
+      const moreText = moreCount > 0 ? `\n…and ${moreCount} more entries.` : "";
+
+      answer = `Here are the recent time entries for ${timesheetMeta.employeeName}${periodSnippet}${statusSnippet} (total ${totalHours.toFixed(2)} hours):\n\n${bulletList}${moreText}`;
+
+      setEntityContext(userId, companyId, {
+        employees: [
+          {
+            id: timesheetMeta.employeeId,
+            name: timesheetMeta.employeeName,
+          },
+        ],
+      });
+
+      return {
+        success: true,
+        message: answer,
+        actionType: "query",
+        result: entries,
+      };
+    }
+
     const count = typeof result.data === "number" ? result.data : timesheetMeta.count ?? 0;
     const statusLabel = timesheetMeta.statusLabel || "timesheets";
     const periodText = timesheetMeta.dateLabel ? ` ${timesheetMeta.dateLabel}` : "";

@@ -467,6 +467,28 @@ async function handleDataQuery(
   // Format the answer with the actual data
   let answer = "";
   
+  const timesheetMeta = (result.meta as any)?.timesheet;
+  if (timesheetMeta) {
+    const count = typeof result.data === "number" ? result.data : timesheetMeta.count ?? 0;
+    const statusLabel = timesheetMeta.statusLabel || "timesheets";
+    const periodText = timesheetMeta.dateLabel ? ` ${timesheetMeta.dateLabel}` : "";
+    const hasAny = count > 0;
+    const verb = statusLabel.includes("approved") ? "have" : "are";
+    const yesNo = hasAny ? "Yes" : "No";
+    answer = `${yesNo}${hasAny ? "" : ", there haven't"} ${hasAny ? `${count} ${statusLabel}${periodText}` : `been any ${statusLabel}${periodText}`}.`;
+
+    if (hasAny) {
+      answer += `\n\n• ${count} ${statusLabel}${periodText ? ` (${periodText.trim()})` : ""}`;
+    }
+
+    return {
+      success: true,
+      message: answer,
+      actionType: "query",
+      result: result.data,
+    };
+  }
+
   // Check if it's a reporting structure query
   if (result.data && typeof result.data === 'object' && 'directReports' in result.data) {
     const { manager, directReports, indirectReports, totalDirectReports, totalIndirectReports, totalReports, error } = result.data;

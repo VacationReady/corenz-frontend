@@ -15,6 +15,7 @@ export interface QueryResult {
   sqlGenerated?: string;
   error?: string;
   chartConfig?: ChartConfig;
+  meta?: Record<string, any>;
 }
 
 export interface ChartConfig {
@@ -234,6 +235,15 @@ export async function generateQuery(
   conversationContext?: string
 ): Promise<QueryResult> {
   try {
+    const directTimesheetResult = await handleDirectTimesheetQuery(
+      prompt,
+      companyId
+    );
+
+    if (directTimesheetResult) {
+      return directTimesheetResult;
+    }
+
     // Build messages with conversation context
     const messages: any[] = [
       {
@@ -1470,6 +1480,190 @@ async function executeQueryByType(
   }
 
   throw new Error("Query pattern not recognized");
+}
+
+async function handleDirectTimesheetQuery(
+  prompt: string,
+  companyId: string
+): Promise<QueryResult | null> {
+  const normalizedPrompt = prompt.toLowerCase();
+
+  if (!normalizedPrompt.includes("timesheet")) {
+    return null;
+  }
+
+    const wantsCount = /\b(count|how many|number of|has there|have there|are there|any)/i.test(
+    normalizedPrompt
+  );
+
+  if (!wantsCount) {
+    return null;
+  }
+
+  const status = deriveTimesheetStatus(normalizedPrompt);
+  const where: any = { companyId };
+
+  if (status) {
+    where.approvalStatus = status;
+  }
+
+  const dateFilter = deriveTimesheetDateRange(normalizedPrompt, status);
+
+  if (dateFilter && dateFilter.start && dateFilter.end) {
+    where[dateFilter.field] = {
+      gte: dateFilter.start,
+      lte: dateFilter.end,
+    };
+
+    if (dateFilter.field === "approvedAt" && !where.approvalStatus) {
+      where.approvalStatus = "APPROVED";
+    }
+  }
+
+  if (!where.approvalStatus && normalizedPrompt.includes("approved")) {
+    where.approvalStatus = "APPROVED";
+  }
+
+  const count = await prisma.timesheet.count({ where });
+
+  const statusLabel = where.approvalStatus
+    ? formatTimesheetStatus(where.approvalStatus)
+    : "timesheets";
+  const periodLabel = dateFilter?.label ? ` ${dateFilter.label}` : "";
+
+  return {
+    success: true,
+    data: count,
+    count,
+    explanation: `Found ${count} ${statusLabel}${periodLabel}.`,
+    query: "direct-timesheet-query",
+    meta: {
+      timesheet: {
+        approvalStatus: where.approvalStatus ?? null,
+        statusLabel,
+        dateField: dateFilter?.field ?? null,
+        dateLabel: dateFilter?.label ?? null,
+        count,
+      },
+    },
+  };
+}
+
+export function deriveTimesheetStatus(prompt: string):
+  | "APPROVED"
+  | "PENDING"
+  | "DECLINED"
+  | "CHANGES_REQUESTED"
+  | undefined {
+  const normalized = prompt.toLowerCase();
+
+  if (normalized.includes("approved")) return "APPROVED";
+  if (normalized.includes("pending") || normalized.includes("awaiting")) return "PENDING";
+  if (normalized.includes("declined") || normalized.includes("rejected")) return "DECLINED";
+  if (normalized.includes("changes requested")) return "CHANGES_REQUESTED";
+  return undefined;
+}
+
+export function deriveTimesheetDateRange(
+  prompt: string,
+  status: string | undefined
+): {
+  field: "approvedAt" | "submittedAt" | "periodStart";
+  start?: Date;
+  end?: Date;
+  label?: string;
+} | null {
+  const normalized = prompt.toLowerCase();
+  const field = status === "APPROVED"
+    ? "approvedAt"
+    : status === "PENDING"
+    ? "submittedAt"
+    : "periodStart";
+
+  const now = new Date();
+
+  if (normalized.includes("this week")) {
+    const { start, end } = getWeekRange(now, 0);
+    return { field, start, end, label: "this week" };
+  }
+
+  if (normalized.includes("last week") || normalized.includes("previous week")) {
+    const { start, end } = getWeekRange(now, 1);
+    return { field, start, end, label: "last week" };
+  }
+
+  if (normalized.includes("this month")) {
+    const { start, end } = getMonthRange(now, 0);
+    return { field, start, end, label: "this month" };
+  }
+
+  if (normalized.includes("last month") || normalized.includes("previous month")) {
+    const { start, end } = getMonthRange(now, 1);
+    return { field, start, end, label: "last month" };
+  }
+
+  if (normalized.includes("today")) {
+    const { start, end } = getDayRange(now, 0);
+    return { field, start, end, label: "today" };
+  }
+
+  if (normalized.includes("yesterday")) {
+    const { start, end } = getDayRange(now, 1);
+    return { field, start, end, label: "yesterday" };
+  }
+
+  return null;
+}
+
+function getWeekRange(reference: Date, weeksAgo: number) {
+  const start = new Date(reference);
+  const day = start.getDay();
+  const diff = (day + 6) % 7; // Monday as start of week
+  start.setDate(start.getDate() - diff - weeksAgo * 7);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+function formatTimesheetStatus(status: string): string {
+  switch (status) {
+    case "APPROVED":
+      return "approved timesheets";
+    case "PENDING":
+      return "pending timesheets";
+    case "DECLINED":
+      return "declined timesheets";
+    case "CHANGES_REQUESTED":
+      return "timesheets with changes requested";
+    default:
+      return "timesheets";
+  }
+}
+
+function getMonthRange(reference: Date, monthsAgo: number) {
+  const start = new Date(reference.getFullYear(), reference.getMonth(), 1);
+  start.setMonth(start.getMonth() - monthsAgo);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+function getDayRange(reference: Date, daysAgo: number) {
+  const start = new Date(reference);
+  start.setDate(start.getDate() - daysAgo);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
 }
 
 // Generate chart configuration for visualizable data

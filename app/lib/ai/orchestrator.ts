@@ -701,18 +701,6 @@ async function handleDataQuery(
             if (years > 0) {
               tenureInfo = `\n   📅 Tenure: ${years}y ${months}m`;
             } else {
-              tenureInfo = `\n   📅 Tenure: ${months} months`;
-            }
-          }
-          
-          const salary = item.salaryAmount ? `\n   💰 Salary: $${Math.round(Number(item.salaryAmount)).toLocaleString()}/year` : '';
-          const email = item.User?.email ? `\n   📧 Email: ${item.User.email}` : '';
-          answer += `${index + 1}. ${name}${role}${ageInfo}${tenureInfo}${salary}${email}\n`;
-        });
-      } else if (result.data.length > 20) {
-        answer = `${result.data.length} people (showing first 20):\n\n`;
-        result.data.slice(0, 20).forEach((item: any, index: number) => {
-          const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
           const dept = item.Department?.name ? ` (${item.Department.name})` : '';
           const salary = item.salaryAmount ? ` - $${Math.round(Number(item.salaryAmount)).toLocaleString()}` : '';
           answer += `${index + 1}. ${name}${dept}${salary}\n`;

@@ -4,7 +4,7 @@
  */
 
 import { getSystemContext, buildAIContextString } from "./system-context";
-import { getConversation, addMessage, buildContextString } from "./conversation-memory";
+import { getConversation, addMessage, buildContextString, setEntityContext } from "./conversation-memory";
 import { executeAction, type AIAction, type ActionType } from "./action-executor";
 import { generateQuery } from "./query-generator";
 import { generateWorkflow } from "./workflow-generator";

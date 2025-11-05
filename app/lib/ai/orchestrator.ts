@@ -469,11 +469,38 @@ async function handleDataQuery(
   
   const timesheetMeta = (result.meta as any)?.timesheet;
   if (timesheetMeta) {
+    if (timesheetMeta.kind === "clarification") {
+      const clarificationMessage =
+        result.explanation || result.error ||
+        (typeof result.data === "string" ? result.data : "I need a bit more detail to answer that.");
+
+      return {
+        success: false,
+        message: clarificationMessage,
+        actionType: "clarification",
+      };
+    }
+
+    if (timesheetMeta.kind === "hours") {
+      const hours = typeof result.data === "number" ? result.data : timesheetMeta.totalHours ?? 0;
+      const formattedHours = timesheetMeta.formattedHours ?? hours.toString();
+      const periodSnippet = timesheetMeta.dateLabel ? ` ${timesheetMeta.dateLabel}` : "";
+      const statusSnippet = timesheetMeta.statusLabel ? ` (${timesheetMeta.statusLabel})` : "";
+
+      answer = `${timesheetMeta.employeeName} worked ${formattedHours} hours${periodSnippet}${statusSnippet}.`;
+
+      return {
+        success: true,
+        message: answer,
+        actionType: "query",
+        result: hours,
+      };
+    }
+
     const count = typeof result.data === "number" ? result.data : timesheetMeta.count ?? 0;
     const statusLabel = timesheetMeta.statusLabel || "timesheets";
     const periodText = timesheetMeta.dateLabel ? ` ${timesheetMeta.dateLabel}` : "";
     const hasAny = count > 0;
-    const verb = statusLabel.includes("approved") ? "have" : "are";
     const yesNo = hasAny ? "Yes" : "No";
     answer = `${yesNo}${hasAny ? "" : ", there haven't"} ${hasAny ? `${count} ${statusLabel}${periodText}` : `been any ${statusLabel}${periodText}`}.`;
 

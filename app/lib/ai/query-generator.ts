@@ -5,6 +5,8 @@
 
 import { openai, AI_CONFIG } from "./openai-client";
 import { prisma } from "@/lib/prisma";
+import type { ApprovalStatus } from "@prisma/client";
+import { findEmployeeByName } from "./system-context";
 
 export interface QueryResult {
   success: boolean;
@@ -1487,27 +1489,120 @@ async function handleDirectTimesheetQuery(
   companyId: string
 ): Promise<QueryResult | null> {
   const normalizedPrompt = prompt.toLowerCase();
+  const status = deriveTimesheetStatus(prompt);
+  const intent = detectTimesheetIntent(normalizedPrompt, status);
 
-  if (!normalizedPrompt.includes("timesheet")) {
+  if (!intent) {
     return null;
   }
 
-    const wantsCount = /\b(count|how many|number of|has there|have there|are there|any)/i.test(
-    normalizedPrompt
-  );
+  const dateFilter = deriveTimesheetDateRange(prompt, status);
 
-  if (!wantsCount) {
-    return null;
+  if (intent.kind === "hours") {
+    const employeeResolution = await resolveTimesheetEmployee(prompt, companyId);
+
+    if (!employeeResolution) {
+      return null;
+    }
+
+    if (employeeResolution.kind === "not_found") {
+      const message = employeeResolution.requestedName
+        ? `I couldn't find anyone named "${employeeResolution.requestedName}". Please check the spelling or provide more detail.`
+        : "I couldn't determine which employee you meant. Could you provide their name?";
+
+      return {
+        success: false,
+        explanation: message,
+        query: "direct-timesheet-hours",
+        error: message,
+        meta: {
+          timesheet: {
+            kind: "clarification",
+            reason: "employee_not_found",
+          },
+        },
+      };
+    }
+
+    if (employeeResolution.kind === "ambiguous") {
+      const options = employeeResolution.matches
+        .map((match) => `• ${match.name}${match.email ? ` (${match.email})` : ""}`)
+        .join("\n");
+      const message = `I found multiple employees matching "${employeeResolution.requestedName}":\n\n${options}\n\nCould you clarify who you meant?`;
+
+      return {
+        success: false,
+        explanation: message,
+        query: "direct-timesheet-hours",
+        error: message,
+        meta: {
+          timesheet: {
+            kind: "clarification",
+            reason: "employee_ambiguous",
+            options: employeeResolution.matches,
+          },
+        },
+      };
+    }
+
+    const { employeeId, employeeName } = employeeResolution;
+
+    const hoursResult = await prisma.timesheetEntry.aggregate({
+      _sum: { hours: true },
+      where: {
+        Timesheet: {
+          companyId,
+          employeeId,
+          ...(status ? { approvalStatus: status } : {}),
+        },
+        ...(dateFilter?.start && dateFilter?.end
+          ? {
+              date: {
+                gte: dateFilter.start,
+                lte: dateFilter.end,
+              },
+            }
+          : {}),
+      },
+    });
+
+    const totalHours = Number(hoursResult._sum?.hours ?? 0);
+    const periodLabel = dateFilter?.label ? ` ${dateFilter.label}` : "";
+    const statusText = status ? ` (${formatTimesheetStatus(status)})` : "";
+    const explanation = `${employeeName} logged ${formatHours(totalHours)} hours${periodLabel}${statusText}.`;
+
+    return {
+      success: true,
+      data: totalHours,
+      explanation,
+      query: "direct-timesheet-hours",
+      meta: {
+        timesheet: {
+          kind: "hours",
+          employeeId,
+          employeeName,
+          totalHours,
+          formattedHours: formatHours(totalHours),
+          dateLabel: dateFilter?.label ?? null,
+          dateRange:
+            dateFilter?.start && dateFilter?.end
+              ? {
+                  start: dateFilter.start.toISOString(),
+                  end: dateFilter.end.toISOString(),
+                }
+              : null,
+          status: status ?? null,
+          statusLabel: status ? formatTimesheetStatus(status) : null,
+        },
+      },
+    };
   }
 
-  const status = deriveTimesheetStatus(normalizedPrompt);
   const where: any = { companyId };
 
   if (status) {
     where.approvalStatus = status;
   }
-
-  const dateFilter = deriveTimesheetDateRange(normalizedPrompt, status);
 
   if (dateFilter && dateFilter.start && dateFilter.end) {
     where[dateFilter.field] = {
@@ -1539,6 +1634,7 @@ async function handleDirectTimesheetQuery(
     query: "direct-timesheet-query",
     meta: {
       timesheet: {
+        kind: "count",
         approvalStatus: where.approvalStatus ?? null,
         statusLabel,
         dateField: dateFilter?.field ?? null,
@@ -1549,24 +1645,19 @@ async function handleDirectTimesheetQuery(
   };
 }
 
-export function deriveTimesheetStatus(prompt: string):
-  | "APPROVED"
-  | "PENDING"
-  | "DECLINED"
-  | "CHANGES_REQUESTED"
-  | undefined {
+export function deriveTimesheetStatus(prompt: string): ApprovalStatus | undefined {
   const normalized = prompt.toLowerCase();
 
   if (normalized.includes("approved")) return "APPROVED";
   if (normalized.includes("pending") || normalized.includes("awaiting")) return "PENDING";
   if (normalized.includes("declined") || normalized.includes("rejected")) return "DECLINED";
-  if (normalized.includes("changes requested")) return "CHANGES_REQUESTED";
+  if (normalized.includes("cancelled") || normalized.includes("canceled")) return "CANCELLED";
   return undefined;
 }
 
 export function deriveTimesheetDateRange(
   prompt: string,
-  status: string | undefined
+  status: ApprovalStatus | undefined
 ): {
   field: "approvedAt" | "submittedAt" | "periodStart";
   start?: Date;
@@ -1664,6 +1755,119 @@ function getDayRange(reference: Date, daysAgo: number) {
   end.setHours(23, 59, 59, 999);
 
   return { start, end };
+}
+
+function detectTimesheetIntent(
+  prompt: string,
+  status?: string | undefined
+): { kind: "count" | "hours" } | null {
+  const mentionsTimesheet = prompt.includes("timesheet");
+  const mentionsHours = /\b(hours?|hrs?)\b/.test(prompt);
+  const mentionsWork = /\bwork(?:ed|ing)?\b/.test(prompt) || prompt.includes("logged");
+  const wantsCount = /\b(count|how many|number of|has there|have there|are there|any)\b/.test(
+    prompt
+  );
+
+  if (mentionsHours && (mentionsWork || mentionsTimesheet)) {
+    return { kind: "hours" };
+  }
+
+  if ((mentionsTimesheet || status) && wantsCount) {
+    return { kind: "count" };
+  }
+
+  if (mentionsTimesheet && wantsCount) {
+    return { kind: "count" };
+  }
+
+  return null;
+}
+
+type TimesheetEmployeeResolution =
+  | {
+      kind: "resolved";
+      employeeId: string;
+      employeeName: string;
+    }
+  | {
+      kind: "not_found";
+      requestedName?: string;
+    }
+  | {
+      kind: "ambiguous";
+      requestedName: string;
+      matches: Array<{ id: string; name: string; email: string }>;
+    };
+
+async function resolveTimesheetEmployee(
+  prompt: string,
+  companyId: string
+): Promise<TimesheetEmployeeResolution | null> {
+  const name = extractTimesheetPersonName(prompt);
+
+  if (!name) {
+    return null;
+  }
+
+  const matches = await findEmployeeByName(name.raw, companyId);
+
+  if (matches.length === 0) {
+    return {
+      kind: "not_found",
+      requestedName: name.raw,
+    };
+  }
+
+  if (matches.length > 1) {
+    return {
+      kind: "ambiguous",
+      requestedName: name.raw,
+      matches: matches.map((m) => ({ id: m.id, name: m.name, email: m.email })),
+    };
+  }
+
+  return {
+    kind: "resolved",
+    employeeId: matches[0].id,
+    employeeName: matches[0].name,
+  };
+}
+
+function extractTimesheetPersonName(prompt: string):
+  | { first?: string; last?: string; raw: string }
+  | null {
+  const nameMatch = prompt.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/);
+
+  if (nameMatch) {
+    const raw = nameMatch[1].trim();
+    const parts = raw.split(/\s+/);
+    return {
+      first: parts[0],
+      last: parts.length > 1 ? parts[parts.length - 1] : undefined,
+      raw,
+    };
+  }
+
+  const firstOnlyMatch = prompt.match(/\b(?:for|about|did)\s+([A-Z][a-z]+)\b/);
+
+  if (firstOnlyMatch) {
+    const raw = firstOnlyMatch[1];
+    return {
+      first: raw,
+      raw,
+    };
+  }
+
+  return null;
+}
+
+function formatHours(value: number): string {
+  if (!value) {
+    return "0";
+  }
+
+  // Use up to 2 decimal places, trimming trailing zeros
+  return Number(value.toFixed(2)).toString();
 }
 
 // Generate chart configuration for visualizable data

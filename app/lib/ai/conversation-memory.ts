@@ -28,6 +28,26 @@ interface ConversationContext {
   lastActivity: Date;
 }
 
+function extractEntitiesFromAssistantMessage(content: string, conv: ConversationContext) {
+  const employeeMentions = content.match(/\b([A-Z][a-z]+\s+[A-Z][a-z]+)\b/g);
+
+  if (!employeeMentions) {
+    return;
+  }
+
+  const employees = conv.entities.employees || [];
+
+  for (const name of employeeMentions) {
+    const alreadyTracked = employees.some((emp) => emp.name.toLowerCase() === name.toLowerCase());
+    if (!alreadyTracked) {
+      employees.push({ id: name.toLowerCase().replace(/\s+/g, "-"), name });
+    }
+  }
+
+  // Keep only last 5 mentioned employees to avoid bloat
+  conv.entities.employees = employees.slice(-5);
+}
+
 // In-memory store (use Redis in production)
 const conversations = new Map<string, ConversationContext>();
 
@@ -71,6 +91,8 @@ export function addMessage(
   // Extract entities from user messages for better context
   if (role === "user") {
     extractEntitiesFromMessage(content, conv);
+  } else if (role === "assistant") {
+    extractEntitiesFromAssistantMessage(content, conv);
   }
   
   // Keep only last 20 messages to save memory

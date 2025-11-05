@@ -489,6 +489,15 @@ async function handleDataQuery(
 
       answer = `${timesheetMeta.employeeName} worked ${formattedHours} hours${periodSnippet}${statusSnippet}.`;
 
+      setEntityContext(userId, companyId, {
+        employees: [
+          {
+            id: timesheetMeta.employeeId,
+            name: timesheetMeta.employeeName,
+          },
+        ],
+      });
+
       return {
         success: true,
         message: answer,

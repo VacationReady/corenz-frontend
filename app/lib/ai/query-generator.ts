@@ -166,6 +166,8 @@ COMPLIANCE & DOCUMENTS:
 - "Show employees without tax codes" → employee model, findMany, taxCode=null
 - "Who needs to sign documents?" → document model, findMany, requiresSignature=true, unsigned
 - "Expiring driver licenses" → driverLicence model, findMany, expiryDate upcoming
+- "Driver licenses expiring in next 3 months" → driverLicence model, findMany, expiryDate within 90 days
+- "Are any driving licenses expiring soon?" → driverLicence model, count or findMany, expiryDate within period
 - "Missing emergency contacts" → employee model, findMany, no emergency contacts
 
 LOCATION & WORK ARRANGEMENTS:
@@ -346,7 +348,8 @@ async function executeSafeQuery(
     'formassignment', 'onboardinginstance', 'onboardingtemplate', 'employeeoffboarding',
     'exitinterview', 'employeeperformancereview', 'trainingrecord', 'course',
     'automationrule', 'actionitem', 'automationexecution', 'newspost', 'department',
-    'jobrole', 'permissionprofile', 'employeeauditlog', 'emergencycontact', 'location'
+    'jobrole', 'permissionprofile', 'employeeauditlog', 'emergencycontact', 'location',
+    'driverlicence', 'employmentcheck'
   ];
   
   if (!supportedModels.includes(model?.toLowerCase())) {
@@ -1365,6 +1368,146 @@ async function executeQueryByType(
             id: true,
             name: true,
           },
+        });
+      }
+      break;
+
+    // DRIVER LICENSES & EMPLOYMENT CHECKS
+    case "driverlicence":
+      if (queryType === "count") {
+        const where: any = {
+          Employee: { companyId },
+        };
+        
+        // Handle expiring licenses queries
+        if (operation.includes("expir")) {
+          const daysMatch = operation.match(/(\d+)\s*(?:days?|months?)/i);
+          const days = daysMatch ? parseInt(daysMatch[1]) : 30;
+          const monthMatch = operation.includes("month");
+          const multiplier = monthMatch ? 30 : 1;
+          
+          const today = new Date();
+          const futureDate = new Date(today.getTime() + (days * multiplier * 24 * 60 * 60 * 1000));
+          
+          where.expiryDate = {
+            gte: today,
+            lte: futureDate,
+          };
+        }
+        
+        return await prisma.driverLicence.count({ where });
+      }
+      
+      if (queryType === "findMany") {
+        const where: any = {
+          Employee: { companyId },
+        };
+        
+        // Handle expiring licenses
+        if (operation.includes("expir")) {
+          const daysMatch = operation.match(/(\d+)\s*(?:days?|months?)/i);
+          const days = daysMatch ? parseInt(daysMatch[1]) : 90; // Default to 3 months
+          const monthMatch = operation.includes("month");
+          const multiplier = monthMatch ? 30 : 1;
+          
+          const today = new Date();
+          const futureDate = new Date(today.getTime() + (days * multiplier * 24 * 60 * 60 * 1000));
+          
+          where.expiryDate = {
+            gte: today,
+            lte: futureDate,
+          };
+        }
+        
+        return await prisma.driverLicence.findMany({
+          where,
+          include: {
+            Employee: {
+              include: {
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    phone: true,
+                  },
+                },
+                Department: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
+          orderBy: { expiryDate: 'asc' },
+          take: 100,
+        });
+      }
+      break;
+
+    case "employmentcheck":
+      if (queryType === "count") {
+        const where: any = {
+          Employee: { companyId },
+        };
+        
+        if (operation.includes("expir")) {
+          const daysMatch = operation.match(/(\d+)\s*(?:days?|months?)/i);
+          const days = daysMatch ? parseInt(daysMatch[1]) : 30;
+          const monthMatch = operation.includes("month");
+          const multiplier = monthMatch ? 30 : 1;
+          
+          const today = new Date();
+          const futureDate = new Date(today.getTime() + (days * multiplier * 24 * 60 * 60 * 1000));
+          
+          where.expiryDate = {
+            gte: today,
+            lte: futureDate,
+          };
+        }
+        
+        return await prisma.employmentCheck.count({ where });
+      }
+      
+      if (queryType === "findMany") {
+        const where: any = {
+          Employee: { companyId },
+        };
+        
+        if (operation.includes("expir")) {
+          const daysMatch = operation.match(/(\d+)\s*(?:days?|months?)/i);
+          const days = daysMatch ? parseInt(daysMatch[1]) : 90;
+          const monthMatch = operation.includes("month");
+          const multiplier = monthMatch ? 30 : 1;
+          
+          const today = new Date();
+          const futureDate = new Date(today.getTime() + (days * multiplier * 24 * 60 * 60 * 1000));
+          
+          where.expiryDate = {
+            gte: today,
+            lte: futureDate,
+          };
+        }
+        
+        return await prisma.employmentCheck.findMany({
+          where,
+          include: {
+            Employee: {
+              include: {
+                User: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+                Department: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
+          orderBy: { expiryDate: 'asc' },
+          take: 100,
         });
       }
       break;

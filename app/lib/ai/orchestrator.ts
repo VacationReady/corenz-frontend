@@ -682,28 +682,41 @@ async function handleDataQuery(
         answer = `${headerText}\n\n`;
         result.data.forEach((item: any, index: number) => {
           const name = item.User ? `${item.User.firstName} ${item.User.lastName}` : item.name || 'Unknown';
-          const role = item.JobRole?.name ? ` - ${item.JobRole.name}` : '';
-          
-          // Calculate age if DOB available
-          let ageInfo = '';
+          const roleSuffix = item.JobRole?.name ? ` - ${item.JobRole.name}` : '';
+          const deptSuffix = item.Department?.name ? ` (${item.Department.name})` : '';
+          const salarySuffix = item.salaryAmount ? ` - $${Math.round(Number(item.salaryAmount)).toLocaleString()}` : '';
+
+          const extraLines: string[] = [];
+
           if (item.User?.dateOfBirth) {
             const dob = new Date(item.User.dateOfBirth);
-            const age = Math.floor((new Date().getTime() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-            ageInfo = `\n   🎂 Age: ${age} years`;
+            if (!Number.isNaN(dob.getTime())) {
+              const age = Math.floor((Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+              extraLines.push(`🎂 Age: ${age} years`);
+            }
           }
-          
-          // Calculate tenure if start date available
-          let tenureInfo = '';
+
           if (item.startDate) {
             const start = new Date(item.startDate);
-            const years = Math.floor((new Date().getTime() - start.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-            const months = Math.floor(((new Date().getTime() - start.getTime()) / (30.44 * 24 * 60 * 60 * 1000)) % 12);
-            if (years > 0) {
-              tenureInfo = `\n   📅 Tenure: ${years}y ${months}m`;
-            } else {
-          const dept = item.Department?.name ? ` (${item.Department.name})` : '';
-          const salary = item.salaryAmount ? ` - $${Math.round(Number(item.salaryAmount)).toLocaleString()}` : '';
-          answer += `${index + 1}. ${name}${dept}${salary}\n`;
+            if (!Number.isNaN(start.getTime())) {
+              const totalMonths = Math.max(0, Math.floor((Date.now() - start.getTime()) / (30.44 * 24 * 60 * 60 * 1000)));
+              const years = Math.floor(totalMonths / 12);
+              const months = totalMonths % 12;
+              const tenureParts: string[] = [];
+              if (years > 0) tenureParts.push(`${years}y`);
+              if (months > 0) tenureParts.push(`${months}m`);
+              if (tenureParts.length > 0) {
+                extraLines.push(`📅 Tenure: ${tenureParts.join(' ')}`);
+              }
+            }
+          }
+
+          const baseLine = `${index + 1}. ${name}${roleSuffix}${deptSuffix}${salarySuffix}`;
+          if (extraLines.length > 0) {
+            answer += `${baseLine}\n   ${extraLines.join('\n   ')}\n`;
+          } else {
+            answer += `${baseLine}\n`;
+          }
         });
       } else {
         answer = `${result.data.length} ${result.data.length === 1 ? 'result' : 'results'}`;

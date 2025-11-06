@@ -384,7 +384,7 @@ Be specific and realistic.`;
     }
 
     // Extract final answer
-    const finalAnswerMatch = response.match(/FINAL SOLUTION:\s*(.+?)(?=\n\n|\n*$)/is);
+    const finalAnswerMatch = response.match(/FINAL SOLUTION:\s*(.+?)(?=\n\n|\n*$)/i);
     const finalAnswer = finalAnswerMatch ? finalAnswerMatch[1].trim() : response.slice(-200);
 
     return {

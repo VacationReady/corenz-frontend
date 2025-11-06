@@ -310,12 +310,8 @@ export class HRKnowledgeBase {
     context?: { area?: string; severity?: string }
   ): Promise<ComplianceRule[]> {
     // Get company jurisdiction (default to NZ for now)
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
-      select: { country: true }
-    });
-
-    const jurisdiction = company?.country === 'New Zealand' ? 'NZ' : 'GLOBAL';
+    // Note: Company model doesn't have country field yet, defaulting to NZ
+    const jurisdiction = 'NZ';
 
     let rules = NZ_COMPLIANCE_RULES.filter(
       rule => rule.jurisdiction === jurisdiction || rule.jurisdiction === 'GLOBAL'
@@ -390,7 +386,7 @@ export class HRKnowledgeBase {
       where: {
         companyId,
         isActive: true,
-        LeaveEntitlements: { none: {} }
+        LeaveEntitlement: { none: {} }
       }
     });
 

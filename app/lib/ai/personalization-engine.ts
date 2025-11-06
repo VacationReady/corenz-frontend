@@ -12,7 +12,7 @@ export interface UserProfile {
   userId: string;
   companyId: string;
   preferences: {
-    communicationStyle: 'detailed' | 'concise' | 'technical';
+    communicationStyle: 'detailed' | 'concise' | 'technical' | 'mixed';
     favoriteFeatures: string[];
     commonWorkflows: WorkflowPattern[];
     departmentFocus: string[];

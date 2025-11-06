@@ -376,6 +376,54 @@ export async function processUserMessage(
   }
 }
 
+// Helper utilities
+function buildFormattedList(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  return items.join(" ");
+}
+
+function formatTimesheetEntryBullet(entry: any): string {
+  const parseDate = (value: any): Date | null => {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const pad = (value: number) => value.toString().padStart(2, "0");
+
+  const formatDateLabel = (date: Date | null): string => {
+    if (!date) return "Unknown date";
+    const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${weekdays[date.getDay()]} ${months[date.getMonth()]} ${pad(date.getDate())}`;
+  };
+
+  const formatTime = (date: Date | null): string => {
+    if (!date) return "—";
+    let hours = date.getHours();
+    const minutes = pad(date.getMinutes());
+    const suffix = hours >= 12 ? "pm" : "am";
+    hours = hours % 12;
+    if (hours === 0) {
+      hours = 12;
+    }
+    return `${hours}:${minutes} ${suffix}`;
+  };
+
+  const entryDate = parseDate(entry.date);
+  const startTime = parseDate(entry.startTime);
+  const endTime = parseDate(entry.endTime);
+
+  const dateLabel = formatDateLabel(entryDate);
+  const timeLabel = `${formatTime(startTime)} – ${formatTime(endTime)}`;
+  const hoursWorked = typeof entry.hours === "number" ? entry.hours.toFixed(2).replace(/\.00$/, "") : "0";
+  const breakLabel = entry.breakMinutes ? `, break ${entry.breakMinutes}m` : "";
+  const typeLabel = entry.entryType ? ` [${String(entry.entryType).toLowerCase()}]` : "";
+  const notesLabel = entry.notes ? ` — ${entry.notes}` : "";
+
+  return `• ${dateLabel}: ${timeLabel} (${hoursWorked}h${breakLabel})${typeLabel}${notesLabel}`;
+}
 
 async function handleDataQuery(
   query: string,

@@ -44,6 +44,10 @@ import {
 import { hrKnowledgeBase } from "./knowledge-base";
 import { proactiveIntelligence } from "./proactive-intelligence";
 import { reasoningEngine } from "./reasoning-engine";
+import { crossDomainIntelligence } from "./cross-domain-intelligence";
+import { summarizeConversation, resolveReferences } from "./conversation-memory";
+import { personalizationEngine } from "./personalization-engine";
+import { notificationEngine } from "./notification-engine";
 
 export interface OrchestratorResult {
   success: boolean;
@@ -344,6 +348,32 @@ export async function processUserMessage(
       case "explain_why":
       case "analyze_impact":
         result = await handleReasoningRequest(userMessage, companyId, userId, intent);
+        break;
+
+      // NEW: Phase 2 - Cross-Domain Intelligence
+      case "analyze_correlations":
+      case "find_root_cause":
+      case "unified_recommendations":
+      case "predict_cross_domain_impact":
+        result = await handleCrossDomainAnalysis(userMessage, companyId, userId, intent);
+        break;
+
+      // NEW: Phase 2 - Enhanced Memory
+      case "summarize_conversation":
+        result = await handleConversationSummary(userMessage, companyId, userId);
+        break;
+
+      // NEW: Phase 2 - Personalization
+      case "show_shortcuts":
+      case "show_patterns":
+        result = await handlePersonalizationRequest(userMessage, companyId, userId, intent);
+        break;
+
+      // NEW: Phase 2 - Proactive Notifications
+      case "show_notifications":
+      case "daily_digest":
+      case "check_alerts":
+        result = await handleNotificationRequest(userMessage, companyId, userId, intent);
         break;
 
       default:
@@ -1673,6 +1703,454 @@ async function handleReasoningRequest(
     return {
       success: false,
       message: "I'm having trouble with advanced reasoning right now. Please try again later.",
+    };
+  }
+}
+
+// ==================== PHASE 2 HANDLERS ====================
+
+/**
+ * Handle cross-domain intelligence requests
+ */
+async function handleCrossDomainAnalysis(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  intent: any
+): Promise<OrchestratorResult> {
+  try {
+    const systemContext = await getSystemContext(companyId);
+
+    switch (intent.actionType) {
+      case "analyze_correlations":
+        const correlations = await crossDomainIntelligence.analyzeCorrelations(companyId);
+        
+        let message = `## 🔗 Cross-Domain Analysis\n\n`;
+        if (correlations.length === 0) {
+          message += "No significant correlations detected. Your HR data appears well-balanced.\n";
+        } else {
+          message += `Found **${correlations.length} meaningful correlation${correlations.length > 1 ? 's' : ''}**:\n\n`;
+          correlations.forEach((corr, idx) => {
+            message += `### ${idx + 1}. ${corr.description}\n`;
+            message += `**Domains:** ${corr.domain1} ↔️ ${corr.domain2}\n`;
+            message += `**Strength:** ${(corr.strength * 100).toFixed(0)}% | **Confidence:** ${(corr.confidence * 100).toFixed(0)}%\n`;
+            message += `**Implication:** ${corr.implication}\n\n`;
+            message += `**Evidence:**\n`;
+            corr.evidencePoints.slice(0, 3).forEach(evidence => {
+              message += `• ${evidence}\n`;
+            });
+            message += `\n---\n\n`;
+          });
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "analyze_correlations",
+          result: correlations,
+          suggestions: [
+            "Find root cause of top correlation",
+            "Get unified recommendations",
+            "Predict impact of addressing these"
+          ]
+        };
+
+      case "find_root_cause":
+        const symptom = intent.parameters?.symptom || userMessage.replace(/.*(?:root cause|causing|why)/i, '').trim();
+        const rootCause = await crossDomainIntelligence.findRootCause(symptom, companyId);
+        
+        message = `## 🔍 Root Cause Analysis\n\n`;
+        message += `**Symptom:** ${rootCause.symptom}\n\n`;
+        
+        message += `### Root Causes Identified\n\n`;
+        rootCause.rootCauses.forEach((cause, idx) => {
+          message += `**${idx + 1}. ${cause.description}** (${cause.domain})\n`;
+          message += `Likelihood: ${(cause.likelihood * 100).toFixed(0)}% | Impact: ${cause.impact}\n`;
+          message += `Evidence:\n`;
+          cause.evidence.slice(0, 2).forEach(ev => {
+            message += `• ${ev}\n`;
+          });
+          message += `\n`;
+        });
+
+        message += `\n**Contributing Factors:**\n`;
+        rootCause.contributingFactors.forEach(factor => {
+          message += `• ${factor}\n`;
+        });
+
+        message += `\n\n**💡 Recommendation:** ${rootCause.recommendation}\n`;
+        message += `**Confidence:** ${(rootCause.confidence * 100).toFixed(0)}%\n`;
+
+        return {
+          success: true,
+          message,
+          actionType: "find_root_cause",
+          result: rootCause,
+          confidence: rootCause.confidence
+        };
+
+      case "unified_recommendations":
+        const recommendations = await crossDomainIntelligence.generateUnifiedRecommendations(companyId);
+        
+        message = `## 💡 Unified HR Recommendations\n\n`;
+        if (recommendations.length === 0) {
+          message += "Your HR system is performing well. No urgent recommendations at this time.\n";
+        } else {
+          recommendations.forEach((rec, idx) => {
+            const priorityEmoji = rec.priority === 'critical' ? '🔴' : 
+                                 rec.priority === 'high' ? '🟠' : 
+                                 rec.priority === 'medium' ? '🟡' : '🟢';
+            
+            message += `### ${priorityEmoji} ${idx + 1}. ${rec.title}\n`;
+            message += `**Priority:** ${rec.priority.toUpperCase()}\n`;
+            message += `**Affected Areas:** ${rec.affectedDomains.join(', ')}\n\n`;
+            message += `${rec.description}\n\n`;
+            
+            message += `**Reasoning:** ${rec.reasoning}\n\n`;
+            
+            message += `**Action Steps:**\n`;
+            rec.actionSteps.forEach((step, stepIdx) => {
+              message += `${stepIdx + 1}. ${step}\n`;
+            });
+            
+            message += `\n**Expected Impact:**\n`;
+            rec.expectedImpact.forEach(impact => {
+              message += `• ${impact.domain}: ${impact.metric} (${impact.estimatedChange})\n`;
+            });
+            
+            if (rec.estimatedROI) {
+              message += `\n💰 **ROI:** ${rec.estimatedROI}\n`;
+            }
+            message += `\n---\n\n`;
+          });
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "unified_recommendations",
+          result: recommendations
+        };
+
+      case "predict_cross_domain_impact":
+        const action = intent.parameters?.action || userMessage;
+        const impact = await crossDomainIntelligence.predictCrossDomainImpact(action, companyId);
+        
+        message = `## 🎯 Cross-Domain Impact Analysis\n\n`;
+        message += `**Action:** ${impact.action}\n\n`;
+        
+        message += `### Direct Impacts\n`;
+        impact.directImpacts.forEach(imp => {
+          const typeEmoji = imp.impactType === 'positive' ? '✅' : imp.impactType === 'negative' ? '❌' : '➖';
+          message += `${typeEmoji} **${imp.domain}** (${imp.severity})\n`;
+          message += `${imp.description}\n`;
+          message += `Affected: ${imp.affectedMetrics.join(', ')}\n\n`;
+        });
+
+        message += `### Cascading Effects\n`;
+        impact.cascadingEffects.forEach(imp => {
+          message += `• ${imp.domain}: ${imp.description}\n`;
+        });
+
+        message += `\n### Timeline\n`;
+        message += `**Immediate:** ${impact.timeline.immediate.join(', ')}\n`;
+        message += `**1-3 months:** ${impact.timeline.shortTerm.join(', ')}\n`;
+        message += `**6+ months:** ${impact.timeline.longTerm.join(', ')}\n`;
+
+        return {
+          success: true,
+          message,
+          actionType: "predict_cross_domain_impact",
+          result: impact
+        };
+
+      default:
+        return {
+          success: false,
+          message: "Unknown cross-domain analysis type."
+        };
+    }
+  } catch (error: any) {
+    console.error("[Cross-Domain Analysis Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble with cross-domain analysis right now. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Handle conversation summary request
+ */
+async function handleConversationSummary(
+  userMessage: string,
+  companyId: string,
+  userId: string
+): Promise<OrchestratorResult> {
+  try {
+    const summary = await summarizeConversation(userId, companyId);
+    
+    if (summary.keyPoints.length === 0) {
+      return {
+        success: true,
+        message: "Our conversation is still brief. No summary needed yet.",
+        actionType: "summarize_conversation"
+      };
+    }
+
+    let message = `## 📝 Conversation Summary\n\n`;
+    
+    message += `### Key Points\n`;
+    summary.keyPoints.forEach((point, idx) => {
+      message += `${idx + 1}. ${point}\n`;
+    });
+
+    if (summary.decisionsMade.length > 0) {
+      message += `\n### Decisions Made\n`;
+      summary.decisionsMade.forEach(decision => {
+        message += `✅ ${decision}\n`;
+      });
+    }
+
+    if (summary.actionsTaken.length > 0) {
+      message += `\n### Actions Taken\n`;
+      summary.actionsTaken.forEach(action => {
+        message += `• ${action}\n`;
+      });
+    }
+
+    if (summary.pendingItems.length > 0) {
+      message += `\n### Still Pending\n`;
+      summary.pendingItems.forEach(item => {
+        message += `⏳ ${item}\n`;
+      });
+    }
+
+    message += `\n**Topics Covered:** ${summary.topics.join(', ')}\n`;
+
+    return {
+      success: true,
+      message,
+      actionType: "summarize_conversation",
+      result: summary
+    };
+  } catch (error: any) {
+    console.error("[Conversation Summary Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble summarizing our conversation. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Handle personalization requests
+ */
+async function handlePersonalizationRequest(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  intent: any
+): Promise<OrchestratorResult> {
+  try {
+    switch (intent.actionType) {
+      case "show_shortcuts":
+        const shortcuts = await personalizationEngine.suggestShortcuts(userId, companyId);
+        
+        let message = `## ⚡ Your Personalized Shortcuts\n\n`;
+        if (shortcuts.length === 0) {
+          message += "I'm still learning your patterns. Use the system more, and I'll suggest personalized shortcuts!\n";
+        } else {
+          message += `Based on your usage, here are ${shortcuts.length} shortcuts to save you time:\n\n`;
+          shortcuts.forEach((shortcut, idx) => {
+            message += `### ${idx + 1}. ${shortcut.name}\n`;
+            message += `${shortcut.description}\n`;
+            message += `**Trigger:** \`${shortcut.trigger}\`\n`;
+            message += `**Saves:** ${shortcut.timeSaved}\n`;
+            message += `**Relevance:** ${(shortcut.relevanceScore * 100).toFixed(0)}%\n\n`;
+          });
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "show_shortcuts",
+          result: shortcuts
+        };
+
+      case "show_patterns":
+        const patterns = personalizationEngine.detectPatterns(userId, companyId);
+        
+        message = `## 📊 Your Usage Patterns\n\n`;
+        if (patterns.length === 0) {
+          message += "I need more data to detect your patterns. Keep using the system!\n";
+        } else {
+          patterns.forEach((pattern, idx) => {
+            message += `### ${idx + 1}. ${pattern.description}\n`;
+            message += `**Type:** ${pattern.type}\n`;
+            message += `**Frequency:** ${pattern.frequency} times\n`;
+            message += `**Confidence:** ${(pattern.confidence * 100).toFixed(0)}%\n`;
+            message += `💡 **Suggestion:** ${pattern.suggestion}\n\n`;
+          });
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "show_patterns",
+          result: patterns
+        };
+
+      default:
+        return {
+          success: false,
+          message: "Unknown personalization request."
+        };
+    }
+  } catch (error: any) {
+    console.error("[Personalization Request Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble with personalization right now. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Handle notification requests
+ */
+async function handleNotificationRequest(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  intent: any
+): Promise<OrchestratorResult> {
+  try {
+    switch (intent.actionType) {
+      case "show_notifications":
+        const notifications = await notificationEngine.getPendingNotifications(userId, companyId);
+        
+        let message = `## 🔔 Your Notifications\n\n`;
+        if (notifications.length === 0) {
+          message += "No pending notifications. You're all caught up! ✅\n";
+        } else {
+          const critical = notifications.filter(n => n.priority === 'critical');
+          const high = notifications.filter(n => n.priority === 'high');
+          const others = notifications.filter(n => n.priority === 'medium' || n.priority === 'low');
+
+          if (critical.length > 0) {
+            message += `### 🔴 Critical (${critical.length})\n`;
+            critical.forEach(notif => {
+              message += `**${notif.title}**\n`;
+              message += `${notif.message}\n`;
+              if (notif.actions && notif.actions.length > 0) {
+                message += `Actions: ${notif.actions.map(a => a.label).join(', ')}\n`;
+              }
+              message += `\n`;
+            });
+          }
+
+          if (high.length > 0) {
+            message += `### 🟠 High Priority (${high.length})\n`;
+            high.slice(0, 3).forEach(notif => {
+              message += `• **${notif.title}**: ${notif.message}\n`;
+            });
+            message += `\n`;
+          }
+
+          if (others.length > 0) {
+            message += `### 📌 Other (${others.length})\n`;
+            others.slice(0, 2).forEach(notif => {
+              message += `• ${notif.title}\n`;
+            });
+          }
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "show_notifications",
+          result: notifications
+        };
+
+      case "daily_digest":
+        const digest = await notificationEngine.generateDailyDigest(companyId);
+        
+        message = `## 📊 Daily HR Digest\n\n`;
+        message += digest.summary;
+        
+        message += `\n\n### 📈 Key Metrics\n`;
+        message += `• Active Employees: ${digest.metrics.totalEmployees}\n`;
+        message += `• Health Score: ${digest.metrics.healthScore}/100\n`;
+        message += `• Active Workflows: ${digest.metrics.activeWorkflows}\n`;
+        message += `• Critical Alerts: ${digest.metrics.criticalAlerts}\n`;
+        message += `• Opportunities: ${digest.metrics.opportunitiesFound}\n`;
+
+        if (digest.insights.length > 0) {
+          message += `\n### 💡 Key Insights\n`;
+          digest.insights.slice(0, 3).forEach(insight => {
+            message += `• ${insight}\n`;
+          });
+        }
+
+        if (digest.recommendations.length > 0) {
+          message += `\n### 🎯 Recommendations\n`;
+          digest.recommendations.slice(0, 3).forEach(rec => {
+            message += `• ${rec}\n`;
+          });
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "daily_digest",
+          result: digest
+        };
+
+      case "check_alerts":
+        const alerts = await notificationEngine.checkForAlerts(companyId);
+        
+        message = `## ⚠️ Critical Alerts\n\n`;
+        if (alerts.length === 0) {
+          message += "No critical alerts at this time. System running smoothly! ✅\n";
+        } else {
+          alerts.forEach((alert, idx) => {
+            const emoji = alert.priority === 'critical' ? '🔴' : '🟠';
+            message += `### ${emoji} ${idx + 1}. ${alert.title}\n`;
+            message += `${alert.message}\n`;
+            if (alert.actions && alert.actions.length > 0) {
+              message += `**Recommended Actions:**\n`;
+              alert.actions.forEach(action => {
+                message += `• ${action.label}\n`;
+              });
+            }
+            message += `\n`;
+          });
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "check_alerts",
+          result: alerts,
+          suggestions: alerts.length > 0 ? [
+            "Run health check for details",
+            "Get unified recommendations",
+            "Show daily digest"
+          ] : undefined
+        };
+
+      default:
+        return {
+          success: false,
+          message: "Unknown notification request."
+        };
+    }
+  } catch (error: any) {
+    console.error("[Notification Request Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble with notifications right now. Please try again later.",
     };
   }
 }

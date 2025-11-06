@@ -185,6 +185,44 @@ AVAILABLE ACTIONS (Organized by Category):
 - generate_content: Generate content for journey blocks
 - journey_design: General journey design requests
 
+🔗 CROSS-DOMAIN INTELLIGENCE (Phase 2):
+- analyze_correlations: Find connections between HR areas
+  Patterns: "find correlations", "what's connected", "analyze relationships", "show connections"
+  Examples: ("What's causing our turnover?", "Find connections in our data", "Show correlations between engagement and performance")
+- find_root_cause: Perform root cause analysis on HR issues
+  Patterns: "root cause", "why is this happening", "what's causing", "diagnose"
+  Examples: ("What's the root cause of high turnover?", "Why are we seeing low engagement?", "Diagnose our retention problems")
+- unified_recommendations: Get holistic recommendations across multiple domains
+  Patterns: "unified recommendations", "holistic approach", "system-wide improvements", "overall recommendations"
+  Examples: ("Give me unified recommendations", "What should we improve overall?", "Holistic HR strategy")
+- predict_cross_domain_impact: Predict how changes affect multiple HR areas
+  Patterns: "cross-domain impact", "ripple effects", "cascade", "what else will be affected"
+  Examples: ("What's the cross-domain impact of this change?", "How will this ripple across HR?", "Cascading effects of new policy")
+
+📝 ENHANCED MEMORY (Phase 2):
+- summarize_conversation: Summarize long conversations
+  Patterns: "summarize", "what have we discussed", "recap", "conversation summary"
+  Examples: ("Summarize our conversation", "What have we discussed today?", "Recap our chat")
+
+👤 PERSONALIZATION (Phase 2):
+- show_shortcuts: Show personalized shortcuts based on usage patterns
+  Patterns: "show shortcuts", "my shortcuts", "personalized suggestions", "what can I automate"
+  Examples: ("Show my shortcuts", "What shortcuts are available?", "Personalized suggestions for me")
+- show_patterns: Show detected user behavior patterns
+  Patterns: "show patterns", "my usage patterns", "how do I use the system", "behavior analysis"
+  Examples: ("Show my patterns", "How do I typically use this?", "My usage analysis")
+
+🔔 PROACTIVE NOTIFICATIONS (Phase 2):
+- show_notifications: Get pending notifications and alerts
+  Patterns: "show notifications", "what alerts do I have", "pending notifications", "my alerts"
+  Examples: ("Show my notifications", "What alerts do I have?", "Pending notifications")
+- daily_digest: Generate daily HR digest
+  Patterns: "daily digest", "today's summary", "what should I know", "daily brief"
+  Examples: ("Show daily digest", "What's my daily brief?", "Today's HR summary")
+- check_alerts: Check for critical alerts requiring immediate attention
+  Patterns: "check alerts", "critical issues", "urgent matters", "what needs attention"
+  Examples: ("Check for alerts", "Any critical issues?", "What needs my attention?")
+
 📊 CSV IMPORTS:
 - csv_help: General CSV import guidance ("Help with CSV", "CSV import help")
 - csv_template: Generate CSV template ("Show me CSV template", "Create CSV template")

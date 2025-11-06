@@ -147,6 +147,39 @@ AVAILABLE ACTIONS (Organized by Category):
 - add_experience_block: Add blocks to journeys (surveys, training, meetings)
 - create_experiment: Create A/B tests for journey optimization
 - analyze_performance: Analyze journey metrics and completion rates
+
+🧠 HR KNOWLEDGE & ADVICE:
+- get_hr_advice: Get expert HR advice on compliance, policies, best practices
+  Patterns: "what's best practice for", "how should I handle", "advice on", "what do you recommend"
+  Examples: ("What's best practice for onboarding?", "How should I handle poor performance?", "Advice on retention strategies")
+- check_compliance: Run compliance checks against employment law
+  Patterns: "check compliance", "are we compliant", "compliance status", "legal requirements"
+  Examples: ("Check our compliance status", "Are we meeting minimum wage requirements?", "Review employment law compliance")
+- compare_benchmarks: Compare company metrics to industry benchmarks
+  Patterns: "compare to industry", "benchmark against", "how do we stack up", "industry average"
+  Examples: ("Compare our turnover to industry average", "How does our engagement score benchmark?", "Are we competitive on salaries?")
+
+🔮 PROACTIVE INTELLIGENCE:
+- run_health_check: Run comprehensive system health check
+  Patterns: "health check", "system status", "overall health", "how are we doing"
+  Examples: ("Run a health check", "How's our HR system doing?", "Check overall system health")
+- detect_anomalies: Detect unusual patterns or anomalies in HR data
+  Patterns: "detect anomalies", "find unusual", "spot issues", "what's wrong"
+  Examples: ("Detect any anomalies", "Find unusual patterns in turnover", "Spot potential issues")
+- predict_risks: Generate predictive insights and risk forecasts
+  Patterns: "predict risks", "forecast", "what might happen", "future risks"
+  Examples: ("Predict upcoming risks", "What problems might we face?", "Forecast turnover trends")
+
+💡 ADVANCED REASONING:
+- solve_complex_problem: Solve multi-step HR problems with chain-of-thought reasoning
+  Patterns: "how do I solve", "help me figure out", "complex problem", "not sure how to"
+  Examples: ("How do I reduce turnover without increasing costs?", "Help me improve engagement across departments", "Solve our performance review bottleneck")
+- explain_why: Explain reasoning behind decisions or recommendations
+  Patterns: "why", "explain", "what's the reasoning", "help me understand"
+  Examples: ("Why did you recommend that?", "Explain this decision", "What's the reasoning behind this approach?")
+- analyze_impact: Analyze potential impact of proposed actions
+  Patterns: "what's the impact", "analyze impact", "what will happen if", "consequences of"
+  Examples: ("What's the impact of changing leave policy?", "Analyze impact of restructuring", "What happens if we freeze hiring?")
 - suggest_improvements: Get AI-powered journey optimization suggestions
 - add_decision_gateway: Add conditional logic and routing to journeys
 - generate_content: Generate content for journey blocks

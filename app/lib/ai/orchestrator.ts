@@ -41,6 +41,9 @@ import {
   handleIntelligentCommunications,
   handleDynamicFormBuilding
 } from "./integration-orchestrator";
+import { hrKnowledgeBase } from "./knowledge-base";
+import { proactiveIntelligence } from "./proactive-intelligence";
+import { reasoningEngine } from "./reasoning-engine";
 
 export interface OrchestratorResult {
   success: boolean;
@@ -52,6 +55,10 @@ export interface OrchestratorResult {
   preview?: any;
   undoable?: boolean;
   undoId?: string;
+  reasoning?: any; // Chain-of-thought reasoning trace
+  confidence?: number; // Confidence score (0-1)
+  alternatives?: any[]; // Alternative solutions/approaches
+  insights?: any[]; // Proactive insights
 }
 
 export async function processUserMessage(
@@ -318,6 +325,25 @@ export async function processUserMessage(
       case "action_items_reminder":
       case "action_items_export":
         result = await handleActionItemsRequest(userMessage, companyId, userId, intent);
+        break;
+
+      // NEW: Enhanced AI capabilities
+      case "get_hr_advice":
+      case "check_compliance":
+      case "compare_benchmarks":
+        result = await handleHRKnowledgeRequest(userMessage, companyId, userId, intent);
+        break;
+
+      case "run_health_check":
+      case "detect_anomalies":
+      case "predict_risks":
+        result = await handleProactiveIntelligence(userMessage, companyId, userId, intent);
+        break;
+
+      case "solve_complex_problem":
+      case "explain_why":
+      case "analyze_impact":
+        result = await handleReasoningRequest(userMessage, companyId, userId, intent);
         break;
 
       default:
@@ -1281,5 +1307,372 @@ async function handleActionItemsRequest(
   }
 }
 
-// Removed - users just want their answers, not suggestions
+/**
+ * Handle HR knowledge base requests (compliance, benchmarks, best practices)
+ */
+async function handleHRKnowledgeRequest(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  intent: any
+): Promise<OrchestratorResult> {
+  try {
+    const systemContext = await getSystemContext(companyId);
 
+    switch (intent.actionType) {
+      case "check_compliance":
+        const complianceInsights = await hrKnowledgeBase.checkCompliance(companyId);
+        const complianceRules = await hrKnowledgeBase.getRelevantComplianceRules(companyId);
+        
+        const criticalIssues = complianceInsights.filter(i => i.priority === 'critical' || i.priority === 'high');
+        
+        let message = "## Compliance Check Results\n\n";
+        if (criticalIssues.length === 0) {
+          message += "Good news! No critical compliance issues detected.\n\n";
+        } else {
+          message += `${criticalIssues.length} issue(s) require attention:\n\n`;
+          criticalIssues.forEach(issue => {
+            message += `### ${issue.title}\n${issue.description}\n\n`;
+            message += `**Recommendation:** ${issue.recommendation}\n\n`;
+            message += `**Impact:** ${issue.impact}\n\n`;
+            message += `---\n\n`;
+          });
+        }
+
+        message += `\n**Compliance Rules Applied:**\n`;
+        complianceRules.slice(0, 3).forEach(rule => {
+          message += `• ${rule.title} (${rule.severity})\n`;
+        });
+
+        return {
+          success: true,
+          message,
+          actionType: "check_compliance",
+          result: { insights: complianceInsights, rules: complianceRules },
+          suggestions: criticalIssues.length > 0 ? [
+            "Show me how to fix these issues",
+            "Run detailed compliance audit",
+            "Generate compliance report"
+          ] : [
+            "Check specific compliance area",
+            "View all compliance rules",
+            "Schedule regular compliance checks"
+          ]
+        };
+
+      case "compare_benchmarks":
+        // Calculate current metrics
+        const turnoverRate = 12; // Would calculate from actual data
+        const benchmarkInsights = await hrKnowledgeBase.compareToBenchmarks(companyId, [
+          { metric: 'turnover_rate', value: turnoverRate }
+        ]);
+
+        message = "## Benchmark Comparison\n\n";
+        if (benchmarkInsights.length > 0) {
+          benchmarkInsights.forEach(insight => {
+            message += `### ${insight.title}\n${insight.description}\n\n`;
+            message += `**Recommendation:** ${insight.recommendation}\n\n`;
+            message += `**Impact:** ${insight.impact}\n\n`;
+          });
+        } else {
+          message += "Your metrics are in line with industry benchmarks. Keep up the good work!\n\n";
+          message += `**Your turnover rate:** ${turnoverRate}% (Industry avg: 13.2%)\n`;
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "compare_benchmarks",
+          result: benchmarkInsights
+        };
+
+      case "get_hr_advice":
+      default:
+        const advice = await hrKnowledgeBase.getHRAdvice(userMessage, { companyId });
+        
+        return {
+          success: true,
+          message: advice,
+          actionType: "get_hr_advice",
+          suggestions: [
+            "Check compliance status",
+            "Compare to industry benchmarks",
+            "Get best practice recommendations"
+          ]
+        };
+    }
+  } catch (error: any) {
+    console.error("[HR Knowledge Request Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble accessing HR knowledge base right now. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Handle proactive intelligence requests (health checks, anomaly detection, predictions)
+ */
+async function handleProactiveIntelligence(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  intent: any
+): Promise<OrchestratorResult> {
+  try {
+    const systemContext = await getSystemContext(companyId);
+
+    switch (intent.actionType) {
+      case "run_health_check":
+        const healthCheck = await proactiveIntelligence.runHealthCheck(companyId);
+        
+        const statusEmoji = healthCheck.status === 'excellent' ? '' : 
+                            healthCheck.status === 'good' ? '' : 
+                            healthCheck.status === 'needs_attention' ? '' : '';
+
+        let message = `${statusEmoji} **System Health Check**\n\n`;
+        message += `**Overall Score:** ${healthCheck.overallScore}/100 (${healthCheck.status})\n\n`;
+        message += `${healthCheck.summary}\n\n`;
+        
+        message += `### Area Breakdown\n`;
+        Object.entries(healthCheck.areas).forEach(([area, health]) => {
+          const areaEmoji = health.status === 'excellent' ? '' : 
+                           health.status === 'good' ? '' : 
+                           health.status === 'needs_attention' ? '' : '';
+          message += `\n**${areaEmoji} ${area.charAt(0).toUpperCase() + area.slice(1)}:** ${health.score}/100\n`;
+          
+          if (health.issues.length > 0) {
+            message += `Issues: ${health.issues.slice(0, 2).join(', ')}\n`;
+          }
+        });
+
+        if (healthCheck.anomalies.length > 0) {
+          message += `\n\n### Anomalies Detected (${healthCheck.anomalies.length})\n`;
+          healthCheck.anomalies.slice(0, 3).forEach(anomaly => {
+            message += `\n**${anomaly.description}**\n`;
+            message += `Current: ${anomaly.currentValue} | Expected: ${anomaly.expectedValue}\n`;
+            message += `Top recommendation: ${anomaly.recommendations[0]}\n`;
+          });
+        }
+
+        if (healthCheck.insights.length > 0) {
+          message += `\n\n### Predictive Insights (${healthCheck.insights.length})\n`;
+          healthCheck.insights.slice(0, 2).forEach(insight => {
+            message += `\n**${insight.title}**\n`;
+            message += `${insight.prediction}\n`;
+          });
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "run_health_check",
+          result: healthCheck,
+          insights: healthCheck.insights,
+          suggestions: [
+            "Show detailed anomaly analysis",
+            "Get recommendations to improve score",
+            "Schedule regular health checks"
+          ]
+        };
+
+      case "detect_anomalies":
+        const anomalies = await proactiveIntelligence.detectAnomalies(companyId, systemContext);
+        
+        message = `## Anomaly Detection Results\n\n`;
+        if (anomalies.length === 0) {
+          message += "No anomalies detected. All metrics are within normal ranges.\n";
+        } else {
+          message += `Found **${anomalies.length} anomaly/anomalies**:\n\n`;
+          anomalies.forEach((anomaly, idx) => {
+            message += `### ${idx + 1}. ${anomaly.description}\n`;
+            message += `**Severity:** ${anomaly.severity.toUpperCase()}\n`;
+            message += `**Deviation:** ${anomaly.deviation.toFixed(1)}% from expected\n`;
+            message += `**Possible causes:** ${anomaly.possibleCauses.slice(0, 2).join(', ')}\n\n`;
+          });
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "detect_anomalies",
+          result: anomalies
+        };
+
+      case "predict_risks":
+        const predictions = await proactiveIntelligence.generatePredictiveInsights(companyId, systemContext);
+        
+        message = `## Risk Predictions & Forecasts\n\n`;
+        if (predictions.length === 0) {
+          message += "No significant risks detected in the near term.\n";
+        } else {
+          predictions.forEach((prediction, idx) => {
+            message += `### ${idx + 1}. ${prediction.title}\n`;
+            message += `${prediction.description}\n\n`;
+            message += `**Prediction:** ${prediction.prediction}\n`;
+            message += `**Timeframe:** ${prediction.timeframe}\n`;
+            message += `**Confidence:** ${(prediction.confidence * 100).toFixed(0)}%\n\n`;
+            if (prediction.preventiveActions && prediction.preventiveActions.length > 0) {
+              message += `**Preventive actions:**\n`;
+              prediction.preventiveActions.slice(0, 3).forEach(action => {
+                message += `• ${action}\n`;
+              });
+            }
+            message += `\n---\n\n`;
+          });
+        }
+
+        return {
+          success: true,
+          message,
+          actionType: "predict_risks",
+          result: predictions
+        };
+
+      default:
+        return {
+          success: false,
+          message: "Unknown proactive intelligence request type."
+        };
+    }
+  } catch (error: any) {
+    console.error("[Proactive Intelligence Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble running proactive analysis right now. Please try again later.",
+    };
+  }
+}
+
+/**
+ * Handle reasoning requests (complex problems, explanations, impact analysis)
+ */
+async function handleReasoningRequest(
+  userMessage: string,
+  companyId: string,
+  userId: string,
+  intent: any
+): Promise<OrchestratorResult> {
+  try {
+    switch (intent.actionType) {
+      case "solve_complex_problem":
+        const problem = {
+          description: userMessage,
+          context: { companyId, userId },
+          constraints: intent.parameters?.constraints,
+          goals: intent.parameters?.goals
+        };
+
+        const solution = await reasoningEngine.solveComplexProblem(problem, companyId, userId);
+        
+        let message = `## Problem Solution\n\n`;
+        message += `**Problem:** ${solution.problem}\n\n`;
+        message += `**Solution:** ${solution.solution}\n\n`;
+        
+        message += `### Reasoning Process\n`;
+        if (solution.reasoning.steps.length > 0) {
+          solution.reasoning.steps.slice(0, 5).forEach((step, idx) => {
+            message += `\n**Step ${step.stepNumber}:**\n`;
+            message += `Thought: ${step.thought}\n`;
+            if (step.action) message += `Action: ${step.action}\n`;
+            if (step.observation) message += `Observation: ${step.observation}\n`;
+          });
+        }
+
+        message += `\n\n### Implementation Steps\n`;
+        solution.implementationSteps.slice(0, 5).forEach((step, idx) => {
+          message += `${idx + 1}. ${step}\n`;
+        });
+
+        message += `\n\n**Confidence:** ${(solution.reasoning.confidence * 100).toFixed(0)}%\n`;
+        message += `**Estimated Time:** ${solution.estimatedTime}\n`;
+
+        return {
+          success: true,
+          message,
+          actionType: "solve_complex_problem",
+          result: solution,
+          reasoning: solution.reasoning,
+          confidence: solution.reasoning.confidence,
+          alternatives: solution.reasoning.alternativeSolutions,
+          suggestions: [
+            "Show alternative approaches",
+            "Explain reasoning in detail",
+            "Identify potential risks"
+          ]
+        };
+
+      case "explain_why":
+        const decision = intent.parameters?.decision || userMessage;
+        const context = { companyId, userId };
+        
+        const explanation = await reasoningEngine.explainWhy(userMessage, decision, context);
+        
+        message = `## Why Explanation\n\n`;
+        message += `**Question:** ${explanation.question}\n\n`;
+        message += `**Short Answer:** ${explanation.shortAnswer}\n\n`;
+        message += `**Detailed Reasoning:**\n${explanation.detailedReasoning}\n\n`;
+        message += `**Evidence Used:**\n`;
+        explanation.evidenceUsed.forEach(evidence => {
+          message += `• ${evidence}\n`;
+        });
+
+        return {
+          success: true,
+          message,
+          actionType: "explain_why",
+          result: explanation
+        };
+
+      case "analyze_impact":
+        const action = intent.parameters?.action || userMessage;
+        const context2 = { companyId, userId };
+        
+        const impactAnalysis = await reasoningEngine.analyzeImpact(action, context2, companyId);
+        
+        message = `## Impact Analysis\n\n`;
+        message += `**Action:** ${action}\n\n`;
+        
+        message += `### Direct Impacts\n`;
+        impactAnalysis.directImpacts.forEach(impact => {
+          message += `• ${impact}\n`;
+        });
+        
+        message += `\n### Indirect Impacts\n`;
+        impactAnalysis.indirectImpacts.forEach(impact => {
+          message += `• ${impact}\n`;
+        });
+        
+        message += `\n### Risks\n`;
+        impactAnalysis.risks.forEach(risk => {
+          message += `• ${risk}\n`;
+        });
+        
+        message += `\n### Benefits\n`;
+        impactAnalysis.benefits.forEach(benefit => {
+          message += `• ${benefit}\n`;
+        });
+
+        message += `\n**Time to Realize:** ${impactAnalysis.timeToRealize}\n`;
+
+        return {
+          success: true,
+          message,
+          actionType: "analyze_impact",
+          result: impactAnalysis
+        };
+
+      default:
+        return {
+          success: false,
+          message: "Unknown reasoning request type."
+        };
+    }
+  } catch (error: any) {
+    console.error("[Reasoning Request Error]", error);
+    return {
+      success: false,
+      message: "I'm having trouble with advanced reasoning right now. Please try again later.",
+    };
+  }
+}

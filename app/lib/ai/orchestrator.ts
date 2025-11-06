@@ -706,7 +706,7 @@ async function handleDataQuery(
               if (years > 0) tenureParts.push(`${years}y`);
               if (months > 0) tenureParts.push(`${months}m`);
               if (tenureParts.length > 0) {
-                extraLines.push(`📅 Tenure: ${tenureParts.join(' ')}`);
+                extraLines.push(`📅 Tenure: ${buildFormattedList(tenureParts)}`);
               }
             }
           }

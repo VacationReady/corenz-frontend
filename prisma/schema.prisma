@@ -484,6 +484,8 @@ model Employee {
   ClockEntries                     ClockEntry[]                       @relation("ClockEntryEmployee")
   Shifts                           Shift[]                            @relation("ShiftEmployee")
   RotaGroupMemberships             RotaGroupMember[]                  @relation("RotaGroupMembers")
+  TimesheetEntryAuditsAsEmployee   TimesheetEntryAudit[]              @relation("TimesheetEntryAuditEmployee")
+  TimesheetEntryAuditsAsChanger    TimesheetEntryAudit[]              @relation("TimesheetEntryAuditChangedBy")
 
   @@unique([companyId, irdNumber])
 }
@@ -2998,6 +3000,7 @@ model TimesheetEntry {
   updatedAt   DateTime  @updatedAt
   
   Timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  AuditLogs   TimesheetEntryAudit[]
   
   @@index([timesheetId, date])
 }
@@ -3038,6 +3041,30 @@ model TimesheetApprovalDecision {
   @@unique([stageId, approverId])
   @@unique([stageId, order])
   @@index([approverId, status, isActive])
+}
+
+model TimesheetEntryAudit {
+  id              String   @id @default(cuid())
+  entryId         String
+  timesheetId     String
+  employeeId      String
+  changedById     String   // Manager/Admin who made the change
+  changeReason    String?  // Reason for the change
+  field           String   // Field that was changed (startTime, endTime, hours, etc.)
+  oldValue        String?  // JSON stringified old value
+  newValue        String?  // JSON stringified new value
+  changeType      String   // CREATED, UPDATED, DELETED
+  changedAt       DateTime @default(now())
+  companyId       String
+  
+  Entry           TimesheetEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  Employee        Employee       @relation("TimesheetEntryAuditEmployee", fields: [employeeId], references: [id])
+  ChangedBy       Employee       @relation("TimesheetEntryAuditChangedBy", fields: [changedById], references: [id])
+  
+  @@index([entryId, changedAt])
+  @@index([timesheetId, changedAt])
+  @@index([employeeId])
+  @@index([changedById])
 }
 
 model ShiftTemplate {

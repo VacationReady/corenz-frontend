@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Button from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Check, X, Eye, Filter, Users, Clock, Calendar as CalendarIcon, Sparkles, CheckCircle } from "lucide-react";
+import { Loader2, Check, X, Eye, Filter, Users, Clock, Calendar as CalendarIcon, Sparkles, CheckCircle, Edit2, History, Info } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import MyTimesheetsPanel from "@/components/time-tracking/MyTimesheetsPanel";
+import EditTimesheetEntryDialog from "@/components/time-tracking/EditTimesheetEntryDialog";
+import TimesheetAuditTrail from "@/components/time-tracking/TimesheetAuditTrail";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, subWeeks, subMonths, subQuarters } from "date-fns";
 
 type TimesheetEntry = {
@@ -27,6 +29,7 @@ type TimesheetEntry = {
   hours: number;
   notes?: string | null;
   isOvertime: boolean;
+  entryType: "CLOCK" | "MANUAL" | "ADJUSTED";
 };
 
 type Timesheet = {
@@ -69,6 +72,9 @@ export default function AdminTimesheetHubPage() {
   });
   const [processing, setProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState<"approvals" | "my-timesheets">("approvals");
+  const [editingEntry, setEditingEntry] = useState<TimesheetEntry | null>(null);
+  const [showAuditTrail, setShowAuditTrail] = useState(false);
+  const [auditTimesheetId, setAuditTimesheetId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Statistics
@@ -564,6 +570,16 @@ export default function AdminTimesheetHubPage() {
                         <Button variant="outline" size="sm" onClick={() => setPreviewSheet(timesheet)}>
                           <Eye className="h-4 w-4" />
                         </Button>
+                        {statusFilter === "approved" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPreviewSheet(timesheet)}
+                            title="Edit approved timesheet"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
                         {showBulkActions && (
                           <Button
                             variant="default"
@@ -626,20 +642,63 @@ export default function AdminTimesheetHubPage() {
                   </div>
 
                   <div>
-                    <p className="mb-3 text-sm font-medium">Timesheet Entries</p>
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-sm font-medium">Timesheet Entries</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setAuditTimesheetId(previewSheet.id);
+                          setShowAuditTrail(true);
+                        }}
+                      >
+                        <History className="mr-2 h-4 w-4" />
+                        View Audit Trail
+                      </Button>
+                    </div>
                     <div className="max-h-[400px] space-y-2 overflow-y-auto">
                       {previewSheet.entries.map((entry) => (
                         <div
                           key={entry.id}
                           className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm"
                         >
-                          <div className="mb-2 flex items-center justify-between">
-                            <span className="font-medium">
-                              {format(new Date(entry.date), "EEE, MMM d")}
-                            </span>
-                            <Badge variant={entry.isOvertime ? "destructive" : "secondary"} className="text-xs">
-                              {parseFloat(entry.hours.toString()).toFixed(2)}h
-                            </Badge>
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {format(new Date(entry.date), "EEE, MMM d")}
+                              </span>
+                              {entry.entryType === "CLOCK" && (
+                                <Badge variant="default" className="bg-blue-500 text-xs">
+                                  <Clock className="mr-1 h-3 w-3" />
+                                  Clock
+                                </Badge>
+                              )}
+                              {entry.entryType === "MANUAL" && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Manual
+                                </Badge>
+                              )}
+                              {entry.entryType === "ADJUSTED" && (
+                                <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs">
+                                  <Info className="mr-1 h-3 w-3" />
+                                  Adjusted
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={entry.isOvertime ? "destructive" : "secondary"} className="text-xs">
+                                {parseFloat(entry.hours.toString()).toFixed(2)}h
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setEditingEntry(entry)}
+                                title="Edit entry"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                           <div className="space-y-1 text-xs text-muted-foreground">
                             <div className="flex items-center justify-between">
@@ -732,6 +791,28 @@ export default function AdminTimesheetHubPage() {
           <MyTimesheetsPanel variant="embedded" />
         </TabsContent>
       </Tabs>
+
+      {/* Edit Entry Dialog */}
+      <EditTimesheetEntryDialog
+        entry={editingEntry}
+        open={!!editingEntry}
+        onOpenChange={(open) => !open && setEditingEntry(null)}
+        onSuccess={() => {
+          fetchData();
+          if (previewSheet) {
+            // Refresh preview sheet data
+            const updatedSheet = timesheets.find(t => t.id === previewSheet.id);
+            if (updatedSheet) setPreviewSheet(updatedSheet);
+          }
+        }}
+      />
+
+      {/* Audit Trail Sheet */}
+      <TimesheetAuditTrail
+        timesheetId={auditTimesheetId}
+        open={showAuditTrail}
+        onOpenChange={setShowAuditTrail}
+      />
     </div>
   );
 }

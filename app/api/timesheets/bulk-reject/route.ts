@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       where: { userId: session.user.id },
       select: {
         id: true,
+        userId: true,
         companyId: true,
         departmentId: true,
         User: {
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
               select: {
                 name: true,
                 email: true,
+                managerId: true,
               },
             },
             Department: true,
@@ -93,13 +95,18 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Managers can only reject their department
-        if (isManager && !isAdmin && timesheet.Employee.departmentId !== employee.departmentId) {
-          failed.push({
-            timesheetId: timesheet.id,
-            error: "Can only reject timesheets from your department",
-          });
-          continue;
+        // Managers can only reject their department OR direct reports
+        if (isManager && !isAdmin) {
+          const isInDepartment = timesheet.Employee.departmentId === employee.departmentId;
+          const isDirectReport = timesheet.Employee.User?.managerId === employee.userId;
+          
+          if (!isInDepartment && !isDirectReport) {
+            failed.push({
+              timesheetId: timesheet.id,
+              error: "Can only reject timesheets from your department or direct reports",
+            });
+            continue;
+          }
         }
 
         // Check if already rejected

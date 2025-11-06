@@ -58,9 +58,10 @@ export async function GET(req: NextRequest) {
       companyId: employee.companyId,
     };
 
-    const managerFilterGroups: any[] = [];
-
+    // MANAGERS: Restrict to their department and direct reports
     if (isManager && !isAdmin) {
+      const managerFilterGroups: any[] = [];
+
       if (employee.departmentId) {
         managerFilterGroups.push({ departmentId: employee.departmentId });
       }
@@ -76,6 +77,14 @@ export async function GET(req: NextRequest) {
       if (managerFilterGroups.length > 0) {
         employeeFilter.OR = managerFilterGroups;
       }
+      
+      // If manager selects a specific department filter, validate it's their department
+      if (departmentId && departmentId !== employee.departmentId) {
+        return NextResponse.json(
+          { error: "Managers can only view timesheets from their own department" },
+          { status: 403 }
+        );
+      }
     }
 
     const whereClause: any = {
@@ -83,20 +92,16 @@ export async function GET(req: NextRequest) {
       approvalStatus: "APPROVED",
     };
 
-    // Manager can only see their department
-    if (isManager && !isAdmin) {
-      if (!departmentId && employeeFilter.OR) {
-        // already scoped via OR (department or direct reports)
-      } else if (employee.departmentId) {
-        whereClause.Employee = {
-          ...employeeFilter,
-          departmentId: employee.departmentId,
-        };
-      }
+    // ADMIN: Apply department filter if specified
+    if (isAdmin && departmentId) {
+      whereClause.Employee = {
+        ...employeeFilter,
+        departmentId,
+      };
     }
-
-    // Apply filters
-    if (departmentId) {
+    
+    // MANAGER: If department filter specified and valid, apply it
+    if (isManager && !isAdmin && departmentId && departmentId === employee.departmentId) {
       whereClause.Employee = {
         ...employeeFilter,
         departmentId,

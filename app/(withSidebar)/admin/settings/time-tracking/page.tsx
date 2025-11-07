@@ -433,7 +433,7 @@ export default function TimeTrackingSettingsPage() {
                   </div>
                   <RadioGroup
                     value={settings.overtimeCalculationMode}
-                    onValueChange={(value: string) => updateSetting('overtimeCalculationMode', value)}
+                    onValueChange={(value) => updateSetting('overtimeCalculationMode', value as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'PATTERN_BASED')}
                     className="space-y-3"
                   >
                     <div className="flex items-start space-x-3 p-4 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">

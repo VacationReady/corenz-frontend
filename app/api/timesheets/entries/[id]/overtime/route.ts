@@ -26,7 +26,7 @@ const amendOvertimeSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -35,7 +35,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: entryId } = params;
+    const { id: entryId } = await params;
 
     // Get the timesheet entry
     const entry = await prisma.timesheetEntry.findUnique({
@@ -192,7 +192,7 @@ export async function PATCH(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -201,7 +201,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id: entryId } = params;
+    const { id: entryId } = await params;
 
     // Get amendment history
     const auditLogs = await prisma.overtimeAuditLog.findMany({

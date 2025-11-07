@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { Calendar, Clock, X, Plus, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, X, Plus, AlertCircle, TrendingUp, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AddManualEntryDialogProps {
@@ -23,6 +23,10 @@ export default function AddManualEntryDialog({
   const [timeOut, setTimeOut] = useState('17:00');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isOvertime, setIsOvertime] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [validationWarning, setValidationWarning] = useState<string | null>(null);
+  const [workingHours, setWorkingHours] = useState<{ start: string; end: string } | null>(null);
 
   const calculateHours = () => {
     if (!date || !timeIn || !timeOut) return 0;
@@ -36,6 +40,57 @@ export default function AddManualEntryDialog({
     const hours = diffMs / (1000 * 60 * 60);
     return Math.max(0, hours);
   };
+
+  // Validate overtime entry against working hours
+  const validateOvertimeEntry = async () => {
+    if (!isOvertime || !date || !timeIn || !timeOut) return;
+
+    setValidating(true);
+    setValidationWarning(null);
+
+    try {
+      const response = await fetch('/api/timesheets/entries/validate-overtime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: new Date(date).toISOString(),
+          startTime: `${date}T${timeIn}`,
+          endTime: `${date}T${timeOut}`,
+          isOvertime: true,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.isValid) {
+        setValidationWarning(result.errors[0]?.message || 'Invalid overtime entry');
+      } else {
+        setValidationWarning(null);
+      }
+
+      // Store working hours for display
+      if (result.workingHours) {
+        setWorkingHours(result.workingHours);
+      }
+    } catch (err) {
+      console.error('Validation error:', err);
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  // Validate when overtime is toggled or times change
+  React.useEffect(() => {
+    if (isOvertime) {
+      const timer = setTimeout(() => {
+        validateOvertimeEntry();
+      }, 500); // Debounce
+      return () => clearTimeout(timer);
+    } else {
+      setValidationWarning(null);
+      setWorkingHours(null);
+    }
+  }, [isOvertime, date, timeIn, timeOut]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +130,7 @@ export default function AddManualEntryDialog({
           clockInTime: startTime.toISOString(),
           clockOutTime: endTime.toISOString(),
           notes: notes.trim() || undefined,
+          isOvertime,
         }),
       });
 
@@ -94,6 +150,9 @@ export default function AddManualEntryDialog({
       setTimeIn('09:00');
       setTimeOut('17:00');
       setNotes('');
+      setIsOvertime(false);
+      setValidationWarning(null);
+      setWorkingHours(null);
       
       onSuccess?.();
       onClose();
@@ -156,6 +215,76 @@ export default function AddManualEntryDialog({
               <div>
                 <h4 className="font-semibold text-red-900 text-sm">Error</h4>
                 <p className="text-red-700 text-sm mt-0.5">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Entry Type Selection */}
+          <div className="space-y-3">
+            <label className="text-sm font-semibold text-slate-700">Entry Type</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setIsOvertime(false)}
+                disabled={loading}
+                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                  !isOvertime
+                    ? 'border-blue-500 bg-blue-50 shadow-sm'
+                    : 'border-slate-200 hover:border-slate-300'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <Clock className={`w-5 h-5 ${!isOvertime ? 'text-blue-600' : 'text-slate-400'}`} />
+                <div className="text-left">
+                  <div className={`font-semibold text-sm ${!isOvertime ? 'text-blue-900' : 'text-slate-700'}`}>
+                    Regular Time
+                  </div>
+                  <div className="text-xs text-slate-500">Standard hours</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsOvertime(true)}
+                disabled={loading}
+                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                  isOvertime
+                    ? 'border-amber-500 bg-amber-50 shadow-sm'
+                    : 'border-slate-200 hover:border-slate-300'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <TrendingUp className={`w-5 h-5 ${isOvertime ? 'text-amber-600' : 'text-slate-400'}`} />
+                <div className="text-left">
+                  <div className={`font-semibold text-sm ${isOvertime ? 'text-amber-900' : 'text-slate-700'}`}>
+                    Overtime
+                  </div>
+                  <div className="text-xs text-slate-500">Extra hours</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Working Hours Info */}
+          {isOvertime && workingHours && (
+            <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-semibold text-blue-900 mb-1">Your Regular Hours</p>
+                <p className="text-blue-700">
+                  {workingHours.start} - {workingHours.end}
+                </p>
+                <p className="text-blue-600 text-xs mt-1">
+                  Overtime must be outside these hours.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Validation Warning */}
+          {validationWarning && (
+            <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl animate-in slide-in-from-top-2 duration-200">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-amber-900 text-sm">Validation Warning</h4>
+                <p className="text-amber-700 text-sm mt-0.5">{validationWarning}</p>
               </div>
             </div>
           )}
@@ -247,6 +376,7 @@ export default function AddManualEntryDialog({
               <ul className="space-y-1 text-amber-800 list-disc list-inside">
                 <li>Manual entries will be included in your timesheet</li>
                 <li>Cannot overlap with existing clock entries</li>
+                {isOvertime && <li>Overtime must be outside regular working hours</li>}
                 <li>Subject to manager approval</li>
               </ul>
             </div>
@@ -264,7 +394,7 @@ export default function AddManualEntryDialog({
             </button>
             <button
               type="submit"
-              disabled={loading || hours <= 0}
+              disabled={loading || hours <= 0 || (isOvertime && validating) || (isOvertime && !!validationWarning)}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-medium shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
             >
               {loading ? (

@@ -2,9 +2,13 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { ArrowLeft, Send, X, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Send, X, Check, AlertCircle, TrendingUp, Edit3 } from 'lucide-react';
 import TimesheetTable from './TimesheetTable';
 import ApprovalTimeline from './ApprovalTimeline';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
 
 interface TimesheetDetailViewProps {
   timesheet: any;
@@ -13,10 +17,13 @@ interface TimesheetDetailViewProps {
   onApprove?: (comments?: string) => Promise<void>;
   onReject?: (reason: string) => Promise<void>;
   onDelete?: () => Promise<void>;
+  onAmendOvertime?: (entryId: string) => void;
   canEdit?: boolean;
   canSubmit?: boolean;
   canApprove?: boolean;
   isLoading?: boolean;
+  user?: { role: string };
+  settings?: { enableOvertimeBreakdown?: boolean };
 }
 
 export default function TimesheetDetailView({
@@ -26,10 +33,13 @@ export default function TimesheetDetailView({
   onApprove,
   onReject,
   onDelete,
+  onAmendOvertime,
   canEdit = false,
   canSubmit = false,
   canApprove = false,
   isLoading = false,
+  user,
+  settings,
 }: TimesheetDetailViewProps) {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -122,6 +132,14 @@ export default function TimesheetDetailView({
       }))
   );
 
+  // Filter overtime entries for breakdown
+  const overtimeEntries = resolvedEntries.filter((entry: any) => 
+    (entry.overtimeHours && parseFloat(entry.overtimeHours.toString()) > 0) || entry.isOvertime
+  );
+
+  // Check if user can amend overtime (admin or manager)
+  const canAmendOvertime = user && ['ADMIN', 'MANAGER'].includes(user.role);
+
   return (
     <div className="space-y-6 text-slate-900">
       {/* Header */}
@@ -213,6 +231,168 @@ export default function TimesheetDetailView({
         editable={canEdit}
         isLoading={isLoading}
       />
+
+      {/* Overtime Breakdown */}
+      {settings?.enableOvertimeBreakdown && overtimeEntries.length > 0 && (
+        <Card className="backdrop-blur-md bg-white/10 border-white/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              <TrendingUp className="h-5 w-5 text-amber-600" />
+              Overtime Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead className="font-semibold">Date</TableHead>
+                    <TableHead className="font-semibold">Time</TableHead>
+                    <TableHead className="font-semibold">Total</TableHead>
+                    <TableHead className="font-semibold">Regular</TableHead>
+                    <TableHead className="font-semibold text-amber-700">Overtime</TableHead>
+                    <TableHead className="font-semibold">Rate</TableHead>
+                    <TableHead className="font-semibold">Reason</TableHead>
+                    {canAmendOvertime && <TableHead className="font-semibold text-right">Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {overtimeEntries.map((entry: any) => {
+                    const entryDate = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
+                    const entryStart = typeof entry.startTime === 'string' ? new Date(entry.startTime) : entry.startTime;
+                    const entryEnd = typeof entry.endTime === 'string' ? new Date(entry.endTime) : entry.endTime;
+                    const totalHours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
+                    const regularHours = entry.regularHours 
+                      ? (typeof entry.regularHours === 'string' ? parseFloat(entry.regularHours) : entry.regularHours)
+                      : totalHours;
+                    const overtimeHours = entry.overtimeHours
+                      ? (typeof entry.overtimeHours === 'string' ? parseFloat(entry.overtimeHours) : entry.overtimeHours)
+                      : 0;
+                    const multiplier = entry.overtimeMultiplier || 1.5;
+
+                    return (
+                      <TableRow key={entry.id} className="hover:bg-slate-50">
+                        <TableCell className="font-medium">
+                          {format(entryDate, 'EEE, d MMM')}
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-600">
+                          {format(entryStart, 'HH:mm')} - {format(entryEnd, 'HH:mm')}
+                        </TableCell>
+                        <TableCell className="font-medium">{totalHours.toFixed(2)}h</TableCell>
+                        <TableCell>{regularHours.toFixed(2)}h</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-amber-600">{overtimeHours.toFixed(2)}h</span>
+                            {entry.managerAdjusted && (
+                              <Badge variant="outline" className="text-xs border-blue-400 text-blue-700">
+                                Adjusted
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-amber-100 text-amber-800 border-amber-300">
+                            {multiplier.toFixed(1)}×
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm max-w-xs truncate" title={entry.overtimeReason}>
+                          {entry.overtimeReason || '-'}
+                        </TableCell>
+                        {canAmendOvertime && (
+                          <TableCell className="text-right">
+                            {onAmendOvertime && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onAmendOvertime(entry.id)}
+                                className="text-xs"
+                              >
+                                <Edit3 className="w-3 h-3 mr-1" />
+                                Amend
+                              </Button>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-3">
+              {overtimeEntries.map((entry: any) => {
+                const entryDate = typeof entry.date === 'string' ? new Date(entry.date) : entry.date;
+                const entryStart = typeof entry.startTime === 'string' ? new Date(entry.startTime) : entry.startTime;
+                const entryEnd = typeof entry.endTime === 'string' ? new Date(entry.endTime) : entry.endTime;
+                const totalHours = typeof entry.hours === 'string' ? parseFloat(entry.hours) : entry.hours;
+                const regularHours = entry.regularHours 
+                  ? (typeof entry.regularHours === 'string' ? parseFloat(entry.regularHours) : entry.regularHours)
+                  : totalHours;
+                const overtimeHours = entry.overtimeHours
+                  ? (typeof entry.overtimeHours === 'string' ? parseFloat(entry.overtimeHours) : entry.overtimeHours)
+                  : 0;
+                const multiplier = entry.overtimeMultiplier || 1.5;
+
+                return (
+                  <div key={entry.id} className="p-4 border border-slate-200 rounded-lg bg-white">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="font-semibold text-slate-900">
+                          {format(entryDate, 'EEE, d MMM')}
+                        </div>
+                        <div className="text-sm text-slate-600">
+                          {format(entryStart, 'HH:mm')} - {format(entryEnd, 'HH:mm')}
+                        </div>
+                      </div>
+                      <Badge className="bg-amber-100 text-amber-800 border-amber-300">
+                        {multiplier.toFixed(1)}×
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-sm mb-3">
+                      <div>
+                        <div className="text-xs text-slate-500">Total</div>
+                        <div className="font-medium">{totalHours.toFixed(2)}h</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Regular</div>
+                        <div className="font-medium">{regularHours.toFixed(2)}h</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Overtime</div>
+                        <div className="font-bold text-amber-600">{overtimeHours.toFixed(2)}h</div>
+                      </div>
+                    </div>
+                    {entry.overtimeReason && (
+                      <div className="text-xs text-slate-600 mb-2">
+                        {entry.overtimeReason}
+                      </div>
+                    )}
+                    {entry.managerAdjusted && (
+                      <Badge variant="outline" className="text-xs border-blue-400 text-blue-700 mb-2">
+                        Adjusted
+                      </Badge>
+                    )}
+                    {canAmendOvertime && onAmendOvertime && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onAmendOvertime(entry.id)}
+                        className="w-full text-xs mt-2"
+                      >
+                        <Edit3 className="w-3 h-3 mr-1" />
+                        Amend Overtime
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Approval Timeline */}
       {timesheet.ApprovalStages && timesheet.ApprovalStages.length > 0 && (

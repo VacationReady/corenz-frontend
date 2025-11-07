@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { getTimesheetPeriod, calculateHours, calculateOvertime } from '@/lib/timesheet-calculations';
+import { calculateOvertimeForEntry, OvertimeSettings } from '@/lib/overtime-calculator';
 
 const generateTimesheetSchema = z.object({
   employeeId: z.string().optional(), // If not provided, generates for requesting user
@@ -166,9 +167,81 @@ export async function POST(req: NextRequest) {
       entryType: 'CLOCK' as const,
     }));
 
+    let createdEntries: any[] = [];
     if (timesheetEntries.length > 0) {
-      await prisma.timesheetEntry.createMany({
-        data: timesheetEntries,
+      // Create entries and get IDs back
+      for (const entryData of timesheetEntries) {
+        const created = await prisma.timesheetEntry.create({
+          data: entryData,
+        });
+        createdEntries.push(created);
+      }
+    }
+
+    // Auto-apply overtime calculation if enabled
+    if (settings?.autoApplyOvertime && createdEntries.length > 0) {
+      const overtimeSettings: OvertimeSettings = {
+        overtimeCalculationMode: (settings.overtimeCalculationMode as any) || 'PATTERN_BASED',
+        autoApplyOvertime: settings.autoApplyOvertime,
+        dailyOvertimeThreshold: settings.dailyOvertimeThreshold ? Number(settings.dailyOvertimeThreshold) : undefined,
+        weeklyOvertimeThreshold: settings.weeklyOvertimeThreshold ? Number(settings.weeklyOvertimeThreshold) : undefined,
+        monthlyOvertimeThreshold: settings.monthlyOvertimeThreshold ? Number(settings.monthlyOvertimeThreshold) : undefined,
+        overtimeMultiplier: Number(settings.overtimeMultiplier || 1.5),
+        overtimeMultiplierTier2: settings.overtimeMultiplierTier2 ? Number(settings.overtimeMultiplierTier2) : undefined,
+        overtimeThresholdTier2: settings.overtimeThresholdTier2 ? Number(settings.overtimeThresholdTier2) : undefined,
+        publicHolidayMultiplier: Number(settings.publicHolidayMultiplier || 1.5),
+        sundayMultiplier: settings.sundayMultiplier ? Number(settings.sundayMultiplier) : undefined,
+      };
+
+      // Calculate overtime for each entry
+      for (const entry of createdEntries) {
+        try {
+          const overtimeResult = await calculateOvertimeForEntry(
+            {
+              id: entry.id,
+              date: new Date(entry.date),
+              hours: Number(entry.hours),
+              timesheetId: entry.timesheetId,
+            },
+            targetEmployeeId,
+            requestingEmployee.companyId,
+            overtimeSettings
+          );
+
+          // Update entry with overtime calculations
+          await prisma.timesheetEntry.update({
+            where: { id: entry.id },
+            data: {
+              regularHours: overtimeResult.regularHours,
+              overtimeHours: overtimeResult.overtimeHours,
+              overtimeMultiplier: overtimeResult.overtimeMultiplier,
+              overtimeType: overtimeResult.overtimeType,
+              overtimeReason: overtimeResult.overtimeReason,
+              isOvertime: overtimeResult.overtimeHours > 0,
+            },
+          });
+        } catch (overtimeError) {
+          console.error(`Failed to calculate overtime for entry ${entry.id}:`, overtimeError);
+          // Continue processing other entries even if one fails
+        }
+      }
+
+      // Recalculate timesheet totals after overtime application
+      const updatedEntries = await prisma.timesheetEntry.findMany({
+        where: { timesheetId: timesheet.id },
+      });
+
+      const newTotalHours = updatedEntries.reduce((sum, e) => sum + Number(e.hours), 0);
+      const newRegularHours = updatedEntries.reduce((sum, e) => sum + Number(e.regularHours || e.hours), 0);
+      const newOvertimeHours = updatedEntries.reduce((sum, e) => sum + Number(e.overtimeHours || 0), 0);
+
+      await prisma.timesheet.update({
+        where: { id: timesheet.id },
+        data: {
+          totalHours: newTotalHours,
+          regularHours: newRegularHours,
+          overtimeHours: newOvertimeHours,
+        },
       });
     }
 

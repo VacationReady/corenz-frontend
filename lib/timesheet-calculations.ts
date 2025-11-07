@@ -15,6 +15,13 @@ export function calculateHours(
 
 /**
  * Calculate overtime hours based on threshold
+ * 
+ * @deprecated This is a legacy simple threshold calculator.
+ * For NZ Employment Relations Act 2000 compliant overtime calculation 
+ * with multi-week pattern support, use:
+ * - `calculateOvertimeForEntry` from `lib/overtime-calculator.ts`
+ * 
+ * This function is kept for backward compatibility only.
  */
 export function calculateOvertime(
   totalHours: number,

@@ -89,6 +89,21 @@ const settingsUpdateSchema = z.object({
   requireBreaks: z.boolean().optional(),
   minBreakDuration: z.coerce.number().int().min(0).max(120).optional(),
 
+  // Enhanced overtime configuration (NZ Employment Relations Act 2000)
+  overtimeCalculationMode: z.enum(['DAILY', 'WEEKLY', 'MONTHLY', 'PATTERN_BASED']).optional(),
+  autoApplyOvertime: z.boolean().optional(),
+  allowManualOvertimeEntry: z.boolean().optional(),
+  blockOvertimeDuringHours: z.boolean().optional(),
+  requireOvertimeApproval: z.boolean().optional(),
+  dailyOvertimeThreshold: z.coerce.number().min(0).max(24).optional().nullable(),
+  weeklyOvertimeThreshold: z.coerce.number().min(0).max(168).optional().nullable(),
+  monthlyOvertimeThreshold: z.coerce.number().min(0).max(744).optional().nullable(),
+  overtimeMultiplierTier2: z.coerce.number().min(1.0).max(3.0).optional().nullable(),
+  overtimeThresholdTier2: z.coerce.number().min(0).max(100).optional().nullable(),
+  publicHolidayMultiplier: z.coerce.number().min(1.0).max(3.0).optional(),
+  sundayMultiplier: z.coerce.number().min(1.0).max(3.0).optional().nullable(),
+  enableOvertimeBreakdown: z.boolean().optional(),
+
   // Export settings
   payrollExportFormat: z.enum(['CSV', 'EXCEL', 'JSON']).optional(),
   includeBreaks: z.boolean().optional(),
@@ -164,6 +179,13 @@ export async function GET(req: NextRequest) {
       ...settings,
       overtimeThreshold: settings.overtimeThreshold ? Number(settings.overtimeThreshold) : 40,
       overtimeMultiplier: settings.overtimeMultiplier ? Number(settings.overtimeMultiplier) : 1.5,
+      dailyOvertimeThreshold: settings.dailyOvertimeThreshold ? Number(settings.dailyOvertimeThreshold) : null,
+      weeklyOvertimeThreshold: settings.weeklyOvertimeThreshold ? Number(settings.weeklyOvertimeThreshold) : null,
+      monthlyOvertimeThreshold: settings.monthlyOvertimeThreshold ? Number(settings.monthlyOvertimeThreshold) : null,
+      overtimeMultiplierTier2: settings.overtimeMultiplierTier2 ? Number(settings.overtimeMultiplierTier2) : null,
+      overtimeThresholdTier2: settings.overtimeThresholdTier2 ? Number(settings.overtimeThresholdTier2) : null,
+      publicHolidayMultiplier: settings.publicHolidayMultiplier ? Number(settings.publicHolidayMultiplier) : 1.5,
+      sundayMultiplier: settings.sundayMultiplier ? Number(settings.sundayMultiplier) : null,
     };
 
     return NextResponse.json({ settings: settingsFormatted });
@@ -247,6 +269,13 @@ export async function PUT(req: NextRequest) {
       ...settings,
       overtimeThreshold: settings.overtimeThreshold ? Number(settings.overtimeThreshold) : 40,
       overtimeMultiplier: settings.overtimeMultiplier ? Number(settings.overtimeMultiplier) : 1.5,
+      dailyOvertimeThreshold: settings.dailyOvertimeThreshold ? Number(settings.dailyOvertimeThreshold) : null,
+      weeklyOvertimeThreshold: settings.weeklyOvertimeThreshold ? Number(settings.weeklyOvertimeThreshold) : null,
+      monthlyOvertimeThreshold: settings.monthlyOvertimeThreshold ? Number(settings.monthlyOvertimeThreshold) : null,
+      overtimeMultiplierTier2: settings.overtimeMultiplierTier2 ? Number(settings.overtimeMultiplierTier2) : null,
+      overtimeThresholdTier2: settings.overtimeThresholdTier2 ? Number(settings.overtimeThresholdTier2) : null,
+      publicHolidayMultiplier: settings.publicHolidayMultiplier ? Number(settings.publicHolidayMultiplier) : 1.5,
+      sundayMultiplier: settings.sundayMultiplier ? Number(settings.sundayMultiplier) : null,
     };
 
     return NextResponse.json({

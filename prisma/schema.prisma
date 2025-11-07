@@ -229,6 +229,7 @@ model Company {
   CompanyObjectives                   CompanyObjective[]
   TenantSwitchTokens                  TenantSwitchToken[]
   RotaGroups                          RotaGroup[]
+  OvertimeAuditLogs                   OvertimeAuditLog[]
 }
 
 model ContractTypeOption {
@@ -447,6 +448,12 @@ model Employee {
   siteLocation                     String?
   irdNumber                        String?
   taxCode                          TaxCode?
+  // Overtime configuration (NZ Employment Relations Act 2000 compliance)
+  overtimeEligible                 Boolean                            @default(true)
+  overtimeThreshold                Decimal?                           @db.Decimal(5, 2) // Override company default
+  overtimeMultiplier               Decimal?                           @db.Decimal(3, 2) // Override company default
+  overtimeCalculationMode          String?                            // Override company mode
+  maxOvertimeHoursPerWeek          Decimal?                           @db.Decimal(4, 2) // Safety/compliance cap
   Document                         Document[]
   DocumentAcknowledgement          DocumentAcknowledgement[]
   DocumentSignatureArtifact        DocumentSignatureArtifact[]
@@ -486,6 +493,7 @@ model Employee {
   RotaGroupMemberships             RotaGroupMember[]                  @relation("RotaGroupMembers")
   TimesheetEntryAuditsAsEmployee   TimesheetEntryAudit[]              @relation("TimesheetEntryAuditEmployee")
   TimesheetEntryAuditsAsChanger    TimesheetEntryAudit[]              @relation("TimesheetEntryAuditChangedBy")
+  OvertimeAuditLogs                OvertimeAuditLog[]
 
   @@unique([companyId, irdNumber])
 }
@@ -1690,6 +1698,9 @@ model WorkingPatternDay {
   id                   String             @id
   day                  String
   type                 DayType
+  hoursPerDay          Decimal?           @db.Decimal(4, 2) // e.g., 7.5, 8.0, 10.0
+  startTime            String?            // e.g., "09:00" (24-hour format)
+  endTime              String?            // e.g., "17:00" (24-hour format)
   workingPatternWeekId String
   WorkingPatternWeek   WorkingPatternWeek @relation(fields: [workingPatternWeekId], references: [id], onDelete: Cascade)
 
@@ -1699,6 +1710,7 @@ model WorkingPatternDay {
 model WorkingPatternWeek {
   id                String              @id
   weekNumber        Int
+  totalHours        Decimal             @db.Decimal(5, 2) @default(0.00) // Auto-calculated sum of day hours
   workingPatternId  String
   WorkingPatternDay WorkingPatternDay[]
   WorkingPattern    WorkingPattern      @relation(fields: [workingPatternId], references: [id], onDelete: Cascade)
@@ -2986,23 +2998,35 @@ model Timesheet {
 }
 
 model TimesheetEntry {
-  id          String    @id @default(cuid())
-  timesheetId String
-  date        DateTime
-  startTime   DateTime
-  endTime     DateTime
-  breakMinutes Int      @default(0)
-  hours       Decimal   @db.Decimal(10, 2)
-  isOvertime  Boolean   @default(false)
-  notes       String?
-  entryType   TimesheetEntryType @default(MANUAL)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  timesheetId           String
+  date                  DateTime
+  startTime             DateTime
+  endTime               DateTime
+  breakMinutes          Int       @default(0)
+  hours                 Decimal   @db.Decimal(10, 2)
+  isOvertime            Boolean   @default(false)
+  // Enhanced overtime tracking (NZ Employment Relations Act 2000 compliance)
+  overtimeType          String?   // MANUAL, AUTO_DAILY, AUTO_WEEKLY, AUTO_MONTHLY, AUTO_PATTERN, MANAGER_ADJUSTED
+  overtimeHours         Decimal?  @db.Decimal(5, 2) // Actual OT hours for this entry
+  regularHours          Decimal?  @db.Decimal(5, 2) // Regular hours for this entry
+  overtimeMultiplier    Decimal?  @db.Decimal(3, 2) // Rate applied (1.5x, 2.0x)
+  overtimeReason        String?   // Explanation of why it's OT
+  managerAdjusted       Boolean   @default(false)
+  managerAdjustedBy     String?   // User ID of manager who adjusted
+  managerAdjustedAt     DateTime? // When the adjustment was made
+  managerAdjustmentNote String?   // Reason for manager adjustment
+  notes                 String?
+  entryType             TimesheetEntryType @default(MANUAL)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   
-  Timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-  AuditLogs   TimesheetEntryAudit[]
+  Timesheet             Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  AuditLogs             TimesheetEntryAudit[]
+  OvertimeAuditLogs     OvertimeAuditLog[]
   
   @@index([timesheetId, date])
+  @@index([date, isOvertime])
 }
 
 model TimesheetApprovalStage {
@@ -3324,31 +3348,45 @@ model ComplianceViolation {
 }
 
 model TimeTrackingSettings {
-  id                   String   @id @default(cuid())
-  companyId            String   @unique
-  requireGPS           Boolean  @default(false)
-  requirePhoto         String   @default("NO") // NO, CLOCK_IN, BOTH
-  allowMobileClock     Boolean  @default(true)
-  geofenceLocations    Json?    // [{lat, lng, radius, name}]
-  roundClockTimes      String   @default("NONE") // NONE, 15MIN, 30MIN
-  autoClockOutHours    Int?
-  timesheetPeriod      String   @default("WEEKLY") // WEEKLY, BIWEEKLY, MONTHLY
-  periodStartDay       String   @default("MONDAY") // MONDAY, SUNDAY, 1ST
-  autoSubmit           Boolean  @default(false)
-  defaultWorkflowId    String?
-  allowEditAfterSubmit Boolean  @default(false)
-  autoSchedulingEnabled Boolean @default(false)
-  publishDaysAdvance   Int      @default(7)
-  requireShiftConfirm  Boolean  @default(false)
-  allowShiftSwaps      Boolean  @default(true)
-  managerApprovalSwaps Boolean  @default(true)
-  minimumRestHours     Int      @default(11)
-  includeOvertimeExport Boolean @default(true)
-  overtimeThreshold    Decimal  @db.Decimal(5, 2) @default(40.00)
-  overtimeMultiplier   Decimal  @db.Decimal(3, 2) @default(1.50)
-  exportFormat         String   @default("CSV") // CSV, EXCEL, JSON
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  companyId               String   @unique
+  requireGPS              Boolean  @default(false)
+  requirePhoto            String   @default("NO") // NO, CLOCK_IN, BOTH
+  allowMobileClock        Boolean  @default(true)
+  geofenceLocations       Json?    // [{lat, lng, radius, name}]
+  roundClockTimes         String   @default("NONE") // NONE, 15MIN, 30MIN
+  autoClockOutHours       Int?
+  timesheetPeriod         String   @default("WEEKLY") // WEEKLY, BIWEEKLY, MONTHLY
+  periodStartDay          String   @default("MONDAY") // MONDAY, SUNDAY, 1ST
+  autoSubmit              Boolean  @default(false)
+  defaultWorkflowId       String?
+  allowEditAfterSubmit    Boolean  @default(false)
+  autoSchedulingEnabled   Boolean  @default(false)
+  publishDaysAdvance      Int      @default(7)
+  requireShiftConfirm     Boolean  @default(false)
+  allowShiftSwaps         Boolean  @default(true)
+  managerApprovalSwaps    Boolean  @default(true)
+  minimumRestHours        Int      @default(11)
+  includeOvertimeExport   Boolean  @default(true)
+  overtimeThreshold       Decimal  @db.Decimal(5, 2) @default(40.00)
+  overtimeMultiplier      Decimal  @db.Decimal(3, 2) @default(1.50)
+  // Enhanced overtime configuration (NZ Employment Relations Act 2000 compliance)
+  overtimeCalculationMode String   @default("WEEKLY") // DAILY, WEEKLY, MONTHLY, PATTERN_BASED
+  autoApplyOvertime       Boolean  @default(true)    // Auto-calculate OT from clock entries
+  allowManualOvertimeEntry Boolean @default(true)    // Can employees mark manual entries as OT
+  blockOvertimeDuringHours Boolean @default(true)    // Block manual OT during regular working hours
+  requireOvertimeApproval Boolean  @default(false)   // Extra approval step for OT
+  dailyOvertimeThreshold  Decimal? @db.Decimal(4, 2) // e.g., 8.0 hours
+  weeklyOvertimeThreshold Decimal? @db.Decimal(5, 2) // e.g., 40.0 hours
+  monthlyOvertimeThreshold Decimal? @db.Decimal(6, 2) // e.g., 173.33 hours
+  overtimeMultiplierTier2 Decimal? @db.Decimal(3, 2) // e.g., 2.0x for double time
+  overtimeThresholdTier2  Decimal? @db.Decimal(5, 2) // Hours to trigger tier 2 rate
+  publicHolidayMultiplier Decimal  @db.Decimal(3, 2) @default(1.50) // NZ public holiday rate
+  sundayMultiplier        Decimal? @db.Decimal(3, 2) // Optional Sunday premium
+  enableOvertimeBreakdown Boolean  @default(true)    // Show detailed OT breakdown in UI
+  exportFormat            String   @default("CSV")  // CSV, EXCEL, JSON
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
   
   @@index([companyId])
 }
@@ -3368,6 +3406,29 @@ model PushNotificationToken {
   @@unique([employeeId, deviceId])
   @@index([employeeId])
   @@index([token])
+}
+
+model OvertimeAuditLog {
+  id               String   @id @default(cuid())
+  timesheetEntryId String
+  employeeId       String
+  companyId        String
+  action           String   // CALCULATED, MANUAL_ENTRY, MANAGER_OVERRIDE, REJECTED, APPROVED
+  previousValues   Json?    // Snapshot before change
+  newValues        Json     // Snapshot after change
+  calculationMethod String? // DAILY_THRESHOLD, WEEKLY_PATTERN, MONTHLY_THRESHOLD, etc.
+  triggeredBy      String   // User ID who triggered the action
+  triggeredAt      DateTime @default(now())
+  reason           String?  // Explanation for action
+  
+  TimesheetEntry   TimesheetEntry @relation(fields: [timesheetEntryId], references: [id], onDelete: Cascade)
+  Employee         Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Company          Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([timesheetEntryId])
+  @@index([employeeId, triggeredAt])
+  @@index([companyId, triggeredAt])
+  @@index([action])
 }
 
 enum ObjectiveVisibility {

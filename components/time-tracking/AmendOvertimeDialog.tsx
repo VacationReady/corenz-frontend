@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { X, AlertCircle, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Input } from '@/app/components/ui/Input';
+import { Input } from '@/components/ui/Input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -168,7 +168,7 @@ export default function AmendOvertimeDialog({
                   max={totalHours}
                   step="0.25"
                   value={regularHours}
-                  onChange={(e) => {
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const value = parseFloat(e.target.value) || 0;
                     setRegularHours(value);
                     setOvertimeHours(totalHours - value);
@@ -186,7 +186,7 @@ export default function AmendOvertimeDialog({
                   max={totalHours}
                   step="0.25"
                   value={overtimeHours}
-                  onChange={(e) => {
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const value = parseFloat(e.target.value) || 0;
                     setOvertimeHours(value);
                     setRegularHours(totalHours - value);
@@ -236,7 +236,7 @@ export default function AmendOvertimeDialog({
             <Label htmlFor="multiplier">Overtime Rate Multiplier</Label>
             <Select 
               value={multiplier.toString()} 
-              onValueChange={(value) => setMultiplier(parseFloat(value))}
+              onValueChange={(value: string) => setMultiplier(parseFloat(value))}
               disabled={loading}
             >
               <SelectTrigger id="multiplier" className="bg-white">

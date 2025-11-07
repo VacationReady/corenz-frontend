@@ -6,7 +6,7 @@ import { ArrowLeft, Send, X, Check, AlertCircle, TrendingUp, Edit3 } from 'lucid
 import TimesheetTable from './TimesheetTable';
 import ApprovalTimeline from './ApprovalTimeline';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 

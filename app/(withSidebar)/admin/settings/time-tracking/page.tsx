@@ -11,8 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Info, Save, RotateCcw, Clock, Calendar, MapPin, FileText, TrendingUp } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
-import { Input } from "@/app/components/ui/Input";
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Input } from '@/components/ui/Input';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type TimeTrackingSettings = {
@@ -433,7 +433,7 @@ export default function TimeTrackingSettingsPage() {
                   </div>
                   <RadioGroup
                     value={settings.overtimeCalculationMode}
-                    onValueChange={(value) => updateSetting('overtimeCalculationMode', value as any)}
+                    onValueChange={(value: string) => updateSetting('overtimeCalculationMode', value)}
                     className="space-y-3"
                   >
                     <div className="flex items-start space-x-3 p-4 rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
@@ -491,7 +491,10 @@ export default function TimeTrackingSettingsPage() {
                           max="24"
                           step="0.5"
                           value={settings.dailyOvertimeThreshold || 8}
-                          onChange={(e) => updateSetting('dailyOvertimeThreshold', parseFloat(e.target.value))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            updateSetting('dailyOvertimeThreshold', val);
+                          }}
                           className="bg-white"
                         />
                       </div>
@@ -506,7 +509,10 @@ export default function TimeTrackingSettingsPage() {
                           max="168"
                           step="0.5"
                           value={settings.weeklyOvertimeThreshold || 40}
-                          onChange={(e) => updateSetting('weeklyOvertimeThreshold', parseFloat(e.target.value))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            updateSetting('weeklyOvertimeThreshold', val);
+                          }}
                           className="bg-white"
                         />
                       </div>
@@ -521,7 +527,10 @@ export default function TimeTrackingSettingsPage() {
                           max="744"
                           step="0.5"
                           value={settings.monthlyOvertimeThreshold || 173.33}
-                          onChange={(e) => updateSetting('monthlyOvertimeThreshold', parseFloat(e.target.value))}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            updateSetting('monthlyOvertimeThreshold', val);
+                          }}
                           className="bg-white"
                         />
                       </div>
@@ -553,7 +562,10 @@ export default function TimeTrackingSettingsPage() {
                         max="3.0"
                         step="0.1"
                         value={settings.overtimeMultiplier || 1.5}
-                        onChange={(e) => updateSetting('overtimeMultiplier', parseFloat(e.target.value))}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const val = parseFloat(e.target.value) || 1.5;
+                          updateSetting('overtimeMultiplier', val);
+                        }}
                         className="bg-white"
                       />
                       <p className="text-xs text-muted-foreground">Default: 1.5× (time and a half)</p>
@@ -567,7 +579,10 @@ export default function TimeTrackingSettingsPage() {
                         max="3.0"
                         step="0.1"
                         value={settings.publicHolidayMultiplier || 1.5}
-                        onChange={(e) => updateSetting('publicHolidayMultiplier', parseFloat(e.target.value))}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const val = parseFloat(e.target.value) || 1.5;
+                          updateSetting('publicHolidayMultiplier', val);
+                        }}
                         className="bg-white"
                       />
                       <p className="text-xs text-muted-foreground">NZ law minimum: 1.5×</p>
@@ -581,7 +596,10 @@ export default function TimeTrackingSettingsPage() {
                         max="3.0"
                         step="0.1"
                         value={settings.overtimeMultiplierTier2 || ''}
-                        onChange={(e) => updateSetting('overtimeMultiplierTier2', e.target.value ? parseFloat(e.target.value) : null)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const val = parseFloat(e.target.value) || 2.0;
+                          updateSetting('overtimeMultiplierTier2', val);
+                        }}
                         placeholder="e.g., 2.0 for double time"
                         className="bg-white"
                       />
@@ -595,7 +613,10 @@ export default function TimeTrackingSettingsPage() {
                         max="100"
                         step="0.5"
                         value={settings.overtimeThresholdTier2 || ''}
-                        onChange={(e) => updateSetting('overtimeThresholdTier2', e.target.value ? parseFloat(e.target.value) : null)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          updateSetting('overtimeThresholdTier2', val);
+                        }}
                         placeholder="e.g., 10 hours"
                         disabled={!settings.overtimeMultiplierTier2}
                         className="bg-white"
@@ -613,7 +634,10 @@ export default function TimeTrackingSettingsPage() {
                         max="3.0"
                         step="0.1"
                         value={settings.sundayMultiplier || ''}
-                        onChange={(e) => updateSetting('sundayMultiplier', e.target.value ? parseFloat(e.target.value) : null)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          updateSetting('sundayMultiplier', val);
+                        }}
                         placeholder="e.g., 1.5 for Sunday premium"
                         className="bg-white"
                       />

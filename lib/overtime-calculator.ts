@@ -21,6 +21,7 @@ import {
   isSunday,
   format,
 } from 'date-fns';
+import { isNZPublicHoliday } from './public-holiday-checker';
 
 const prisma = new PrismaClient();
 
@@ -196,14 +197,6 @@ async function getMonthTimesheetEntries(
   return entries;
 }
 
-/**
- * Check if date is a New Zealand public holiday
- * TODO: Implement proper NZ public holiday checking
- */
-function isNZPublicHoliday(date: Date): boolean {
-  // Placeholder - should integrate with company's public holiday calendar
-  return false;
-}
 
 /**
  * Calculate overtime for a timesheet entry
@@ -237,7 +230,10 @@ export async function calculateOvertimeForEntry(
   let multiplier = baseMultiplier;
   let specialDayReason = '';
 
-  if (isNZPublicHoliday(entry.date)) {
+  // Check if date is a public holiday
+  const isPublicHoliday = await isNZPublicHoliday(entry.date, companyId);
+  
+  if (isPublicHoliday) {
     multiplier = settings.publicHolidayMultiplier;
     specialDayReason = ' (Public Holiday)';
   } else if (settings.sundayMultiplier && isSunday(entry.date)) {

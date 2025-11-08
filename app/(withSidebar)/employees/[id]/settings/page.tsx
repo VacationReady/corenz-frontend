@@ -14,6 +14,13 @@ import { PermissionProfileManagement } from "@/components/employees/PermissionPr
 export default async function EmployeeSettingsPage(context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
   const session = await getServerSession(authOptions);
+  if (!session || !session.user?.id || !session.user.companyId) {
+    return (
+      <div className="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+        You do not have permission to view these settings. Please contact your administrator if you believe this is an error.
+      </div>
+    );
+  }
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

@@ -20,7 +20,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 type NextAuthModule = typeof import('next-auth');
-type MockedGetServerSession = ReturnType<(typeof mock)['method']<NextAuthModule, 'getServerSession'>>;
+type MockedGetServerSession = ReturnType<typeof mock.method>;
 type PatchHandler = typeof import('@/app/api/timesheets/entries/[id]/route')['PATCH'];
 
 let getServerSessionMock: MockedGetServerSession;

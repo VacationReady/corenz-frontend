@@ -56,11 +56,259 @@ export interface OvertimeCalculationResult {
   overtimeReason: string;
 }
 
+/**
+ * Detailed breakdown for audit trail and compliance
+ */
+export interface OvertimeBreakdownItem {
+  type: 'regular' | 'overtime' | 'public_holiday' | 'sunday_premium';
+  hours: number;
+  multiplier: number;
+  description: string;
+}
+
+/**
+ * Enhanced calculation result with full audit trail
+ * Compliant with NZ Employment Relations Act 2000 record-keeping requirements
+ */
+export interface DetailedOvertimeResult {
+  regularHours: number;
+  overtimeHours: number;
+  overtimeMultiplier: number;
+  isPublicHoliday: boolean;
+  reason: string;
+  breakdown: OvertimeBreakdownItem[];
+  calculationTimestamp: Date;
+  calculationMode: OvertimeCalculationMode;
+}
+
+/**
+ * Input for pure overtime calculation (no database dependencies)
+ */
+export interface PureOvertimeInput {
+  hoursWorked: number;
+  dailyThreshold: number;
+  weeklyThreshold?: number;
+  monthlyThreshold?: number;
+  weekTotalHours?: number;
+  monthTotalHours?: number;
+  isPublicHoliday: boolean;
+  isSunday: boolean;
+  baseMultiplier: number;
+  publicHolidayMultiplier: number;
+  sundayMultiplier?: number;
+  tier2Multiplier?: number;
+  tier2Threshold?: number;
+  mode: OvertimeCalculationMode;
+  date: Date;
+}
+
 export interface TimesheetEntryInput {
   id: string;
   date: Date;
   hours: number;
   timesheetId: string;
+}
+
+/**
+ * Pure overtime calculation function (no database dependencies)
+ * 
+ * Implements NZ Employment Relations Act 2000 compliant overtime calculation
+ * with detailed audit trail and breakdown for record-keeping requirements.
+ * 
+ * **Compliance Features:**
+ * - Accurate separation of regular and overtime hours
+ * - Public holiday detection and premium rates (Holidays Act 2003)
+ * - Detailed breakdown for 6-year audit retention
+ * - Performance logging for compliance monitoring
+ * 
+ * **Calculation Logic:**
+ * 1. Determine applicable multiplier (public holiday > Sunday > base)
+ * 2. Calculate overtime based on mode (DAILY, WEEKLY, MONTHLY, PATTERN_BASED)
+ * 3. Apply tier 2 multiplier if applicable
+ * 4. Generate detailed breakdown for audit trail
+ * 
+ * @param input - Pure calculation input (no database dependencies)
+ * @returns Detailed result with breakdown and compliance metadata
+ * 
+ * @example
+ * ```typescript
+ * const result = calculatePureOvertime({
+ *   hoursWorked: 10,
+ *   dailyThreshold: 8,
+ *   isPublicHoliday: false,
+ *   isSunday: false,
+ *   baseMultiplier: 1.5,
+ *   publicHolidayMultiplier: 2.0,
+ *   mode: 'DAILY',
+ *   date: new Date('2024-06-04')
+ * });
+ * // Result: { regularHours: 8, overtimeHours: 2, multiplier: 1.5, ... }
+ * ```
+ * 
+ * @performance Target: <10ms per calculation
+ * @compliance NZ Employment Relations Act 2000, Holidays Act 2003
+ */
+export function calculatePureOvertime(input: PureOvertimeInput): DetailedOvertimeResult {
+  const startTime = performance.now();
+  
+  // Step 1: Determine applicable multiplier based on day type
+  let appliedMultiplier = input.baseMultiplier;
+  let dayType: 'regular' | 'public_holiday' | 'sunday_premium' = 'regular';
+  let specialDayNote = '';
+  
+  if (input.isPublicHoliday) {
+    appliedMultiplier = input.publicHolidayMultiplier;
+    dayType = 'public_holiday';
+    specialDayNote = ' (Public Holiday)';
+  } else if (input.isSunday && input.sundayMultiplier) {
+    appliedMultiplier = input.sundayMultiplier;
+    dayType = 'sunday_premium';
+    specialDayNote = ' (Sunday Premium)';
+  }
+  
+  // Step 2: Calculate overtime based on mode
+  let regularHours = 0;
+  let overtimeHours = 0;
+  let reason = '';
+  let overtimeType: 'regular' | 'overtime' = 'regular';
+  
+  switch (input.mode) {
+    case 'DAILY':
+      if (input.hoursWorked <= input.dailyThreshold) {
+        regularHours = input.hoursWorked;
+        overtimeHours = 0;
+        reason = input.hoursWorked === 0 
+          ? 'No hours worked' 
+          : `Within daily threshold (${input.dailyThreshold}h)${specialDayNote}`;
+      } else {
+        regularHours = input.dailyThreshold;
+        overtimeHours = input.hoursWorked - input.dailyThreshold;
+        overtimeType = 'overtime';
+        reason = `Exceeded daily threshold (${input.dailyThreshold}h)${specialDayNote}`;
+      }
+      break;
+      
+    case 'WEEKLY':
+      if (!input.weekTotalHours || !input.weeklyThreshold) {
+        // Fallback to daily if weekly data not provided
+        return calculatePureOvertime({ ...input, mode: 'DAILY' });
+      }
+      
+      if (input.weekTotalHours <= input.weeklyThreshold) {
+        regularHours = input.hoursWorked;
+        overtimeHours = 0;
+        reason = `Week total (${input.weekTotalHours.toFixed(1)}h) within threshold (${input.weeklyThreshold}h)${specialDayNote}`;
+      } else {
+        const weekOvertimeHours = input.weekTotalHours - input.weeklyThreshold;
+        const entryProportion = input.hoursWorked / input.weekTotalHours;
+        overtimeHours = weekOvertimeHours * entryProportion;
+        regularHours = input.hoursWorked - overtimeHours;
+        overtimeType = 'overtime';
+        reason = `Week total (${input.weekTotalHours.toFixed(1)}h) exceeded threshold (${input.weeklyThreshold}h)${specialDayNote}`;
+      }
+      break;
+      
+    case 'MONTHLY':
+      if (!input.monthTotalHours || !input.monthlyThreshold) {
+        // Fallback to daily if monthly data not provided
+        return calculatePureOvertime({ ...input, mode: 'DAILY' });
+      }
+      
+      if (input.monthTotalHours <= input.monthlyThreshold) {
+        regularHours = input.hoursWorked;
+        overtimeHours = 0;
+        reason = `Month total (${input.monthTotalHours.toFixed(1)}h) within threshold (${input.monthlyThreshold}h)${specialDayNote}`;
+      } else {
+        const monthOvertimeHours = input.monthTotalHours - input.monthlyThreshold;
+        const entryProportion = input.hoursWorked / input.monthTotalHours;
+        overtimeHours = monthOvertimeHours * entryProportion;
+        regularHours = input.hoursWorked - overtimeHours;
+        overtimeType = 'overtime';
+        reason = `Month total (${input.monthTotalHours.toFixed(1)}h) exceeded threshold (${input.monthlyThreshold}h)${specialDayNote}`;
+      }
+      break;
+      
+    case 'PATTERN_BASED':
+      // For pattern-based, we use daily threshold from pattern
+      // This is handled the same as DAILY mode
+      if (input.hoursWorked <= input.dailyThreshold) {
+        regularHours = input.hoursWorked;
+        overtimeHours = 0;
+        reason = `Within pattern threshold (${input.dailyThreshold}h)${specialDayNote}`;
+      } else {
+        regularHours = input.dailyThreshold;
+        overtimeHours = input.hoursWorked - input.dailyThreshold;
+        overtimeType = 'overtime';
+        reason = `Exceeded pattern threshold (${input.dailyThreshold}h)${specialDayNote}`;
+      }
+      break;
+  }
+  
+  // Step 3: Apply tier 2 multiplier if applicable
+  // If no overtime, multiplier should be 1.0 (unless it's a special day like public holiday)
+  let finalMultiplier = overtimeHours > 0 ? appliedMultiplier : 1.0;
+  
+  // For public holidays or Sunday premium, all hours get the premium rate
+  if (input.isPublicHoliday || (input.isSunday && input.sundayMultiplier)) {
+    finalMultiplier = appliedMultiplier;
+  }
+  
+  // Apply tier 2 if overtime exceeds threshold
+  if (input.tier2Multiplier && input.tier2Threshold && overtimeHours > input.tier2Threshold) {
+    finalMultiplier = input.tier2Multiplier;
+    reason += ` [Tier 2: ${overtimeHours.toFixed(1)}h > ${input.tier2Threshold}h]`;
+  }
+  
+  // Step 4: Build detailed breakdown for audit trail
+  const breakdown: OvertimeBreakdownItem[] = [];
+  
+  if (regularHours > 0) {
+    breakdown.push({
+      type: dayType,
+      hours: regularHours,
+      multiplier: input.isPublicHoliday || (input.isSunday && input.sundayMultiplier) 
+        ? appliedMultiplier 
+        : 1.0,
+      description: input.isPublicHoliday 
+        ? `Regular hours on public holiday`
+        : input.isSunday && input.sundayMultiplier
+        ? `Regular hours with Sunday premium`
+        : `Regular hours`,
+    });
+  }
+  
+  if (overtimeHours > 0) {
+    breakdown.push({
+      type: 'overtime',
+      hours: overtimeHours,
+      multiplier: finalMultiplier,
+      description: `Overtime hours at ${finalMultiplier}x${specialDayNote}`,
+    });
+  }
+  
+  // Performance logging for compliance monitoring
+  const duration = performance.now() - startTime;
+  if (duration > 10) {
+    console.warn(`[overtime-calculator] Slow calculation: ${duration.toFixed(2)}ms for ${format(input.date, 'yyyy-MM-dd')}`);
+  }
+  
+  // Audit logging
+  console.debug(
+    `[overtime-calculator] ${format(input.date, 'yyyy-MM-dd')}: ` +
+    `${input.hoursWorked}h worked → ${regularHours.toFixed(2)}h regular + ${overtimeHours.toFixed(2)}h OT @ ${finalMultiplier}x ` +
+    `(${input.mode} mode, ${duration.toFixed(2)}ms)`
+  );
+  
+  return {
+    regularHours,
+    overtimeHours,
+    overtimeMultiplier: finalMultiplier,
+    isPublicHoliday: input.isPublicHoliday,
+    reason,
+    breakdown,
+    calculationTimestamp: new Date(),
+    calculationMode: input.mode,
+  };
 }
 
 /**

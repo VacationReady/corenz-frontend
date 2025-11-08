@@ -20,7 +20,15 @@ import { calculateKiwiSaver } from './kiwisaver-calculator';
 import { calculateLeaveAccrual, AnnualLeaveMethod } from './leave-calculator';
 import { NZTaxCode } from '../../types/nz-payroll-export';
 
-const prisma = new PrismaClient();
+// Lazy-initialize Prisma to avoid DB connection during test imports
+let prisma: PrismaClient | null = null;
+
+function getPrismaClient(): PrismaClient {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 // ============================================
 // TYPES
@@ -101,7 +109,8 @@ export async function calculatePayroll(
   const warnings: string[] = [];
   
   // Fetch employee details
-  const employee = await prisma.employee.findUnique({
+  const prismaClient = getPrismaClient();
+  const employee = await prismaClient.employee.findUnique({
     where: { id: input.employeeId },
     select: {
       id: true,
@@ -198,7 +207,7 @@ export async function calculatePayroll(
     
     // Update student loan balance
     if (employee.studentLoanBalance && studentLoanDeduction > 0) {
-      await prisma.employee.update({
+      await prismaClient.employee.update({
         where: { id: employee.id },
         data: {
           studentLoanBalance: {
@@ -291,7 +300,7 @@ export async function calculatePayroll(
   }
   
   // Update leave balances
-  await prisma.employee.update({
+  await prismaClient.employee.update({
     where: { id: employee.id },
     data: {
       annualLeaveBalance: leaveResult.updatedAnnualLeaveBalance,
@@ -304,7 +313,7 @@ export async function calculatePayroll(
   // STEP 8: SAVE TO DATABASE
   // ============================================
   
-  const calculation = await prisma.payrollCalculation.create({
+  const calculation = await prismaClient.payrollCalculation.create({
     data: {
       timesheetId: input.timesheetId,
       employeeId: input.employeeId,
@@ -413,7 +422,8 @@ export async function recalculatePayroll(
   calculationId: string,
   updatedBy: string
 ): Promise<PayrollCalculationOutput> {
-  const existing = await prisma.payrollCalculation.findUnique({
+  const prismaClient = getPrismaClient();
+  const existing = await prismaClient.payrollCalculation.findUnique({
     where: { id: calculationId },
     include: {
       Timesheet: {
@@ -436,7 +446,7 @@ export async function recalculatePayroll(
   const overtimeHours = entries.reduce((sum, e) => sum + (parseFloat(e.overtimeHours?.toString() || '0')), 0);
   const publicHolidayHours = entries.reduce((sum, e) => sum + (parseFloat(e.publicHolidayHours?.toString() || '0')), 0);
   
-  const employee = await prisma.employee.findUnique({
+  const employee = await prismaClient.employee.findUnique({
     where: { id: existing.employeeId },
     select: { hourlyRate: true },
   });
@@ -461,7 +471,7 @@ export async function recalculatePayroll(
   };
   
   // Delete old calculation
-  await prisma.payrollCalculation.delete({
+  await prismaClient.payrollCalculation.delete({
     where: { id: calculationId },
   });
   

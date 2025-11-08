@@ -15,7 +15,15 @@ import { PrismaClient } from '@prisma/client';
 import Holidays from 'date-holidays';
 import { format, startOfDay } from 'date-fns';
 
-const prisma = new PrismaClient();
+// Lazy-initialize Prisma to avoid DB connection during test imports
+let prisma: PrismaClient | null = null;
+
+function getPrismaClient(): PrismaClient {
+  if (!prisma) {
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 // Cache configuration
 const COMPANY_SETTINGS_CACHE = new Map<string, { 
@@ -81,9 +89,16 @@ async function getCompanyHolidaySettings(
     };
   }
 
+  // Skip DB access in test environment if no DATABASE_URL
+  if (process.env.NODE_ENV === 'test' && !process.env.DATABASE_URL) {
+    console.warn(`[public-holiday-checker] Skipping DB query in test environment without DATABASE_URL`);
+    return null;
+  }
+
   try {
-    // Fetch from database
-    const company = await prisma.company.findUnique({
+    // Fetch from database using lazy-initialized client
+    const prismaClient = getPrismaClient();
+    const company = await prismaClient.company.findUnique({
       where: { id: companyId },
       select: {
         publicHolidayTemplate: true,

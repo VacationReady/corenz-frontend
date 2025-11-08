@@ -12,15 +12,17 @@
  * 5. Edge cases: calculator failure, missing settings, pattern changes
  */
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { PATCH } from '@/app/api/timesheets/entries/[id]/route';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 
-// Mock next-auth
-jest.mock('next-auth');
-const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>;
+vi.mock('next-auth', () => ({
+  getServerSession: vi.fn(),
+}));
+
+const mockGetServerSession = vi.mocked(getServerSession);
 
 const runOvertimeIntegrationTests = process.env.RUN_NZ_OVERTIME_EDIT_TESTS === 'true';
 const describeOvertime = runOvertimeIntegrationTests ? describe : describe.skip;
@@ -45,7 +47,8 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         subdomain: `test-ot-edit-${Date.now()}`,
         createdAt: new Date(),
       },
-    });
+      });
+}
     testCompanyId = company.id;
 
     // Create manager user

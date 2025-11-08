@@ -114,6 +114,16 @@ async function getCompanyHolidaySettings(
 }
 
 /**
+ * Public holiday information
+ */
+export interface PublicHolidayInfo {
+  isHoliday: boolean;
+  holidayName?: string;
+  holidayType?: 'NATIONAL' | 'REGIONAL' | 'MONDAYISED';
+  region?: string;
+}
+
+/**
  * Check if a date is a public holiday using date-holidays library
  * 
  * @param date - Date to check
@@ -125,7 +135,7 @@ function checkHolidayWithLibrary(
   date: Date,
   template: HolidayTemplate,
   region: string | null
-): { isHoliday: boolean; holidayName?: string } {
+): PublicHolidayInfo {
   try {
     const hd = new Holidays();
     const country = mapTemplateToCountry(template);
@@ -151,9 +161,16 @@ function checkHolidayWithLibrary(
     });
 
     if (holiday) {
+      // Determine holiday type
+      const holidayType: 'NATIONAL' | 'REGIONAL' | 'MONDAYISED' = 
+        region ? 'REGIONAL' : 
+        (holiday.substitute ? 'MONDAYISED' : 'NATIONAL');
+      
       return {
         isHoliday: true,
         holidayName: holiday.name,
+        holidayType,
+        region: region || undefined,
       };
     }
 
@@ -275,6 +292,44 @@ export async function isNZPublicHoliday(
       error
     );
     return false;
+  }
+}
+
+/**
+ * Get detailed public holiday information
+ * Returns enhanced information including holiday name and type
+ * 
+ * @param date - Date to check
+ * @param companyId - Company identifier
+ * @param regionOverride - Optional region override
+ * @returns Public holiday information or null if not a holiday
+ */
+export async function getNZPublicHolidayInfo(
+  date: Date,
+  companyId: string,
+  regionOverride?: string
+): Promise<PublicHolidayInfo | null> {
+  try {
+    const normalizedDate = startOfDay(date);
+    
+    // Get company holiday settings
+    const settings = await getCompanyHolidaySettings(companyId);
+    
+    if (!settings || !settings.template) {
+      return null;
+    }
+
+    const region = regionOverride || settings.region;
+    const result = checkHolidayWithLibrary(
+      normalizedDate,
+      settings.template,
+      region
+    );
+
+    return result.isHoliday ? result : null;
+  } catch (error) {
+    console.error('[public-holiday-checker] Error getting holiday info:', error);
+    return null;
   }
 }
 

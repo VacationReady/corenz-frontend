@@ -230,6 +230,7 @@ model Company {
   TenantSwitchTokens                  TenantSwitchToken[]
   RotaGroups                          RotaGroup[]
   OvertimeAuditLogs                   OvertimeAuditLog[]
+  PayrollCalculations                 PayrollCalculation[]
 }
 
 model ContractTypeOption {
@@ -454,6 +455,24 @@ model Employee {
   overtimeMultiplier               Decimal?                           @db.Decimal(3, 2) // Override company default
   overtimeCalculationMode          String?                            // Override company mode
   maxOvertimeHoursPerWeek          Decimal?                           @db.Decimal(4, 2) // Safety/compliance cap
+  // Payroll & Tax Fields (Tax Administration Act 1994)
+  dateOfBirth                      DateTime?
+  studentLoanBalance               Decimal?                           @db.Decimal(10, 2)
+  hasStudentLoan                   Boolean                            @default(false)
+  kiwiSaverEmployeeRate            Decimal?                           @db.Decimal(4, 2) // 0.03, 0.04, 0.06, 0.08, 0.10
+  kiwiSaverEmployerRate            Decimal?                           @db.Decimal(4, 2) @default(0.03)
+  esctRate                         Decimal?                           @db.Decimal(4, 2) // 0.105, 0.175, 0.28, 0.33
+  // Leave Balances (Holidays Act 2003)
+  annualLeaveBalance               Decimal                            @default(0) @db.Decimal(8, 2)
+  sickLeaveBalance                 Decimal                            @default(80) @db.Decimal(8, 2)
+  alternativeDaysBalance           Int                                @default(0)
+  annualLeaveAccrualRate           Decimal?                           @db.Decimal(4, 2) @default(0.08)
+  sickLeaveEntitlement             Decimal?                           @db.Decimal(4, 1) @default(80)
+  employmentStartDate              DateTime?
+  // Audit Fields
+  taxCodeLastUpdated               DateTime?
+  kiwiSaverLastUpdated             DateTime?
+  leaveBalanceLastUpdated          DateTime?
   Document                         Document[]
   DocumentAcknowledgement          DocumentAcknowledgement[]
   DocumentSignatureArtifact        DocumentSignatureArtifact[]
@@ -494,6 +513,7 @@ model Employee {
   TimesheetEntryAuditsAsEmployee   TimesheetEntryAudit[]              @relation("TimesheetEntryAuditEmployee")
   TimesheetEntryAuditsAsChanger    TimesheetEntryAudit[]              @relation("TimesheetEntryAuditChangedBy")
   OvertimeAuditLogs                OvertimeAuditLog[]
+  PayrollCalculations              PayrollCalculation[]
 
   @@unique([companyId, irdNumber])
 }
@@ -2991,6 +3011,7 @@ model Timesheet {
   TimesheetEntries    TimesheetEntry[]
   ApprovalStages      TimesheetApprovalStage[]
   BreakRecords        BreakRecord[]
+  PayrollCalculations PayrollCalculation[]
   
   @@index([employeeId, periodStart])
   @@index([companyId, approvalStatus])
@@ -3018,6 +3039,14 @@ model TimesheetEntry {
   managerAdjustmentNote String?   // Reason for manager adjustment
   notes                 String?
   entryType             TimesheetEntryType @default(MANUAL)
+  // Public Holiday Tracking (Holidays Act 2003 compliance)
+  isPublicHoliday       Boolean   @default(false)
+  publicHolidayName     String?   // "Waitangi Day", "Christmas", "ANZAC Day"
+  publicHolidayHours    Decimal   @default(0) @db.Decimal(5, 2)
+  publicHolidayMultiplier Decimal @default(2.0) @db.Decimal(3, 2)
+  alternativeDayGranted Boolean   @default(false)
+  publicHolidayType     String?   // NATIONAL, REGIONAL, MONDAYISED
+  publicHolidayRegion   String?   // AUCKLAND, WELLINGTON, etc.
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   
@@ -3027,6 +3056,7 @@ model TimesheetEntry {
   
   @@index([timesheetId, date])
   @@index([date, isOvertime])
+  @@index([date, isPublicHoliday])
 }
 
 model TimesheetApprovalStage {
@@ -3447,6 +3477,85 @@ model OvertimeAuditLog {
   @@index([employeeId, triggeredAt])
   @@index([companyId, triggeredAt])
   @@index([action])
+}
+
+model PayrollCalculation {
+  id                    String   @id @default(cuid())
+  timesheetId           String
+  employeeId            String
+  companyId             String
+  
+  // Earnings
+  regularPay            Decimal  @db.Decimal(10, 2)
+  overtimePay           Decimal  @default(0) @db.Decimal(10, 2)
+  publicHolidayPay      Decimal  @default(0) @db.Decimal(10, 2)
+  allowances            Decimal  @default(0) @db.Decimal(10, 2)
+  bonuses               Decimal  @default(0) @db.Decimal(10, 2)
+  commission            Decimal  @default(0) @db.Decimal(10, 2)
+  reimbursements        Decimal  @default(0) @db.Decimal(10, 2)
+  grossPay              Decimal  @db.Decimal(10, 2)
+  
+  // Tax Deductions
+  payeTax               Decimal  @db.Decimal(10, 2)
+  accLevy               Decimal  @db.Decimal(10, 2)
+  studentLoanDeduction  Decimal  @default(0) @db.Decimal(10, 2)
+  
+  // KiwiSaver
+  kiwiSaverEmployee     Decimal  @default(0) @db.Decimal(10, 2)
+  kiwiSaverEmployeeRate Decimal  @default(0.03) @db.Decimal(4, 2)
+  kiwiSaverEmployer     Decimal  @default(0) @db.Decimal(10, 2)
+  kiwiSaverEmployerRate Decimal  @default(0.03) @db.Decimal(4, 2)
+  esctDeduction         Decimal  @default(0) @db.Decimal(10, 2)
+  
+  // Other Deductions
+  unionFees             Decimal  @default(0) @db.Decimal(10, 2)
+  insuranceDeductions   Decimal  @default(0) @db.Decimal(10, 2)
+  childcareLevy         Decimal  @default(0) @db.Decimal(10, 2)
+  otherDeductions       Decimal  @default(0) @db.Decimal(10, 2)
+  
+  // Totals
+  totalDeductions       Decimal  @db.Decimal(10, 2)
+  netPay                Decimal  @db.Decimal(10, 2)
+  employerCost          Decimal  @db.Decimal(10, 2)
+  
+  // Pay Period
+  payPeriodStart        DateTime
+  payPeriodEnd          DateTime
+  paymentDate           DateTime
+  payFrequency          String
+  
+  // Calculation Metadata
+  calculatedAt          DateTime @default(now())
+  calculatedBy          String
+  calculationVersion    String   @default("1.0")
+  taxYear               String
+  
+  // Status
+  status                PayrollCalculationStatus @default(DRAFT)
+  approvedAt            DateTime?
+  approvedBy            String?
+  exportedAt            DateTime?
+  irdFiledAt            DateTime?
+  
+  // Relationships
+  Timesheet             Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  Employee              Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  Company               Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  
+  @@unique([timesheetId, employeeId])
+  @@index([timesheetId])
+  @@index([employeeId, payPeriodStart])
+  @@index([companyId, payPeriodStart])
+  @@index([status, exportedAt])
+}
+
+enum PayrollCalculationStatus {
+  DRAFT
+  CALCULATED
+  APPROVED
+  EXPORTED
+  IRD_FILED
+  PAID
 }
 
 enum ObjectiveVisibility {

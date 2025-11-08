@@ -7,7 +7,7 @@
  * CRITICAL: Always validate tenant ownership before returning or modifying data.
  */
 
-import { prisma } from '@/app/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 /**
  * Validate that a timesheet belongs to the requesting company

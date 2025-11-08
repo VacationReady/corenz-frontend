@@ -139,6 +139,8 @@ tsx tests/integration/test-cleanup.ts
 
 ## 🚀 Running the Tests
 
+> **⚠️ CI/CD Note:** These integration tests are **automatically skipped in CI environments** (GitHub Actions, etc.) because they require a real PostgreSQL database. They are designed for **local development and manual verification**. See `tests/integration/CI_SKIPPING_INFO.md` for details.
+
 ### Quick Start
 ```bash
 # 1. Set up test database (Docker)

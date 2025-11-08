@@ -8,6 +8,8 @@ This directory contains **end-to-end integration tests** that verify the overtim
 
 These tests hit **real API endpoints** and verify **actual database state** to ensure the overtime calculator integrates properly with all system components.
 
+> **⚠️ CI/CD Note:** These tests are **automatically skipped in CI environments** because they require a real PostgreSQL database. They are designed for **local development and manual testing**. See [CI Configuration](#ci-configuration) below.
+
 ---
 
 ## Test Scenarios
@@ -308,12 +310,32 @@ tests/
 
 ## Continuous Integration (CI)
 
-### GitHub Actions Example
+### CI Configuration
+
+### Automatic Skipping in CI
+
+Integration tests are **automatically skipped** in CI environments because they require a real database. The tests detect CI environments and skip with the following conditions:
+
+- `process.env.CI === 'true'` (GitHub Actions, most CI platforms)
+- `process.env.SKIP_INTEGRATION_TESTS === 'true'` (manual override)
+- Test database not configured (DATABASE_URL doesn't include 'overtime_test')
+
+**Output when skipped:**
+```
+  Skipping integration tests (CI environment or no test database configured)
+   To run integration tests locally, see: tests/integration/SETUP.md
+```
+
+### Running Integration Tests in CI (Optional)
+
+If you want to run integration tests in CI, set up a PostgreSQL service:
 
 ```yaml
-name: Integration Tests
+# .github/workflows/test-with-integration.yml
+name: Tests with Integration
 
-on: [push, pull_request]
+on: 
+  workflow_dispatch:  # Manual trigger only
 
 jobs:
   test:
@@ -340,7 +362,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '18'
       
       - name: Install dependencies
         run: npm ci
@@ -348,15 +370,20 @@ jobs:
       - name: Run migrations
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/overtime_test
-        run: npx prisma migrate deploy
+        run: |
+          npx prisma migrate deploy
+          npx prisma generate
       
-      - name: Run integration tests
+      - name: Run all tests (including integration)
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/overtime_test
-          NEXTAUTH_SECRET: test-secret-for-ci-pipeline-min-32-chars
+          NEXTAUTH_SECRET: test-secret-min-32-chars-required
           NEXTAUTH_URL: http://localhost:3000
-        run: npm test -- tests/integration/
+          CI: false  # Override CI detection to enable integration tests
+        run: npm test
 ```
+
+**Recommendation:** Keep integration tests for local development only. CI should run unit tests, while integration tests verify the full stack locally before deployment.
 
 ---
 

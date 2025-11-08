@@ -23,6 +23,19 @@
  */
 
 import "../setupEnv";
+
+// Skip integration tests in CI or when database is not available
+const SKIP_INTEGRATION_TESTS = 
+  process.env.CI === 'true' || 
+  process.env.SKIP_INTEGRATION_TESTS === 'true' ||
+  !process.env.DATABASE_URL?.includes('overtime_test');
+
+if (SKIP_INTEGRATION_TESTS) {
+  console.log('\n⏭️  Skipping integration tests (CI environment or no test database configured)');
+  console.log('   To run integration tests locally, see: tests/integration/SETUP.md\n');
+  process.exit(0);
+}
+
 import test, { describe, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { PrismaClient } from '@prisma/client';

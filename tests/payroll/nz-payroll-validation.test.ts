@@ -3,7 +3,8 @@
  * Tests compliance with NZ employment and tax regulations
  */
 
-import { describe, it, expect } from "@jest/globals";
+import test, { describe } from "node:test";
+import assert from "node:assert/strict";
 import {
   validateIrdNumber,
   validateTaxCode,
@@ -15,227 +16,227 @@ import {
   isPayrollDataComplete,
   KIWISAVER_EMPLOYEE_RATES,
   STUDENT_LOAN_STANDARD_RATE,
-} from "@/lib/payroll/nz-payroll-validation";
+} from "../../lib/payroll/nz-payroll-validation";
 
 describe("NZ Payroll Validation", () => {
   describe("IRD Number Validation", () => {
-    it("should accept valid 8-digit IRD numbers", () => {
+    test("should accept valid 8-digit IRD numbers", () => {
       const result = validateIrdNumber("49091850");
-      expect(result.valid).toBe(true);
-      expect(result.normalized).toBe("49091850");
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.normalized, "49091850");
     });
 
-    it("should accept valid 9-digit IRD numbers", () => {
+    test("should accept valid 9-digit IRD numbers", () => {
       const result = validateIrdNumber("123456789");
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
 
-    it("should accept IRD numbers with formatting", () => {
+    test("should accept IRD numbers with formatting", () => {
       const result = validateIrdNumber("123-456-789");
-      expect(result.valid).toBe(true);
-      expect(result.normalized).toBe("123456789");
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.normalized, "123456789");
     });
 
-    it("should reject IRD numbers that are too short", () => {
+    test("should reject IRD numbers that are too short", () => {
       const result = validateIrdNumber("1234567");
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("8 or 9 digits");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("8 or 9 digits"));
     });
 
-    it("should reject IRD numbers that are too long", () => {
+    test("should reject IRD numbers that are too long", () => {
       const result = validateIrdNumber("1234567890");
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("8 or 9 digits");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("8 or 9 digits"));
     });
 
-    it("should reject IRD numbers with invalid checksum", () => {
+    test("should reject IRD numbers with invalid checksum", () => {
       const result = validateIrdNumber("123456788");
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("checksum");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("checksum"));
     });
 
-    it("should reject empty IRD numbers", () => {
+    test("should reject empty IRD numbers", () => {
       const result = validateIrdNumber("");
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("required");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("required"));
     });
   });
 
   describe("Tax Code Validation", () => {
-    it("should accept valid primary tax code M", () => {
+    test("should accept valid primary tax code M", () => {
       const result = validateTaxCode("M");
-      expect(result.valid).toBe(true);
-      expect(result.normalized).toBe("M");
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.normalized, "M");
     });
 
-    it("should accept valid tax code with student loan", () => {
+    test("should accept valid tax code with student loan", () => {
       const result = validateTaxCode("M SL");
-      expect(result.valid).toBe(true);
-      expect(result.normalized).toBe("M_SL");
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.normalized, "M_SL");
     });
 
-    it("should accept secondary tax codes", () => {
+    test("should accept secondary tax codes", () => {
       const codes = ["SB", "S", "SH", "ST"];
       codes.forEach((code) => {
         const result = validateTaxCode(code);
-        expect(result.valid).toBe(true);
+        assert.strictEqual(result.valid, true);
       });
     });
 
-    it("should accept special tax codes", () => {
+    test("should accept special tax codes", () => {
       const codes = ["STC", "CAE", "EDW", "ND"];
       codes.forEach((code) => {
         const result = validateTaxCode(code);
-        expect(result.valid).toBe(true);
+        assert.strictEqual(result.valid, true);
       });
     });
 
-    it("should reject invalid tax codes", () => {
+    test("should reject invalid tax codes", () => {
       const result = validateTaxCode("XX");
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("Invalid tax code");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("Invalid tax code"));
     });
 
-    it("should normalize lowercase tax codes", () => {
+    test("should normalize lowercase tax codes", () => {
       const result = validateTaxCode("m");
-      expect(result.valid).toBe(true);
-      expect(result.normalized).toBe("M");
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.normalized, "M");
     });
 
-    it("should reject empty tax codes", () => {
+    test("should reject empty tax codes", () => {
       const result = validateTaxCode("");
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("required");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("required"));
     });
   });
 
   describe("KiwiSaver Employee Rate Validation", () => {
-    it("should accept valid KiwiSaver rates when enrolled", () => {
+    test("should accept valid KiwiSaver rates when enrolled", () => {
       KIWISAVER_EMPLOYEE_RATES.slice(1).forEach((rate) => {
         const result = validateKiwiSaverEmployeeRate(rate, true);
-        expect(result.valid).toBe(true);
+        assert.strictEqual(result.valid, true);
       });
     });
 
-    it("should accept 0% when not enrolled", () => {
+    test("should accept 0% when not enrolled", () => {
       const result = validateKiwiSaverEmployeeRate(0, false);
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
 
-    it("should accept null when not enrolled", () => {
+    test("should accept null when not enrolled", () => {
       const result = validateKiwiSaverEmployeeRate(null, false);
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
 
-    it("should reject rate when not enrolled", () => {
+    test("should reject rate when not enrolled", () => {
       const result = validateKiwiSaverEmployeeRate(0.03, false);
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("must be 0 or null");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("must be 0 or null"));
     });
 
-    it("should require rate when enrolled", () => {
+    test("should require rate when enrolled", () => {
       const result = validateKiwiSaverEmployeeRate(null, true);
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("required");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("required"));
     });
 
-    it("should reject invalid rates", () => {
+    test("should reject invalid rates", () => {
       const result = validateKiwiSaverEmployeeRate(0.05, true);
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("must be one of");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("must be one of"));
     });
   });
 
   describe("KiwiSaver Employer Rate Validation", () => {
-    it("should accept 3% minimum when enrolled", () => {
+    test("should accept 3% minimum when enrolled", () => {
       const result = validateKiwiSaverEmployerRate(0.03, true);
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
 
-    it("should accept higher rates as benefit", () => {
+    test("should accept higher rates as benefit", () => {
       const result = validateKiwiSaverEmployerRate(0.05, true);
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
 
-    it("should reject rates below 3% when enrolled", () => {
+    test("should reject rates below 3% when enrolled", () => {
       const result = validateKiwiSaverEmployerRate(0.02, true);
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("at least");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("at least"));
     });
 
-    it("should reject rates over 100%", () => {
+    test("should reject rates over 100%", () => {
       const result = validateKiwiSaverEmployerRate(1.5, true);
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("cannot exceed");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("cannot exceed"));
     });
 
-    it("should accept null when not enrolled", () => {
+    test("should accept null when not enrolled", () => {
       const result = validateKiwiSaverEmployerRate(null, false);
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
   });
 
   describe("Student Loan Rate Validation", () => {
-    it("should accept standard rate of 12%", () => {
+    test("should accept standard rate of 12%", () => {
       const result = validateStudentLoanRate(0.12, true);
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
 
-    it("should default to 12% when not specified", () => {
+    test("should default to 12% when not specified", () => {
       const result = validateStudentLoanRate(null, true);
-      expect(result.valid).toBe(true);
-      expect(result.defaultRate).toBe(STUDENT_LOAN_STANDARD_RATE);
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.defaultRate, STUDENT_LOAN_STANDARD_RATE);
     });
 
-    it("should accept custom rates within range", () => {
+    test("should accept custom rates within range", () => {
       const result = validateStudentLoanRate(0.10, true);
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
 
-    it("should reject rates above 20%", () => {
+    test("should reject rates above 20%", () => {
       const result = validateStudentLoanRate(0.25, true);
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("between 0% and 20%");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("between 0% and 20%"));
     });
 
-    it("should accept null when no loan", () => {
+    test("should accept null when no loan", () => {
       const result = validateStudentLoanRate(null, false);
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
 
-    it("should reject rate when no loan", () => {
+    test("should reject rate when no loan", () => {
       const result = validateStudentLoanRate(0.12, false);
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("must be 0 or null");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("must be 0 or null"));
     });
   });
 
   describe("Special Tax Rate Validation", () => {
-    it("should accept special rate with reason", () => {
+    test("should accept special rate with reason", () => {
       const result = validateSpecialTaxRate(0.175, "Non-resident withholding");
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
 
-    it("should reject special rate without reason", () => {
+    test("should reject special rate without reason", () => {
       const result = validateSpecialTaxRate(0.175, null);
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("reason is required");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("reason is required"));
     });
 
-    it("should accept null special rate", () => {
+    test("should accept null special rate", () => {
       const result = validateSpecialTaxRate(null, null);
-      expect(result.valid).toBe(true);
+      assert.strictEqual(result.valid, true);
     });
 
-    it("should reject rates outside valid range", () => {
+    test("should reject rates outside valid range", () => {
       const result = validateSpecialTaxRate(1.5, "Invalid rate");
-      expect(result.valid).toBe(false);
-      expect(result.error).toContain("between 0% and 100%");
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error?.includes("between 0% and 100%"));
     });
   });
 
   describe("Comprehensive Payroll Data Validation", () => {
-    it("should validate complete payroll data", () => {
+    test("should validate complete payroll data", () => {
       const data = {
         irdNumber: "123-456-789",
         taxCode: "M",
@@ -246,11 +247,11 @@ describe("NZ Payroll Validation", () => {
       };
 
       const result = validateNzPayrollData(data);
-      expect(result.valid).toBe(true);
-      expect(Object.keys(result.errors)).toHaveLength(0);
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(Object.keys(result.errors).length, 0);
     });
 
-    it("should catch multiple validation errors", () => {
+    test("should catch multiple validation errors", () => {
       const data = {
         irdNumber: "invalid",
         taxCode: "XX",
@@ -262,15 +263,15 @@ describe("NZ Payroll Validation", () => {
       };
 
       const result = validateNzPayrollData(data);
-      expect(result.valid).toBe(false);
-      expect(result.errors.irdNumber).toBeDefined();
-      expect(result.errors.taxCode).toBeDefined();
-      expect(result.errors.kiwiSaverEmployeeRate).toBeDefined();
-      expect(result.errors.kiwiSaverEmployerRate).toBeDefined();
-      expect(result.errors.studentLoanRate).toBeDefined();
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.errors.irdNumber);
+      assert.ok(result.errors.taxCode);
+      assert.ok(result.errors.kiwiSaverEmployeeRate);
+      assert.ok(result.errors.kiwiSaverEmployerRate);
+      assert.ok(result.errors.studentLoanRate);
     });
 
-    it("should normalize valid data", () => {
+    test("should normalize valid data", () => {
       const data = {
         irdNumber: "123-456-789",
         taxCode: "m sl",
@@ -278,37 +279,37 @@ describe("NZ Payroll Validation", () => {
       };
 
       const result = validateNzPayrollData(data);
-      expect(result.valid).toBe(true);
-      expect(result.normalizedData?.irdNumber).toBe("123456789");
-      expect(result.normalizedData?.taxCode).toBe("M_SL");
-      expect(result.normalizedData?.studentLoanRate).toBe(0.12);
+      assert.strictEqual(result.valid, true);
+      assert.strictEqual(result.normalizedData?.irdNumber, "123456789");
+      assert.strictEqual(result.normalizedData?.taxCode, "M_SL");
+      assert.strictEqual(result.normalizedData?.studentLoanRate, 0.12);
     });
   });
 
   describe("Payroll Data Completeness Check", () => {
-    it("should identify complete payroll data", () => {
+    test("should identify complete payroll data", () => {
       const data = {
         irdNumber: "123456789",
         taxCode: "M",
       };
 
       const result = isPayrollDataComplete(data);
-      expect(result.complete).toBe(true);
-      expect(result.missing).toHaveLength(0);
+      assert.strictEqual(result.complete, true);
+      assert.strictEqual(result.missing.length, 0);
     });
 
-    it("should identify missing required fields", () => {
+    test("should identify missing required fields", () => {
       const data = {
         irdNumber: "123456789",
         // Missing tax code
       };
 
       const result = isPayrollDataComplete(data);
-      expect(result.complete).toBe(false);
-      expect(result.missing).toContain("Tax code");
+      assert.strictEqual(result.complete, false);
+      assert.ok(result.missing.includes("Tax code"));
     });
 
-    it("should require KiwiSaver rate when enrolled", () => {
+    test("should require KiwiSaver rate when enrolled", () => {
       const data = {
         irdNumber: "123456789",
         taxCode: "M",
@@ -317,11 +318,11 @@ describe("NZ Payroll Validation", () => {
       };
 
       const result = isPayrollDataComplete(data);
-      expect(result.complete).toBe(false);
-      expect(result.missing).toContain("KiwiSaver employee rate");
+      assert.strictEqual(result.complete, false);
+      assert.ok(result.missing.includes("KiwiSaver employee rate"));
     });
 
-    it("should require student loan rate when has loan", () => {
+    test("should require student loan rate when has loan", () => {
       const data = {
         irdNumber: "123456789",
         taxCode: "M",
@@ -330,8 +331,8 @@ describe("NZ Payroll Validation", () => {
       };
 
       const result = isPayrollDataComplete(data);
-      expect(result.complete).toBe(false);
-      expect(result.missing).toContain("Student loan rate");
+      assert.strictEqual(result.complete, false);
+      assert.ok(result.missing.includes("Student loan rate"));
     });
   });
 });

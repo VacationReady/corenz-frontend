@@ -3356,6 +3356,9 @@ model TimeTrackingSettings {
   allowMobileClock         Boolean                  @default(true)
   // Canonical field name - Manual time entry
   allowManualTimeEntry     Boolean                  @default(true)
+  // Legacy compatibility fields for UI/API alignment
+  allowManualEntry         Boolean                  @default(true)
+  requirePhotos            Boolean                  @default(false)
   // Geofencing and clock settings
   geofenceLocations        Json?                    // [{lat, lng, radius, name}]
   enableGeofencing         Boolean                  @default(false)

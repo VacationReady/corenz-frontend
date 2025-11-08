@@ -5,12 +5,15 @@
  * and provide proper TypeScript typing throughout the application.
  */
 
+import { Decimal } from '@prisma/client/runtime/library';
+
 export type PhotoRequirement = 'NONE' | 'CLOCK_IN' | 'CLOCK_IN_OUT';
 export type OvertimeCalculationMode = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'PATTERN_BASED';
 export type PayrollExportFormat = 'CSV' | 'EXCEL' | 'JSON';
 
 /**
  * Core TimeTrackingSettings interface matching the database schema
+ * Note: Decimal fields use Prisma's Decimal type as returned from the database
  */
 export interface TimeTrackingSettings {
   id: string;
@@ -55,21 +58,22 @@ export interface TimeTrackingSettings {
   minimumRestHours: number;
   
   // Overtime configuration (NZ Employment Relations Act 2000 compliance)
+  // Note: These use Prisma Decimal type as they come from the database
   includeOvertimeExport: boolean;
-  overtimeThreshold: number;
-  overtimeMultiplier: number;
+  overtimeThreshold: Decimal;
+  overtimeMultiplier: Decimal;
   overtimeCalculationMode: OvertimeCalculationMode;
   autoApplyOvertime: boolean;
   allowManualOvertimeEntry: boolean;
   blockOvertimeDuringHours: boolean;
   requireOvertimeApproval: boolean;
-  dailyOvertimeThreshold: number | null;
-  weeklyOvertimeThreshold: number | null;
-  monthlyOvertimeThreshold: number | null;
-  overtimeMultiplierTier2: number | null;
-  overtimeThresholdTier2: number | null;
-  publicHolidayMultiplier: number;
-  sundayMultiplier: number | null;
+  dailyOvertimeThreshold: Decimal | null;
+  weeklyOvertimeThreshold: Decimal | null;
+  monthlyOvertimeThreshold: Decimal | null;
+  overtimeMultiplierTier2: Decimal | null;
+  overtimeThresholdTier2: Decimal | null;
+  publicHolidayMultiplier: Decimal;
+  sundayMultiplier: Decimal | null;
   enableOvertimeBreakdown: boolean;
   
   // Export settings

@@ -17,14 +17,13 @@ import '../setupEnv';
 import { describe, it, beforeAll, afterAll, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import * as nextAuth from 'next-auth';
 import { prisma } from '@/lib/prisma';
 
-const getServerSessionMock = mock.method(
-  nextAuth,
-  'getServerSession',
-  async () => null
-);
+const getServerSessionMock = mock.fn(async () => null);
+
+mock.module('next-auth', () => ({
+  getServerSession: getServerSessionMock,
+}));
 
 type PatchHandler = typeof import('@/app/api/timesheets/entries/[id]/route')['PATCH'];
 let patchHandler: PatchHandler;
@@ -186,7 +185,6 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     await prisma.user.deleteMany({ where: { email: { contains: 'ot-edit' } } });
     await prisma.globalAuditLog.deleteMany({ where: { companyId: testCompanyId } });
     await prisma.company.deleteMany({ where: { id: testCompanyId } });
-    getServerSessionMock.mockRestore();
   });
 
   afterEach(() => {

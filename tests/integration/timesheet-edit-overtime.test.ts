@@ -19,13 +19,11 @@ import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-const getServerSessionMock = mock.fn(async () => null);
-
-mock.module('next-auth', () => ({
-  getServerSession: getServerSessionMock,
-}));
-
+type NextAuthModule = typeof import('next-auth');
+type MockedGetServerSession = ReturnType<(typeof mock)['method']<NextAuthModule, 'getServerSession'>>;
 type PatchHandler = typeof import('@/app/api/timesheets/entries/[id]/route')['PATCH'];
+
+let getServerSessionMock: MockedGetServerSession;
 let patchHandler: PatchHandler;
 
 const runOvertimeIntegrationTests = process.env.RUN_NZ_OVERTIME_EDIT_TESTS === 'true';
@@ -43,6 +41,9 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
   let testRegularDate: Date;
 
   beforeAll(async () => {
+    const nextAuthModule = await import('next-auth');
+    getServerSessionMock = mock.method(nextAuthModule, 'getServerSession', async () => null);
+
     ({ PATCH: patchHandler } = await import('@/app/api/timesheets/entries/[id]/route'));
 
     // Create test company
@@ -185,6 +186,8 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     await prisma.user.deleteMany({ where: { email: { contains: 'ot-edit' } } });
     await prisma.globalAuditLog.deleteMany({ where: { companyId: testCompanyId } });
     await prisma.company.deleteMany({ where: { id: testCompanyId } });
+
+    getServerSessionMock.mock.restore();
   });
 
   afterEach(() => {
@@ -385,7 +388,7 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
           }),
         });
 
-        await PATCH(req, { params: Promise.resolve({ id: entryId }) });
+        await patchHandler(req, { params: Promise.resolve({ id: entryId }) });
       }
 
       // Verify each entry has independent calculation
@@ -394,10 +397,10 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
           where: { id: entryId },
         });
 
-        expect(parseFloat(entry!.hours.toString())).toBe(10.0);
-        expect(parseFloat(entry!.regularHours!.toString())).toBe(8.0);
-        expect(parseFloat(entry!.overtimeHours!.toString())).toBe(2.0);
-        expect(parseFloat(entry!.overtimeMultiplier!.toString())).toBe(1.5);
+        assert.equal(parseFloat(entry!.hours.toString()), 10.0);
+        assert.equal(parseFloat(entry!.regularHours!.toString()), 8.0);
+        assert.equal(parseFloat(entry!.overtimeHours!.toString()), 2.0);
+        assert.equal(parseFloat(entry!.overtimeMultiplier!.toString()), 1.5);
       }
 
       // Verify timesheet totals are recalculated correctly
@@ -414,7 +417,8 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         0
       );
 
-      expect(parseFloat(timesheet!.totalHours.toString())).toBeCloseTo(expectedTotalHours, 2);
+      const totalHours = parseFloat(timesheet!.totalHours.toString());
+      assert.ok(Math.abs(totalHours - expectedTotalHours) < 10 ** -2);
     });
   });
 

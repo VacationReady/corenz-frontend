@@ -16,6 +16,7 @@ import {
   validateOvertimeAmendment,
   canAmendOvertime,
 } from '@/lib/overtime-validation';
+import { validateTimesheetEntryTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
 
 const amendOvertimeSchema = z.object({
   regularHours: z.number().min(0).max(24),
@@ -37,36 +38,24 @@ export async function PATCH(
 
     const { id: entryId } = await params;
 
-    // Get the timesheet entry
-    const entry = await prisma.timesheetEntry.findUnique({
-      where: { id: entryId },
-      include: {
-        Timesheet: {
-          include: {
-            Employee: {
-              select: {
-                id: true,
-                User: {
-                  select: {
-                    firstName: true,
-                    lastName: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    // Get requesting employee with validation
+    const requestingEmployee = await getRequestingEmployee(session.user.id);
 
-    if (!entry) {
-      return NextResponse.json(
-        { error: 'Timesheet entry not found' },
-        { status: 404 }
-      );
+    // ✅ SECURITY FIX: Validate tenant ownership BEFORE overtime amendment
+    let entry;
+    try {
+      entry = await validateTimesheetEntryTenant(entryId, requestingEmployee.companyId);
+    } catch (error) {
+      if (error instanceof TenantValidationError) {
+        return NextResponse.json(
+          { error: 'Timesheet entry not found' },
+          { status: 404 }
+        );
+      }
+      throw error;
     }
 
-    // Check permissions
+    // Check permissions - now safe since tenant is validated
     const canAmend = await canAmendOvertime(
       session.user.id,
       entry.Timesheet.employeeId
@@ -203,7 +192,23 @@ export async function GET(
 
     const { id: entryId } = await params;
 
-    // Get amendment history
+    // Get requesting employee with validation
+    const requestingEmployee = await getRequestingEmployee(session.user.id);
+
+    // ✅ SECURITY FIX: Validate tenant ownership BEFORE accessing audit logs
+    try {
+      await validateTimesheetEntryTenant(entryId, requestingEmployee.companyId);
+    } catch (error) {
+      if (error instanceof TenantValidationError) {
+        return NextResponse.json(
+          { error: 'Timesheet entry not found' },
+          { status: 404 }
+        );
+      }
+      throw error;
+    }
+
+    // Safe to fetch audit logs - tenant ownership validated
     const auditLogs = await prisma.overtimeAuditLog.findMany({
       where: {
         timesheetEntryId: entryId,

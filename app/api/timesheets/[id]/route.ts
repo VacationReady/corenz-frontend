@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateHours, calculateOvertime } from '@/lib/timesheet-calculations';
 import { cancelPendingTimesheetApprovalActionItems } from '@/lib/action-items-helper';
+import { validateTimesheetTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
 
 const updateTimesheetSchema = z.object({
   entries: z.array(
@@ -34,23 +35,21 @@ export async function GET(
 
     const { id } = await params;
 
-    const requestingEmployee = await prisma.employee.findUnique({
-      where: { userId: session.user.id },
-      select: {
-        id: true,
-        companyId: true,
-        User: {
-          select: {
-            role: true,
-          },
-        },
-      },
-    });
+    // Get requesting employee with validation
+    const requestingEmployee = await getRequestingEmployee(session.user.id);
 
-    if (!requestingEmployee) {
-      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    // ✅ SECURITY FIX: Validate tenant ownership BEFORE fetching full data
+    try {
+      await validateTimesheetTenant(id, requestingEmployee.companyId);
+    } catch (error) {
+      if (error instanceof TenantValidationError) {
+        // Return 404 to avoid leaking existence of resources in other tenants
+        return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
+      }
+      throw error;
     }
 
+    // Safe to fetch full timesheet data - tenant ownership validated
     const timesheet = await prisma.timesheet.findUnique({
       where: { id: id },
       include: {
@@ -139,24 +138,20 @@ export async function PUT(
     const body = await req.json();
     const data = updateTimesheetSchema.parse(body);
 
-    const requestingEmployee = await prisma.employee.findUnique({
-      where: { userId: session.user.id },
-      select: {
-        id: true,
-        companyId: true,
-        departmentId: true,
-        User: {
-          select: {
-            role: true,
-          },
-        },
-      },
-    });
+    // Get requesting employee with validation
+    const requestingEmployee = await getRequestingEmployee(session.user.id);
 
-    if (!requestingEmployee) {
-      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    // ✅ SECURITY FIX: Validate tenant ownership BEFORE operations
+    try {
+      await validateTimesheetTenant(id, requestingEmployee.companyId);
+    } catch (error) {
+      if (error instanceof TenantValidationError) {
+        return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
+      }
+      throw error;
     }
 
+    // Safe to fetch timesheet - tenant ownership validated
     const timesheet = await prisma.timesheet.findUnique({
       where: { id: id },
       include: {
@@ -334,24 +329,20 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const requestingEmployee = await prisma.employee.findUnique({
-      where: { userId: session.user.id },
-      select: {
-        id: true,
-        companyId: true,
-        departmentId: true,
-        User: {
-          select: {
-            role: true,
-          },
-        },
-      },
-    });
+    // Get requesting employee with validation
+    const requestingEmployee = await getRequestingEmployee(session.user.id);
 
-    if (!requestingEmployee) {
-      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    // ✅ SECURITY FIX: Validate tenant ownership BEFORE deletion
+    try {
+      await validateTimesheetTenant(id, requestingEmployee.companyId);
+    } catch (error) {
+      if (error instanceof TenantValidationError) {
+        return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
+      }
+      throw error;
     }
 
+    // Safe to fetch timesheet - tenant ownership validated
     const timesheet = await prisma.timesheet.findUnique({
       where: { id: id },
       include: {

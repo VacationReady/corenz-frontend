@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
+import { validateTimesheetTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
 
 /**
  * GET /api/timesheets/[id]/audit
@@ -20,26 +21,20 @@ export async function GET(
 
     const { id: timesheetId } = await params;
 
-    // Get requesting employee
-    const requestingEmployee = await prisma.employee.findUnique({
-      where: { userId: session.user.id },
-      select: {
-        id: true,
-        companyId: true,
-        departmentId: true,
-        User: {
-          select: {
-            role: true,
-          },
-        },
-      },
-    });
+    // Get requesting employee with validation
+    const requestingEmployee = await getRequestingEmployee(session.user.id);
 
-    if (!requestingEmployee) {
-      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    // ✅ SECURITY: Validate tenant ownership BEFORE audit access
+    try {
+      await validateTimesheetTenant(timesheetId, requestingEmployee.companyId);
+    } catch (error) {
+      if (error instanceof TenantValidationError) {
+        return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
+      }
+      throw error;
     }
 
-    // Get timesheet to validate access
+    // Safe to fetch timesheet - tenant ownership validated
     const timesheet = await prisma.timesheet.findUnique({
       where: { id: timesheetId },
       include: {
@@ -59,10 +54,6 @@ export async function GET(
 
     if (!timesheet) {
       return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
-    }
-
-    if (timesheet.Employee.companyId !== requestingEmployee.companyId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const isAdmin = requestingEmployee.User.role === 'ADMIN';

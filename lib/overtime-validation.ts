@@ -294,6 +294,7 @@ export function validateOvertimeAmendment(
 
 /**
  * Check if user has permission to amend overtime
+ * ✅ SECURITY FIX: Now validates company ownership
  */
 export async function canAmendOvertime(
   userId: string,
@@ -304,29 +305,42 @@ export async function canAmendOvertime(
     include: {
       Employee: {
         select: {
+          companyId: true,
           departmentId: true,
         },
       },
     },
   });
 
-  if (!user) {
+  if (!user || !user.Employee) {
     return false;
   }
 
-  // Admins can always amend
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { 
+      companyId: true,
+      departmentId: true 
+    },
+  });
+
+  if (!employee) {
+    return false;
+  }
+
+  // ✅ SECURITY: Verify same company first
+  if (user.Employee.companyId !== employee.companyId) {
+    return false;
+  }
+
+  // Admins can amend within their company
   if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
     return true;
   }
 
-  // Managers can amend for their department
+  // Managers can amend for their department within their company
   if (user.role === 'MANAGER') {
-    const employee = await prisma.employee.findUnique({
-      where: { id: employeeId },
-      select: { departmentId: true },
-    });
-
-    if (employee && user.Employee?.departmentId === employee.departmentId) {
+    if (user.Employee.departmentId === employee.departmentId) {
       return true;
     }
   }

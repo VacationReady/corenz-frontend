@@ -9,6 +9,7 @@ import {
 } from '@/lib/action-items-helper';
 import { resend, PEOPLECORE_FROM_EMAIL } from '@/lib/resend';
 import { renderPeopleCoreEmail, getAppBaseUrl } from '@/lib/email/template';
+import { validateTimesheetTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
 
 export async function POST(
   req: NextRequest,
@@ -23,24 +24,20 @@ export async function POST(
 
     const { id } = await params;
 
-    const requestingEmployee = await prisma.employee.findUnique({
-      where: { userId: session.user.id },
-      select: {
-        id: true,
-        companyId: true,
-        User: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-      },
-    });
+    // Get requesting employee with validation
+    const requestingEmployee = await getRequestingEmployee(session.user.id);
 
-    if (!requestingEmployee) {
-      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    // ✅ SECURITY FIX: Validate tenant ownership BEFORE submission
+    try {
+      await validateTimesheetTenant(id, requestingEmployee.companyId);
+    } catch (error) {
+      if (error instanceof TenantValidationError) {
+        return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
+      }
+      throw error;
     }
 
+    // Safe to fetch timesheet - tenant ownership validated
     const timesheet = await prisma.timesheet.findUnique({
       where: { id: id },
       include: {

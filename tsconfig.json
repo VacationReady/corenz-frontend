@@ -21,7 +21,7 @@
       "@/*": ["app/*"],
       "@/components/*": ["components/*", "app/components/*"],
       "@/lib/*": ["lib/*", "app/lib/*"],
-      "@/types/*": ["app/types/*"],
+      "@/types/*": ["types/*", "app/types/*"],
       "@/hooks/*": ["app/hooks/*"]
     },
     "types": ["next-auth"],

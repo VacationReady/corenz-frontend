@@ -12,17 +12,22 @@
  * 5. Edge cases: calculator failure, missing settings, pattern changes
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import '../setupEnv';
+
+import { describe, it, beforeAll, afterAll, afterEach, mock } from 'node:test';
+import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import { PATCH } from '@/app/api/timesheets/entries/[id]/route';
+import * as nextAuth from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
 
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(),
-}));
+const getServerSessionMock = mock.method(
+  nextAuth,
+  'getServerSession',
+  async () => null
+);
 
-const mockGetServerSession = vi.mocked(getServerSession);
+type PatchHandler = typeof import('@/app/api/timesheets/entries/[id]/route')['PATCH'];
+let patchHandler: PatchHandler;
 
 const runOvertimeIntegrationTests = process.env.RUN_NZ_OVERTIME_EDIT_TESTS === 'true';
 const describeOvertime = runOvertimeIntegrationTests ? describe : describe.skip;
@@ -39,6 +44,8 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
   let testRegularDate: Date;
 
   beforeAll(async () => {
+    ({ PATCH: patchHandler } = await import('@/app/api/timesheets/entries/[id]/route'));
+
     // Create test company
     const company = await prisma.company.create({
       data: {
@@ -179,15 +186,21 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     await prisma.user.deleteMany({ where: { email: { contains: 'ot-edit' } } });
     await prisma.globalAuditLog.deleteMany({ where: { companyId: testCompanyId } });
     await prisma.company.deleteMany({ where: { id: testCompanyId } });
+    getServerSessionMock.mockRestore();
+  });
+
+  afterEach(() => {
+    getServerSessionMock.mock.reset();
+    getServerSessionMock.mockImplementation(async () => null);
   });
 
   describe('TEST CASE 1: Regular Day Edit (8h → 10h)', () => {
     it('should calculate 8 regular + 2 OT @ 1.5x when editing hours from 8 to 10', async () => {
       // Mock manager session
-      mockGetServerSession.mockResolvedValue({
+      getServerSessionMock.mockImplementation(async () => ({
         user: { id: testManagerUserId, email: 'manager@test.com', name: 'Test Manager' },
         expires: '2025-01-01',
-      });
+      }));
 
       const req = new NextRequest('http://localhost/api/timesheets/entries/' + testEntryId, {
         method: 'PATCH',
@@ -197,26 +210,26 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: testEntryId }) });
+      const response = await patchHandler(req, { params: Promise.resolve({ id: testEntryId }) });
       const result = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(result.success).toBe(true);
-      expect(result.changesCount).toBeGreaterThan(0);
+      assert.equal(response.status, 200);
+      assert.equal(result.success, true);
+      assert.ok(result.changesCount > 0);
 
       // Verify entry was updated with overtime breakdown
       const updatedEntry = await prisma.timesheetEntry.findUnique({
         where: { id: testEntryId },
       });
 
-      expect(updatedEntry).not.toBeNull();
-      expect(parseFloat(updatedEntry!.hours.toString())).toBe(10.0);
-      expect(parseFloat(updatedEntry!.regularHours!.toString())).toBe(8.0);
-      expect(parseFloat(updatedEntry!.overtimeHours!.toString())).toBe(2.0);
-      expect(parseFloat(updatedEntry!.overtimeMultiplier!.toString())).toBe(1.5);
-      expect(updatedEntry!.overtimeType).toBe('AUTO_DAILY');
-      expect(updatedEntry!.isOvertime).toBe(true);
-      expect(updatedEntry!.overtimeReason).toContain('8h');
+      assert.ok(updatedEntry);
+      assert.equal(parseFloat(updatedEntry!.hours.toString()), 10.0);
+      assert.equal(parseFloat(updatedEntry!.regularHours!.toString()), 8.0);
+      assert.equal(parseFloat(updatedEntry!.overtimeHours!.toString()), 2.0);
+      assert.equal(parseFloat(updatedEntry!.overtimeMultiplier!.toString()), 1.5);
+      assert.equal(updatedEntry!.overtimeType, 'AUTO_DAILY');
+      assert.equal(updatedEntry!.isOvertime, true);
+      assert.match(updatedEntry!.overtimeReason ?? '', /8h/);
 
       // Verify audit trail
       const auditLogs = await prisma.timesheetEntryAudit.findMany({
@@ -225,13 +238,13 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
       });
 
       const overtimeAuditLog = auditLogs.find(log => log.field === 'overtime_calculation');
-      expect(overtimeAuditLog).toBeDefined();
+      assert.ok(overtimeAuditLog);
       
       const newValue = JSON.parse(overtimeAuditLog!.newValue || '{}');
-      expect(newValue.regular).toBe(8.0);
-      expect(newValue.overtime).toBe(2.0);
-      expect(newValue.multiplier).toBe(1.5);
-      expect(newValue.type).toBe('AUTO_DAILY');
+      assert.equal(newValue.regular, 8.0);
+      assert.equal(newValue.overtime, 2.0);
+      assert.equal(newValue.multiplier, 1.5);
+      assert.equal(newValue.type, 'AUTO_DAILY');
 
       // Verify overtime audit log for NZ compliance
       const overtimeAudit = await prisma.overtimeAuditLog.findFirst({
@@ -242,9 +255,9 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         orderBy: { triggeredAt: 'desc' },
       });
 
-      expect(overtimeAudit).not.toBeNull();
-      expect(overtimeAudit!.calculationMethod).toBe('AUTO_DAILY');
-      expect(overtimeAudit!.reason).toContain('Recalculated after entry edit');
+      assert.ok(overtimeAudit);
+      assert.equal(overtimeAudit!.calculationMethod, 'AUTO_DAILY');
+      assert.match(overtimeAudit!.reason ?? '', /Recalculated after entry edit/);
     });
   });
 
@@ -272,10 +285,10 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     });
 
     it('should apply 2x multiplier for all hours on public holiday', async () => {
-      mockGetServerSession.mockResolvedValue({
+      getServerSessionMock.mockImplementation(async () => ({
         user: { id: testManagerUserId, email: 'manager@test.com', name: 'Test Manager' },
         expires: '2025-01-01',
-      });
+      }));
 
       const req = new NextRequest('http://localhost/api/timesheets/entries/' + holidayEntryId, {
         method: 'PATCH',
@@ -285,30 +298,29 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: holidayEntryId }) });
-      const result = await response.json();
+      const response = await patchHandler(req, { params: Promise.resolve({ id: holidayEntryId }) });
 
-      expect(response.status).toBe(200);
+      assert.equal(response.status, 200);
 
       // Verify public holiday premium
       const updatedEntry = await prisma.timesheetEntry.findUnique({
         where: { id: holidayEntryId },
       });
 
-      expect(updatedEntry).not.toBeNull();
-      expect(parseFloat(updatedEntry!.hours.toString())).toBe(8.0);
+      assert.ok(updatedEntry);
+      assert.equal(parseFloat(updatedEntry!.hours.toString()), 8.0);
       // On public holidays with daily threshold of 8h, all hours get special rate
-      expect(parseFloat(updatedEntry!.overtimeMultiplier!.toString())).toBe(2.0);
-      expect(updatedEntry!.overtimeReason).toContain('Public Holiday');
+      assert.equal(parseFloat(updatedEntry!.overtimeMultiplier!.toString()), 2.0);
+      assert.match(updatedEntry!.overtimeReason ?? '', /Public Holiday/);
     });
   });
 
   describe('TEST CASE 3: Negative Hours Validation', () => {
     it('should reject edit that creates negative hours', async () => {
-      mockGetServerSession.mockResolvedValue({
+      getServerSessionMock.mockImplementation(async () => ({
         user: { id: testManagerUserId, email: 'manager@test.com', name: 'Test Manager' },
         expires: '2025-01-01',
-      });
+      }));
 
       const req = new NextRequest('http://localhost/api/timesheets/entries/' + testEntryId, {
         method: 'PATCH',
@@ -318,11 +330,11 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: testEntryId }) });
+      const response = await patchHandler(req, { params: Promise.resolve({ id: testEntryId }) });
       
       // The calculateHours function should return 0 or positive hours
       // If it's 0, the entry will still update but with 0 hours
-      expect(response.status).toBeLessThan(500);
+      assert.ok(response.status < 500);
     });
   });
 
@@ -353,10 +365,10 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     });
 
     it('should recalculate overtime independently for each edited entry', async () => {
-      mockGetServerSession.mockResolvedValue({
+      getServerSessionMock.mockImplementation(async () => ({
         user: { id: testManagerUserId, email: 'manager@test.com', name: 'Test Manager' },
         expires: '2025-01-01',
-      });
+      }));
 
       // Edit all 3 entries to 10 hours each
       for (const entryId of bulkEntryIds) {
@@ -424,10 +436,10 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         },
       });
 
-      mockGetServerSession.mockResolvedValue({
+      getServerSessionMock.mockImplementation(async () => ({
         user: { id: testManagerUserId, email: 'manager@test.com', name: 'Test Manager' },
         expires: '2025-01-01',
-      });
+      }));
 
       const req = new NextRequest('http://localhost/api/timesheets/entries/' + edgeEntry.id, {
         method: 'PATCH',
@@ -438,10 +450,10 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
       });
 
       // Even if calculator fails, the edit should succeed without overtime calculation
-      const response = await PATCH(req, { params: Promise.resolve({ id: edgeEntry.id }) });
+      const response = await patchHandler(req, { params: Promise.resolve({ id: edgeEntry.id }) });
       
       // Should not throw 500 error
-      expect(response.status).toBeLessThan(500);
+      assert.ok(response.status < 500);
     });
 
     it('should handle missing settings gracefully', async () => {
@@ -491,10 +503,10 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         },
       });
 
-      mockGetServerSession.mockResolvedValue({
+      getServerSessionMock.mockImplementation(async () => ({
         user: { id: testManagerUserId, email: 'manager@test.com', name: 'Test Manager' },
         expires: '2025-01-01',
-      });
+      }));
 
       const req = new NextRequest('http://localhost/api/timesheets/entries/' + tempEntry.id, {
         method: 'PATCH',
@@ -504,10 +516,10 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: tempEntry.id }) });
+      const response = await patchHandler(req, { params: Promise.resolve({ id: tempEntry.id }) });
       
       // Should return error about missing settings
-      expect(response.status).toBe(500);
+      assert.equal(response.status, 500);
 
       // Cleanup
       await prisma.timesheetEntry.deleteMany({ where: { timesheetId: tempTimesheet.id } });

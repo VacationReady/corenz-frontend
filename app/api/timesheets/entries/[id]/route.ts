@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateHours } from '@/lib/timesheet-calculations';
+import { calculateOvertimeForEntry, OvertimeSettings } from '@/lib/overtime-calculator';
 
 const updateEntrySchema = z.object({
   date: z.string().datetime().optional(),
@@ -203,6 +204,7 @@ export async function PATCH(
     const finalStartTime = updateData.startTime || entry.startTime;
     const finalEndTime = updateData.endTime || entry.endTime;
     const finalBreakMinutes = updateData.breakMinutes !== undefined ? updateData.breakMinutes : entry.breakMinutes;
+    const finalDate = updateData.date || entry.date;
 
     const newHours = calculateHours(
       finalStartTime,
@@ -236,6 +238,130 @@ export async function PATCH(
 
     // Perform update in transaction
     await prisma.$transaction(async (tx) => {
+      // Fetch overtime settings for NZ-compliant calculation
+      const settings = await tx.timeTrackingSettings.findUnique({
+        where: { companyId: requestingEmployee.companyId },
+      });
+
+      if (!settings) {
+        throw new Error('Time tracking settings not found for company');
+      }
+
+      // Recalculate overtime using NZ-compliant calculator if hours changed
+      if (updateData.hours !== undefined) {
+        try {
+          const overtimeSettings: OvertimeSettings = {
+            overtimeCalculationMode: settings.overtimeCalculationMode,
+            autoApplyOvertime: settings.autoApplyOvertime,
+            dailyOvertimeThreshold: settings.dailyOvertimeThreshold
+              ? parseFloat(settings.dailyOvertimeThreshold.toString())
+              : undefined,
+            weeklyOvertimeThreshold: settings.weeklyOvertimeThreshold
+              ? parseFloat(settings.weeklyOvertimeThreshold.toString())
+              : undefined,
+            monthlyOvertimeThreshold: settings.monthlyOvertimeThreshold
+              ? parseFloat(settings.monthlyOvertimeThreshold.toString())
+              : undefined,
+            overtimeMultiplier: parseFloat(settings.overtimeMultiplier.toString()),
+            overtimeMultiplierTier2: settings.overtimeMultiplierTier2
+              ? parseFloat(settings.overtimeMultiplierTier2.toString())
+              : undefined,
+            overtimeThresholdTier2: settings.overtimeThresholdTier2
+              ? parseFloat(settings.overtimeThresholdTier2.toString())
+              : undefined,
+            publicHolidayMultiplier: parseFloat(settings.publicHolidayMultiplier.toString()),
+            sundayMultiplier: settings.sundayMultiplier
+              ? parseFloat(settings.sundayMultiplier.toString())
+              : undefined,
+          };
+
+          // Calculate overtime for this entry with new hours
+          const overtimeResult = await calculateOvertimeForEntry(
+            {
+              id: entry.id,
+              date: finalDate,
+              hours: updateData.hours,
+              timesheetId: entry.timesheetId,
+            },
+            entry.Timesheet.employeeId,
+            requestingEmployee.companyId,
+            overtimeSettings
+          );
+
+          // Track overtime changes for audit
+          const oldOvertimeHours = entry.overtimeHours ? parseFloat(entry.overtimeHours.toString()) : 0;
+          const oldRegularHours = entry.regularHours ? parseFloat(entry.regularHours.toString()) : parseFloat(entry.hours.toString());
+
+          if (overtimeResult.overtimeHours !== oldOvertimeHours ||
+              overtimeResult.regularHours !== oldRegularHours) {
+            auditLogs.push({
+              id: `audit-${Date.now()}-${Math.random()}`,
+              entryId: entry.id,
+              timesheetId: entry.timesheetId,
+              employeeId: entry.Timesheet.employeeId,
+              changedById: requestingEmployee.id,
+              changeReason: data.changeReason,
+              field: 'overtime_calculation',
+              oldValue: JSON.stringify({
+                regular: oldRegularHours,
+                overtime: oldOvertimeHours,
+                multiplier: entry.overtimeMultiplier ? parseFloat(entry.overtimeMultiplier.toString()) : 1.0,
+                type: entry.overtimeType,
+              }),
+              newValue: JSON.stringify({
+                regular: overtimeResult.regularHours,
+                overtime: overtimeResult.overtimeHours,
+                multiplier: overtimeResult.overtimeMultiplier,
+                type: overtimeResult.overtimeType,
+                reason: overtimeResult.overtimeReason,
+              }),
+              changeType: 'UPDATED',
+              companyId: requestingEmployee.companyId,
+            });
+          }
+
+          // Update entry with overtime breakdown
+          updateData.regularHours = overtimeResult.regularHours;
+          updateData.overtimeHours = overtimeResult.overtimeHours;
+          updateData.overtimeMultiplier = overtimeResult.overtimeMultiplier;
+          updateData.overtimeType = overtimeResult.overtimeType;
+          updateData.overtimeReason = overtimeResult.overtimeReason;
+          updateData.isOvertime = overtimeResult.overtimeHours > 0;
+
+          // Create overtime audit log for NZ compliance
+          if (overtimeResult.overtimeHours > 0 || oldOvertimeHours > 0) {
+            await tx.overtimeAuditLog.create({
+              data: {
+                timesheetEntryId: entry.id,
+                employeeId: entry.Timesheet.employeeId,
+                companyId: requestingEmployee.companyId,
+                action: 'CALCULATED',
+                previousValues: {
+                  regularHours: oldRegularHours,
+                  overtimeHours: oldOvertimeHours,
+                  overtimeMultiplier: entry.overtimeMultiplier ? parseFloat(entry.overtimeMultiplier.toString()) : 1.0,
+                  overtimeType: entry.overtimeType,
+                },
+                newValues: {
+                  regularHours: overtimeResult.regularHours,
+                  overtimeHours: overtimeResult.overtimeHours,
+                  overtimeMultiplier: overtimeResult.overtimeMultiplier,
+                  overtimeType: overtimeResult.overtimeType,
+                  overtimeReason: overtimeResult.overtimeReason,
+                },
+                calculationMethod: overtimeResult.overtimeType,
+                triggeredBy: session.user.id,
+                reason: `Recalculated after entry edit: ${data.changeReason}`,
+              },
+            });
+          }
+        } catch (overtimeError) {
+          // Log error but don't fail the edit - overtime can be recalculated later
+          console.error('Overtime calculation error during entry edit:', overtimeError);
+          console.warn('Proceeding with entry edit without overtime recalculation');
+        }
+      }
+
       // Update the entry
       await tx.timesheetEntry.update({
         where: { id: entryId },
@@ -249,7 +375,7 @@ export async function PATCH(
         });
       }
 
-      // Recalculate timesheet totals
+      // Recalculate timesheet totals from all entries
       const allEntries = await tx.timesheetEntry.findMany({
         where: { timesheetId: entry.timesheetId },
       });
@@ -259,23 +385,22 @@ export async function PATCH(
         0
       );
 
-      const settings = await tx.timeTrackingSettings.findUnique({
-        where: { companyId: requestingEmployee.companyId },
-      });
+      const totalRegularHours = allEntries.reduce(
+        (sum, e) => sum + (e.regularHours ? parseFloat(e.regularHours.toString()) : parseFloat(e.hours.toString())),
+        0
+      );
 
-      const overtimeThreshold = settings?.overtimeThreshold
-        ? parseFloat(settings.overtimeThreshold.toString())
-        : 40;
-
-      const regularHours = Math.min(totalHours, overtimeThreshold);
-      const overtimeHours = Math.max(0, totalHours - overtimeThreshold);
+      const totalOvertimeHours = allEntries.reduce(
+        (sum, e) => sum + (e.overtimeHours ? parseFloat(e.overtimeHours.toString()) : 0),
+        0
+      );
 
       await tx.timesheet.update({
         where: { id: entry.timesheetId },
         data: {
           totalHours,
-          regularHours,
-          overtimeHours,
+          regularHours: totalRegularHours,
+          overtimeHours: totalOvertimeHours,
         },
       });
 

@@ -3348,45 +3348,60 @@ model ComplianceViolation {
 }
 
 model TimeTrackingSettings {
-  id                      String   @id @default(cuid())
-  companyId               String   @unique
-  requireGPS              Boolean  @default(false)
-  requirePhoto            String   @default("NO") // NO, CLOCK_IN, BOTH
-  allowMobileClock        Boolean  @default(true)
-  geofenceLocations       Json?    // [{lat, lng, radius, name}]
-  roundClockTimes         String   @default("NONE") // NONE, 15MIN, 30MIN
-  autoClockOutHours       Int?
-  timesheetPeriod         String   @default("WEEKLY") // WEEKLY, BIWEEKLY, MONTHLY
-  periodStartDay          String   @default("MONDAY") // MONDAY, SUNDAY, 1ST
-  autoSubmit              Boolean  @default(false)
-  defaultWorkflowId       String?
-  allowEditAfterSubmit    Boolean  @default(false)
-  autoSchedulingEnabled   Boolean  @default(false)
-  publishDaysAdvance      Int      @default(7)
-  requireShiftConfirm     Boolean  @default(false)
-  allowShiftSwaps         Boolean  @default(true)
-  managerApprovalSwaps    Boolean  @default(true)
-  minimumRestHours        Int      @default(11)
-  includeOvertimeExport   Boolean  @default(true)
-  overtimeThreshold       Decimal  @db.Decimal(5, 2) @default(40.00)
-  overtimeMultiplier      Decimal  @db.Decimal(3, 2) @default(1.50)
-  // Enhanced overtime configuration (NZ Employment Relations Act 2000 compliance)
-  overtimeCalculationMode String   @default("WEEKLY") // DAILY, WEEKLY, MONTHLY, PATTERN_BASED
-  autoApplyOvertime       Boolean  @default(true)    // Auto-calculate OT from clock entries
-  allowManualOvertimeEntry Boolean @default(true)    // Can employees mark manual entries as OT
-  blockOvertimeDuringHours Boolean @default(true)    // Block manual OT during regular working hours
-  requireOvertimeApproval Boolean  @default(false)   // Extra approval step for OT
-  dailyOvertimeThreshold  Decimal? @db.Decimal(4, 2) // e.g., 8.0 hours
-  weeklyOvertimeThreshold Decimal? @db.Decimal(5, 2) // e.g., 40.0 hours
-  monthlyOvertimeThreshold Decimal? @db.Decimal(6, 2) // e.g., 173.33 hours
-  overtimeMultiplierTier2 Decimal? @db.Decimal(3, 2) // e.g., 2.0x for double time
-  overtimeThresholdTier2  Decimal? @db.Decimal(5, 2) // Hours to trigger tier 2 rate
-  publicHolidayMultiplier Decimal  @db.Decimal(3, 2) @default(1.50) // NZ public holiday rate
-  sundayMultiplier        Decimal? @db.Decimal(3, 2) // Optional Sunday premium
-  enableOvertimeBreakdown Boolean  @default(true)    // Show detailed OT breakdown in UI
-  exportFormat            String   @default("CSV")  // CSV, EXCEL, JSON
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                       String                   @id @default(cuid())
+  companyId                String                   @unique
+  // Canonical field names - GPS and Photo tracking
+  requireGpsLocation       Boolean                  @default(false)
+  photoRequirement         PhotoRequirement         @default(NONE)
+  allowMobileClock         Boolean                  @default(true)
+  // Canonical field name - Manual time entry
+  allowManualTimeEntry     Boolean                  @default(true)
+  // Geofencing and clock settings
+  geofenceLocations        Json?                    // [{lat, lng, radius, name}]
+  enableGeofencing         Boolean                  @default(false)
+  geofenceRadius           Int                      @default(100) // meters
+  roundClockTimes          String                   @default("NONE") // NONE, 15MIN, 30MIN
+  autoClockOutHours        Int?
+  // Break settings
+  requireBreaks            Boolean                  @default(true)
+  minBreakDuration         Int                      @default(30) // minutes
+  // Timesheet period settings
+  timesheetPeriod          String                   @default("WEEKLY") // WEEKLY, BIWEEKLY, MONTHLY
+  periodStartDay           String                   @default("MONDAY") // MONDAY, SUNDAY, 1ST
+  autoSubmit               Boolean                  @default(false)
+  defaultWorkflowId        String?
+  allowEditAfterSubmit     Boolean                  @default(false)
+  // Shift settings
+  autoSchedulingEnabled    Boolean                  @default(false)
+  publishDaysAdvance       Int                      @default(7)
+  requireShiftConfirmation Boolean                  @default(false)
+  allowShiftSwaps          Boolean                  @default(true)
+  managerApprovalSwaps     Boolean                  @default(true)
+  minimumRestHours         Int                      @default(11)
+  // Overtime configuration (NZ Employment Relations Act 2000 compliance)
+  includeOvertimeExport    Boolean                  @default(true)
+  overtimeThreshold        Decimal                  @db.Decimal(5, 2) @default(40.00)
+  overtimeMultiplier       Decimal                  @db.Decimal(3, 2) @default(1.50)
+  overtimeCalculationMode  OvertimeCalculationMode  @default(WEEKLY)
+  autoApplyOvertime        Boolean                  @default(true)    // Auto-calculate OT from clock entries
+  allowManualOvertimeEntry Boolean                  @default(true)    // Can employees mark manual entries as OT
+  blockOvertimeDuringHours Boolean                  @default(true)    // Block manual OT during regular working hours
+  requireOvertimeApproval  Boolean                  @default(false)   // Extra approval step for OT
+  dailyOvertimeThreshold   Decimal?                 @db.Decimal(4, 2) // e.g., 8.0 hours
+  weeklyOvertimeThreshold  Decimal?                 @db.Decimal(5, 2) // e.g., 40.0 hours
+  monthlyOvertimeThreshold Decimal?                 @db.Decimal(6, 2) // e.g., 173.33 hours
+  overtimeMultiplierTier2  Decimal?                 @db.Decimal(3, 2) // e.g., 2.0x for double time
+  overtimeThresholdTier2   Decimal?                 @db.Decimal(5, 2) // Hours to trigger tier 2 rate
+  publicHolidayMultiplier  Decimal                  @db.Decimal(3, 2) @default(1.50) // NZ public holiday rate
+  sundayMultiplier         Decimal?                 @db.Decimal(3, 2) // Optional Sunday premium
+  enableOvertimeBreakdown  Boolean                  @default(true)    // Show detailed OT breakdown in UI
+  // Export settings - canonical field name
+  payrollExportFormat      PayrollExportFormat      @default(CSV)
+  includeBreaks            Boolean                  @default(true)
+  includeNotes             Boolean                  @default(true)
+  // Timestamps
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
   
   @@index([companyId])
 }
@@ -3644,4 +3659,23 @@ enum ViolationType {
   MAX_HOURS           // Exceeds maximum hours
   OVERTIME_EXCESSIVE  // Excessive overtime
   MISSING_TIMESHEET   // Timesheet not submitted
+}
+
+enum PhotoRequirement {
+  NONE              // No photo required
+  CLOCK_IN          // Photo required on clock in only
+  CLOCK_IN_OUT      // Photo required on both clock in and out
+}
+
+enum OvertimeCalculationMode {
+  DAILY             // Overtime when any day exceeds threshold
+  WEEKLY            // Week total exceeds threshold
+  MONTHLY           // Month total exceeds threshold
+  PATTERN_BASED     // Compare actual vs contracted hours from working patterns
+}
+
+enum PayrollExportFormat {
+  CSV
+  EXCEL
+  JSON
 }

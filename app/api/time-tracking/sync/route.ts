@@ -99,8 +99,8 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
-          // Validate GPS if required
-          if (settings?.requireGPS && !entry.latitude && !entry.longitude) {
+          // Validate GPS if required (using canonical field name)
+          if (settings?.requireGpsLocation && !entry.latitude && !entry.longitude) {
             failed.push({
               localId: entry.localId,
               error: 'GPS location is required',
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
               { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy },
               geofences,
               {
-                requireGeofence: settings.requireGPS,
+                requireGeofence: settings.requireGpsLocation,
                 maxAccuracyMeters: 100,
               }
             );

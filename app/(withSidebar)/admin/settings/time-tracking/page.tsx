@@ -16,10 +16,10 @@ import { Input } from '@/components/ui/Input';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type TimeTrackingSettings = {
-  // Timesheet settings
-  requirePhotos: boolean;
-  enableGPSTracking: boolean;
-  allowManualEntry: boolean;
+  // Canonical field names
+  requireGpsLocation: boolean;
+  photoRequirement: 'NONE' | 'CLOCK_IN' | 'CLOCK_IN_OUT';
+  allowManualTimeEntry: boolean;
   // Shift settings
   minimumRestHours: number;
   overtimeThreshold: number;
@@ -49,12 +49,16 @@ type TimeTrackingSettings = {
   publicHolidayMultiplier: number;
   sundayMultiplier: number | null;
   enableOvertimeBreakdown: boolean;
+  // Backward compatibility (deprecated)
+  requirePhotos?: boolean;
+  enableGPSTracking?: boolean;
+  allowManualEntry?: boolean;
 };
 
 const defaultSettings: TimeTrackingSettings = {
-  requirePhotos: false,
-  enableGPSTracking: false,
-  allowManualEntry: true,
+  requireGpsLocation: false,
+  photoRequirement: 'NONE',
+  allowManualTimeEntry: true,
   minimumRestHours: 11,
   overtimeThreshold: 40,
   requireShiftConfirmation: false,
@@ -232,28 +236,41 @@ export default function TimeTrackingSettingsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="space-y-4">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="requirePhotos">Require Photos</Label>
+                      <Label>Photo Requirement</Label>
                       <Tooltip>
                         <TooltipTrigger>
                           <Info className="w-4 h-4 text-muted-foreground" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Require employees to attach photos when clocking in/out</p>
+                          <p>When should employees be required to attach photos?</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <Switch
-                      id="requirePhotos"
-                      checked={settings.requirePhotos}
-                      onCheckedChange={(checked) => updateSetting("requirePhotos", checked)}
-                    />
+                    <RadioGroup
+                      value={settings.photoRequirement}
+                      onValueChange={(value) => updateSetting('photoRequirement', value as 'NONE' | 'CLOCK_IN' | 'CLOCK_IN_OUT')}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="NONE" id="photo-none" />
+                        <Label htmlFor="photo-none" className="cursor-pointer">No photo required</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="CLOCK_IN" id="photo-in" />
+                        <Label htmlFor="photo-in" className="cursor-pointer">Photo on clock in only</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="CLOCK_IN_OUT" id="photo-both" />
+                        <Label htmlFor="photo-both" className="cursor-pointer">Photo on clock in and out</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="enableGPSTracking">Enable GPS Tracking</Label>
+                      <Label htmlFor="requireGpsLocation">Require GPS Location</Label>
                       <Tooltip>
                         <TooltipTrigger>
                           <Info className="w-4 h-4 text-muted-foreground" />
@@ -264,15 +281,15 @@ export default function TimeTrackingSettingsPage() {
                       </Tooltip>
                     </div>
                     <Switch
-                      id="enableGPSTracking"
-                      checked={settings.enableGPSTracking}
-                      onCheckedChange={(checked) => updateSetting("enableGPSTracking", checked)}
+                      id="requireGpsLocation"
+                      checked={settings.requireGpsLocation}
+                      onCheckedChange={(checked) => updateSetting("requireGpsLocation", checked)}
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="allowManualEntry">Allow Manual Entry</Label>
+                      <Label htmlFor="allowManualTimeEntry">Allow Manual Time Entry</Label>
                       <Tooltip>
                         <TooltipTrigger>
                           <Info className="w-4 h-4 text-muted-foreground" />
@@ -283,9 +300,9 @@ export default function TimeTrackingSettingsPage() {
                       </Tooltip>
                     </div>
                     <Switch
-                      id="allowManualEntry"
-                      checked={settings.allowManualEntry}
-                      onCheckedChange={(checked) => updateSetting("allowManualEntry", checked)}
+                      id="allowManualTimeEntry"
+                      checked={settings.allowManualTimeEntry}
+                      onCheckedChange={(checked) => updateSetting("allowManualTimeEntry", checked)}
                     />
                   </div>
                 </div>

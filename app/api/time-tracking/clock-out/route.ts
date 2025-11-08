@@ -65,8 +65,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate GPS if required
-    if (settings?.requireGPS && !data.location) {
+    // Validate GPS if required (using canonical field name)
+    if (settings?.requireGpsLocation && !data.location) {
       return NextResponse.json(
         { error: 'GPS location is required for clock out' },
         { status: 400 }
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     if (data.location && settings?.geofenceLocations) {
       const geofences = settings.geofenceLocations as any[];
       const verification = verifyClockLocation(data.location, geofences, {
-        requireGeofence: settings.requireGPS,
+        requireGeofence: settings.requireGpsLocation,
         maxAccuracyMeters: 100,
       });
 
@@ -93,8 +93,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Validate photo if required
-    if (settings?.requirePhoto && settings.requirePhoto === 'BOTH' && !data.photoUrl) {
+    // Validate photo if required (using canonical enum field)
+    if (settings?.photoRequirement && settings.photoRequirement === 'CLOCK_IN_OUT' && !data.photoUrl) {
       return NextResponse.json({ error: 'Photo is required for clock out' }, { status: 400 });
     }
 

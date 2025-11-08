@@ -73,6 +73,11 @@ async function ensureDefaultTimesheetWorkflow(companyId: string): Promise<string
 const settingsUpdateSchema = z.object({
   // Timesheet settings
   defaultWorkflowId: z.string().optional().nullable(),
+  // Canonical field names
+  requireGpsLocation: z.boolean().optional(),
+  photoRequirement: z.enum(['NONE', 'CLOCK_IN', 'CLOCK_IN_OUT']).optional(),
+  allowManualTimeEntry: z.boolean().optional(),
+  // Deprecated field names (for backward compatibility)
   requirePhotos: z.boolean().optional(),
   enableGPSTracking: z.boolean().optional(),
   allowManualEntry: z.boolean().optional(),
@@ -186,6 +191,10 @@ export async function GET(req: NextRequest) {
       overtimeThresholdTier2: settings.overtimeThresholdTier2 ? Number(settings.overtimeThresholdTier2) : null,
       publicHolidayMultiplier: settings.publicHolidayMultiplier ? Number(settings.publicHolidayMultiplier) : 1.5,
       sundayMultiplier: settings.sundayMultiplier ? Number(settings.sundayMultiplier) : null,
+      // Add backward compatibility fields for deprecated names (temporary)
+      enableGPSTracking: settings.requireGpsLocation,
+      requirePhotos: settings.photoRequirement !== 'NONE',
+      allowManualEntry: settings.allowManualTimeEntry,
     };
 
     return NextResponse.json({ settings: settingsFormatted });
@@ -209,7 +218,31 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const data = settingsUpdateSchema.parse(body);
+    const rawData = settingsUpdateSchema.parse(body);
+    
+    // Map deprecated field names to canonical names for backward compatibility
+    const data: any = { ...rawData };
+    
+    // Handle GPS tracking field name migration
+    if ('enableGPSTracking' in rawData && !('requireGpsLocation' in rawData)) {
+      console.warn('[TimeTracking] Deprecated field "enableGPSTracking" used, mapping to "requireGpsLocation"');
+      data.requireGpsLocation = rawData.enableGPSTracking;
+      delete data.enableGPSTracking;
+    }
+    
+    // Handle photo requirement field name migration
+    if ('requirePhotos' in rawData && !('photoRequirement' in rawData)) {
+      console.warn('[TimeTracking] Deprecated field "requirePhotos" used, mapping to "photoRequirement"');
+      data.photoRequirement = rawData.requirePhotos ? 'CLOCK_IN_OUT' : 'NONE';
+      delete data.requirePhotos;
+    }
+    
+    // Handle manual entry field name migration
+    if ('allowManualEntry' in rawData && !('allowManualTimeEntry' in rawData)) {
+      console.warn('[TimeTracking] Deprecated field "allowManualEntry" used, mapping to "allowManualTimeEntry"');
+      data.allowManualTimeEntry = rawData.allowManualEntry;
+      delete data.allowManualEntry;
+    }
 
     const employee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
@@ -276,6 +309,10 @@ export async function PUT(req: NextRequest) {
       overtimeThresholdTier2: settings.overtimeThresholdTier2 ? Number(settings.overtimeThresholdTier2) : null,
       publicHolidayMultiplier: settings.publicHolidayMultiplier ? Number(settings.publicHolidayMultiplier) : 1.5,
       sundayMultiplier: settings.sundayMultiplier ? Number(settings.sundayMultiplier) : null,
+      // Add backward compatibility fields for deprecated names (temporary)
+      enableGPSTracking: settings.requireGpsLocation,
+      requirePhotos: settings.photoRequirement !== 'NONE',
+      allowManualEntry: settings.allowManualTimeEntry,
     };
 
     return NextResponse.json({

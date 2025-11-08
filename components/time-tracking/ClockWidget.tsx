@@ -5,8 +5,8 @@ import { Clock, MapPin, Camera, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ClockWidgetProps {
-  requireGPS?: boolean;
-  requirePhoto?: 'NO' | 'CLOCK_IN' | 'BOTH';
+  requireGpsLocation?: boolean;
+  photoRequirement?: 'NONE' | 'CLOCK_IN' | 'CLOCK_IN_OUT';
   onClockIn?: (data: ClockData) => Promise<void>;
   onClockOut?: (data: ClockData) => Promise<void>;
 }
@@ -35,8 +35,8 @@ interface ClockStatus {
 }
 
 export default function ClockWidget({
-  requireGPS = false,
-  requirePhoto = 'NO',
+  requireGpsLocation = false,
+  photoRequirement = 'NONE',
   onClockIn,
   onClockOut,
 }: ClockWidgetProps) {
@@ -103,7 +103,7 @@ export default function ClockWidget({
     try {
       let locationData;
 
-      if (requireGPS) {
+      if (requireGpsLocation) {
         const position = await getCurrentLocation();
         locationData = {
           lat: position.coords.latitude,
@@ -112,7 +112,7 @@ export default function ClockWidget({
         };
       }
 
-      const needsPhoto = requirePhoto === 'CLOCK_IN' || requirePhoto === 'BOTH';
+      const needsPhoto = photoRequirement === 'CLOCK_IN' || photoRequirement === 'CLOCK_IN_OUT';
       if (needsPhoto && !photoFile) {
         alert('Please upload a photo to clock in');
         setActionLoading(false);
@@ -181,7 +181,7 @@ export default function ClockWidget({
     try {
       let locationData;
 
-      if (requireGPS) {
+      if (requireGpsLocation) {
         const position = await getCurrentLocation();
         locationData = {
           lat: position.coords.latitude,
@@ -190,7 +190,7 @@ export default function ClockWidget({
         };
       }
 
-      const needsPhoto = requirePhoto === 'BOTH';
+      const needsPhoto = photoRequirement === 'CLOCK_IN_OUT';
       if (needsPhoto && !photoFile) {
         alert('Please upload a photo to clock out');
         setActionLoading(false);
@@ -292,7 +292,7 @@ export default function ClockWidget({
       )}
 
       {/* Location Info */}
-      {requireGPS && location && (
+      {requireGpsLocation && location && (
         <div className="bg-white rounded-lg p-4 mb-6 flex items-start gap-3">
           <MapPin className="h-5 w-5 text-blue-600 mt-0.5" />
           <div className="flex-1">
@@ -308,12 +308,12 @@ export default function ClockWidget({
       )}
 
       {/* Photo Upload */}
-      {((requirePhoto === 'CLOCK_IN' && !isClockedIn) ||
-        (requirePhoto === 'BOTH')) && (
+      {((photoRequirement === 'CLOCK_IN' && !isClockedIn) ||
+        (photoRequirement === 'CLOCK_IN_OUT')) && (
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             <Camera className="inline h-4 w-4 mr-1" />
-            Photo {requirePhoto === 'BOTH' || requirePhoto === 'CLOCK_IN' ? '(Required)' : '(Optional)'}
+            Photo {photoRequirement === 'CLOCK_IN_OUT' || photoRequirement === 'CLOCK_IN' ? '(Required)' : '(Optional)'}
           </label>
           <input
             type="file"

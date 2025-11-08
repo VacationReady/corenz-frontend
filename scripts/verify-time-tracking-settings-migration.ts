@@ -25,7 +25,6 @@ async function main() {
       select: {
         id: true,
         name: true,
-        isActive: true,
       },
     }),
     prisma.timeTrackingSettings.findMany({
@@ -96,9 +95,7 @@ async function main() {
     console.log('⚠️  Companies missing TimeTrackingSettings:');
     missingSettings.slice(0, 20).forEach((company) => {
       console.log(
-        `   - ${company.id}${
-          company.name ? ` (${company.name})` : ''
-        }${company.isActive ? '' : ' [inactive]'}`
+        `   - ${company.id}${company.name ? ` (${company.name})` : ''}`
       );
     });
 

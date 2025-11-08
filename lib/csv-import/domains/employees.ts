@@ -18,6 +18,7 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
       keyNotes: [
         "Keep firstName and lastName as the first two columns in every CSV to guarantee accurate matching.",
         "Dates should use the ISO format YYYY-MM-DD. Leave cells blank if data is not yet available.",
+        "When workingPatternName is provided it will create or update a dated working-pattern assignment using startDate (or the import date if no startDate is supplied).",
       ],
       fieldGroups: [
         {
@@ -74,7 +75,7 @@ export const employeeDomainConfig: CSVImportDomainConfig = {
             {
               key: "workingPatternName",
               label: "workingPatternName",
-              note: "Must match an imported working pattern",
+              note: "Must match an imported working pattern name; assignments default to startDate",
             },
             {
               key: "managerEmail",

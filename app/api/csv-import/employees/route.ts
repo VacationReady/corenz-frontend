@@ -414,6 +414,87 @@ const employeeImportSchema = z.object({
 
 type EmployeeImportData = z.infer<typeof employeeImportSchema>;
 
+const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
+
+const normaliseDateToUtcStart = (value?: Date | null): Date | undefined => {
+  if (!value) return undefined;
+  return new Date(
+    Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()),
+  );
+};
+
+const resolveEffectiveDate = (
+  preferred?: Date | null,
+  fallback?: Date | null,
+): Date => {
+  const primary = normaliseDateToUtcStart(preferred);
+  if (primary) return primary;
+
+  const secondary = normaliseDateToUtcStart(fallback);
+  if (secondary) return secondary;
+
+  return normaliseDateToUtcStart(new Date())!;
+};
+
+const ensureWorkingPatternAssignment = async ({
+  employeeId,
+  workingPatternId,
+  preferredEffectiveDate,
+  fallbackEffectiveDate,
+}: {
+  employeeId: string;
+  workingPatternId: string;
+  preferredEffectiveDate?: Date | null;
+  fallbackEffectiveDate?: Date | null;
+}): Promise<Date> => {
+  const effectiveDate = resolveEffectiveDate(
+    preferredEffectiveDate,
+    fallbackEffectiveDate,
+  );
+
+  const nextDay = new Date(effectiveDate.getTime() + MILLISECONDS_IN_DAY);
+
+  const existingAssignment = await prisma.employeeWorkingPatternAssignment.findFirst({
+    where: {
+      employeeId,
+      effectiveDate: {
+        gte: effectiveDate,
+        lt: nextDay,
+      },
+    },
+  });
+
+  if (existingAssignment) {
+    if (
+      existingAssignment.workingPatternId !== workingPatternId ||
+      existingAssignment.effectiveDate.getTime() !== effectiveDate.getTime()
+    ) {
+      await prisma.employeeWorkingPatternAssignment.update({
+        where: { id: existingAssignment.id },
+        data: {
+          workingPatternId,
+          effectiveDate,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    return effectiveDate;
+  }
+
+  await prisma.employeeWorkingPatternAssignment.create({
+    data: {
+      id: crypto.randomUUID(),
+      employeeId,
+      workingPatternId,
+      effectiveDate,
+      updatedAt: new Date(),
+    },
+  });
+
+  return effectiveDate;
+};
+
 const trimToUndefined = (value?: string | null): string | undefined => {
   if (value === undefined || value === null) return undefined;
   const trimmed = value.trim();
@@ -760,8 +841,12 @@ export async function POST(request: NextRequest) {
 
         const resolvedLocationId = location?.id;
 
-        const startDate = parseOptionalDate(validatedData.startDate, "startDate");
-        const contractEndDate = parseOptionalDate(validatedData.contractEndDate, "contractEndDate");
+        const startDate = normaliseDateToUtcStart(
+          parseOptionalDate(validatedData.startDate, "startDate"),
+        );
+        const contractEndDate = normaliseDateToUtcStart(
+          parseOptionalDate(validatedData.contractEndDate, "contractEndDate"),
+        );
         const workingPatternName = trimToUndefined(validatedData.workingPatternName);
 
         const driverLicenceType = trimToUndefined(validatedData.driverLicenceType);
@@ -1057,6 +1142,15 @@ export async function POST(request: NextRequest) {
               companyId: session.user.companyId,
               isActive: true,
             },
+          });
+        }
+
+        if (workingPattern) {
+          await ensureWorkingPatternAssignment({
+            employeeId: employee.id,
+            workingPatternId: workingPattern.id,
+            preferredEffectiveDate: startDate ?? null,
+            fallbackEffectiveDate: employee.startDate ?? null,
           });
         }
 

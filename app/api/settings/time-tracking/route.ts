@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import type { TimeTrackingSettings } from '@/types/time-tracking-settings';
 
 /**
  * Create or get default timesheet approval workflow for a company
@@ -73,11 +74,12 @@ async function ensureDefaultTimesheetWorkflow(companyId: string): Promise<string
 const settingsUpdateSchema = z.object({
   // Timesheet settings
   defaultWorkflowId: z.string().optional().nullable(),
-  // Canonical field names
+  // Canonical field names (preferred)
   requireGpsLocation: z.boolean().optional(),
   photoRequirement: z.enum(['NONE', 'CLOCK_IN', 'CLOCK_IN_OUT']).optional(),
   allowManualTimeEntry: z.boolean().optional(),
-  // Deprecated field names (for backward compatibility)
+  allowMobileClock: z.boolean().optional(),
+  // Deprecated field names (for backward compatibility - will be removed in future version)
   requirePhotos: z.boolean().optional(),
   enableGPSTracking: z.boolean().optional(),
   allowManualEntry: z.boolean().optional(),
@@ -180,7 +182,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Convert Decimal fields to numbers for frontend compatibility
-    const settingsFormatted = {
+    const settingsFormatted: TimeTrackingSettings & { enableGPSTracking?: boolean; requirePhotos?: boolean; allowManualEntry?: boolean } = {
       ...settings,
       overtimeThreshold: settings.overtimeThreshold ? Number(settings.overtimeThreshold) : 40,
       overtimeMultiplier: settings.overtimeMultiplier ? Number(settings.overtimeMultiplier) : 1.5,
@@ -191,7 +193,7 @@ export async function GET(req: NextRequest) {
       overtimeThresholdTier2: settings.overtimeThresholdTier2 ? Number(settings.overtimeThresholdTier2) : null,
       publicHolidayMultiplier: settings.publicHolidayMultiplier ? Number(settings.publicHolidayMultiplier) : 1.5,
       sundayMultiplier: settings.sundayMultiplier ? Number(settings.sundayMultiplier) : null,
-      // Add backward compatibility fields for deprecated names (temporary)
+      // Backward compatibility fields for deprecated names (temporary - will be removed)
       enableGPSTracking: settings.requireGpsLocation,
       requirePhotos: settings.photoRequirement !== 'NONE',
       allowManualEntry: settings.allowManualTimeEntry,
@@ -221,7 +223,7 @@ export async function PUT(req: NextRequest) {
     const rawData = settingsUpdateSchema.parse(body);
     
     // Map deprecated field names to canonical names for backward compatibility
-    const data: any = { ...rawData };
+    const data: Record<string, any> = { ...rawData };
     
     // Handle GPS tracking field name migration
     if ('enableGPSTracking' in rawData && !('requireGpsLocation' in rawData)) {
@@ -297,22 +299,33 @@ export async function PUT(req: NextRequest) {
       },
     });
 
+    // Sync legacy fields with canonical fields to maintain consistency
+    const updatedSettings = await prisma.timeTrackingSettings.update({
+      where: { companyId: employee.companyId },
+      data: {
+        // Sync allowManualEntry with allowManualTimeEntry
+        allowManualEntry: settings.allowManualTimeEntry,
+        // Sync requirePhotos with photoRequirement
+        requirePhotos: settings.photoRequirement !== 'NONE',
+      },
+    });
+
     // Convert Decimal fields to numbers for frontend compatibility
-    const settingsFormatted = {
-      ...settings,
-      overtimeThreshold: settings.overtimeThreshold ? Number(settings.overtimeThreshold) : 40,
-      overtimeMultiplier: settings.overtimeMultiplier ? Number(settings.overtimeMultiplier) : 1.5,
-      dailyOvertimeThreshold: settings.dailyOvertimeThreshold ? Number(settings.dailyOvertimeThreshold) : null,
-      weeklyOvertimeThreshold: settings.weeklyOvertimeThreshold ? Number(settings.weeklyOvertimeThreshold) : null,
-      monthlyOvertimeThreshold: settings.monthlyOvertimeThreshold ? Number(settings.monthlyOvertimeThreshold) : null,
-      overtimeMultiplierTier2: settings.overtimeMultiplierTier2 ? Number(settings.overtimeMultiplierTier2) : null,
-      overtimeThresholdTier2: settings.overtimeThresholdTier2 ? Number(settings.overtimeThresholdTier2) : null,
-      publicHolidayMultiplier: settings.publicHolidayMultiplier ? Number(settings.publicHolidayMultiplier) : 1.5,
-      sundayMultiplier: settings.sundayMultiplier ? Number(settings.sundayMultiplier) : null,
-      // Add backward compatibility fields for deprecated names (temporary)
-      enableGPSTracking: settings.requireGpsLocation,
-      requirePhotos: settings.photoRequirement !== 'NONE',
-      allowManualEntry: settings.allowManualTimeEntry,
+    const settingsFormatted: TimeTrackingSettings & { enableGPSTracking?: boolean; requirePhotos?: boolean; allowManualEntry?: boolean } = {
+      ...updatedSettings,
+      overtimeThreshold: updatedSettings.overtimeThreshold ? Number(updatedSettings.overtimeThreshold) : 40,
+      overtimeMultiplier: updatedSettings.overtimeMultiplier ? Number(updatedSettings.overtimeMultiplier) : 1.5,
+      dailyOvertimeThreshold: updatedSettings.dailyOvertimeThreshold ? Number(updatedSettings.dailyOvertimeThreshold) : null,
+      weeklyOvertimeThreshold: updatedSettings.weeklyOvertimeThreshold ? Number(updatedSettings.weeklyOvertimeThreshold) : null,
+      monthlyOvertimeThreshold: updatedSettings.monthlyOvertimeThreshold ? Number(updatedSettings.monthlyOvertimeThreshold) : null,
+      overtimeMultiplierTier2: updatedSettings.overtimeMultiplierTier2 ? Number(updatedSettings.overtimeMultiplierTier2) : null,
+      overtimeThresholdTier2: updatedSettings.overtimeThresholdTier2 ? Number(updatedSettings.overtimeThresholdTier2) : null,
+      publicHolidayMultiplier: updatedSettings.publicHolidayMultiplier ? Number(updatedSettings.publicHolidayMultiplier) : 1.5,
+      sundayMultiplier: updatedSettings.sundayMultiplier ? Number(updatedSettings.sundayMultiplier) : null,
+      // Backward compatibility fields for deprecated names (temporary - will be removed)
+      enableGPSTracking: updatedSettings.requireGpsLocation,
+      requirePhotos: updatedSettings.photoRequirement !== 'NONE',
+      allowManualEntry: updatedSettings.allowManualTimeEntry,
     };
 
     return NextResponse.json({

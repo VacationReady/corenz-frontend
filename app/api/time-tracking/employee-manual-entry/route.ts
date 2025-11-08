@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { isManualEntryAllowed } from '@/types/time-tracking-settings';
 
 const employeeManualEntrySchema = z.object({
   clockInTime: z.string().datetime(),
@@ -39,12 +40,8 @@ export async function POST(req: NextRequest) {
       where: { companyId: requestingEmployee.companyId },
     });
 
-    const manualEntryAllowed =
-      settings && (settings as any).allowManualEntry !== undefined
-        ? Boolean((settings as any).allowManualEntry)
-        : true;
-
-    if (!manualEntryAllowed) {
+    // Use type-safe helper function instead of type coercion
+    if (!isManualEntryAllowed(settings)) {
       return NextResponse.json(
         { error: 'Manual time entry is not enabled for your organization' },
         { status: 403 }

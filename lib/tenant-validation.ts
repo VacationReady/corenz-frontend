@@ -8,6 +8,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { AuditAction, AuditEntityType } from '@prisma/client';
 
 /**
  * Validate that a timesheet belongs to the requesting company
@@ -239,9 +240,9 @@ export async function logTenantViolationAttempt(
       data: {
         id: `audit-tenant-violation-${Date.now()}-${Math.random()}`,
         actorId: userId,
-        companyId: employee?.companyId || 'UNKNOWN',
-        action: 'UNAUTHORIZED_ACCESS_ATTEMPT',
-        entityType: 'SECURITY',
+        companyId: employee?.companyId || requestedCompanyId || 'UNKNOWN',
+        action: AuditAction.UPDATED,
+        entityType: AuditEntityType.EMPLOYEE,
         entityId: resourceId,
         metadata: {
           type: 'TENANT_VIOLATION',

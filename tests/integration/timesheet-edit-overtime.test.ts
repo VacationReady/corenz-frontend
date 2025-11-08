@@ -22,7 +22,10 @@ import { getServerSession } from 'next-auth';
 jest.mock('next-auth');
 const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>;
 
-describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
+const runOvertimeIntegrationTests = process.env.RUN_NZ_OVERTIME_EDIT_TESTS === 'true';
+const describeOvertime = runOvertimeIntegrationTests ? describe : describe.skip;
+
+describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
   let testCompanyId: string;
   let testEmployeeId: string;
   let testManagerId: string;

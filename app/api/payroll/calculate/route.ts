@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { PrismaClient } from '@prisma/client';
 import { calculatePayroll, PayrollCalculationInput } from '@/lib/payroll/payroll-calculation-service';
 import { PayFrequency } from '@/lib/payroll/paye-calculator';
@@ -43,9 +43,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Check permissions
-    if (user.role !== 'ADMIN' && user.role !== 'HR' && user.role !== 'MANAGER') {
+    if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'MANAGER') {
       return NextResponse.json(
-        { error: 'Insufficient permissions - requires HR or Admin role' },
+        { error: 'Insufficient permissions - requires Admin or Manager role' },
         { status: 403 }
       );
     }

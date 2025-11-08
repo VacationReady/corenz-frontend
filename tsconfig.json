@@ -64,6 +64,7 @@
     "scripts/fix-broken-manager-ids.ts",
     "scripts/initialize-default-workflows.ts",
     "scripts/test-*.ts",
-    "scripts/evaluate-finetune.ts"
+    "scripts/evaluate-finetune.ts",
+    "scripts/check-payroll-data-completeness.ts"
   ]
 }

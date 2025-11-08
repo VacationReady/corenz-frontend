@@ -70,8 +70,8 @@ async function checkPayrollDataCompleteness() {
         if (!complete) {
           incompleteEmployees.push({
             id: employee.id,
-            firstName: employee.User.firstName,
-            lastName: employee.User.lastName,
+            firstName: employee.User.firstName || '',
+            lastName: employee.User.lastName || '',
             email: employee.User.email,
             department: employee.Department?.name || null,
             missing,

@@ -8,7 +8,7 @@
  */
 
 import { TaxCode } from "@prisma/client";
-import { isValidIrdNumber, normalizeIrdNumber } from "@/app/lib/utils";
+import { isValidIrdNumber, normalizeIrdNumber } from "@/lib/utils";
 
 // Valid KiwiSaver employee contribution rates
 export const KIWISAVER_EMPLOYEE_RATES = [0, 0.03, 0.04, 0.06, 0.08, 0.10] as const;

@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { PrismaClient } from '@prisma/client';
 import { stringify } from 'csv-stringify/sync';
 import * as XLSX from 'xlsx';
@@ -44,9 +44,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    if (user.role !== 'ADMIN' && user.role !== 'HR') {
+    if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json(
-        { error: 'Only Admin or HR can export IRD-compliant payroll' },
+        { error: 'Only Admin can export IRD-compliant payroll' },
         { status: 403 }
       );
     }
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       employeeId: calc.employeeId,
       employeeName: `${calc.Employee.User.firstName} ${calc.Employee.User.lastName}`,
       irdNumber: calc.Employee.irdNumber,
-      taxCode: calc.Employee.taxCode,
+      taxCode: calc.Employee.taxCode as any,
       grossPay: parseFloat(calc.grossPay.toString()),
       netPay: parseFloat(calc.netPay.toString()),
       paye: parseFloat(calc.payeTax.toString()),
@@ -230,7 +230,7 @@ export async function POST(req: NextRequest) {
         actorId: session.user.id,
         companyId,
         action: 'CREATED',
-        entityType: 'PAYROLL',
+        entityType: 'EMPLOYEE',
         entityId: `payroll-export-${Date.now()}`,
         metadata: {
           type: 'IRD_PAYROLL_EXPORT',

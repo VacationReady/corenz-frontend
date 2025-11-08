@@ -7,19 +7,23 @@
  * CRITICAL VULNERABILITY: These tests currently FAIL (pass when they shouldn't)
  * demonstrating the security issue.
  * 
- * NOTE: This test file requires Jest to be configured. If you see import errors,
- * ensure @jest/globals is installed and jest.config.js is properly set up.
+ * NOTE:
+ * - Requires DATABASE_URL to point at a Postgres instance (e.g. local dev DB)
+ * - Uses Node's built-in test runner via `tsx --test`
  * 
- * To run: npm test tests/security/timesheet-tenant-isolation.test.ts
+ * To run locally:
+ *   DATABASE_URL="postgres://..." npm test tests/security/timesheet-tenant-isolation.test.ts
  */
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 
-describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
+describe('🔴 SECURITY: Timesheet Tenant Isolation', { skip: !hasDatabaseUrl }, () => {
+  const prisma = new PrismaClient();
+
   let companyA: any;
   let companyB: any;
   let adminUserA: any;
@@ -209,6 +213,8 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
     await prisma.company.deleteMany({
       where: { id: { in: ['sec-test-company-a', 'sec-test-company-b'] } },
     });
+
+    await prisma.$disconnect();
   });
 
   describe('🔴 VULNERABILITY DEMONSTRATION: Cross-Tenant Access', () => {

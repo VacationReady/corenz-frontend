@@ -47,8 +47,7 @@ describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         subdomain: `test-ot-edit-${Date.now()}`,
         createdAt: new Date(),
       },
-      });
-}
+    });
     testCompanyId = company.id;
 
     // Create manager user

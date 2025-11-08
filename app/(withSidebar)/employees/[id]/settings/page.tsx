@@ -54,6 +54,12 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
 
+  const viewerRole = session.user.role;
+  const isAdmin = viewerRole === "ADMIN" || viewerRole === "SUPER_ADMIN";
+  const isManagerOfEmployee =
+    viewerRole === "MANAGER" && employee.User?.managerId === session.user.id;
+  const canAssignWorkingPattern = isAdmin || isManagerOfEmployee;
+
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">Employee Settings</h1>
@@ -80,11 +86,13 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
           )}
 
           {/* Only the Assign New Pattern button */}
-          <div className="pt-2">
-            <Suspense fallback={null}>
-          <WorkingPatternAssignment employeeId={id} />
-            </Suspense>
-          </div>
+          {canAssignWorkingPattern && (
+            <div className="pt-2">
+              <Suspense fallback={null}>
+                <WorkingPatternAssignment employeeId={id} />
+              </Suspense>
+            </div>
+          )}
         </div>
 
         {/* Upcoming Pattern */}

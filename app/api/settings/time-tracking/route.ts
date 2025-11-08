@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import type { TimeTrackingSettings } from '@/types/time-tracking-settings';
+import type { TimeTrackingSettingsResponse } from '@/types/time-tracking-settings';
 
 /**
  * Create or get default timesheet approval workflow for a company
@@ -182,7 +182,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Convert Decimal fields to numbers for frontend compatibility
-    const settingsFormatted: TimeTrackingSettings & { enableGPSTracking?: boolean; requirePhotos?: boolean; allowManualEntry?: boolean } = {
+    // Note: Using 'as any' temporarily until Prisma Client is regenerated
+    const settingsAny = settings as any;
+    const settingsFormatted: TimeTrackingSettingsResponse = {
       ...settings,
       overtimeThreshold: settings.overtimeThreshold ? Number(settings.overtimeThreshold) : 40,
       overtimeMultiplier: settings.overtimeMultiplier ? Number(settings.overtimeMultiplier) : 1.5,
@@ -194,10 +196,10 @@ export async function GET(req: NextRequest) {
       publicHolidayMultiplier: settings.publicHolidayMultiplier ? Number(settings.publicHolidayMultiplier) : 1.5,
       sundayMultiplier: settings.sundayMultiplier ? Number(settings.sundayMultiplier) : null,
       // Backward compatibility fields for deprecated names (temporary - will be removed)
-      enableGPSTracking: settings.requireGpsLocation,
-      requirePhotos: settings.photoRequirement !== 'NONE',
-      allowManualEntry: settings.allowManualTimeEntry,
-    };
+      enableGPSTracking: settingsAny.requireGpsLocation ?? false,
+      requirePhotos: settingsAny.photoRequirement !== 'NONE',
+      allowManualEntry: settingsAny.allowManualTimeEntry ?? true,
+    } as TimeTrackingSettingsResponse;
 
     return NextResponse.json({ settings: settingsFormatted });
   } catch (error) {
@@ -300,18 +302,21 @@ export async function PUT(req: NextRequest) {
     });
 
     // Sync legacy fields with canonical fields to maintain consistency
+    // Note: Using 'as any' temporarily until Prisma Client is regenerated
+    const settingsAny = settings as any;
     const updatedSettings = await prisma.timeTrackingSettings.update({
       where: { companyId: employee.companyId },
       data: {
         // Sync allowManualEntry with allowManualTimeEntry
-        allowManualEntry: settings.allowManualTimeEntry,
+        allowManualEntry: settingsAny.allowManualTimeEntry ?? true,
         // Sync requirePhotos with photoRequirement
-        requirePhotos: settings.photoRequirement !== 'NONE',
+        requirePhotos: settingsAny.photoRequirement !== 'NONE',
       },
     });
 
     // Convert Decimal fields to numbers for frontend compatibility
-    const settingsFormatted: TimeTrackingSettings & { enableGPSTracking?: boolean; requirePhotos?: boolean; allowManualEntry?: boolean } = {
+    const updatedAny = updatedSettings as any;
+    const settingsFormatted: TimeTrackingSettingsResponse = {
       ...updatedSettings,
       overtimeThreshold: updatedSettings.overtimeThreshold ? Number(updatedSettings.overtimeThreshold) : 40,
       overtimeMultiplier: updatedSettings.overtimeMultiplier ? Number(updatedSettings.overtimeMultiplier) : 1.5,
@@ -323,10 +328,10 @@ export async function PUT(req: NextRequest) {
       publicHolidayMultiplier: updatedSettings.publicHolidayMultiplier ? Number(updatedSettings.publicHolidayMultiplier) : 1.5,
       sundayMultiplier: updatedSettings.sundayMultiplier ? Number(updatedSettings.sundayMultiplier) : null,
       // Backward compatibility fields for deprecated names (temporary - will be removed)
-      enableGPSTracking: updatedSettings.requireGpsLocation,
-      requirePhotos: updatedSettings.photoRequirement !== 'NONE',
-      allowManualEntry: updatedSettings.allowManualTimeEntry,
-    };
+      enableGPSTracking: updatedAny.requireGpsLocation ?? false,
+      requirePhotos: updatedAny.photoRequirement !== 'NONE',
+      allowManualEntry: updatedAny.allowManualTimeEntry ?? true,
+    } as TimeTrackingSettingsResponse;
 
     return NextResponse.json({
       success: true,

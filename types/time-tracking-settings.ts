@@ -5,86 +5,15 @@
  * and provide proper TypeScript typing throughout the application.
  */
 
+import { TimeTrackingSettings as PrismaTimeTrackingSettings } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 export type PhotoRequirement = 'NONE' | 'CLOCK_IN' | 'CLOCK_IN_OUT';
 export type OvertimeCalculationMode = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'PATTERN_BASED';
 export type PayrollExportFormat = 'CSV' | 'EXCEL' | 'JSON';
 
-/**
- * Core TimeTrackingSettings interface matching the database schema
- * Note: Decimal fields use Prisma's Decimal type as returned from the database
- */
-export interface TimeTrackingSettings {
-  id: string;
-  companyId: string;
-  
-  // GPS and Photo tracking (canonical field names)
-  requireGpsLocation: boolean;
-  photoRequirement: PhotoRequirement;
-  allowMobileClock: boolean;
-  
-  // Manual time entry (canonical field name)
-  allowManualTimeEntry: boolean;
-  
-  // Legacy compatibility fields (deprecated - will be removed in future version)
-  allowManualEntry: boolean;
-  requirePhotos: boolean;
-  
-  // Geofencing and clock settings
-  geofenceLocations: any | null;
-  enableGeofencing: boolean;
-  geofenceRadius: number;
-  roundClockTimes: string;
-  autoClockOutHours: number | null;
-  
-  // Break settings
-  requireBreaks: boolean;
-  minBreakDuration: number;
-  
-  // Timesheet period settings
-  timesheetPeriod: string;
-  periodStartDay: string;
-  autoSubmit: boolean;
-  defaultWorkflowId: string | null;
-  allowEditAfterSubmit: boolean;
-  
-  // Shift settings
-  autoSchedulingEnabled: boolean;
-  publishDaysAdvance: number;
-  requireShiftConfirmation: boolean;
-  allowShiftSwaps: boolean;
-  managerApprovalSwaps: boolean;
-  minimumRestHours: number;
-  
-  // Overtime configuration (NZ Employment Relations Act 2000 compliance)
-  // Note: These use Prisma Decimal type as they come from the database
-  includeOvertimeExport: boolean;
-  overtimeThreshold: Decimal;
-  overtimeMultiplier: Decimal;
-  overtimeCalculationMode: OvertimeCalculationMode;
-  autoApplyOvertime: boolean;
-  allowManualOvertimeEntry: boolean;
-  blockOvertimeDuringHours: boolean;
-  requireOvertimeApproval: boolean;
-  dailyOvertimeThreshold: Decimal | null;
-  weeklyOvertimeThreshold: Decimal | null;
-  monthlyOvertimeThreshold: Decimal | null;
-  overtimeMultiplierTier2: Decimal | null;
-  overtimeThresholdTier2: Decimal | null;
-  publicHolidayMultiplier: Decimal;
-  sundayMultiplier: Decimal | null;
-  enableOvertimeBreakdown: boolean;
-  
-  // Export settings
-  payrollExportFormat: PayrollExportFormat;
-  includeBreaks: boolean;
-  includeNotes: boolean;
-  
-  // Timestamps
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Re-export Prisma's generated type as our main type
+export type TimeTrackingSettings = PrismaTimeTrackingSettings;
 
 /**
  * Partial update type for API requests
@@ -92,29 +21,55 @@ export interface TimeTrackingSettings {
 export type TimeTrackingSettingsUpdate = Partial<Omit<TimeTrackingSettings, 'id' | 'companyId' | 'createdAt' | 'updatedAt'>>;
 
 /**
+ * API Response type with Decimal fields converted to numbers for frontend compatibility
+ * This is what the API endpoints return to the client
+ */
+export type TimeTrackingSettingsResponse = Omit<TimeTrackingSettings, 
+  'overtimeThreshold' | 'overtimeMultiplier' | 'dailyOvertimeThreshold' | 
+  'weeklyOvertimeThreshold' | 'monthlyOvertimeThreshold' | 'overtimeMultiplierTier2' | 
+  'overtimeThresholdTier2' | 'publicHolidayMultiplier' | 'sundayMultiplier'> & {
+  // Decimal fields converted to numbers for JSON serialization
+  overtimeThreshold: number;
+  overtimeMultiplier: number;
+  dailyOvertimeThreshold: number | null;
+  weeklyOvertimeThreshold: number | null;
+  monthlyOvertimeThreshold: number | null;
+  overtimeMultiplierTier2: number | null;
+  overtimeThresholdTier2: number | null;
+  publicHolidayMultiplier: number;
+  sundayMultiplier: number | null;
+  
+  // Backward compatibility fields (temporary)
+  enableGPSTracking?: boolean;
+  requirePhotos?: boolean;
+  allowManualEntry?: boolean;
+};
+
+/**
  * Type guard to check if manual entry is allowed
  * Uses canonical field name with fallback to legacy field
  */
-export function isManualEntryAllowed(settings: TimeTrackingSettings | null | undefined): boolean {
+export function isManualEntryAllowed(settings: any | null | undefined): boolean {
   if (!settings) return true; // Default to allowed if no settings
   
   // Use canonical field name
-  return settings.allowManualTimeEntry;
+  return settings.allowManualTimeEntry ?? true;
 }
 
 /**
  * Type guard to check if photos are required for clock in
  */
-export function isPhotoRequiredForClockIn(settings: TimeTrackingSettings | null | undefined): boolean {
+export function isPhotoRequiredForClockIn(settings: any | null | undefined): boolean {
   if (!settings) return false;
   
-  return settings.photoRequirement === 'CLOCK_IN' || settings.photoRequirement === 'CLOCK_IN_OUT';
+  const photoReq = settings.photoRequirement;
+  return photoReq === 'CLOCK_IN' || photoReq === 'CLOCK_IN_OUT';
 }
 
 /**
  * Type guard to check if photos are required for clock out
  */
-export function isPhotoRequiredForClockOut(settings: TimeTrackingSettings | null | undefined): boolean {
+export function isPhotoRequiredForClockOut(settings: any | null | undefined): boolean {
   if (!settings) return false;
   
   return settings.photoRequirement === 'CLOCK_IN_OUT';
@@ -123,8 +78,8 @@ export function isPhotoRequiredForClockOut(settings: TimeTrackingSettings | null
 /**
  * Type guard to check if GPS location is required
  */
-export function isGpsLocationRequired(settings: TimeTrackingSettings | null | undefined): boolean {
+export function isGpsLocationRequired(settings: any | null | undefined): boolean {
   if (!settings) return false;
   
-  return settings.requireGpsLocation;
+  return settings.requireGpsLocation ?? false;
 }

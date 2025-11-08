@@ -459,9 +459,12 @@ model Employee {
   dateOfBirth                      DateTime?
   studentLoanBalance               Decimal?                           @db.Decimal(10, 2)
   hasStudentLoan                   Boolean                            @default(false)
+  studentLoanRate                  Decimal?                           @db.Decimal(4, 2) @default(0.12) // 12% standard rate
   kiwiSaverEmployeeRate            Decimal?                           @db.Decimal(4, 2) // 0.03, 0.04, 0.06, 0.08, 0.10
   kiwiSaverEmployerRate            Decimal?                           @db.Decimal(4, 2) @default(0.03)
   esctRate                         Decimal?                           @db.Decimal(4, 2) // 0.105, 0.175, 0.28, 0.33
+  specialTaxRate                   Decimal?                           @db.Decimal(5, 4) // For non-standard tax situations
+  taxExemptionReason               String?                            // Reason if tax exempt or special rate
   // Leave Balances (Holidays Act 2003)
   annualLeaveBalance               Decimal                            @default(0) @db.Decimal(8, 2)
   sickLeaveBalance                 Decimal                            @default(80) @db.Decimal(8, 2)

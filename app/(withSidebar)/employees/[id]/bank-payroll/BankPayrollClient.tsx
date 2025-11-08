@@ -40,6 +40,12 @@ interface FormState {
   taxCode: TaxCodeFormValue;
   kiwiSaverEnrolled: "" | "yes" | "no";
   kiwiSaverContribution: string;
+  kiwiSaverEmployeeRate: string;
+  kiwiSaverEmployerRate: string;
+  hasStudentLoan: "" | "yes" | "no";
+  studentLoanRate: string;
+  specialTaxRate: string;
+  taxExemptionReason: string;
 }
 
 interface InitialValuesState {
@@ -48,6 +54,12 @@ interface InitialValuesState {
   taxCode: NzTaxCodeValue | null;
   kiwiSaverEnrolled: boolean | null;
   kiwiSaverContribution: number | null;
+  kiwiSaverEmployeeRate: number | null;
+  kiwiSaverEmployerRate: number | null;
+  hasStudentLoan: boolean | null;
+  studentLoanRate: number | null;
+  specialTaxRate: number | null;
+  taxExemptionReason: string | null;
 }
 
 export default function BankPayrollClient({ employeeId }: { employeeId: string }) {
@@ -57,6 +69,12 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     taxCode: "",
     kiwiSaverEnrolled: "",
     kiwiSaverContribution: "",
+    kiwiSaverEmployeeRate: "",
+    kiwiSaverEmployerRate: "",
+    hasStudentLoan: "",
+    studentLoanRate: "",
+    specialTaxRate: "",
+    taxExemptionReason: "",
   });
   const [initialValues, setInitialValues] = useState<InitialValuesState>({
     bankAccountNumber: null,
@@ -64,6 +82,12 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     taxCode: null,
     kiwiSaverEnrolled: null,
     kiwiSaverContribution: null,
+    kiwiSaverEmployeeRate: null,
+    kiwiSaverEmployerRate: null,
+    hasStudentLoan: null,
+    studentLoanRate: null,
+    specialTaxRate: null,
+    taxExemptionReason: null,
   });
   const [errors, setErrors] = useState<{ bankAccountNumber?: string; irdNumber?: string }>({});
   const [touched, setTouched] = useState<{ bankAccountNumber: boolean; irdNumber: boolean }>(
@@ -107,6 +131,12 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
           taxCode: data.taxCode,
           kiwiSaverEnrolled: data.kiwiSaverEnrolled,
           kiwiSaverContribution: data.kiwiSaverContribution,
+          kiwiSaverEmployeeRate: data.kiwiSaverEmployeeRate,
+          kiwiSaverEmployerRate: data.kiwiSaverEmployerRate,
+          hasStudentLoan: data.hasStudentLoan,
+          studentLoanRate: data.studentLoanRate,
+          specialTaxRate: data.specialTaxRate,
+          taxExemptionReason: data.taxExemptionReason,
         });
 
         setForm({
@@ -120,6 +150,17 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
               ? "no"
               : "",
           kiwiSaverContribution: data.kiwiSaverContribution?.toString() ?? "",
+          kiwiSaverEmployeeRate: data.kiwiSaverEmployeeRate ? (data.kiwiSaverEmployeeRate * 100).toString() : "",
+          kiwiSaverEmployerRate: data.kiwiSaverEmployerRate ? (data.kiwiSaverEmployerRate * 100).toString() : "",
+          hasStudentLoan:
+            data.hasStudentLoan === true
+              ? "yes"
+              : data.hasStudentLoan === false
+              ? "no"
+              : "",
+          studentLoanRate: data.studentLoanRate ? (data.studentLoanRate * 100).toString() : "",
+          specialTaxRate: data.specialTaxRate ? (data.specialTaxRate * 100).toString() : "",
+          taxExemptionReason: data.taxExemptionReason ?? "",
         });
         setErrors({});
         setTouched({ bankAccountNumber: false, irdNumber: false });
@@ -198,6 +239,25 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     kiwiSaverContribution: form.kiwiSaverContribution
       ? Number(form.kiwiSaverContribution)
       : null,
+    kiwiSaverEmployeeRate: form.kiwiSaverEmployeeRate
+      ? Number(form.kiwiSaverEmployeeRate) / 100
+      : null,
+    kiwiSaverEmployerRate: form.kiwiSaverEmployerRate
+      ? Number(form.kiwiSaverEmployerRate) / 100
+      : null,
+    hasStudentLoan:
+      form.hasStudentLoan === "yes"
+        ? true
+        : form.hasStudentLoan === "no"
+        ? false
+        : null,
+    studentLoanRate: form.studentLoanRate
+      ? Number(form.studentLoanRate) / 100
+      : null,
+    specialTaxRate: form.specialTaxRate
+      ? Number(form.specialTaxRate) / 100
+      : null,
+    taxExemptionReason: form.taxExemptionReason || null,
   });
 
   const handleSaveSuccess = () => {
@@ -376,6 +436,177 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                   setForm((f) => ({ ...f, kiwiSaverContribution: e.target.value }))
                 }
               />
+              <p className="mt-1 text-xs text-muted-foreground">Legacy field - use employee/employer rates below instead</p>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <label className="block text-sm font-medium" htmlFor="kiwiSaverEmployeeRate">
+                  KiwiSaver employee rate (%)
+                </label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="KiwiSaver employee rate guidance"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Valid rates: 3%, 4%, 6%, 8%, or 10%. Must be enrolled in KiwiSaver.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Select
+                value={form.kiwiSaverEmployeeRate || undefined}
+                onValueChange={(value) =>
+                  setForm((prev) => ({ ...prev, kiwiSaverEmployeeRate: value }))
+                }
+                disabled={form.kiwiSaverEnrolled !== "yes"}
+              >
+                <SelectTrigger id="kiwiSaverEmployeeRate">
+                  <SelectValue placeholder="Select rate" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">3%</SelectItem>
+                  <SelectItem value="4">4%</SelectItem>
+                  <SelectItem value="6">6%</SelectItem>
+                  <SelectItem value="8">8%</SelectItem>
+                  <SelectItem value="10">10%</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <label className="block text-sm font-medium" htmlFor="kiwiSaverEmployerRate">
+                  KiwiSaver employer rate (%)
+                </label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="KiwiSaver employer rate guidance"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Minimum 3% required by law. Can be higher as benefit.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Input
+                id="kiwiSaverEmployerRate"
+                type="number"
+                min="3"
+                max="100"
+                step="0.5"
+                value={form.kiwiSaverEmployerRate}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, kiwiSaverEmployerRate: e.target.value }))
+                }
+                disabled={form.kiwiSaverEnrolled !== "yes"}
+                placeholder="3"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1" htmlFor="hasStudentLoan">
+                Has student loan?
+              </label>
+              <select
+                id="hasStudentLoan"
+                className="block w-full border rounded-md h-9 px-3"
+                value={form.hasStudentLoan}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    hasStudentLoan: e.target.value as FormState["hasStudentLoan"],
+                  }))
+                }
+              >
+                <option value="">Select</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <label className="block text-sm font-medium" htmlFor="studentLoanRate">
+                  Student loan rate (%)
+                </label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Student loan rate guidance"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Standard rate is 12%. Automatically deducted from pay.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <Input
+                id="studentLoanRate"
+                type="number"
+                min="0"
+                max="20"
+                step="0.5"
+                value={form.studentLoanRate}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, studentLoanRate: e.target.value }))
+                }
+                disabled={form.hasStudentLoan !== "yes"}
+                placeholder="12"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <div className="flex items-center gap-2">
+                <label className="block text-sm font-medium" htmlFor="specialTaxRate">
+                  Special tax rate (%) - Optional
+                </label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Special tax rate guidance"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    For non-standard tax situations. Must provide reason below.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  id="specialTaxRate"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={form.specialTaxRate}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, specialTaxRate: e.target.value }))
+                  }
+                  placeholder="e.g., 17.5"
+                />
+                <Input
+                  id="taxExemptionReason"
+                  value={form.taxExemptionReason}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, taxExemptionReason: e.target.value }))
+                  }
+                  placeholder="Reason for special rate (required if rate set)"
+                />
+              </div>
             </div>
           </div>
         </Card>

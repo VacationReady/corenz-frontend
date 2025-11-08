@@ -14,6 +14,12 @@ import {
   normalizeIrdNumber,
 } from "@/lib/utils";
 import { TaxCode } from "@prisma/client";
+import {
+  validateKiwiSaverEmployeeRate,
+  validateKiwiSaverEmployerRate,
+  validateStudentLoanRate,
+  validateSpecialTaxRate,
+} from "@/lib/payroll/nz-payroll-validation";
 
 export async function PATCH(
   req: NextRequest,
@@ -44,6 +50,12 @@ export async function PATCH(
       "taxCode",
       "kiwiSaverEnrolled",
       "kiwiSaverContribution",
+      "kiwiSaverEmployeeRate",
+      "kiwiSaverEmployerRate",
+      "hasStudentLoan",
+      "studentLoanRate",
+      "specialTaxRate",
+      "taxExemptionReason",
     ] as const;
 
     const updates: Record<string, any> = {};
@@ -121,6 +133,54 @@ export async function PATCH(
       }
     }
 
+    // Validate KiwiSaver employee rate
+    if (Object.prototype.hasOwnProperty.call(updates, "kiwiSaverEmployeeRate")) {
+      const isEnrolled = Object.prototype.hasOwnProperty.call(updates, "kiwiSaverEnrolled")
+        ? updates.kiwiSaverEnrolled
+        : employee.kiwiSaverEnrolled;
+      const validation = validateKiwiSaverEmployeeRate(updates.kiwiSaverEmployeeRate, isEnrolled ?? false);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
+    }
+
+    // Validate KiwiSaver employer rate
+    if (Object.prototype.hasOwnProperty.call(updates, "kiwiSaverEmployerRate")) {
+      const isEnrolled = Object.prototype.hasOwnProperty.call(updates, "kiwiSaverEnrolled")
+        ? updates.kiwiSaverEnrolled
+        : employee.kiwiSaverEnrolled;
+      const validation = validateKiwiSaverEmployerRate(updates.kiwiSaverEmployerRate, isEnrolled ?? false);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
+    }
+
+    // Validate student loan rate
+    if (Object.prototype.hasOwnProperty.call(updates, "studentLoanRate")) {
+      const hasLoan = Object.prototype.hasOwnProperty.call(updates, "hasStudentLoan")
+        ? updates.hasStudentLoan
+        : employee.hasStudentLoan;
+      const validation = validateStudentLoanRate(updates.studentLoanRate, hasLoan);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
+      // Apply default rate if needed
+      if (validation.defaultRate !== undefined) {
+        updates.studentLoanRate = validation.defaultRate;
+      }
+    }
+
+    // Validate special tax rate
+    if (Object.prototype.hasOwnProperty.call(updates, "specialTaxRate")) {
+      const reason = Object.prototype.hasOwnProperty.call(updates, "taxExemptionReason")
+        ? updates.taxExemptionReason
+        : employee.taxExemptionReason;
+      const validation = validateSpecialTaxRate(updates.specialTaxRate, reason);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
+    }
+
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ ok: true });
     }
@@ -172,6 +232,12 @@ export async function PATCH(
               taxCode: employee.taxCode,
               kiwiSaverEnrolled: employee.kiwiSaverEnrolled,
               kiwiSaverContribution: employee.kiwiSaverContribution,
+              kiwiSaverEmployeeRate: employee.kiwiSaverEmployeeRate,
+              kiwiSaverEmployerRate: employee.kiwiSaverEmployerRate,
+              hasStudentLoan: employee.hasStudentLoan,
+              studentLoanRate: employee.studentLoanRate,
+              specialTaxRate: employee.specialTaxRate,
+              taxExemptionReason: employee.taxExemptionReason,
             },
             diffs,
             reasons: (reasons as Record<string, string>) || {},
@@ -242,6 +308,12 @@ export async function GET(
       taxCode: employee.taxCode,
       kiwiSaverEnrolled: employee.kiwiSaverEnrolled,
       kiwiSaverContribution: employee.kiwiSaverContribution,
+      kiwiSaverEmployeeRate: employee.kiwiSaverEmployeeRate,
+      kiwiSaverEmployerRate: employee.kiwiSaverEmployerRate,
+      hasStudentLoan: employee.hasStudentLoan,
+      studentLoanRate: employee.studentLoanRate,
+      specialTaxRate: employee.specialTaxRate,
+      taxExemptionReason: employee.taxExemptionReason,
     });
   } catch (e: any) {
     console.error("[bank-payroll-get]", e);

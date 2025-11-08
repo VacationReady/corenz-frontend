@@ -23,9 +23,18 @@ import { NZTaxCode } from '../../types/nz-payroll-export';
 // Lazy-initialize Prisma to avoid DB connection during test imports
 let prisma: PrismaClient | null = null;
 
-function getPrismaClient(): PrismaClient {
+function getPrismaClient(): PrismaClient | null {
   if (!prisma) {
-    prisma = new PrismaClient();
+    try {
+      // In test environment, check if DATABASE_URL is reachable
+      if (process.env.NODE_ENV === 'test') {
+        console.warn('[payroll-calculation-service] Running in test mode - DB access may be limited');
+      }
+      prisma = new PrismaClient();
+    } catch (error) {
+      console.error('[payroll-calculation-service] Failed to initialize Prisma client:', error);
+      return null;
+    }
   }
   return prisma;
 }

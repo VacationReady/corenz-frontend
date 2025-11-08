@@ -13,7 +13,8 @@
  * To run: npm test tests/security/timesheet-tenant-isolation.test.ts
  */
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, before, after } from 'node:test';
+import assert from 'node:assert/strict';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -31,7 +32,7 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
   let timesheetB: any;
   let entryB: any;
 
-  beforeAll(async () => {
+  before(async () => {
     // Create Company A
     companyA = await prisma.company.create({
       data: {
@@ -173,7 +174,7 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
     });
   });
 
-  afterAll(async () => {
+  after(async () => {
     // Cleanup in reverse order
     await prisma.timesheetEntry.deleteMany({
       where: { id: { in: ['sec-test-entry-b'] } },
@@ -220,9 +221,9 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
       });
 
       // ❌ CURRENT BEHAVIOR: Query succeeds
-      expect(timesheet).not.toBeNull();
-      expect(timesheet?.id).toBe(timesheetB.id);
-      expect(timesheet?.companyId).toBe(companyB.id);
+      assert.notStrictEqual(timesheet, null);
+      assert.strictEqual(timesheet?.id, timesheetB.id);
+      assert.strictEqual(timesheet?.companyId, companyB.id);
 
       // This proves Admin A can access Company B's data
       console.log('🔴 VULNERABILITY CONFIRMED: Cross-tenant access succeeded');
@@ -236,8 +237,8 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
       });
 
       // ❌ Returns data from any company
-      expect(allTimesheets.length).toBe(1);
-      expect(allTimesheets[0].companyId).toBe(companyB.id);
+      assert.strictEqual(allTimesheets.length, 1);
+      assert.strictEqual(allTimesheets[0].companyId, companyB.id);
 
       console.log('🔴 VULNERABILITY: Database allows cross-tenant queries');
     });
@@ -261,8 +262,8 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
       });
 
       // ❌ CURRENT BEHAVIOR: Entry fetched without company validation
-      expect(entry).not.toBeNull();
-      expect(entry?.timesheetId).toBe(timesheetB.id);
+      assert.notStrictEqual(entry, null);
+      assert.strictEqual(entry?.timesheetId, timesheetB.id);
 
       console.log('🔴 VULNERABILITY: Entry fetched without tenant check');
     });
@@ -279,7 +280,7 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
       });
 
       // ✅ EXPECTED: Returns null because companies don't match
-      expect(timesheet).toBeNull();
+      assert.strictEqual(timesheet, null);
 
       console.log('✅ SECURE: Cross-tenant access blocked by companyId filter');
     });
@@ -293,8 +294,8 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
       });
 
       // ✅ EXPECTED: Returns data from same company
-      expect(timesheet).not.toBeNull();
-      expect(timesheet?.companyId).toBe(companyA.id);
+      assert.notStrictEqual(timesheet, null);
+      assert.strictEqual(timesheet?.companyId, companyA.id);
     });
 
     it('SECURE: Admin B can only access their own company data', async () => {
@@ -306,8 +307,8 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
       });
 
       // ✅ EXPECTED: Returns data from same company
-      expect(timesheet).not.toBeNull();
-      expect(timesheet?.companyId).toBe(companyB.id);
+      assert.notStrictEqual(timesheet, null);
+      assert.strictEqual(timesheet?.companyId, companyB.id);
     });
   });
 
@@ -323,7 +324,7 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
 
         if (timesheet && timesheet.companyId !== companyA.id) {
           // ❌ VULNERABILITY: Attacker found cross-tenant data
-          expect(timesheet.companyId).toBe(companyB.id);
+          assert.strictEqual(timesheet.companyId, companyB.id);
           console.log('🔴 ATTACK SUCCESS: Found cross-tenant timesheet');
           return;
         }
@@ -340,7 +341,7 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
       });
 
       // ❌ VULNERABILITY: Update succeeds
-      expect(updatedTimesheet.totalHours).toEqual(100);
+      assert.strictEqual(updatedTimesheet.totalHours, 100);
       console.log('🔴 ATTACK SUCCESS: Modified cross-tenant data');
 
       // Cleanup
@@ -362,8 +363,8 @@ describe('🔴 SECURITY: Timesheet Tenant Isolation', () => {
       });
 
       // ❌ VULNERABILITY: Approval succeeds
-      expect(approvedTimesheet.approvalStatus).toBe('APPROVED');
-      expect(approvedTimesheet.approvedBy).toBe(adminEmployeeA.id);
+      assert.strictEqual(approvedTimesheet.approvalStatus, 'APPROVED');
+      assert.strictEqual(approvedTimesheet.approvedBy, adminEmployeeA.id);
       console.log('🔴 ATTACK SUCCESS: Cross-tenant approval');
 
       // Cleanup

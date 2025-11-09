@@ -15,7 +15,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { format } from 'date-fns';
+import { format as formatDate } from 'date-fns';
 import * as XLSX from 'xlsx';
 import {
   NZPayrollExportRecord,
@@ -77,7 +77,7 @@ export class PayrollExportService {
       exportedBy,
     } = options;
 
-    console.log(`[PayrollExport] Starting export for company ${companyId}, period ${format(payPeriodStart, 'yyyy-MM-dd')} to ${format(payPeriodEnd, 'yyyy-MM-dd')}`);
+    console.log(`[PayrollExport] Starting export for company ${companyId}, period ${formatDate(payPeriodStart, 'yyyy-MM-dd')} to ${formatDate(payPeriodEnd, 'yyyy-MM-dd')}`);
 
     // STEP 1: Fetch all approved timesheets for period (tenant-scoped!)
     const timesheets = await this.fetchApprovedTimesheets(
@@ -250,7 +250,7 @@ export class PayrollExportService {
       employeeName: user.name,
       employeeEmail: user.email,
       taxCode: employee.taxCode as NZTaxCode,
-      dateOfBirth: employee.dateOfBirth ? format(new Date(employee.dateOfBirth), 'yyyy-MM-dd') : undefined,
+      dateOfBirth: employee.dateOfBirth ? formatDate(new Date(employee.dateOfBirth), 'yyyy-MM-dd') : undefined,
 
       // Earnings
       earnings: {
@@ -334,9 +334,9 @@ export class PayrollExportService {
       },
 
       // Pay Period
-      payPeriodStart: format(payPeriodStart, 'yyyy-MM-dd'),
-      payPeriodEnd: format(payPeriodEnd, 'yyyy-MM-dd'),
-      paymentDate: format(paymentDate, 'yyyy-MM-dd'),
+      payPeriodStart: formatDate(payPeriodStart, 'yyyy-MM-dd'),
+      payPeriodEnd: formatDate(payPeriodEnd, 'yyyy-MM-dd'),
+      paymentDate: formatDate(paymentDate, 'yyyy-MM-dd'),
       payFrequency: payrollCalc.payFrequency as any,
 
       // Company
@@ -470,7 +470,7 @@ export class PayrollExportService {
     exportedBy: string,
     warnings: string[]
   ): Promise<PayrollExportResult> {
-    const periodStr = `${format(payPeriodStart, 'yyyy-MM-dd')}_${format(payPeriodEnd, 'yyyy-MM-dd')}`;
+    const periodStr = `${formatDate(payPeriodStart, 'yyyy-MM-dd')}_${formatDate(payPeriodEnd, 'yyyy-MM-dd')}`;
     
     switch (format) {
       case 'csv':
@@ -487,7 +487,7 @@ export class PayrollExportService {
   /**
    * Generate CSV export
    */
-  private generateCSV(
+  private async generateCSV(
     records: NZPayrollExportRecord[],
     periodStr: string,
     warnings: string[],
@@ -495,7 +495,7 @@ export class PayrollExportService {
     payPeriodStart: Date,
     payPeriodEnd: Date,
     exportedBy: string
-  ): PayrollExportResult {
+  ): Promise<PayrollExportResult> {
     // Flatten records for CSV
     const flatRecords = records.map(flattenPayrollRecord);
 
@@ -543,6 +543,9 @@ export class PayrollExportService {
 
     const filename = `payroll_export_${periodStr}.csv`;
 
+    // Log export
+    await this.logExportEvent(companyId, exportedBy, payPeriodStart, payPeriodEnd, records.length, 'csv', filename);
+
     return {
       data: csvContent,
       filename,
@@ -552,8 +555,8 @@ export class PayrollExportService {
         exportedAt: new Date().toISOString(),
         exportedBy,
         companyId,
-        payPeriodStart: format(payPeriodStart, 'yyyy-MM-dd'),
-        payPeriodEnd: format(payPeriodEnd, 'yyyy-MM-dd'),
+        payPeriodStart: formatDate(payPeriodStart, 'yyyy-MM-dd'),
+        payPeriodEnd: formatDate(payPeriodEnd, 'yyyy-MM-dd'),
       },
       warnings,
       errors: [],
@@ -563,7 +566,7 @@ export class PayrollExportService {
   /**
    * Generate JSON export
    */
-  private generateJSON(
+  private async generateJSON(
     records: NZPayrollExportRecord[],
     periodStr: string,
     warnings: string[],
@@ -571,14 +574,14 @@ export class PayrollExportService {
     payPeriodStart: Date,
     payPeriodEnd: Date,
     exportedBy: string
-  ): PayrollExportResult {
+  ): Promise<PayrollExportResult> {
     const jsonData = {
       exportMetadata: {
         exportedAt: new Date().toISOString(),
         exportedBy,
         companyId,
-        payPeriodStart: format(payPeriodStart, 'yyyy-MM-dd'),
-        payPeriodEnd: format(payPeriodEnd, 'yyyy-MM-dd'),
+        payPeriodStart: formatDate(payPeriodStart, 'yyyy-MM-dd'),
+        payPeriodEnd: formatDate(payPeriodEnd, 'yyyy-MM-dd'),
         recordCount: records.length,
         exportVersion: '1.0',
         warnings,
@@ -587,6 +590,9 @@ export class PayrollExportService {
     };
 
     const filename = `payroll_export_${periodStr}.json`;
+
+    // Log export
+    await this.logExportEvent(companyId, exportedBy, payPeriodStart, payPeriodEnd, records.length, 'json', filename);
 
     return {
       data: JSON.stringify(jsonData, null, 2),
@@ -597,8 +603,8 @@ export class PayrollExportService {
         exportedAt: new Date().toISOString(),
         exportedBy,
         companyId,
-        payPeriodStart: format(payPeriodStart, 'yyyy-MM-dd'),
-        payPeriodEnd: format(payPeriodEnd, 'yyyy-MM-dd'),
+        payPeriodStart: formatDate(payPeriodStart, 'yyyy-MM-dd'),
+        payPeriodEnd: formatDate(payPeriodEnd, 'yyyy-MM-dd'),
       },
       warnings,
       errors: [],
@@ -608,7 +614,7 @@ export class PayrollExportService {
   /**
    * Generate Excel export
    */
-  private generateExcel(
+  private async generateExcel(
     records: NZPayrollExportRecord[],
     periodStr: string,
     warnings: string[],
@@ -616,7 +622,7 @@ export class PayrollExportService {
     payPeriodStart: Date,
     payPeriodEnd: Date,
     exportedBy: string
-  ): PayrollExportResult {
+  ): Promise<PayrollExportResult> {
     // Flatten records
     const flatRecords = records.map(flattenPayrollRecord);
 
@@ -626,7 +632,7 @@ export class PayrollExportService {
     // Summary sheet
     const summaryData = [
       ['NZ Payroll Export'],
-      ['Period:', `${format(payPeriodStart, 'yyyy-MM-dd')} to ${format(payPeriodEnd, 'yyyy-MM-dd')}`],
+      ['Period:', `${formatDate(payPeriodStart, 'yyyy-MM-dd')} to ${formatDate(payPeriodEnd, 'yyyy-MM-dd')}`],
       ['Exported:', new Date().toISOString()],
       ['Exported By:', exportedBy],
       ['Total Employees:', records.length],
@@ -650,6 +656,9 @@ export class PayrollExportService {
     const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     const filename = `payroll_export_${periodStr}.xlsx`;
 
+    // Log export
+    await this.logExportEvent(companyId, exportedBy, payPeriodStart, payPeriodEnd, records.length, 'excel', filename);
+
     return {
       data: buffer,
       filename,
@@ -659,8 +668,8 @@ export class PayrollExportService {
         exportedAt: new Date().toISOString(),
         exportedBy,
         companyId,
-        payPeriodStart: format(payPeriodStart, 'yyyy-MM-dd'),
-        payPeriodEnd: format(payPeriodEnd, 'yyyy-MM-dd'),
+        payPeriodStart: formatDate(payPeriodStart, 'yyyy-MM-dd'),
+        payPeriodEnd: formatDate(payPeriodEnd, 'yyyy-MM-dd'),
       },
       warnings,
       errors: [],
@@ -680,21 +689,23 @@ export class PayrollExportService {
     filename: string
   ): Promise<void> {
     try {
-      await prisma.employeeAuditLog.create({
+      await prisma.globalAuditLog.create({
         data: {
           id: `audit_${Date.now()}`,
           companyId,
-          employeeId: exportedBy, // User who exported
-          action: 'PAYROLL_EXPORT_GENERATED',
-          details: JSON.stringify({
-            payPeriodStart: format(payPeriodStart, 'yyyy-MM-dd'),
-            payPeriodEnd: format(payPeriodEnd, 'yyyy-MM-dd'),
+          actorId: exportedBy,
+          action: 'CREATED',
+          entityType: 'EMPLOYEE',
+          entityId: 'payroll_export',
+          metadata: {
+            type: 'PAYROLL_EXPORT',
+            payPeriodStart: formatDate(payPeriodStart, 'yyyy-MM-dd'),
+            payPeriodEnd: formatDate(payPeriodEnd, 'yyyy-MM-dd'),
             recordCount,
             format,
             filename,
             exportedAt: new Date().toISOString(),
-          }),
-          performedBy: exportedBy,
+          },
         },
       });
     } catch (error) {

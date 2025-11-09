@@ -161,7 +161,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Return file download
-    return new NextResponse(result.data, {
+    // Convert data to appropriate format for NextResponse
+    const responseData = typeof result.data === 'string' 
+      ? result.data 
+      : Buffer.from(result.data);
+
+    return new NextResponse(responseData, {
       headers: {
         "Content-Type": result.mimeType,
         "Content-Disposition": `attachment; filename="${result.filename}"`,

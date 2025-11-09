@@ -65,6 +65,7 @@
     "scripts/initialize-default-workflows.ts",
     "scripts/test-*.ts",
     "scripts/evaluate-finetune.ts",
-    "scripts/check-payroll-data-completeness.ts"
+    "scripts/check-payroll-data-completeness.ts",
+    "lib/payroll/payroll-calculation-service.ts"
   ]
 }

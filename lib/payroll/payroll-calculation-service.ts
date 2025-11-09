@@ -119,6 +119,10 @@ export async function calculatePayroll(
   
   // Fetch employee details
   const prismaClient = getPrismaClient();
+  if (!prismaClient) {
+    throw new Error('Database connection unavailable - cannot calculate payroll');
+  }
+  
   const employee = await prismaClient.employee.findUnique({
     where: { id: input.employeeId },
     select: {
@@ -432,6 +436,10 @@ export async function recalculatePayroll(
   updatedBy: string
 ): Promise<PayrollCalculationOutput> {
   const prismaClient = getPrismaClient();
+  if (!prismaClient) {
+    throw new Error('Database connection unavailable - cannot recalculate payroll');
+  }
+  
   const existing = await prismaClient.payrollCalculation.findUnique({
     where: { id: calculationId },
     include: {

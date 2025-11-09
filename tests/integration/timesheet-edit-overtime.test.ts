@@ -14,7 +14,7 @@
 
 import '../setupEnv';
 
-import { describe, it, beforeAll, afterAll, afterEach, mock } from 'node:test';
+import { describe, it, before, after, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -38,7 +38,7 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
   let testPublicHolidayDate: Date;
   let testRegularDate: Date;
 
-  beforeAll(async () => {
+  before(async () => {
     const nextAuthModule = await import('next-auth');
     getServerSessionMock = mock.method(nextAuthModule, 'getServerSession', async () => null);
 
@@ -174,7 +174,7 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     testEntryId = entry.id;
   });
 
-  afterAll(async () => {
+  after(async () => {
     // Clean up test data
     await prisma.timesheetEntry.deleteMany({ where: { timesheetId: testTimesheetId } });
     await prisma.timesheet.deleteMany({ where: { id: testTimesheetId } });

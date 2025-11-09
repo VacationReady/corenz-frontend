@@ -68,7 +68,6 @@
     "date-fns-tz": "^3.2.0",
     "date-holidays": "^3.23.0",
     "dayjs": "^1.11.13",
-    "exceljs": "^4.4.0",
     "expo-server-sdk": "^3.11.0",
     "framer-motion": "^12.19.2",
     "isomorphic-dompurify": "^2.26.0",

@@ -40,7 +40,7 @@ if (supportsModuleMocking) {
   
   // Dynamic import to avoid MODULE_NOT_FOUND errors
   try {
-    const route = await import("@/app/api/reports/query/route");
+    const route = await import("@/api/reports/query/route");
     ReportsQueryPOST = route.POST;
   } catch (error) {
     console.log("Failed to import route:", error);

@@ -203,7 +203,9 @@ export async function PUT(
     }
 
     // Update entries if provided
-    if (data.entries && data.entries.length > 0) {
+    const entries = data.entries ?? [];
+
+    if (entries.length > 0) {
       // Use transaction to ensure consistency
       await prisma.$transaction(async (tx) => {
         // Delete existing manual/adjusted entries
@@ -267,7 +269,7 @@ export async function PUT(
         const entryType = isAdminOrManager ? 'ADJUSTED' : 'MANUAL';
         
         // Process each entry with NZ-compliant overtime calculation
-        for (const entry of data.entries) {
+        for (const entry of entries) {
           const date = new Date(entry.date);
           const startTime = new Date(entry.startTime);
           const endTime = new Date(entry.endTime);

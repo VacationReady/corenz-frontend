@@ -35,7 +35,7 @@ if (supportsModuleMocking) {
   }));
 }
 
-describe("/api/reports/query route", { skip: !supportsModuleMocking }, async () => {
+ 
   let ReportsQueryPOST: any;
   
   // Dynamic import to avoid MODULE_NOT_FOUND errors

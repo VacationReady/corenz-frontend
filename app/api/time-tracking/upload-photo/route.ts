@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { uploadClockPhoto } from '@/lib/storage/clock-photos';
 
 const uploadPhotoSchema = z.object({
   entryId: z.string(),
@@ -49,15 +50,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // In production, upload to cloud storage (S3, Azure Blob, etc.)
-    // For now, we'll simulate the upload and return a mock URL
-    // You should replace this with actual cloud storage integration
-    const photoUrl = await uploadToCloudStorage(data.photoBase64, {
-      entryId: data.entryId,
-      photoType: data.photoType,
-      employeeId: employee.id,
-      companyId: employee.companyId,
-    });
+    // Upload to Supabase storage with tenant isolation and 6-year retention
+    let photoUrl: string;
+    try {
+      const uploadResult = await uploadClockPhoto(data.photoBase64, {
+        entryId: data.entryId,
+        photoType: data.photoType,
+        employeeId: employee.id,
+        companyId: employee.companyId,
+      });
+      photoUrl = uploadResult.url;
+      
+      console.log(`[upload-photo] Successfully uploaded photo for entry ${data.entryId} (${data.photoType})`);
+    } catch (uploadError) {
+      console.error('[upload-photo] Upload to Supabase failed:', uploadError);
+      return NextResponse.json(
+        { 
+          error: 'Failed to upload photo to storage',
+          details: uploadError instanceof Error ? uploadError.message : 'Unknown error'
+        },
+        { status: 500 }
+      );
+    }
 
     // Update the clock entry with the photo URL
     const updateData =
@@ -89,32 +103,3 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/**
- * Upload photo to cloud storage
- * Replace this with your actual cloud storage integration (S3, Azure Blob, Cloudinary, etc.)
- */
-async function uploadToCloudStorage(
-  photoBase64: string,
-  metadata: {
-    entryId: string;
-    photoType: string;
-    employeeId: string;
-    companyId: string;
-  }
-): Promise<string> {
-  // TODO: Implement actual cloud storage upload
-  // Example with AWS S3:
-  // const buffer = Buffer.from(photoBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-  // const fileName = `time-tracking/${metadata.companyId}/${metadata.employeeId}/${metadata.entryId}_${metadata.photoType}_${Date.now()}.jpg`;
-  // await s3.upload({
-  //   Bucket: process.env.S3_BUCKET_NAME,
-  //   Key: fileName,
-  //   Body: buffer,
-  //   ContentType: 'image/jpeg',
-  // }).promise();
-  // return `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${fileName}`;
-
-  // For now, return a mock URL
-  const timestamp = Date.now();
-  return `https://storage.corenz.app/time-tracking/${metadata.companyId}/${metadata.employeeId}/${metadata.entryId}_${metadata.photoType}_${timestamp}.jpg`;
-}

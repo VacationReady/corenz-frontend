@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { processTimesheetEntry, findOrCreateTimesheet, recalculateTimesheetTotals } from '@/lib/time-tracking/timesheet-entry-processor';
 
 const manualEntrySchema = z.object({
   employeeId: z.string(),
@@ -117,40 +118,110 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create manual clock entry
-    const clockEntry = await prisma.clockEntry.create({
-      data: {
-        employeeId: data.employeeId,
-        companyId: requestingEmployee.companyId,
-        clockInTime,
-        clockOutTime,
-        notes: data.notes,
-        status: 'COMPLETED',
-      },
-    });
-
-    // Log the manual entry creation
-    await prisma.globalAuditLog.create({
-      data: {
-        id: `audit-${Date.now()}-${Math.random()}`,
-        companyId: requestingEmployee.companyId,
-        actorId: session.user.id,
-        action: 'CREATED',
-        entityType: 'EMPLOYEE',
-        entityId: data.employeeId,
-        metadata: {
-          type: 'MANUAL_TIME_ENTRY',
-          clockEntryId: clockEntry.id,
-          targetEmployeeId: data.employeeId,
-          clockInTime: clockInTime.toISOString(),
-          clockOutTime: clockOutTime.toISOString(),
+    // Use transaction to create clock entry AND timesheet entry with overtime calculation
+    const result = await prisma.$transaction(async (tx) => {
+      // Create manual clock entry
+      const clockEntry = await tx.clockEntry.create({
+        data: {
+          employeeId: data.employeeId,
+          companyId: requestingEmployee.companyId,
+          clockInTime,
+          clockOutTime,
+          notes: data.notes,
+          status: 'COMPLETED',
         },
-      },
+      });
+
+      // Find or create timesheet for this date
+      const timesheetId = await findOrCreateTimesheet(
+        data.employeeId,
+        requestingEmployee.companyId,
+        clockInTime
+      );
+
+      // Process entry with NZ-compliant overtime calculation
+      const processedEntry = await processTimesheetEntry(
+        {
+          date: clockInTime,
+          startTime: clockInTime,
+          endTime: clockOutTime,
+          breakMinutes: 0,
+        },
+        data.employeeId,
+        requestingEmployee.companyId,
+        'ADJUSTED', // Manager-created entries are ADJUSTED
+        data.notes
+      );
+
+      // Create timesheet entry with full metadata
+      const timesheetEntry = await tx.timesheetEntry.create({
+        data: {
+          timesheetId,
+          date: processedEntry.date,
+          startTime: processedEntry.startTime,
+          endTime: processedEntry.endTime,
+          breakMinutes: processedEntry.breakMinutes,
+          hours: processedEntry.hours,
+          regularHours: processedEntry.regularHours,
+          overtimeHours: processedEntry.overtimeHours,
+          overtimeMultiplier: processedEntry.overtimeMultiplier,
+          overtimeType: processedEntry.overtimeType,
+          overtimeReason: processedEntry.overtimeReason,
+          isOvertime: processedEntry.isOvertime,
+          isPublicHoliday: processedEntry.isPublicHoliday,
+          publicHolidayName: processedEntry.publicHolidayName,
+          publicHolidayHours: processedEntry.publicHolidayHours,
+          publicHolidayMultiplier: processedEntry.publicHolidayMultiplier,
+          publicHolidayType: processedEntry.publicHolidayType,
+          publicHolidayRegion: processedEntry.publicHolidayRegion,
+          managerAdjusted: true,
+          managerAdjustedBy: session.user.id,
+          managerAdjustedAt: new Date(),
+          notes: processedEntry.notes,
+          entryType: processedEntry.entryType as any,
+        },
+      });
+
+      // Link clock entry to timesheet
+      await tx.clockEntry.update({
+        where: { id: clockEntry.id },
+        data: { timesheetId },
+      });
+
+      // Recalculate timesheet totals
+      await recalculateTimesheetTotals(timesheetId, tx);
+
+      // Log the manual entry creation with overtime info
+      await tx.globalAuditLog.create({
+        data: {
+          id: `audit-${Date.now()}-${Math.random()}`,
+          companyId: requestingEmployee.companyId,
+          actorId: session.user.id,
+          action: 'CREATED',
+          entityType: 'EMPLOYEE',
+          entityId: data.employeeId,
+          metadata: {
+            type: 'MANUAL_TIME_ENTRY',
+            clockEntryId: clockEntry.id,
+            timesheetEntryId: timesheetEntry.id,
+            targetEmployeeId: data.employeeId,
+            clockInTime: clockInTime.toISOString(),
+            clockOutTime: clockOutTime.toISOString(),
+            hours: processedEntry.hours,
+            overtimeHours: processedEntry.overtimeHours,
+            isPublicHoliday: processedEntry.isPublicHoliday,
+            publicHolidayName: processedEntry.publicHolidayName,
+          },
+        },
+      });
+
+      return { clockEntry, timesheetEntry };
     });
 
     return NextResponse.json({
       success: true,
-      clockEntry,
+      clockEntry: result.clockEntry,
+      timesheetEntry: result.timesheetEntry,
       message: 'Manual time entry created successfully',
     });
   } catch (error) {

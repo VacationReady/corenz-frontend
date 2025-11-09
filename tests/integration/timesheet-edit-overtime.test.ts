@@ -26,10 +26,8 @@ type PatchHandler = typeof import('@/app/api/timesheets/entries/[id]/route')['PA
 let getServerSessionMock: MockedGetServerSession;
 let patchHandler: PatchHandler;
 
-const runOvertimeIntegrationTests = process.env.RUN_NZ_OVERTIME_EDIT_TESTS === 'true';
-const describeOvertime = runOvertimeIntegrationTests ? describe : describe.skip;
-
-describeOvertime('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
+// Tests now run by default - NZ overtime calculation is production-ready
+describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
   let testCompanyId: string;
   let testEmployeeId: string;
   let testManagerId: string;

@@ -3,7 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { calculateHours, calculateOvertime } from '@/lib/timesheet-calculations';
+import { calculateHours } from '@/lib/timesheet-calculations';
+import { calculateOvertimeForEntry, OvertimeSettings, EmployeeOvertimeConfig } from '@/lib/overtime-calculator';
+import { getNZPublicHolidayInfo } from '@/lib/public-holiday-checker';
 import { cancelPendingTimesheetApprovalActionItems } from '@/lib/action-items-helper';
 import { validateTimesheetTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
 
@@ -202,62 +204,167 @@ export async function PUT(
 
     // Update entries if provided
     if (data.entries && data.entries.length > 0) {
-      // Delete existing manual/adjusted entries
-      await prisma.timesheetEntry.deleteMany({
-        where: {
-          timesheetId: id,
-          entryType: { in: ['MANUAL', 'ADJUSTED'] },
-        },
-      });
-
-      // Create new entries
-      const entryType = isAdminOrManager ? 'ADJUSTED' : 'MANUAL';
-      
-      for (const entry of data.entries) {
-        const hours = calculateHours(
-          new Date(entry.startTime),
-          new Date(entry.endTime),
-          entry.breakMinutes
-        );
-
-        await prisma.timesheetEntry.create({
-          data: {
+      // Use transaction to ensure consistency
+      await prisma.$transaction(async (tx) => {
+        // Delete existing manual/adjusted entries
+        await tx.timesheetEntry.deleteMany({
+          where: {
             timesheetId: id,
-            date: new Date(entry.date),
-            startTime: new Date(entry.startTime),
-            endTime: new Date(entry.endTime),
-            breakMinutes: entry.breakMinutes,
-            hours,
-            isOvertime: false,
-            notes: entry.notes,
-            entryType: entry.entryType || entryType,
+            entryType: { in: ['MANUAL', 'ADJUSTED'] },
           },
         });
-      }
 
-      // Recalculate total hours
-      const allEntries = await prisma.timesheetEntry.findMany({
-        where: { timesheetId: id },
-      });
+        // Build overtime settings from company settings
+        const overtimeSettings: OvertimeSettings = {
+          overtimeCalculationMode: (settings?.overtimeCalculationMode as any) || 'DAILY',
+          autoApplyOvertime: settings?.autoApplyOvertime ?? true,
+          dailyOvertimeThreshold: settings?.dailyOvertimeThreshold 
+            ? parseFloat(settings.dailyOvertimeThreshold.toString()) 
+            : 8,
+          weeklyOvertimeThreshold: settings?.weeklyOvertimeThreshold 
+            ? parseFloat(settings.weeklyOvertimeThreshold.toString()) 
+            : 40,
+          monthlyOvertimeThreshold: settings?.monthlyOvertimeThreshold 
+            ? parseFloat(settings.monthlyOvertimeThreshold.toString()) 
+            : 173.33,
+          overtimeMultiplier: settings?.overtimeMultiplier 
+            ? parseFloat(settings.overtimeMultiplier.toString()) 
+            : 1.5,
+          overtimeMultiplierTier2: settings?.overtimeMultiplierTier2 
+            ? parseFloat(settings.overtimeMultiplierTier2.toString()) 
+            : undefined,
+          overtimeThresholdTier2: settings?.overtimeThresholdTier2 
+            ? parseFloat(settings.overtimeThresholdTier2.toString()) 
+            : undefined,
+          publicHolidayMultiplier: settings?.publicHolidayMultiplier 
+            ? parseFloat(settings.publicHolidayMultiplier.toString()) 
+            : 2.0,
+          sundayMultiplier: settings?.sundayMultiplier 
+            ? parseFloat(settings.sundayMultiplier.toString()) 
+            : undefined,
+        };
 
-      const totalHours = allEntries.reduce(
-        (sum, e) => sum + parseFloat(e.hours.toString()),
-        0
-      );
+        // Get employee overtime config
+        const employee = await tx.employee.findUnique({
+          where: { id: timesheet.employeeId },
+          select: {
+            overtimeEligible: true,
+            overtimeThreshold: true,
+            overtimeMultiplier: true,
+          },
+        });
 
-      const overtimeThreshold = settings?.overtimeThreshold
-        ? parseFloat(settings.overtimeThreshold.toString())
-        : 40;
+        const employeeConfig: EmployeeOvertimeConfig | undefined = employee ? {
+          overtimeEligible: employee.overtimeEligible ?? true,
+          overtimeThreshold: employee.overtimeThreshold 
+            ? parseFloat(employee.overtimeThreshold.toString()) 
+            : undefined,
+          overtimeMultiplier: employee.overtimeMultiplier 
+            ? parseFloat(employee.overtimeMultiplier.toString()) 
+            : undefined,
+        } : undefined;
 
-      const { regularHours, overtimeHours } = calculateOvertime(totalHours, overtimeThreshold);
+        const entryType = isAdminOrManager ? 'ADJUSTED' : 'MANUAL';
+        
+        // Process each entry with NZ-compliant overtime calculation
+        for (const entry of data.entries) {
+          const date = new Date(entry.date);
+          const startTime = new Date(entry.startTime);
+          const endTime = new Date(entry.endTime);
+          
+          const hours = calculateHours(startTime, endTime, entry.breakMinutes);
 
-      await prisma.timesheet.update({
-        where: { id: id },
-        data: {
-          totalHours,
-          regularHours,
-          overtimeHours,
-        },
+          // Calculate overtime for this entry
+          const overtimeResult = await calculateOvertimeForEntry(
+            {
+              id: `temp-${Date.now()}`,
+              date,
+              hours,
+              timesheetId: id,
+            },
+            timesheet.employeeId,
+            requestingEmployee.companyId,
+            overtimeSettings,
+            employeeConfig
+          );
+
+          // Check for public holiday
+          const holidayInfo = await getNZPublicHolidayInfo(
+            date,
+            requestingEmployee.companyId
+          );
+
+          // Create entry with full overtime and public holiday metadata
+          await tx.timesheetEntry.create({
+            data: {
+              timesheetId: id,
+              date,
+              startTime,
+              endTime,
+              breakMinutes: entry.breakMinutes,
+              hours,
+              // Overtime fields from NZ-compliant calculator
+              regularHours: overtimeResult.regularHours,
+              overtimeHours: overtimeResult.overtimeHours,
+              overtimeMultiplier: overtimeResult.overtimeMultiplier,
+              overtimeType: overtimeResult.overtimeType,
+              overtimeReason: overtimeResult.overtimeReason || '',
+              isOvertime: overtimeResult.overtimeHours > 0,
+              // Public holiday fields
+              isPublicHoliday: holidayInfo?.isHoliday ?? false,
+              publicHolidayName: holidayInfo?.holidayName,
+              publicHolidayHours: holidayInfo?.isHoliday ? hours : 0,
+              publicHolidayMultiplier: overtimeSettings.publicHolidayMultiplier,
+              publicHolidayType: holidayInfo?.holidayType,
+              publicHolidayRegion: holidayInfo?.region,
+              // Manager adjustment tracking
+              managerAdjusted: isAdminOrManager,
+              managerAdjustedBy: isAdminOrManager ? session.user.id : undefined,
+              managerAdjustedAt: isAdminOrManager ? new Date() : undefined,
+              notes: entry.notes,
+              entryType: entry.entryType || entryType,
+            },
+          });
+        }
+
+        // Recalculate timesheet totals from all entries
+        const allEntries = await tx.timesheetEntry.findMany({
+          where: { timesheetId: id },
+          select: {
+            hours: true,
+            regularHours: true,
+            overtimeHours: true,
+            publicHolidayHours: true,
+            breakMinutes: true,
+          },
+        });
+
+        const totalHours = allEntries.reduce(
+          (sum, e) => sum + parseFloat(e.hours.toString()),
+          0
+        );
+        const regularHours = allEntries.reduce(
+          (sum, e) => sum + parseFloat((e.regularHours || e.hours).toString()),
+          0
+        );
+        const overtimeHours = allEntries.reduce(
+          (sum, e) => sum + parseFloat((e.overtimeHours || 0).toString()),
+          0
+        );
+        const breakHours = allEntries.reduce(
+          (sum, e) => sum + (e.breakMinutes / 60),
+          0
+        );
+
+        await tx.timesheet.update({
+          where: { id: id },
+          data: {
+            totalHours,
+            regularHours,
+            overtimeHours,
+            breakHours,
+          },
+        });
       });
     }
 
@@ -273,6 +380,8 @@ export async function PUT(
         metadata: {
           type: 'TIMESHEET_UPDATED',
           timesheetId: id,
+          entriesCount: data.entries?.length || 0,
+          calculationMode: settings?.overtimeCalculationMode || 'DAILY',
         },
       },
     });

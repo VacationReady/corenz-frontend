@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { roundClockTime } from '@/lib/timesheet-calculations';
 import { verifyClockLocation } from '@/lib/gps-verification';
+import { uploadClockPhoto } from '@/lib/storage/clock-photos';
 
 const syncEntrySchema = z.object({
   localId: z.string(),
@@ -135,6 +136,23 @@ export async function POST(req: NextRequest) {
             clockInTime = roundClockTime(clockInTime, settings.roundClockTimes as any);
           }
 
+          // Upload photo if provided
+          let clockInPhotoUrl: string | undefined;
+          if (entry.photoBase64) {
+            try {
+              const uploadResult = await uploadClockPhoto(entry.photoBase64, {
+                entryId: entry.localId, // Use localId temporarily
+                photoType: 'clockIn',
+                employeeId: employee.id,
+                companyId: employee.companyId,
+              });
+              clockInPhotoUrl = uploadResult.url;
+            } catch (uploadError) {
+              console.error('[sync] Clock-in photo upload failed:', uploadError);
+              // Continue without photo - don't fail the entire sync
+            }
+          }
+
           // Create clock entry
           const clockEntry = await prisma.clockEntry.create({
             data: {
@@ -145,9 +163,7 @@ export async function POST(req: NextRequest) {
                 entry.latitude && entry.longitude
                   ? { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy }
                   : undefined,
-              clockInPhotoUrl: entry.photoBase64
-                ? await uploadPhoto(entry.photoBase64, employee.id, 'clockIn')
-                : undefined,
+              clockInPhotoUrl,
               notes: entry.notes,
               status: 'ACTIVE',
               localId: entry.localId,
@@ -187,6 +203,23 @@ export async function POST(req: NextRequest) {
             clockOutTime = roundClockTime(clockOutTime, settings.roundClockTimes as any);
           }
 
+          // Upload photo if provided
+          let clockOutPhotoUrl: string | undefined;
+          if (entry.photoBase64) {
+            try {
+              const uploadResult = await uploadClockPhoto(entry.photoBase64, {
+                entryId: activeEntry.id,
+                photoType: 'clockOut',
+                employeeId: employee.id,
+                companyId: employee.companyId,
+              });
+              clockOutPhotoUrl = uploadResult.url;
+            } catch (uploadError) {
+              console.error('[sync] Clock-out photo upload failed:', uploadError);
+              // Continue without photo - don't fail the entire sync
+            }
+          }
+
           // Update clock entry
           await prisma.clockEntry.update({
             where: { id: activeEntry.id },
@@ -196,9 +229,7 @@ export async function POST(req: NextRequest) {
                 entry.latitude && entry.longitude
                   ? { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy }
                   : undefined,
-              clockOutPhotoUrl: entry.photoBase64
-                ? await uploadPhoto(entry.photoBase64, employee.id, 'clockOut')
-                : undefined,
+              clockOutPhotoUrl,
               status: 'COMPLETED',
               notes: entry.notes || activeEntry.notes,
               syncedAt: new Date(),
@@ -244,8 +275,3 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function uploadPhoto(photoBase64: string, employeeId: string, photoType: string): Promise<string> {
-  // TODO: Implement actual cloud storage upload
-  const timestamp = Date.now();
-  return `https://storage.corenz.app/time-tracking/synced/${employeeId}/${photoType}_${timestamp}.jpg`;
-}

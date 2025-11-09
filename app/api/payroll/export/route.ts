@@ -1,88 +1,55 @@
+/**
+ * NZ IRD-Compliant Payroll Export API Endpoint
+ * 
+ * POST /api/payroll/export
+ * Generates payroll exports with full NZ compliance
+ * 
+ * @version 2.0 - Enhanced with IRD compliance
+ * @date 2024-11-09
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import ExcelJS from "exceljs";
-import { stringify } from "csv-stringify/sync";
+import { PayrollExportService } from "@/lib/payroll/payroll-export-service";
 
 const exportRequestSchema = z.object({
-  startDate: z.string(),
-  endDate: z.string(),
-  format: z.enum(["CSV", "EXCEL", "JSON"]),
-  departmentId: z.string().optional(),
+  payPeriodStart: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: "Invalid start date format",
+  }),
+  payPeriodEnd: z.string().refine((val) => !isNaN(Date.parse(val)), {
+    message: "Invalid end date format",
+  }),
+  paymentDate: z.string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
+    message: "Invalid payment date format",
+  }),
+  format: z.enum(["csv", "json", "excel"], {
+    errorMap: () => ({ message: "Format must be csv, json, or excel" }),
+  }),
+  departmentIds: z.array(z.string()).optional(),
   employeeIds: z.array(z.string()).optional(),
-  includeBreaks: z.boolean().optional(),
-  includeNotes: z.boolean().optional(),
+  // Legacy support
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
-type PayrollEntry = {
-  employeeId: string;
-  employeeName: string;
-  email: string;
-  department: string;
-  date: string;
-  clockIn: string;
-  clockOut: string;
-  breakDuration: number;
-  breakMinutes?: number;
-  totalHours: number;
-  overtimeHours: number;
-  hourlyRate: number;
-  totalCost: number;
-  location: string;
-  notes: string;
-  status: string;
-  approvedBy: string;
-  approvedAt: string;
-};
-
-type PayrollExportData = {
-  exportDate: string;
-  periodStart: string;
-  periodEnd: string;
-  totalEmployees: number;
-  totalHours: number;
-  totalCost: number;
-  employees: {
-    employeeId: string;
-    name: string;
-    email: string;
-    department: string;
-    entries: {
-      date: string;
-      clockIn: string;
-      clockOut: string;
-      breakDuration: number;
-      totalHours: number;
-      overtimeHours: number;
-      hourlyRate: number;
-      totalCost: number;
-      location: string;
-      notes: string;
-      status: string;
-      approvedBy: string;
-      approvedAt: string;
-    }[];
-    summary: {
-      totalHours: number;
-      overtimeHours: number;
-      totalCost: number;
-    };
-  }[];
-};
-
-/**
- * Calculate overtime hours based on threshold
- */
-function calculateOvertimeHours(totalHours: number, threshold: number): number {
-  return Math.max(0, totalHours - threshold);
-}
+// Types are now imported from the export service
 
 /**
  * POST /api/payroll/export
- * Export timesheet data for payroll processing
- * Permission: ADMIN or MANAGER (own department)
+ * Export NZ IRD-compliant payroll data
+ * 
+ * Permissions: ADMIN or MANAGER (own department only)
+ * 
+ * Features:
+ * - Complete IRD compliance with PAYE, KiwiSaver, Student Loan calculations
+ * - Overtime aggregation with proper multipliers
+ * - Pre-export validation (blocks on errors, warnings for review)
+ * - Multiple formats: CSV, JSON, Excel
+ * - Audit trail logging
+ * - Tenant isolation (company-scoped)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -92,9 +59,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Parse and validate request
     const body = await req.json();
     const data = exportRequestSchema.parse(body);
 
+    // Support legacy field names
+    const payPeriodStart = data.payPeriodStart || data.startDate;
+    const payPeriodEnd = data.payPeriodEnd || data.endDate;
+
+    if (!payPeriodStart || !payPeriodEnd) {
+      return NextResponse.json(
+        { error: "Pay period start and end dates are required" },
+        { status: 400 }
+      );
+    }
+
+    // Get employee record for permissions check
     const employee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
       select: {
@@ -111,7 +91,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (!employee) {
-      return NextResponse.json({ error: "Employee record not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Employee record not found" },
+        { status: 404 }
+      );
     }
 
     const isAdmin = employee.User.role === "ADMIN";
@@ -124,356 +107,108 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get company settings for overtime threshold
-    let settings = await prisma.timeTrackingSettings.findUnique({
-      where: { companyId: employee.companyId },
-    });
-
-    if (!settings) {
-      // Create default settings if not exists
-      settings = await prisma.timeTrackingSettings.create({
-        data: {
+    // Filter employees by department if manager (not admin)
+    let employeeIds = data.employeeIds;
+    if (isManager && !isAdmin && employee.departmentId) {
+      // Manager can only export their department
+      const departmentEmployees = await prisma.employee.findMany({
+        where: {
           companyId: employee.companyId,
+          departmentId: employee.departmentId,
         },
+        select: { id: true },
       });
-    }
-
-    const overtimeThreshold = settings.overtimeThreshold || 40;
-
-    // Build query filters
-    const whereClause: any = {
-      Employee: {
-        companyId: employee.companyId,
-      },
-      approvalStatus: "APPROVED",
-      submittedAt: {
-        gte: new Date(data.startDate),
-        lte: new Date(data.endDate),
-      },
-    };
-
-    // Manager can only see their department
-    if (isManager && !isAdmin) {
-      whereClause.Employee = {
-        ...whereClause.Employee,
-        departmentId: employee.departmentId,
-      };
-    }
-
-    // Apply department filter
-    if (data.departmentId) {
-      whereClause.Employee = {
-        ...whereClause.Employee,
-        departmentId: data.departmentId,
-      };
-    }
-
-    // Apply employee filter
-    if (data.employeeIds && data.employeeIds.length > 0) {
-      whereClause.employeeId = {
-        in: data.employeeIds,
-      };
-    }
-
-    // Fetch approved timesheets
-    const timesheets = await prisma.timesheet.findMany({
-      where: whereClause,
-      include: {
-        Employee: {
-          include: {
-            User: {
-              select: {
-                name: true,
-                email: true,
-              },
-            },
-            Department: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-        TimesheetEntries: {
-          select: {
-            id: true,
-            date: true,
-            startTime: true,
-            endTime: true,
-            breakMinutes: true,
-            hours: true,
-            notes: true,
-          },
-        },
-        ApprovalStages: {
-          where: {
-            status: "APPROVED",
-          },
-          select: {
-            id: true,
-            name: true,
-            status: true,
-            completedAt: true,
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-          take: 1,
-        },
-      },
-      orderBy: {
-        periodStart: "asc",
-      },
-    });
-
-    // Process timesheets into payroll entries
-    const payrollEntries: PayrollEntry[] = [];
-    const employeeMap = new Map<
-      string,
-      {
-        employeeId: string;
-        name: string;
-        email: string;
-        department: string;
-        entries: any[];
+      
+      const deptEmployeeIds = departmentEmployees.map((e) => e.id);
+      
+      // Intersect with requested employee IDs if provided
+      if (employeeIds && employeeIds.length > 0) {
+        employeeIds = employeeIds.filter((id) => deptEmployeeIds.includes(id));
+      } else {
+        employeeIds = deptEmployeeIds;
       }
-    >();
 
-    for (const timesheet of timesheets) {
-      const employeeName = timesheet.Employee.User?.name || "Unknown";
-      const employeeEmail = timesheet.Employee.User?.email || "";
-      const department = timesheet.Employee.Department?.name || "Unassigned";
-      const hourlyRate = (timesheet.Employee as any).hourlyRate || 0;
-
-      for (const entry of timesheet.TimesheetEntries) {
-        const startTime = entry.startTime ? new Date(entry.startTime) : null;
-        const endTime = entry.endTime ? new Date(entry.endTime) : null;
-
-        if (!startTime || !endTime) continue;
-
-        const totalMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
-        const breakMinutes = entry.breakMinutes || 0;
-        const workedMinutes = totalMinutes - breakMinutes;
-        const totalHours = parseFloat((workedMinutes / 60).toFixed(2));
-
-        const approval = timesheet.ApprovalStages[0];
-        const approvedBy = "System"; // Approval details simplified
-        const approvedAt = approval?.completedAt
-          ? new Date(approval.completedAt).toISOString()
-          : "";
-
-        const payrollEntry: PayrollEntry = {
-          employeeId: timesheet.employeeId,
-          employeeName,
-          email: employeeEmail,
-          department,
-          date: new Date(entry.date).toISOString().split("T")[0],
-          clockIn: startTime.toTimeString().slice(0, 8),
-          clockOut: endTime.toTimeString().slice(0, 8),
-          breakDuration: data.includeBreaks !== false ? breakMinutes : 0,
-          totalHours,
-          overtimeHours: 0, // Calculated later per week
-          hourlyRate,
-          totalCost: parseFloat((totalHours * hourlyRate).toFixed(2)),
-          location: "", // Location not available on TimesheetEntry
-          notes: data.includeNotes !== false ? (entry.notes || "") : "",
-          status: timesheet.approvalStatus,
-          approvedBy,
-          approvedAt,
-        };
-
-        payrollEntries.push(payrollEntry);
-
-        // Group by employee
-        if (!employeeMap.has(timesheet.employeeId)) {
-          employeeMap.set(timesheet.employeeId, {
-            employeeId: timesheet.employeeId,
-            name: employeeName,
-            email: employeeEmail,
-            department,
-            entries: [],
-          });
-        }
-        employeeMap.get(timesheet.employeeId)!.entries.push({
-          date: payrollEntry.date,
-          clockIn: payrollEntry.clockIn,
-          clockOut: payrollEntry.clockOut,
-          breakDuration: payrollEntry.breakDuration,
-          totalHours: payrollEntry.totalHours,
-          overtimeHours: 0,
-          hourlyRate: payrollEntry.hourlyRate,
-          totalCost: payrollEntry.totalCost,
-          location: payrollEntry.location,
-          notes: payrollEntry.notes,
-          status: payrollEntry.status,
-          approvedBy: payrollEntry.approvedBy,
-          approvedAt: payrollEntry.approvedAt,
-        });
+      if (employeeIds.length === 0) {
+        return NextResponse.json(
+          { error: "No employees found in your department for export" },
+          { status: 403 }
+        );
       }
     }
 
-    // Calculate totals
-    const totalHours = payrollEntries.reduce((sum, e) => sum + e.totalHours, 0);
-    const totalCost = payrollEntries.reduce((sum, e) => sum + e.totalCost, 0);
+    // Initialize export service
+    const exportService = new PayrollExportService();
 
-    // Create audit log
-    await prisma.globalAuditLog.create({
-      data: {
-        id: `audit-${Date.now()}-${Math.random()}`,
-        actorId: session.user.id,
-        companyId: employee.companyId,
-        action: 'CREATED',
-        entityType: 'EMPLOYEE',
-        entityId: "payroll_export",
-        metadata: {
-          type: "PAYROLL_EXPORT",
-          format: data.format,
-          startDate: data.startDate,
-          endDate: data.endDate,
-          totalRecords: payrollEntries.length,
-          totalEmployees: employeeMap.size,
-          exportedBy: employee.User.name,
-        },
+    // Generate export
+    console.log(`[API] Starting payroll export for company ${employee.companyId}`);
+    
+    const result = await exportService.generateExport({
+      companyId: employee.companyId,
+      payPeriodStart: new Date(payPeriodStart),
+      payPeriodEnd: new Date(payPeriodEnd),
+      paymentDate: data.paymentDate ? new Date(data.paymentDate) : undefined,
+      format: data.format,
+      employeeIds,
+      departmentIds: data.departmentIds,
+      exportedBy: employee.id,
+    });
+
+    console.log(`[API] Export completed: ${result.filename}, ${result.recordCount} records`);
+
+    // Log warnings if any
+    if (result.warnings.length > 0) {
+      console.warn(`[API] Export warnings:`, result.warnings);
+    }
+
+    // Return file download
+    return new NextResponse(result.data, {
+      headers: {
+        "Content-Type": result.mimeType,
+        "Content-Disposition": `attachment; filename="${result.filename}"`,
+        "X-Export-Record-Count": result.recordCount.toString(),
+        "X-Export-Warnings": result.warnings.length.toString(),
       },
     });
-
-    // Generate export based on format
-    if (data.format === "CSV") {
-      const csvData = payrollEntries.map((entry) => ({
-        "Employee ID": entry.employeeId,
-        "Employee Name": entry.employeeName,
-        Department: entry.department,
-        Date: entry.date,
-        "Clock In": entry.clockIn,
-        "Clock Out": entry.clockOut,
-        "Break Duration (mins)": entry.breakDuration,
-        "Total Hours": entry.totalHours,
-        "Overtime Hours": entry.overtimeHours,
-        "Hourly Rate": entry.hourlyRate,
-        "Total Cost": entry.totalCost,
-        Location: entry.location,
-        Notes: entry.notes,
-        Status: entry.status,
-        "Approved By": entry.approvedBy,
-        "Approved At": entry.approvedAt,
-      }));
-
-      const csv = stringify(csvData, {
-        header: true,
-        columns: [
-          "Employee ID",
-          "Employee Name",
-          "Department",
-          "Date",
-          "Clock In",
-          "Clock Out",
-          "Break Duration (mins)",
-          "Total Hours",
-          "Overtime Hours",
-          "Hourly Rate",
-          "Total Cost",
-          "Location",
-          "Notes",
-          "Status",
-          "Approved By",
-          "Approved At",
-        ],
-      });
-
-      return new NextResponse(csv, {
-        headers: {
-          "Content-Type": "text/csv",
-          "Content-Disposition": `attachment; filename="payroll_export_${data.startDate}_${data.endDate}.csv"`,
-        },
-      });
-    }
-
-    if (data.format === "EXCEL") {
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet("Payroll Data");
-
-      // Add headers
-      worksheet.columns = [
-        { header: "Employee ID", key: "employeeId", width: 15 },
-        { header: "Employee Name", key: "employeeName", width: 20 },
-        { header: "Department", key: "department", width: 15 },
-        { header: "Date", key: "date", width: 12 },
-        { header: "Clock In", key: "clockIn", width: 12 },
-        { header: "Clock Out", key: "clockOut", width: 12 },
-        { header: "Break Duration (mins)", key: "breakDuration", width: 20 },
-        { header: "Total Hours", key: "totalHours", width: 12 },
-        { header: "Overtime Hours", key: "overtimeHours", width: 15 },
-        { header: "Hourly Rate", key: "hourlyRate", width: 12 },
-        { header: "Total Cost", key: "totalCost", width: 12 },
-        { header: "Location", key: "location", width: 15 },
-        { header: "Notes", key: "notes", width: 30 },
-        { header: "Status", key: "status", width: 12 },
-        { header: "Approved By", key: "approvedBy", width: 20 },
-        { header: "Approved At", key: "approvedAt", width: 20 },
-      ];
-
-      // Style header row
-      worksheet.getRow(1).font = { bold: true };
-      worksheet.getRow(1).fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FF3B82F6" },
-      };
-
-      // Add data rows
-      payrollEntries.forEach((entry) => {
-        worksheet.addRow(entry);
-      });
-
-      // Generate buffer
-      const buffer = await workbook.xlsx.writeBuffer();
-
-      return new NextResponse(buffer, {
-        headers: {
-          "Content-Type":
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename="payroll_export_${data.startDate}_${data.endDate}.xlsx"`,
-        },
-      });
-    }
-
-    // JSON format
-    const employees = Array.from(employeeMap.values()).map((emp) => {
-      const totalHours = emp.entries.reduce((sum, e) => sum + e.totalHours, 0);
-      const totalCost = emp.entries.reduce((sum, e) => sum + e.totalCost, 0);
-      const overtimeHours = calculateOvertimeHours(totalHours, typeof overtimeThreshold === 'number' ? overtimeThreshold : parseFloat(overtimeThreshold.toString()));
-
-      return {
-        ...emp,
-        summary: {
-          totalHours: parseFloat(totalHours.toFixed(2)),
-          overtimeHours: parseFloat(overtimeHours.toFixed(2)),
-          totalCost: parseFloat(totalCost.toFixed(2)),
-        },
-      };
-    });
-
-    const jsonData: PayrollExportData = {
-      exportDate: new Date().toISOString(),
-      periodStart: data.startDate,
-      periodEnd: data.endDate,
-      totalEmployees: employeeMap.size,
-      totalHours: parseFloat(totalHours.toFixed(2)),
-      totalCost: parseFloat(totalCost.toFixed(2)),
-      employees,
-    };
-
-    return NextResponse.json(jsonData);
   } catch (error) {
-    console.error("Payroll export error:", error);
+    console.error("[API] Payroll export error:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid export parameters", details: error.errors },
+        {
+          error: "Invalid export parameters",
+          details: error.errors.map((e) => ({
+            field: e.path.join("."),
+            message: e.message,
+          })),
+        },
         { status: 400 }
       );
     }
 
-    return NextResponse.json({ error: "Failed to export payroll data" }, { status: 500 });
+    if (error instanceof Error) {
+      // Check if it's a validation error
+      if (error.message.includes("validation failed")) {
+        return NextResponse.json(
+          {
+            error: "Export validation failed",
+            message: error.message,
+          },
+          { status: 422 }
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error: "Failed to generate payroll export",
+          message: error.message,
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to generate payroll export" },
+      { status: 500 }
+    );
   }
 }

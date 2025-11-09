@@ -34,7 +34,7 @@ test("createTemplate persists FORM_FILL step and returns it", async () => {
     onboardingTemplate: {
       create: async (args: any) => ({
         ...args.data,
-        steps: args.data.steps?.create || [],
+        OnboardingStep: args.data.OnboardingStep?.create || [],
       }),
     },
   };
@@ -51,9 +51,9 @@ test("createTemplate persists FORM_FILL step and returns it", async () => {
   };
 
   const result = await createTemplate(session, body, prismaMock as any);
-  assert.equal(result.steps.length, 1);
-  assert.equal(result.steps[0].type, OnboardingStepType.FORM_FILL);
-  assert.equal(result.steps[0].formId, "form123");
+  assert.equal(result.OnboardingStep.length, 1);
+  assert.equal(result.OnboardingStep[0].type, OnboardingStepType.FORM_FILL);
+  assert.equal(result.OnboardingStep[0].formId, "form123");
 });
 
 test("updateTemplate cascades deletions before recreating steps", async () => {
@@ -77,7 +77,7 @@ test("updateTemplate cascades deletions before recreating steps", async () => {
     onboardingTemplate: {
       update: async (args: any) => ({
         ...args.data,
-        steps: args.data.steps?.create || [],
+        OnboardingStep: args.data.OnboardingStep?.create || [],
       }),
     },
   };
@@ -96,6 +96,6 @@ test("updateTemplate cascades deletions before recreating steps", async () => {
 
   const result = await updateTemplate(session, body, prismaMock as any);
   assert.deepEqual(callOrder, ["responses", "instances", "steps"]);
-  assert.equal(result.steps[0].type, OnboardingStepType.ACKNOWLEDGE_DOCUMENT);
-  assert.equal(result.steps[0].documentId, "doc1");
+  assert.equal(result.OnboardingStep[0].type, OnboardingStepType.ACKNOWLEDGE_DOCUMENT);
+  assert.equal(result.OnboardingStep[0].documentId, "doc1");
 });

@@ -1,8 +1,9 @@
 import "./setupEnv";
 import { describe, it, beforeEach, mock } from "node:test";
 import assert from "node:assert";
-import { GET as FieldsGET } from "@/app/api/fields/route";
-import { GET as ReportsFieldsGET } from "@/app/api/reports/fields/route";
+
+// Check if module mocking is supported (requires Node.js v22.3.0+)
+const supportsModuleMocking = typeof mock.module === 'function';
 
 const mockGetServerSession = mock.fn();
 const mockPrisma = {
@@ -11,16 +12,20 @@ const mockPrisma = {
   },
 };
 
-mock.module("next-auth", () => ({ getServerSession: mockGetServerSession }));
-mock.module("@/lib/prisma", () => ({ prisma: mockPrisma }));
+if (supportsModuleMocking) {
+  mock.module("next-auth", () => ({ getServerSession: mockGetServerSession }));
+  mock.module("@/lib/prisma", () => ({ prisma: mockPrisma }));
+}
 
-describe("fields APIs", () => {
+describe("fields APIs", { skip: !supportsModuleMocking }, () => {
   beforeEach(() => {
     mockGetServerSession.mock.resetCalls();
     mockPrisma.form.findMany.mock.resetCalls();
   });
 
   it("includes Forms category fields from tenant forms in /api/fields", async () => {
+    const { GET: FieldsGET } = await import("@/app/api/fields/route");
+    
     mockGetServerSession.mock.mockImplementationOnce(() =>
       Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
     );
@@ -40,6 +45,8 @@ describe("fields APIs", () => {
   });
 
   it("returns merged hrReportFields + forms in /api/reports/fields", async () => {
+    const { GET: ReportsFieldsGET } = await import("@/app/api/reports/fields/route");
+    
     mockGetServerSession.mock.mockImplementationOnce(() =>
       Promise.resolve({ user: { id: "u1", companyId: "c1" } }),
     );

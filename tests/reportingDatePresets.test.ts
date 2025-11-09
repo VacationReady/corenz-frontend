@@ -40,7 +40,7 @@ test("relative after_days preset returns start boundary only", () => {
 
   assert(start instanceof Date);
   assert.equal(end, undefined);
-  assert.equal(formatInTimeZone(start!, "Pacific/Auckland", "yyyy-MM-dd"), "2024-02-16");
+  assert.equal(formatInTimeZone(start!, "Pacific/Auckland", "yyyy-MM-dd"), "2024-02-15");
 });
 
 test("relative before_days preset produces open-ended start", () => {

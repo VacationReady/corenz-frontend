@@ -9,7 +9,10 @@ import {
 } from "@/lib/transactional-notifications";
 import { AuditDiff } from "@/lib/audit-helpers";
 
-// Mock modules
+// Check if module mocking is supported (requires Node.js v22.3.0+)
+const supportsModuleMocking = typeof mock.module === 'function';
+
+// Mock modules (only if supported)
 const mockPrisma = {
   transactionalNotificationPreference: {
     findUnique: mock.fn(),
@@ -29,17 +32,19 @@ const mockResend = {
   },
 };
 
-// Replace real modules with mocks
-mock.module("@/lib/prisma", () => ({
-  default: mockPrisma,
-  prisma: mockPrisma,
-}));
+// Replace real modules with mocks (only if supported)
+if (supportsModuleMocking) {
+  mock.module("@/lib/prisma", () => ({
+    default: mockPrisma,
+    prisma: mockPrisma,
+  }));
 
-mock.module("@/lib/resend", () => ({
-  resend: mockResend,
-}));
+  mock.module("@/lib/resend", () => ({
+    resend: mockResend,
+  }));
+}
 
-describe("Transactional Notifications", () => {
+describe("Transactional Notifications", { skip: !supportsModuleMocking }, () => {
   beforeEach(() => {
     // Reset all mocks before each test
     mockPrisma.transactionalNotificationPreference.findUnique.mock.resetCalls();

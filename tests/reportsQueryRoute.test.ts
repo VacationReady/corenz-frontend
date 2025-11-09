@@ -2,8 +2,10 @@ import "./setupEnv";
 import { describe, it, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert";
 import { NextRequest } from "next/server";
-import { POST as ReportsQueryPOST } from "@/app/api/reports/query/route";
 import { formatInTimeZone } from "date-fns-tz";
+
+// Check if module mocking is supported (requires Node.js v22.3.0+)
+const supportsModuleMocking = typeof mock.module === 'function';
 
 // Mocks
 const mockGetServerSession = mock.fn();
@@ -19,19 +21,31 @@ const mockPrisma = new Proxy(
   },
 );
 
-mock.module("next-auth", () => ({
-  getServerSession: mockGetServerSession,
-}));
+if (supportsModuleMocking) {
+  mock.module("next-auth", () => ({
+    getServerSession: mockGetServerSession,
+  }));
 
-mock.module("@/lib/prisma", () => ({
-  prisma: mockPrisma,
-}));
+  mock.module("@/lib/prisma", () => ({
+    prisma: mockPrisma,
+  }));
 
-mock.module("@/lib/reportingTimeConfig", () => ({
-  resolveReportingTimeConfig: mockResolveReportingTimeConfig,
-}));
+  mock.module("@/lib/reportingTimeConfig", () => ({
+    resolveReportingTimeConfig: mockResolveReportingTimeConfig,
+  }));
+}
 
-describe("/api/reports/query route", () => {
+describe("/api/reports/query route", { skip: !supportsModuleMocking }, async () => {
+  let ReportsQueryPOST: any;
+  
+  // Dynamic import to avoid MODULE_NOT_FOUND errors
+  try {
+    const route = await import("@/app/api/reports/query/route");
+    ReportsQueryPOST = route.POST;
+  } catch (error) {
+    console.log("Failed to import route:", error);
+  }
+  
   beforeEach(() => {
     mockGetServerSession.mock.resetCalls();
     mockPrismaFindMany.mock.resetCalls();

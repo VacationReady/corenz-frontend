@@ -36,6 +36,34 @@ const originalLoad = (Module as any)._load;
       useSession: () => ({ data: { user: { id: "u1", companyId: "c1" } } }),
     };
   }
+  // Mock UI components
+  if (request === "@/components/ui/Button") {
+    return { default: (props: any) => React.createElement("button", props) };
+  }
+  if (request === "@/components/ui/Card") {
+    return { Card: (props: any) => React.createElement("div", props) };
+  }
+  if (request === "@/components/ui/Checkbox") {
+    return { default: (props: any) => React.createElement("input", { ...props, type: "checkbox" }) };
+  }
+  if (request === "@/components/ui/Input") {
+    return { Input: (props: any) => React.createElement("input", props) };
+  }
+  if (request === "@/components/ui/label") {
+    return { Label: (props: any) => React.createElement("label", props) };
+  }
+  if (request === "@/components/ui/textarea") {
+    return { Textarea: (props: any) => React.createElement("textarea", props) };
+  }
+  if (request === "@/components/ui/LoadingSpinner") {
+    return { GlassSpinner: (props: any) => React.createElement("div", props, "Loading...") };
+  }
+  if (request === "sonner") {
+    return { toast: { success: () => {}, error: () => {} } };
+  }
+  if (request === "lucide-react") {
+    return { Download: (props: any) => React.createElement("svg", props) };
+  }
   return originalLoad(request, parent, isMain);
 };
 

@@ -35,15 +35,17 @@ export function validateIrdNumber(irdNumber: string | null | undefined): {
     return { valid: false, error: "IRD number is required" };
   }
 
-  const normalized = normalizeIrdNumber(irdNumber);
-  
-  if (normalized.length < 8 || normalized.length > 9) {
+  // Check length BEFORE normalization (which truncates to 9 digits)
+  const digitsOnly = irdNumber.replace(/\D/g, "");
+  if (digitsOnly.length < 8 || digitsOnly.length > 9) {
     return {
       valid: false,
       error: "IRD number must be 8 or 9 digits",
     };
   }
 
+  const normalized = normalizeIrdNumber(irdNumber);
+  
   if (!isValidIrdNumber(normalized)) {
     return {
       valid: false,

@@ -27,14 +27,16 @@ describe("NZ Payroll Validation", () => {
     });
 
     test("should accept valid 9-digit IRD numbers", () => {
-      const result = validateIrdNumber("123456789");
+      // 123456785 is a valid IRD number with correct checksum
+      const result = validateIrdNumber("123456785");
       assert.strictEqual(result.valid, true);
     });
 
     test("should accept IRD numbers with formatting", () => {
-      const result = validateIrdNumber("123-456-789");
+      // 123-456-785 is the formatted version of the valid IRD 123456785
+      const result = validateIrdNumber("123-456-785");
       assert.strictEqual(result.valid, true);
-      assert.strictEqual(result.normalized, "123456789");
+      assert.strictEqual(result.normalized, "123456785");
     });
 
     test("should reject IRD numbers that are too short", () => {
@@ -238,7 +240,7 @@ describe("NZ Payroll Validation", () => {
   describe("Comprehensive Payroll Data Validation", () => {
     test("should validate complete payroll data", () => {
       const data = {
-        irdNumber: "123-456-789",
+        irdNumber: "123-456-785",  // Valid IRD with correct checksum
         taxCode: "M",
         kiwiSaverEnrolled: true,
         kiwiSaverEmployeeRate: 0.03,
@@ -273,14 +275,14 @@ describe("NZ Payroll Validation", () => {
 
     test("should normalize valid data", () => {
       const data = {
-        irdNumber: "123-456-789",
+        irdNumber: "123-456-785",  // Valid IRD with correct checksum
         taxCode: "m sl",
         hasStudentLoan: true,
       };
 
       const result = validateNzPayrollData(data);
       assert.strictEqual(result.valid, true);
-      assert.strictEqual(result.normalizedData?.irdNumber, "123456789");
+      assert.strictEqual(result.normalizedData?.irdNumber, "123456785");
       assert.strictEqual(result.normalizedData?.taxCode, "M_SL");
       assert.strictEqual(result.normalizedData?.studentLoanRate, 0.12);
     });
@@ -289,7 +291,7 @@ describe("NZ Payroll Validation", () => {
   describe("Payroll Data Completeness Check", () => {
     test("should identify complete payroll data", () => {
       const data = {
-        irdNumber: "123456789",
+        irdNumber: "123456785",  // Valid IRD
         taxCode: "M",
       };
 
@@ -300,7 +302,7 @@ describe("NZ Payroll Validation", () => {
 
     test("should identify missing required fields", () => {
       const data = {
-        irdNumber: "123456789",
+        irdNumber: "123456785",  // Valid IRD
         // Missing tax code
       };
 
@@ -311,7 +313,7 @@ describe("NZ Payroll Validation", () => {
 
     test("should require KiwiSaver rate when enrolled", () => {
       const data = {
-        irdNumber: "123456789",
+        irdNumber: "123456785",  // Valid IRD
         taxCode: "M",
         kiwiSaverEnrolled: true,
         // Missing employee rate
@@ -324,7 +326,7 @@ describe("NZ Payroll Validation", () => {
 
     test("should require student loan rate when has loan", () => {
       const data = {
-        irdNumber: "123456789",
+        irdNumber: "123456785",  // Valid IRD
         taxCode: "M",
         hasStudentLoan: true,
         // Missing loan rate

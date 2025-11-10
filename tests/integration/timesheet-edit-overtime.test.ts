@@ -46,12 +46,23 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
   before(async () => {
     const nextAuthModule = await import('next-auth');
 
-    if (typeof nextAuthModule.getServerSession === 'function') {
-      getServerSessionMock = mock.method(nextAuthModule, 'getServerSession', async () => null);
-      restoreGetServerSession = () => getServerSessionMock.mock.restore();
-    } else {
+    // Try to mock the method if it exists as an own property
+    let mockingSucceeded = false;
+    if (typeof nextAuthModule.getServerSession === 'function' && 
+        Object.prototype.hasOwnProperty.call(nextAuthModule, 'getServerSession')) {
+      try {
+        getServerSessionMock = mock.method(nextAuthModule, 'getServerSession', async () => null);
+        restoreGetServerSession = () => getServerSessionMock.mock.restore();
+        mockingSucceeded = true;
+      } catch (error) {
+        // If mocking fails, fall through to the fallback approach
+        mockingSucceeded = false;
+      }
+    }
+    
+    if (!mockingSucceeded) {
       // Fallback for environments where getServerSession is not present on the module
-      // (e.g., older Next.js stubs or when using compiled CommonJS output)
+      // or cannot be mocked (e.g., older Next.js stubs or when using compiled CommonJS output)
       getServerSessionMock = mock.fn(async () => null) as unknown as MockedGetServerSession;
 
       if (supportsModuleMocking) {

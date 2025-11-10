@@ -1,7 +1,7 @@
 import "./setupEnv";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { toUTCFromLondon, formatLondon } from "@/lib/time";
+import { toUTCFromLondon, formatLondon } from "../app/lib/time";
 
 test("converts summer time to UTC correctly", () => {
   const result = toUTCFromLondon("2024-06-01", "09:30");

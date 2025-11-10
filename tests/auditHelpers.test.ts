@@ -1,7 +1,7 @@
 import "./setupEnv";
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { computeDiffs, serialize, validateReasons } from '@/lib/audit-helpers';
+import { computeDiffs, serialize, validateReasons } from '../app/lib/audit-helpers';
 
 describe('Audit Helpers', () => {
   describe('serialize function', () => {

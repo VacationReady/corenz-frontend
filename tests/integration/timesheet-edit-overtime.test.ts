@@ -17,11 +17,11 @@ import '../setupEnv';
 import { describe, it, before, after, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../app/lib/prisma';
 
 type NextAuthModule = typeof import('next-auth');
 type MockedGetServerSession = ReturnType<typeof mock.method>;
-type PatchHandler = typeof import('@/app/api/timesheets/entries/[id]/route')['PATCH'];
+type PatchHandler = typeof import('../../app/api/timesheets/entries/[id]/route')['PATCH'];
 
 const supportsModuleMocking = typeof mock.module === 'function';
 const beforeAll = before;
@@ -81,7 +81,7 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
       }
     }
 
-    ({ PATCH: patchHandler } = await import('@/app/api/timesheets/entries/[id]/route'));
+    ({ PATCH: patchHandler } = await import('../../app/api/timesheets/entries/[id]/route'));
 
     // Create test company
     const company = await prisma.company.create({

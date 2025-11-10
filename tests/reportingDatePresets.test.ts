@@ -1,9 +1,9 @@
 import "./setupEnv";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateDateRange } from "@/lib/reportingDatePresets";
+import { calculateDateRange } from "../app/lib/reportingDatePresets";
 import { formatInTimeZone } from "date-fns-tz";
-import { buildDynamicQuery } from "@/lib/queryBuilder";
+import { buildDynamicQuery } from "../app/lib/queryBuilder";
 
 test("today preset respects provided timezone", () => {
   const now = new Date("2024-05-10T12:30:00Z");

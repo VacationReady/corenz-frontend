@@ -7,7 +7,7 @@ import {
   normalizeToPages,
   FormField,
   FormSchemaV2,
-} from "@/api/forms/[id]/types";
+} from "../../app/api/forms/[id]/types";
 
 test("detects legacy schema as array of fields", () => {
   const legacy: FormField[] = [

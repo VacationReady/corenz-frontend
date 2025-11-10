@@ -11,7 +11,7 @@ import {
   formatShareText,
   fetchNewsPage,
   createShareOptions,
-} from "@/lib/news-utils";
+} from "../app/lib/news-utils";
 
 // Mock global fetch
 global.fetch = vi.fn();

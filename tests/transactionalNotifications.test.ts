@@ -6,8 +6,8 @@ import {
   buildTransactionalEmail,
   dispatchTransactionalNotifications,
   BASE_TRANSACTIONAL_SECTIONS,
-} from "@/lib/transactional-notifications";
-import { AuditDiff } from "@/lib/audit-helpers";
+} from "../app/lib/transactional-notifications";
+import { AuditDiff } from "../app/lib/audit-helpers";
 
 // Check if module mocking is supported (requires Node.js v22.3.0+)
 const supportsModuleMocking = typeof mock.module === 'function';

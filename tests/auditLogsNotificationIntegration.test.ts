@@ -1,12 +1,12 @@
 import "./setupEnv";
 import { describe, it, beforeEach, mock } from "node:test";
 import assert from "node:assert";
-import { createAuditLogs, AuditDiff, CreateAuditLogsOptions } from "@/lib/audit-helpers";
+import { createAuditLogs, AuditDiff, CreateAuditLogsOptions } from "../app/lib/audit-helpers";
 
 // Mock the transactional notifications module
 const mockDispatchNotifications = mock.fn();
 
-mock.module("@/lib/transactional-notifications", () => ({
+mock.module("../app/lib/transactional-notifications", () => ({
   dispatchTransactionalNotifications: mockDispatchNotifications,
   BASE_TRANSACTIONAL_SECTIONS: [],
   resolveTransactionalPreference: mock.fn(),
@@ -20,7 +20,7 @@ const mockPrisma = {
   },
 };
 
-mock.module("@/lib/prisma", () => ({
+mock.module("../app/lib/prisma", () => ({
   default: mockPrisma,
   prisma: mockPrisma,
 }));

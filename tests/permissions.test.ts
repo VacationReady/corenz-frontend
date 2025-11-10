@@ -1,7 +1,7 @@
 import "./setupEnv";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolvePermissions, hasPermission } from "@/lib/permissions";
+import { resolvePermissions, hasPermission } from "../app/lib/permissions";
 
 test("EMPLOYEE defaults include documents read and leave-requests edit", () => {
   const user = { role: "EMPLOYEE", permissionProfile: null } as any;

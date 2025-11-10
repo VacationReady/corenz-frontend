@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { WorkflowCanvas } from "@/app/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";
+import { WorkflowCanvas } from "../../app/(withSidebar)/settings/automation-rules/components/WorkflowCanvas";
 
 describe("Workflow Builder", () => {
   it("renders canvas with controls", () => {

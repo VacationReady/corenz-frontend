@@ -23,8 +23,13 @@ type NextAuthModule = typeof import('next-auth');
 type MockedGetServerSession = ReturnType<typeof mock.method>;
 type PatchHandler = typeof import('@/app/api/timesheets/entries/[id]/route')['PATCH'];
 
+const supportsModuleMocking = typeof mock.module === 'function';
+const beforeAll = before;
+const afterAll = after;
+
 let getServerSessionMock: MockedGetServerSession;
 let patchHandler: PatchHandler;
+let restoreGetServerSession: (() => void) | undefined;
 
 // Tests now run by default - NZ overtime calculation is production-ready
 describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
@@ -40,7 +45,30 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
 
   before(async () => {
     const nextAuthModule = await import('next-auth');
-    getServerSessionMock = mock.method(nextAuthModule, 'getServerSession', async () => null);
+
+    if (typeof nextAuthModule.getServerSession === 'function') {
+      getServerSessionMock = mock.method(nextAuthModule, 'getServerSession', async () => null);
+      restoreGetServerSession = () => getServerSessionMock.mock.restore();
+    } else {
+      // Fallback for environments where getServerSession is not present on the module
+      // (e.g., older Next.js stubs or when using compiled CommonJS output)
+      getServerSessionMock = mock.fn(async () => null) as unknown as MockedGetServerSession;
+
+      if (supportsModuleMocking) {
+        mock.module('next-auth', () => ({
+          getServerSession: getServerSessionMock,
+        }));
+        restoreGetServerSession = () => {
+          // Resets module-level mocks without affecting other tests
+          mock.reset();
+        };
+      } else {
+        (nextAuthModule as Record<string, unknown>).getServerSession = getServerSessionMock;
+        restoreGetServerSession = () => {
+          delete (nextAuthModule as Record<string, unknown>).getServerSession;
+        };
+      }
+    }
 
     ({ PATCH: patchHandler } = await import('@/app/api/timesheets/entries/[id]/route'));
 
@@ -185,7 +213,7 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     await prisma.globalAuditLog.deleteMany({ where: { companyId: testCompanyId } });
     await prisma.company.deleteMany({ where: { id: testCompanyId } });
 
-    getServerSessionMock.mock.restore();
+    restoreGetServerSession?.();
   });
 
   afterEach(() => {
@@ -263,7 +291,7 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
   describe('TEST CASE 2: Public Holiday Edit (6h → 8h)', () => {
     let holidayEntryId: string;
 
-    beforeAll(async () => {
+    before(async () => {
       // Create entry on public holiday
       const holidayEntry = await prisma.timesheetEntry.create({
         data: {
@@ -340,7 +368,7 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
   describe('TEST CASE 4: Bulk Edit Simulation', () => {
     let bulkEntryIds: string[] = [];
 
-    beforeAll(async () => {
+    before(async () => {
       // Create 3 entries for the same timesheet
       for (let i = 0; i < 3; i++) {
         const date = new Date(`2024-06-0${5+i}T00:00:00Z`);

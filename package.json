@@ -86,7 +86,6 @@
     "pdf-lib": "^1.17.1",
     "react": "^19.1.1",
     "react-calendar": "^6.0.0",
-    "react-confetti": "^6.4.0",
     "react-day-picker": "^9.8.1",
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.61.1",

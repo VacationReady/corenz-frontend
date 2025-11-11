@@ -20,7 +20,10 @@ interface EventCategory {
   id: string;
   name: string;
   categoryType: 'TIME_OFF' | 'WORKING_EVENT';
+  requiresApproval: boolean;
   adminOnly: boolean;
+  isActive: boolean;
+  systemDefined: boolean;
   subcategories?: Array<{ id: string; name: string }>;
 }
 
@@ -269,7 +272,7 @@ export default function EventManagerPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
-                    {["requiresApproval", "adminOnly", "isActive"].map((key) => (
+                    {(["requiresApproval", "adminOnly", "isActive"] as const).map((key) => (
                       <div key={key} className="flex items-center gap-2">
                         <span className="text-sm whitespace-nowrap">
                           {key === "requiresApproval"
@@ -284,7 +287,7 @@ export default function EventManagerPage() {
                             onChange={(val) =>
                               handleToggleCategory(
                                 category.id,
-                                key as any,
+                                key,
                                 Boolean(val),
                               )
                             }

@@ -18,10 +18,11 @@ import { calculateStudentLoanDeduction } from './student-loan-calculator';
 import { calculateKiwiSaver } from './kiwisaver-calculator';
 import { calculateLeaveAccrual, AnnualLeaveMethod } from './leave-calculator';
 import { NZTaxCode } from '../../types/nz-payroll-export';
+import type { PrismaClient } from '@prisma/client';
 
 // Lazy-load Prisma to prevent test environment database connection errors
-let prisma: any = null;
-function getPrismaClient() {
+let prisma: PrismaClient | null = null;
+function getPrismaClient(): PrismaClient | null {
   if (!prisma && process.env.NODE_ENV !== 'test') {
     const { PrismaClient } = require('@prisma/client');
     prisma = new PrismaClient();
@@ -449,9 +450,9 @@ export async function recalculatePayroll(
   const timesheet = existing.Timesheet;
   const entries = timesheet.TimesheetEntries;
   
-  const regularHours = entries.reduce((sum, e) => sum + (parseFloat(e.regularHours?.toString() || '0')), 0);
-  const overtimeHours = entries.reduce((sum, e) => sum + (parseFloat(e.overtimeHours?.toString() || '0')), 0);
-  const publicHolidayHours = entries.reduce((sum, e) => sum + (parseFloat(e.publicHolidayHours?.toString() || '0')), 0);
+  const regularHours = entries.reduce((sum: number, e: any) => sum + (parseFloat(e.regularHours?.toString() || '0')), 0);
+  const overtimeHours = entries.reduce((sum: number, e: any) => sum + (parseFloat(e.overtimeHours?.toString() || '0')), 0);
+  const publicHolidayHours = entries.reduce((sum: number, e: any) => sum + (parseFloat(e.publicHolidayHours?.toString() || '0')), 0);
   
   const employee = await prismaClient.employee.findUnique({
     where: { id: existing.employeeId },

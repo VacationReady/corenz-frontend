@@ -13,12 +13,13 @@
 
 import Holidays from 'date-holidays';
 import { format, startOfDay } from 'date-fns';
+import type { PrismaClient } from '@prisma/client';
 
 // Lazy-initialize Prisma to avoid DB connection during test imports
 // DO NOT import PrismaClient at module level - it causes connection attempts
-let prisma: any = null;
+let prisma: PrismaClient | null = null;
 
-function getPrismaClient(): any {
+function getPrismaClient(): PrismaClient | null {
   // In test environment, don't try to initialize real Prisma
   if (process.env.NODE_ENV === 'test') {
     console.warn('[public-holiday-checker] Test mode - skipping Prisma initialization');

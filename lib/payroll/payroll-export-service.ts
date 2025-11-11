@@ -23,10 +23,11 @@ import {
   flattenPayrollRecord,
   NZTaxCode,
 } from '../../types/nz-payroll-export';
+import type { PrismaClient } from '@prisma/client';
 
 // Lazy-load Prisma to prevent test environment database connection errors
-let prisma: any = null;
-function getPrisma() {
+let prisma: PrismaClient | null = null;
+function getPrisma(): PrismaClient | null {
   if (!prisma && process.env.NODE_ENV !== 'test') {
     const { PrismaClient } = require('@prisma/client');
     prisma = new PrismaClient();

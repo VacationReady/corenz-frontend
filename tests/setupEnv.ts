@@ -18,12 +18,21 @@ if (!globalThis.crypto) {
   (globalThis as any).crypto = webcrypto;
 }
 
-// CRITICAL: Mock Prisma BEFORE any modules import it
-// This prevents "PrismaClientInitializationError" in CI without database
+// CRITICAL: Mock server-only modules BEFORE any imports
+// This prevents errors in test environment
 const originalLoad = (Module as any)._load;
 (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
+  // Mock server-only package (throws in non-server contexts)
+  if (request === "server-only") {
+    return {}; // Empty module - does nothing
+  }
+  
   // Mock @prisma/client to prevent database connection attempts
   if (request === "@prisma/client") {
+    // Mock Prisma enums that tests might reference
+    const AutomationJobStatus = { PENDING: 'PENDING', RUNNING: 'RUNNING', COMPLETED: 'COMPLETED', FAILED: 'FAILED' };
+    const ApprovalStatus = { PENDING: 'PENDING', APPROVED: 'APPROVED', REJECTED: 'REJECTED' };
+    
     return {
       PrismaClient: class MockPrismaClient {
         constructor() {
@@ -31,6 +40,13 @@ const originalLoad = (Module as any)._load;
         }
         $connect() { return Promise.resolve(); }
         $disconnect() { return Promise.resolve(); }
+      },
+      // Export commonly used enums
+      AutomationJobStatus,
+      ApprovalStatus,
+      Prisma: {
+        AutomationJobStatus,
+        ApprovalStatus,
       },
     };
   }
@@ -47,6 +63,7 @@ const originalLoad = (Module as any)._load;
           update: async () => ({}),
           delete: async () => ({}),
           count: async () => 0,
+          createMany: async () => ({ count: 0 }),
         }),
       }),
       getPrismaClient: () => null, // For public-holiday-checker.ts

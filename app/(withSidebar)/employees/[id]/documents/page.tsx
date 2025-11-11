@@ -42,7 +42,11 @@ import {
 import { toast } from "sonner";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
 import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
-import SignatureCapture from "@/components/documents/SignatureCapture";
+import ModernSignatureCapture, { SignatureCaptureValue } from "@/components/documents/ModernSignatureCapture";
+import AcknowledgmentSuccessAnimation from "@/components/documents/AcknowledgmentSuccessAnimation";
+import SignatureSuccessAnimation from "@/components/documents/SignatureSuccessAnimation";
+import ModernDocumentPreview from "@/components/documents/ModernDocumentPreview";
+import SignatureProgressRing from "@/components/documents/SignatureProgressRing";
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -87,6 +91,9 @@ export default function EmployeeDocumentsPage() {
   const [fields, setFields] = useState<any[]>([]);
   const [showCapture, setShowCapture] = useState(false);
   const [activeFieldIdx, setActiveFieldIdx] = useState<number | null>(null);
+  const [showAckSuccess, setShowAckSuccess] = useState(false);
+  const [showSignSuccess, setShowSignSuccess] = useState(false);
+  const [companyName, setCompanyName] = useState<string>("");
 
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(false);
@@ -104,7 +111,7 @@ export default function EmployeeDocumentsPage() {
   const [signed, setSigned] = useState(false);
   const [eligible, setEligible] = useState<boolean>(true);
   const [signSubmitting, setSignSubmitting] = useState(false);
-  const [signatureValue, setSignatureValue] = useState<any>(null);
+  const [signatureValue, setSignatureValue] = useState<SignatureCaptureValue | null>(null);
 
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
 
@@ -112,6 +119,14 @@ export default function EmployeeDocumentsPage() {
     const res = await fetch("/api/auth/session");
     const session = await res.json();
     setUserRole(session?.user?.role || null);
+    // Multi-tenancy: Get company name
+    if (session?.user?.companyId) {
+      const companyRes = await fetch(`/api/companies/${session.user.companyId}`);
+      if (companyRes.ok) {
+        const company = await companyRes.json();
+        setCompanyName(company?.name || "");
+      }
+    }
   };
 
   const fetchDocuments = async () => {
@@ -273,14 +288,68 @@ export default function EmployeeDocumentsPage() {
 
   const handleAcknowledge = async () => {
     if (!selectedDoc?.id) return;
-    await fetch("/api/documents/acknowledge", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ documentId: selectedDoc.id }),
-    });
-    setAcknowledged(true);
-    setAckDate(new Date());
-    toast("Document acknowledged");
+    try {
+      const res = await fetch("/api/documents/acknowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: selectedDoc.id }),
+      });
+      if (res.ok) {
+        setAcknowledged(true);
+        const now = new Date();
+        setAckDate(now);
+        setIsPreviewModalOpen(false);
+        // Show success animation
+        setShowAckSuccess(true);
+        // Refresh documents list
+        fetchDocuments();
+      } else {
+        toast("Failed to acknowledge document");
+      }
+    } catch {
+      toast("Error acknowledging document");
+    }
+  };
+
+  const handleSign = async (signature: SignatureCaptureValue) => {
+    if (!selectedDoc) return;
+    setSignSubmitting(true);
+    try {
+      const res = await fetch("/api/documents/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId: selectedDoc.id,
+          method: signature.method,
+          typedText: signature.typedText,
+          drawnDataUrl: signature.dataUrl,
+          fieldId: activeFieldIdx != null ? fields[activeFieldIdx]?.id : undefined,
+        }),
+      });
+      if (res.ok) {
+        const payload = await res.json();
+        setSigned(true);
+        setAckDate(payload?.signature?.signedAt ? new Date(payload.signature.signedAt) : new Date());
+        // Refresh the signed URL
+        try {
+          const u = await fetch(`/api/documents/signed-url/${selectedDoc.id}`).then((r) => r.json());
+          if (u?.url) {
+            setSelectedDoc({ ...selectedDoc, url: u.url });
+          }
+        } catch {}
+        setIsPreviewModalOpen(false);
+        // Show success animation
+        setShowSignSuccess(true);
+        // Refresh documents list
+        fetchDocuments();
+      } else {
+        toast("Failed to submit signature");
+      }
+    } catch {
+      toast("Error submitting signature");
+    } finally {
+      setSignSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -566,113 +635,40 @@ export default function EmployeeDocumentsPage() {
           </Dialog>
         )}
 
-        {/* Preview Modal */}
-        <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{selectedDoc?.name}</DialogTitle>
-              <p className="text-sm text-muted-foreground">Preview and sign this document if required.</p>
-            </DialogHeader>
-            {selectedDoc && (
-              <div className="space-y-4">
-                <div className="rounded border overflow-hidden">
-                  <embed src={selectedDoc.url} type="application/pdf" className="w-full h-[80vh]" />
-                </div>
-                <a
-                  href={selectedDoc.url}
-                  download={selectedDoc.name}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline block"
-                >
-                  Download
-                </a>
+        {/* Modern Document Preview Panel */}
+        {selectedDoc && (
+          <ModernDocumentPreview
+            isOpen={isPreviewModalOpen}
+            onClose={() => setIsPreviewModalOpen(false)}
+            document={selectedDoc}
+            acknowledged={acknowledged}
+            ackDate={ackDate}
+            signed={signed}
+            eligible={eligible}
+            onAcknowledge={handleAcknowledge}
+            onSign={handleSign}
+            signSubmitting={signSubmitting}
+            companyName={companyName}
+          />
+        )}
 
-                {selectedDoc.requiresAck && !acknowledged && (
-                  <Button onClick={handleAcknowledge} className="w-full mt-2">
-                    Acknowledge Document
-                  </Button>
-                )}
-                {selectedDoc.requiresAck && acknowledged && (
-                  <p className="text-green-600 text-sm">
-                    ✅ Acknowledged on {ackDate?.toLocaleDateString()}
-                  </p>
-                )}
-                {(selectedDoc as any).requiresSignature && (
-                  <div className="relative">
-                    {!signed && fields.map((f, idx) => (
-                      <button
-                        key={idx}
-                        className="absolute bg-amber-200 border border-amber-500 text-amber-900 text-xs px-2 py-1 rounded"
-                        style={{
-                          left: `${Math.min(Math.max(f.x, 0), 1) * 100}%`,
-                          top: `${Math.min(Math.max(f.y, 0), 1) * 100}%`,
-                          transform: "translate(-50%, -50%)",
-                        }}
-                        onClick={() => { setActiveFieldIdx(idx); setShowCapture(true); }}
-                      >
-                        {f.label || "Sign"}
-                      </button>
-                    ))}
-                    {signed && (
-                      <p className="text-green-600 text-sm mt-2">✅ Signed</p>
-                    )}
-                  </div>
-                )}
-                {(selectedDoc as any).requiresSignature && eligible && !signed && (
-                  <div className="space-y-3">
-                    <SignatureCapture
-                      value={signatureValue}
-                      onChange={setSignatureValue}
-                    />
-                    <Button
-                      disabled={!signatureValue || signSubmitting}
-                      onClick={async () => {
-                        if (!selectedDoc) return;
-                        setSignSubmitting(true);
-                        try {
-                          const res = await fetch("/api/documents/sign", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              documentId: selectedDoc.id,
-                              method: signatureValue.method,
-                              typedText: signatureValue.typedText,
-                              drawnDataUrl: signatureValue.dataUrl,
-                              fieldId: activeFieldIdx != null ? fields[activeFieldIdx]?.id : undefined,
-                            }),
-                          });
-                          if (res.ok) {
-                            const payload = await res.json();
-                            setSigned(true);
-                            setAckDate(payload?.signature?.signedAt ? new Date(payload.signature.signedAt) : new Date());
-                            // Refresh preview URL so the stamped PDF is shown immediately
-                            try {
-                              const u = await fetch(`/api/documents/signed-url/${selectedDoc.id}`).then((r) => r.json());
-                              if (u?.url) {
-                                setSelectedDoc({ ...selectedDoc, url: u.url });
-                              }
-                            } catch {}
-                            toast("Signature submitted");
-                          } else {
-                            toast("Failed to submit signature");
-                          }
-                        } finally {
-                          setSignSubmitting(false);
-                        }
-                      }}
-                    >
-                      {signSubmitting ? "Submitting..." : "Sign Document"}
-                    </Button>
-                  </div>
-                )}
-                {(selectedDoc as any).requiresSignature && signed && (
-                  <p className="text-green-600 text-sm">✅ Signed on {ackDate?.toLocaleString() || new Date().toLocaleString()}</p>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Success Animations */}
+        <AcknowledgmentSuccessAnimation
+          isOpen={showAckSuccess}
+          onClose={() => setShowAckSuccess(false)}
+          documentName={selectedDoc?.name || ""}
+          acknowledgedAt={ackDate || new Date()}
+          companyName={companyName}
+        />
+        
+        <SignatureSuccessAnimation
+          isOpen={showSignSuccess}
+          onClose={() => setShowSignSuccess(false)}
+          documentName={selectedDoc?.name || ""}
+          signedAt={ackDate || new Date()}
+          signatureMethod={signatureValue?.method || "DRAWN"}
+          companyName={companyName}
+        />
 
         {isAdminUser && (
           <EditAccessModal

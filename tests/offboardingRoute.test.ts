@@ -39,10 +39,10 @@ const mockOffboarding: any = {
   completionStatus: "SUBMITTED",
   inviteLastSentAt: null,
   scheduledSendAt: null,
-  exitInterviewSubmissions: [
+  ExitInterviewSubmission: [
     {
       id: "s1",
-      template: { id: "t1", name: "Exit" },
+      ExitInterviewFormTemplate: { id: "t1", name: "Exit", schemaJson: [{ id: "q1", label: "Q1", type: "text" }] },
       submittedAt: new Date().toISOString(),
       submittedBy: "user",
       answersJson: { q1: "Answer1" },

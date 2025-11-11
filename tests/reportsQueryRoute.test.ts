@@ -10,6 +10,12 @@ import { NextRequest } from "next/server";
 test("POST /api/reports/query requires auth", async () => {
   const originalLoad = (Module as any)._load;
   (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
+    if (request === "../app/lib/prisma") {
+      return {
+        prisma: {},
+        ensurePrismaConnected: async () => {},
+      };
+    }
     if (request === "next-auth") {
       return { getServerSession: async () => null };
     }
@@ -45,6 +51,7 @@ test("POST /api/reports/query restricts selectedFields to allowed reportFields",
             count: async () => 1,
           },
         },
+        ensurePrismaConnected: async () => {},
       };
     }
     if (request === "next-auth") {
@@ -53,9 +60,22 @@ test("POST /api/reports/query restricts selectedFields to allowed reportFields",
     if (request === "../app/lib/auth-options") {
       return { authOptions: {} };
     }
-    if (request === "../app/lib/reportFields") {
+    if (request === "../app/lib/queryBuilder") {
       return {
-        reportFields: [
+        buildDynamicQuery: () => ({ queries: [{ model: "User", prismaQuery: { where: {} } }] }),
+        attachComputedFields: async (results: any[]) => results,
+      };
+    }
+    if (request === "../app/lib/hrReportFields") {
+      return {
+        getFieldByKey: (key: string) => {
+          const fields: any = {
+            "User.id": { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
+            "User.email": { model: "User", field: "User.email", label: "email", type: "string", filterable: true },
+          };
+          return fields[key];
+        },
+        hrReportFields: [
           { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
           { model: "User", field: "User.email", label: "email", type: "string", filterable: true },
         ],
@@ -112,6 +132,7 @@ test("POST /api/reports/query injects tenant filter for User.companyId", async (
             count: async (_args: any) => 1,
           },
         },
+        ensurePrismaConnected: async () => {},
       };
     }
     if (request === "next-auth") {
@@ -120,9 +141,21 @@ test("POST /api/reports/query injects tenant filter for User.companyId", async (
     if (request === "../app/lib/auth-options") {
       return { authOptions: {} };
     }
-    if (request === "../app/lib/reportFields") {
+    if (request === "../app/lib/queryBuilder") {
       return {
-        reportFields: [
+        buildDynamicQuery: () => ({ queries: [{ model: "User", prismaQuery: { where: {} } }] }),
+        attachComputedFields: async (results: any[]) => results,
+      };
+    }
+    if (request === "../app/lib/hrReportFields") {
+      return {
+        getFieldByKey: (key: string) => {
+          const fields: any = {
+            "User.id": { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
+          };
+          return fields[key];
+        },
+        hrReportFields: [
           { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
         ],
       };

@@ -32,6 +32,33 @@ const originalLoad = (Module as any)._load;
     // Mock Prisma enums that tests might reference
     const AutomationJobStatus = { PENDING: 'PENDING', RUNNING: 'RUNNING', COMPLETED: 'COMPLETED', FAILED: 'FAILED' };
     const ApprovalStatus = { PENDING: 'PENDING', APPROVED: 'APPROVED', REJECTED: 'REJECTED' };
+    const OnboardingStepType = {
+      ACKNOWLEDGE_DOCUMENT: 'ACKNOWLEDGE_DOCUMENT',
+      UPLOAD_DOCUMENT: 'UPLOAD_DOCUMENT',
+      INSTRUCTION: 'INSTRUCTION',
+      FORM_FILL: 'FORM_FILL',
+      COLLECT_DOCUMENT: 'COLLECT_DOCUMENT',
+      FILL_FORM_BY_SLUG: 'FILL_FORM_BY_SLUG',
+      CREATE_TASK: 'CREATE_TASK',
+      TRAINING_ASSIGNMENT: 'TRAINING_ASSIGNMENT',
+      EQUIPMENT_CHECKLIST: 'EQUIPMENT_CHECKLIST',
+      SYSTEM_ACCESS: 'SYSTEM_ACCESS',
+      MANAGER_CHECKIN: 'MANAGER_CHECKIN',
+      BUDDY_INTRODUCTION: 'BUDDY_INTRODUCTION',
+      COMPLIANCE_TRAINING: 'COMPLIANCE_TRAINING',
+      PAYROLL_SETUP: 'PAYROLL_SETUP',
+      BENEFITS_ENROLLMENT: 'BENEFITS_ENROLLMENT',
+      PROBATION_GOALS: 'PROBATION_GOALS',
+      WELCOME_SURVEY: 'WELCOME_SURVEY',
+      JOURNEY_AUTOMATION: 'JOURNEY_AUTOMATION',
+    };
+    const OnboardingUploadType = {
+      PASSPORT: 'PASSPORT',
+      RIGHT_TO_WORK: 'RIGHT_TO_WORK',
+      DRIVER_LICENSE: 'DRIVER_LICENSE',
+      TRAINING_CERTIFICATE: 'TRAINING_CERTIFICATE',
+      OTHER: 'OTHER',
+    };
     
     return {
       PrismaClient: class MockPrismaClient {
@@ -44,9 +71,13 @@ const originalLoad = (Module as any)._load;
       // Export commonly used enums
       AutomationJobStatus,
       ApprovalStatus,
+      OnboardingStepType,
+      OnboardingUploadType,
       Prisma: {
         AutomationJobStatus,
         ApprovalStatus,
+        OnboardingStepType,
+        OnboardingUploadType,
       },
     };
   }

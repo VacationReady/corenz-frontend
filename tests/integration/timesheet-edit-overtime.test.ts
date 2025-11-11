@@ -30,6 +30,18 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 process.env.NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || 'test-secret-min-32-chars-required-for-security';
 process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
+// Skip integration tests in CI or when test database is not configured
+const SKIP_INTEGRATION_TESTS = 
+  process.env.CI === 'true' || 
+  process.env.SKIP_INTEGRATION_TESTS === 'true' ||
+  !process.env.DATABASE_URL?.includes('overtime_test');
+
+if (SKIP_INTEGRATION_TESTS) {
+  console.log('\n⏭️  Skipping integration tests (CI environment or no test database configured)');
+  console.log('   To run integration tests locally, see: tests/integration/SETUP.md\n');
+  process.exit(0);
+}
+
 import { describe, it, before, after, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';

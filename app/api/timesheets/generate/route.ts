@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
             overtimeSettings
           );
 
-          // Update entry with overtime calculations
+          // Update entry with overtime calculations AND public holiday metadata
           await prisma.timesheetEntry.update({
             where: { id: entry.id },
             data: {
@@ -218,6 +218,13 @@ export async function POST(req: NextRequest) {
               overtimeType: overtimeResult.overtimeType,
               overtimeReason: overtimeResult.overtimeReason,
               isOvertime: overtimeResult.overtimeHours > 0,
+              // Public holiday metadata from calculator
+              isPublicHoliday: overtimeResult.isPublicHoliday,
+              publicHolidayName: overtimeResult.publicHolidayName,
+              publicHolidayHours: overtimeResult.publicHolidayHours,
+              publicHolidayMultiplier: overtimeResult.publicHolidayMultiplier,
+              publicHolidayType: overtimeResult.publicHolidayType,
+              publicHolidayRegion: overtimeResult.publicHolidayRegion,
             },
           });
         } catch (overtimeError) {

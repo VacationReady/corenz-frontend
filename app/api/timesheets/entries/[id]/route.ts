@@ -327,6 +327,39 @@ export async function PATCH(
           updateData.overtimeType = overtimeResult.overtimeType;
           updateData.overtimeReason = overtimeResult.overtimeReason;
           updateData.isOvertime = overtimeResult.overtimeHours > 0;
+          
+          // Update public holiday metadata from calculator
+          updateData.isPublicHoliday = overtimeResult.isPublicHoliday;
+          updateData.publicHolidayName = overtimeResult.publicHolidayName;
+          updateData.publicHolidayHours = overtimeResult.publicHolidayHours;
+          updateData.publicHolidayMultiplier = overtimeResult.publicHolidayMultiplier;
+          updateData.publicHolidayType = overtimeResult.publicHolidayType;
+          updateData.publicHolidayRegion = overtimeResult.publicHolidayRegion;
+          
+          // Track public holiday status changes for audit
+          if (overtimeResult.isPublicHoliday !== entry.isPublicHoliday) {
+            auditLogs.push({
+              id: `audit-${Date.now()}-${Math.random()}`,
+              entryId: entry.id,
+              timesheetId: entry.timesheetId,
+              employeeId: entry.Timesheet.employeeId,
+              changedById: requestingEmployee.id,
+              changeReason: data.changeReason,
+              field: 'public_holiday_status',
+              oldValue: JSON.stringify({
+                isPublicHoliday: entry.isPublicHoliday,
+                name: entry.publicHolidayName,
+                hours: entry.publicHolidayHours ? parseFloat(entry.publicHolidayHours.toString()) : 0,
+              }),
+              newValue: JSON.stringify({
+                isPublicHoliday: overtimeResult.isPublicHoliday,
+                name: overtimeResult.publicHolidayName,
+                hours: overtimeResult.publicHolidayHours,
+              }),
+              changeType: 'UPDATED',
+              companyId: requestingEmployee.companyId,
+            });
+          }
 
           // Create overtime audit log for NZ compliance
           if (overtimeResult.overtimeHours > 0 || oldOvertimeHours > 0) {
@@ -348,6 +381,9 @@ export async function PATCH(
                   overtimeMultiplier: overtimeResult.overtimeMultiplier,
                   overtimeType: overtimeResult.overtimeType,
                   overtimeReason: overtimeResult.overtimeReason,
+                  isPublicHoliday: overtimeResult.isPublicHoliday,
+                  publicHolidayName: overtimeResult.publicHolidayName,
+                  publicHolidayHours: overtimeResult.publicHolidayHours,
                 },
                 calculationMethod: overtimeResult.overtimeType,
                 triggeredBy: session.user.id,

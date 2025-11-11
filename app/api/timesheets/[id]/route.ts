@@ -5,7 +5,6 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateHours } from '@/lib/timesheet-calculations';
 import { calculateOvertimeForEntry, OvertimeSettings, EmployeeOvertimeConfig } from '@/lib/overtime-calculator';
-import { getNZPublicHolidayInfo } from '@/lib/public-holiday-checker';
 import { cancelPendingTimesheetApprovalActionItems } from '@/lib/action-items-helper';
 import { validateTimesheetTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
 
@@ -276,7 +275,7 @@ export async function PUT(
           
           const hours = calculateHours(startTime, endTime, entry.breakMinutes);
 
-          // Calculate overtime for this entry
+          // Calculate overtime for this entry (includes holiday metadata)
           const overtimeResult = await calculateOvertimeForEntry(
             {
               id: `temp-${Date.now()}`,
@@ -288,12 +287,6 @@ export async function PUT(
             requestingEmployee.companyId,
             overtimeSettings,
             employeeConfig
-          );
-
-          // Check for public holiday
-          const holidayInfo = await getNZPublicHolidayInfo(
-            date,
-            requestingEmployee.companyId
           );
 
           // Create entry with full overtime and public holiday metadata
@@ -312,13 +305,13 @@ export async function PUT(
               overtimeType: overtimeResult.overtimeType,
               overtimeReason: overtimeResult.overtimeReason || '',
               isOvertime: overtimeResult.overtimeHours > 0,
-              // Public holiday fields
-              isPublicHoliday: holidayInfo?.isHoliday ?? false,
-              publicHolidayName: holidayInfo?.holidayName,
-              publicHolidayHours: holidayInfo?.isHoliday ? hours : 0,
-              publicHolidayMultiplier: overtimeSettings.publicHolidayMultiplier,
-              publicHolidayType: holidayInfo?.holidayType,
-              publicHolidayRegion: holidayInfo?.region,
+              // Public holiday fields from calculator (no re-fetching)
+              isPublicHoliday: overtimeResult.isPublicHoliday,
+              publicHolidayName: overtimeResult.publicHolidayName,
+              publicHolidayHours: overtimeResult.publicHolidayHours,
+              publicHolidayMultiplier: overtimeResult.publicHolidayMultiplier,
+              publicHolidayType: overtimeResult.publicHolidayType,
+              publicHolidayRegion: overtimeResult.publicHolidayRegion,
               // Manager adjustment tracking
               managerAdjusted: isAdminOrManager,
               managerAdjustedBy: isAdminOrManager ? session.user.id : undefined,

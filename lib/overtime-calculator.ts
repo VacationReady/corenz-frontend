@@ -63,6 +63,14 @@ export interface OvertimeCalculationResult {
   overtimeMultiplier: number;
   overtimeType: string;
   overtimeReason: string;
+  // Public holiday metadata (NZ Holidays Act 2003 compliance)
+  isPublicHoliday: boolean;
+  publicHolidayName?: string;
+  publicHolidayHours: number;
+  publicHolidayMultiplier: number;
+  publicHolidayType?: string;
+  publicHolidayRegion?: string;
+  alternativeDayGranted: boolean;
 }
 
 /**
@@ -467,6 +475,8 @@ async function getMonthTimesheetEntries(
 /**
  * Calculate overtime for a timesheet entry
  * Main entry point for overtime calculation
+ * 
+ * Returns complete overtime AND public-holiday metadata for NZ compliance
  */
 export async function calculateOvertimeForEntry(
   entry: TimesheetEntryInput,
@@ -475,6 +485,13 @@ export async function calculateOvertimeForEntry(
   settings: OvertimeSettings,
   employeeConfig?: EmployeeOvertimeConfig
 ): Promise<OvertimeCalculationResult> {
+  // Import holiday checker for metadata
+  const { getNZPublicHolidayInfo } = await import('./public-holiday-checker');
+  
+  // Fetch public holiday information (needed for both OT calc and metadata)
+  const holidayInfo = await getNZPublicHolidayInfo(entry.date, companyId);
+  const isPublicHoliday = holidayInfo?.isHoliday ?? false;
+  
   // Check if employee is eligible for overtime
   if (employeeConfig && !employeeConfig.overtimeEligible) {
     return {
@@ -483,6 +500,13 @@ export async function calculateOvertimeForEntry(
       overtimeMultiplier: 1.0,
       overtimeType: 'NONE',
       overtimeReason: 'Employee not eligible for overtime',
+      isPublicHoliday,
+      publicHolidayName: holidayInfo?.holidayName,
+      publicHolidayHours: isPublicHoliday ? entry.hours : 0,
+      publicHolidayMultiplier: settings.publicHolidayMultiplier,
+      publicHolidayType: holidayInfo?.holidayType,
+      publicHolidayRegion: holidayInfo?.region,
+      alternativeDayGranted: false,
     };
   }
 
@@ -495,9 +519,6 @@ export async function calculateOvertimeForEntry(
   // Check for special day multipliers
   let multiplier = baseMultiplier;
   let specialDayReason = '';
-
-  // Check if date is a public holiday
-  const isPublicHoliday = await isNZPublicHoliday(entry.date, companyId);
   
   if (isPublicHoliday) {
     multiplier = settings.publicHolidayMultiplier;
@@ -508,23 +529,42 @@ export async function calculateOvertimeForEntry(
   }
 
   // Route to appropriate calculation method based on mode
+  let overtimeResult: OvertimeCalculationResult;
+  
   switch (mode) {
     case 'DAILY':
-      return await calculateDailyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      overtimeResult = await calculateDailyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      break;
 
     case 'WEEKLY':
-      return await calculateWeeklyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      overtimeResult = await calculateWeeklyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      break;
 
     case 'MONTHLY':
-      return await calculateMonthlyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      overtimeResult = await calculateMonthlyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      break;
 
     case 'PATTERN_BASED':
-      return await calculatePatternBasedOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      overtimeResult = await calculatePatternBasedOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      break;
 
     default:
       // Fallback to simple threshold
-      return calculateSimpleOvertime(entry, settings.overtimeMultiplier);
+      overtimeResult = calculateSimpleOvertime(entry, settings.overtimeMultiplier);
+      break;
   }
+  
+  // Enrich with public holiday metadata
+  return {
+    ...overtimeResult,
+    isPublicHoliday,
+    publicHolidayName: holidayInfo?.holidayName,
+    publicHolidayHours: isPublicHoliday ? entry.hours : 0,
+    publicHolidayMultiplier: settings.publicHolidayMultiplier,
+    publicHolidayType: holidayInfo?.holidayType,
+    publicHolidayRegion: holidayInfo?.region,
+    alternativeDayGranted: false,
+  };
 }
 
 /**
@@ -558,6 +598,10 @@ async function calculateDailyOvertime(
       overtimeMultiplier: 1.0,
       overtimeType: 'NONE',
       overtimeReason: '',
+      isPublicHoliday: false,
+      publicHolidayHours: 0,
+      publicHolidayMultiplier: settings.publicHolidayMultiplier,
+      alternativeDayGranted: false,
     };
   }
 
@@ -577,6 +621,10 @@ async function calculateDailyOvertime(
     overtimeMultiplier: finalMultiplier,
     overtimeType: 'AUTO_DAILY',
     overtimeReason: `Exceeded daily ${dailyThreshold}h threshold${specialDayReason}`,
+    isPublicHoliday: false,
+    publicHolidayHours: 0,
+    publicHolidayMultiplier: settings.publicHolidayMultiplier,
+    alternativeDayGranted: false,
   };
 }
 
@@ -616,6 +664,10 @@ async function calculateWeeklyOvertime(
       overtimeMultiplier: 1.0,
       overtimeType: 'NONE',
       overtimeReason: '',
+      isPublicHoliday: false,
+      publicHolidayHours: 0,
+      publicHolidayMultiplier: settings.publicHolidayMultiplier,
+      alternativeDayGranted: false,
     };
   }
 
@@ -640,6 +692,10 @@ async function calculateWeeklyOvertime(
     overtimeMultiplier: finalMultiplier,
     overtimeType: 'AUTO_WEEKLY',
     overtimeReason: `Week total (${weekTotalHours.toFixed(1)}h) exceeded ${weeklyThreshold}h threshold${specialDayReason}`,
+    isPublicHoliday: false,
+    publicHolidayHours: 0,
+    publicHolidayMultiplier: settings.publicHolidayMultiplier,
+    alternativeDayGranted: false,
   };
 }
 
@@ -666,6 +722,10 @@ async function calculateMonthlyOvertime(
       overtimeMultiplier: 1.0,
       overtimeType: 'NONE',
       overtimeReason: '',
+      isPublicHoliday: false,
+      publicHolidayHours: 0,
+      publicHolidayMultiplier: settings.publicHolidayMultiplier,
+      alternativeDayGranted: false,
     };
   }
 
@@ -679,6 +739,10 @@ async function calculateMonthlyOvertime(
     overtimeMultiplier: multiplier,
     overtimeType: 'AUTO_MONTHLY',
     overtimeReason: `Month total (${monthTotalHours.toFixed(1)}h) exceeded ${monthlyThreshold}h threshold${specialDayReason}`,
+    isPublicHoliday: false,
+    publicHolidayHours: 0,
+    publicHolidayMultiplier: settings.publicHolidayMultiplier,
+    alternativeDayGranted: false,
   };
 }
 
@@ -712,6 +776,10 @@ async function calculatePatternBasedOvertime(
       overtimeMultiplier: multiplier,
       overtimeType: 'AUTO_PATTERN',
       overtimeReason: `Exceeded pattern day hours (${dayExpectedHours}h)${specialDayReason}`,
+      isPublicHoliday: false,
+      publicHolidayHours: 0,
+      publicHolidayMultiplier: settings.publicHolidayMultiplier,
+      alternativeDayGranted: false,
     };
   }
 
@@ -731,6 +799,10 @@ async function calculatePatternBasedOvertime(
       overtimeMultiplier: multiplier,
       overtimeType: 'AUTO_PATTERN',
       overtimeReason: `Week total (${weekTotalHours.toFixed(1)}h) exceeded pattern (${weekExpectedHours}h)${specialDayReason}`,
+      isPublicHoliday: false,
+      publicHolidayHours: 0,
+      publicHolidayMultiplier: settings.publicHolidayMultiplier,
+      alternativeDayGranted: false,
     };
   }
 
@@ -741,6 +813,10 @@ async function calculatePatternBasedOvertime(
     overtimeMultiplier: 1.0,
     overtimeType: 'NONE',
     overtimeReason: '',
+    isPublicHoliday: false,
+    publicHolidayHours: 0,
+    publicHolidayMultiplier: settings.publicHolidayMultiplier,
+    alternativeDayGranted: false,
   };
 }
 
@@ -758,6 +834,10 @@ function calculateSimpleOvertime(
     overtimeMultiplier: 1.0,
     overtimeType: 'NONE',
     overtimeReason: 'Auto-apply overtime disabled',
+    isPublicHoliday: false,
+    publicHolidayHours: 0,
+    publicHolidayMultiplier: 1.0,
+    alternativeDayGranted: false,
   };
 }
 

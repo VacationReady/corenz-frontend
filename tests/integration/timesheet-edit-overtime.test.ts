@@ -375,7 +375,7 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
       holidayEntryId = holidayEntry.id;
     });
 
-    it('should apply 2x multiplier for all hours on public holiday', async () => {
+    it('should apply 2x multiplier for all hours on public holiday and persist metadata', async () => {
       getServerSessionMock.mockImplementation(async () => ({
         user: { id: testManagerUserId, email: 'manager@test.com', name: 'Test Manager' },
         expires: '2025-01-01',
@@ -393,7 +393,7 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
 
       assert.equal(response.status, 200);
 
-      // Verify public holiday premium
+      // Verify public holiday premium and metadata persistence
       const updatedEntry = await prisma.timesheetEntry.findUnique({
         where: { id: holidayEntryId },
       });
@@ -403,6 +403,22 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
       // On public holidays with daily threshold of 8h, all hours get special rate
       assert.equal(parseFloat(updatedEntry!.overtimeMultiplier!.toString()), 2.0);
       assert.match(updatedEntry!.overtimeReason ?? '', /Public Holiday/);
+      
+      // CRITICAL: Verify public holiday metadata is persisted
+      assert.equal(updatedEntry!.isPublicHoliday, true);
+      assert.equal(updatedEntry!.publicHolidayName, "New Year's Day");
+      assert.equal(parseFloat(updatedEntry!.publicHolidayHours!.toString()), 8.0);
+      assert.equal(parseFloat(updatedEntry!.publicHolidayMultiplier!.toString()), 2.0);
+      assert.equal(updatedEntry!.publicHolidayType, 'NATIONAL');
+      
+      // Verify audit log includes holiday status
+      const auditLogs = await prisma.timesheetEntryAudit.findMany({
+        where: { entryId: holidayEntryId },
+        orderBy: { changedAt: 'desc' },
+      });
+      
+      const holidayAudit = auditLogs.find(log => log.field === 'public_holiday_status');
+      assert.ok(holidayAudit, 'Public holiday status change should be audited');
     });
   });
 
@@ -629,6 +645,129 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
       await prisma.employee.deleteMany({ where: { id: tempEmployee.id } });
       await prisma.user.deleteMany({ where: { id: tempUser.id } });
       await prisma.company.deleteMany({ where: { id: tempCompany.id } });
+    });
+  });
+
+  describe('TEST CASE 6: Public Holiday Metadata Changes', () => {
+    it('should update all holiday metadata when changing entry date to a public holiday', async () => {
+      // Create a regular entry that will be moved to a holiday
+      const regularEntry = await prisma.timesheetEntry.create({
+        data: {
+          id: `regular-to-holiday-${Date.now()}`,
+          timesheetId: testTimesheetId,
+          date: testRegularDate,
+          startTime: new Date('2024-06-04T09:00:00Z'),
+          endTime: new Date('2024-06-04T17:00:00Z'),
+          breakMinutes: 0,
+          hours: 8.0,
+          regularHours: 8.0,
+          overtimeHours: 0.0,
+          entryType: 'MANUAL',
+          isOvertime: false,
+          isPublicHoliday: false,
+          publicHolidayHours: 0,
+        },
+      });
+
+      getServerSessionMock.mockImplementation(async () => ({
+        user: { id: testManagerUserId, email: 'manager@test.com', name: 'Test Manager' },
+        expires: '2025-01-01',
+      }));
+
+      // Move entry to public holiday date
+      const req = new NextRequest('http://localhost/api/timesheets/entries/' + regularEntry.id, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          date: testPublicHolidayDate.toISOString(),
+          startTime: new Date('2024-01-01T09:00:00Z').toISOString(),
+          endTime: new Date('2024-01-01T17:00:00Z').toISOString(),
+          changeReason: 'Moving shift to public holiday date',
+        }),
+      });
+
+      const response = await patchHandler(req, { params: Promise.resolve({ id: regularEntry.id }) });
+      assert.equal(response.status, 200);
+
+      // Verify all holiday metadata was updated
+      const updated = await prisma.timesheetEntry.findUnique({
+        where: { id: regularEntry.id },
+      });
+
+      assert.ok(updated);
+      assert.equal(updated!.isPublicHoliday, true, 'Should be marked as public holiday');
+      assert.equal(updated!.publicHolidayName, "New Year's Day", 'Should have holiday name');
+      assert.equal(parseFloat(updated!.publicHolidayHours!.toString()), 8.0, 'All hours should be holiday hours');
+      assert.equal(parseFloat(updated!.publicHolidayMultiplier!.toString()), 2.0, 'Should have correct multiplier');
+      assert.equal(updated!.publicHolidayType, 'NATIONAL', 'Should have holiday type');
+      assert.match(updated!.overtimeReason ?? '', /Public Holiday/, 'Overtime reason should mention holiday');
+
+      // Verify audit trail captured the change
+      const auditLogs = await prisma.timesheetEntryAudit.findMany({
+        where: { entryId: regularEntry.id },
+        orderBy: { changedAt: 'desc' },
+      });
+
+      const holidayStatusAudit = auditLogs.find(log => log.field === 'public_holiday_status');
+      assert.ok(holidayStatusAudit, 'Holiday status change must be audited');
+      
+      const oldValue = JSON.parse(holidayStatusAudit!.oldValue || '{}');
+      const newValue = JSON.parse(holidayStatusAudit!.newValue || '{}');
+      
+      assert.equal(oldValue.isPublicHoliday, false, 'Old value should be non-holiday');
+      assert.equal(newValue.isPublicHoliday, true, 'New value should be holiday');
+      assert.equal(newValue.name, "New Year's Day", 'Audit should include holiday name');
+      assert.equal(newValue.hours, 8.0, 'Audit should include holiday hours');
+    });
+
+    it('should clear holiday metadata when changing from holiday to regular day', async () => {
+      // Create a holiday entry that will be moved to a regular day
+      const holidayEntry = await prisma.timesheetEntry.create({
+        data: {
+          id: `holiday-to-regular-${Date.now()}`,
+          timesheetId: testTimesheetId,
+          date: testPublicHolidayDate,
+          startTime: new Date('2024-01-01T09:00:00Z'),
+          endTime: new Date('2024-01-01T17:00:00Z'),
+          breakMinutes: 0,
+          hours: 8.0,
+          regularHours: 8.0,
+          entryType: 'MANUAL',
+          isPublicHoliday: true,
+          publicHolidayName: "New Year's Day",
+          publicHolidayHours: 8.0,
+          publicHolidayMultiplier: 2.0,
+          publicHolidayType: 'NATIONAL',
+        },
+      });
+
+      getServerSessionMock.mockImplementation(async () => ({
+        user: { id: testManagerUserId, email: 'manager@test.com', name: 'Test Manager' },
+        expires: '2025-01-01',
+      }));
+
+      // Move entry to regular day
+      const req = new NextRequest('http://localhost/api/timesheets/entries/' + holidayEntry.id, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          date: testRegularDate.toISOString(),
+          startTime: new Date('2024-06-04T09:00:00Z').toISOString(),
+          endTime: new Date('2024-06-04T17:00:00Z').toISOString(),
+          changeReason: 'Moving shift to regular work day',
+        }),
+      });
+
+      const response = await patchHandler(req, { params: Promise.resolve({ id: holidayEntry.id }) });
+      assert.equal(response.status, 200);
+
+      // Verify holiday metadata was cleared
+      const updated = await prisma.timesheetEntry.findUnique({
+        where: { id: holidayEntry.id },
+      });
+
+      assert.ok(updated);
+      assert.equal(updated!.isPublicHoliday, false, 'Should not be marked as holiday');
+      assert.equal(parseFloat(updated!.publicHolidayHours!.toString()), 0, 'Holiday hours should be zero');
+      assert.ok(!updated!.overtimeReason?.includes('Public Holiday'), 'Reason should not mention holiday');
     });
   });
 });

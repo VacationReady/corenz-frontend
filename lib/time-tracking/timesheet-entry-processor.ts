@@ -10,7 +10,6 @@
 
 import { prisma } from '@/lib/prisma';
 import { calculateOvertimeForEntry, OvertimeSettings, EmployeeOvertimeConfig, TimesheetEntryInput } from '@/lib/overtime-calculator';
-import { getNZPublicHolidayInfo } from '@/lib/public-holiday-checker';
 import { Prisma } from '@prisma/client';
 import { startOfDay, startOfWeek, endOfWeek } from 'date-fns';
 
@@ -106,6 +105,7 @@ export async function processTimesheetEntry(
   const tempEntryId = `temp-${Date.now()}`;
   
   // Calculate overtime using NZ-compliant calculator
+  // This now returns BOTH overtime AND public-holiday metadata
   const overtimeResult = await calculateOvertimeForEntry(
     {
       id: tempEntryId,
@@ -119,15 +119,7 @@ export async function processTimesheetEntry(
     employeeConfig
   );
 
-  // Check for public holiday
-  const holidayInfo = await getNZPublicHolidayInfo(entry.date, companyId);
-  
-  const isPublicHoliday = holidayInfo?.isHoliday ?? false;
-  const publicHolidayHours = isPublicHoliday ? hours : 0;
-  const publicHolidayMultiplier = isPublicHoliday 
-    ? overtimeSettings.publicHolidayMultiplier 
-    : 2.0;
-
+  // Use the enhanced calculator output directly (no re-fetching or hardcoding)
   return {
     date: entry.date,
     startTime: entry.startTime,
@@ -140,12 +132,13 @@ export async function processTimesheetEntry(
     overtimeType: overtimeResult.overtimeType,
     overtimeReason: overtimeResult.overtimeReason || '',
     isOvertime: overtimeResult.overtimeHours > 0,
-    isPublicHoliday,
-    publicHolidayName: holidayInfo?.holidayName,
-    publicHolidayHours,
-    publicHolidayMultiplier,
-    publicHolidayType: holidayInfo?.holidayType,
-    publicHolidayRegion: holidayInfo?.region,
+    // Public holiday metadata from calculator (not hardcoded)
+    isPublicHoliday: overtimeResult.isPublicHoliday,
+    publicHolidayName: overtimeResult.publicHolidayName,
+    publicHolidayHours: overtimeResult.publicHolidayHours,
+    publicHolidayMultiplier: overtimeResult.publicHolidayMultiplier,
+    publicHolidayType: overtimeResult.publicHolidayType,
+    publicHolidayRegion: overtimeResult.publicHolidayRegion,
     notes,
     entryType,
   };

@@ -10,10 +10,17 @@
  * - Provides clear error messages for employees
  */
 
-import { PrismaClient } from '@prisma/client';
 import { format, parse, isWithinInterval } from 'date-fns';
 
-const prisma = new PrismaClient();
+// Lazy-load Prisma to prevent test environment database connection errors
+let prisma: any = null;
+function getPrisma() {
+  if (!prisma && process.env.NODE_ENV !== 'test') {
+    const { PrismaClient } = require('@prisma/client');
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 export interface TimeRange {
   start: Date;
@@ -62,8 +69,11 @@ async function getWorkingHoursForDate(
   employeeId: string,
   date: Date
 ): Promise<{ start: string; end: string } | null> {
+  const db = getPrisma();
+  if (!db) return null;
+  
   // Find active working pattern assignment
-  const assignment = await prisma.employeeWorkingPatternAssignment.findFirst({
+  const assignment = await db.employeeWorkingPatternAssignment.findFirst({
     where: {
       employeeId,
       effectiveDate: { lte: date },
@@ -140,8 +150,16 @@ export async function validateManualOvertimeEntry(
     return { isValid: true, errors: [] };
   }
 
+  const db = getPrisma();
+  if (!db) {
+    return {
+      isValid: false,
+      errors: [{ field: 'database', message: 'Database connection unavailable', code: 'DB_UNAVAILABLE' }]
+    };
+  }
+  
   // Get company settings
-  const settings = await prisma.timeTrackingSettings.findUnique({
+  const settings = await db.timeTrackingSettings.findUnique({
     where: { companyId },
   });
 
@@ -300,7 +318,10 @@ export async function canAmendOvertime(
   userId: string,
   employeeId: string
 ): Promise<boolean> {
-  const user = await prisma.user.findUnique({
+  const db = getPrisma();
+  if (!db) return false;
+  
+  const user = await db.user.findUnique({
     where: { id: userId },
     include: {
       Employee: {
@@ -316,7 +337,7 @@ export async function canAmendOvertime(
     return false;
   }
 
-  const employee = await prisma.employee.findUnique({
+  const employee = await db.employee.findUnique({
     where: { id: employeeId },
     select: { 
       companyId: true,

@@ -11,11 +11,50 @@
  */
 
 import { webcrypto } from "crypto";
+import Module from "module";
 
 // Polyfill crypto for test environment (Node.js < 19)
 if (!globalThis.crypto) {
   (globalThis as any).crypto = webcrypto;
 }
+
+// CRITICAL: Mock Prisma BEFORE any modules import it
+// This prevents "PrismaClientInitializationError" in CI without database
+const originalLoad = (Module as any)._load;
+(Module as any)._load = function (request: string, parent: any, isMain: boolean) {
+  // Mock @prisma/client to prevent database connection attempts
+  if (request === "@prisma/client") {
+    return {
+      PrismaClient: class MockPrismaClient {
+        constructor() {
+          console.warn("[setupEnv] Using mocked PrismaClient - no database connection");
+        }
+        $connect() { return Promise.resolve(); }
+        $disconnect() { return Promise.resolve(); }
+      },
+    };
+  }
+  
+  // Mock app/lib/prisma to return mock client
+  if (request.includes("app/lib/prisma") || request.includes("lib/prisma")) {
+    return {
+      prisma: new Proxy({}, {
+        get: () => ({
+          findUnique: async () => null,
+          findMany: async () => [],
+          findFirst: async () => null,
+          create: async () => ({}),
+          update: async () => ({}),
+          delete: async () => ({}),
+          count: async () => 0,
+        }),
+      }),
+      getPrismaClient: () => null, // For public-holiday-checker.ts
+    };
+  }
+  
+  return originalLoad(request, parent, isMain);
+};
 
 // Set test environment variables before any modules load
 process.env.NODE_ENV = "test";

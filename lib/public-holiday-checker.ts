@@ -11,20 +11,24 @@
  * - Performance optimization through result caching
  */
 
-import { PrismaClient } from '@prisma/client';
 import Holidays from 'date-holidays';
 import { format, startOfDay } from 'date-fns';
 
 // Lazy-initialize Prisma to avoid DB connection during test imports
-let prisma: PrismaClient | null = null;
+// DO NOT import PrismaClient at module level - it causes connection attempts
+let prisma: any = null;
 
-function getPrismaClient(): PrismaClient | null {
+function getPrismaClient(): any {
+  // In test environment, don't try to initialize real Prisma
+  if (process.env.NODE_ENV === 'test') {
+    console.warn('[public-holiday-checker] Test mode - skipping Prisma initialization');
+    return null;
+  }
+  
   if (!prisma) {
     try {
-      // In test environment, check if DATABASE_URL is reachable
-      if (process.env.NODE_ENV === 'test') {
-        console.warn('[public-holiday-checker] Running in test mode - DB access may be limited');
-      }
+      // Dynamic import to avoid module-level execution
+      const { PrismaClient } = require('@prisma/client');
       prisma = new PrismaClient();
     } catch (error) {
       console.error('[public-holiday-checker] Failed to initialize Prisma client:', error);

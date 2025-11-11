@@ -11,7 +11,7 @@
  * - PATTERN_BASED: Compare actual vs expected hours from working pattern
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import {
   startOfWeek,
   endOfWeek,
@@ -23,7 +23,15 @@ import {
 } from 'date-fns';
 import { isNZPublicHoliday } from './public-holiday-checker';
 
-const prisma = new PrismaClient();
+// Lazy-load Prisma to prevent test environment database connection errors
+let prisma: any = null;
+function getPrisma() {
+  if (!prisma && process.env.NODE_ENV !== 'test') {
+    const { PrismaClient } = require('@prisma/client');
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 export type OvertimeCalculationMode = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'PATTERN_BASED';
 
@@ -316,8 +324,11 @@ export function calculatePureOvertime(input: PureOvertimeInput): DetailedOvertim
  * Handles multi-week patterns by calculating week in cycle
  */
 async function getEmployeeWorkingPattern(employeeId: string, date: Date) {
+  const db = getPrisma();
+  if (!db) return null;
+  
   // Find the active working pattern assignment for this date
-  const assignment = await prisma.employeeWorkingPatternAssignment.findFirst({
+  const assignment = await db.employeeWorkingPatternAssignment.findFirst({
     where: {
       employeeId,
       effectiveDate: { lte: date },
@@ -396,10 +407,13 @@ async function getWeekTimesheetEntries(
   employeeId: string,
   date: Date
 ): Promise<Array<{ id: string; date: Date; hours: Prisma.Decimal }>> {
+  const db = getPrisma();
+  if (!db) return [];
+  
   const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Monday
   const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
 
-  const entries = await prisma.timesheetEntry.findMany({
+  const entries = await db.timesheetEntry.findMany({
     where: {
       Timesheet: { employeeId },
       date: {
@@ -424,10 +438,13 @@ async function getMonthTimesheetEntries(
   employeeId: string,
   date: Date
 ): Promise<Array<{ id: string; date: Date; hours: Prisma.Decimal }>> {
+  const db = getPrisma();
+  if (!db) return [];
+  
   const monthStart = startOfMonth(date);
   const monthEnd = endOfMonth(date);
 
-  const entries = await prisma.timesheetEntry.findMany({
+  const entries = await db.timesheetEntry.findMany({
     where: {
       Timesheet: { employeeId },
       date: {

@@ -12,7 +12,6 @@
  * @date 2024-11-08
  */
 
-import { PrismaClient } from '@prisma/client';
 import { calculatePAYE, PayFrequency, getCurrentTaxYear } from './paye-calculator';
 import { calculateACCLevy } from './acc-calculator';
 import { calculateStudentLoanDeduction } from './student-loan-calculator';
@@ -20,21 +19,12 @@ import { calculateKiwiSaver } from './kiwisaver-calculator';
 import { calculateLeaveAccrual, AnnualLeaveMethod } from './leave-calculator';
 import { NZTaxCode } from '../../types/nz-payroll-export';
 
-// Lazy-initialize Prisma to avoid DB connection during test imports
-let prisma: PrismaClient | null = null;
-
-function getPrismaClient(): PrismaClient | null {
-  if (!prisma) {
-    try {
-      // In test environment, check if DATABASE_URL is reachable
-      if (process.env.NODE_ENV === 'test') {
-        console.warn('[payroll-calculation-service] Running in test mode - DB access may be limited');
-      }
-      prisma = new PrismaClient();
-    } catch (error) {
-      console.error('[payroll-calculation-service] Failed to initialize Prisma client:', error);
-      return null;
-    }
+// Lazy-load Prisma to prevent test environment database connection errors
+let prisma: any = null;
+function getPrismaClient() {
+  if (!prisma && process.env.NODE_ENV !== 'test') {
+    const { PrismaClient } = require('@prisma/client');
+    prisma = new PrismaClient();
   }
   return prisma;
 }

@@ -14,7 +14,6 @@
  * @date 2024-11-09
  */
 
-import { PrismaClient } from '@prisma/client';
 import { format as formatDate } from 'date-fns';
 import * as XLSX from 'xlsx';
 import {
@@ -25,7 +24,15 @@ import {
   NZTaxCode,
 } from '../../types/nz-payroll-export';
 
-const prisma = new PrismaClient();
+// Lazy-load Prisma to prevent test environment database connection errors
+let prisma: any = null;
+function getPrisma() {
+  if (!prisma && process.env.NODE_ENV !== 'test') {
+    const { PrismaClient } = require('@prisma/client');
+    prisma = new PrismaClient();
+  }
+  return prisma;
+}
 
 // ============================================
 // TYPES
@@ -164,7 +171,10 @@ export class PayrollExportService {
     employeeIds?: string[],
     departmentIds?: string[]
   ) {
-    return prisma.timesheet.findMany({
+    const db = getPrisma();
+    if (!db) return [];
+    
+    return db.timesheet.findMany({
       where: {
         companyId,
         approvalStatus: 'APPROVED',
@@ -233,7 +243,10 @@ export class PayrollExportService {
     const overtimeBreakdown = this.aggregateOvertime(timesheet.TimesheetEntries, employee.hourlyRate);
 
     // Get company data
-    const company = await prisma.company.findUnique({
+    const db = getPrisma();
+    if (!db) throw new Error('Database unavailable');
+    
+    const company = await db.company.findUnique({
       where: { id: timesheet.companyId },
       select: {
         id: true,
@@ -689,7 +702,10 @@ export class PayrollExportService {
     filename: string
   ): Promise<void> {
     try {
-      await prisma.globalAuditLog.create({
+      const db = getPrisma();
+      if (!db) return;
+      
+      await db.globalAuditLog.create({
         data: {
           id: `audit_${Date.now()}`,
           companyId,

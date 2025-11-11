@@ -10,9 +10,25 @@
  * 3. Edit creating negative hours = validation error
  * 4. Bulk edits = each entry recalculates independently
  * 5. Edge cases: calculator failure, missing settings, pattern changes
+ * 
+ * NOTE: This integration test uses the REAL database, not mocks.
+ * Do not import setupEnv as it will mock the Prisma client.
  */
 
-import '../setupEnv';
+// Mock server-only module to prevent test environment errors
+import Module from 'module';
+const originalLoad = (Module as any)._load;
+(Module as any)._load = function (request: string, parent: any, isMain: boolean) {
+  if (request === 'server-only') {
+    return {};
+  }
+  return originalLoad(request, parent, isMain);
+};
+
+// Set required environment variables
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+process.env.NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || 'test-secret-min-32-chars-required-for-security';
+process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
 import { describe, it, before, after, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
@@ -27,7 +43,16 @@ const supportsModuleMocking = typeof mock.module === 'function';
 const beforeAll = before;
 const afterAll = after;
 
-let getServerSessionMock: MockedGetServerSession;
+// Create a wrapper type that always has mockImplementation
+interface MockWrapper {
+  mockImplementation: (fn: (...args: any[]) => any) => void;
+  mock: {
+    reset: () => void;
+    restore: () => void;
+  };
+}
+
+let getServerSessionMock: MockWrapper;
 let patchHandler: PatchHandler;
 let restoreGetServerSession: (() => void) | undefined;
 
@@ -51,8 +76,10 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     if (typeof nextAuthModule.getServerSession === 'function' && 
         Object.prototype.hasOwnProperty.call(nextAuthModule, 'getServerSession')) {
       try {
-        getServerSessionMock = mock.method(nextAuthModule, 'getServerSession', async () => null);
-        restoreGetServerSession = () => getServerSessionMock.mock.restore();
+        const methodMock = mock.method(nextAuthModule, 'getServerSession', async () => null);
+        // Wrap to ensure consistent interface
+        getServerSessionMock = methodMock as unknown as MockWrapper;
+        restoreGetServerSession = () => methodMock.mock.restore();
         mockingSucceeded = true;
       } catch (error) {
         // If mocking fails, fall through to the fallback approach
@@ -61,20 +88,34 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     }
     
     if (!mockingSucceeded) {
-      // Fallback for environments where getServerSession is not present on the module
-      // or cannot be mocked (e.g., older Next.js stubs or when using compiled CommonJS output)
-      getServerSessionMock = mock.fn(async () => null) as unknown as MockedGetServerSession;
+      // Fallback: create a wrapper that mimics mock.method interface
+      let currentImpl = async () => null;
+      const fnMock = mock.fn(async (...args: any[]) => currentImpl(...args));
+      
+      getServerSessionMock = {
+        mockImplementation: (fn: (...args: any[]) => any) => {
+          currentImpl = fn;
+        },
+        mock: {
+          reset: () => {
+            currentImpl = async () => null;
+            fnMock.mock.resetCalls();
+          },
+          restore: () => {
+            // No-op for fn mocks
+          },
+        },
+      };
 
       if (supportsModuleMocking) {
         mock.module('next-auth', () => ({
-          getServerSession: getServerSessionMock,
+          getServerSession: fnMock,
         }));
         restoreGetServerSession = () => {
-          // Resets module-level mocks without affecting other tests
           mock.reset();
         };
       } else {
-        (nextAuthModule as Record<string, unknown>).getServerSession = getServerSessionMock;
+        (nextAuthModule as Record<string, unknown>).getServerSession = fnMock;
         restoreGetServerSession = () => {
           delete (nextAuthModule as Record<string, unknown>).getServerSession;
         };
@@ -87,9 +128,9 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     const company = await prisma.company.create({
       data: {
         id: `test-company-${Date.now()}`,
-        name: 'Test Company - Overtime Edit',
-        subdomain: `test-ot-edit-${Date.now()}`,
+        name: `Test Company - Overtime Edit ${Date.now()}`,
         createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
     testCompanyId = company.id;
@@ -101,6 +142,9 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         email: `manager-ot-edit-${Date.now()}@test.com`,
         name: 'Test Manager',
         role: 'MANAGER',
+        password: 'test-password-hash',
+        companyId: testCompanyId,
+        updatedAt: new Date(),
       },
     });
     testManagerUserId = managerUser.id;
@@ -111,9 +155,6 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         id: `manager-${Date.now()}`,
         userId: managerUser.id,
         companyId: testCompanyId,
-        firstName: 'Test',
-        lastName: 'Manager',
-        email: managerUser.email,
         startDate: new Date(),
       },
     });
@@ -126,6 +167,9 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         email: `employee-ot-edit-${Date.now()}@test.com`,
         name: 'Test Employee',
         role: 'EMPLOYEE',
+        password: 'test-password-hash',
+        companyId: testCompanyId,
+        updatedAt: new Date(),
       },
     });
 
@@ -135,9 +179,6 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
         id: `employee-${Date.now()}`,
         userId: employeeUser.id,
         companyId: testCompanyId,
-        firstName: 'Test',
-        lastName: 'Employee',
-        email: employeeUser.email,
         startDate: new Date(),
       },
     });
@@ -496,23 +537,33 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
     });
 
     it('should handle missing settings gracefully', async () => {
-      // Create a company without settings
+      // Create temporary company without time tracking settings
       const tempCompany = await prisma.company.create({
         data: {
           id: `temp-company-${Date.now()}`,
-          name: 'Temp Company',
-          subdomain: `temp-${Date.now()}`,
+          name: `Temp Company - No Settings ${Date.now()}`,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      const tempUser = await prisma.user.create({
+        data: {
+          id: `temp-user-${Date.now()}`,
+          email: 'temp@test.com',
+          name: 'Temp Employee',
+          role: 'EMPLOYEE',
+          password: 'test-password-hash',
+          companyId: tempCompany.id,
+          updatedAt: new Date(),
         },
       });
 
       const tempEmployee = await prisma.employee.create({
         data: {
           id: `temp-employee-${Date.now()}`,
-          userId: testManagerUserId,
+          userId: tempUser.id,
           companyId: tempCompany.id,
-          firstName: 'Temp',
-          lastName: 'Employee',
-          email: 'temp@test.com',
           startDate: new Date(),
         },
       });
@@ -564,6 +615,7 @@ describe('Timesheet Entry Edit - NZ-Compliant Overtime', () => {
       await prisma.timesheetEntry.deleteMany({ where: { timesheetId: tempTimesheet.id } });
       await prisma.timesheet.deleteMany({ where: { id: tempTimesheet.id } });
       await prisma.employee.deleteMany({ where: { id: tempEmployee.id } });
+      await prisma.user.deleteMany({ where: { id: tempUser.id } });
       await prisma.company.deleteMany({ where: { id: tempCompany.id } });
     });
   });

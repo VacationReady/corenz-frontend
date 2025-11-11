@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
@@ -16,8 +16,16 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
+interface EventCategory {
+  id: string;
+  name: string;
+  categoryType: 'TIME_OFF' | 'WORKING_EVENT';
+  adminOnly: boolean;
+  subcategories?: Array<{ id: string; name: string }>;
+}
+
 export default function EventManagerPage() {
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<EventCategory[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -40,11 +48,7 @@ export default function EventManagerPage() {
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  useEffect(() => {
-    fetchCategories();
-  }, [statusFilter]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setIsLoading(true);
       if (statusFilter === "active") {
@@ -72,7 +76,11 @@ export default function EventManagerPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
   const filteredCategories = useMemo(() => {
     const q = search.trim().toLowerCase();
     return categories

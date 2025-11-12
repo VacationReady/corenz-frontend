@@ -42,7 +42,7 @@ if (SKIP_INTEGRATION_TESTS) {
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { prisma } from '../../lib/prisma';
+import { prisma } from '../../app/lib/prisma';
 import { calculateOvertimeForEntry, OvertimeSettings } from '../../lib/overtime-calculator';
 
 describe('Weekly and Monthly Overtime Threshold Tests', () => {

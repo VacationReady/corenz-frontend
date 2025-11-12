@@ -276,17 +276,22 @@ export async function PUT(
           const hours = calculateHours(startTime, endTime, entry.breakMinutes);
 
           // Calculate overtime for this entry (includes holiday metadata)
+          // Pass transaction client and start/end times for accurate calculations
           const overtimeResult = await calculateOvertimeForEntry(
             {
               id: `temp-${Date.now()}`,
               date,
               hours,
               timesheetId: id,
+              startTime,
+              endTime,
+              breakMinutes: entry.breakMinutes,
             },
             timesheet.employeeId,
             requestingEmployee.companyId,
             overtimeSettings,
-            employeeConfig
+            employeeConfig,
+            tx
           );
 
           // Create entry with full overtime and public holiday metadata

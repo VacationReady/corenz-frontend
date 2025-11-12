@@ -377,6 +377,11 @@ export class PayrollExportService {
 
   /**
    * Aggregate overtime hours from timesheet entries
+   * 
+   * Uses enriched metadata from overtime calculator:
+   * - publicHolidayHours: Precise hours (supports partial-day holidays)
+   * - overtimeHours: Regular overtime hours
+   * - Prevents double-counting by separating holiday and overtime buckets
    */
   private aggregateOvertime(entries: any[], hourlyRate: any): OvertimeBreakdown {
     const breakdown: OvertimeBreakdown = {
@@ -394,7 +399,8 @@ export class PayrollExportService {
       const overtimeHours = entry.overtimeHours ? parseFloat(entry.overtimeHours.toString()) : 0;
       const multiplier = entry.overtimeMultiplier ? parseFloat(entry.overtimeMultiplier.toString()) : 1.5;
       
-      // Public holiday hours (separate category)
+      // Public holiday hours (separate category, uses precise publicHolidayHours)
+      // This includes partial-day holidays and Mondayised holidays
       if (entry.isPublicHoliday && entry.publicHolidayHours) {
         const pubHolidayHours = parseFloat(entry.publicHolidayHours.toString());
         const pubMultiplier = parseFloat(entry.publicHolidayMultiplier?.toString() || '2.0');
@@ -402,7 +408,7 @@ export class PayrollExportService {
         breakdown.publicHolidayPay += pubHolidayHours * rate * pubMultiplier;
       }
       
-      // Standard overtime (1.5x)
+      // Standard overtime (1.5x) - excludes public holiday hours
       if (overtimeHours > 0 && !entry.isPublicHoliday) {
         if (Math.abs(multiplier - 1.5) < 0.01) {
           breakdown.standardOvertimeHours += overtimeHours;

@@ -124,6 +124,10 @@ export interface TimesheetEntryInput {
   date: Date;
   hours: number;
   timesheetId: string;
+  // Enhanced for partial-day public holiday calculations
+  startTime?: Date;
+  endTime?: Date;
+  breakMinutes?: number;
 }
 
 /**
@@ -331,9 +335,14 @@ export function calculatePureOvertime(input: PureOvertimeInput): DetailedOvertim
 /**
  * Get employee's working pattern for a specific date
  * Handles multi-week patterns by calculating week in cycle
+ * @param tx - Optional transaction client for transaction-aware queries
  */
-async function getEmployeeWorkingPattern(employeeId: string, date: Date) {
-  const db = getPrisma();
+async function getEmployeeWorkingPattern(
+  employeeId: string,
+  date: Date,
+  tx?: PrismaClient | Prisma.TransactionClient
+) {
+  const db = tx || getPrisma();
   if (!db) return null;
   
   // Find the active working pattern assignment for this date
@@ -411,12 +420,16 @@ function getWeekExpectedHours(
 
 /**
  * Get all timesheet entries for a specific week
+ * @param tx - Optional transaction client for transaction-aware queries
+ * @param excludeEntryId - Optional entry ID to exclude (for pending entry calculations)
  */
 async function getWeekTimesheetEntries(
   employeeId: string,
-  date: Date
+  date: Date,
+  tx?: PrismaClient | Prisma.TransactionClient,
+  excludeEntryId?: string
 ): Promise<Array<{ id: string; date: Date; hours: Prisma.Decimal }>> {
-  const db = getPrisma();
+  const db = tx || getPrisma();
   if (!db) return [];
   
   const weekStart = startOfWeek(date, { weekStartsOn: 1 }); // Monday
@@ -429,6 +442,7 @@ async function getWeekTimesheetEntries(
         gte: weekStart,
         lte: weekEnd,
       },
+      ...(excludeEntryId && { id: { not: excludeEntryId } }),
     },
     select: {
       id: true,
@@ -442,12 +456,16 @@ async function getWeekTimesheetEntries(
 
 /**
  * Get all timesheet entries for a specific month
+ * @param tx - Optional transaction client for transaction-aware queries
+ * @param excludeEntryId - Optional entry ID to exclude (for pending entry calculations)
  */
 async function getMonthTimesheetEntries(
   employeeId: string,
-  date: Date
+  date: Date,
+  tx?: PrismaClient | Prisma.TransactionClient,
+  excludeEntryId?: string
 ): Promise<Array<{ id: string; date: Date; hours: Prisma.Decimal }>> {
-  const db = getPrisma();
+  const db = tx || getPrisma();
   if (!db) return [];
   
   const monthStart = startOfMonth(date);
@@ -460,6 +478,7 @@ async function getMonthTimesheetEntries(
         gte: monthStart,
         lte: monthEnd,
       },
+      ...(excludeEntryId && { id: { not: excludeEntryId } }),
     },
     select: {
       id: true,
@@ -471,19 +490,78 @@ async function getMonthTimesheetEntries(
   return entries;
 }
 
+/**
+ * Calculate partial-day public holiday hours
+ * 
+ * Handles shifts that span across midnight or partially overlap with a public holiday.
+ * Supports Mondayisation where the observed holiday differs from the calendar date.
+ * 
+ * @param startTime - Shift start time
+ * @param endTime - Shift end time
+ * @param breakMinutes - Break duration in minutes
+ * @param holidayDate - The public holiday date
+ * @returns Hours that fall on the public holiday
+ */
+function calculatePartialHolidayHours(
+  startTime: Date,
+  endTime: Date,
+  breakMinutes: number,
+  holidayDate: Date
+): number {
+  // Normalize holiday date to start/end of day
+  const holidayStart = startOfDay(holidayDate);
+  const holidayEnd = new Date(holidayStart);
+  holidayEnd.setHours(23, 59, 59, 999);
+
+  // Calculate overlap between shift and holiday
+  const shiftStart = startTime.getTime();
+  const shiftEnd = endTime.getTime();
+  const holidayStartMs = holidayStart.getTime();
+  const holidayEndMs = holidayEnd.getTime();
+
+  // Find overlap window
+  const overlapStart = Math.max(shiftStart, holidayStartMs);
+  const overlapEnd = Math.min(shiftEnd, holidayEndMs);
+
+  if (overlapStart >= overlapEnd) {
+    // No overlap
+    return 0;
+  }
+
+  // Calculate overlap hours
+  const overlapMs = overlapEnd - overlapStart;
+  const overlapHours = overlapMs / (1000 * 60 * 60);
+
+  // Proportionally reduce by break time
+  const totalShiftMs = shiftEnd - shiftStart;
+  const breakHours = breakMinutes / 60;
+  const breakProportion = breakHours / (totalShiftMs / (1000 * 60 * 60));
+  const adjustedOverlapHours = overlapHours * (1 - breakProportion);
+
+  return Math.max(0, adjustedOverlapHours);
+}
+
 
 /**
  * Calculate overtime for a timesheet entry
  * Main entry point for overtime calculation
  * 
  * Returns complete overtime AND public-holiday metadata for NZ compliance
+ * 
+ * @param entry - Entry data including start/end times for partial-holiday calculations
+ * @param employeeId - Employee identifier
+ * @param companyId - Company identifier
+ * @param settings - Overtime calculation settings
+ * @param employeeConfig - Optional employee-specific overtime configuration
+ * @param tx - Optional Prisma transaction client for transaction-aware queries
  */
 export async function calculateOvertimeForEntry(
   entry: TimesheetEntryInput,
   employeeId: string,
   companyId: string,
   settings: OvertimeSettings,
-  employeeConfig?: EmployeeOvertimeConfig
+  employeeConfig?: EmployeeOvertimeConfig,
+  tx?: PrismaClient | Prisma.TransactionClient
 ): Promise<OvertimeCalculationResult> {
   // Import holiday checker for metadata
   const { getNZPublicHolidayInfo } = await import('./public-holiday-checker');
@@ -491,6 +569,25 @@ export async function calculateOvertimeForEntry(
   // Fetch public holiday information (needed for both OT calc and metadata)
   const holidayInfo = await getNZPublicHolidayInfo(entry.date, companyId);
   const isPublicHoliday = holidayInfo?.isHoliday ?? false;
+  
+  // Calculate precise public holiday hours (partial-day support)
+  let publicHolidayHours = 0;
+  if (isPublicHoliday && entry.startTime && entry.endTime) {
+    // Partial-day calculation using start/end times
+    publicHolidayHours = calculatePartialHolidayHours(
+      entry.startTime,
+      entry.endTime,
+      entry.breakMinutes || 0,
+      entry.date
+    );
+  } else if (isPublicHoliday) {
+    // Fallback: all hours are holiday hours if no time data
+    publicHolidayHours = entry.hours;
+  }
+  
+  // Determine if alternative day is granted (Mondayisation)
+  // Alternative day granted when observed date differs from calendar date
+  const alternativeDayGranted = isPublicHoliday && holidayInfo?.holidayType === 'MONDAYISED';
   
   // Check if employee is eligible for overtime
   if (employeeConfig && !employeeConfig.overtimeEligible) {
@@ -502,11 +599,11 @@ export async function calculateOvertimeForEntry(
       overtimeReason: 'Employee not eligible for overtime',
       isPublicHoliday,
       publicHolidayName: holidayInfo?.holidayName,
-      publicHolidayHours: isPublicHoliday ? entry.hours : 0,
+      publicHolidayHours,
       publicHolidayMultiplier: settings.publicHolidayMultiplier,
       publicHolidayType: holidayInfo?.holidayType,
       publicHolidayRegion: holidayInfo?.region,
-      alternativeDayGranted: false,
+      alternativeDayGranted,
     };
   }
 
@@ -533,19 +630,19 @@ export async function calculateOvertimeForEntry(
   
   switch (mode) {
     case 'DAILY':
-      overtimeResult = await calculateDailyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      overtimeResult = await calculateDailyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason, tx);
       break;
 
     case 'WEEKLY':
-      overtimeResult = await calculateWeeklyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      overtimeResult = await calculateWeeklyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason, tx);
       break;
 
     case 'MONTHLY':
-      overtimeResult = await calculateMonthlyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      overtimeResult = await calculateMonthlyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason, tx);
       break;
 
     case 'PATTERN_BASED':
-      overtimeResult = await calculatePatternBasedOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+      overtimeResult = await calculatePatternBasedOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason, tx);
       break;
 
     default:
@@ -554,16 +651,16 @@ export async function calculateOvertimeForEntry(
       break;
   }
   
-  // Enrich with public holiday metadata
+  // Enrich with public holiday metadata (calculated earlier with partial-day support)
   return {
     ...overtimeResult,
     isPublicHoliday,
     publicHolidayName: holidayInfo?.holidayName,
-    publicHolidayHours: isPublicHoliday ? entry.hours : 0,
+    publicHolidayHours,
     publicHolidayMultiplier: settings.publicHolidayMultiplier,
     publicHolidayType: holidayInfo?.holidayType,
     publicHolidayRegion: holidayInfo?.region,
-    alternativeDayGranted: false,
+    alternativeDayGranted,
   };
 }
 
@@ -576,10 +673,11 @@ async function calculateDailyOvertime(
   settings: OvertimeSettings,
   employeeConfig: EmployeeOvertimeConfig | undefined,
   multiplier: number,
-  specialDayReason: string
+  specialDayReason: string,
+  tx?: PrismaClient | Prisma.TransactionClient
 ): Promise<OvertimeCalculationResult> {
   // Get working pattern for this specific day
-  const patternInfo = await getEmployeeWorkingPattern(employeeId, entry.date);
+  const patternInfo = await getEmployeeWorkingPattern(employeeId, entry.date, tx);
   
   let dailyThreshold: number;
   
@@ -631,6 +729,7 @@ async function calculateDailyOvertime(
 /**
  * WEEKLY Mode: Overtime when week total exceeds threshold
  * Pattern-aware: uses week from multi-week cycle
+ * CRITICAL: Includes pending entry hours before threshold comparison
  */
 async function calculateWeeklyOvertime(
   entry: TimesheetEntryInput,
@@ -638,14 +737,16 @@ async function calculateWeeklyOvertime(
   settings: OvertimeSettings,
   employeeConfig: EmployeeOvertimeConfig | undefined,
   multiplier: number,
-  specialDayReason: string
+  specialDayReason: string,
+  tx?: PrismaClient | Prisma.TransactionClient
 ): Promise<OvertimeCalculationResult> {
-  // Get all entries for this week
-  const weekEntries = await getWeekTimesheetEntries(employeeId, entry.date);
-  const weekTotalHours = weekEntries.reduce((sum, e) => sum + parseFloat(e.hours.toString()), 0);
+  // Get all entries for this week (excluding current entry if it exists)
+  const weekEntries = await getWeekTimesheetEntries(employeeId, entry.date, tx, entry.id.startsWith('temp-') ? undefined : entry.id);
+  // CRITICAL: Include pending entry hours in total
+  const weekTotalHours = weekEntries.reduce((sum, e) => sum + parseFloat(e.hours.toString()), 0) + entry.hours;
 
   // Get working pattern for threshold
-  const patternInfo = await getEmployeeWorkingPattern(employeeId, entry.date);
+  const patternInfo = await getEmployeeWorkingPattern(employeeId, entry.date, tx);
   
   let weeklyThreshold: number;
   
@@ -701,6 +802,7 @@ async function calculateWeeklyOvertime(
 
 /**
  * MONTHLY Mode: Overtime when month total exceeds threshold
+ * CRITICAL: Includes pending entry hours before threshold comparison
  */
 async function calculateMonthlyOvertime(
   entry: TimesheetEntryInput,
@@ -708,10 +810,13 @@ async function calculateMonthlyOvertime(
   settings: OvertimeSettings,
   employeeConfig: EmployeeOvertimeConfig | undefined,
   multiplier: number,
-  specialDayReason: string
+  specialDayReason: string,
+  tx?: PrismaClient | Prisma.TransactionClient
 ): Promise<OvertimeCalculationResult> {
-  const monthEntries = await getMonthTimesheetEntries(employeeId, entry.date);
-  const monthTotalHours = monthEntries.reduce((sum, e) => sum + parseFloat(e.hours.toString()), 0);
+  // Get all entries for this month (excluding current entry if it exists)
+  const monthEntries = await getMonthTimesheetEntries(employeeId, entry.date, tx, entry.id.startsWith('temp-') ? undefined : entry.id);
+  // CRITICAL: Include pending entry hours in total
+  const monthTotalHours = monthEntries.reduce((sum, e) => sum + parseFloat(e.hours.toString()), 0) + entry.hours;
 
   const monthlyThreshold = settings.monthlyOvertimeThreshold || 173.33;
 
@@ -756,13 +861,14 @@ async function calculatePatternBasedOvertime(
   settings: OvertimeSettings,
   employeeConfig: EmployeeOvertimeConfig | undefined,
   multiplier: number,
-  specialDayReason: string
+  specialDayReason: string,
+  tx?: PrismaClient | Prisma.TransactionClient
 ): Promise<OvertimeCalculationResult> {
-  const patternInfo = await getEmployeeWorkingPattern(employeeId, entry.date);
+  const patternInfo = await getEmployeeWorkingPattern(employeeId, entry.date, tx);
 
   if (!patternInfo) {
     // No pattern: fall back to daily threshold
-    return calculateDailyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason);
+    return calculateDailyOvertime(entry, employeeId, settings, employeeConfig, multiplier, specialDayReason, tx);
   }
 
   // Check daily threshold from pattern
@@ -784,8 +890,9 @@ async function calculatePatternBasedOvertime(
   }
 
   // Also check weekly threshold from pattern
-  const weekEntries = await getWeekTimesheetEntries(employeeId, entry.date);
-  const weekTotalHours = weekEntries.reduce((sum, e) => sum + parseFloat(e.hours.toString()), 0);
+  const weekEntries = await getWeekTimesheetEntries(employeeId, entry.date, tx, entry.id.startsWith('temp-') ? undefined : entry.id);
+  // Include pending entry hours
+  const weekTotalHours = weekEntries.reduce((sum, e) => sum + parseFloat(e.hours.toString()), 0) + entry.hours;
   const weekExpectedHours = getWeekExpectedHours(patternInfo.week);
 
   if (weekTotalHours > weekExpectedHours) {

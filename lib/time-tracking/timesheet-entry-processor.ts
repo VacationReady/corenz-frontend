@@ -106,12 +106,16 @@ export async function processTimesheetEntry(
   
   // Calculate overtime using NZ-compliant calculator
   // This now returns BOTH overtime AND public-holiday metadata
+  // Pass start/end times for partial-day holiday calculations
   const overtimeResult = await calculateOvertimeForEntry(
     {
       id: tempEntryId,
       date: entry.date,
       hours,
       timesheetId: 'temp', // Will be set later
+      startTime: entry.startTime,
+      endTime: entry.endTime,
+      breakMinutes: entry.breakMinutes,
     },
     employeeId,
     companyId,

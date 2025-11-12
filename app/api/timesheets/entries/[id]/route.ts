@@ -276,16 +276,22 @@ export async function PATCH(
           };
 
           // Calculate overtime for this entry with new hours
+          // Pass transaction client and start/end times for accurate calculations
           const overtimeResult = await calculateOvertimeForEntry(
             {
               id: entry.id,
               date: finalDate,
               hours: updateData.hours,
               timesheetId: entry.timesheetId,
+              startTime: finalStartTime,
+              endTime: finalEndTime,
+              breakMinutes: finalBreakMinutes,
             },
             entry.Timesheet.employeeId,
             requestingEmployee.companyId,
-            overtimeSettings
+            overtimeSettings,
+            undefined,
+            tx
           );
 
           // Track overtime changes for audit
@@ -328,16 +334,18 @@ export async function PATCH(
           updateData.overtimeReason = overtimeResult.overtimeReason;
           updateData.isOvertime = overtimeResult.overtimeHours > 0;
           
-          // Update public holiday metadata from calculator
+          // Update public holiday metadata from calculator (includes Mondayisation)
           updateData.isPublicHoliday = overtimeResult.isPublicHoliday;
           updateData.publicHolidayName = overtimeResult.publicHolidayName;
           updateData.publicHolidayHours = overtimeResult.publicHolidayHours;
           updateData.publicHolidayMultiplier = overtimeResult.publicHolidayMultiplier;
           updateData.publicHolidayType = overtimeResult.publicHolidayType;
           updateData.publicHolidayRegion = overtimeResult.publicHolidayRegion;
+          updateData.alternativeDayGranted = overtimeResult.alternativeDayGranted;
           
-          // Track public holiday status changes for audit
-          if (overtimeResult.isPublicHoliday !== entry.isPublicHoliday) {
+          // Track public holiday status changes for audit (including Mondayisation)
+          if (overtimeResult.isPublicHoliday !== entry.isPublicHoliday ||
+              overtimeResult.alternativeDayGranted !== entry.alternativeDayGranted) {
             auditLogs.push({
               id: `audit-${Date.now()}-${Math.random()}`,
               entryId: entry.id,
@@ -350,11 +358,13 @@ export async function PATCH(
                 isPublicHoliday: entry.isPublicHoliday,
                 name: entry.publicHolidayName,
                 hours: entry.publicHolidayHours ? parseFloat(entry.publicHolidayHours.toString()) : 0,
+                alternativeDayGranted: entry.alternativeDayGranted,
               }),
               newValue: JSON.stringify({
                 isPublicHoliday: overtimeResult.isPublicHoliday,
                 name: overtimeResult.publicHolidayName,
                 hours: overtimeResult.publicHolidayHours,
+                alternativeDayGranted: overtimeResult.alternativeDayGranted,
               }),
               changeType: 'UPDATED',
               companyId: requestingEmployee.companyId,

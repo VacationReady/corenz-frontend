@@ -31,6 +31,7 @@ export interface ProcessedTimesheetEntry {
   publicHolidayMultiplier: number;
   publicHolidayType?: string;
   publicHolidayRegion?: string;
+  alternativeDayGranted: boolean;
   notes?: string;
   entryType: string;
 }
@@ -143,6 +144,7 @@ export async function processTimesheetEntry(
     publicHolidayMultiplier: overtimeResult.publicHolidayMultiplier,
     publicHolidayType: overtimeResult.publicHolidayType,
     publicHolidayRegion: overtimeResult.publicHolidayRegion,
+    alternativeDayGranted: overtimeResult.alternativeDayGranted,
     notes,
     entryType,
   };

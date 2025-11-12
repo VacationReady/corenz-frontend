@@ -317,6 +317,7 @@ export async function PUT(
               publicHolidayMultiplier: overtimeResult.publicHolidayMultiplier,
               publicHolidayType: overtimeResult.publicHolidayType,
               publicHolidayRegion: overtimeResult.publicHolidayRegion,
+              alternativeDayGranted: overtimeResult.alternativeDayGranted,
               // Manager adjustment tracking
               managerAdjusted: isAdminOrManager,
               managerAdjustedBy: isAdminOrManager ? session.user.id : undefined,

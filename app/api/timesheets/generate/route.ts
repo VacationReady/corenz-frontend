@@ -179,76 +179,89 @@ export async function POST(req: NextRequest) {
     }
 
     // Auto-apply overtime calculation if enabled
+    // CRITICAL: Use transaction for weekly/monthly calculations to include pending entry hours
     if (settings?.autoApplyOvertime && createdEntries.length > 0) {
-      const overtimeSettings: OvertimeSettings = {
-        overtimeCalculationMode: (settings.overtimeCalculationMode as any) || 'PATTERN_BASED',
-        autoApplyOvertime: settings.autoApplyOvertime,
-        dailyOvertimeThreshold: settings.dailyOvertimeThreshold ? Number(settings.dailyOvertimeThreshold) : undefined,
-        weeklyOvertimeThreshold: settings.weeklyOvertimeThreshold ? Number(settings.weeklyOvertimeThreshold) : undefined,
-        monthlyOvertimeThreshold: settings.monthlyOvertimeThreshold ? Number(settings.monthlyOvertimeThreshold) : undefined,
-        overtimeMultiplier: Number(settings.overtimeMultiplier || 1.5),
-        overtimeMultiplierTier2: settings.overtimeMultiplierTier2 ? Number(settings.overtimeMultiplierTier2) : undefined,
-        overtimeThresholdTier2: settings.overtimeThresholdTier2 ? Number(settings.overtimeThresholdTier2) : undefined,
-        publicHolidayMultiplier: Number(settings.publicHolidayMultiplier || 1.5),
-        sundayMultiplier: settings.sundayMultiplier ? Number(settings.sundayMultiplier) : undefined,
-      };
+      await prisma.$transaction(async (tx) => {
+        const overtimeSettings: OvertimeSettings = {
+          overtimeCalculationMode: (settings.overtimeCalculationMode as any) || 'PATTERN_BASED',
+          autoApplyOvertime: settings.autoApplyOvertime,
+          dailyOvertimeThreshold: settings.dailyOvertimeThreshold ? Number(settings.dailyOvertimeThreshold) : undefined,
+          weeklyOvertimeThreshold: settings.weeklyOvertimeThreshold ? Number(settings.weeklyOvertimeThreshold) : undefined,
+          monthlyOvertimeThreshold: settings.monthlyOvertimeThreshold ? Number(settings.monthlyOvertimeThreshold) : undefined,
+          overtimeMultiplier: Number(settings.overtimeMultiplier || 1.5),
+          overtimeMultiplierTier2: settings.overtimeMultiplierTier2 ? Number(settings.overtimeMultiplierTier2) : undefined,
+          overtimeThresholdTier2: settings.overtimeThresholdTier2 ? Number(settings.overtimeThresholdTier2) : undefined,
+          publicHolidayMultiplier: Number(settings.publicHolidayMultiplier || 2.0),
+          sundayMultiplier: settings.sundayMultiplier ? Number(settings.sundayMultiplier) : undefined,
+        };
 
-      // Calculate overtime for each entry
-      for (const entry of createdEntries) {
-        try {
-          const overtimeResult = await calculateOvertimeForEntry(
-            {
-              id: entry.id,
-              date: new Date(entry.date),
-              hours: Number(entry.hours),
-              timesheetId: entry.timesheetId,
-            },
-            targetEmployeeId,
-            requestingEmployee.companyId,
-            overtimeSettings
-          );
+        // Calculate overtime for each entry with transaction awareness
+        for (const entry of createdEntries) {
+          try {
+            // CRITICAL: Pass start/end times for partial-holiday calculations
+            const overtimeResult = await calculateOvertimeForEntry(
+              {
+                id: entry.id,
+                date: new Date(entry.date),
+                hours: Number(entry.hours),
+                timesheetId: entry.timesheetId,
+                startTime: entry.startTime,
+                endTime: entry.endTime,
+                breakMinutes: entry.breakMinutes || 0,
+              },
+              targetEmployeeId,
+              requestingEmployee.companyId,
+              overtimeSettings,
+              undefined,
+              tx  // Pass transaction for accurate weekly/monthly totals
+            );
 
-          // Update entry with overtime calculations AND public holiday metadata
-          await prisma.timesheetEntry.update({
-            where: { id: entry.id },
-            data: {
-              regularHours: overtimeResult.regularHours,
-              overtimeHours: overtimeResult.overtimeHours,
-              overtimeMultiplier: overtimeResult.overtimeMultiplier,
-              overtimeType: overtimeResult.overtimeType,
-              overtimeReason: overtimeResult.overtimeReason,
-              isOvertime: overtimeResult.overtimeHours > 0,
-              // Public holiday metadata from calculator
-              isPublicHoliday: overtimeResult.isPublicHoliday,
-              publicHolidayName: overtimeResult.publicHolidayName,
-              publicHolidayHours: overtimeResult.publicHolidayHours,
-              publicHolidayMultiplier: overtimeResult.publicHolidayMultiplier,
-              publicHolidayType: overtimeResult.publicHolidayType,
-              publicHolidayRegion: overtimeResult.publicHolidayRegion,
-            },
-          });
-        } catch (overtimeError) {
-          console.error(`Failed to calculate overtime for entry ${entry.id}:`, overtimeError);
-          // Continue processing other entries even if one fails
+            // Update entry with FULL overtime and public holiday metadata
+            await tx.timesheetEntry.update({
+              where: { id: entry.id },
+              data: {
+                regularHours: overtimeResult.regularHours,
+                overtimeHours: overtimeResult.overtimeHours,
+                overtimeMultiplier: overtimeResult.overtimeMultiplier,
+                overtimeType: overtimeResult.overtimeType,
+                overtimeReason: overtimeResult.overtimeReason,
+                isOvertime: overtimeResult.overtimeHours > 0,
+                // Public holiday metadata from calculator (includes partial-day and Mondayisation)
+                isPublicHoliday: overtimeResult.isPublicHoliday,
+                publicHolidayName: overtimeResult.publicHolidayName,
+                publicHolidayHours: overtimeResult.publicHolidayHours,
+                publicHolidayMultiplier: overtimeResult.publicHolidayMultiplier,
+                publicHolidayType: overtimeResult.publicHolidayType,
+                publicHolidayRegion: overtimeResult.publicHolidayRegion,
+                alternativeDayGranted: overtimeResult.alternativeDayGranted,
+              },
+            });
+          } catch (overtimeError) {
+            console.error(`Failed to calculate overtime for entry ${entry.id}:`, overtimeError);
+            // Continue processing other entries even if one fails
+          }
         }
-      }
 
-      // Recalculate timesheet totals after overtime application
-      const updatedEntries = await prisma.timesheetEntry.findMany({
-        where: { timesheetId: timesheet.id },
-      });
+        // Recalculate timesheet totals after overtime application
+        const updatedEntries = await tx.timesheetEntry.findMany({
+          where: { timesheetId: timesheet.id },
+        });
 
-      const newTotalHours = updatedEntries.reduce((sum, e) => sum + Number(e.hours), 0);
-      const newRegularHours = updatedEntries.reduce((sum, e) => sum + Number(e.regularHours || e.hours), 0);
-      const newOvertimeHours = updatedEntries.reduce((sum, e) => sum + Number(e.overtimeHours || 0), 0);
+        const newTotalHours = updatedEntries.reduce((sum, e) => sum + Number(e.hours), 0);
+        const newRegularHours = updatedEntries.reduce((sum, e) => sum + Number(e.regularHours || e.hours), 0);
+        const newOvertimeHours = updatedEntries.reduce((sum, e) => sum + Number(e.overtimeHours || 0), 0);
+        const publicHolidayHours = updatedEntries.reduce((sum, e) => sum + Number(e.publicHolidayHours || 0), 0);
 
-      await prisma.timesheet.update({
-        where: { id: timesheet.id },
-        data: {
-          totalHours: newTotalHours,
-          regularHours: newRegularHours,
-          overtimeHours: newOvertimeHours,
-        },
+        await tx.timesheet.update({
+          where: { id: timesheet.id },
+          data: {
+            totalHours: newTotalHours,
+            regularHours: newRegularHours,
+            overtimeHours: newOvertimeHours,
+            // Store public holiday hours at timesheet level for payroll export
+            publicHolidayHours,
+          },
+        });
       });
     }
 

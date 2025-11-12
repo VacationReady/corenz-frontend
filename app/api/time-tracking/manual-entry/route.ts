@@ -174,6 +174,7 @@ export async function POST(req: NextRequest) {
           publicHolidayMultiplier: processedEntry.publicHolidayMultiplier,
           publicHolidayType: processedEntry.publicHolidayType,
           publicHolidayRegion: processedEntry.publicHolidayRegion,
+          alternativeDayGranted: processedEntry.alternativeDayGranted,
           managerAdjusted: true,
           managerAdjustedBy: session.user.id,
           managerAdjustedAt: new Date(),

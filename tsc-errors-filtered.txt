@@ -1,0 +1,939 @@
+  app/(withSidebar)/admin/action-items/page.tsx(12,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/admin/action-items/page.tsx(359,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/admin/action-items/page.tsx(512,43): error TS7006: Parameter 'value' implicitly has an 'any' type.
+  app/(withSidebar)/admin/live-attendance/page.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/admin/live-attendance/page.tsx(4,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/admin/live-attendance/page.tsx(4,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/admin/live-attendance/page.tsx(4,41): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+  app/(withSidebar)/admin/live-attendance/page.tsx(4,58): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+  app/(withSidebar)/admin/settings/time-tracking/page.tsx(15,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/admin/settings/time-tracking/page.tsx(894,39): error TS7006: Parameter 'value' implicitly has an 'any' type.
+  app/(withSidebar)/admin/timesheets/hub/page.tsx(4,10): error TS2305: Module '"@/components/ui/card"' has no exported member 'Card'.
+  app/(withSidebar)/admin/timesheets/hub/page.tsx(4,16): error TS2305: Module '"@/components/ui/card"' has no exported member 'CardContent'.
+  app/(withSidebar)/admin/timesheets/hub/page.tsx(4,29): error TS2305: Module '"@/components/ui/card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/admin/timesheets/hub/page.tsx(4,46): error TS2305: Module '"@/components/ui/card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/admin/timesheets/hub/page.tsx(4,58): error TS2305: Module '"@/components/ui/card"' has no exported member 'CardTitle'.
+  app/(withSidebar)/analytics/AnalyticsDashboard.tsx(57,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/analytics/AnalyticsDashboard.tsx(397,33): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/analytics/AnalyticsDashboard.tsx(416,33): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/analytics/AnalyticsDashboard.tsx(435,33): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/analytics/AnalyticsDashboard.tsx(1061,43): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/(withSidebar)/analytics/AnalyticsDashboard.tsx(1069,29): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/analytics/AnalyticsDashboard.tsx(1093,52): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/analytics/AnalyticsDashboard.tsx(1135,24): error TS7006: Parameter 'event' implicitly has an 'any' type.
+  app/(withSidebar)/assistant/page.tsx(6,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/assistant/page.tsx(6,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+  app/(withSidebar)/calendar/AddHolidayModal.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/calendar/AddHolidayModal.tsx(166,59): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/calendar/AddHolidayModal.tsx(171,57): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/calendar/AddHolidayModal.tsx(176,44): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/calendar/BlockDayModal.tsx(10,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+  app/(withSidebar)/calendar/BlockDayModal.tsx(11,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/(withSidebar)/calendar/BlockDayModal.tsx(142,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/calendar/page.tsx(11,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/calendar/page.tsx(11,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+      Imported via "@/components/ui/Avatar" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/(withSidebar)/org-chart/OrgChartPageClient.tsx'
+> app/(withSidebar)/dashboard/admin/AdminDashboardClient.tsx(731,72): error TS7006: Parameter 'v' implicitly has an 'any' type.
+  app/(withSidebar)/dashboard/admin/page.tsx(10,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/employees/[id]/bank-payroll/BankPayrollClient.tsx(289,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/BankPayrollClient.tsx(327,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/BankPayrollClient.tsx(377,33): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/BankPayrollClient.tsx(435,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/BankPayrollClient.tsx(463,33): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/BankPayrollClient.tsx(507,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/BankPayrollClient.tsx(561,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/BankPayrollClient.tsx(596,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/BankPayrollClient.tsx(604,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/employees/[id]/bank-payroll/page.tsx(5,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/employees/[id]/bank-payroll/page.tsx(5,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/employees/[id]/bank-payroll/page.tsx(231,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/page.tsx(270,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/page.tsx(320,33): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/bank-payroll/page.tsx(378,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/employees/[id]/documents/page.tsx(5,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/employees/[id]/documents/page.tsx(544,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/documents/page.tsx(590,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/documents/page.tsx(599,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/employees/[id]/driver-licenses/add/page.tsx(5,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/employees/[id]/emergency-contacts/EmergencyContactsClient.tsx(155,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/emergency-contacts/EmergencyContactsClient.tsx(166,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/emergency-contacts/EmergencyContactsClient.tsx(179,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/emergency-contacts/EmergencyContactsClient.tsx(191,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/employees/[id]/emergency-contacts/page.tsx(5,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/employees/[id]/emergency-contacts/page.tsx(5,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/employees/[id]/emergency-contacts/page.tsx(180,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/emergency-contacts/page.tsx(191,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/emergency-contacts/page.tsx(204,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/emergency-contacts/page.tsx(216,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/employees/[id]/employment-details/EmploymentDetailsClient.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/employees/[id]/employment-details/EmploymentDetailsClient.tsx(4,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/employees/[id]/employment-details/EmploymentDetailsClient.tsx(193,33): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/employment-details/EmploymentDetailsClient.tsx(225,33): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/employment-details/EmploymentDetailsClient.tsx(257,33): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/employment-details/EmploymentDetailsClient.tsx(297,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/employment-details/EmploymentDetailsClient.tsx(305,33): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/employment-details/EmploymentDetailsClient.tsx(383,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/employment-details/EmploymentDetailsClient.tsx(403,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/employment-details/EmploymentDetailsClient.tsx(418,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/employees/[id]/forms/page.tsx(5,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/employees/[id]/forms/page.tsx(5,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/employees/[id]/forms/page.tsx(5,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/employees/[id]/forms/page.tsx(5,41): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+  app/(withSidebar)/employees/[id]/forms/page.tsx(5,58): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/employees/[id]/training/[trainingId]/page.tsx(168,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/training/[trainingId]/page.tsx(178,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/employees/[id]/training/add/page.tsx(5,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/employees/[id]/training/add/page.tsx(201,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/employees/[id]/training/add/page.tsx(218,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/employees/EmployeesPageClient.tsx(6,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/news/[slug]/edit/page.tsx(156,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/news/[slug]/edit/page.tsx(172,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/news/create/page.tsx(8,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+  app/(withSidebar)/news/create/page.tsx(9,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/news/create/page.tsx(624,27): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/news/create/page.tsx(635,27): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/offboarding/page.tsx(6,10): error TS2305: Module '"@/components/ui/Badge"' has no exported member 'Badge'.
+  app/(withSidebar)/offboarding/page.tsx(6,23): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Badge.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts'
+      Imported via "@/components/ui/Avatar" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/(withSidebar)/org-chart/OrgChartPageClient.tsx'
+> app/(withSidebar)/org-chart/OrgChartPageClient.tsx(1494,28): error TS7006: Parameter 'event' implicitly has an 'any' type.
+  app/(withSidebar)/performance/templates/[id]/edit/page.tsx(7,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/performance/templates/[id]/edit/page.tsx(7,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/performance/templates/[id]/edit/page.tsx(7,35): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/rota/settings/TimeTrackingSettings.tsx(350,39): error TS7006: Parameter 'value' implicitly has an 'any' type.
+  app/(withSidebar)/settings/automation-rules/components/AutomationFlowBuilder.tsx(24,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/automation-rules/components/AutomationFlowBuilder.tsx(25,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/automation-rules/components/AutomationFlowBuilder.tsx(26,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/settings/automation-rules/components/AutomationFlowBuilder.tsx(27,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/automation-rules/components/AutomationFlowBuilder.tsx(28,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/settings/automation-rules/components/AutomationFlowBuilder.tsx(566,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/AutomationFlowBuilder.tsx(576,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/automation-rules/components/AutomationRuleList.tsx(5,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/automation-rules/components/AutomationRuleList.tsx(6,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/automation-rules/components/AutomationRuleList.tsx(7,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/settings/automation-rules/components/AutomationRuleList.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/automation-rules/components/AutomationRuleList.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+  app/(withSidebar)/settings/automation-rules/components/AutomationRuleList.tsx(13,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/settings/automation-rules/components/AutomationRuleList.tsx(195,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/AutomationRuleList.tsx(372,29): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/automation-rules/components/DryRunResultsDialog.tsx(11,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/automation-rules/components/DryRunResultsDialog.tsx(11,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/automation-rules/components/DryRunResultsDialog.tsx(11,35): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(543,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(559,37): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(605,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(626,34): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(655,37): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(689,37): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(753,34): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(766,39): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(790,34): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(809,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(842,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(898,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(944,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(983,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1012,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1034,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1052,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1086,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1108,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1136,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1159,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1207,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1226,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1256,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1283,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1310,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1339,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1363,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1407,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1434,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1453,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1505,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1524,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1567,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/EnhancedWorkflowCanvas.tsx(1585,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/automation-rules/components/FlowNodeConfigurations.tsx(4,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+  app/(withSidebar)/settings/automation-rules/components/FlowNodeConfigurations.tsx(8,3): error TS2305: Module '"@/components/ui/Select"' has no exported member 'Select'.
+  app/(withSidebar)/settings/automation-rules/components/FlowNodeConfigurations.tsx(9,3): error TS2305: Module '"@/components/ui/Select"' has no exported member 'SelectContent'.
+  app/(withSidebar)/settings/automation-rules/components/FlowNodeConfigurations.tsx(10,3): error TS2305: Module '"@/components/ui/Select"' has no exported member 'SelectItem'.
+  app/(withSidebar)/settings/automation-rules/components/FlowNodeConfigurations.tsx(11,3): error TS2305: Module '"@/components/ui/Select"' has no exported member 'SelectTrigger'.
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/settings/automation-rules/components/FlowNodeConfigurations.tsx(65,22): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/FlowNodeConfigurations.tsx(89,22): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/FlowNodeConfigurations.tsx(129,22): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/FlowNodeConfigurations.tsx(196,27): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/automation-rules/components/FlowNodeConfigurations.tsx(282,27): error TS7006: Parameter 'value' implicitly has an 'any' type.
+  app/(withSidebar)/settings/automation-rules/components/NodePropertiesPanel.tsx(2,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+  app/(withSidebar)/settings/automation-rules/components/WorkflowAppStore.tsx(7,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/settings/automation-rules/components/WorkflowAppStore.tsx(143,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/automation-rules/components/WorkflowCanvas.tsx(20,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/settings/event-manager/page.tsx(217,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/event-manager/page.tsx(395,40): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/event-rules/page.tsx(5,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/event-rules/page.tsx(6,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/event-rules/page.tsx(7,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/settings/event-rules/page.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/event-rules/page.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/(withSidebar)/settings/event-rules/page.tsx(888,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/event-rules/page.tsx(906,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/event-rules/page.tsx(925,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/event-rules/page.tsx(1057,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/event-rules/page.tsx(1076,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/event-rules/page.tsx(1388,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/event-rules/page.tsx(1411,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/event-rules/page.tsx(1457,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/expiry-alerts/ExpiryRuleWizard.tsx(4,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+  app/(withSidebar)/settings/expiry-alerts/ExpiryRuleWizard.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/settings/expiry-alerts/ExpiryRuleWizard.tsx(219,55): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/expiry-alerts/page.tsx(13,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+  app/(withSidebar)/settings/expiry-alerts/page.tsx(18,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/settings/expiry-alerts/page.tsx(126,34): error TS7006: Parameter 'event' implicitly has an 'any' type.
+  app/(withSidebar)/settings/forms/[id]/analytics/FormAnalyticsContent.tsx(5,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/forms/[id]/analytics/FormAnalyticsContent.tsx(6,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/forms/[id]/analytics/FormAnalyticsContent.tsx(7,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/settings/forms/[id]/analytics/FormAnalyticsContent.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/forms/[id]/analytics/FormAnalyticsContent.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/(withSidebar)/settings/forms/exit-interview/new/page.tsx(184,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/forms/exit-interview/new/page.tsx(249,43): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/forms/exit-interview/new/page.tsx(273,47): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/(withSidebar)/settings/forms/exit-interview/new/page.tsx(293,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/forms/exit-interview/new/page.tsx(305,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/forms/exit-interview/new/page.tsx(336,44): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/forms/exit-interview/page.tsx(6,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/forms/exit-interview/page.tsx(6,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/forms/exit-interview/page.tsx(6,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/forms/exit-interview/page.tsx(6,41): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+  app/(withSidebar)/settings/forms/exit-interview/page.tsx(6,58): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+  app/(withSidebar)/settings/forms/page.tsx(10,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/settings/forms/page.tsx(192,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/journeys/components/AssistantConsole.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/journeys/components/AssistantConsole.tsx(4,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/journeys/components/AssistantConsole.tsx(4,35): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+  app/(withSidebar)/settings/journeys/components/AssistantConsole.tsx(7,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/settings/journeys/components/AssistantConsole.tsx(466,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/journeys/components/FloatingAIChat.tsx(5,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+  app/(withSidebar)/settings/journeys/components/FloatingAIChat.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/settings/journeys/components/FloatingAIChat.tsx(220,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/journeys/components/InsightDock.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/journeys/components/InsightDock.tsx(4,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/journeys/components/InsightDock.tsx(4,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/journeys/components/InsightDock.tsx(4,41): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+  app/(withSidebar)/settings/journeys/components/InsightDock.tsx(4,58): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/settings/journeys/components/JourneyLibraryPanel.tsx(257,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/journeys/components/JourneyModeToggle.tsx(4,10): error TS2305: Module '"@/components/ui/Badge"' has no exported member 'Badge'.
+  app/(withSidebar)/settings/journeys/components/JourneyModeToggle.tsx(4,23): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Badge.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts'
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/(withSidebar)/settings/journeys/components/JourneyScopingDialog.tsx(402,39): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+  app/(withSidebar)/settings/journeys/components/nodes/DecisionGatewayNode.tsx(5,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/journeys/components/nodes/DecisionGatewayNode.tsx(5,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/journeys/components/nodes/DecisionGatewayNode.tsx(5,35): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/(withSidebar)/settings/leave-policies/page.tsx(416,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/leave-policies/page.tsx(429,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/leave-policies/page.tsx(472,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/leave-policies/page.tsx(487,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/leave-policies/page.tsx(518,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/leave-policies/page.tsx(669,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/leave-policies/page.tsx(684,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/leave-policies/page.tsx(700,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/multi-stage-approvals/page.tsx(5,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/settings/multi-stage-approvals/page.tsx(290,72): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/multi-stage-approvals/page.tsx(361,143): error TS7006: Parameter 'v' implicitly has an 'any' type.
+  app/(withSidebar)/settings/onboarding/page.tsx(6,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/onboarding/page.tsx(6,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+  app/(withSidebar)/settings/surveys/page.tsx(11,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/(withSidebar)/settings/surveys/page.tsx(247,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/system/audit-log/page.tsx(7,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/system/audit-log/page.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/system/audit-log/page.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/settings/system/audit-log/page.tsx(10,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/system/audit-log/page.tsx(11,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/(withSidebar)/settings/system/audit-log/page.tsx(539,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/audit-log/page.tsx(560,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/audit-log/page.tsx(581,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/audit-log/page.tsx(603,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/audit-log/page.tsx(678,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/system/calendar-integrations/page.tsx(7,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/system/calendar-integrations/page.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/system/calendar-integrations/page.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/settings/system/calendar-integrations/page.tsx(10,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/system/calendar-integrations/page.tsx(11,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/settings/system/calendar-integrations/page.tsx(319,37): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/calendar-integrations/page.tsx(399,39): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/calendar-integrations/page.tsx(421,39): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/calendar-integrations/page.tsx(443,39): error TS7006: Parameter 'value' implicitly has an 'any' type.
+  app/(withSidebar)/settings/system/csv-import/components/ActivationStatusCard.tsx(5,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/system/csv-import/components/ActivationStatusCard.tsx(6,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/system/csv-import/components/ActivationStatusCard.tsx(7,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/settings/system/csv-import/components/ActivationStatusCard.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/system/csv-import/components/ActivationStatusCard.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/(withSidebar)/settings/system/csv-import/components/EmployeeWelcomeRollout.tsx(162,52): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/csv-import/components/EmployeeWelcomeRollout.tsx(195,52): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+  app/(withSidebar)/settings/system/csv-import/components/FileUploadCard.tsx(5,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/system/csv-import/components/FileUploadCard.tsx(6,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/system/csv-import/components/FileUploadCard.tsx(7,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/settings/system/csv-import/components/FileUploadCard.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/system/csv-import/components/FileUploadCard.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/(withSidebar)/settings/system/csv-import/components/SubTemplateSelector.tsx(101,36): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+  app/(withSidebar)/settings/system/csv-import/components/TemplateGuidance.tsx(4,10): error TS2305: Module '"@/components/ui/Badge"' has no exported member 'Badge'.
+  app/(withSidebar)/settings/system/csv-import/components/TemplateGuidance.tsx(4,23): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Badge.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts'
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/(withSidebar)/settings/system/notifications/page.tsx(530,41): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/notifications/page.tsx(603,37): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/notifications/page.tsx(761,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/notifications/page.tsx(813,43): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/(withSidebar)/settings/system/notifications/page.tsx(852,38): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/settings/system/page.tsx(6,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/settings/system/page.tsx(7,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/settings/system/page.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/settings/system/page.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/settings/system/page.tsx(10,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/(withSidebar)/settings/workflows/notifications/page.tsx(190,58): error TS7006: Parameter 't' implicitly has an 'any' type.
+> app/(withSidebar)/settings/workflows/notifications/page.tsx(205,74): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/(withSidebar)/settings/workflows/notifications/page.tsx(220,71): error TS7006: Parameter 'v' implicitly has an 'any' type.
+  app/(withSidebar)/settings/working-patterns/archived/page.tsx(8,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/settings/working-patterns/page.tsx(252,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/working-patterns/page.tsx(257,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/settings/working-patterns/page.tsx(300,49): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/(withSidebar)/settings/working-patterns/page.tsx(318,47): error TS7006: Parameter 'value' implicitly has an 'any' type.
+  app/(withSidebar)/surveys/active/page.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/surveys/active/page.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/surveys/active/page.tsx(10,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/surveys/active/page.tsx(11,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/surveys/active/page.tsx(12,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/library/page.tsx'
+> app/(withSidebar)/surveys/analytics/[id]/page.tsx(452,38): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/analytics/[id]/page.tsx(474,45): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+  app/(withSidebar)/surveys/analytics/page.tsx(14,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+  app/(withSidebar)/surveys/analytics/page.tsx(17,10): error TS2614: Module '"@/components/ui/Checkbox"' has no exported member 'Checkbox'. Did you mean to use 'import Checkbox from "@/components/ui/Checkbox"' instead?
+  app/(withSidebar)/surveys/analytics/page.tsx(17,26): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Checkbox.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/checkbox.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "@/components/ui/Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/library/page.tsx'
+> app/(withSidebar)/surveys/analytics/page.tsx(286,38): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/analytics/page.tsx(308,45): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+  app/(withSidebar)/surveys/automation/new/page.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/surveys/automation/new/page.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/surveys/automation/new/page.tsx(10,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/surveys/automation/new/page.tsx(11,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/surveys/automation/new/page.tsx(12,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/(withSidebar)/surveys/automation/new/page.tsx(319,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/automation/new/page.tsx(575,47): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/automation/new/page.tsx(601,47): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+  app/(withSidebar)/surveys/automation/page.tsx(8,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/(withSidebar)/surveys/automation/page.tsx(9,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/(withSidebar)/surveys/automation/page.tsx(10,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/(withSidebar)/surveys/automation/page.tsx(11,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/(withSidebar)/surveys/automation/page.tsx(12,3): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/(withSidebar)/surveys/send/page.tsx(489,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/send/page.tsx(511,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/send/page.tsx(669,47): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/send/page.tsx(698,47): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/send/page.tsx(727,47): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/send/page.tsx(755,38): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/send/page.tsx(767,45): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/send/page.tsx(802,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/surveys/send/page.tsx(812,43): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+  app/(withSidebar)/workflows/components/WorkflowCustomizationDialog.tsx(12,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/(withSidebar)/workflows/components/WorkflowCustomizationDialog.tsx(261,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/workflows/components/WorkflowCustomizationDialog.tsx(278,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/(withSidebar)/workflows/components/WorkflowCustomizationDialog.tsx(296,31): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/(withSidebar)/workflows/components/WorkflowCustomizationDialog.tsx(405,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/(withSidebar)/workflows/components/WorkflowPreviewDialog.tsx(12,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/(withSidebar)/workflows/page.tsx(531,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/AddCategoryModal.tsx(5,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+  app/components/AddCategoryModal.tsx(7,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/AddCategoryModal.tsx(109,22): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/AddLeaveRequestDialog.tsx(5,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+  app/components/AddLeaveRequestDialog.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/AddLeaveRequestDialog.tsx(260,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/AddLeaveRequestDialog.tsx(282,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/AddLeaveRequestDialog.tsx(308,34): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/AddLeaveRequestDialog.tsx(334,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/AddSubcategoryModal.tsx(4,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/audit/HistoryButton.tsx(37,19): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/audit/HistoryModal.tsx(5,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/components/bulk-actions/ActionDialogs.tsx(243,30): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(250,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(799,30): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(806,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(961,54): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(975,30): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(1334,30): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(1341,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(1454,28): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(1465,28): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(1691,30): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(1698,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(1814,28): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(1825,28): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(1863,33): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(2092,30): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(2099,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(2193,26): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(2205,26): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(2233,28): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(2243,28): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/bulk-actions/ActionDialogs.tsx(2256,26): error TS7006: Parameter 'event' implicitly has an 'any' type.
+  app/components/dashboard/LeaveBalanceClientWidget.tsx(3,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/dashboard/LeaveBalanceClientWidget.tsx(3,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/dashboard/UnifiedActionItems.tsx(576,33): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/dashboard/UnifiedActionItems.tsx(588,37): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/documents/AcknowledgmentSuccessAnimation.tsx(6,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/documents/AddDocumentModal.tsx(400,43): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/documents/AddDocumentModal.tsx(407,29): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/components/documents/AddDocumentModal.tsx(494,34): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/documents/AddDocumentModal.tsx(538,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/documents/AddDocumentModal.tsx(606,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/documents/DocumentsPageClient.tsx(4,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/documents/DocumentsPageClient.tsx(716,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/documents/DocumentsPageClient.tsx(725,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/documents/DocumentsPageClient.tsx(731,58): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/components/documents/DocumentsPageClient.tsx(807,34): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/documents/DocumentsPageClient.tsx(875,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/documents/EditAccessModal.tsx(9,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/documents/ModernSignatureCapture.tsx(207,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/documents/SignatureCapture.tsx(5,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+  app/components/documents/SignatureCapture.tsx(6,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/documents/SignatureCapture.tsx(96,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/documents/SignatureSuccessAnimation.tsx(6,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/EditEntitlementModal.tsx(123,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/employees/AddEmployeeModal.tsx(3,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/employees/AddEmployeeModal.tsx(3,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/employees/AddEmployeeModal.tsx(751,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/AddEmployeeModal.tsx(777,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/AddEmployeeModal.tsx(803,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/AddEmployeeModal.tsx(826,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/AddEmployeeModal.tsx(847,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/AddEmployeeModal.tsx(875,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/AddEmployeeModal.tsx(1007,39): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/AddEmployeeModal.tsx(1131,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/employees/DriverLicenses.tsx(13,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/employees/EmploymentChecks.tsx(177,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/employees/EmploymentChecks.tsx(186,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/employees/EmploymentChecks.tsx(194,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/employees/EmploymentChecks.tsx(205,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/employees/EnhancedOffboardingModal.tsx(11,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/components/employees/EnhancedOffboardingModal.tsx(339,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/employees/EnhancedOffboardingModal.tsx(353,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/EnhancedOffboardingModal.tsx(401,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/employees/EnhancedOffboardingModal.tsx(415,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/employees/EnhancedOffboardingModal.tsx(431,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/employees/EnhancedOffboardingModal.tsx(462,35): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/employees/EnhancedOffboardingModal.tsx(480,37): error TS7006: Parameter 'value' implicitly has an 'any' type.
+  app/components/employees/OffboardingModal.tsx(11,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/components/employees/OffboardingModal.tsx(463,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(487,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(511,37): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(550,35): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(584,35): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(599,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(655,35): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(708,34): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(721,39): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(747,39): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(774,41): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/employees/OffboardingModal.tsx(795,43): error TS7006: Parameter 'value' implicitly has an 'any' type.
+  app/components/employees/PermissionDiff.tsx(3,10): error TS2305: Module '"@/components/ui/Badge"' has no exported member 'Badge'.
+  app/components/employees/PermissionDiff.tsx(3,23): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Badge.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts'
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/components/employees/SendWelcomeEmailModal.tsx(283,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/employees/Training.tsx(16,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+  app/components/forms/EnhancedFormRenderer.tsx(7,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/forms/EnhancedFormRenderer.tsx(1132,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/EnhancedFormRenderer.tsx(1238,38): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/forms/FormBuilder/FieldEditor.tsx(5,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+  app/components/forms/FormBuilder/FieldEditor.tsx(6,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Checkbox.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/checkbox.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/checkbox.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/forms/FormBuilder/FieldEditor.tsx(96,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(135,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(191,44): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(237,50): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(285,49): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(324,32): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(363,37): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(399,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(436,35): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(451,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(460,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(472,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(480,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(489,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(497,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(515,41): error TS7006: Parameter 'v' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(560,44): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(652,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(676,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(740,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FieldEditor.tsx(755,35): error TS7006: Parameter 'v' implicitly has an 'any' type.
+  app/components/forms/FormBuilder/FormBuilder.tsx(21,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/forms/FormBuilder/FormBuilder.tsx(322,28): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FormBuilder.tsx(333,28): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/FormBuilder.tsx(350,56): error TS7006: Parameter 'value' implicitly has an 'any' type.
+  app/components/forms/FormBuilder/VisibilitySettings.tsx(5,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Checkbox.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/checkbox.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/checkbox.ts'
+      Imported via "./Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/checkbox.ts'
+      Imported via "@/components/ui/Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/library/page.tsx'
+> app/components/forms/FormBuilder/VisibilitySettings.tsx(137,35): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/VisibilitySettings.tsx(169,37): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/forms/FormBuilder/VisibilitySettings.tsx(207,37): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+  app/components/forms/FormRenderer.tsx(7,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "@/components/ui/Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/library/page.tsx'
+> app/components/leave/LeaveForm.tsx(66,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/leave/LeaveForm.tsx(76,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/LeaveBalancePanel.tsx(4,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+  app/components/news/NewsContentBuilder.tsx(5,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/news/NewsContentBuilder.tsx(116,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/news/NewsContentBuilder.tsx(204,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/onboarding/EmployeeOnboardingPage.tsx(7,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/onboarding/EmployeeOnboardingPage.tsx(7,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+  app/components/onboarding/OnboardingStepRenderer.tsx(7,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/onboarding/OnboardingStepRenderer.tsx(204,31): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(276,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(440,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(484,35): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(530,35): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(576,35): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(624,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(700,35): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(749,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(793,35): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(853,37): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingStepRenderer.tsx(922,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/onboarding/OnboardingTemplateEditor.tsx(7,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+  app/components/onboarding/OnboardingTemplateEditor.tsx(9,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/components/onboarding/OnboardingTemplateEditor.tsx(389,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingTemplateEditor.tsx(485,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingTemplateEditor.tsx(495,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/onboarding/OnboardingTemplateEditor.tsx(825,22): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/performance/CreateReviewCycleDialog.tsx(12,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/components/performance/CreateReviewCycleDialog.tsx(348,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/CreateReviewCycleDialog.tsx(403,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/CreateReviewCycleDialog.tsx(415,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/CreateReviewCycleDialog.tsx(424,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/CreateReviewCycleDialog.tsx(436,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/CreateReviewCycleDialog.tsx(445,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/CreateReviewCycleDialog.tsx(455,39): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/performance/CreateReviewCycleDialog.tsx(505,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/CreateReviewCycleDialog.tsx(662,82): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+  app/components/performance/PerformancePage.tsx(7,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/performance/PerformancePage.tsx(7,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/components/performance/PerformancePage.tsx(7,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/components/performance/PerformancePage.tsx(7,46): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/components/performance/PerformancePage.tsx(7,58): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+  app/components/performance/PerformancePage.tsx(33,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/performance/PerformancePage.tsx(357,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+  app/components/performance/QuestionPermissionsControl.tsx(5,10): error TS2305: Module '"@/components/ui/Badge"' has no exported member 'Badge'.
+  app/components/performance/QuestionPermissionsControl.tsx(5,23): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Badge.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts'
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/components/performance/ReviewQuestionRenderer.tsx(59,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/performance/ReviewQuestionRenderer.tsx(172,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/performance/ReviewQuestionRenderer.tsx(183,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/performance/ScheduleMeetingDialog.tsx(12,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/components/performance/ScheduleMeetingDialog.tsx(367,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/ScheduleMeetingDialog.tsx(407,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/ScheduleMeetingDialog.tsx(412,71): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/performance/ScheduleMeetingDialog.tsx(433,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/ScheduleMeetingDialog.tsx(443,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/ScheduleMeetingDialog.tsx(454,39): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/components/performance/ScheduleMeetingDialog.tsx(490,36): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/ScheduleMeetingDialog.tsx(536,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> app/components/performance/ScheduleMeetingDialog.tsx(695,82): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+  app/components/performance/wizard/AudienceFilterStep.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/performance/wizard/AudienceFilterStep.tsx(4,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/components/performance/wizard/AudienceFilterStep.tsx(4,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/components/performance/wizard/AudienceFilterStep.tsx(4,46): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/components/performance/wizard/AudienceFilterStep.tsx(4,58): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+  app/components/performance/wizard/ReviewerAssignmentStep.tsx(8,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/performance/wizard/ReviewerAssignmentStep.tsx(180,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/performance/wizard/ReviewerAssignmentStep.tsx(222,44): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/performance/wizard/ReviewerAssignmentStep.tsx(237,44): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/performance/wizard/TemplateBuilderStep.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/performance/wizard/TemplateBuilderStep.tsx(4,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/components/performance/wizard/TemplateBuilderStep.tsx(4,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/components/performance/wizard/TemplateBuilderStep.tsx(4,46): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/components/performance/wizard/TemplateBuilderStep.tsx(4,58): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/components/performance/wizard/TemplateBuilderStep.tsx(148,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/performance/wizard/TemplateBuilderStep.tsx(210,38): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/performance/wizard/TemplateBuilderStep.tsx(312,50): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/performance/wizard/TemplateTypeSelector.tsx(3,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/performance/wizard/TemplateTypeSelector.tsx(3,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/components/performance/wizard/TemplateTypeSelector.tsx(3,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+  app/components/performance/wizard/TemplateTypeSelector.tsx(3,46): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/components/performance/wizard/TemplateTypeSelector.tsx(3,58): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/components/reports/SendReportModal.tsx(523,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/settings/ContextualHelpAssistant.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/settings/ContextualHelpAssistant.tsx(4,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/components/settings/ContextualHelpAssistant.tsx(4,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/components/settings/ContextualHelpAssistant.tsx(4,41): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+  app/components/settings/ContextualHelpAssistant.tsx(4,58): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+      Imported via "@/components/ui/Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/tenants/TenantsPageClient.tsx'
+> app/components/settings/ContextualHelpAssistant.tsx(527,34): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/settings/ImpactPreview.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/settings/ImpactPreview.tsx(4,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/components/settings/ImpactPreview.tsx(4,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/components/settings/ImpactPreview.tsx(4,41): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+  app/components/settings/ImpactPreview.tsx(4,52): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardDescription'.
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/shared/GenderSelectWithManage.tsx(57,25): error TS7006: Parameter 'val' implicitly has an 'any' type.
+  app/components/shared/ManageGenderOptionsModal.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/shared/ManageGenderOptionsModal.tsx(4,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+  app/components/shared/ManageGenderOptionsModal.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/shared/ManageGenderOptionsModal.tsx(89,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/shared/ManageGenderOptionsModal.tsx(95,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/shared/NewContractTypeModal.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/shared/NewContractTypeModal.tsx(4,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+  app/components/shared/NewContractTypeModal.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/shared/NewContractTypeModal.tsx(88,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/shared/NewDepartmentModal.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/shared/NewDepartmentModal.tsx(4,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+  app/components/shared/NewDepartmentModal.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/shared/NewDepartmentModal.tsx(114,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/shared/NewGenderOptionModal.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/shared/NewGenderOptionModal.tsx(4,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+  app/components/shared/NewGenderOptionModal.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/shared/NewGenderOptionModal.tsx(122,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/shared/NewJobRoleModal.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/shared/NewJobRoleModal.tsx(4,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+  app/components/shared/NewJobRoleModal.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/shared/NewJobRoleModal.tsx(118,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/shared/NewLocationModal.tsx(4,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/components/shared/NewLocationModal.tsx(4,22): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Card" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts'
+  app/components/shared/NewLocationModal.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/components/shared/NewLocationModal.tsx(89,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/support/TenantSupportLauncher.tsx(7,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/components/ui/data-table.tsx(54,31): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/ui/data-table.tsx(63,31): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/ui/data-table.tsx(221,46): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/ui/data-table.tsx(222,45): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/components/ui/EmptyState.tsx(4,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/ui/FilterBar.tsx(103,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/components/ui/FilterBar.tsx(113,31): error TS7006: Parameter 'value' implicitly has an 'any' type.
+> app/components/ui/FilterBar.tsx(151,35): error TS7006: Parameter 'value' implicitly has an 'any' type.
+  app/components/ui/FilteredListState.tsx(5,10): error TS2305: Module '"@/components/ui/Badge"' has no exported member 'Badge'.
+  app/components/ui/FilteredListState.tsx(5,23): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Badge.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Badge" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/badge.ts'
+      Imported via '@/components/ui/Select' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/components/WorkingPatternAssignment.tsx(108,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/exit-interview/[token]/page.tsx(5,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  app/exit-interview/[token]/page.tsx(5,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  app/exit-interview/[token]/page.tsx(5,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.
+  app/exit-interview/[token]/page.tsx(5,41): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardTitle'.
+  app/exit-interview/[token]/page.tsx(5,58): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Card.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/card.ts' only in casing.
+      Imported via "@/components/ui/Checkbox" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/reports/create/page.tsx'
+> app/exit-interview/[token]/page.tsx(233,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/exit-interview/[token]/page.tsx(254,29): error TS7006: Parameter 'val' implicitly has an 'any' type.
+> app/exit-interview/[token]/page.tsx(281,37): error TS7006: Parameter 'checked' implicitly has an 'any' type.
+> app/exit-interview/[token]/page.tsx(322,24): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/forgot-password/page.tsx(5,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+  app/forgot-password/page.tsx(6,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+> app/forgot-password/page.tsx(91,26): error TS7006: Parameter 'event' implicitly has an 'any' type.
+  app/login/LoginClient.tsx(8,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+  app/login/LoginClient.tsx(9,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Button' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> app/login/LoginClient.tsx(169,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/login/LoginClient.tsx(184,28): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> app/login/LoginClient.tsx(185,27): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  app/reports/builder-new/page.tsx(7,20): error TS1149: File name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/Button.ts' differs from already included file name 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts' only in casing.
+    The file is in the program because:
+      Matched by include pattern '**/*.ts' in 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/tsconfig.json'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via "./Button" from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/app/components/ui/button.ts'
+      Imported via '@/components/ui/Input' from file 'C:/Users/macke/Downloads/corenz restart/clean-corenz-frontend/components/time-tracking/AmendOvertimeDialog.tsx'
+> components/rota/AutoScheduleWizard.tsx(289,29): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> components/rota/AutoScheduleWizard.tsx(331,33): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> components/rota/AutoScheduleWizard.tsx(343,33): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> components/rota/AutoScheduleWizard.tsx(359,33): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> components/rota/AutoScheduleWizard.tsx(377,33): error TS7006: Parameter 'event' implicitly has an 'any' type.
+> components/rota/AutoScheduleWizard.tsx(393,33): error TS7006: Parameter 'event' implicitly has an 'any' type.
+  components/time-tracking/AmendOvertimeDialog.tsx(7,10): error TS2305: Module '"@/components/ui/Input"' has no exported member 'Input'.
+  components/time-tracking/AmendOvertimeDialog.tsx(8,10): error TS2305: Module '"@/components/ui/Select"' has no exported member 'Select'.
+  components/time-tracking/AmendOvertimeDialog.tsx(8,18): error TS2305: Module '"@/components/ui/Select"' has no exported member 'SelectContent'.
+  components/time-tracking/AmendOvertimeDialog.tsx(8,33): error TS2305: Module '"@/components/ui/Select"' has no exported member 'SelectItem'.
+  components/time-tracking/AmendOvertimeDialog.tsx(8,45): error TS2305: Module '"@/components/ui/Select"' has no exported member 'SelectTrigger'.
+  components/time-tracking/EditTimesheetEntryDialog.tsx(9,10): error TS2305: Module '"@/components/ui/badge"' has no exported member 'Badge'.
+> components/time-tracking/EditTimesheetEntryDialog.tsx(221,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> components/time-tracking/EditTimesheetEntryDialog.tsx(235,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> components/time-tracking/EditTimesheetEntryDialog.tsx(249,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+> components/time-tracking/EditTimesheetEntryDialog.tsx(266,30): error TS7006: Parameter 'e' implicitly has an 'any' type.
+  components/time-tracking/TimesheetAuditTrail.tsx(5,10): error TS2305: Module '"@/components/ui/badge"' has no exported member 'Badge'.
+  components/time-tracking/TimesheetDetailView.tsx(8,10): error TS2305: Module '"@/components/ui/badge"' has no exported member 'Badge'.
+  components/time-tracking/TimesheetDetailView.tsx(10,10): error TS2305: Module '"@/components/ui/Card"' has no exported member 'Card'.
+  components/time-tracking/TimesheetDetailView.tsx(10,16): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardContent'.
+  components/time-tracking/TimesheetDetailView.tsx(10,29): error TS2305: Module '"@/components/ui/Card"' has no exported member 'CardHeader'.

@@ -797,7 +797,7 @@ export default function OnboardingTemplateEditor({
     </div>
   );
 
-	return (
+  return (
     <div className="p-6">
       <div className="mb-4">
         <h2 className="text-xl font-bold mb-2">
@@ -919,35 +919,3 @@ export default function OnboardingTemplateEditor({
     </div>
   );
 }
-  useEffect(() => {
-    setName(template?.name || "");
-    setDescription(template?.description || "");
-    setDepartments(template?.departments?.map((d: any) => d.id) || []);
-    setJobRoles(template?.jobRoles?.map((j: any) => j.id) || []);
-    setSteps(
-      template?.steps?.length
-        ? template.steps.map((step: any) => {
-            const uiType = mapDbStepTypeToUi(step.type) || step.type;
-            return {
-              key:
-                step.id ||
-                step.key ||
-                (typeof crypto !== "undefined" && crypto.randomUUID
-                  ? crypto.randomUUID()
-                  : Math.random().toString(36).slice(2)),
-              id: step.id,
-              type: uiType,
-              title: step.label || "",
-              description: step.instruction || "",
-              required: step.required ?? true,
-              documentId: step.documentId || "",
-              uploadType: mapDbUploadTypeToUi(step.uploadType),
-              formId: step.formId || "",
-              formFields: step.formFields || [],
-              metadata: normalizeStepMetadata(uiType, step.metadata),
-            };
-          })
-        : [],
-    );
-    setSelectedIndex(template?.steps?.length ? 0 : null);
-  }, [template]);

@@ -1135,7 +1135,7 @@ export default function OnboardingStepRenderer({
                     if (rate === null) {
                       validationErrors.push(`${field.label}: select a KiwiSaver rate`);
                     } else {
-                      const normalized = rate.toFixed(2);
+                      const normalized = rate.toFixed(2) as (typeof DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS)[number];
                       if (!DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS.includes(normalized)) {
                         validationErrors.push(
                           `${field.label}: rate must be one of ${DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS.map((v) => `${Number(v) * 100}%`).join(", ")}`,

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { DndContext, type DragEndEvent, useDroppable } from "@dnd-kit/core";
+import { DndContext, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Input } from "@/components/ui/Input";
@@ -40,6 +40,12 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { StepPalette } from "./builder/StepPalette";
 import { OnboardingPreviewPane } from "./builder/OnboardingPreviewPane";
 import { StepsDroppableArea } from "./builder/StepsDroppableArea";
+import {
+  MetadataPanel,
+  getDefaultMetadataForStep,
+  getMetadataConfig,
+  normalizeStepMetadata,
+} from "./builder/MetadataPanel";
 
 // --- Step Types
 const STEP_TYPES = [
@@ -90,56 +96,6 @@ const dbUploadTypeToUi: Record<string, string> = {
   OTHER: "other",
 };
 
-const defaultMetadataByType: Record<string, any> = {
-	"equipment-checklist": {
-		items: [
-			{ id: "laptop", label: "Laptop issued", completed: false },
-			{ id: "phone", label: "Phone issued", completed: false },
-			{ id: "accessories", label: "Accessories provided", completed: false },
-		],
-	},
-	"system-access": {
-		systems: [
-			{ id: "email", name: "Email", granted: false },
-			{ id: "hris", name: "HRIS", granted: false },
-			{ id: "payroll", name: "Payroll", granted: false },
-		],
-	},
-	"manager-checkin": {
-		timeline: [
-			{ id: "week1", label: "Week 1" },
-			{ id: "week4", label: "Week 4" },
-			{ id: "week12", label: "Week 12" },
-		],
-		template: "Please schedule a check-in focusing on progress, blockers, and support needs.",
-	},
-	"buddy-introduction": {
-		notes: "Introduce your buddy and set up a first meeting.",
-	},
-	"compliance-training": {
-		courses: [{ id: "health-safety", title: "Health & Safety" }],
-	},
-	"payroll-setup": {
-		requiredFields: ["bankDetails", "taxCode"],
-	},
-	"benefits-enrollment": {
-		links: [],
-	},
-	"probation-goals": {
-		milestones: [
-			{ id: "goal1", title: "Initial Objectives", completed: false },
-			{ id: "goal2", title: "Development Goals", completed: false },
-		],
-	},
-	"welcome-survey": {
-		questionSet: "welcome-baseline",
-	},
-	"journey-automation": {
-		journeyTemplateId: null,
-		trigger: "on_start",
-	},
-};
-
 // --- Key generator utility
 function getStepKey(step: any) {
   return step.id || step.key;
@@ -160,7 +116,7 @@ function createStep(type: string) {
     documentId: "",
     formId: "", // For reusable forms
     formFields: [], // For inline fields (backward compatibility)
-    metadata: defaultMetadataByType[type] ? structuredClone(defaultMetadataByType[type]) : {},
+    metadata: getDefaultMetadataForStep(type),
   };
 }
 
@@ -452,6 +408,7 @@ const StepEditor = React.memo(function StepEditor({
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: getStepKey(step),
   });
+  const metadataConfig = getMetadataConfig(step.type);
 
   return (
     <div
@@ -566,6 +523,18 @@ const StepEditor = React.memo(function StepEditor({
             </div>
           </div>
         )}
+
+        {metadataConfig && (
+          <MetadataPanel
+            stepType={step.type}
+            value={step.metadata}
+            onChange={(metadata) =>
+              updateStep(idx, {
+                metadata,
+              })
+            }
+          />
+        )}
       </div>
     </div>
   );
@@ -597,23 +566,27 @@ export default function OnboardingTemplateEditor({
   >([]);
   const [steps, setSteps] = useState<any[]>(() =>
     template?.steps?.length
-      ? template.steps.map((step: any) => ({
-          key:
-            step.id ||
-            step.key ||
-            (typeof crypto !== "undefined" && crypto.randomUUID
-              ? crypto.randomUUID()
-              : Math.random().toString(36).slice(2)),
-          id: step.id,
-          type: dbTypeToUi[step.type] || step.type,
-          title: step.label || "",
-          description: step.instruction || "",
-          required: step.required ?? true,
-          documentId: step.documentId || "",
-          uploadType: step.uploadType ? dbUploadTypeToUi[step.uploadType] : "",
-          formId: step.formId || "",
-          formFields: step.formFields || [],
-        }))
+      ? template.steps.map((step: any) => {
+          const uiType = dbTypeToUi[step.type] || step.type;
+          return {
+            key:
+              step.id ||
+              step.key ||
+              (typeof crypto !== "undefined" && crypto.randomUUID
+                ? crypto.randomUUID()
+                : Math.random().toString(36).slice(2)),
+            id: step.id,
+            type: uiType,
+            title: step.label || "",
+            description: step.instruction || "",
+            required: step.required ?? true,
+            documentId: step.documentId || "",
+            uploadType: step.uploadType ? dbUploadTypeToUi[step.uploadType] : "",
+            formId: step.formId || "",
+            formFields: step.formFields || [],
+            metadata: normalizeStepMetadata(uiType, step.metadata),
+          };
+        })
       : [],
   );
 
@@ -652,17 +625,25 @@ export default function OnboardingTemplateEditor({
   }, []);
 
   const addStep = useCallback((type: string) => {
-		setSteps((prev) => {
-			const next = [...prev, createStep(type)];
-			setSelectedIndex(next.length - 1);
-			return next;
-		});
+    setSteps((prev) => {
+      const next = [...prev, createStep(type)];
+      setSelectedIndex(next.length - 1);
+      return next;
+    });
   }, []);
 
   const updateStep = useCallback((idx: number, data: any) => {
     setSteps((prev) => {
       const arr = [...prev];
-      arr[idx] = { ...arr[idx], ...data };
+      const original = arr[idx];
+      const merged = { ...original, ...data };
+      if ("metadata" in data) {
+        merged.metadata = normalizeStepMetadata(
+          merged.type,
+          (data as any).metadata,
+        );
+      }
+      arr[idx] = merged;
       return arr;
     });
   }, []);
@@ -725,20 +706,27 @@ export default function OnboardingTemplateEditor({
       setSaving(true);
       if (publish) setPublishing(true);
       const body = {
-      id: template?.id,
-      name,
-      description,
-      departments,
-      jobRoles,
-      steps: steps.map((s, i) => ({
-        ...s,
-        required: true,
-        order: i + 1,
-        formId: s.formId || null,
-        formFields: s.formFields || [],
-      })),
-      isActive: publish,
-    };
+        id: template?.id,
+        name,
+        description,
+        departments,
+        jobRoles,
+        steps: steps.map((s, i) => ({
+          id: s.id,
+          key: s.key,
+          type: s.type,
+          title: s.title,
+          description: s.description,
+          required: true,
+          order: i + 1,
+          documentId: s.documentId || null,
+          uploadType: s.uploadType || null,
+          formId: s.formId || null,
+          formFields: s.formFields || [],
+          metadata: normalizeStepMetadata(s.type, s.metadata),
+        })),
+        isActive: publish,
+      };
     const res = await fetch("/api/onboarding/templates", {
       method: template?.id ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },

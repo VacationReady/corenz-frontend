@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import Checkbox from "@/components/ui/Checkbox";
@@ -13,6 +13,7 @@ import { EnhancedFormRenderer } from "@/components/forms/EnhancedFormRenderer";
 import { GlassSpinner } from "@/components/ui/LoadingSpinner";
 import { toast } from "sonner";
 import { Download } from "lucide-react";
+import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
 
 type OnboardingStepProps = {
   step: {
@@ -51,17 +52,20 @@ export default function OnboardingStepRenderer({
   const [formType, setFormType] = useState<"SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN" | null>(
     step.form?.formType || null,
   );
-  const metadata = (step as any).metadata ?? {};
+  const metadata = useMemo(
+    () => normalizeStepMetadata(step.type, (step as any).metadata),
+    [step.type, (step as any).metadata],
+  );
 
   const parseChecklist = (items: any) =>
     Array.isArray(items)
-      ? items.map((item: any) => ({
+      ? items.map((item: any, index: number) => ({
           id:
-            typeof item.id === "string"
+            typeof item.id === "string" && item.id.trim().length
               ? item.id
-              : typeof item.label === "string"
+              : typeof item.label === "string" && item.label.trim().length
                 ? item.label
-                : Math.random().toString(36).slice(2),
+                : `item-${index + 1}`,
           label: String(item.label ?? item.name ?? "Item"),
           completed: Boolean(item.completed ?? item.granted ?? false),
           notes: item.notes ? String(item.notes) : undefined,
@@ -72,43 +76,108 @@ export default function OnboardingStepRenderer({
 
   const parseTimeline = (timeline: any) =>
     Array.isArray(timeline)
-      ? timeline.map((entry: any) => ({
+      ? timeline.map((entry: any, index: number) => ({
           id:
-            typeof entry.id === "string"
+            typeof entry.id === "string" && entry.id.trim().length
               ? entry.id
-              : typeof entry.label === "string"
+              : typeof entry.label === "string" && entry.label.trim().length
                 ? entry.label
-                : Math.random().toString(36).slice(2),
+                : `checkin-${index + 1}`,
           label: String(entry.label ?? "Check-in"),
-          scheduledAt: entry.scheduledAt ?? "",
+          scheduledAt: entry.scheduledAt ? String(entry.scheduledAt) : "",
         }))
       : [];
 
   const parseGoals = (goals: any) =>
     Array.isArray(goals)
-      ? goals.map((goal: any) => ({
-          id:
-            typeof goal.id === "string"
-              ? goal.id
-              : typeof goal.title === "string"
-                ? goal.title
-                : Math.random().toString(36).slice(2),
-          title: String(goal.title ?? "Goal"),
-          completed: Boolean(goal.completed),
-          notes: goal.notes ? String(goal.notes) : "",
-        }))
+      ? goals.map((goal: any, index: number) => {
+          const title =
+            typeof goal.title === "string" && goal.title.trim().length
+              ? goal.title
+              : typeof goal.label === "string" && goal.label.trim().length
+                ? goal.label
+                : `Goal ${index + 1}`;
+          return {
+            id:
+              typeof goal.id === "string" && goal.id.trim().length
+                ? goal.id
+                : title,
+            title: String(title),
+            completed: Boolean(goal.completed),
+            notes: goal.notes ? String(goal.notes) : "",
+            required: goal.required === undefined ? true : Boolean(goal.required),
+          };
+        })
       : [];
 
-  const payrollFieldDefaults = () => {
-    const fields: string[] = Array.isArray(metadata.requiredFields)
-      ? metadata.requiredFields.filter((field: unknown): field is string => typeof field === "string")
-      : [];
-
-    return fields.reduce((acc: Record<string, string>, field) => {
-      acc[field] = metadata.defaults?.[field] ? String(metadata.defaults[field]) : "";
-      return acc;
-    }, {});
+  type PayrollFieldDefinition = {
+    id: string;
+    label: string;
+    defaultValue: string;
+    required: boolean;
+    placeholder?: string;
   };
+
+  const parsePayrollFields = (meta: any): PayrollFieldDefinition[] => {
+    if (Array.isArray(meta?.fields)) {
+      return meta.fields.map((field: any, index: number) => {
+        const id =
+          typeof field?.id === "string" && field.id.trim().length
+            ? field.id.trim()
+            : `payroll-${index + 1}`;
+        const label =
+          typeof field?.label === "string" && field.label.trim().length
+            ? field.label.trim()
+            : id;
+        return {
+          id,
+          label,
+          defaultValue:
+            typeof field?.defaultValue === "string"
+              ? field.defaultValue
+              : field?.defaultValue != null
+                ? String(field.defaultValue)
+                : "",
+          placeholder:
+            typeof field?.placeholder === "string" ? field.placeholder : "",
+          required: Boolean(field?.required ?? true),
+        };
+      });
+    }
+
+    const requiredFields = Array.isArray(meta?.requiredFields)
+      ? meta.requiredFields
+      : [];
+    const defaults =
+      meta?.defaults && typeof meta.defaults === "object"
+        ? (meta.defaults as Record<string, unknown>)
+        : {};
+
+    return requiredFields.map((field: any, index: number) => {
+      const id =
+        typeof field === "string" && field.trim().length
+          ? field.trim()
+          : `payroll-${index + 1}`;
+      const value = defaults?.[field];
+      return {
+        id,
+        label: id,
+        defaultValue:
+          typeof value === "string"
+            ? value
+            : value != null
+              ? String(value)
+              : "",
+        required: true,
+      };
+    });
+  };
+
+  const buildPayrollDefaults = (fields: PayrollFieldDefinition[]) =>
+    fields.reduce((acc: Record<string, string>, field) => {
+      acc[field.id] = field.defaultValue ?? "";
+      return acc;
+    }, {} as Record<string, string>);
 
   const [equipmentChecklist, setEquipmentChecklist] = useState(() => parseChecklist(metadata.items));
   const [systemAccess, setSystemAccess] = useState(() => parseChecklist(metadata.systems));
@@ -116,13 +185,19 @@ export default function OnboardingStepRenderer({
   const [complianceCourses, setComplianceCourses] = useState(() => parseChecklist(metadata.courses));
   const [managerCheckins, setManagerCheckins] = useState(() => parseTimeline(metadata.timeline));
   const [buddyNotes, setBuddyNotes] = useState(() => String(metadata.notes ?? ""));
-  const [payrollValues, setPayrollValues] = useState<Record<string, string>>(payrollFieldDefaults);
+  const initialPayrollFields = parsePayrollFields(metadata);
+  const [payrollFields, setPayrollFields] = useState<PayrollFieldDefinition[]>(initialPayrollFields);
+  const [payrollValues, setPayrollValues] = useState<Record<string, string>>(() =>
+    buildPayrollDefaults(initialPayrollFields),
+  );
   const [benefitLinks, setBenefitLinks] = useState(() => parseChecklist(metadata.links));
   const [probationGoals, setProbationGoals] = useState(() => parseGoals(metadata.milestones));
   const [journeyAutomation, setJourneyAutomation] = useState(() => ({
-    journeyTemplateId: metadata.journeyTemplateId ?? "",
-    trigger: metadata.trigger ?? "on_start",
-    notes: metadata.notes ?? "",
+    journeyTemplateId: metadata.journeyTemplateId ? String(metadata.journeyTemplateId) : "",
+    trigger: ["on_start", "on_completion", "manual"].includes(metadata.trigger)
+      ? metadata.trigger
+      : "on_start",
+    notes: typeof metadata.notes === "string" ? metadata.notes : "",
   }));
 
   useEffect(() => {
@@ -132,15 +207,19 @@ export default function OnboardingStepRenderer({
     setComplianceCourses(parseChecklist(metadata.courses));
     setManagerCheckins(parseTimeline(metadata.timeline));
     setBuddyNotes(() => String(metadata.notes ?? ""));
-    setPayrollValues(payrollFieldDefaults);
+    const payrollDefs = parsePayrollFields(metadata);
+    setPayrollFields(payrollDefs);
+    setPayrollValues(buildPayrollDefaults(payrollDefs));
     setBenefitLinks(parseChecklist(metadata.links));
     setProbationGoals(parseGoals(metadata.milestones));
     setJourneyAutomation({
-      journeyTemplateId: metadata.journeyTemplateId ?? "",
-      trigger: metadata.trigger ?? "on_start",
-      notes: metadata.notes ?? "",
+      journeyTemplateId: metadata.journeyTemplateId ? String(metadata.journeyTemplateId) : "",
+      trigger: ["on_start", "on_completion", "manual"].includes(metadata.trigger)
+        ? metadata.trigger
+        : "on_start",
+      notes: typeof metadata.notes === "string" ? metadata.notes : "",
     });
-  }, [step.id]);
+  }, [metadata, step.id]);
 
   useEffect(() => {
     if (!formType && step.formId) {
@@ -159,6 +238,10 @@ export default function OnboardingStepRenderer({
   // ✅ Acknowledge Document
   if (step.type === "acknowledge-document") {
     const acknowledgeCheckboxId = `acknowledge-${step.id}`;
+    const acknowledgementText =
+      typeof metadata.acknowledgementText === "string" && metadata.acknowledgementText.trim().length
+        ? metadata.acknowledgementText.trim()
+        : "I have read and acknowledge this document";
     return (
       <Card className="p-4">
         <div className="mb-2 font-semibold">{title}</div>
@@ -203,7 +286,7 @@ export default function OnboardingStepRenderer({
             aria-readonly={readOnly}
             onCheckedChange={(checked) => setAck(checked === true)}
           />
-          I have read and acknowledge this document
+          {acknowledgementText}
         </Label>
         {!readOnly && (
           <Button
@@ -244,6 +327,17 @@ export default function OnboardingStepRenderer({
   // ✅ Upload Document
   if (step.type === "upload-document") {
     const uploadInputId = `document-upload-${step.id}`;
+    const acceptedTypes = Array.isArray(metadata.allowedFileTypes) && metadata.allowedFileTypes.length
+      ? metadata.allowedFileTypes.join(",")
+      : ".pdf,.jpg,.png";
+    const helperText =
+      typeof metadata.instructions === "string" && metadata.instructions.trim().length
+        ? metadata.instructions.trim()
+        : "Upload a PDF, JPG, or PNG copy of the document.";
+    const uploadCategory =
+      typeof metadata.category === "string" && metadata.category.trim().length
+        ? metadata.category.trim()
+        : step.category || "Onboarding";
     return (
       <Card className="p-4">
         <div className="mb-2 font-semibold">{title}</div>
@@ -268,7 +362,7 @@ export default function OnboardingStepRenderer({
               <Input
                 id={uploadInputId}
                 type="file"
-                accept=".pdf,.jpg,.png"
+                accept={acceptedTypes}
                 disabled={readOnly || loading}
                 readOnly={readOnly}
                 aria-readonly={readOnly}
@@ -276,7 +370,7 @@ export default function OnboardingStepRenderer({
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
               />
               <p className="text-xs text-muted-foreground">
-                Accepted formats: PDF, JPG, PNG.
+                {helperText}
               </p>
             </div>
             {!readOnly && (
@@ -290,7 +384,7 @@ export default function OnboardingStepRenderer({
                   const formData = new FormData();
                   formData.append("file", file);
                   formData.append("name", file.name);
-                  formData.append("category", step.category || "Onboarding");
+                  formData.append("category", uploadCategory);
                   formData.append("employeeId", employeeId || "");
                   formData.append("canViewAdmin", "true");
                   formData.append("canViewManager", "false");
@@ -364,6 +458,10 @@ export default function OnboardingStepRenderer({
 
   // ✅ Fill Form
   if (step.type === "fill-form" || step.type === "form_fill") {
+    const guidanceText =
+      typeof metadata.guidance === "string" && metadata.guidance.trim().length
+        ? metadata.guidance.trim()
+        : "";
     if (step.formId) {
       // Editor preview without employee context: show a neutral placeholder, not an error
       if (!employeeId) {
@@ -371,6 +469,9 @@ export default function OnboardingStepRenderer({
           <Card className="p-4">
             <div className="mb-2 font-semibold">{title}</div>
             <div className="mb-3 text-sm">{desc}</div>
+            {guidanceText && (
+              <div className="mb-3 text-xs text-muted-foreground">{guidanceText}</div>
+            )}
             <div className="text-sm text-gray-500">Selected form will be displayed here during onboarding.</div>
           </Card>
         );
@@ -380,6 +481,9 @@ export default function OnboardingStepRenderer({
           <Card className="p-4">
             <div className="mb-2 font-semibold">{title}</div>
             <div className="mb-3 text-sm">{desc}</div>
+            {guidanceText && (
+              <div className="mb-3 text-xs text-muted-foreground">{guidanceText}</div>
+            )}
             <div className="flex justify-center py-6">
               <GlassSpinner showText text="Loading form…" />
             </div>
@@ -424,6 +528,9 @@ export default function OnboardingStepRenderer({
         <Card className="p-4">
           <div className="mb-2 font-semibold">{title}</div>
           <div className="mb-3 text-sm">{desc}</div>
+          {guidanceText && (
+            <div className="mb-3 text-xs text-muted-foreground">{guidanceText}</div>
+          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -457,13 +564,17 @@ export default function OnboardingStepRenderer({
 
   // ✅ Instructions
   if (step.type === "instructions") {
+    const buttonLabel =
+      typeof metadata.buttonLabel === "string" && metadata.buttonLabel.trim().length
+        ? metadata.buttonLabel.trim()
+        : "Next";
     return (
       <Card className="p-4">
         <div className="mb-2 font-semibold">{title}</div>
         <div className="mb-3 text-sm">{desc}</div>
         {!readOnly && (
           <Button onClick={() => onComplete()} disabled={loading || isCompleting}>
-            Next
+            {buttonLabel}
           </Button>
         )}
       </Card>
@@ -489,7 +600,19 @@ export default function OnboardingStepRenderer({
                   )
                 }
               />
-              {module.label}
+              <span className="flex flex-col">
+                <span>{module.label}</span>
+                {module.url && (
+                  <a
+                    href={module.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 underline"
+                  >
+                    View resource
+                  </a>
+                )}
+              </span>
             </label>
           ))}
           {!trainingModules.length && (
@@ -535,7 +658,12 @@ export default function OnboardingStepRenderer({
                   )
                 }
               />
-              {item.label}
+              <span className="flex flex-col">
+                <span>{item.label}</span>
+                {item.notes && (
+                  <span className="text-xs text-muted-foreground">{item.notes}</span>
+                )}
+              </span>
             </label>
           ))}
           {!equipmentChecklist.length && (
@@ -563,10 +691,14 @@ export default function OnboardingStepRenderer({
   }
 
   if (step.type === "system-access") {
+    const systemInstructions =
+      typeof metadata.instructions === "string" && metadata.instructions.trim().length
+        ? metadata.instructions.trim()
+        : "Track access provisioning.";
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title}</div>
-        <div className="text-sm text-muted-foreground">{desc || "Track access provisioning."}</div>
+        <div className="text-sm text-muted-foreground">{desc || systemInstructions}</div>
         <div className="space-y-2">
           {systemAccess.map((system) => (
             <label key={system.id} className="flex items-center gap-2 text-sm">
@@ -581,7 +713,22 @@ export default function OnboardingStepRenderer({
                   )
                 }
               />
-              {system.label}
+              <span className="flex flex-col">
+                <span>{system.label}</span>
+                {system.url && (
+                  <a
+                    href={system.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 underline"
+                  >
+                    Access link
+                  </a>
+                )}
+                {system.notes && (
+                  <span className="text-xs text-muted-foreground">{system.notes}</span>
+                )}
+              </span>
             </label>
           ))}
           {!systemAccess.length && (
@@ -705,7 +852,19 @@ export default function OnboardingStepRenderer({
                   )
                 }
               />
-              {course.label}
+              <span className="flex flex-col">
+                <span>{course.label}</span>
+                {course.url && (
+                  <a
+                    href={course.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 underline"
+                  >
+                    View course
+                  </a>
+                )}
+              </span>
             </label>
           ))}
           {!complianceCourses.length && (
@@ -733,29 +892,34 @@ export default function OnboardingStepRenderer({
   }
 
   if (step.type === "payroll-setup") {
+    const payrollInstructions =
+      typeof metadata.instructions === "string" && metadata.instructions.trim().length
+        ? metadata.instructions.trim()
+        : "Collect payroll details.";
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">
           {title || "Payroll Setup"}
         </div>
-        <div className="text-sm text-muted-foreground">{desc || "Collect payroll details."}</div>
+        <div className="text-sm text-muted-foreground">{desc || payrollInstructions}</div>
         <div className="grid gap-3">
-          {Object.keys(payrollValues).map((field) => (
-            <div key={field} className="space-y-1">
-              <Label className="capitalize">{field.replace(/([A-Z])/g, " $1")}</Label>
+          {payrollFields.map((field) => (
+            <div key={field.id} className="space-y-1">
+              <Label>{field.label}</Label>
               <Input
-                value={payrollValues[field]}
+                value={payrollValues[field.id] ?? ""}
+                placeholder={field.placeholder}
                 disabled={readOnly}
                 onChange={(e) =>
                   setPayrollValues((prev) => ({
                     ...prev,
-                    [field]: e.target.value,
+                    [field.id]: e.target.value,
                   }))
                 }
               />
             </div>
           ))}
-          {!Object.keys(payrollValues).length && (
+          {!payrollFields.length && (
             <div className="text-sm text-muted-foreground">Payroll fields not configured.</div>
           )}
         </div>
@@ -798,7 +962,19 @@ export default function OnboardingStepRenderer({
                   )
                 }
               />
-              <span className="text-sm">{link.label}</span>
+              <span className="text-sm">
+                <span className="block">{link.label}</span>
+                {link.url && (
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 underline"
+                  >
+                    Open link
+                  </a>
+                )}
+              </span>
             </div>
           ))}
           {!benefitLinks.length && (
@@ -833,7 +1009,12 @@ export default function OnboardingStepRenderer({
         <div className="space-y-3">
           {probationGoals.map((goal, index) => (
             <div key={goal.id} className="space-y-1">
-              <Label>{goal.title}</Label>
+              <Label>
+                {goal.title}
+                {!goal.required && (
+                  <span className="ml-2 text-xs text-muted-foreground">(Optional)</span>
+                )}
+              </Label>
               <Textarea
                 value={goal.notes}
                 rows={3}
@@ -887,10 +1068,14 @@ export default function OnboardingStepRenderer({
   }
 
   if (step.type === "welcome-survey") {
+    const surveyInstructions =
+      typeof metadata.instructions === "string" && metadata.instructions.trim().length
+        ? metadata.instructions.trim()
+        : "Gather feedback from the new hire.";
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title || "Welcome Survey"}</div>
-        <div className="text-sm text-muted-foreground">{desc || "Gather feedback from the new hire."}</div>
+        <div className="text-sm text-muted-foreground">{desc || surveyInstructions}</div>
         {step.formId ? (
           <DynamicFormRenderer
             formId={step.formId}

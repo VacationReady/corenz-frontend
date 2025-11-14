@@ -90,17 +90,24 @@ export default function OnboardingStepRenderer({
 
   const parseGoals = (goals: any) =>
     Array.isArray(goals)
-      ? goals.map((goal: any, index: number) => ({
-          id:
-            typeof goal.id === "string" && goal.id.trim().length
-              ? goal.id
-              : typeof goal.title === "string" && goal.title.trim().length
-                ? goal.title
-                : `goal-${index + 1}`,
-          title: String(goal.title ?? "Goal"),
-          completed: Boolean(goal.completed),
-          notes: goal.notes ? String(goal.notes) : "",
-        }))
+      ? goals.map((goal: any, index: number) => {
+          const title =
+            typeof goal.title === "string" && goal.title.trim().length
+              ? goal.title
+              : typeof goal.label === "string" && goal.label.trim().length
+                ? goal.label
+                : `Goal ${index + 1}`;
+          return {
+            id:
+              typeof goal.id === "string" && goal.id.trim().length
+                ? goal.id
+                : title,
+            title: String(title),
+            completed: Boolean(goal.completed),
+            notes: goal.notes ? String(goal.notes) : "",
+            required: goal.required === undefined ? true : Boolean(goal.required),
+          };
+        })
       : [];
 
   type PayrollFieldDefinition = {

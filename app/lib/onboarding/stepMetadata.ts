@@ -12,6 +12,7 @@ export type ChecklistItem = {
   label: string;
   required?: boolean;
   url?: string;
+  link?: string;
   notes?: string;
 };
 

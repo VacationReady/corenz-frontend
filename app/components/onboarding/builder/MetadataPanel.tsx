@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactElement } from "react";
 import Button from "@/components/ui/Button";
 import Checkbox from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
@@ -29,18 +29,16 @@ type MetadataConfig<T> = {
   defaults: () => T;
   normalize: (value: unknown) => T;
   schema: JsonSchema;
-  Editor: (props: MetadataEditorProps<T>) => JSX.Element;
+  Editor: (props: MetadataEditorProps<T>) => ReactElement;
 };
 
 const clone = <T,>(value: T): T => {
-  try {
-    // @ts-expect-error structuredClone is available in modern runtimes
-    if (typeof structuredClone === "function") {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return structuredClone(value);
-    }
-  } catch (err) {
-    // ignore and fall back to JSON cloning
+  const globalClone =
+    typeof globalThis === "object" && (globalThis as { structuredClone?: <V>(value: V) => V })
+      ? (globalThis as { structuredClone?: <V>(value: V) => V }).structuredClone
+      : undefined;
+  if (typeof globalClone === "function") {
+    return globalClone(value);
   }
   return JSON.parse(JSON.stringify(value)) as T;
 };

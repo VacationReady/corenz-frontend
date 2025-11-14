@@ -19,11 +19,12 @@ import {
   startOfMonth,
   endOfMonth,
   startOfDay,
+  addDays,
   differenceInDays,
   isSunday,
   format,
 } from 'date-fns';
-import { isNZPublicHoliday } from './public-holiday-checker';
+import type { PublicHolidayInfo } from './public-holiday-checker';
 
 // Lazy-load Prisma to prevent test environment database connection errors
 let prisma: PrismaClient | null = null;
@@ -566,29 +567,81 @@ export async function calculateOvertimeForEntry(
 ): Promise<OvertimeCalculationResult> {
   // Import holiday checker for metadata
   const { getNZPublicHolidayInfo } = await import('./public-holiday-checker');
-  
-  // Fetch public holiday information (needed for both OT calc and metadata)
-  const holidayInfo = await getNZPublicHolidayInfo(entry.date, companyId);
-  const isPublicHoliday = holidayInfo?.isHoliday ?? false;
-  
-  // Calculate precise public holiday hours (partial-day support)
-  let publicHolidayHours = 0;
-  if (isPublicHoliday && entry.startTime && entry.endTime) {
-    // Partial-day calculation using start/end times
-    publicHolidayHours = calculatePartialHolidayHours(
-      entry.startTime,
-      entry.endTime,
-      entry.breakMinutes || 0,
-      entry.date
-    );
-  } else if (isPublicHoliday) {
-    // Fallback: all hours are holiday hours if no time data
-    publicHolidayHours = entry.hours;
+
+  const holidaySegments: Array<{ date: Date; info: PublicHolidayInfo; hours: number }> = [];
+
+  const breakMinutes = entry.breakMinutes || 0;
+  const inferredStart = entry.startTime || startOfDay(entry.date);
+  const inferredEnd = entry.endTime
+    ? entry.endTime
+    : new Date(inferredStart.getTime() + entry.hours * 60 * 60 * 1000);
+
+  const hasShiftWindow = inferredEnd.getTime() > inferredStart.getTime();
+
+  if (hasShiftWindow) {
+    // Inspect every day touched by the shift to catch overnight/public-holiday overlaps
+    let cursor = startOfDay(inferredStart);
+    const finalDay = startOfDay(inferredEnd);
+
+    while (cursor.getTime() <= finalDay.getTime()) {
+      const holidayInfo = await getNZPublicHolidayInfo(cursor, companyId);
+      if (holidayInfo) {
+        const overlapHours = calculatePartialHolidayHours(
+          inferredStart,
+          inferredEnd,
+          breakMinutes,
+          cursor
+        );
+
+        if (overlapHours > 0) {
+          holidaySegments.push({
+            date: cursor,
+            info: holidayInfo,
+            hours: overlapHours,
+          });
+        }
+      }
+
+      cursor = addDays(cursor, 1);
+    }
+  } else {
+    // Fallback: no explicit window (e.g., legacy entries). Treat the entry date as the shift day.
+    const holidayInfo = await getNZPublicHolidayInfo(entry.date, companyId);
+    if (holidayInfo) {
+      holidaySegments.push({
+        date: startOfDay(entry.date),
+        info: holidayInfo,
+        hours: entry.hours,
+      });
+    }
   }
-  
-  // Determine if alternative day is granted (Mondayisation)
-  // Alternative day granted when observed date differs from calendar date
-  const alternativeDayGranted = isPublicHoliday && holidayInfo?.holidayType === 'MONDAYISED';
+
+  const isPublicHoliday = holidaySegments.length > 0;
+  const publicHolidayHours = holidaySegments.reduce((sum, segment) => sum + segment.hours, 0);
+
+  // Determine alternative day entitlement – granted when any public holiday hours were worked
+  const alternativeDayGranted = isPublicHoliday && publicHolidayHours > 0;
+
+  const primaryHolidayInfo = holidaySegments[0]?.info;
+  const holidayNames = holidaySegments
+    .map((segment) => segment.info.holidayName)
+    .filter((name): name is string => Boolean(name));
+  const uniqueHolidayNames = Array.from(new Set(holidayNames));
+  const holidayTypes = holidaySegments
+    .map((segment) => segment.info.holidayType)
+    .filter((type): type is 'NATIONAL' | 'REGIONAL' | 'MONDAYISED' => Boolean(type));
+  const uniqueHolidayTypes = Array.from(new Set(holidayTypes));
+  const publicHolidayName = uniqueHolidayNames.length
+    ? uniqueHolidayNames.join(' / ')
+    : primaryHolidayInfo?.holidayName;
+  let publicHolidayType: 'NATIONAL' | 'REGIONAL' | 'MONDAYISED' | 'MULTIPLE' | undefined =
+    primaryHolidayInfo?.holidayType;
+  if (uniqueHolidayTypes.length > 1) {
+    publicHolidayType = 'MULTIPLE';
+  } else if (uniqueHolidayTypes.length === 1) {
+    publicHolidayType = uniqueHolidayTypes[0];
+  }
+  const publicHolidayRegion = holidaySegments.find((segment) => segment.info.region)?.info.region;
   
   // Check if employee is eligible for overtime
   if (employeeConfig && !employeeConfig.overtimeEligible) {
@@ -599,11 +652,11 @@ export async function calculateOvertimeForEntry(
       overtimeType: 'NONE',
       overtimeReason: 'Employee not eligible for overtime',
       isPublicHoliday,
-      publicHolidayName: holidayInfo?.holidayName,
+      publicHolidayName,
       publicHolidayHours,
       publicHolidayMultiplier: settings.publicHolidayMultiplier,
-      publicHolidayType: holidayInfo?.holidayType,
-      publicHolidayRegion: holidayInfo?.region,
+      publicHolidayType,
+      publicHolidayRegion,
       alternativeDayGranted,
     };
   }
@@ -656,11 +709,11 @@ export async function calculateOvertimeForEntry(
   return {
     ...overtimeResult,
     isPublicHoliday,
-    publicHolidayName: holidayInfo?.holidayName,
+    publicHolidayName,
     publicHolidayHours,
     publicHolidayMultiplier: settings.publicHolidayMultiplier,
-    publicHolidayType: holidayInfo?.holidayType,
-    publicHolidayRegion: holidayInfo?.region,
+    publicHolidayType,
+    publicHolidayRegion,
     alternativeDayGranted,
   };
 }

@@ -362,13 +362,46 @@ describe('Weekly and Monthly Overtime Threshold Tests', () => {
       assert.equal(result.publicHolidayType, 'NATIONAL');
       assert.equal(result.publicHolidayHours, 8.0);
       
-      // National holiday should NOT grant alternative day (not Mondayised)
-      assert.equal(result.alternativeDayGranted, false);
+      // Working a public holiday should grant an alternative day entitlement
+      assert.equal(result.alternativeDayGranted, true);
 
       // Clean up
       await prisma.publicHoliday.deleteMany({
         where: { companyId: testCompanyId, name: 'Waitangi Day' },
       });
+    });
+
+    it('should detect public holiday when shift starts before and ends on the holiday', async () => {
+      const settings: OvertimeSettings = {
+        overtimeCalculationMode: 'DAILY',
+        autoApplyOvertime: true,
+        dailyOvertimeThreshold: 8.0,
+        overtimeMultiplier: 1.5,
+        publicHolidayMultiplier: 2.0,
+      };
+
+      const result = await calculateOvertimeForEntry(
+        {
+          id: `temp-${Date.now()}`,
+          date: new Date('2024-12-24T00:00:00Z'),
+          hours: 8.0,
+          timesheetId: testTimesheetId,
+          startTime: new Date('2024-12-24T22:00:00Z'),
+          endTime: new Date('2024-12-25T06:00:00Z'),
+          breakMinutes: 0,
+        },
+        testEmployeeId,
+        testCompanyId,
+        settings
+      );
+
+      assert.equal(result.isPublicHoliday, true);
+      assert.ok(result.publicHolidayName && /Christmas/i.test(result.publicHolidayName));
+      assert.ok(
+        Math.abs(result.publicHolidayHours - 6.0) < 0.1,
+        `Expected ~6h holiday hours, got ${result.publicHolidayHours.toFixed(2)}h`
+      );
+      assert.equal(result.alternativeDayGranted, true);
     });
   });
 

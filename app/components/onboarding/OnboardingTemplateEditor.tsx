@@ -46,6 +46,10 @@ import {
   getMetadataConfig,
   normalizeStepMetadata,
 } from "./builder/MetadataPanel";
+import {
+  mapDbStepTypeToUi,
+  mapDbUploadTypeToUi,
+} from "@/lib/onboarding/stepTypeMapping";
 
 // --- Step Types
 const STEP_TYPES = [
@@ -66,35 +70,6 @@ const STEP_TYPES = [
 	{ value: "welcome-survey", label: "Welcome Survey", icon: Smile },
 	{ value: "journey-automation", label: "Journey Automation", icon: Workflow },
 ];
-
-const dbTypeToUi: Record<string, string> = {
-	ACKNOWLEDGE_DOCUMENT: "acknowledge-document",
-	UPLOAD_DOCUMENT: "upload-document",
-	COLLECT_DOCUMENT: "collect-document",
-	INSTRUCTION: "instructions",
-	FORM_FILL: "fill-form",
-	FILL_FORM_BY_SLUG: "fill-form",
-	CREATE_TASK: "create-task",
-	TRAINING_ASSIGNMENT: "training-assignment",
-	EQUIPMENT_CHECKLIST: "equipment-checklist",
-	SYSTEM_ACCESS: "system-access",
-	MANAGER_CHECKIN: "manager-checkin",
-	BUDDY_INTRODUCTION: "buddy-introduction",
-	COMPLIANCE_TRAINING: "compliance-training",
-	PAYROLL_SETUP: "payroll-setup",
-	BENEFITS_ENROLLMENT: "benefits-enrollment",
-	PROBATION_GOALS: "probation-goals",
-	WELCOME_SURVEY: "welcome-survey",
-	JOURNEY_AUTOMATION: "journey-automation",
-};
-
-const dbUploadTypeToUi: Record<string, string> = {
-  PASSPORT: "passport",
-  RIGHT_TO_WORK: "right-to-work",
-  DRIVER_LICENSE: "driver-licence",
-  TRAINING_CERTIFICATE: "training-certificate",
-  OTHER: "other",
-};
 
 // --- Key generator utility
 function getStepKey(step: any) {
@@ -567,7 +542,7 @@ export default function OnboardingTemplateEditor({
   const [steps, setSteps] = useState<any[]>(() =>
     template?.steps?.length
       ? template.steps.map((step: any) => {
-          const uiType = dbTypeToUi[step.type] || step.type;
+          const uiType = mapDbStepTypeToUi(step.type) || step.type;
           return {
             key:
               step.id ||
@@ -581,7 +556,7 @@ export default function OnboardingTemplateEditor({
             description: step.instruction || "",
             required: step.required ?? true,
             documentId: step.documentId || "",
-            uploadType: step.uploadType ? dbUploadTypeToUi[step.uploadType] : "",
+            uploadType: mapDbUploadTypeToUi(step.uploadType),
             formId: step.formId || "",
             formFields: step.formFields || [],
             metadata: normalizeStepMetadata(uiType, step.metadata),
@@ -590,12 +565,45 @@ export default function OnboardingTemplateEditor({
       : [],
   );
 
-	const [selectedIndex, setSelectedIndex] = useState<number | null>(
-		() => (template?.steps?.length ? 0 : null),
-	);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(
+    () => (template?.steps?.length ? 0 : null),
+  );
 
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+
+  useEffect(() => {
+    setName(template?.name || "");
+    setDescription(template?.description || "");
+    setDepartments(template?.departments?.map((d: any) => d.id) || []);
+    setJobRoles(template?.jobRoles?.map((j: any) => j.id) || []);
+    setSteps(
+      template?.steps?.length
+        ? template.steps.map((step: any) => {
+            const uiType = mapDbStepTypeToUi(step.type) || step.type;
+            return {
+              key:
+                step.id ||
+                step.key ||
+                (typeof crypto !== "undefined" && crypto.randomUUID
+                  ? crypto.randomUUID()
+                  : Math.random().toString(36).slice(2)),
+              id: step.id,
+              type: uiType,
+              title: step.label || "",
+              description: step.instruction || "",
+              required: step.required ?? true,
+              documentId: step.documentId || "",
+              uploadType: mapDbUploadTypeToUi(step.uploadType),
+              formId: step.formId || "",
+              formFields: step.formFields || [],
+              metadata: normalizeStepMetadata(uiType, step.metadata),
+            };
+          })
+        : [],
+    );
+    setSelectedIndex(template?.steps?.length ? 0 : null);
+  }, [template]);
 
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -911,3 +919,35 @@ export default function OnboardingTemplateEditor({
     </div>
   );
 }
+  useEffect(() => {
+    setName(template?.name || "");
+    setDescription(template?.description || "");
+    setDepartments(template?.departments?.map((d: any) => d.id) || []);
+    setJobRoles(template?.jobRoles?.map((j: any) => j.id) || []);
+    setSteps(
+      template?.steps?.length
+        ? template.steps.map((step: any) => {
+            const uiType = mapDbStepTypeToUi(step.type) || step.type;
+            return {
+              key:
+                step.id ||
+                step.key ||
+                (typeof crypto !== "undefined" && crypto.randomUUID
+                  ? crypto.randomUUID()
+                  : Math.random().toString(36).slice(2)),
+              id: step.id,
+              type: uiType,
+              title: step.label || "",
+              description: step.instruction || "",
+              required: step.required ?? true,
+              documentId: step.documentId || "",
+              uploadType: mapDbUploadTypeToUi(step.uploadType),
+              formId: step.formId || "",
+              formFields: step.formFields || [],
+              metadata: normalizeStepMetadata(uiType, step.metadata),
+            };
+          })
+        : [],
+    );
+    setSelectedIndex(template?.steps?.length ? 0 : null);
+  }, [template]);

@@ -54,8 +54,20 @@ test("createTemplate persists FORM_FILL step and returns it", async () => {
     },
     onboardingTemplate: {
       create: async (args: any) => ({
-        ...args.data,
-        OnboardingStep: args.data.OnboardingStep?.create || [],
+        id: args.data.id,
+        companyId: session.user.companyId,
+        name: args.data.name,
+        description: args.data.description,
+        isActive: args.data.isActive,
+        updatedAt: new Date(),
+        Department: [],
+        JobRole: [],
+        User: null,
+        OnboardingStep: (args.data.OnboardingStep?.create || []).map((step: any) => ({
+          ...step,
+          Document: null,
+          Form: null,
+        })),
       }),
     },
   };
@@ -79,9 +91,10 @@ test("createTemplate persists FORM_FILL step and returns it", async () => {
   };
 
   const result = await createTemplate(session, body, prismaMock as any);
-  assert.equal(result.OnboardingStep.length, 1);
-  assert.equal(result.OnboardingStep[0].type, OnboardingStepType.FORM_FILL);
-  assert.equal(result.OnboardingStep[0].formId, "form123");
+  assert.equal(result.steps.length, 1);
+  assert.equal(result.steps[0].type, OnboardingStepType.FORM_FILL);
+  assert.equal(result.steps[0].formId, "form123");
+  assert.deepEqual(result.steps[0].metadata, { guidance: "" });
 });
 
 test("updateTemplate cascades deletions before recreating steps", async () => {
@@ -119,8 +132,20 @@ test("updateTemplate cascades deletions before recreating steps", async () => {
     },
     onboardingTemplate: {
       update: async (args: any) => ({
-        ...args.data,
-        OnboardingStep: args.data.OnboardingStep?.create || [],
+        id: args.where.id,
+        companyId: session.user.companyId,
+        name: args.data.name,
+        description: args.data.description,
+        isActive: args.data.isActive,
+        updatedAt: new Date(),
+        Department: [],
+        JobRole: [],
+        User: null,
+        OnboardingStep: (args.data.OnboardingStep?.create || []).map((step: any) => ({
+          ...step,
+          Document: null,
+          Form: null,
+        })),
       }),
     },
   };
@@ -144,8 +169,8 @@ test("updateTemplate cascades deletions before recreating steps", async () => {
 
   const result = await updateTemplate(session, body, prismaMock as any);
   assert.deepEqual(callOrder, ["responses", "instances", "steps"]);
-  assert.equal(result.OnboardingStep[0].type, OnboardingStepType.ACKNOWLEDGE_DOCUMENT);
-  assert.equal(result.OnboardingStep[0].documentId, "doc1");
+  assert.equal(result.steps[0].type, OnboardingStepType.ACKNOWLEDGE_DOCUMENT);
+  assert.equal(result.steps[0].documentId, "doc1");
 });
 
 test("createTemplate throws when referencing out-of-scope form", async () => {
@@ -194,4 +219,85 @@ test("createTemplate throws when referencing out-of-scope form", async () => {
     () => createTemplate(session, body, prismaMock as any),
     /Forms must belong to the current company/,
   );
+});
+
+test("fetchTenantTemplates enforces tenant isolation and normalises metadata", async () => {
+  const now = new Date();
+  const mockPrisma = {
+    onboardingTemplate: {
+      findMany: async () => [
+        {
+          id: "tpl-tenant-a",
+          companyId: "tenant-a",
+          name: "Tenant A Template",
+          description: "",
+          isActive: true,
+          updatedAt: now,
+          User: null,
+          Department: [],
+          JobRole: [],
+          OnboardingStep: [
+            {
+              id: "step-a",
+              type: "INSTRUCTION",
+              label: "Welcome",
+              order: 1,
+              templateId: "tpl-tenant-a",
+              documentId: null,
+              uploadType: null,
+              instruction: "",
+              formId: null,
+              dependencies: [],
+              metadata: { buttonLabel: "  Continue " },
+              slaDays: null,
+              taskOwnerId: null,
+              trainingId: null,
+              Document: null,
+              Form: null,
+            },
+          ],
+        },
+        {
+          id: "tpl-tenant-b",
+          companyId: "tenant-b",
+          name: "Tenant B Template",
+          description: "",
+          isActive: true,
+          updatedAt: now,
+          User: null,
+          Department: [],
+          JobRole: [],
+          OnboardingStep: [
+            {
+              id: "step-b",
+              type: "INSTRUCTION",
+              label: "Do not leak",
+              order: 1,
+              templateId: "tpl-tenant-b",
+              documentId: null,
+              uploadType: null,
+              instruction: "",
+              formId: null,
+              dependencies: [],
+              metadata: { buttonLabel: "Private" },
+              slaDays: null,
+              taskOwnerId: null,
+              trainingId: null,
+              Document: null,
+              Form: null,
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const { fetchTenantTemplates } = await import(
+    "../app/api/onboarding/templates/tenantScopedFetch"
+  );
+
+  const templates = await fetchTenantTemplates("tenant-a", mockPrisma as any);
+  assert.equal(templates.length, 1);
+  assert.equal(templates[0].id, "tpl-tenant-a");
+  assert.deepEqual(templates[0].steps[0].metadata, { buttonLabel: "Continue" });
 });

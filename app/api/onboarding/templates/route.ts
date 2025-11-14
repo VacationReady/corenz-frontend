@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { createTemplate, updateTemplate } from "./actions";
 import { hasPermission } from "@/lib/permissions";
+import { fetchTenantTemplates } from "./tenantScopedFetch";
 
 // ✅ GET - Fetch Templates
 export async function GET(req: Request) {
@@ -28,42 +29,9 @@ export async function GET(req: Request) {
     );
   }
 
-  const templates = await prisma.onboardingTemplate.findMany({
-    where: { companyId: session.user.companyId },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      isActive: true, // ✅ Boolean field replaces status
-      updatedAt: true,
-      User: { select: { id: true, name: true, email: true } },
-      Department: { select: { id: true, name: true } },
-      JobRole: { select: { id: true, name: true } },
-      OnboardingStep: {
-        orderBy: { order: "asc" },
-        include: {
-          Document: { select: { id: true, name: true } },
-          Form: { select: { id: true, name: true } },
-        },
-      },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  const templates = await fetchTenantTemplates(session.user.companyId);
 
-  // Normalize keys for clients: Department -> departments, JobRole -> jobRoles, OnboardingStep -> steps, User -> updatedBy
-  const normalized = templates.map((t: any) => ({
-    id: t.id,
-    name: t.name,
-    description: t.description,
-    isActive: t.isActive,
-    updatedAt: t.updatedAt,
-    updatedBy: t.User,
-    departments: t.Department,
-    jobRoles: t.JobRole,
-    steps: t.OnboardingStep,
-  }));
-
-  return NextResponse.json(normalized);
+  return NextResponse.json(templates);
 }
 
 // ✅ POST - Create Template

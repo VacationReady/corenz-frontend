@@ -250,16 +250,12 @@ export async function POST(req: NextRequest) {
         const newTotalHours = updatedEntries.reduce((sum, e) => sum + Number(e.hours), 0);
         const newRegularHours = updatedEntries.reduce((sum, e) => sum + Number(e.regularHours || e.hours), 0);
         const newOvertimeHours = updatedEntries.reduce((sum, e) => sum + Number(e.overtimeHours || 0), 0);
-        const publicHolidayHours = updatedEntries.reduce((sum, e) => sum + Number(e.publicHolidayHours || 0), 0);
-
         await tx.timesheet.update({
           where: { id: timesheet.id },
           data: {
             totalHours: newTotalHours,
             regularHours: newRegularHours,
             overtimeHours: newOvertimeHours,
-            // Store public holiday hours at timesheet level for payroll export
-            publicHolidayHours,
           },
         });
       });

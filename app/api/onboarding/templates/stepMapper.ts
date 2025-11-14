@@ -3,6 +3,7 @@ import {
   OnboardingStepType,
   OnboardingUploadType,
 } from "@prisma/client";
+import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
 
 const typeMap: Record<string, OnboardingStepType> = {
   "acknowledge-document": OnboardingStepType.ACKNOWLEDGE_DOCUMENT,
@@ -51,6 +52,10 @@ export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
         .map((step: any, i: number) => {
           const mappedType = typeMap[step.type];
           if (!mappedType) return undefined;
+          const normalizedMetadata = normalizeStepMetadata(
+            step.type,
+            step.metadata,
+          );
           // Ensure each step has a unique, non-empty label per template to satisfy @@unique([templateId, label])
           const safeTitle = String(step.title || step.label || "").trim();
           const defaultLabelByType =
@@ -75,7 +80,7 @@ export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
               ...base,
               documentId: step.documentId || null,
               instruction: step.description || "",
-              metadata: step.metadata || Prisma.DbNull,
+              metadata: normalizedMetadata,
             };
           }
           if (mappedType === OnboardingStepType.UPLOAD_DOCUMENT) {
@@ -85,14 +90,14 @@ export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
                 ? uploadTypeMap[step.uploadType] || null
                 : null,
               instruction: step.description || "",
-              metadata: step.metadata || Prisma.DbNull,
+              metadata: normalizedMetadata,
             };
           }
           if (mappedType === OnboardingStepType.INSTRUCTION) {
             return {
               ...base,
               instruction: step.description || "",
-              metadata: step.metadata || Prisma.DbNull,
+              metadata: normalizedMetadata,
             };
           }
           if (mappedType === OnboardingStepType.FORM_FILL) {
@@ -100,13 +105,13 @@ export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
               ...base,
               formId: step.formId || null,
               instruction: step.description || "",
-              metadata: step.metadata || Prisma.DbNull,
+              metadata: normalizedMetadata,
             };
           }
           return {
             ...base,
             instruction: step.description || "",
-            metadata: step.metadata || Prisma.DbNull,
+            metadata: normalizedMetadata,
           };
         })
         .filter(isStep) as Prisma.OnboardingStepCreateInput[])

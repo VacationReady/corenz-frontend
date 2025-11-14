@@ -13,7 +13,14 @@ import { EnhancedFormRenderer } from "@/components/forms/EnhancedFormRenderer";
 import { GlassSpinner } from "@/components/ui/LoadingSpinner";
 import { toast } from "sonner";
 import { Download } from "lucide-react";
-import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
+import {
+  normalizeStepMetadata,
+  PAYROLL_FIELD_TYPES,
+  DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS,
+  DEFAULT_KIWISAVER_STATUS_OPTIONS,
+  type PayrollFieldType,
+} from "@/lib/onboarding/stepMetadata";
+import { validateIRDNumber } from "@/lib/payroll/validators";
 
 type OnboardingStepProps = {
   step: {
@@ -110,12 +117,86 @@ export default function OnboardingStepRenderer({
         })
       : [];
 
+  const parsePayrollFieldType = (value: unknown): PayrollFieldType => {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if ((PAYROLL_FIELD_TYPES as readonly string[]).includes(trimmed)) {
+        return trimmed as PayrollFieldType;
+      }
+    }
+    return "text";
+  };
+
+  const normalizeOptionsForType = (
+    fieldType: PayrollFieldType,
+    supplied: unknown,
+  ): string[] => {
+    if (fieldType === "kiwiSaverEmployeeRate") {
+      return Array.from(DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS);
+    }
+    if (fieldType === "kiwiSaverStatus") {
+      return Array.from(DEFAULT_KIWISAVER_STATUS_OPTIONS);
+    }
+    if (fieldType === "select" && Array.isArray(supplied)) {
+      return supplied
+        .map((option) =>
+          typeof option === "string"
+            ? option.trim()
+            : option != null
+              ? String(option).trim()
+              : "",
+        )
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const kiwiSaverStatusLabels: Record<string, string> = {
+    enrolled: "Enrolled",
+    opted_out: "Opted out",
+    contributions_holiday: "Contributions holiday",
+  };
+
+  const toTitleCase = (value: string) =>
+    value
+      .replace(/[_-]/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+
+  const formatPayrollOptionLabel = (
+    option: string,
+    type: PayrollFieldType,
+  ) => {
+    if (type === "kiwiSaverEmployeeRate") {
+      const numeric = Number(option);
+      if (Number.isFinite(numeric)) {
+        return `${(numeric * 100).toFixed(numeric * 100 % 1 === 0 ? 0 : 1)}%`;
+      }
+    }
+    if (type === "kiwiSaverStatus") {
+      return kiwiSaverStatusLabels[option] ?? toTitleCase(option);
+    }
+    return option;
+  };
+
+  const parseKiwiSaverRate = (value: string) => {
+    if (!value) return null;
+    const cleaned = value.replace(/%/g, "").trim();
+    if (!cleaned) return null;
+    const numeric = Number(cleaned);
+    if (!Number.isFinite(numeric)) {
+      return null;
+    }
+    return value.includes("%") ? numeric / 100 : numeric;
+  };
+
   type PayrollFieldDefinition = {
     id: string;
     label: string;
     defaultValue: string;
     required: boolean;
     placeholder?: string;
+    fieldType: PayrollFieldType;
+    options: string[];
   };
 
   const parsePayrollFields = (meta: any): PayrollFieldDefinition[] => {
@@ -129,18 +210,24 @@ export default function OnboardingStepRenderer({
           typeof field?.label === "string" && field.label.trim().length
             ? field.label.trim()
             : id;
+        const fieldType = parsePayrollFieldType(field?.fieldType ?? field?.type);
+        const options = normalizeOptionsForType(fieldType, field?.options);
+        const defaultValue =
+          typeof field?.defaultValue === "string"
+            ? field.defaultValue
+            : field?.defaultValue != null
+              ? String(field.defaultValue)
+              : options[0] ?? "";
+        const placeholder =
+          typeof field?.placeholder === "string" ? field.placeholder : "";
         return {
           id,
           label,
-          defaultValue:
-            typeof field?.defaultValue === "string"
-              ? field.defaultValue
-              : field?.defaultValue != null
-                ? String(field.defaultValue)
-                : "",
-          placeholder:
-            typeof field?.placeholder === "string" ? field.placeholder : "",
+          defaultValue,
+          placeholder,
           required: Boolean(field?.required ?? true),
+          fieldType,
+          options,
         };
       });
     }
@@ -158,7 +245,7 @@ export default function OnboardingStepRenderer({
         typeof field === "string" && field.trim().length
           ? field.trim()
           : `payroll-${index + 1}`;
-      const value = defaults?.[field];
+      const value = (defaults as Record<string, unknown>)[field as string];
       return {
         id,
         label: id,
@@ -168,14 +255,18 @@ export default function OnboardingStepRenderer({
             : value != null
               ? String(value)
               : "",
+        placeholder: "",
         required: true,
+        fieldType: "text",
+        options: [],
       };
     });
   };
 
   const buildPayrollDefaults = (fields: PayrollFieldDefinition[]) =>
     fields.reduce((acc: Record<string, string>, field) => {
-      acc[field.id] = field.defaultValue ?? "";
+      const fallback = field.options[0] ?? "";
+      acc[field.id] = field.defaultValue ?? fallback;
       return acc;
     }, {} as Record<string, string>);
 
@@ -903,22 +994,92 @@ export default function OnboardingStepRenderer({
         </div>
         <div className="text-sm text-muted-foreground">{desc || payrollInstructions}</div>
         <div className="grid gap-3">
-          {payrollFields.map((field) => (
-            <div key={field.id} className="space-y-1">
-              <Label>{field.label}</Label>
-              <Input
-                value={payrollValues[field.id] ?? ""}
-                placeholder={field.placeholder}
-                disabled={readOnly}
-                onChange={(e) =>
-                  setPayrollValues((prev) => ({
-                    ...prev,
-                    [field.id]: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          ))}
+          {payrollFields.map((field) => {
+            const value = payrollValues[field.id] ?? "";
+            const setValue = (next: string) =>
+              setPayrollValues((prev) => ({
+                ...prev,
+                [field.id]: next,
+              }));
+
+            return (
+              <div key={field.id} className="space-y-1">
+                <Label>{field.label}</Label>
+                {field.fieldType === "select" ||
+                field.fieldType === "kiwiSaverStatus" ||
+                field.fieldType === "kiwiSaverEmployeeRate" ? (
+                  <select
+                    className="w-full rounded-md border p-2 text-sm"
+                    value={value}
+                    disabled={readOnly}
+                    onChange={(e) => setValue(e.target.value)}
+                  >
+                    <option value="">Select an option</option>
+                    {field.options.map((option) => (
+                      <option key={option} value={option}>
+                        {formatPayrollOptionLabel(option, field.fieldType)}
+                      </option>
+                    ))}
+                  </select>
+                ) : field.fieldType === "kiwiSaverEmployerRate" ? (
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={field.placeholder}
+                    value={value}
+                    disabled={readOnly}
+                    onChange={(e) => setValue(e.target.value)}
+                  />
+                ) : field.fieldType === "number" ? (
+                  <Input
+                    type="number"
+                    placeholder={field.placeholder}
+                    value={value}
+                    disabled={readOnly}
+                    onChange={(e) => setValue(e.target.value)}
+                  />
+                ) : field.fieldType === "irdNumber" ? (
+                  <Input
+                    inputMode="numeric"
+                    placeholder={field.placeholder}
+                    value={value}
+                    disabled={readOnly}
+                    onChange={(e) => setValue(e.target.value)}
+                  />
+                ) : (
+                  <Input
+                    placeholder={field.placeholder}
+                    value={value}
+                    disabled={readOnly}
+                    onChange={(e) => setValue(e.target.value)}
+                  />
+                )}
+                {field.fieldType === "irdNumber" && (
+                  <p className="text-xs text-muted-foreground">
+                    NZ IRD numbers must be 8–9 digits. We'll validate the format automatically.
+                  </p>
+                )}
+                {field.fieldType === "kiwiSaverEmployeeRate" && (
+                  <p className="text-xs text-muted-foreground">
+                    Supported employee rates: {DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS.map((rate) =>
+                      `${Number(rate) * 100}%`,
+                    ).join(", ")}.
+                  </p>
+                )}
+                {field.fieldType === "kiwiSaverEmployerRate" && (
+                  <p className="text-xs text-muted-foreground">
+                    Employer contributions must be at least 3% when the employee is enrolled in KiwiSaver.
+                  </p>
+                )}
+                {field.fieldType === "kiwiSaverStatus" && (
+                  <p className="text-xs text-muted-foreground">
+                    Track whether the employee is enrolled, opted out, or on a contributions holiday.
+                  </p>
+                )}
+              </div>
+            );
+          })}
           {!payrollFields.length && (
             <div className="text-sm text-muted-foreground">Payroll fields not configured.</div>
           )}
@@ -928,9 +1089,108 @@ export default function OnboardingStepRenderer({
             disabled={loading || isCompleting}
             onClick={async () => {
               if (loading || isCompleting) return;
+              const validationErrors: string[] = [];
+              const sanitizedValues: Record<string, string> = { ...payrollValues };
+              const kiwiStatusField = payrollFields.find((f) => f.fieldType === "kiwiSaverStatus");
+              const kiwiStatusValue = kiwiStatusField
+                ? (sanitizedValues[kiwiStatusField.id] ?? "")
+                : "";
+              const kiwiEnrolled = kiwiStatusValue === "enrolled";
+
+              for (const field of payrollFields) {
+                const rawValue = sanitizedValues[field.id] ?? "";
+                const trimmed = typeof rawValue === "string" ? rawValue.trim() : "";
+                if (field.required && !trimmed) {
+                  validationErrors.push(`${field.label}: required field`);
+                  continue;
+                }
+
+                if (field.fieldType === "irdNumber" && trimmed) {
+                  const result = validateIRDNumber(trimmed);
+                  if (!result.isValid) {
+                    validationErrors.push(`${field.label}: ${result.error ?? "invalid IRD number"}`);
+                  } else if (result.formatted) {
+                    sanitizedValues[field.id] = result.formatted;
+                  }
+                }
+
+                if ((field.fieldType === "select" || field.fieldType === "kiwiSaverStatus" || field.fieldType === "kiwiSaverEmployeeRate") && trimmed) {
+                  if (!field.options.includes(trimmed)) {
+                    validationErrors.push(`${field.label}: select a valid option`);
+                  }
+                }
+
+                if (field.fieldType === "kiwiSaverEmployeeRate") {
+                  if (!trimmed) {
+                    if (kiwiEnrolled) {
+                      validationErrors.push(`${field.label}: select a KiwiSaver rate`);
+                    } else {
+                      sanitizedValues[field.id] = "";
+                    }
+                    continue;
+                  }
+
+                  const rate = parseKiwiSaverRate(trimmed);
+                  if (kiwiEnrolled) {
+                    if (rate === null) {
+                      validationErrors.push(`${field.label}: select a KiwiSaver rate`);
+                    } else {
+                      const normalized = rate.toFixed(2);
+                      if (!DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS.includes(normalized)) {
+                        validationErrors.push(
+                          `${field.label}: rate must be one of ${DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS.map((v) => `${Number(v) * 100}%`).join(", ")}`,
+                        );
+                      } else {
+                        sanitizedValues[field.id] = normalized;
+                      }
+                    }
+                  } else if (rate !== null && rate > 0) {
+                    validationErrors.push(`${field.label}: should be blank when not enrolled`);
+                  } else if (rate === 0) {
+                    sanitizedValues[field.id] = rate.toFixed(2);
+                  } else {
+                    sanitizedValues[field.id] = "";
+                  }
+                }
+
+                if (field.fieldType === "kiwiSaverEmployerRate") {
+                  if (!trimmed) {
+                    if (kiwiEnrolled) {
+                      validationErrors.push(`${field.label}: enter the employer contribution rate`);
+                    } else {
+                      sanitizedValues[field.id] = "";
+                    }
+                    continue;
+                  }
+
+                  const rate = parseKiwiSaverRate(trimmed);
+                  if (kiwiEnrolled) {
+                    if (rate === null) {
+                      validationErrors.push(`${field.label}: enter the employer contribution rate`);
+                    } else if (rate < 0.03) {
+                      validationErrors.push(`${field.label}: employer rate must be at least 3%`);
+                    } else {
+                      sanitizedValues[field.id] = rate.toFixed(2);
+                    }
+                  } else if (rate !== null && rate > 0) {
+                    validationErrors.push(`${field.label}: should be 0 when employee is not enrolled`);
+                  } else {
+                    sanitizedValues[field.id] = rate !== null ? rate.toFixed(2) : "";
+                  }
+                }
+              }
+
+              if (validationErrors.length) {
+                toast.error(
+                  `Unable to save payroll details: ${validationErrors.join("; ")}`,
+                );
+                return;
+              }
+
               try {
                 setLoading(true);
-                await onComplete({ payrollValues });
+                setPayrollValues(sanitizedValues);
+                await onComplete({ payrollValues: sanitizedValues });
               } finally {
                 setLoading(false);
               }
@@ -942,7 +1202,6 @@ export default function OnboardingStepRenderer({
       </Card>
     );
   }
-
   if (step.type === "benefits-enrollment") {
     return (
       <Card className="p-4 space-y-4">

@@ -307,7 +307,25 @@ Below are the schemas that back each metadata panel together with the editable f
           "label": { "type": "string" },
           "defaultValue": { "type": "string" },
           "placeholder": { "type": "string" },
-          "required": { "type": "boolean", "default": true }
+          "required": { "type": "boolean", "default": true },
+          "fieldType": {
+            "type": "string",
+            "enum": [
+              "text",
+              "number",
+              "select",
+              "irdNumber",
+              "kiwiSaverStatus",
+              "kiwiSaverEmployeeRate",
+              "kiwiSaverEmployerRate"
+            ],
+            "default": "text"
+          },
+          "options": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Dropdown options for select-type payroll fields"
+          }
         }
       }
     }
@@ -315,7 +333,8 @@ Below are the schemas that back each metadata panel together with the editable f
 }
 ```
 
-* **Editable fields:** payroll field definitions (key, label, default value, placeholder, required) plus instructions.
+* **Editable fields:** payroll field definitions (key, label, default value, placeholder, required flag, `fieldType`, and optional dropdown options) plus instructions.
+* **NZ compliance defaults:** KiwiSaver status fields default to `enrolled`, `opted_out`, or `contributions_holiday`. KiwiSaver employee rates default to 3%, 4%, 6%, 8%, or 10%. IRD number fields enforce checksum validation in the employee experience.
 
 ## benefits-enrollment
 

@@ -11,6 +11,10 @@ import {
   ChecklistItem,
   TimelineItem,
   PayrollField,
+  type PayrollFieldType,
+  PAYROLL_FIELD_TYPES,
+  DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS,
+  DEFAULT_KIWISAVER_STATUS_OPTIONS,
   JsonSchema,
   getDefaultMetadataForStep as getDefaultMetadataForStepBase,
   normalizeStepMetadata as normalizeStepMetadataBase,
@@ -244,6 +248,40 @@ function EditableTimeline({
   );
 }
 
+const payrollFieldTypeOptions: { value: PayrollFieldType; label: string }[] = [
+  { value: "text", label: "Text input" },
+  { value: "number", label: "Number input" },
+  { value: "irdNumber", label: "IRD number (NZ validation)" },
+  { value: "select", label: "Dropdown (custom options)" },
+  { value: "kiwiSaverStatus", label: "KiwiSaver status" },
+  { value: "kiwiSaverEmployeeRate", label: "KiwiSaver employee rate" },
+  { value: "kiwiSaverEmployerRate", label: "KiwiSaver employer rate" },
+];
+
+const kiwiSaverStatusLabels: Record<string, string> = {
+  enrolled: "Enrolled",
+  opted_out: "Opted out",
+  contributions_holiday: "Contributions holiday",
+};
+
+const toTitleCase = (value: string) =>
+  value
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const formatOptionLabel = (option: string, type: PayrollFieldType) => {
+  if (type === "kiwiSaverEmployeeRate") {
+    const numeric = Number(option);
+    if (Number.isFinite(numeric)) {
+      return `${(numeric * 100).toFixed(numeric * 100 % 1 === 0 ? 0 : 1)}%`;
+    }
+  }
+  if (type === "kiwiSaverStatus") {
+    return kiwiSaverStatusLabels[option] ?? toTitleCase(option);
+  }
+  return option;
+};
+
 function EditablePayrollFields({
   fields,
   onChange,
@@ -251,83 +289,215 @@ function EditablePayrollFields({
   fields: PayrollField[];
   onChange: (fields: PayrollField[]) => void;
 }) {
+  const updateField = (index: number, patch: Partial<PayrollField>) => {
+    const next = fields.map((entry, i) => (i === index ? { ...entry, ...patch } : entry));
+    onChange(next);
+  };
+
+  const handleFieldTypeChange = (
+    index: number,
+    nextType: PayrollFieldType,
+    current: PayrollField,
+  ) => {
+    let nextOptions: string[] | undefined;
+    if (nextType === "kiwiSaverEmployeeRate") {
+      nextOptions = Array.from(DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS);
+    } else if (nextType === "kiwiSaverStatus") {
+      nextOptions = Array.from(DEFAULT_KIWISAVER_STATUS_OPTIONS);
+    } else if (nextType === "select") {
+      nextOptions = current.options && current.options.length
+        ? current.options
+        : ["Option 1", "Option 2"];
+    }
+
+    const nextDefault = (() => {
+      if (!nextOptions || !nextOptions.length) {
+        return current.defaultValue ?? "";
+      }
+      if (current.defaultValue && nextOptions.includes(current.defaultValue)) {
+        return current.defaultValue;
+      }
+      return nextOptions[0];
+    })();
+
+    updateField(index, {
+      fieldType: nextType,
+      options: nextOptions,
+      defaultValue: nextDefault,
+    });
+  };
+
   return (
     <div className="space-y-3">
-      {fields.map((field, index) => (
-        <div key={field.id || index} className="rounded-lg border bg-white p-3 space-y-2">
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <Label>Field key</Label>
-              <Input
-                value={field.id}
-                onChange={(e) => {
-                  const next = fields.map((entry, i) =>
-                    i === index ? { ...entry, id: e.target.value } : entry,
-                  );
-                  onChange(next);
-                }}
-              />
+      {fields.map((field, index) => {
+        const fieldType = (PAYROLL_FIELD_TYPES.includes(
+          field.fieldType as PayrollFieldType,
+        )
+          ? field.fieldType
+          : "text") as PayrollFieldType;
+        const options = field.options
+          ? field.options
+          : fieldType === "kiwiSaverEmployeeRate"
+            ? Array.from(DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS)
+            : fieldType === "kiwiSaverStatus"
+              ? Array.from(DEFAULT_KIWISAVER_STATUS_OPTIONS)
+              : [];
+
+        const defaultValue =
+          fieldType === "select" || fieldType === "kiwiSaverEmployeeRate" || fieldType === "kiwiSaverStatus"
+            ? field.defaultValue && options.includes(field.defaultValue)
+              ? field.defaultValue
+              : options[0] ?? ""
+            : field.defaultValue ?? "";
+
+        return (
+          <div
+            key={field.id || index}
+            className="rounded-lg border bg-white p-3 space-y-3"
+          >
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <Label>Field key</Label>
+                <Input
+                  value={field.id}
+                  onChange={(e) => updateField(index, { id: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Label</Label>
+                <Input
+                  value={field.label}
+                  onChange={(e) => updateField(index, { label: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Field type</Label>
+                <select
+                  className="w-full rounded-md border p-2 text-sm"
+                  value={fieldType}
+                  onChange={(e) =>
+                    handleFieldTypeChange(index, e.target.value as PayrollFieldType, field)
+                  }
+                >
+                  {payrollFieldTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {fieldType === "select" && (
+                <div className="md:col-span-2 space-y-1">
+                  <Label>Options (one per line)</Label>
+                  <Textarea
+                    rows={3}
+                    value={options.join("\n")}
+                    onChange={(e) => {
+                      const entries = e.target.value
+                        .split("\n")
+                        .map((line) => line.trim())
+                        .filter(Boolean);
+                      updateField(index, {
+                        options: entries,
+                        defaultValue:
+                          entries.length && (!defaultValue || !entries.includes(defaultValue))
+                            ? entries[0]
+                            : defaultValue,
+                      });
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Provide the dropdown options exactly as you want them stored.
+                  </p>
+                </div>
+              )}
+              {(fieldType === "select" ||
+                fieldType === "kiwiSaverEmployeeRate" ||
+                fieldType === "kiwiSaverStatus") && (
+                <div>
+                  <Label>Default option</Label>
+                  <select
+                    className="w-full rounded-md border p-2 text-sm"
+                    value={defaultValue}
+                    onChange={(e) => updateField(index, { defaultValue: e.target.value })}
+                  >
+                    {options.map((option) => (
+                      <option key={option} value={option}>
+                        {formatOptionLabel(option, fieldType)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {(fieldType === "text" ||
+                fieldType === "number" ||
+                fieldType === "irdNumber" ||
+                fieldType === "kiwiSaverEmployerRate") && (
+                <div>
+                  <Label>Default value (optional)</Label>
+                  <Input
+                    value={defaultValue}
+                    onChange={(e) => updateField(index, { defaultValue: e.target.value })}
+                  />
+                </div>
+              )}
+              <div>
+                <Label>Placeholder (optional)</Label>
+                <Input
+                  value={field.placeholder || ""}
+                  onChange={(e) => updateField(index, { placeholder: e.target.value })}
+                  disabled={
+                    fieldType === "kiwiSaverStatus" || fieldType === "kiwiSaverEmployeeRate"
+                  }
+                />
+              </div>
             </div>
-            <div>
-              <Label>Label</Label>
-              <Input
-                value={field.label}
-                onChange={(e) => {
-                  const next = fields.map((entry, i) =>
-                    i === index ? { ...entry, label: e.target.value } : entry,
-                  );
-                  onChange(next);
-                }}
+            {fieldType === "irdNumber" && (
+              <p className="text-xs text-muted-foreground">
+                NZ IRD numbers must be 8–9 digits. Employees will be blocked from saving
+                invalid numbers.
+              </p>
+            )}
+            {fieldType === "kiwiSaverEmployeeRate" && (
+              <p className="text-xs text-muted-foreground">
+                Supported employee rates: {DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS.map((rate) =>
+                  `${Number(rate) * 100}%`,
+                ).join(", ")}.
+              </p>
+            )}
+            {fieldType === "kiwiSaverEmployerRate" && (
+              <p className="text-xs text-muted-foreground">
+                Employer contributions must be at least 3% when the employee is enrolled in
+                KiwiSaver.
+              </p>
+            )}
+            {fieldType === "kiwiSaverStatus" && (
+              <p className="text-xs text-muted-foreground">
+                Track whether the employee is enrolled, opted out, or on a contributions
+                holiday.
+              </p>
+            )}
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={Boolean(field.required)}
+                onCheckedChange={(checked) =>
+                  updateField(index, { required: checked === true })
+                }
               />
-            </div>
-            <div>
-              <Label>Default value (optional)</Label>
-              <Input
-                value={field.defaultValue || ""}
-                onChange={(e) => {
-                  const next = fields.map((entry, i) =>
-                    i === index ? { ...entry, defaultValue: e.target.value } : entry,
-                  );
-                  onChange(next);
-                }}
-              />
-            </div>
-            <div>
-              <Label>Placeholder (optional)</Label>
-              <Input
-                value={field.placeholder || ""}
-                onChange={(e) => {
-                  const next = fields.map((entry, i) =>
-                    i === index ? { ...entry, placeholder: e.target.value } : entry,
-                  );
-                  onChange(next);
-                }}
-              />
+              Required from employee
+            </label>
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onChange(fields.filter((_, i) => i !== index))}
+              >
+                Remove
+              </Button>
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox
-              checked={Boolean(field.required)}
-              onCheckedChange={(checked) => {
-                const next = fields.map((entry, i) =>
-                  i === index ? { ...entry, required: checked === true } : entry,
-                );
-                onChange(next);
-              }}
-            />
-            Required from employee
-          </label>
-          <div className="flex justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onChange(fields.filter((_, i) => i !== index))}
-            >
-              Remove
-            </Button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
       {!fields.length && (
         <p className="text-sm text-muted-foreground">
           Add payroll fields to collect during onboarding.
@@ -344,6 +514,8 @@ function EditablePayrollFields({
               label: "",
               defaultValue: "",
               required: true,
+              fieldType: "text",
+              placeholder: "",
             },
           ])
         }
@@ -353,6 +525,7 @@ function EditablePayrollFields({
     </div>
   );
 }
+
 
 const metadataConfigs: Record<string, MetadataConfig<any>> = {
   "acknowledge-document": {

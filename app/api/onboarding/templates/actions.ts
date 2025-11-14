@@ -1,5 +1,111 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
 import { mapSteps } from "./stepMapper";
+
+const sanitizeIds = (values: unknown): string[] =>
+  Array.from(
+    new Set(
+      (Array.isArray(values) ? values : [])
+        .map((value) => (typeof value === "string" ? value.trim() : ""))
+        .filter(Boolean),
+    ),
+  );
+
+const normalizeSteps = (steps: unknown): any[] =>
+  Array.isArray(steps)
+    ? steps.map((step) => ({
+        ...step,
+        metadata: normalizeStepMetadata(step?.type, step?.metadata),
+      }))
+    : [];
+
+async function validateScopedResources(
+  companyId: string,
+  prismaClient: typeof prisma,
+  {
+    departmentIds,
+    jobRoleIds,
+    steps,
+  }: { departmentIds: string[]; jobRoleIds: string[]; steps: any[] },
+) {
+  if (departmentIds.length) {
+    const count = await prismaClient.department.count({
+      where: { companyId, id: { in: departmentIds } },
+    });
+    if (count !== departmentIds.length) {
+      throw new Error("Departments must belong to the current company");
+    }
+  }
+
+  if (jobRoleIds.length) {
+    const count = await prismaClient.jobRole.count({
+      where: { companyId, id: { in: jobRoleIds } },
+    });
+    if (count !== jobRoleIds.length) {
+      throw new Error("Job roles must belong to the current company");
+    }
+  }
+
+  const documentIds = Array.from(
+    new Set(
+      steps
+        .map((step) =>
+          typeof step?.documentId === "string" ? step.documentId.trim() : "",
+        )
+        .filter(Boolean),
+    ),
+  );
+  if (documentIds.length) {
+    const documents = await prismaClient.document.findMany({
+      where: { companyId, id: { in: documentIds } },
+      select: { id: true },
+    });
+    if (documents.length !== documentIds.length) {
+      throw new Error("Documents must belong to the current company");
+    }
+  }
+
+  const formIds = Array.from(
+    new Set(
+      steps
+        .map((step) =>
+          typeof step?.formId === "string" ? step.formId.trim() : "",
+        )
+        .filter(Boolean),
+    ),
+  );
+  if (formIds.length) {
+    const forms = await prismaClient.form.findMany({
+      where: { companyId, id: { in: formIds } },
+      select: { id: true },
+    });
+    if (forms.length !== formIds.length) {
+      throw new Error("Forms must belong to the current company");
+    }
+  }
+
+  const journeyTemplateIds = Array.from(
+    new Set(
+      steps
+        .filter((step) => step?.type === "journey-automation")
+        .map((step) =>
+          typeof step?.metadata?.journeyTemplateId === "string"
+            ? step.metadata.journeyTemplateId.trim()
+            : "",
+        )
+        .filter(Boolean),
+    ),
+  );
+  if (journeyTemplateIds.length) {
+    const journeys = await prismaClient.journeyTemplate.findMany({
+      where: { companyId, id: { in: journeyTemplateIds } },
+      select: { id: true },
+    });
+    if (journeys.length !== journeyTemplateIds.length) {
+      throw new Error("Journey templates must belong to the current company");
+    }
+  }
+}
 
 export async function createTemplate(
   session: any,
@@ -14,7 +120,17 @@ export async function createTemplate(
     steps = [],
     isActive = false,
   } = body;
-  const filteredSteps = mapSteps(steps);
+  const departmentIds = sanitizeIds(departments);
+  const jobRoleIds = sanitizeIds(jobRoles);
+  const normalizedSteps = normalizeSteps(steps);
+
+  await validateScopedResources(session.user.companyId, prismaClient, {
+    departmentIds,
+    jobRoleIds,
+    steps: normalizedSteps,
+  });
+
+  const filteredSteps = mapSteps(normalizedSteps);
   return prismaClient.onboardingTemplate.create({
     data: {
       id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -25,12 +141,12 @@ export async function createTemplate(
       updatedById: session.user.id,
       updatedAt: new Date(),
       Department:
-        departments.length > 0
-          ? { connect: departments.map((id: string) => ({ id })) }
+        departmentIds.length > 0
+          ? { connect: departmentIds.map((id: string) => ({ id })) }
           : undefined,
       JobRole:
-        jobRoles.length > 0
-          ? { connect: jobRoles.map((id: string) => ({ id })) }
+        jobRoleIds.length > 0
+          ? { connect: jobRoleIds.map((id: string) => ({ id })) }
           : undefined,
       OnboardingStep: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
     },
@@ -57,7 +173,17 @@ export async function updateTemplate(
     steps = [],
     isActive,
   } = body;
-  const filteredSteps = mapSteps(steps);
+  const departmentIds = sanitizeIds(departments);
+  const jobRoleIds = sanitizeIds(jobRoles);
+  const normalizedSteps = normalizeSteps(steps);
+
+  await validateScopedResources(session.user.companyId, prismaClient, {
+    departmentIds,
+    jobRoleIds,
+    steps: normalizedSteps,
+  });
+
+  const filteredSteps = mapSteps(normalizedSteps);
 
   // Remove existing step data with cascading order
   await prismaClient.onboardingStepResponse.deleteMany({
@@ -77,15 +203,11 @@ export async function updateTemplate(
       updatedById: session.user.id,
       Department: {
         set: [],
-        connect:
-          departments.length > 0
-            ? departments.map((id: string) => ({ id }))
-            : [],
+        connect: departmentIds.length > 0 ? departmentIds.map((id: string) => ({ id })) : [],
       },
       JobRole: {
         set: [],
-        connect:
-          jobRoles.length > 0 ? jobRoles.map((id: string) => ({ id })) : [],
+        connect: jobRoleIds.length > 0 ? jobRoleIds.map((id: string) => ({ id })) : [],
       },
       OnboardingStep: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
     },

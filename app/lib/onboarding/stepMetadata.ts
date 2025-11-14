@@ -22,12 +22,40 @@ export type TimelineItem = {
   scheduledAt?: string;
 };
 
+export const PAYROLL_FIELD_TYPES = [
+  "text",
+  "number",
+  "select",
+  "irdNumber",
+  "kiwiSaverStatus",
+  "kiwiSaverEmployeeRate",
+  "kiwiSaverEmployerRate",
+] as const;
+
+export type PayrollFieldType = (typeof PAYROLL_FIELD_TYPES)[number];
+
+export const DEFAULT_KIWISAVER_STATUS_OPTIONS = [
+  "enrolled",
+  "opted_out",
+  "contributions_holiday",
+] as const;
+
+export const DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS = [
+  "0.03",
+  "0.04",
+  "0.06",
+  "0.08",
+  "0.10",
+] as const;
+
 export type PayrollField = {
   id: string;
   label: string;
   defaultValue?: string;
   required?: boolean;
   placeholder?: string;
+  fieldType?: PayrollFieldType;
+  options?: string[];
 };
 
 export type JourneyAutomationMetadata = {
@@ -61,6 +89,21 @@ const asBoolean = (value: unknown, fallback = false) =>
   typeof value === "boolean" ? value : Boolean(value ?? fallback);
 
 const ensureArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? value : []);
+
+const asPayrollFieldType = (value: unknown): PayrollFieldType => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if ((PAYROLL_FIELD_TYPES as readonly string[]).includes(trimmed)) {
+      return trimmed as PayrollFieldType;
+    }
+  }
+  return "text";
+};
+
+const asStringArray = (value: unknown): string[] =>
+  ensureArray<string>(value)
+    .map((entry) => asTrimmedString(entry))
+    .filter(Boolean);
 
 const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
   "acknowledge-document": {
@@ -454,26 +497,88 @@ const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
   },
   "payroll-setup": {
     defaults: () => ({
-      instructions: "Collect bank details and tax information.",
+      instructions:
+        "Collect bank details, IRD information, and KiwiSaver preferences.",
       fields: [
         {
-          id: "bank-account",
+          id: "bankAccountNumber",
           label: "Bank account number",
+          placeholder: "00-0000-0000000-00",
           required: true,
+          fieldType: "text",
         },
-        { id: "tax-code", label: "Tax code", required: true },
+        {
+          id: "irdNumber",
+          label: "IRD number",
+          placeholder: "123-456-789",
+          required: true,
+          fieldType: "irdNumber",
+        },
+        {
+          id: "taxCode",
+          label: "Tax code",
+          placeholder: "e.g. M SL",
+          required: true,
+          fieldType: "text",
+        },
+        {
+          id: "kiwiSaverStatus",
+          label: "KiwiSaver status",
+          required: true,
+          defaultValue: DEFAULT_KIWISAVER_STATUS_OPTIONS[0],
+          fieldType: "kiwiSaverStatus",
+          options: Array.from(DEFAULT_KIWISAVER_STATUS_OPTIONS),
+        },
+        {
+          id: "kiwiSaverEmployeeRate",
+          label: "KiwiSaver employee rate",
+          required: false,
+          defaultValue: DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS[0],
+          fieldType: "kiwiSaverEmployeeRate",
+          options: Array.from(DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS),
+        },
+        {
+          id: "kiwiSaverEmployerRate",
+          label: "KiwiSaver employer rate",
+          required: false,
+          placeholder: "Minimum 3%",
+          fieldType: "kiwiSaverEmployerRate",
+        },
       ],
     }),
     normalize: (value: unknown) => {
       const base = (typeof value === "object" && value) || {};
       const fields = ensureArray<PayrollField>((base as any).fields).map(
-        (field, index) => ({
-          id: asTrimmedString(field?.id, createStableId("payroll", index)),
-          label: asTrimmedString(field?.label, `Field ${index + 1}`),
-          defaultValue: asString(field?.defaultValue, ""),
-          placeholder: asString(field?.placeholder, ""),
-          required: asBoolean(field?.required, true),
-        }),
+        (field, index) => {
+          const fieldType = asPayrollFieldType(
+            (field as any).fieldType ?? (field as any).type,
+          );
+          const normalizedOptions = (() => {
+            if (fieldType === "kiwiSaverEmployeeRate") {
+              return Array.from(DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS);
+            }
+            if (fieldType === "kiwiSaverStatus") {
+              return Array.from(DEFAULT_KIWISAVER_STATUS_OPTIONS);
+            }
+            if (fieldType === "select") {
+              return asStringArray((field as any).options);
+            }
+            return [] as string[];
+          })();
+          const defaultValue = asString(
+            (field as any).defaultValue,
+            normalizedOptions.length ? normalizedOptions[0] : "",
+          );
+          return {
+            id: asTrimmedString(field?.id, createStableId("payroll", index)),
+            label: asTrimmedString(field?.label, `Field ${index + 1}`),
+            defaultValue,
+            placeholder: asString(field?.placeholder, ""),
+            required: asBoolean(field?.required, true),
+            fieldType,
+            options: normalizedOptions,
+          } satisfies PayrollField;
+        },
       );
       return {
         instructions: asString((base as any).instructions, ""),
@@ -503,6 +608,17 @@ const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
               defaultValue: { type: "string" },
               placeholder: { type: "string" },
               required: { type: "boolean", default: true },
+              fieldType: {
+                type: "string",
+                enum: Array.from(PAYROLL_FIELD_TYPES),
+                default: "text",
+              },
+              options: {
+                type: "array",
+                items: { type: "string" },
+                description:
+                  "Dropdown options for select-type payroll fields",
+              },
             },
           },
         },

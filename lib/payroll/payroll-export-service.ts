@@ -396,27 +396,38 @@ export class PayrollExportService {
     const rate = parseFloat(hourlyRate?.toString() || '25');
 
     for (const entry of entries) {
-      const overtimeHours = entry.overtimeHours ? parseFloat(entry.overtimeHours.toString()) : 0;
-      const multiplier = entry.overtimeMultiplier ? parseFloat(entry.overtimeMultiplier.toString()) : 1.5;
-      
       // Public holiday hours (separate category, uses precise publicHolidayHours)
       // This includes partial-day holidays and Mondayised holidays
-      if (entry.isPublicHoliday && entry.publicHolidayHours) {
-        const pubHolidayHours = parseFloat(entry.publicHolidayHours.toString());
+      const pubHolidayHours = entry.publicHolidayHours
+        ? parseFloat(entry.publicHolidayHours.toString())
+        : 0;
+      const totalEntryHours = entry.hours ? parseFloat(entry.hours.toString()) : 0;
+      const coversEntireShift =
+        pubHolidayHours > 0 && totalEntryHours > 0 && Math.abs(pubHolidayHours - totalEntryHours) < 0.01;
+
+      const overtimeHours = entry.overtimeHours ? parseFloat(entry.overtimeHours.toString()) : 0;
+      const multiplier = entry.overtimeMultiplier ? parseFloat(entry.overtimeMultiplier.toString()) : 1.5;
+      let remainingOvertime = overtimeHours;
+
+      if (pubHolidayHours > 0) {
         const pubMultiplier = parseFloat(entry.publicHolidayMultiplier?.toString() || '2.0');
         breakdown.publicHolidayHours += pubHolidayHours;
         breakdown.publicHolidayPay += pubHolidayHours * rate * pubMultiplier;
+
+        const holidayProportion = totalEntryHours > 0 ? pubHolidayHours / totalEntryHours : 0;
+        const holidayOvertimeHours = Math.min(remainingOvertime, remainingOvertime * holidayProportion);
+        remainingOvertime = Math.max(0, remainingOvertime - holidayOvertimeHours);
       }
-      
+
       // Standard overtime (1.5x) - excludes public holiday hours
-      if (overtimeHours > 0 && !entry.isPublicHoliday) {
+      if (remainingOvertime > 0 && !coversEntireShift) {
         if (Math.abs(multiplier - 1.5) < 0.01) {
-          breakdown.standardOvertimeHours += overtimeHours;
-          breakdown.standardOvertimePay += overtimeHours * rate * multiplier;
+          breakdown.standardOvertimeHours += remainingOvertime;
+          breakdown.standardOvertimePay += remainingOvertime * rate * multiplier;
         } else {
           // Tier 2 overtime (2.0x or higher, but not public holiday)
-          breakdown.tier2OvertimeHours += overtimeHours;
-          breakdown.tier2OvertimePay += overtimeHours * rate * multiplier;
+          breakdown.tier2OvertimeHours += remainingOvertime;
+          breakdown.tier2OvertimePay += remainingOvertime * rate * multiplier;
         }
       }
     }

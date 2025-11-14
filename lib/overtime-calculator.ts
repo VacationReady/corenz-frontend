@@ -616,8 +616,12 @@ export async function calculateOvertimeForEntry(
     }
   }
 
-  const isPublicHoliday = holidaySegments.length > 0;
   const publicHolidayHours = holidaySegments.reduce((sum, segment) => sum + segment.hours, 0);
+  const isPublicHoliday = publicHolidayHours > 0;
+
+  const totalWorkedHours = entry.hours;
+  const coversEntireShift =
+    isPublicHoliday && totalWorkedHours > 0 && Math.abs(publicHolidayHours - totalWorkedHours) < 0.001;
 
   // Determine alternative day entitlement – granted when any public holiday hours were worked
   const alternativeDayGranted = isPublicHoliday && publicHolidayHours > 0;
@@ -671,12 +675,24 @@ export async function calculateOvertimeForEntry(
   let multiplier = baseMultiplier;
   let specialDayReason = '';
   
-  if (isPublicHoliday) {
+  if (coversEntireShift) {
     multiplier = settings.publicHolidayMultiplier;
     specialDayReason = ' (Public Holiday)';
-  } else if (settings.sundayMultiplier && isSunday(entry.date)) {
-    multiplier = settings.sundayMultiplier;
-    specialDayReason = ' (Sunday Premium)';
+  } else {
+    const reasons: string[] = [];
+
+    if (settings.sundayMultiplier && isSunday(entry.date)) {
+      multiplier = settings.sundayMultiplier;
+      reasons.push('Sunday Premium');
+    }
+
+    if (isPublicHoliday) {
+      reasons.push('Partial Public Holiday');
+    }
+
+    if (reasons.length > 0) {
+      specialDayReason = ` (${reasons.join(' + ')})`;
+    }
   }
 
   // Route to appropriate calculation method based on mode

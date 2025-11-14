@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
 import { mapSteps } from "./stepMapper";
+import { serializeTemplate, templateSelect } from "./tenantScopedFetch";
 
 const sanitizeIds = (values: unknown): string[] =>
   Array.from(
@@ -131,7 +132,7 @@ export async function createTemplate(
   });
 
   const filteredSteps = mapSteps(normalizedSteps);
-  return prismaClient.onboardingTemplate.create({
+  const template = await prismaClient.onboardingTemplate.create({
     data: {
       id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name,
@@ -150,13 +151,12 @@ export async function createTemplate(
           : undefined,
       OnboardingStep: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
     },
-    include: {
-      Department: { select: { id: true, name: true } },
-      JobRole: { select: { id: true, name: true } },
-      OnboardingStep: true,
-      User: { select: { id: true, name: true, email: true } },
-    },
+    select: templateSelect,
   });
+  return serializeTemplate(
+    { ...template, companyId: session.user.companyId },
+    session.user.companyId,
+  );
 }
 
 export async function updateTemplate(
@@ -194,7 +194,7 @@ export async function updateTemplate(
   });
   await prismaClient.onboardingStep.deleteMany({ where: { templateId: id } });
 
-  return prismaClient.onboardingTemplate.update({
+  const template = await prismaClient.onboardingTemplate.update({
     where: { id },
     data: {
       name,
@@ -211,12 +211,11 @@ export async function updateTemplate(
       },
       OnboardingStep: filteredSteps.length > 0 ? { create: filteredSteps } : undefined,
     },
-    include: {
-      Department: { select: { id: true, name: true } },
-      JobRole: { select: { id: true, name: true } },
-      OnboardingStep: true,
-      User: { select: { id: true, name: true, email: true } },
-    },
+    select: templateSelect,
   });
+  return serializeTemplate(
+    { ...template, companyId: session.user.companyId },
+    session.user.companyId,
+  );
 }
 

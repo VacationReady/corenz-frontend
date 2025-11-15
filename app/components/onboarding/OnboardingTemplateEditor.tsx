@@ -108,7 +108,14 @@ const clone = <T,>(value: T): T => {
 };
 
 const hydrateTemplateStep = (step: any) => {
-  const uiType = mapDbStepTypeToUi(step.type) || step.type;
+  const baseType =
+    (step && typeof step === "object" && (step as any).uiType)
+      ? (step as any).uiType
+      : step.type;
+  const uiType = mapDbStepTypeToUi(baseType) ||
+    (typeof baseType === "string"
+      ? baseType.toLowerCase().replace(/_/g, "-")
+      : baseType);
   return {
     key:
       step.id ||

@@ -124,12 +124,16 @@ test("GET onboarding instance hydrates metadata and responses", async () => {
   const docStep = data.steps[0];
   assert.equal(docStep.type, "acknowledge-document");
   assert.equal(docStep.document?.url, "https://signed");
+  assert.deepEqual(docStep.metadata, {
+    acknowledgementText: "I have read and acknowledge this document",
+  });
   const formStep = data.steps[1];
   assert.equal(formStep.form?.id, "form1");
   assert.deepEqual(formStep.existingResponse, { formResponse: { field: "value" } });
+  assert.deepEqual(formStep.metadata, { guidance: "" });
   const equipmentStep = data.steps[2];
   assert.deepEqual(equipmentStep.metadata, {
-    items: [{ id: "laptop", label: "Laptop" }],
+    items: [{ id: "laptop", label: "Laptop", required: true, notes: "" }],
   });
   assert.deepEqual(equipmentStep.existingResponse, {
     equipmentChecklist: [{ id: "laptop", completed: true }],

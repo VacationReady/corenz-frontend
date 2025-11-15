@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { DndContext, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -50,6 +50,8 @@ import {
   mapDbStepTypeToUi,
   mapDbUploadTypeToUi,
 } from "@/lib/onboarding/stepTypeMapping";
+import { useTenantMetadataVersioning, type PendingVersion } from "./builder/useTenantMetadataVersioning";
+import { useSession } from "next-auth/react";
 
 // --- Step Types
 const STEP_TYPES = [
@@ -94,6 +96,62 @@ function createStep(type: string) {
     metadata: getDefaultMetadataForStep(type),
   };
 }
+
+const clone = <T,>(value: T): T => {
+  if (
+    typeof globalThis !== "undefined" &&
+    typeof (globalThis as { structuredClone?: <V>(payload: V) => V }).structuredClone === "function"
+  ) {
+    return (globalThis as { structuredClone: <V>(payload: V) => V }).structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value)) as T;
+};
+
+const hydrateTemplateStep = (step: any) => {
+  const uiType = mapDbStepTypeToUi(step.type) || step.type;
+  return {
+    key:
+      step.id ||
+      step.key ||
+      (typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2)),
+    id: step.id,
+    type: uiType,
+    title: step.label || "",
+    description: step.instruction || "",
+    required: step.required ?? true,
+    documentId: step.documentId || "",
+    uploadType: mapDbUploadTypeToUi(step.uploadType),
+    formId: step.formId || "",
+    formFields: step.formFields || [],
+    metadata: normalizeStepMetadata(uiType, step.metadata),
+  };
+};
+
+const hydrateTemplateSteps = (template?: any) =>
+  template?.steps?.length ? template.steps.map(hydrateTemplateStep) : [];
+
+const buildAuditSummaryDescription = (version: PendingVersion) => {
+  const changeLines = version.changes.map((change) => {
+    const fields = change.changes.map((item) => item.field).join(", ");
+    return (
+      <li key={change.stepKey} className="text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">{change.stepTitle || "Step"}</span>
+        {fields ? ` — ${fields}` : " — metadata updated"}
+      </li>
+    );
+  });
+
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="text-xs text-muted-foreground">
+        Tenant {version.tenantId} • Metadata version {version.version}
+      </div>
+      <ul className="list-disc space-y-1 pl-4">{changeLines}</ul>
+    </div>
+  );
+};
 
 // --- Document dropdown (API)
 function DocumentDropdown({
@@ -525,6 +583,10 @@ export default function OnboardingTemplateEditor({
   onSaved: () => void;
   onCancel: () => void;
 }) {
+  const { data: session } = useSession();
+  const tenantId = session?.user?.companyId ?? null;
+  const { queueMetadataChange, prepareCommit, commit, rollback } =
+    useTenantMetadataVersioning();
   const [name, setName] = useState(template?.name || "");
   const [description, setDescription] = useState(template?.description || "");
   const [departments, setDepartments] = useState<string[]>(
@@ -539,30 +601,9 @@ export default function OnboardingTemplateEditor({
   const [jobRolesList, setJobRolesList] = useState<
     { label: string; value: string }[]
   >([]);
-  const [steps, setSteps] = useState<any[]>(() =>
-    template?.steps?.length
-      ? template.steps.map((step: any) => {
-          const uiType = mapDbStepTypeToUi(step.type) || step.type;
-          return {
-            key:
-              step.id ||
-              step.key ||
-              (typeof crypto !== "undefined" && crypto.randomUUID
-                ? crypto.randomUUID()
-                : Math.random().toString(36).slice(2)),
-            id: step.id,
-            type: uiType,
-            title: step.label || "",
-            description: step.instruction || "",
-            required: step.required ?? true,
-            documentId: step.documentId || "",
-            uploadType: mapDbUploadTypeToUi(step.uploadType),
-            formId: step.formId || "",
-            formFields: step.formFields || [],
-            metadata: normalizeStepMetadata(uiType, step.metadata),
-          };
-        })
-      : [],
+  const [steps, setSteps] = useState<any[]>(() => hydrateTemplateSteps(template));
+  const [baselineSteps, setBaselineSteps] = useState<any[]>(() =>
+    hydrateTemplateSteps(template),
   );
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(
@@ -571,38 +612,23 @@ export default function OnboardingTemplateEditor({
 
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const baselineMapRef = useRef<Map<string, any>>(new Map());
+
+  useEffect(() => {
+    baselineMapRef.current = new Map(
+      baselineSteps.map((step: any) => [getStepKey(step), step]),
+    );
+  }, [baselineSteps]);
 
   useEffect(() => {
     setName(template?.name || "");
     setDescription(template?.description || "");
     setDepartments(template?.departments?.map((d: any) => d.id) || []);
     setJobRoles(template?.jobRoles?.map((j: any) => j.id) || []);
-    setSteps(
-      template?.steps?.length
-        ? template.steps.map((step: any) => {
-            const uiType = mapDbStepTypeToUi(step.type) || step.type;
-            return {
-              key:
-                step.id ||
-                step.key ||
-                (typeof crypto !== "undefined" && crypto.randomUUID
-                  ? crypto.randomUUID()
-                  : Math.random().toString(36).slice(2)),
-              id: step.id,
-              type: uiType,
-              title: step.label || "",
-              description: step.instruction || "",
-              required: step.required ?? true,
-              documentId: step.documentId || "",
-              uploadType: mapDbUploadTypeToUi(step.uploadType),
-              formId: step.formId || "",
-              formFields: step.formFields || [],
-              metadata: normalizeStepMetadata(uiType, step.metadata),
-            };
-          })
-        : [],
-    );
-    setSelectedIndex(template?.steps?.length ? 0 : null);
+    const hydrated = hydrateTemplateSteps(template);
+    setSteps(hydrated);
+    setBaselineSteps(hydrated);
+    setSelectedIndex(hydrated.length ? 0 : null);
   }, [template]);
 
   useEffect(() => {
@@ -632,33 +658,87 @@ export default function OnboardingTemplateEditor({
     fetchDropdownData();
   }, []);
 
-  const addStep = useCallback((type: string) => {
-    setSteps((prev) => {
-      const next = [...prev, createStep(type)];
-      setSelectedIndex(next.length - 1);
-      return next;
-    });
-  }, []);
+  const addStep = useCallback(
+    (type: string) => {
+      setSteps((prev) => {
+        const next = [...prev, createStep(type)];
+        const created = next[next.length - 1];
+        setSelectedIndex(next.length - 1);
+        if (created && tenantId) {
+          const key = getStepKey(created);
+          const baseline = baselineMapRef.current.get(key);
+          queueMetadataChange(
+            tenantId,
+            key,
+            created.title || created.label || created.type,
+            baseline?.metadata ?? {},
+            created.metadata,
+          );
+        }
+        return next;
+      });
+    },
+    [tenantId, queueMetadataChange],
+  );
 
-  const updateStep = useCallback((idx: number, data: any) => {
-    setSteps((prev) => {
-      const arr = [...prev];
-      const original = arr[idx];
-      const merged = { ...original, ...data };
-      if ("metadata" in data) {
-        merged.metadata = normalizeStepMetadata(
-          merged.type,
-          (data as any).metadata,
-        );
-      }
-      arr[idx] = merged;
-      return arr;
-    });
-  }, []);
+  const updateStep = useCallback(
+    (idx: number, data: any) => {
+      setSteps((prev) => {
+        const arr = [...prev];
+        const original = arr[idx];
+        if (!original) return prev;
+        const merged = { ...original, ...data };
+        if ("metadata" in data) {
+          merged.metadata = normalizeStepMetadata(
+            merged.type,
+            (data as any).metadata,
+          );
+        }
+        arr[idx] = merged;
+        if (tenantId) {
+          const key = getStepKey(merged);
+          const baseline = baselineMapRef.current.get(key);
+          queueMetadataChange(
+            tenantId,
+            key,
+            merged.title || merged.label || merged.type,
+            baseline?.metadata ?? {},
+            merged.metadata,
+          );
+        }
+        return arr;
+      });
+    },
+    [tenantId, queueMetadataChange],
+  );
 
-  const removeStep = useCallback((idx: number) => {
-    setSteps((prev) => prev.filter((_, i) => i !== idx));
-  }, []);
+  const removeStep = useCallback(
+    (idx: number) => {
+      setSteps((prev) => {
+        const next = prev.filter((_, i) => i !== idx);
+        const removed = prev[idx];
+        if (tenantId && removed) {
+          const key = getStepKey(removed);
+          const baseline = baselineMapRef.current.get(key);
+          queueMetadataChange(
+            tenantId,
+            key,
+            removed.title || removed.label || removed.type,
+            baseline?.metadata ?? {},
+            baseline?.metadata ?? {},
+          );
+        }
+        if (selectedIndex !== null) {
+          const nextIndex = next.length
+            ? Math.min(selectedIndex, next.length - 1)
+            : null;
+          setSelectedIndex(nextIndex);
+        }
+        return next;
+      });
+    },
+    [tenantId, queueMetadataChange, selectedIndex],
+  );
 
 	const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
@@ -710,9 +790,17 @@ export default function OnboardingTemplateEditor({
     toast.info(
       "This will not affect previously completed versions of this template, and any outstanding templates will not be altered. This will purely be for any future new starters onboarding using this template",
     );
+
+    const pendingVersion = prepareCommit(tenantId);
+    const previousBaselineSnapshot = clone(baselineSteps);
+    const currentStepsSnapshot = clone(steps);
+    const previousSelectedIndex = selectedIndex;
+
     try {
       setSaving(true);
       if (publish) setPublishing(true);
+      setBaselineSteps(currentStepsSnapshot);
+
       const body = {
         id: template?.id,
         name,
@@ -735,18 +823,49 @@ export default function OnboardingTemplateEditor({
         })),
         isActive: publish,
       };
-    const res = await fetch("/api/onboarding/templates", {
-      method: template?.id ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+      const res = await fetch("/api/onboarding/templates", {
+        method: template?.id ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    if (res.ok) {
-      toast.success(`Template ${publish ? "published" : "saved"}!`);
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.error || "Error saving template");
+      }
+
+      if (tenantId && pendingVersion) {
+        commit(tenantId, pendingVersion);
+      }
+
+      const summaryDescription =
+        tenantId && pendingVersion && pendingVersion.changes.length
+          ? buildAuditSummaryDescription(pendingVersion)
+          : undefined;
+
+      toast.success(`Template ${publish ? "published" : "saved"}!`, {
+        description:
+          summaryDescription ??
+          (tenantId && pendingVersion
+            ? `Tenant ${tenantId} • Metadata version ${pendingVersion.version}`
+            : undefined),
+      });
+
       onSaved();
-    } else {
-      toast.error("Error saving template");
-    }
+    } catch (error) {
+      if (tenantId) {
+        rollback(tenantId);
+      }
+      setBaselineSteps(previousBaselineSnapshot);
+      setSteps(previousBaselineSnapshot);
+      setSelectedIndex(
+        previousBaselineSnapshot.length
+          ? Math.min(previousSelectedIndex ?? 0, previousBaselineSnapshot.length - 1)
+          : null,
+      );
+      const message =
+        error instanceof Error ? error.message : "Error saving template";
+      toast.error(message);
     } finally {
       setSaving(false);
       setPublishing(false);

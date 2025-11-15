@@ -1,5 +1,5 @@
-import { Suspense } from "react";
-import { Card } from "@/components/ui/Card";
+import { Card, CardTitle } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 
 async function fetchDashboard() {
   const res = await fetch(
@@ -14,14 +14,44 @@ async function fetchDashboard() {
   return res.json();
 }
 
-export default async function OnboardingDashboardPage() {
-  const data = await fetchDashboard();
+async function fetchTelemetry() {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/onboarding/telemetry`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) {
+      return { error: true } as any;
+    }
+    return res.json();
+  } catch (error) {
+    console.error("Telemetry fetch error:", error);
+    return { error: true } as any;
+  }
+}
 
-  if (data?.error) {
+export default async function OnboardingDashboardPage() {
+  const [dashboardData, telemetryResponse] = await Promise.all([
+    fetchDashboard(),
+    fetchTelemetry(),
+  ]);
+
+  const telemetry = telemetryResponse?.success ? telemetryResponse.data : null;
+
+  if (dashboardData?.error) {
     return <div className="p-6">Failed to load onboarding dashboard.</div>;
   }
 
-  const { summary, items } = data;
+  const { summary, items } = dashboardData || {};
+  const telemetrySummary = telemetry?.summary;
+  const templateHotspots = telemetry?.templateHotspots ?? [];
+  const recentTelemetryEvents = telemetry?.recentEvents ?? [];
+  const companyCode = telemetry?.company?.code?.toLowerCase() ?? "";
+  const publicHolidayRegion =
+    telemetry?.company?.publicHolidayRegion?.toLowerCase() ?? "";
+  const isNzTenant = Boolean(
+    companyCode.includes("nz") || publicHolidayRegion.includes("nz"),
+  );
 
   return (
     <div className="p-6 space-y-6">
@@ -35,6 +65,133 @@ export default async function OnboardingDashboardPage() {
         <Card title="Overdue">
           <div className="text-3xl font-bold text-red-600">
             {summary?.overdue ?? 0}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <Card title="Telemetry Health" className="h-full">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <CardTitle className="text-base font-semibold text-muted-foreground">
+                {telemetry?.company?.name || "Unknown tenant"}
+              </CardTitle>
+              {isNzTenant ? (
+                <Badge className="bg-emerald-600 text-white">NZ Launch Focus</Badge>
+              ) : null}
+              <Badge variant="outline" className="text-xs">
+                {telemetrySummary?.lastUpdatedAt
+                  ? new Date(telemetrySummary.lastUpdatedAt).toLocaleString()
+                  : "No telemetry captured"}
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <TelemetryStat
+                label="Template Load Failures"
+                value={telemetrySummary?.templateLoadFailures ?? 0}
+                variant="error"
+              />
+              <TelemetryStat
+                label="Metadata Mismatches"
+                value={telemetrySummary?.metadataMismatches ?? 0}
+                variant="warning"
+              />
+              <TelemetryStat
+                label="Tracked Issues"
+                value={telemetrySummary?.totalEvents ?? 0}
+                variant="info"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Hotspots
+              </h3>
+              {templateHotspots.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No telemetry alerts detected for this tenant yet. Great work!
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {templateHotspots.map((hotspot: any) => (
+                    <li
+                      key={hotspot.templateId}
+                      className="rounded-xl border border-border/50 bg-background/60 px-4 py-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            {hotspot.templateName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {hotspot.affectedSteps?.length
+                              ? `Affected steps: ${hotspot.affectedSteps.join(", ")}`
+                              : "Captured during validation"}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {hotspot.mismatchCount} mismatch
+                          {hotspot.mismatchCount === 1 ? "" : "es"}
+                        </Badge>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        <Card title="Recent Telemetry Events" className="h-full">
+          <div className="overflow-x-auto">
+            {recentTelemetryEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No onboarding telemetry captured yet. Run through a template to ensure
+                everything is wired correctly before launch.
+              </p>
+            ) : (
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b">
+                    <th className="p-3">Type</th>
+                    <th className="p-3">Template</th>
+                    <th className="p-3">Step</th>
+                    <th className="p-3">Occurrences</th>
+                    <th className="p-3">Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentTelemetryEvents.map((event: any) => (
+                    <tr key={event.id} className="border-b align-top">
+                      <td className="p-3">
+                        <Badge
+                          variant={event.severity === "error" ? "destructive" : "outline"}
+                          className="text-xs uppercase tracking-wide"
+                        >
+                          {event.eventType.replace(/_/g, " ")}
+                        </Badge>
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          {event.message}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        {event.templateName || "-"}
+                      </td>
+                      <td className="p-3">
+                        {event.stepLabel || "-"}
+                      </td>
+                      <td className="p-3">{event.occurrenceCount}</td>
+                      <td className="p-3">
+                        {event.lastSeenAt
+                          ? new Date(event.lastSeenAt).toLocaleString()
+                          : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </Card>
       </div>
@@ -80,6 +237,32 @@ export default async function OnboardingDashboardPage() {
           </table>
         </div>
       </Card>
+    </div>
+  );
+}
+
+function TelemetryStat({
+  label,
+  value,
+  variant,
+}: {
+  label: string;
+  value: number;
+  variant: "info" | "warning" | "error";
+}) {
+  const variantClass =
+    variant === "error"
+      ? "text-rose-600"
+      : variant === "warning"
+      ? "text-amber-600"
+      : "text-primary";
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-background/60 px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className={`text-2xl font-bold ${variantClass}`}>{value}</p>
     </div>
   );
 }

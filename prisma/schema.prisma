@@ -211,6 +211,7 @@ model Company {
   NotificationChannel                 NotificationChannel[]
   NotificationSettings                NotificationSettings?
   OnboardingTemplate                  OnboardingTemplate[]
+  OnboardingTemplateTelemetryEvent    OnboardingTemplateTelemetryEvent[]
   PermissionProfile                   PermissionProfile[]
   SCIMConfiguration                   SCIMConfiguration?
   SSOConfiguration                    SSOConfiguration?
@@ -1376,6 +1377,26 @@ model OnboardingTemplate {
   JobRole              JobRole[]              @relation("OnboardingTemplateJobRoles")
 
   @@unique([companyId, name])
+}
+
+model OnboardingTemplateTelemetryEvent {
+  id              String   @id @default(uuid())
+  companyId       String
+  templateId      String?
+  stepId          String?
+  eventType       String
+  severity        String
+  message         String
+  fingerprint     String
+  details         Json?
+  firstSeenAt     DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+  occurrenceCount Int      @default(1)
+  Company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, fingerprint])
+  @@index([companyId, eventType, lastSeenAt])
+  @@index([templateId, lastSeenAt])
 }
 
 model PermissionAudit {

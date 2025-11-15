@@ -4,7 +4,16 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { z } from "zod";
-import { JOURNEY_ID_REGEX, normaliseJourneyId, isReservedPrefix } from "../metadata/transformers";
+import {
+  JOURNEY_ID_REGEX,
+  normaliseJourneyId,
+  isReservedPrefix,
+} from "../metadata/transformers";
+
+const isJourneyIdTag = (tag: string) => {
+  const normalised = normaliseJourneyId(tag);
+  return JOURNEY_ID_REGEX.test(normalised) && /\d/.test(normalised);
+};
 
 const bodySchema = z.object({
   journeyId: z.string().min(3).max(64),
@@ -49,14 +58,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const existing = await prisma.journeyTemplate.findFirst({
+    const conflictSource = await prisma.journeyTemplate.findMany({
       where: {
         companyId: session.user.companyId,
-        tags: { has: candidate },
         ...(payload.templateId ? { NOT: { id: payload.templateId } } : {}),
+        tags: { isEmpty: false },
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, tags: true },
     });
+
+    const existing = conflictSource.find((template) =>
+      (template.tags || []).some((tag) => normaliseJourneyId(tag) === candidate),
+    );
 
     if (existing) {
       return NextResponse.json(
@@ -123,21 +136,34 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Journey template not found" }, { status: 404 });
     }
 
-    const duplicate = await prisma.journeyTemplate.findFirst({
+    const conflictSource = await prisma.journeyTemplate.findMany({
       where: {
         companyId: session.user.companyId,
-        tags: { has: candidate },
         NOT: { id: payload.templateId },
+        tags: { isEmpty: false },
       },
-      select: { id: true },
+      select: { id: true, tags: true },
     });
+
+    const duplicate = conflictSource.find((template) =>
+      (template.tags || []).some((tag) => normaliseJourneyId(tag) === candidate),
+    );
 
     if (duplicate) {
       return NextResponse.json({ error: "Journey ID already in use" }, { status: 409 });
     }
 
-    const preservedTags = (existing.tags || []).filter((tag) => !JOURNEY_ID_REGEX.test(normaliseJourneyId(tag)));
-    preservedTags.push(candidate);
+    const preservedTags = (existing.tags || []).filter((tag) => {
+      if (!isJourneyIdTag(tag)) {
+        return true;
+      }
+
+      return normaliseJourneyId(tag) === candidate;
+    });
+
+    if (!preservedTags.some((tag) => normaliseJourneyId(tag) === candidate)) {
+      preservedTags.push(candidate);
+    }
 
     await prisma.journeyTemplate.update({
       where: { id: payload.templateId },

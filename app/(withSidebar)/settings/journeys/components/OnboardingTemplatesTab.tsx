@@ -97,6 +97,7 @@ export function OnboardingTemplatesTab() {
         departments: template.departments.map((d) => d.id),
         jobRoles: template.jobRoles.map((j) => j.id),
         isActive: !template.isActive,
+        lastKnownUpdatedAt: template.updatedAt,
       }),
     });
 

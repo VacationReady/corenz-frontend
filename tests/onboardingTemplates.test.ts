@@ -132,6 +132,18 @@ test("updateTemplate cascades deletions before recreating steps", async () => {
       }),
     },
     onboardingTemplate: {
+      findUnique: async () => ({
+        id: "t1",
+        companyId: session.user.companyId,
+        name: "Template",
+        description: "",
+        isActive: true,
+        updatedAt: new Date("2024-01-01T00:00:00Z"),
+        Department: [],
+        JobRole: [],
+        User: null,
+        OnboardingStep: [],
+      }),
       update: async (args: any) => ({
         id: args.where.id,
         companyId: session.user.companyId,
@@ -173,6 +185,61 @@ test("updateTemplate cascades deletions before recreating steps", async () => {
   assert.equal(result.steps[0].type, OnboardingStepType.ACKNOWLEDGE_DOCUMENT);
   assert.equal(result.steps[0].uiType, "acknowledge-document");
   assert.equal(result.steps[0].documentId, "doc1");
+});
+
+test("updateTemplate throws on stale version", async () => {
+  const prismaMock = {
+    department: { count: async () => 0 },
+    jobRole: { count: async () => 0 },
+    document: { findMany: async () => [] },
+    form: { findMany: async () => [] },
+    journeyTemplate: { findMany: async () => [] },
+    onboardingStepResponse: { deleteMany: mock.fn(async () => {}) },
+    onboardingStepInstance: { deleteMany: mock.fn(async () => {}) },
+    onboardingStep: { deleteMany: mock.fn(async () => {}) },
+    onboardingTemplate: {
+      findUnique: async () => ({
+        id: "t1",
+        companyId: "c1",
+        name: "Template",
+        description: "",
+        isActive: true,
+        updatedAt: new Date("2024-01-02T00:00:00Z"),
+        Department: [],
+        JobRole: [],
+        User: null,
+        OnboardingStep: [],
+      }),
+      update: async () => {
+        throw new Error("should not update when conflict detected");
+      },
+    },
+  };
+
+  const { updateTemplate, TemplateConflictError } = await import(
+    "../app/api/onboarding/templates/actions"
+  );
+
+  const session = { user: { companyId: "c1", id: "u1" } };
+  const body = {
+    id: "t1",
+    name: "Template",
+    steps: [],
+    lastKnownUpdatedAt: new Date("2024-01-01T00:00:00Z").toISOString(),
+  };
+
+  await assert.rejects(
+    async () => updateTemplate(session, body, prismaMock as any),
+    (err) => {
+      assert.ok(err instanceof TemplateConflictError);
+      assert.equal(err.latest.id, "t1");
+      return true;
+    },
+  );
+
+  assert.equal(prismaMock.onboardingStepResponse.deleteMany.mock.callCount(), 0);
+  assert.equal(prismaMock.onboardingStepInstance.deleteMany.mock.callCount(), 0);
+  assert.equal(prismaMock.onboardingStep.deleteMany.mock.callCount(), 0);
 });
 
 test("createTemplate throws when referencing out-of-scope form", async () => {

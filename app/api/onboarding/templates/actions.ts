@@ -3,6 +3,16 @@ import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
 import { mapSteps } from "./stepMapper";
 import { serializeTemplate, templateSelect } from "./tenantScopedFetch";
 
+export class TemplateConflictError extends Error {
+  latest: ReturnType<typeof serializeTemplate>;
+
+  constructor(message: string, latest: ReturnType<typeof serializeTemplate>) {
+    super(message);
+    this.name = "TemplateConflictError";
+    this.latest = latest;
+  }
+}
+
 const sanitizeIds = (values: unknown): string[] =>
   Array.from(
     new Set(
@@ -172,6 +182,7 @@ export async function updateTemplate(
     jobRoles = [],
     steps = [],
     isActive,
+    lastKnownUpdatedAt,
   } = body;
   const departmentIds = sanitizeIds(departments);
   const jobRoleIds = sanitizeIds(jobRoles);
@@ -184,6 +195,28 @@ export async function updateTemplate(
   });
 
   const filteredSteps = mapSteps(normalizedSteps);
+
+  const existingTemplate = await prismaClient.onboardingTemplate.findUnique({
+    where: { id },
+    select: templateSelect,
+  });
+
+  if (!existingTemplate || existingTemplate.companyId !== session.user.companyId) {
+    throw new Error("Template not found");
+  }
+
+  if (lastKnownUpdatedAt) {
+    const baseline = new Date(lastKnownUpdatedAt);
+    if (Number.isNaN(baseline.getTime())) {
+      throw new Error("Invalid lastKnownUpdatedAt value");
+    }
+    if (existingTemplate.updatedAt.getTime() !== baseline.getTime()) {
+      throw new TemplateConflictError(
+        "Template has been updated by another editor.",
+        serializeTemplate(existingTemplate as any, session.user.companyId),
+      );
+    }
+  }
 
   // Remove existing step data with cascading order
   await prismaClient.onboardingStepResponse.deleteMany({

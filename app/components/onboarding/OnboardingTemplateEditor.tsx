@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import Checkbox from "@/components/ui/Checkbox";
 import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Accordion,
   AccordionContent,
@@ -52,6 +53,13 @@ import {
 } from "@/lib/onboarding/stepTypeMapping";
 import { useTenantMetadataVersioning, type PendingVersion } from "./builder/useTenantMetadataVersioning";
 import { useSession } from "next-auth/react";
+import {
+  createTemplateSnapshot,
+  diffTemplates,
+  describeTemplateDiff,
+  type TemplateDiff,
+  type TemplateSnapshot,
+} from "@/lib/onboarding/templateDiff";
 
 // --- Step Types
 const STEP_TYPES = [
@@ -138,6 +146,15 @@ const hydrateTemplateStep = (step: any) => {
 
 const hydrateTemplateSteps = (template?: any) =>
   template?.steps?.length ? template.steps.map(hydrateTemplateStep) : [];
+
+type ConflictState = {
+  type: "stale-on-load" | "save-conflict";
+  latestTemplate: any;
+  latestSnapshot: TemplateSnapshot;
+  diff: TemplateDiff;
+  message: string;
+  detectedAt: number;
+};
 
 const buildAuditSummaryDescription = (version: PendingVersion) => {
   const changeLines = version.changes.map((change) => {
@@ -594,6 +611,14 @@ export default function OnboardingTemplateEditor({
   const tenantId = session?.user?.companyId ?? null;
   const { queueMetadataChange, prepareCommit, commit, rollback } =
     useTenantMetadataVersioning();
+  const baselineSnapshotRef = useRef<TemplateSnapshot>(
+    createTemplateSnapshot(template),
+  );
+  const serverVersionRef = useRef<string | null>(
+    baselineSnapshotRef.current.updatedAt,
+  );
+  const [conflictState, setConflictState] = useState<ConflictState | null>(null);
+  const latestSyncAttemptedRef = useRef<string | null>(null);
   const [name, setName] = useState(template?.name || "");
   const [description, setDescription] = useState(template?.description || "");
   const [departments, setDepartments] = useState<string[]>(
@@ -620,6 +645,40 @@ export default function OnboardingTemplateEditor({
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const baselineMapRef = useRef<Map<string, any>>(new Map());
+  const stepsRef = useRef<any[]>(steps);
+  const baselineStepsRef = useRef<any[]>(baselineSteps);
+  const getEditorSnapshot = useCallback(() =>
+    createTemplateSnapshot({
+      id: template?.id ?? baselineSnapshotRef.current.id,
+      name,
+      description,
+      isActive: template?.isActive ?? false,
+      updatedAt: baselineSnapshotRef.current.updatedAt,
+      departments: departments.map((id) => ({ id })),
+      jobRoles: jobRoles.map((id) => ({ id })),
+      steps: steps.map((step, index) => ({
+        id: step.id,
+        key: step.key,
+        type: step.type,
+        title: step.title,
+        description: step.description,
+        documentId: step.documentId ?? null,
+        uploadType: step.uploadType ?? null,
+        formId: step.formId ?? null,
+        metadata: step.metadata,
+        order: index + 1,
+      })),
+    }),
+  [
+    template?.id,
+    template?.isActive,
+    name,
+    description,
+    departments,
+    jobRoles,
+    steps,
+    baselineSnapshotRef,
+  ]);
 
   useEffect(() => {
     baselineMapRef.current = new Map(
@@ -628,6 +687,19 @@ export default function OnboardingTemplateEditor({
   }, [baselineSteps]);
 
   useEffect(() => {
+    stepsRef.current = steps;
+  }, [steps]);
+
+  useEffect(() => {
+    baselineStepsRef.current = baselineSteps;
+  }, [baselineSteps]);
+
+  useEffect(() => {
+    const snapshot = createTemplateSnapshot(template);
+    baselineSnapshotRef.current = snapshot;
+    serverVersionRef.current = snapshot.updatedAt;
+    latestSyncAttemptedRef.current = null;
+    setConflictState(null);
     setName(template?.name || "");
     setDescription(template?.description || "");
     setDepartments(template?.departments?.map((d: any) => d.id) || []);
@@ -664,6 +736,68 @@ export default function OnboardingTemplateEditor({
     };
     fetchDropdownData();
   }, []);
+
+  useEffect(() => {
+    if (!template?.id) return;
+    if (latestSyncAttemptedRef.current === template.id) return;
+    latestSyncAttemptedRef.current = template.id;
+
+    const controller = new AbortController();
+
+    const run = async () => {
+      try {
+        const res = await fetch(`/api/onboarding/templates?id=${template.id}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const payload = await res.json();
+        if (controller.signal.aborted) return;
+
+        const latestSnapshot = createTemplateSnapshot(payload);
+        const baselineSnapshot = baselineSnapshotRef.current;
+        const diff = diffTemplates(baselineSnapshot, latestSnapshot);
+
+        if (diff.hasChanges) {
+          setConflictState({
+            type: "stale-on-load",
+            latestTemplate: payload,
+            latestSnapshot,
+            diff,
+            message:
+              payload?.updatedBy?.name || payload?.updatedBy?.email
+                ? `Latest update by ${
+                    payload.updatedBy.name || payload.updatedBy.email
+                  }`
+                : "A newer version of this template is available.",
+            detectedAt: Date.now(),
+          });
+          return;
+        }
+
+        baselineSnapshotRef.current = latestSnapshot;
+        serverVersionRef.current = latestSnapshot.updatedAt;
+
+        const hasLocalChanges =
+          JSON.stringify(stepsRef.current) !==
+          JSON.stringify(baselineStepsRef.current);
+
+        if (!hasLocalChanges) {
+          const hydrated = hydrateTemplateSteps(payload);
+          setSteps(hydrated);
+          setBaselineSteps(hydrated);
+          setSelectedIndex(hydrated.length ? 0 : null);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.warn("Failed to sync latest onboarding template", error);
+        }
+      }
+    };
+
+    run();
+
+    return () => controller.abort();
+  }, [template?.id, baselineStepsRef, stepsRef]);
 
   const addStep = useCallback(
     (type: string) => {
@@ -747,6 +881,57 @@ export default function OnboardingTemplateEditor({
     [tenantId, queueMetadataChange, selectedIndex],
   );
 
+  const loadLatestVersion = useCallback(
+    (state: ConflictState) => {
+      const latest = state.latestTemplate;
+      const snapshot = state.latestSnapshot;
+
+      baselineSnapshotRef.current = snapshot;
+      serverVersionRef.current = snapshot.updatedAt;
+
+      const hydrated = hydrateTemplateSteps(latest);
+      setName(latest?.name || "");
+      setDescription(latest?.description || "");
+      setDepartments(
+        Array.isArray(latest?.departments)
+          ? latest.departments
+              .map((d: any) => (typeof d?.id === "string" ? d.id : null))
+              .filter(Boolean)
+          : [],
+      );
+      setJobRoles(
+        Array.isArray(latest?.jobRoles)
+          ? latest.jobRoles
+              .map((j: any) => (typeof j?.id === "string" ? j.id : null))
+              .filter(Boolean)
+          : [],
+      );
+      setSteps(hydrated);
+      setBaselineSteps(hydrated);
+      stepsRef.current = hydrated;
+      baselineStepsRef.current = hydrated;
+      setSelectedIndex(hydrated.length ? 0 : null);
+      setConflictState(null);
+      toast.success("Loaded the latest template from the server.", {
+        description: describeTemplateDiff(state.diff).join(" • ") || undefined,
+      });
+    },
+    [setDepartments, setDescription, setJobRoles, setName, setBaselineSteps, setSteps],
+  );
+
+  const acknowledgeConflict = useCallback((state: ConflictState) => {
+    baselineSnapshotRef.current = {
+      ...baselineSnapshotRef.current,
+      updatedAt: state.latestSnapshot.updatedAt,
+    };
+    serverVersionRef.current = state.latestSnapshot.updatedAt;
+    setConflictState(null);
+    const summary = describeTemplateDiff(state.diff);
+    toast.warning("Your next save will overwrite the remote changes.", {
+      description: summary.length ? summary.join(" • ") : undefined,
+    });
+  }, []);
+
 	const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -790,10 +975,16 @@ export default function OnboardingTemplateEditor({
   }, []);
 
   const handleSave = async (publish = false) => {
+    if (conflictState) {
+      toast.warning("Resolve conflicts before saving your changes.");
+      return;
+    }
+
     if (!name.trim()) {
       toast.error("Template name required");
       return;
     }
+
     toast.info(
       "This will not affect previously completed versions of this template, and any outstanding templates will not be altered. This will purely be for any future new starters onboarding using this template",
     );
@@ -802,11 +993,13 @@ export default function OnboardingTemplateEditor({
     const previousBaselineSnapshot = clone(baselineSteps);
     const currentStepsSnapshot = clone(steps);
     const previousSelectedIndex = selectedIndex;
+    const editorSnapshot = getEditorSnapshot();
+
+    class SaveConflictError extends Error {}
 
     try {
       setSaving(true);
       if (publish) setPublishing(true);
-      setBaselineSteps(currentStepsSnapshot);
 
       const body = {
         id: template?.id,
@@ -829,20 +1022,58 @@ export default function OnboardingTemplateEditor({
           metadata: normalizeStepMetadata(s.type, s.metadata),
         })),
         isActive: publish,
+        lastKnownUpdatedAt: serverVersionRef.current,
       };
+
       const res = await fetch("/api/onboarding/templates", {
         method: template?.id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
+      const payload = await res.json().catch(() => null);
+
       if (!res.ok) {
-        const payload = await res.json().catch(() => null);
+        if (res.status === 409 && payload?.latestTemplate) {
+          const latestSnapshot = createTemplateSnapshot(payload.latestTemplate);
+          const diff = diffTemplates(payload.latestTemplate, editorSnapshot);
+          setConflictState({
+            type: "save-conflict",
+            latestTemplate: payload.latestTemplate,
+            latestSnapshot,
+            diff,
+            message:
+              payload?.error || "Another editor saved changes to this template.",
+            detectedAt: Date.now(),
+          });
+          const summary = describeTemplateDiff(diff);
+          toast.warning(payload?.error || "Template has changed on the server.", {
+            description: summary.length ? summary.join(" • ") : undefined,
+          });
+          throw new SaveConflictError(payload?.error || "Conflict detected");
+        }
         throw new Error(payload?.error || "Error saving template");
       }
 
       if (tenantId && pendingVersion) {
         commit(tenantId, pendingVersion);
+      }
+
+      if (payload) {
+        const snapshot = createTemplateSnapshot(payload);
+        baselineSnapshotRef.current = snapshot;
+        serverVersionRef.current = snapshot.updatedAt;
+        const hydrated = hydrateTemplateSteps(payload);
+        setBaselineSteps(hydrated);
+        setSteps(hydrated);
+        setSelectedIndex(
+          hydrated.length
+            ? Math.min(previousSelectedIndex ?? 0, hydrated.length - 1)
+            : null,
+        );
+      } else {
+        setBaselineSteps(currentStepsSnapshot);
+        setSteps(currentStepsSnapshot);
       }
 
       const summaryDescription =
@@ -860,19 +1091,28 @@ export default function OnboardingTemplateEditor({
 
       onSaved();
     } catch (error) {
-      if (tenantId) {
-        rollback(tenantId);
+      if (error instanceof SaveConflictError) {
+        setBaselineSteps(previousBaselineSnapshot);
+        setSteps(currentStepsSnapshot);
+        setSelectedIndex(previousSelectedIndex);
+      } else {
+        if (tenantId) {
+          rollback(tenantId);
+        }
+        setBaselineSteps(previousBaselineSnapshot);
+        setSteps(previousBaselineSnapshot);
+        setSelectedIndex(
+          previousBaselineSnapshot.length
+            ? Math.min(
+                previousSelectedIndex ?? 0,
+                previousBaselineSnapshot.length - 1,
+              )
+            : null,
+        );
+        const message =
+          error instanceof Error ? error.message : "Error saving template";
+        toast.error(message);
       }
-      setBaselineSteps(previousBaselineSnapshot);
-      setSteps(previousBaselineSnapshot);
-      setSelectedIndex(
-        previousBaselineSnapshot.length
-          ? Math.min(previousSelectedIndex ?? 0, previousBaselineSnapshot.length - 1)
-          : null,
-      );
-      const message =
-        error instanceof Error ? error.message : "Error saving template";
-      toast.error(message);
     } finally {
       setSaving(false);
       setPublishing(false);
@@ -925,6 +1165,56 @@ export default function OnboardingTemplateEditor({
 
   return (
     <div className="p-6">
+      {conflictState && (
+        <Alert
+          variant={conflictState.type === "save-conflict" ? "destructive" : "default"}
+          className="mb-4"
+        >
+          <AlertTitle>
+            {conflictState.type === "save-conflict"
+              ? "Changes detected on the server"
+              : "Newer version available"}
+          </AlertTitle>
+          <AlertDescription>
+            <div className="space-y-3">
+              <p>
+                {conflictState.message}
+                {conflictState.latestSnapshot.updatedAt && (
+                  <>
+                    {" "}(last updated {" "}
+                    {new Date(conflictState.latestSnapshot.updatedAt).toLocaleString()})
+                  </>
+                )}
+              </p>
+              {(() => {
+                const summary = describeTemplateDiff(conflictState.diff);
+                if (!summary.length) return null;
+                return (
+                  <ul className="list-disc space-y-1 pl-5 text-sm">
+                    {summary.map((line, index) => (
+                      <li key={index}>{line}</li>
+                    ))}
+                  </ul>
+                );
+              })()}
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => loadLatestVersion(conflictState)}>
+                  Load latest version
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => acknowledgeConflict(conflictState)}
+                >
+                  {conflictState.type === "save-conflict"
+                    ? "Overwrite with my edits"
+                    : "Continue with my version"}
+                </Button>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="mb-4">
         <h2 className="text-xl font-bold mb-2">
           {template ? "Edit Onboarding Template" : "New Onboarding Template"}
@@ -1029,7 +1319,7 @@ export default function OnboardingTemplateEditor({
         <Button
           variant="ghost"
           onClick={() => handleSave(false)}
-          disabled={saving}
+          disabled={saving || Boolean(conflictState)}
         >
           {saving ? "Saving…" : "Save as Draft"}
         </Button>
@@ -1037,7 +1327,12 @@ export default function OnboardingTemplateEditor({
           onClick={() => {
             handleSave(true);
           }}
-          disabled={publishing || saving || !name.trim()}
+          disabled={
+            publishing ||
+            saving ||
+            !name.trim() ||
+            Boolean(conflictState)
+          }
         >
           {publishing ? "Publishing…" : "Publish"}
         </Button>

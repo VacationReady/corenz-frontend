@@ -71,7 +71,9 @@ export default function AddHolidayModal({
               departmentName: e.departmentName ?? null,
               profileImageUrl: e.profileImageUrl ?? null,
             }))
-            .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+            .sort((a: EmployeeOption, b: EmployeeOption) =>
+              a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+            );
           setEmployees(opts);
         } else {
           toast.error("Failed to load employees");

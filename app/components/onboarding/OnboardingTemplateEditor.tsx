@@ -1,14 +1,22 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { DndContext, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Button from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { Label } from "@/components/ui/label";
 import { MultiSelect } from "@/components/ui/MultiSelect";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   X,
   GripVertical,
@@ -52,6 +60,11 @@ import {
   mapDbStepTypeToUi,
   mapDbUploadTypeToUi,
 } from "@/lib/onboarding/stepTypeMapping";
+import {
+  NZ_ONBOARDING_PRESETS,
+  NZ_PRESET_STEP_LOOKUP,
+  type NzOnboardingPreset,
+} from "@/lib/onboarding/nzPresets";
 import { useTenantMetadataVersioning, type PendingVersion } from "./builder/useTenantMetadataVersioning";
 import { useSession } from "next-auth/react";
 import {
@@ -641,6 +654,13 @@ export default function OnboardingTemplateEditor({
   const [baselineSteps, setBaselineSteps] = useState<any[]>(() =>
     hydrateTemplateSteps(template),
   );
+  const [isPresetLibraryOpen, setIsPresetLibraryOpen] = useState(false);
+  const [tenantScopeOptions, setTenantScopeOptions] = useState<
+    { label: string; value: string }[]
+  >([]);
+  const [tenantScopeSelection, setTenantScopeSelection] = useState<string[]>(
+    () => (tenantId ? [tenantId] : []),
+  );
 
   const [selectedIndex, setSelectedIndexState] = useState<number | null>(
     () => (template?.steps?.length ? 0 : null),
@@ -653,6 +673,211 @@ export default function OnboardingTemplateEditor({
   const baselineMapRef = useRef<Map<string, any>>(new Map());
   const stepsRef = useRef<any[]>(steps);
   const baselineStepsRef = useRef<any[]>(baselineSteps);
+  const previousTenantIdRef = useRef<string | null>(tenantId);
+  const fallbackTenantScope = useMemo(
+    () => (tenantId ? [tenantId] : ["default"]),
+    [tenantId],
+  );
+  const activeTenantScope = useMemo(
+    () => (tenantScopeSelection.length ? tenantScopeSelection : fallbackTenantScope),
+    [tenantScopeSelection, fallbackTenantScope],
+  );
+  const presetUsage = useMemo(() => {
+    const coverage = new Map<string, Set<string>>();
+    const fallback = fallbackTenantScope;
+    steps.forEach((step) => {
+      const slug = step?.metadata?.presetSlug;
+      if (!slug) return;
+      const lookup = NZ_PRESET_STEP_LOOKUP.get(slug);
+      if (!lookup) return;
+      const scope =
+        Array.isArray(step?.metadata?.tenantScope) && step.metadata.tenantScope.length
+          ? step.metadata.tenantScope
+          : fallback;
+      const entry = coverage.get(lookup.presetId) ?? new Set<string>();
+      scope.forEach((tenantKey: string) => entry.add(tenantKey));
+      coverage.set(lookup.presetId, entry);
+    });
+    return coverage;
+  }, [steps, fallbackTenantScope]);
+
+  const applyPreset = useCallback(
+    (preset: NzOnboardingPreset) => {
+      if (!preset) return;
+      const scope = [...activeTenantScope];
+      let added = 0;
+      let extended = 0;
+      const createdSteps: { key: string; title: string; metadata: any }[] = [];
+      const updatedSteps: { key: string; title: string; metadata: any }[] = [];
+
+      setSteps((prev) => {
+        const next = [...prev];
+        preset.steps.forEach((presetStep) => {
+          const slug = presetStep.slug;
+          const metadataPayload = {
+            ...(presetStep.metadata || {}),
+            presetSlug: slug,
+            tenantScope: scope,
+          };
+          const existingIndex = next.findIndex(
+            (step) => step?.metadata?.presetSlug === slug,
+          );
+
+          if (existingIndex >= 0) {
+            const existing = next[existingIndex];
+            const existingScope =
+              Array.isArray(existing.metadata?.tenantScope) &&
+              existing.metadata?.tenantScope.length
+                ? existing.metadata.tenantScope
+                : fallbackTenantScope;
+            const hasOverlap = existingScope.some((tenantKey: string) =>
+              scope.includes(tenantKey),
+            );
+            if (hasOverlap) {
+              return;
+            }
+            const mergedScope = Array.from(new Set([...existingScope, ...scope]));
+            const mergedMetadata = normalizeStepMetadata(existing.type, {
+              ...existing.metadata,
+              presetSlug: slug,
+              tenantScope: mergedScope,
+            });
+            const updated = { ...existing, metadata: mergedMetadata };
+            next[existingIndex] = updated;
+            updatedSteps.push({
+              key: getStepKey(updated),
+              title: updated.title || updated.type,
+              metadata: mergedMetadata,
+            });
+            extended += 1;
+            return;
+          }
+
+          const baseStep = createStep(presetStep.type);
+          const hydratedMetadata = normalizeStepMetadata(
+            presetStep.type,
+            metadataPayload,
+          );
+          const newStep = {
+            ...baseStep,
+            title: presetStep.title,
+            description: presetStep.description,
+            required: presetStep.required ?? baseStep.required,
+            documentId: presetStep.documentId ?? baseStep.documentId,
+            uploadType: presetStep.uploadType ?? baseStep.uploadType,
+            formId: presetStep.formId ?? baseStep.formId,
+            formFields: presetStep.formFields ?? baseStep.formFields,
+            metadata: hydratedMetadata,
+          };
+          next.push(newStep);
+          createdSteps.push({
+            key: getStepKey(newStep),
+            title: newStep.title || newStep.type,
+            metadata: hydratedMetadata,
+          });
+          added += 1;
+        });
+        return next;
+      });
+
+      const affected = [...createdSteps, ...updatedSteps];
+      if (tenantId && affected.length) {
+        affected.forEach((entry) => {
+          const baseline = baselineMapRef.current.get(entry.key);
+          queueMetadataChange(
+            tenantId,
+            entry.key,
+            entry.title,
+            baseline?.metadata ?? {},
+            entry.metadata,
+          );
+        });
+      }
+
+      if (added === 0 && extended === 0) {
+        toast.info("Preset already applied", {
+          description: "Every step already covers the selected tenants.",
+        });
+        return;
+      }
+
+      toast.success(`Injected ${added + extended} NZ compliance step${
+        added + extended === 1 ? "" : "s"
+      }`, {
+        description:
+          [
+            added ? `${added} new step${added === 1 ? "" : "s"}` : null,
+            extended
+              ? `${extended} existing step${extended === 1 ? "" : "s"} now cover${
+                  extended === 1 ? "s" : ""
+                } more tenants`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" • ") || undefined,
+      });
+    },
+    [activeTenantScope, fallbackTenantScope, queueMetadataChange, tenantId],
+  );
+
+  useEffect(() => {
+    if (!tenantId) return;
+    if (previousTenantIdRef.current === tenantId) {
+      return;
+    }
+    previousTenantIdRef.current = tenantId;
+    setTenantScopeSelection([tenantId]);
+  }, [tenantId]);
+
+  useEffect(() => {
+    const baseOption = tenantId
+      ? [
+          {
+            value: tenantId,
+            label:
+              (session?.user as any)?.companyName ||
+              `Tenant ${tenantId.slice(0, 8).toUpperCase()}`,
+          },
+        ]
+      : [];
+    setTenantScopeOptions(baseOption);
+
+    if (session?.user?.role !== "SUPER_ADMIN") {
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    fetch("/api/tenants", { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load tenants");
+        return res.json();
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        const options = Array.isArray(payload?.companies)
+          ? payload.companies.map((company: any) => ({
+              value: company.id,
+              label:
+                typeof company.name === "string" && company.name.trim().length
+                  ? company.name
+                  : `Tenant ${company.id.slice(0, 8).toUpperCase()}`,
+            }))
+          : baseOption;
+        setTenantScopeOptions(options);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTenantScopeOptions(baseOption);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [session?.user?.role, tenantId]);
 
   const selectStep = useCallback(
     (index: number | null) => {
@@ -1359,11 +1584,27 @@ export default function OnboardingTemplateEditor({
         </div>
       </div>
 
-                        <div>
-                                <h3 className="text-lg font-semibold mb-1">Steps</h3>
-                                <p className="text-gray-500 mb-2">
-                                        Drag from the left to add steps. Drag within the list to reorder.
-                                </p>
+                        <div className="space-y-4">
+                                <div className="flex flex-wrap items-start justify-between gap-4">
+                                        <div>
+                                                <h3 className="text-lg font-semibold mb-1">Steps</h3>
+                                                <p className="text-gray-500 mb-2">
+                                                        Drag from the left to add steps. Drag within the list to reorder.
+                                                </p>
+                                        </div>
+                                        <div className="flex flex-col items-start gap-1 text-left sm:items-end sm:text-right">
+                                                <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setIsPresetLibraryOpen(true)}
+                                                >
+                                                        <ShieldCheck className="mr-2 h-4 w-4" /> NZ compliance presets
+                                                </Button>
+                                                <p className="text-xs text-muted-foreground max-w-[240px]">
+                                                        Apply IRD, KiwiSaver, and H&S starter packs without overwriting tenant-specific steps.
+                                                </p>
+                                        </div>
+                                </div>
                                 <StepTypePicker />
                                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                                         <div className="text-sm text-muted-foreground">
@@ -1486,6 +1727,72 @@ export default function OnboardingTemplateEditor({
           {publishing ? "Publishing…" : "Publish"}
         </Button>
       </DialogFooter>
+      <Sheet open={isPresetLibraryOpen} onOpenChange={setIsPresetLibraryOpen}>
+        <SheetContent side="right" className="w-full sm:w-[520px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>NZ compliance preset library</SheetTitle>
+            <SheetDescription>
+              Inject IRD, KiwiSaver, and WorkSafe steps across one or more tenants without overwriting custom content.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-6 space-y-6">
+            <div>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Tenant scope</Label>
+              <MultiSelect
+                options={tenantScopeOptions}
+                selected={tenantScopeSelection}
+                onChange={setTenantScopeSelection}
+                placeholder="Select tenants"
+              />
+              <p className="mt-2 text-xs text-muted-foreground">
+                We only add steps for the tenants you select. Existing preset steps for a tenant stay untouched.
+              </p>
+            </div>
+            <div className="space-y-4">
+              {NZ_ONBOARDING_PRESETS.map((preset) => {
+                const coverage = presetUsage.get(preset.id);
+                return (
+                  <div key={preset.id} className="rounded-xl border bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-foreground">{preset.name}</h3>
+                        <p className="text-sm text-muted-foreground">{preset.summary}</p>
+                      </div>
+                      <Button size="sm" onClick={() => applyPreset(preset)}>
+                        Inject steps
+                      </Button>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {preset.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="mt-3 rounded-lg bg-slate-50 p-3 text-sm">
+                      <p className="font-medium text-foreground">{preset.headline}</p>
+                      <ul className="mt-2 list-disc space-y-1 pl-4 text-muted-foreground">
+                        {preset.steps.map((step) => (
+                          <li key={step.slug}>{step.title}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>
+                        {coverage?.size
+                          ? `Applied in ${coverage.size} tenant${coverage.size === 1 ? "" : "s"}`
+                          : "Not applied yet"}
+                      </span>
+                      <span>•</span>
+                      <span>{preset.complianceReferences.join(", ")}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

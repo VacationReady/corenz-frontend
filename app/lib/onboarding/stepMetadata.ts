@@ -90,6 +90,26 @@ const asBoolean = (value: unknown, fallback = false) =>
 
 const ensureArray = <T,>(value: unknown): T[] => (Array.isArray(value) ? value : []);
 
+const asPresetSlug = (value: unknown): string | undefined => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : undefined;
+  }
+  return undefined;
+};
+
+const asTenantScope = (value: unknown): string[] | undefined => {
+  if (!Array.isArray(value)) return undefined;
+  const unique = Array.from(
+    new Set(
+      value
+        .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+        .filter((entry): entry is string => Boolean(entry)),
+    ),
+  );
+  return unique.length ? unique : undefined;
+};
+
 const asPayrollFieldType = (value: unknown): PayrollFieldType => {
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -800,12 +820,28 @@ export function getDefaultMetadataForStep(stepType: string) {
   return def ? clone(def.defaults()) : {};
 }
 
+function extractPresetMetadata(value: unknown) {
+  if (typeof value !== "object" || !value) {
+    return { presetSlug: undefined as string | undefined, tenantScope: undefined as string[] | undefined };
+  }
+  const base = value as { presetSlug?: unknown; tenantScope?: unknown };
+  return {
+    presetSlug: asPresetSlug(base.presetSlug),
+    tenantScope: asTenantScope(base.tenantScope),
+  };
+}
+
 export function normalizeStepMetadata(stepType: string, value: unknown) {
   const def = getStepMetadataDefinition(stepType);
-  if (!def) {
-    return (typeof value === "object" && value) || {};
-  }
-  return def.normalize(value);
+  const { presetSlug, tenantScope } = extractPresetMetadata(value);
+  const normalized = def
+    ? def.normalize(value)
+    : (typeof value === "object" && value) || {};
+  return {
+    ...normalized,
+    ...(presetSlug ? { presetSlug } : null),
+    ...(tenantScope && tenantScope.length ? { tenantScope } : null),
+  };
 }
 
 export function listOnboardingMetadataTypes() {

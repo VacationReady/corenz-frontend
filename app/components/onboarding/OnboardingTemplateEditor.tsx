@@ -731,10 +731,10 @@ export default function OnboardingTemplateEditor({
               existing.metadata?.tenantScope.length
                 ? existing.metadata.tenantScope
                 : fallbackTenantScope;
-            const hasOverlap = existingScope.some((tenantKey: string) =>
-              scope.includes(tenantKey),
+            const addsNewTenant = scope.some(
+              (tenantKey: string) => !existingScope.includes(tenantKey),
             );
-            if (hasOverlap) {
+            if (!addsNewTenant) {
               return;
             }
             const mergedScope = Array.from(new Set([...existingScope, ...scope]));

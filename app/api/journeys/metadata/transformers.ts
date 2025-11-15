@@ -372,12 +372,16 @@ function buildAuditEvents(versions: JourneyVersionWithCreator[]): AuditEvent[] {
 function generateJourneyIdSuggestions(template: JourneyTemplateWithRelations): string[] {
   const baseName = template.name || "Journey";
   const personaSlug = template.persona
-    ? slugify(template.persona, { upper: true, strict: true })
+    ? slugify(template.persona, { strict: true }).toUpperCase() || "NZ"
     : "NZ";
   const categorySlug = template.category
-    ? slugify(template.category, { upper: true, strict: true })
+    ? slugify(template.category, { strict: true }).toUpperCase() || "ONB"
     : "ONB";
-  const nameSlug = slugify(baseName, { upper: true, strict: true }).slice(0, 6);
+  const nameSlugSource = slugify(baseName, { strict: true });
+  const nameSlugBase = nameSlugSource
+    ? nameSlugSource.toUpperCase()
+    : template.id.slice(0, 6).toUpperCase();
+  const nameSlug = nameSlugBase.slice(0, 6);
   const versionCode = String(template.version || 1).padStart(2, "0");
 
   const candidates = [

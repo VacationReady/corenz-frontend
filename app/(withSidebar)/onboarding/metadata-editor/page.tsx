@@ -1,4 +1,4 @@
-import { MetadataEditorExperience } from "@/app/components/onboarding/metadata-editor/MetadataEditorExperience";
+import { MetadataEditorExperience } from "@/components/onboarding/metadata-editor/MetadataEditorExperience";
 
 export default function MetadataEditorPage() {
   return (

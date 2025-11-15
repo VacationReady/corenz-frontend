@@ -93,6 +93,7 @@ test("createTemplate persists FORM_FILL step and returns it", async () => {
   const result = await createTemplate(session, body, prismaMock as any);
   assert.equal(result.steps.length, 1);
   assert.equal(result.steps[0].type, OnboardingStepType.FORM_FILL);
+  assert.equal(result.steps[0].uiType, "fill-form");
   assert.equal(result.steps[0].formId, "form123");
   assert.deepEqual(result.steps[0].metadata, { guidance: "" });
 });
@@ -170,6 +171,7 @@ test("updateTemplate cascades deletions before recreating steps", async () => {
   const result = await updateTemplate(session, body, prismaMock as any);
   assert.deepEqual(callOrder, ["responses", "instances", "steps"]);
   assert.equal(result.steps[0].type, OnboardingStepType.ACKNOWLEDGE_DOCUMENT);
+  assert.equal(result.steps[0].uiType, "acknowledge-document");
   assert.equal(result.steps[0].documentId, "doc1");
 });
 
@@ -299,5 +301,126 @@ test("fetchTenantTemplates enforces tenant isolation and normalises metadata", a
   const templates = await fetchTenantTemplates("tenant-a", mockPrisma as any);
   assert.equal(templates.length, 1);
   assert.equal(templates[0].id, "tpl-tenant-a");
+  assert.equal(templates[0].steps[0].uiType, "instructions");
   assert.deepEqual(templates[0].steps[0].metadata, { buttonLabel: "Continue" });
+});
+
+test("serializeTemplate rejects templates from other tenants", async () => {
+  const { serializeTemplate } = await import(
+    "../app/api/onboarding/templates/tenantScopedFetch"
+  );
+
+  const rawTemplate: any = {
+    id: "tpl-foreign",
+    companyId: "tenant-b",
+    name: "Foreign",
+    description: null,
+    isActive: false,
+    updatedAt: new Date(),
+    User: null,
+    Department: [],
+    JobRole: [],
+    OnboardingStep: [],
+  };
+
+  assert.throws(() => serializeTemplate(rawTemplate, "tenant-a"));
+});
+
+test("serializeTemplate normalises payroll metadata and exposes uiType", async () => {
+  const { serializeTemplate } = await import(
+    "../app/api/onboarding/templates/tenantScopedFetch"
+  );
+
+  const rawTemplate: any = {
+    id: "tpl-payroll",
+    companyId: "tenant-a",
+    name: "Payroll heavy",
+    description: "",
+    isActive: true,
+    updatedAt: new Date(),
+    User: { id: "user-1", name: "Admin", email: "admin@example.com" },
+    Department: [],
+    JobRole: [],
+    OnboardingStep: [
+      {
+        id: "step-payroll",
+        type: "PAYROLL_SETUP",
+        label: "Payroll",
+        order: 1,
+        templateId: "tpl-payroll",
+        documentId: null,
+        uploadType: null,
+        instruction: "",
+        formId: null,
+        dependencies: [],
+        metadata: {
+          instructions: "Collect payroll info",
+          fields: [
+            {
+              id: " ",
+              label: "KiwiSaver employee rate ",
+              fieldType: "kiwiSaverEmployeeRate",
+              defaultValue: "0.04",
+              required: true,
+              options: ["0.04"],
+            },
+            {
+              label: "Employment Type",
+              fieldType: "select",
+              options: [" Full-time ", "Part-time", ""],
+              required: false,
+              placeholder: "Select type",
+            },
+            {
+              id: "irdNumber",
+              label: "IRD",
+              fieldType: "irdNumber",
+              required: true,
+              defaultValue: "",
+            },
+          ],
+        },
+        slaDays: null,
+        taskOwnerId: null,
+        trainingId: null,
+        Document: null,
+        Form: null,
+      },
+    ],
+  };
+
+  const serialized = serializeTemplate(rawTemplate, "tenant-a");
+  assert.equal(serialized.steps.length, 1);
+  const step = serialized.steps[0];
+  assert.equal(step.type, "PAYROLL_SETUP");
+  assert.equal(step.uiType, "payroll-setup");
+  assert.equal(step.metadata.instructions, "Collect payroll info");
+  assert.equal(step.metadata.fields.length, 3);
+  assert.deepEqual(step.metadata.fields[0], {
+    id: "payroll-1",
+    label: "KiwiSaver employee rate",
+    defaultValue: "0.04",
+    placeholder: "",
+    required: true,
+    fieldType: "kiwiSaverEmployeeRate",
+    options: ["0.03", "0.04", "0.06", "0.08", "0.10"],
+  });
+  assert.deepEqual(step.metadata.fields[1], {
+    id: "payroll-2",
+    label: "Employment Type",
+    defaultValue: "Full-time",
+    placeholder: "Select type",
+    required: false,
+    fieldType: "select",
+    options: ["Full-time", "Part-time"],
+  });
+  assert.deepEqual(step.metadata.fields[2], {
+    id: "irdNumber",
+    label: "IRD",
+    defaultValue: "",
+    placeholder: "",
+    required: true,
+    fieldType: "irdNumber",
+    options: [],
+  });
 });

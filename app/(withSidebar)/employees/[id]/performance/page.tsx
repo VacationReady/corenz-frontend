@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import PerformancePage from "@/components/performance/PerformancePage";
 
 export default function EmployeePerformancePage() {
@@ -11,5 +12,9 @@ export default function EmployeePerformancePage() {
     return null;
   }
 
-  return <PerformancePage employeeId={employeeId} />;
+  return (
+    <ErrorBoundary>
+      <PerformancePage employeeId={employeeId} />
+    </ErrorBoundary>
+  );
 }

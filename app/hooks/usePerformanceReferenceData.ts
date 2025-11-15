@@ -10,6 +10,16 @@ const fetcher = async (url: string) => {
   return response.json();
 };
 
+export interface EmployeeSummary {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  departmentId: string | null;
+  jobRoleId: string | null;
+  isActive: boolean;
+}
+
 interface Options {
   enabled?: boolean;
   templateType?: "ONE_TO_ONE" | "REVIEW" | "360";
@@ -29,7 +39,7 @@ export function usePerformanceReferenceData({ enabled = true, templateType, incl
     { revalidateOnFocus: false }
   );
 
-  const { data: employeesData, isLoading: employeesLoading } = useSWRImmutable<{ employees: any[] }>(
+  const { data: employeesData, isLoading: employeesLoading } = useSWRImmutable<{ employees: EmployeeSummary[] }>(
     enabled && includeEmployees ? "/api/employees" : null,
     fetcher,
     { revalidateOnFocus: false }

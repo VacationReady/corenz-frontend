@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,19 +29,10 @@ import { CreateReviewCycleDialog } from "@/components/performance/CreateReviewCy
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { usePerformanceData, Objective, Meeting } from "@/hooks/usePerformanceData";
-import { usePerformanceReferenceData } from "@/hooks/usePerformanceReferenceData";
+import { usePerformanceReferenceData, EmployeeSummary } from "@/hooks/usePerformanceReferenceData";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
-
-interface EmployeeSummary {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  departmentId: string | null;
-  jobRoleId: string | null;
-  isActive: boolean;
-}
+import { useDebounce } from "@/hooks/useDebounce";
 
 const statusColors = {
   NOT_STARTED: "bg-gray-500",
@@ -73,6 +64,9 @@ const objectiveStatusFilters = [
   { value: "NOT_STARTED", label: "Not Started" },
 ];
 
+const OBJECTIVES_PAGE_SIZE = 10;
+const SEARCH_DEBOUNCE_MS = 300;
+
 export interface PerformancePageProps {
   employeeId?: string;
 }
@@ -80,13 +74,180 @@ export interface PerformancePageProps {
 export default function PerformancePage({ employeeId }: PerformancePageProps = {}) {
   const { data: session } = useSession();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("overview");
-  const [timeframe, setTimeframe] = useState<number>(30);
-  const [selectedDepartments, setSelectedDepartments] = useState<string[]>(["all"]);
-  const [selectedRoles, setSelectedRoles] = useState<string[]>(["all"]);
-  const [objectiveStatus, setObjectiveStatus] = useState<string>("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  
+  // Initialize state from URL params
+  const getInitialTimeframe = () => {
+    const param = searchParams?.get("timeframe");
+    if (param) {
+      const parsed = Number.parseInt(param, 10);
+      if ([30, 60, 90].includes(parsed)) return parsed;
+    }
+    return 30;
+  };
+
+  const getInitialDepartments = () => {
+    const param = searchParams?.get("departments");
+    if (param) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(param)) as string[];
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed : ["all"];
+      } catch {
+        return ["all"];
+      }
+    }
+    return ["all"];
+  };
+
+  const getInitialRoles = () => {
+    const param = searchParams?.get("roles");
+    if (param) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(param)) as string[];
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed : ["all"];
+      } catch {
+        return ["all"];
+      }
+    }
+    return ["all"];
+  };
+
+  const getInitialStatus = () => {
+    const param = searchParams?.get("status");
+    if (param && ["ALL", "IN_PROGRESS", "AT_RISK", "COMPLETED", "NOT_STARTED"].includes(param)) {
+      return param;
+    }
+    return "ALL";
+  };
+
+  const getInitialSearch = () => {
+    return searchParams?.get("search") || "";
+  };
+
+  const getInitialTab = () => {
+    const param = searchParams?.get("tab");
+    if (param && ["overview", "objectives", "meetings"].includes(param)) {
+      return param;
+    }
+    return "overview";
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+  const [timeframe, setTimeframe] = useState<number>(getInitialTimeframe);
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>(getInitialDepartments);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>(getInitialRoles);
+  const [objectiveStatus, setObjectiveStatus] = useState<string>(getInitialStatus);
+  const [searchQuery, setSearchQuery] = useState(getInitialSearch);
+  const debouncedSearchQuery = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS);
   const [objectivePage, setObjectivePage] = useState(0);
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Initialize from URL on mount
+  useEffect(() => {
+    setIsInitialized(true);
+  }, []);
+  
+  // Sync URL with state changes (only after initialization)
+  const updateURL = useCallback(
+    (updates: {
+      timeframe?: number;
+      departments?: string[];
+      roles?: string[];
+      status?: string;
+      search?: string;
+      tab?: string;
+    }) => {
+      try {
+        const params = new URLSearchParams(searchParams?.toString() || "");
+        
+        if (updates.timeframe !== undefined) {
+          if (updates.timeframe === 30) {
+            params.delete("timeframe");
+          } else {
+            params.set("timeframe", updates.timeframe.toString());
+          }
+        }
+        
+        if (updates.departments !== undefined) {
+          if (updates.departments.length === 0 || (updates.departments.length === 1 && updates.departments[0] === "all")) {
+            params.delete("departments");
+          } else {
+            params.set("departments", encodeURIComponent(JSON.stringify(updates.departments)));
+          }
+        }
+        
+        if (updates.roles !== undefined) {
+          if (updates.roles.length === 0 || (updates.roles.length === 1 && updates.roles[0] === "all")) {
+            params.delete("roles");
+          } else {
+            params.set("roles", encodeURIComponent(JSON.stringify(updates.roles)));
+          }
+        }
+        
+        if (updates.status !== undefined) {
+          if (updates.status === "ALL") {
+            params.delete("status");
+          } else {
+            params.set("status", updates.status);
+          }
+        }
+        
+        if (updates.search !== undefined) {
+          if (!updates.search) {
+            params.delete("search");
+          } else {
+            params.set("search", updates.search);
+          }
+        }
+        
+        if (updates.tab !== undefined) {
+          if (updates.tab === "overview") {
+            params.delete("tab");
+          } else {
+            params.set("tab", updates.tab);
+          }
+        }
+        
+        const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+        router.replace(newUrl, { scroll: false });
+      } catch (error) {
+        console.error("Failed to update URL:", error);
+      }
+    },
+    [searchParams, pathname, router]
+  );
+
+  // Update URL when state changes (only after initialization to prevent loops)
+  useEffect(() => {
+    if (!isInitialized) return;
+    updateURL({ timeframe });
+  }, [timeframe, updateURL, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    updateURL({ departments: selectedDepartments });
+  }, [selectedDepartments, updateURL, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    updateURL({ roles: selectedRoles });
+  }, [selectedRoles, updateURL, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    updateURL({ status: objectiveStatus });
+  }, [objectiveStatus, updateURL, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    updateURL({ search: debouncedSearchQuery });
+  }, [debouncedSearchQuery, updateURL, isInitialized]);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    updateURL({ tab: activeTab });
+  }, [activeTab, updateURL, isInitialized]);
 
   const [showScheduleMeeting, setShowScheduleMeeting] = useState(false);
   const [showCreateReviewCycle, setShowCreateReviewCycle] = useState(false);
@@ -100,7 +261,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
 
   const { departments, jobRoles, employees } = usePerformanceReferenceData({
     enabled: Boolean(session),
-    includeEmployees: true,
+    includeEmployees: !isEmployeeContext,
   });
 
   const { objectives, meetings, stats, isLoading, error, refresh } = usePerformanceData({
@@ -117,7 +278,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
 
   useEffect(() => {
     setObjectivePage(0);
-  }, [selectedDepartments, selectedRoles, objectiveStatus, searchQuery, timeframe]);
+  }, [selectedDepartments, selectedRoles, objectiveStatus, debouncedSearchQuery, timeframe]);
 
   const departmentOptions = useMemo(
     () =>
@@ -162,14 +323,14 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
         ? selectedRoles.includes(owner.jobRole.id)
         : false;
 
-      const searchMatch = searchQuery
-        ? objective.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          objective.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      const searchMatch = debouncedSearchQuery
+        ? objective.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          objective.description?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
         : true;
 
       return matchesStatus && departmentMatch && roleMatch && searchMatch;
     });
-  }, [objectiveStatus, objectives, searchQuery, selectedDepartments, selectedRoles]);
+  }, [objectiveStatus, objectives, debouncedSearchQuery, selectedDepartments, selectedRoles]);
 
   const filteredMeetings = useMemo(() => {
     return meetings.filter((meeting: Meeting) => {
@@ -198,12 +359,11 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
   }, [meetings, selectedDepartments, selectedRoles, employeeIndex]);
 
   const paginatedObjectives = useMemo(() => {
-    const pageSize = 10;
     const pages: Objective[][] = [];
-    for (let i = 0; i < filteredObjectives.length; i += pageSize) {
-      pages.push(filteredObjectives.slice(i, i + pageSize));
+    for (let i = 0; i < filteredObjectives.length; i += OBJECTIVES_PAGE_SIZE) {
+      pages.push(filteredObjectives.slice(i, i + OBJECTIVES_PAGE_SIZE));
     }
-    return { pages, pageSize };
+    return { pages, pageSize: OBJECTIVES_PAGE_SIZE };
   }, [filteredObjectives]);
 
   const visibleObjectives = paginatedObjectives.pages[objectivePage] ?? [];
@@ -297,7 +457,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-1">
                   <span className="text-xs font-medium uppercase text-muted-foreground">Timeframe</span>
-                  <div className="flex items center gap-2">
+                  <div className="flex items-center gap-2">
                     {timeframeOptions.map((option) => (
                       <Button
                         key={option.value}
@@ -354,7 +514,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
                   <Input
                     placeholder="Search by title or description"
                     value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(event.target.value)}
                   />
                 </div>
               </div>

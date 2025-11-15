@@ -102,6 +102,7 @@ export function usePerformanceData({ timeframeDays = 30, employeeId, participant
     mutate: mutateObjectives,
   } = useSWR<{ objectives: Objective[] }>(objectivesKey, fetcher, {
     revalidateOnFocus: false,
+    dedupingInterval: 5000,
   });
 
   const {
@@ -112,6 +113,7 @@ export function usePerformanceData({ timeframeDays = 30, employeeId, participant
   } = useSWR<{ meetings: Meeting[] }>(meetingsWindowKey, fetcher, {
     revalidateOnFocus: false,
     keepPreviousData: true,
+    dedupingInterval: 5000,
   });
 
   const stats: PerformanceStats = useMemo(() => {
@@ -147,7 +149,7 @@ export function usePerformanceData({ timeframeDays = 30, employeeId, participant
       completedMeetings,
       pendingActionItems,
     };
-  }, [meetingsData?.meetings, objectivesData?.objectives]);
+  }, [objectivesData?.objectives, meetingsData?.meetings]);
 
   const refresh = () => {
     void mutateObjectives();

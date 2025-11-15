@@ -46,9 +46,11 @@ export default async function OnboardingDashboardPage() {
   const telemetrySummary = telemetry?.summary;
   const templateHotspots = telemetry?.templateHotspots ?? [];
   const recentTelemetryEvents = telemetry?.recentEvents ?? [];
+  const companyCode = telemetry?.company?.code?.toLowerCase() ?? "";
+  const publicHolidayRegion =
+    telemetry?.company?.publicHolidayRegion?.toLowerCase() ?? "";
   const isNzTenant = Boolean(
-    telemetry?.company?.code?.toLowerCase().includes("nz") ||
-      telemetry?.company?.publicHolidayRegion?.toLowerCase().includes("nz"),
+    companyCode.includes("nz") || publicHolidayRegion.includes("nz"),
   );
 
   return (

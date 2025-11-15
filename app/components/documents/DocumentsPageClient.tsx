@@ -494,7 +494,7 @@ function DocumentsContent() {
   return (
     <PageShell
       title="Documents"
-      description="Manage and organize your company documents"
+      description="Manage and organise your company documents"
       icon={<FileText className="w-6 h-6" />}
       breadcrumbs={breadcrumbs || undefined}
       action={

@@ -33,6 +33,7 @@ export default function AddHolidayModal({
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [employeeId, setEmployeeId] = useState("");
+  const [employeeSearch, setEmployeeSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -63,12 +64,14 @@ export default function AddHolidayModal({
         ]);
         if (empRes.ok) {
           const data = await empRes.json();
-          const opts: EmployeeOption[] = (data || []).map((e: any) => ({
-            id: e.id,
-            name: `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || e.email || "Employee",
-            departmentName: e.departmentName ?? null,
-            profileImageUrl: e.profileImageUrl ?? null,
-          }));
+          const opts: EmployeeOption[] = (data || [])
+            .map((e: any) => ({
+              id: e.id,
+              name: `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || e.email || "Employee",
+              departmentName: e.departmentName ?? null,
+              profileImageUrl: e.profileImageUrl ?? null,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
           setEmployees(opts);
         } else {
           toast.error("Failed to load employees");
@@ -84,6 +87,22 @@ export default function AddHolidayModal({
       }
     })();
   }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      setEmployeeSearch("");
+    }
+  }, [open]);
+
+  const filteredEmployees = useMemo(() => {
+    const term = employeeSearch.trim().toLowerCase();
+    if (!term) return employees;
+    return employees.filter((e) => {
+      const nameMatch = e.name.toLowerCase().includes(term);
+      const departmentMatch = e.departmentName?.toLowerCase().includes(term);
+      return nameMatch || departmentMatch;
+    });
+  }, [employees, employeeSearch]);
 
   const handleSubmit = async () => {
     if (!employeeId || !categoryId || !startDate || !endDate) {
@@ -131,17 +150,30 @@ export default function AddHolidayModal({
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Employee</label>
+          <Input
+            placeholder="Search employees"
+            value={employeeSearch}
+            onChange={(e) => setEmployeeSearch(e.target.value)}
+            className="mb-2"
+          />
           <select
             className="w-full border rounded p-2"
             value={employeeId}
             onChange={(e) => setEmployeeId(e.target.value)}
           >
             <option value="">Select employee</option>
-            {employees.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}{e.departmentName ? ` — ${e.departmentName}` : ""}
+            {filteredEmployees.length === 0 ? (
+              <option value="__no-results" disabled>
+                No employees match your search
               </option>
-            ))}
+            ) : (
+              filteredEmployees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name}
+                  {e.departmentName ? ` — ${e.departmentName}` : ""}
+                </option>
+              ))
+            )}
           </select>
         </div>
 

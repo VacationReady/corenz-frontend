@@ -21,11 +21,16 @@ export function useBreadcrumbs(
     }
 
     // Generate breadcrumbs based on current path
-    const pathSegments = pathname.split("/").filter(Boolean);
+    const rawSegments = pathname.split("/").filter(Boolean);
 
-    if (pathSegments.length === 0) {
+    if (rawSegments.length === 0) {
       return breadcrumbConfigs.dashboard;
     }
+
+    const pathSegments =
+      rawSegments[0] === "admin" && rawSegments.length > 1
+        ? rawSegments.slice(1)
+        : rawSegments;
 
     const firstSegment = pathSegments[0];
 
@@ -110,6 +115,7 @@ export function useBreadcrumbs(
           "automation-rules": "Automation Rules",
           "working-patterns": "Working Patterns",
           "event-manager": "Event Manager",
+          "time-tracking": "Time Tracking",
         };
 
         return breadcrumbConfigs.settingsSection(

@@ -244,7 +244,7 @@ export default function FormsPage() {
               Create your first form to get started
             </p>
             <Button asChild>
-              <Link href="/settings/forms/new">
+              <Link href="/settings/forms/new" className="flex items-center gap-2">
                 <Plus className="mr-2 h-4 w-4" />
                 Create Form
               </Link>

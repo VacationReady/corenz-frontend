@@ -14,6 +14,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/Input';
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 
 type TimeTrackingSettings = {
   // Canonical field names
@@ -94,6 +96,7 @@ export default function TimeTrackingSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const { toast } = useToast();
+  const breadcrumbs = useBreadcrumbs();
 
   useEffect(() => {
     fetchSettings();
@@ -181,6 +184,11 @@ export default function TimeTrackingSettingsPage() {
   return (
     <TooltipProvider>
       <div className="container mx-auto p-6 max-w-7xl">
+        {breadcrumbs && (
+          <div className="mb-6">
+            <Breadcrumb items={breadcrumbs.items} showHomeIcon={false} />
+          </div>
+        )}
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
             Time Tracking Settings

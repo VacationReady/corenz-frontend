@@ -3,18 +3,6 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/Card";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "@/components/ui/Table";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import OnboardingTemplateEditor from "@/components/onboarding/OnboardingTemplateEditor";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 
@@ -40,11 +28,16 @@ export default function OnboardingSettingsPage() {
 
   // Show loading state while redirecting
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+    <PageShell
+      title="Onboarding Settings"
+      description="Redirecting you to Journey Designer"
+      breadcrumbs={breadcrumbConfigs.settingsSection("Onboarding")}
+      showHomeIcon={false}
+    >
+      <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
+        <div className="mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         <p className="text-muted-foreground">Redirecting to Journey Designer...</p>
       </div>
-    </div>
+    </PageShell>
   );
 }

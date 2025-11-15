@@ -155,3 +155,46 @@ test("uses EnhancedFormRenderer for data screen forms", () => {
   assert.deepEqual(received, { formResponse: { baz: "qux" } });
   assert.deepEqual(events[0], { employeeId: "emp123" });
 });
+
+test("renders payroll setup fields when provided a database step type", () => {
+  const step = {
+    id: "s-payroll",
+    type: "PAYROLL_SETUP",
+    title: "Payroll",
+    description: "",
+    metadata: {
+      instructions: "Collect payroll info",
+      fields: [
+        {
+          id: "kiwi", // will be normalised but explicit id avoids regeneration in metadata panel
+          label: "KiwiSaver employee rate",
+          fieldType: "kiwiSaverEmployeeRate",
+          defaultValue: "0.03",
+          required: true,
+          options: ["0.03"],
+        },
+        {
+          label: "Employment Type",
+          fieldType: "select",
+          options: [" Full-time ", "Part-time"],
+          required: false,
+        },
+      ],
+    },
+  };
+  (global as any).window = {
+    dispatchEvent: () => {},
+    addEventListener: () => {},
+  } as any;
+
+  const html = renderToString(
+    React.createElement(OnboardingStepRenderer, {
+      step,
+      onComplete: () => {},
+      employeeId: "emp123",
+    }),
+  );
+
+  assert.ok(html.includes("KiwiSaver employee rate"));
+  assert.ok(html.includes("Employment Type"));
+});

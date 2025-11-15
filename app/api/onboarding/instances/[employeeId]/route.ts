@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
+import { mapDbStepTypeToUi } from "@/lib/onboarding/stepTypeMapping";
+import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
 
 const mapStepType = (type: string) => {
-  switch (type) {
-    case "ACKNOWLEDGE_DOCUMENT":
-      return "acknowledge-document";
-    case "UPLOAD_DOCUMENT":
-      return "upload-document";
-    case "INSTRUCTION":
-      return "instructions";
-    case "FORM_FILL":
-      return "fill-form";
-    default:
-      return type.toLowerCase();
+  const mapped = mapDbStepTypeToUi(type);
+  if (mapped) {
+    return mapped;
   }
+  return typeof type === "string"
+    ? type.toLowerCase().replace(/_/g, "-")
+    : type;
 };
 
 export async function GET(
@@ -72,10 +69,11 @@ export async function GET(
             .createSignedUrl(tStep.Document.url, 60 * 5);
           url = signed?.signedUrl ?? null;
         }
+        const uiType = mapStepType(tStep.type);
         return {
           id: tStep.id, // template step ID
           instanceStepId: instStep?.id || null, // ✅ onboardingStepInstance ID
-          type: mapStepType(tStep.type),
+          type: uiType,
           label: tStep.label,
           instruction: tStep.instruction ?? undefined,
           uploadType: tStep.uploadType ?? undefined,
@@ -95,7 +93,7 @@ export async function GET(
                 formType: tStep.Form.formType ?? undefined,
               }
             : undefined,
-          metadata: tStep.metadata ?? undefined,
+          metadata: normalizeStepMetadata(uiType, tStep.metadata),
           existingResponse: latestResponse,
           order: tStep.order,
           status: instStep?.status || "pending",

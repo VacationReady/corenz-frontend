@@ -68,10 +68,14 @@ type RawTemplate = {
 };
 
 const sanitizeStep = (step: RawStep) => {
-  const uiType = mapDbStepTypeToUi(step.type) || step.type;
+  const uiType = mapDbStepTypeToUi(step.type) ||
+    (typeof step.type === "string"
+      ? step.type.toLowerCase().replace(/_/g, "-")
+      : step.type);
   return {
     id: step.id,
     type: step.type,
+    uiType,
     label: step.label,
     order: step.order,
     templateId: step.templateId,

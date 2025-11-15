@@ -21,6 +21,7 @@ import {
   type PayrollFieldType,
 } from "@/lib/onboarding/stepMetadata";
 import { validateIRDNumber } from "@/lib/payroll/validators";
+import { mapDbStepTypeToUi } from "@/lib/onboarding/stepTypeMapping";
 
 type OnboardingStepProps = {
   step: {
@@ -59,9 +60,27 @@ export default function OnboardingStepRenderer({
   const [formType, setFormType] = useState<"SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN" | null>(
     step.form?.formType || null,
   );
+  const stepType = useMemo(() => {
+    const providedType =
+      (step && typeof step === "object" && (step as any).uiType)
+        ? (step as any).uiType
+        : step.type;
+    const mapped = mapDbStepTypeToUi(providedType);
+    if (mapped) {
+      return mapped;
+    }
+    if (typeof providedType === "string") {
+      return providedType.toLowerCase().replace(/_/g, "-");
+    }
+    if (typeof step.type === "string") {
+      return step.type.toLowerCase().replace(/_/g, "-");
+    }
+    return "";
+  }, [step]);
+
   const metadata = useMemo(
-    () => normalizeStepMetadata(step.type, (step as any).metadata),
-    [step.type, (step as any).metadata],
+    () => normalizeStepMetadata(stepType, (step as any).metadata),
+    [stepType, (step as any).metadata],
   );
 
   const parseChecklist = (items: any) =>
@@ -327,7 +346,7 @@ export default function OnboardingStepRenderer({
   const desc = step.description || step.instruction || "";
 
   // ✅ Acknowledge Document
-  if (step.type === "acknowledge-document") {
+  if (stepType === "acknowledge-document") {
     const acknowledgeCheckboxId = `acknowledge-${step.id}`;
     const acknowledgementText =
       typeof metadata.acknowledgementText === "string" && metadata.acknowledgementText.trim().length
@@ -416,7 +435,7 @@ export default function OnboardingStepRenderer({
   }
 
   // ✅ Upload Document
-  if (step.type === "upload-document") {
+  if (stepType === "upload-document") {
     const uploadInputId = `document-upload-${step.id}`;
     const acceptedTypes = Array.isArray(metadata.allowedFileTypes) && metadata.allowedFileTypes.length
       ? metadata.allowedFileTypes.join(",")
@@ -520,7 +539,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "collect-document") {
+  if (stepType === "collect-document") {
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title}</div>
@@ -548,7 +567,7 @@ export default function OnboardingStepRenderer({
   }
 
   // ✅ Fill Form
-  if (step.type === "fill-form" || step.type === "form_fill") {
+  if (stepType === "fill-form") {
     const guidanceText =
       typeof metadata.guidance === "string" && metadata.guidance.trim().length
         ? metadata.guidance.trim()
@@ -654,7 +673,7 @@ export default function OnboardingStepRenderer({
   }
 
   // ✅ Instructions
-  if (step.type === "instructions") {
+  if (stepType === "instructions") {
     const buttonLabel =
       typeof metadata.buttonLabel === "string" && metadata.buttonLabel.trim().length
         ? metadata.buttonLabel.trim()
@@ -672,7 +691,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "training-assignment") {
+  if (stepType === "training-assignment") {
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title}</div>
@@ -730,7 +749,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "equipment-checklist") {
+  if (stepType === "equipment-checklist") {
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title}</div>
@@ -781,7 +800,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "system-access") {
+  if (stepType === "system-access") {
     const systemInstructions =
       typeof metadata.instructions === "string" && metadata.instructions.trim().length
         ? metadata.instructions.trim()
@@ -846,7 +865,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "manager-checkin") {
+  if (stepType === "manager-checkin") {
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title}</div>
@@ -893,7 +912,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "buddy-introduction") {
+  if (stepType === "buddy-introduction") {
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title}</div>
@@ -924,7 +943,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "compliance-training") {
+  if (stepType === "compliance-training") {
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title}</div>
@@ -982,7 +1001,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "payroll-setup") {
+  if (stepType === "payroll-setup") {
     const payrollInstructions =
       typeof metadata.instructions === "string" && metadata.instructions.trim().length
         ? metadata.instructions.trim()
@@ -1202,7 +1221,7 @@ export default function OnboardingStepRenderer({
       </Card>
     );
   }
-  if (step.type === "benefits-enrollment") {
+  if (stepType === "benefits-enrollment") {
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title || "Benefits Enrollment"}</div>
@@ -1260,7 +1279,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "probation-goals") {
+  if (stepType === "probation-goals") {
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title || "Probation Goals"}</div>
@@ -1326,7 +1345,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "welcome-survey") {
+  if (stepType === "welcome-survey") {
     const surveyInstructions =
       typeof metadata.instructions === "string" && metadata.instructions.trim().length
         ? metadata.instructions.trim()
@@ -1351,7 +1370,7 @@ export default function OnboardingStepRenderer({
     );
   }
 
-  if (step.type === "journey-automation") {
+  if (stepType === "journey-automation") {
     return (
       <Card className="p-4 space-y-4">
         <div className="text-lg font-semibold">{title || "Journey Automation"}</div>
@@ -1423,7 +1442,7 @@ export default function OnboardingStepRenderer({
   return (
     <Card className="p-4 space-y-3">
       <div className="text-sm font-semibold text-destructive">
-        Unknown step type: {step.type}
+        Unknown step type: {stepType}
       </div>
       <p className="text-xs text-muted-foreground">
         This step type isn&apos;t supported yet. Please contact your administrator for assistance.

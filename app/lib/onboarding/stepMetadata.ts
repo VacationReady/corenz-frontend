@@ -200,7 +200,7 @@ const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
     normalize: (value: unknown) => {
       const base = (typeof value === "object" && value) || {};
       return {
-        guidance: asString((base as any).guidance, ""),
+        guidance: asTrimmedString((base as any).guidance, ""),
       };
     },
     schema: {

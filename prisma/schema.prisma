@@ -232,6 +232,8 @@ model Company {
   RotaGroups                          RotaGroup[]
   OvertimeAuditLogs                   OvertimeAuditLog[]
   PayrollCalculations                 PayrollCalculation[]
+  OnboardingStepAuditLogs             OnboardingStepAuditLog[]
+  OnboardingReminders                 OnboardingReminder[]
 }
 
 model ContractTypeOption {
@@ -518,6 +520,7 @@ model Employee {
   TimesheetEntryAuditsAsChanger    TimesheetEntryAudit[]              @relation("TimesheetEntryAuditChangedBy")
   OvertimeAuditLogs                OvertimeAuditLog[]
   PayrollCalculations              PayrollCalculation[]
+  OnboardingReminders              OnboardingReminder[]
 
   @@unique([companyId, irdNumber])
 }
@@ -1312,27 +1315,44 @@ model OnboardingInstance {
   Employee               Employee                 @relation(fields: [employeeId], references: [id])
   OnboardingTemplate     OnboardingTemplate       @relation(fields: [templateId], references: [id])
   OnboardingStepInstance OnboardingStepInstance[]
+  OnboardingReminders    OnboardingReminder[]
 }
 
 model OnboardingStep {
-  id                     String                   @id
-  type                   OnboardingStepType
-  label                  String
-  order                  Int
-  templateId             String
-  documentId             String?
-  uploadType             OnboardingUploadType?
-  instruction            String?
-  formId                 String?
-  dependencies           String[]                 @default([])
-  metadata               Json?
-  slaDays                Int?
-  taskOwnerId            String?
-  trainingId             String?
-  Document               Document?                @relation(fields: [documentId], references: [id])
-  Form                   Form?                    @relation(fields: [formId], references: [id])
-  OnboardingTemplate     OnboardingTemplate       @relation(fields: [templateId], references: [id])
-  OnboardingStepInstance OnboardingStepInstance[]
+  id                          String                   @id
+  type                        OnboardingStepType
+  label                       String
+  order                       Int
+  templateId                  String
+  documentId                  String?
+  uploadType                  OnboardingUploadType?
+  instruction                 String?
+  formId                      String?
+  dependencies                String[]                 @default([])
+  metadata                    Json?
+  slaDays                     Int?
+  taskOwnerId                 String?
+  trainingId                  String?
+  // Reminder configuration
+  reminderEnabled             Boolean                  @default(false)
+  reminderDaysBefore          Int?
+  reminderTime                String?                  // HH:MM in tenant timezone
+  reminderEscalationEnabled   Boolean                  @default(false)
+  reminderEscalationDays      Int?
+  reminderEscalationRole      String?                  // 'manager' | 'hr_admin' | 'custom'
+  reminderEscalationUserId    String?
+  // SLA configuration
+  slaEnabled                  Boolean                  @default(false)
+  slaCompletionDays           Int?
+  slaWarningDays              Int?
+  excludePublicHolidays       Boolean                  @default(true)
+  excludeWeekends             Boolean                  @default(false)
+  Document                    Document?                @relation(fields: [documentId], references: [id])
+  Form                        Form?                    @relation(fields: [formId], references: [id])
+  OnboardingTemplate          OnboardingTemplate       @relation(fields: [templateId], references: [id])
+  OnboardingStepInstance      OnboardingStepInstance[]
+  OnboardingReminders         OnboardingReminder[]
+  AuditLogs                   OnboardingStepAuditLog[]
 
   @@unique([templateId, label])
 }
@@ -1347,6 +1367,7 @@ model OnboardingStepInstance {
   OnboardingInstance     OnboardingInstance       @relation(fields: [onboardingInstanceId], references: [id])
   OnboardingStep         OnboardingStep           @relation(fields: [stepId], references: [id])
   OnboardingStepResponse OnboardingStepResponse[]
+  OnboardingReminders    OnboardingReminder[]
 }
 
 model OnboardingStepResponse {
@@ -1358,23 +1379,24 @@ model OnboardingStepResponse {
 }
 
 model OnboardingTemplate {
-  id                   String                 @id
+  id                   String                       @id
   name                 String
   description          String?
-  isDefault            Boolean                @default(false)
+  isDefault            Boolean                      @default(false)
   companyId            String
-  createdAt            DateTime               @default(now())
+  createdAt            DateTime                     @default(now())
   updatedAt            DateTime
-  isActive             Boolean                @default(false)
+  isActive             Boolean                      @default(false)
   updatedById          String?
   Employee             Employee[]
   OnboardingAssignment OnboardingAssignment[]
   OnboardingInstance   OnboardingInstance[]
   OnboardingStep       OnboardingStep[]
-  Company              Company                @relation(fields: [companyId], references: [id])
-  User                 User?                  @relation(fields: [updatedById], references: [id])
-  Department           Department[]           @relation("OnboardingTemplateDepartments")
-  JobRole              JobRole[]              @relation("OnboardingTemplateJobRoles")
+  AuditLogs            OnboardingStepAuditLog[]
+  Company              Company                      @relation(fields: [companyId], references: [id])
+  User                 User?                        @relation(fields: [updatedById], references: [id])
+  Department           Department[]                 @relation("OnboardingTemplateDepartments")
+  JobRole              JobRole[]                    @relation("OnboardingTemplateJobRoles")
 
   @@unique([companyId, name])
 }
@@ -1395,8 +1417,60 @@ model OnboardingTemplateTelemetryEvent {
   Company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, fingerprint])
-  @@index([companyId, eventType, lastSeenAt])
+  @@index([companyId, severity])
   @@index([templateId, lastSeenAt])
+}
+
+model OnboardingStepAuditLog {
+  id          String              @id @default(cuid())
+  companyId   String
+  templateId  String
+  stepId      String?
+  stepLabel   String
+  changeType  String              // 'label_change' | 'reminder_config' | 'sla_config' | 'metadata_change'
+  fieldName   String?
+  oldValue    Json?
+  newValue    Json?
+  changedById String
+  changedAt   DateTime            @default(now())
+  reason      String?
+  ipAddress   String?
+  Company     Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  Template    OnboardingTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  Step        OnboardingStep?     @relation(fields: [stepId], references: [id], onDelete: SetNull)
+  ChangedBy   User                @relation("OnboardingStepAuditChangedBy", fields: [changedById], references: [id])
+
+  @@index([companyId, changedAt])
+  @@index([templateId, stepLabel])
+  @@index([changeType])
+}
+
+model OnboardingReminder {
+  id                    String                 @id @default(cuid())
+  companyId             String
+  onboardingInstanceId  String
+  stepInstanceId        String
+  stepId                String
+  employeeId            String
+  reminderType          String                 // 'initial' | 'escalation'
+  scheduledFor          DateTime
+  sentAt                DateTime?
+  status                String                 @default("pending") // 'pending' | 'sent' | 'failed' | 'cancelled'
+  recipientEmail        String
+  recipientName         String?
+  escalatedTo           String?                // User ID if escalated
+  failureReason         String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  Company               Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  OnboardingInstance    OnboardingInstance     @relation(fields: [onboardingInstanceId], references: [id], onDelete: Cascade)
+  StepInstance          OnboardingStepInstance @relation(fields: [stepInstanceId], references: [id], onDelete: Cascade)
+  Step                  OnboardingStep         @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  Employee              Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledFor])
+  @@index([companyId, employeeId])
+  @@index([onboardingInstanceId])
 }
 
 model PermissionAudit {
@@ -1720,6 +1794,7 @@ model User {
   CreatedReviewCycles                                                      PerformanceReviewCycle[]
   ReviewSubmissionsAuthored                                                ReviewSubmission[]             @relation("ReviewSubmissionReviewer")
   TenantSwitchTokens                                                       TenantSwitchToken[]
+  OnboardingStepAuditLogs                                                  OnboardingStepAuditLog[]       @relation("OnboardingStepAuditChangedBy")
 
   @@unique([email, companyId])
 }

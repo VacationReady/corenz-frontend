@@ -1,6 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
 import { mapDbStepTypeToUi } from "@/lib/onboarding/stepTypeMapping";
+import {
+  metadataValuesAreEqual,
+  prepareMetadataForTelemetry,
+  recordOnboardingTelemetryBatch,
+  recordOnboardingTelemetryEvent,
+  summariseMetadataDiff,
+  type OnboardingTelemetryEventInput,
+} from "@/lib/onboarding/telemetry";
 
 const templateSelect = {
   id: true,
@@ -132,15 +140,123 @@ export async function fetchTenantTemplates(
   companyId: string,
   prismaClient = prisma,
 ) {
-  const templates = await prismaClient.onboardingTemplate.findMany({
-    where: { companyId },
-    select: templateSelect,
-    orderBy: { createdAt: "asc" },
-  });
+  const telemetryEvents: OnboardingTelemetryEventInput[] = [];
 
-  return templates
-    .filter((template: any) => template.companyId === companyId)
-    .map((template: any) => serializeTemplate(template, companyId));
+  try {
+    const templates = await prismaClient.onboardingTemplate.findMany({
+      where: { companyId },
+      select: templateSelect,
+      orderBy: { createdAt: "asc" },
+    });
+
+    const serializedTemplates: SerializedOnboardingTemplate[] = [];
+
+    for (const template of templates) {
+      if (template.companyId !== companyId) {
+        telemetryEvents.push({
+          companyId,
+          eventType: "template_load_failure",
+          severity: "error",
+          message: `Cross-tenant template load attempt blocked for template ${template.id}`,
+          templateId: template.id,
+          metadata: {
+            expectedCompanyId: companyId,
+            templateCompanyId: template.companyId,
+            templateName: template.name,
+          },
+        });
+        continue;
+      }
+
+      let serialized: SerializedOnboardingTemplate;
+      try {
+        serialized = serializeTemplate(template, companyId);
+      } catch (error) {
+        telemetryEvents.push({
+          companyId,
+          eventType: "template_load_failure",
+          severity: "error",
+          message: `Failed to serialize onboarding template ${template.name || template.id}`,
+          templateId: template.id,
+          metadata: {
+            templateName: template.name,
+            error:
+              error instanceof Error
+                ? { name: error.name, message: error.message }
+                : { message: String(error) },
+          },
+        });
+        continue;
+      }
+
+      const rawSteps = Array.isArray(template.OnboardingStep)
+        ? template.OnboardingStep
+        : [];
+
+      rawSteps.forEach((rawStep, index) => {
+        const sanitisedStep = serialized.steps[index];
+        if (!sanitisedStep) {
+          return;
+        }
+
+        if (
+          !metadataValuesAreEqual(
+            rawStep.metadata ?? null,
+            sanitisedStep.metadata ?? null,
+          )
+        ) {
+          telemetryEvents.push({
+            companyId,
+            eventType: "metadata_mismatch",
+            severity: "warning",
+            templateId: template.id,
+            stepId: rawStep.id,
+            message: `Metadata mismatch detected for step "${rawStep.label}"`,
+            metadata: {
+              templateName: template.name,
+              stepLabel: rawStep.label,
+              uiType: sanitisedStep.uiType,
+              mismatchedKeys: summariseMetadataDiff(
+                rawStep.metadata ?? null,
+                sanitisedStep.metadata ?? null,
+              ),
+              rawMetadata: prepareMetadataForTelemetry(
+                rawStep.metadata ?? null,
+              ),
+              normalizedMetadata: prepareMetadataForTelemetry(
+                sanitisedStep.metadata ?? null,
+              ),
+            },
+          });
+        }
+      });
+
+      serializedTemplates.push(serialized);
+    }
+
+    if (telemetryEvents.length) {
+      await recordOnboardingTelemetryBatch(telemetryEvents, prismaClient);
+    }
+
+    return serializedTemplates;
+  } catch (error) {
+    await recordOnboardingTelemetryEvent(
+      {
+        companyId,
+        eventType: "template_load_failure",
+        severity: "error",
+        message: "Unhandled error loading onboarding templates",
+        metadata: {
+          error:
+            error instanceof Error
+              ? { name: error.name, message: error.message }
+              : { message: String(error) },
+        },
+      },
+      prismaClient,
+    );
+    throw error;
+  }
 }
 
 export { templateSelect };

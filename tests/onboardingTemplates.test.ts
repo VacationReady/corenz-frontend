@@ -372,6 +372,85 @@ test("fetchTenantTemplates enforces tenant isolation and normalises metadata", a
   assert.deepEqual(templates[0].steps[0].metadata, { buttonLabel: "Continue" });
 });
 
+test("fetchTenantTemplates records telemetry for metadata mismatches", async () => {
+  const upsert = mock.fn(async () => ({}));
+  const prismaMock = {
+    onboardingTemplate: {
+      findMany: async () => [
+        {
+          id: "tpl-1",
+          companyId: "tenant-a",
+          name: "NZ Starter",
+          description: null,
+          isActive: true,
+          updatedAt: new Date(),
+          User: null,
+          Department: [],
+          JobRole: [],
+          OnboardingStep: [
+            {
+              id: "step-1",
+              type: "INSTRUCTION",
+              label: "Welcome",
+              order: 1,
+              templateId: "tpl-1",
+              documentId: null,
+              uploadType: null,
+              instruction: null,
+              formId: null,
+              dependencies: [],
+              metadata: null,
+              slaDays: null,
+              taskOwnerId: null,
+              trainingId: null,
+              Document: null,
+              Form: null,
+            },
+          ],
+        },
+      ],
+    },
+    onboardingTemplateTelemetryEvent: {
+      upsert,
+    },
+  };
+
+  const { fetchTenantTemplates } = await import(
+    "../app/api/onboarding/templates/tenantScopedFetch"
+  );
+
+  const templates = await fetchTenantTemplates("tenant-a", prismaMock as any);
+  assert.equal(templates.length, 1);
+  assert.equal(upsert.mock.callCount(), 1);
+  const upsertArgs = upsert.mock.calls[0].arguments[0];
+  assert.equal(upsertArgs.create.eventType, "metadata_mismatch");
+  assert.equal(upsertArgs.create.templateId, "tpl-1");
+  assert.equal(upsertArgs.create.stepId, "step-1");
+});
+
+test("fetchTenantTemplates records telemetry on load failures", async () => {
+  const upsert = mock.fn(async () => ({}));
+  const prismaMock = {
+    onboardingTemplate: {
+      findMany: async () => {
+        throw new Error("database offline");
+      },
+    },
+    onboardingTemplateTelemetryEvent: {
+      upsert,
+    },
+  };
+
+  const { fetchTenantTemplates } = await import(
+    "../app/api/onboarding/templates/tenantScopedFetch"
+  );
+
+  await assert.rejects(() => fetchTenantTemplates("tenant-a", prismaMock as any));
+  assert.equal(upsert.mock.callCount(), 1);
+  const upsertArgs = upsert.mock.calls[0].arguments[0];
+  assert.equal(upsertArgs.create.eventType, "template_load_failure");
+});
+
 test("serializeTemplate rejects templates from other tenants", async () => {
   const { serializeTemplate } = await import(
     "../app/api/onboarding/templates/tenantScopedFetch"

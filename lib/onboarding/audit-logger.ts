@@ -165,22 +165,31 @@ export async function generateComplianceReport(
   });
 
   // Group by change type
-  const changesByType = logs.reduce((acc, log) => {
-    if (!acc[log.changeType]) {
-      acc[log.changeType] = [];
-    }
-    acc[log.changeType].push(log);
-    return acc;
-  }, {} as Record<ChangeType, typeof logs>);
+  const changesByType = logs.reduce<Record<ChangeType, typeof logs[number][]>>(
+    (acc, log) => {
+      const key = (log.changeType as ChangeType) ?? 'label_change';
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(log);
+      return acc;
+    },
+    {
+      label_change: [],
+      reminder_config: [],
+      sla_config: [],
+      metadata_change: [],
+    },
+  );
 
   // Group by step
-  const changesByStep = logs.reduce((acc, log) => {
+  const changesByStep = logs.reduce<Record<string, typeof logs[number][]>>((acc, log) => {
     if (!acc[log.stepLabel]) {
       acc[log.stepLabel] = [];
     }
     acc[log.stepLabel].push(log);
     return acc;
-  }, {} as Record<string, typeof logs>);
+  }, {});
 
   // Get unique changers
   const changers = Array.from(

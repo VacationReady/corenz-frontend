@@ -5,6 +5,7 @@
  * tenant-specific branding, sender domains, and unsubscribe preferences.
  */
 
+import { Prisma } from '@prisma/client';
 import { resend, PEOPLECORE_FROM_EMAIL } from '../../app/lib/resend';
 import { renderPeopleCoreEmail } from '../../app/lib/email/template';
 import { prisma } from '../../app/lib/prisma';
@@ -28,6 +29,50 @@ export interface BrandingConfig {
   primaryColor?: string;
   emailFooterText?: string;
 }
+
+const onboardingInstanceWithRelations = Prisma.validator<Prisma.OnboardingInstanceDefaultArgs>()({
+  include: {
+    OnboardingStepInstance: {
+      include: {
+        OnboardingStep: true,
+      },
+    },
+    Employee: {
+      include: {
+        User: {
+          select: {
+            email: true,
+            name: true,
+            managerId: true,
+          },
+        },
+      },
+    },
+    OnboardingTemplate: {
+      include: {
+        Company: {
+          include: {
+            User: {
+              where: {
+                role: 'ADMIN',
+              },
+              select: {
+                id: true,
+                email: true,
+                name: true,
+              },
+              take: 1,
+            },
+          },
+        },
+      },
+    },
+  },
+});
+
+type OnboardingInstanceWithRelations = Prisma.OnboardingInstanceGetPayload<
+  typeof onboardingInstanceWithRelations
+>;
 
 /**
  * Send onboarding step reminder email
@@ -281,53 +326,19 @@ export async function cancelStepReminders(stepInstanceId: string) {
 export async function createRemindersForOnboardingInstance(onboardingInstanceId: string) {
   const instance = await prisma.onboardingInstance.findUnique({
     where: { id: onboardingInstanceId },
-    include: {
-      OnboardingStepInstance: {
-        include: {
-          OnboardingStep: true,
-        },
-      },
-      Employee: {
-        include: {
-          User: {
-            select: {
-              email: true,
-              name: true,
-              managerId: true,
-            },
-          },
-        },
-      },
-      OnboardingTemplate: {
-        include: {
-          Company: {
-            include: {
-              User: {
-                where: {
-                  role: 'HR_ADMIN',
-                },
-                select: {
-                  id: true,
-                  email: true,
-                  name: true,
-                },
-                take: 1,
-              },
-            },
-          },
-        },
-      },
-    },
+    ...onboardingInstanceWithRelations,
   });
 
   if (!instance) {
     throw new Error(`Onboarding instance ${onboardingInstanceId} not found`);
   }
 
+  const enrichedInstance = instance as OnboardingInstanceWithRelations;
+
   const publicHolidays = getNZPublicHolidays(new Date().getFullYear());
   const createdReminders: any[] = [];
 
-  for (const stepInstance of instance.OnboardingStepInstance) {
+  for (const stepInstance of enrichedInstance.OnboardingStepInstance) {
     const step = stepInstance.OnboardingStep;
 
     // Skip if reminder not enabled
@@ -335,7 +346,7 @@ export async function createRemindersForOnboardingInstance(onboardingInstanceId:
       continue;
     }
 
-    const startDate = instance.startedAt;
+    const startDate = enrichedInstance.startedAt;
 
     // Calculate reminder date considering business days
     let reminderDate: Date;
@@ -362,15 +373,15 @@ export async function createRemindersForOnboardingInstance(onboardingInstanceId:
 
     // Create initial reminder
     const initialReminder = await scheduleStepReminder({
-      companyId: instance.OnboardingTemplate.companyId,
-      onboardingInstanceId: instance.id,
+      companyId: enrichedInstance.OnboardingTemplate.companyId,
+      onboardingInstanceId: enrichedInstance.id,
       stepInstanceId: stepInstance.id,
       stepId: step.id,
-      employeeId: instance.employeeId,
+      employeeId: enrichedInstance.employeeId,
       reminderType: 'initial',
       scheduledFor: reminderDate,
-      recipientEmail: instance.Employee.User.email,
-      recipientName: instance.Employee.User.name || instance.Employee.User.email,
+      recipientEmail: enrichedInstance.Employee.User.email,
+      recipientName: enrichedInstance.Employee.User.name || enrichedInstance.Employee.User.email,
     });
 
     createdReminders.push(initialReminder);
@@ -380,13 +391,13 @@ export async function createRemindersForOnboardingInstance(onboardingInstanceId:
       const escalationDate = new Date(reminderDate);
       escalationDate.setDate(escalationDate.getDate() + step.reminderEscalationDays);
 
-      let escalatedEmail = instance.Employee.User.email;
+      let escalatedEmail = enrichedInstance.Employee.User.email;
       let escalatedUserId: string | undefined;
 
       // Determine escalation recipient
-      if (step.reminderEscalationRole === 'manager' && instance.Employee.User.managerId) {
+      if (step.reminderEscalationRole === 'manager' && enrichedInstance.Employee.User.managerId) {
         const manager = await prisma.user.findUnique({
-          where: { id: instance.Employee.User.managerId },
+          where: { id: enrichedInstance.Employee.User.managerId },
           select: { id: true, email: true },
         });
         if (manager) {
@@ -394,7 +405,7 @@ export async function createRemindersForOnboardingInstance(onboardingInstanceId:
           escalatedUserId = manager.id;
         }
       } else if (step.reminderEscalationRole === 'hr_admin') {
-        const hrAdmin = instance.OnboardingTemplate.Company.User[0];
+        const hrAdmin = enrichedInstance.OnboardingTemplate.Company.User[0];
         if (hrAdmin) {
           escalatedEmail = hrAdmin.email;
           escalatedUserId = hrAdmin.id;
@@ -411,15 +422,15 @@ export async function createRemindersForOnboardingInstance(onboardingInstanceId:
       }
 
       const escalationReminder = await scheduleStepReminder({
-        companyId: instance.OnboardingTemplate.companyId,
-        onboardingInstanceId: instance.id,
+        companyId: enrichedInstance.OnboardingTemplate.companyId,
+        onboardingInstanceId: enrichedInstance.id,
         stepInstanceId: stepInstance.id,
         stepId: step.id,
-        employeeId: instance.employeeId,
+        employeeId: enrichedInstance.employeeId,
         reminderType: 'escalation',
         scheduledFor: escalationDate,
         recipientEmail: escalatedEmail,
-        recipientName: instance.Employee.User.name || instance.Employee.User.email,
+        recipientName: enrichedInstance.Employee.User.name || enrichedInstance.Employee.User.email,
         escalatedTo: escalatedUserId,
       });
 

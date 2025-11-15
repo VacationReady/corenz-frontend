@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import {
   serializeTemplate,
   templateSelect,
+  type RawTemplate,
 } from "../app/api/onboarding/templates/tenantScopedFetch";
 import { normalizeStepMetadata } from "../app/lib/onboarding/stepMetadata";
 import {
@@ -11,10 +12,6 @@ import {
 } from "../app/lib/onboarding/telemetry";
 
 const prisma = new PrismaClient();
-
-type RawTemplate = Awaited<
-  ReturnType<typeof prisma.onboardingTemplate.findMany>
->[number];
 
 type MetadataMismatch = {
   tenantId: string;
@@ -33,7 +30,7 @@ async function verifyOnboardingTemplateMetadata() {
 
   console.log("🔍 Starting onboarding template metadata QA check...\n");
 
-  const templates = await prisma.onboardingTemplate.findMany({
+  const templates: RawTemplate[] = await prisma.onboardingTemplate.findMany({
     where: tenantFilter ? { companyId: tenantFilter } : undefined,
     select: templateSelect,
     orderBy: [{ companyId: "asc" }, { name: "asc" }],

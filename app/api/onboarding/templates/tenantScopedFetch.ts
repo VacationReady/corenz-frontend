@@ -62,7 +62,7 @@ type RawStep = {
   Form: { id: string; name: string | null } | null;
 };
 
-type RawTemplate = {
+export type RawTemplate = {
   id: string;
   companyId: string;
   name: string;

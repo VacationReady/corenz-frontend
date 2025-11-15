@@ -27,8 +27,9 @@ import {
   Target,
   Smile,
   Workflow,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import Checkbox from "@/components/ui/Checkbox";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -63,8 +64,8 @@ import {
 
 // --- Step Types
 const STEP_TYPES = [
-	{ value: "acknowledge-document", label: "Acknowledge Document", icon: FileText },
-	{ value: "upload-document", label: "Upload Document", icon: UploadCloud },
+        { value: "acknowledge-document", label: "Acknowledge Document", icon: FileText },
+        { value: "upload-document", label: "Upload Document", icon: UploadCloud },
 	{ value: "collect-document", label: "Collect Existing Document", icon: UploadCloud },
 	{ value: "fill-form", label: "Fill Form", icon: FileEdit },
 	{ value: "instructions", label: "Welcome/Instructions", icon: Info },
@@ -78,8 +79,11 @@ const STEP_TYPES = [
 	{ value: "benefits-enrollment", label: "Benefits Enrollment", icon: HeartPulse },
 	{ value: "probation-goals", label: "Probation Goals", icon: Target },
 	{ value: "welcome-survey", label: "Welcome Survey", icon: Smile },
-	{ value: "journey-automation", label: "Journey Automation", icon: Workflow },
+        { value: "journey-automation", label: "Journey Automation", icon: Workflow },
 ];
+
+const DEFAULT_PAGE_SIZE = 25;
+const PAGE_SIZE_OPTIONS = [20, 25, 50, 100];
 
 // --- Key generator utility
 function getStepKey(step: any) {
@@ -638,15 +642,72 @@ export default function OnboardingTemplateEditor({
     hydrateTemplateSteps(template),
   );
 
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(
+  const [selectedIndex, setSelectedIndexState] = useState<number | null>(
     () => (template?.steps?.length ? 0 : null),
   );
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const baselineMapRef = useRef<Map<string, any>>(new Map());
   const stepsRef = useRef<any[]>(steps);
   const baselineStepsRef = useRef<any[]>(baselineSteps);
+
+  const selectStep = useCallback(
+    (index: number | null) => {
+      if (index == null || Number.isNaN(index)) {
+        setSelectedIndexState(null);
+        setCurrentPage(0);
+        return;
+      }
+      setSelectedIndexState(index);
+      setCurrentPage(Math.max(0, Math.floor(index / pageSize)));
+    },
+    [pageSize],
+  );
+
+  const goToPage = useCallback(
+    (page: number) => {
+      const total = stepsRef.current.length;
+      const maxPage = Math.max(0, Math.ceil(Math.max(total, 1) / pageSize) - 1);
+      const clamped = Math.min(Math.max(page, 0), maxPage);
+      const start = clamped * pageSize;
+      const end = Math.min(start + pageSize, total);
+      setCurrentPage(clamped);
+      setSelectedIndexState((prev) => {
+        if (total === 0) {
+          return null;
+        }
+        if (prev == null || prev < start || prev >= end) {
+          return start < end ? start : Math.max(0, total - 1);
+        }
+        return prev;
+      });
+    },
+    [pageSize],
+  );
+
+  useEffect(() => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(
+        0,
+        Math.ceil(Math.max(steps.length, 1) / pageSize) - 1,
+      );
+      return prev > maxPage ? maxPage : prev;
+    });
+  }, [steps.length, pageSize]);
+
+  useEffect(() => {
+    if (selectedIndex == null) {
+      if (!steps.length) {
+        setCurrentPage(0);
+      }
+      return;
+    }
+    const targetPage = Math.max(0, Math.floor(selectedIndex / pageSize));
+    setCurrentPage((prev) => (prev === targetPage ? prev : targetPage));
+  }, [selectedIndex, pageSize, steps.length]);
   const getEditorSnapshot = useCallback(() =>
     createTemplateSnapshot({
       id: template?.id ?? baselineSnapshotRef.current.id,
@@ -707,8 +768,8 @@ export default function OnboardingTemplateEditor({
     const hydrated = hydrateTemplateSteps(template);
     setSteps(hydrated);
     setBaselineSteps(hydrated);
-    setSelectedIndex(hydrated.length ? 0 : null);
-  }, [template]);
+    selectStep(hydrated.length ? 0 : null);
+  }, [template, selectStep]);
 
   useEffect(() => {
     const fetchDropdownData = async () => {
@@ -785,7 +846,7 @@ export default function OnboardingTemplateEditor({
           const hydrated = hydrateTemplateSteps(payload);
           setSteps(hydrated);
           setBaselineSteps(hydrated);
-          setSelectedIndex(hydrated.length ? 0 : null);
+          selectStep(hydrated.length ? 0 : null);
         }
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -797,14 +858,14 @@ export default function OnboardingTemplateEditor({
     run();
 
     return () => controller.abort();
-  }, [template?.id, baselineStepsRef, stepsRef]);
+  }, [template?.id, baselineStepsRef, stepsRef, selectStep]);
 
   const addStep = useCallback(
     (type: string) => {
       setSteps((prev) => {
         const next = [...prev, createStep(type)];
         const created = next[next.length - 1];
-        setSelectedIndex(next.length - 1);
+        selectStep(next.length - 1);
         if (created && tenantId) {
           const key = getStepKey(created);
           const baseline = baselineMapRef.current.get(key);
@@ -819,7 +880,7 @@ export default function OnboardingTemplateEditor({
         return next;
       });
     },
-    [tenantId, queueMetadataChange],
+    [tenantId, queueMetadataChange, selectStep],
   );
 
   const updateStep = useCallback(
@@ -873,12 +934,12 @@ export default function OnboardingTemplateEditor({
           const nextIndex = next.length
             ? Math.min(selectedIndex, next.length - 1)
             : null;
-          setSelectedIndex(nextIndex);
+          selectStep(nextIndex);
         }
         return next;
       });
     },
-    [tenantId, queueMetadataChange, selectedIndex],
+    [tenantId, queueMetadataChange, selectedIndex, selectStep],
   );
 
   const loadLatestVersion = useCallback(
@@ -910,13 +971,21 @@ export default function OnboardingTemplateEditor({
       setBaselineSteps(hydrated);
       stepsRef.current = hydrated;
       baselineStepsRef.current = hydrated;
-      setSelectedIndex(hydrated.length ? 0 : null);
+      selectStep(hydrated.length ? 0 : null);
       setConflictState(null);
       toast.success("Loaded the latest template from the server.", {
         description: describeTemplateDiff(state.diff).join(" • ") || undefined,
       });
     },
-    [setDepartments, setDescription, setJobRoles, setName, setBaselineSteps, setSteps],
+    [
+      setDepartments,
+      setDescription,
+      setJobRoles,
+      setName,
+      setBaselineSteps,
+      setSteps,
+      selectStep,
+    ],
   );
 
   const acknowledgeConflict = useCallback((state: ConflictState) => {
@@ -941,38 +1010,47 @@ export default function OnboardingTemplateEditor({
 
 		// If dragging from the left palette, create a new step at the drop index
 		const dragged = (active.data?.current as any) || {};
-		if (dragged?.source === "step-palette" && dragged?.type) {
-			setSteps((prev) => {
-				const insertIndex = over.id === "steps-canvas"
-					? prev.length
-					: Math.max(
-						0,
-						prev.findIndex((item) => getStepKey(item) === over.id),
-					);
-				const next = [...prev];
-				next.splice(insertIndex === -1 ? prev.length : insertIndex, 0, createStep(dragged.type));
-				setSelectedIndex(insertIndex === -1 ? prev.length : insertIndex);
-				return next;
-			});
-			return;
-		}
+                if (dragged?.source === "step-palette" && dragged?.type) {
+                        setSteps((prev) => {
+                                const total = prev.length;
+                                const maxPage = Math.max(0, Math.ceil(Math.max(total, 1) / pageSize) - 1);
+                                const safeCurrentPage = Math.min(Math.max(currentPage, 0), maxPage);
+                                const pageStartIndex = safeCurrentPage * pageSize;
+                                const pageEndIndex = Math.min(pageStartIndex + pageSize, total);
+                                const defaultInsertIndex = pageEndIndex;
+                                const targetIndex =
+                                        over.id === "steps-canvas"
+                                                ? defaultInsertIndex
+                                                : Math.max(
+                                                        0,
+                                                        prev.findIndex((item) => getStepKey(item) === over.id),
+                                                );
+                                const normalizedIndex =
+                                        targetIndex === -1 ? defaultInsertIndex : targetIndex;
+                                const next = [...prev];
+                                next.splice(normalizedIndex, 0, createStep(dragged.type));
+                                selectStep(normalizedIndex);
+                                return next;
+                        });
+                        return;
+                }
 
 		// Reordering existing steps
-		setSteps((prevSteps) => {
-			const oldIndex = prevSteps.findIndex(
-				(item) => getStepKey(item) === active.id,
-			);
-			const newIndex = prevSteps.findIndex(
-				(item) => getStepKey(item) === over.id,
-			);
+                setSteps((prevSteps) => {
+                        const oldIndex = prevSteps.findIndex(
+                                (item) => getStepKey(item) === active.id,
+                        );
+                        const newIndex = prevSteps.findIndex(
+                                (item) => getStepKey(item) === over.id,
+                        );
 
-			if (oldIndex === -1 || newIndex === -1) {
-				return prevSteps;
-			}
+                        if (oldIndex === -1 || newIndex === -1) {
+                                return prevSteps;
+                        }
 
-			return arrayMove(prevSteps, oldIndex, newIndex);
-		});
-  }, []);
+                        return arrayMove(prevSteps, oldIndex, newIndex);
+                });
+  }, [selectStep, currentPage, pageSize]);
 
   const handleSave = async (publish = false) => {
     if (conflictState) {
@@ -1066,7 +1144,7 @@ export default function OnboardingTemplateEditor({
         const hydrated = hydrateTemplateSteps(payload);
         setBaselineSteps(hydrated);
         setSteps(hydrated);
-        setSelectedIndex(
+        selectStep(
           hydrated.length
             ? Math.min(previousSelectedIndex ?? 0, hydrated.length - 1)
             : null,
@@ -1094,14 +1172,14 @@ export default function OnboardingTemplateEditor({
       if (error instanceof SaveConflictError) {
         setBaselineSteps(previousBaselineSnapshot);
         setSteps(currentStepsSnapshot);
-        setSelectedIndex(previousSelectedIndex);
+        selectStep(previousSelectedIndex ?? null);
       } else {
         if (tenantId) {
           rollback(tenantId);
         }
         setBaselineSteps(previousBaselineSnapshot);
         setSteps(previousBaselineSnapshot);
-        setSelectedIndex(
+        selectStep(
           previousBaselineSnapshot.length
             ? Math.min(
                 previousSelectedIndex ?? 0,
@@ -1151,7 +1229,7 @@ export default function OnboardingTemplateEditor({
         Onboarding preview (as new starter):
       </h3>
       <ol className="list-decimal ml-5 space-y-2">
-        {steps.map((s, _idx) => (
+        {steps.map((s) => (
           <li key={getStepKey(s)}>
             <span className="font-bold">
               {s.title || STEP_TYPES.find((t) => t.value === s.type)?.label}
@@ -1162,6 +1240,21 @@ export default function OnboardingTemplateEditor({
       </ol>
     </div>
   );
+
+  const totalSteps = steps.length;
+  const totalPages = totalSteps === 0 ? 1 : Math.ceil(totalSteps / pageSize);
+  const safePage = Math.min(currentPage, totalPages - 1);
+  const pageStart = safePage * pageSize;
+  const pageEnd = Math.min(pageStart + pageSize, totalSteps);
+  const visibleSteps = steps.slice(pageStart, pageEnd);
+  const showingRangeStart = totalSteps ? pageStart + 1 : 0;
+  const showingRangeEnd = totalSteps ? pageEnd : 0;
+  const canGoPrevious = safePage > 0;
+  const canGoNext = safePage < totalPages - 1;
+  const previewStep =
+    selectedIndex != null && selectedIndex >= 0 && selectedIndex < totalSteps
+      ? steps[selectedIndex]
+      : null;
 
   return (
     <div className="p-6">
@@ -1266,49 +1359,105 @@ export default function OnboardingTemplateEditor({
         </div>
       </div>
 
-			<div>
-				<h3 className="text-lg font-semibold mb-1">Steps</h3>
-				<p className="text-gray-500 mb-2">
-					Drag from the left to add steps. Drag within the list to reorder.
-				</p>
-				<StepTypePicker />
-				<DndContext onDragEnd={handleDragEnd}>
-					<div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
-						<StepPalette
-							stepTypes={STEP_TYPES.map((t) => ({ value: t.value, label: t.label, icon: t.icon }))}
-						/>
-						<StepsDroppableArea>
-							<SortableContext items={steps.map(getStepKey)}>
+                        <div>
+                                <h3 className="text-lg font-semibold mb-1">Steps</h3>
+                                <p className="text-gray-500 mb-2">
+                                        Drag from the left to add steps. Drag within the list to reorder.
+                                </p>
+                                <StepTypePicker />
+                                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                                        <div className="text-sm text-muted-foreground">
+                                                {totalSteps === 0
+                                                        ? "No steps yet. Start adding items from the palette."
+                                                        : `Showing ${showingRangeStart}-${showingRangeEnd} of ${totalSteps} steps`}
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                        Page size
+                                                        <select
+                                                                className="rounded-md border border-input bg-background px-2 py-1 text-sm"
+                                                                value={pageSize}
+                                                                onChange={(event) => {
+                                                                        const nextSize = Number(event.target.value);
+                                                                        setPageSize(
+                                                                                Number.isFinite(nextSize) && nextSize > 0
+                                                                                        ? nextSize
+                                                                                        : DEFAULT_PAGE_SIZE,
+                                                                        );
+                                                                }}
+                                                        >
+                                                                {PAGE_SIZE_OPTIONS.map((size) => (
+                                                                        <option key={size} value={size}>
+                                                                                {size}
+                                                                        </option>
+                                                                ))}
+                                                        </select>
+                                                </label>
+                                                <div className="flex items-center gap-2">
+                                                        <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={() => goToPage(safePage - 1)}
+                                                                disabled={!canGoPrevious || totalSteps === 0}
+                                                                aria-label="Previous page"
+                                                        >
+                                                                <ChevronLeft className="h-4 w-4" />
+                                                        </Button>
+                                                        <span className="text-sm font-medium">
+                                                                Page {totalPages ? safePage + 1 : 1} of {totalPages}
+                                                        </span>
+                                                        <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={() => goToPage(safePage + 1)}
+                                                                disabled={!canGoNext || totalSteps === 0}
+                                                                aria-label="Next page"
+                                                        >
+                                                                <ChevronRight className="h-4 w-4" />
+                                                        </Button>
+                                                </div>
+                                        </div>
+                                </div>
+                                <DndContext onDragEnd={handleDragEnd}>
+                                        <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+                                                <StepPalette
+                                                        stepTypes={STEP_TYPES.map((t) => ({ value: t.value, label: t.label, icon: t.icon }))}
+                                                />
+                                                <StepsDroppableArea>
+                                                        <SortableContext items={visibleSteps.map(getStepKey)}>
                 <div className="xl:col-span-2">
                   <div className="space-y-2">
-                    {steps.map((step, idx) => (
-                      <div key={step.key} className="relative">
-                        {/* Insertion indicator above */}
-                        <div className="h-2 -mt-1">
-                          <div className="mx-2 border-t border-transparent group-[.dragging]:border-blue-300" />
+                    {visibleSteps.map((step, idx) => {
+                      const globalIndex = pageStart + idx;
+                      return (
+                        <div key={step.key} className="relative">
+                          {/* Insertion indicator above */}
+                          <div className="h-2 -mt-1">
+                            <div className="mx-2 border-t border-transparent group-[.dragging]:border-blue-300" />
+                          </div>
+                          <StepEditor
+                            step={step}
+                            idx={globalIndex}
+                            updateStep={updateStep}
+                            removeStep={removeStep}
+                            onSelect={() => selectStep(globalIndex)}
+                            isSelected={selectedIndex === globalIndex}
+                          />
+                          {/* Insertion indicator below */}
+                          <div className="h-2 -mb-1">
+                            <div className="mx-2 border-t border-transparent group-[.dragging]:border-blue-300" />
+                          </div>
                         </div>
-                        <StepEditor
-                          step={step}
-                          idx={idx}
-                          updateStep={updateStep}
-                          removeStep={removeStep}
-                          onSelect={() => setSelectedIndex(idx)}
-                          isSelected={selectedIndex === idx}
-                        />
-                        {/* Insertion indicator below */}
-                        <div className="h-2 -mb-1">
-                          <div className="mx-2 border-t border-transparent group-[.dragging]:border-blue-300" />
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
-							</SortableContext>
-						</StepsDroppableArea>
-						<OnboardingPreviewPane step={selectedIndex != null ? steps[selectedIndex] : null} />
-					</div>
-				</DndContext>
-			</div>
+                                                        </SortableContext>
+                                                </StepsDroppableArea>
+                                                <OnboardingPreviewPane step={previewStep} />
+                                        </div>
+                                </DndContext>
+                        </div>
 
       {steps.length > 0 && <PreviewBlock />}
 

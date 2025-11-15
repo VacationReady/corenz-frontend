@@ -116,6 +116,7 @@ function createStep(type: string) {
     description: "",
     required: true,
     documentId: "",
+    uploadType: "",
     formId: "", // For reusable forms
     formFields: [], // For inline fields (backward compatibility)
     metadata: getDefaultMetadataForStep(type),

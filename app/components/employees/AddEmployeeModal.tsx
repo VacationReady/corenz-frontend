@@ -248,7 +248,6 @@ export default function AddEmployeeModal({
   const [isManagerSelectOpen, setIsManagerSelectOpen] = useState(false);
   const [isTemplateSelectOpen, setIsTemplateSelectOpen] = useState(false);
   const [isTaxCodeSelectOpen, setIsTaxCodeSelectOpen] = useState(false);
-  const [isKiwiSaverRateSelectOpen, setIsKiwiSaverRateSelectOpen] = useState(false);
   const [isHolidayMonthSelectOpen, setIsHolidayMonthSelectOpen] = useState(false);
   const [isWorkingPatternSelectOpen, setIsWorkingPatternSelectOpen] = useState(false);
 
@@ -323,6 +322,24 @@ export default function AddEmployeeModal({
   const [sendInviteNow, setSendInviteNow] = useState(true);
   const [isAdminAccess, setIsAdminAccess] = useState(false);
 
+  // Autosave & dirty state tracking
+  const [initialFormData, setInitialFormData] = useState<typeof formData | null>(null);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [pendingClose, setPendingClose] = useState(false);
+  
+  // Generate storage key based on tenant and user
+  const storageKey = useMemo(() => {
+    const tenantId = session?.user?.companyId || 'default';
+    const userId = session?.user?.id || 'anonymous';
+    return `addEmployeeModal_draft_${tenantId}_${userId}`;
+  }, [session?.user?.companyId, session?.user?.id]);
+  
+  // Check if form has unsaved changes
+  const isDirty = useMemo(() => {
+    if (!initialFormData) return false;
+    return JSON.stringify(formData) !== JSON.stringify(initialFormData);
+  }, [formData, initialFormData]);
+
   // Calculate entitlement modal state
   const [fullTimeHours, setFullTimeHours] = useState("40");
   const [showAllTemplates, setShowAllTemplates] = useState(false);
@@ -336,9 +353,138 @@ export default function AddEmployeeModal({
   const [managerSearch, setManagerSearch] = useState("");
   const [templateSearch, setTemplateSearch] = useState("");
   const [taxCodeSearch, setTaxCodeSearch] = useState("");
-  const [kiwiSaverSearch, setKiwiSaverSearch] = useState("");
   const [holidayMonthSearch, setHolidayMonthSearch] = useState("");
   const [workingPatternSearch, setWorkingPatternSearch] = useState("");
+
+  const getEmployeeDisplayName = (emp: any) =>
+    (emp.firstName || emp.lastName)
+      ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
+      : emp.email ?? "";
+
+  const shouldShowDepartmentSearch = departments.length > 10;
+  const departmentOptions = useMemo(
+    () =>
+      shouldShowDepartmentSearch
+        ? filterBySearch(departments, (dept: any) => dept?.name ?? "", departmentSearch)
+        : departments,
+    [departments, departmentSearch, shouldShowDepartmentSearch],
+  );
+
+  const shouldShowJobRoleSearch = jobRoles.length > 10;
+  const jobRoleOptions = useMemo(
+    () =>
+      shouldShowJobRoleSearch
+        ? filterBySearch(jobRoles, (role: any) => role?.name ?? "", jobRoleSearch)
+        : jobRoles,
+    [jobRoles, jobRoleSearch, shouldShowJobRoleSearch],
+  );
+
+  const shouldShowLocationSearch = locations.length > 10;
+  const locationOptions = useMemo(
+    () =>
+      shouldShowLocationSearch
+        ? filterBySearch(locations, (location) => location?.name ?? "", locationSearch)
+        : locations,
+    [locations, locationSearch, shouldShowLocationSearch],
+  );
+
+  const shouldShowContractTypeSearch = contractTypes.length > 10;
+  const contractTypeOptions = useMemo(
+    () =>
+      shouldShowContractTypeSearch
+        ? filterBySearch(contractTypes, (type) => type?.label ?? "", contractTypeSearch)
+        : contractTypes,
+    [contractTypes, contractTypeSearch, shouldShowContractTypeSearch],
+  );
+
+  const shouldShowManagerSearch = employees.length > 10;
+  const managerOptions = useMemo(
+    () =>
+      shouldShowManagerSearch
+        ? filterBySearch(employees, (emp: any) => getEmployeeDisplayName(emp), managerSearch)
+        : employees,
+    [employees, managerSearch, shouldShowManagerSearch],
+  );
+
+  const shouldShowWorkingPatternSearch = workingPatterns.length > 10;
+  const workingPatternOptions = useMemo(
+    () =>
+      shouldShowWorkingPatternSearch
+        ? filterBySearch(workingPatterns, (pattern: any) => pattern?.name ?? "", workingPatternSearch)
+        : workingPatterns,
+    [workingPatterns, workingPatternSearch, shouldShowWorkingPatternSearch],
+  );
+
+  const shouldShowTaxCodeSearch = NZ_TAX_CODES.length > 10;
+  const taxCodeOptions = useMemo(
+    () =>
+      shouldShowTaxCodeSearch
+        ? filterBySearch(
+            NZ_TAX_CODES,
+            (code) => `${code.label} ${code.value}`,
+            taxCodeSearch,
+          )
+        : NZ_TAX_CODES,
+    [taxCodeSearch, shouldShowTaxCodeSearch],
+  );
+
+  const shouldShowHolidayMonthSearch = monthOptions.length > 10;
+  const holidayMonthOptions = useMemo(
+    () =>
+      shouldShowHolidayMonthSearch
+        ? filterBySearch(
+            monthOptions,
+            (option) => `${option.label} ${option.value}`,
+            holidayMonthSearch,
+          )
+        : monthOptions,
+    [holidayMonthSearch, shouldShowHolidayMonthSearch],
+  );
+
+  const handleDeptOpenChange = (open: boolean) => {
+    setIsDeptSelectOpen(open);
+    if (!open) setDepartmentSearch("");
+  };
+
+  const handleJobRoleOpenChange = (open: boolean) => {
+    setIsRoleSelectOpen(open);
+    if (!open) setJobRoleSearch("");
+  };
+
+  const handleLocationOpenChange = (open: boolean) => {
+    setIsLocationSelectOpen(open);
+    if (!open) setLocationSearch("");
+  };
+
+  const handleContractTypeOpenChange = (open: boolean) => {
+    setIsContractTypeSelectOpen(open);
+    if (!open) setContractTypeSearch("");
+  };
+
+  const handleManagerOpenChange = (open: boolean) => {
+    setIsManagerSelectOpen(open);
+    if (!open) setManagerSearch("");
+  };
+
+  const handleTemplateOpenChange = (open: boolean) => {
+    setIsTemplateSelectOpen(open);
+    if (!open) setTemplateSearch("");
+  };
+
+  const handleTaxCodeOpenChange = (open: boolean) => {
+    setIsTaxCodeSelectOpen(open);
+    if (!open) setTaxCodeSearch("");
+  };
+
+  const handleHolidayMonthOpenChange = (open: boolean) => {
+    setIsHolidayMonthSelectOpen(open);
+    if (!open) setHolidayMonthSearch("");
+  };
+
+  const handleWorkingPatternOpenChange = (open: boolean) => {
+    setIsWorkingPatternSelectOpen(open);
+    if (!open) setWorkingPatternSearch("");
+  };
 
   const fetchData = async () => {
     try {
@@ -381,8 +527,25 @@ export default function AddEmployeeModal({
   };
 
   useEffect(() => {
-    if (open) fetchData();
-  }, [open]);
+    if (open) {
+      fetchData();
+      
+      // Restore draft from sessionStorage
+      try {
+        const savedDraft = sessionStorage.getItem(storageKey);
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          setFormData(parsed);
+          setInitialFormData(parsed);
+        } else {
+          setInitialFormData(formData);
+        }
+      } catch (error) {
+        console.error('Failed to restore draft:', error);
+        setInitialFormData(formData);
+      }
+    }
+  }, [open, storageKey]);
 
   useEffect(() => {
     if (!open) {
@@ -537,12 +700,33 @@ export default function AddEmployeeModal({
     }
   };
 
-  // Handle phone change with validation
-  const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setFormData({ ...formData, phone: value });
+  // Format phone number with NZ default
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digit characters except +
+    const cleaned = value.replace(/[^\d+]/g, '');
+    
+    // If starts with 0, convert to +64
+    if (cleaned.startsWith('0')) {
+      return '+64' + cleaned.substring(1);
+    }
+    
+    // If no country code and looks like NZ number (8-10 digits), add +64
+    if (!cleaned.startsWith('+') && /^\d{8,10}$/.test(cleaned)) {
+      return '+64' + cleaned;
+    }
+    
+    return cleaned;
+  };
 
-    const validation = validatePhone(value);
+  // Handle phone change with validation and formatting
+  const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    
+    // Auto-format on blur or when user pauses typing
+    const formatted = formatPhoneNumber(value);
+    setFormData({ ...formData, phone: formatted });
+
+    const validation = validatePhone(formatted);
     setPhoneError(validation.error || null);
   };
 
@@ -554,6 +738,21 @@ export default function AddEmployeeModal({
       }
     };
   }, []);
+
+  // Autosave to sessionStorage when form data changes
+  useEffect(() => {
+    if (!open || !initialFormData) return;
+    
+    const timeoutId = setTimeout(() => {
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify(formData));
+      } catch (error) {
+        console.error('Failed to autosave draft:', error);
+      }
+    }, 1000); // Debounce autosave by 1 second
+
+    return () => clearTimeout(timeoutId);
+  }, [formData, open, initialFormData, storageKey]);
 
   const updateHolidayYearSelection = (
     monthValue: string,
@@ -753,6 +952,32 @@ export default function AddEmployeeModal({
     setCurrentStep(1);
   };
 
+  // Handle modal close with unsaved changes check
+  const handleClose = () => {
+    if (isDirty && !isSubmitting) {
+      setShowDiscardDialog(true);
+      setPendingClose(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const confirmDiscard = () => {
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch (error) {
+      console.error('Failed to clear draft:', error);
+    }
+    setShowDiscardDialog(false);
+    setPendingClose(false);
+    onClose();
+  };
+
+  const cancelDiscard = () => {
+    setShowDiscardDialog(false);
+    setPendingClose(false);
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
@@ -859,6 +1084,13 @@ export default function AddEmployeeModal({
       const employeeName = `${formData.firstName} ${formData.lastName}`.trim();
       toast.success(`Employee ${employeeName} has been created successfully!`);
       
+      // Clear the draft from sessionStorage
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch (error) {
+        console.error('Failed to clear draft:', error);
+      }
+      
       setError("");
       // Reset form
       setFormData({
@@ -957,6 +1189,14 @@ export default function AddEmployeeModal({
   );
 
   const templatesToDisplay = showAllTemplates ? templates : filteredTemplates;
+  const shouldShowTemplateSearch = templatesToDisplay.length > 10;
+  const templateOptions = useMemo(
+    () =>
+      shouldShowTemplateSearch
+        ? filterBySearch(templatesToDisplay, (template) => template?.name ?? "", templateSearch)
+        : templatesToDisplay,
+    [templatesToDisplay, templateSearch, shouldShowTemplateSearch],
+  );
 
   // Compute form validity for Step 1
   const isStep1Valid = useMemo(() => {
@@ -1001,7 +1241,7 @@ export default function AddEmployeeModal({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
         <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
           <Card className="w-full p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -1031,58 +1271,78 @@ export default function AddEmployeeModal({
                   Basic Employee Information
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    name="firstName"
-                    placeholder="First Name"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    required
-                  />
-                  <Input
-                    name="lastName"
-                    placeholder="Last Name"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    required
-                  />
+                  <div>
+                    <Label htmlFor="firstName" className="text-sm font-medium">
+                      First Name *
+                    </Label>
+                    <Input
+                      id="firstName"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      required
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName" className="text-sm font-medium">
+                      Last Name *
+                    </Label>
+                    <Input
+                      id="lastName"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      required
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
                 <div>
+                  <Label htmlFor="email" className="text-sm font-medium">
+                    Email Address *
+                  </Label>
                   <Input
+                    id="email"
                     name="email"
                     type="email"
-                    placeholder="Email *"
                     value={formData.email}
                     onChange={handleEmailChange}
                     required
-                    className={emailError || duplicateEmailError ? "border-red-500" : ""}
+                    className={`mt-1 ${emailError || duplicateEmailError ? "border-red-500" : ""}`}
+                    aria-describedby={emailError || duplicateEmailError ? "email-error" : undefined}
                   />
                   {emailError && (
-                    <p className="text-xs text-red-600 mt-1">{emailError}</p>
+                    <p id="email-error" className="text-xs text-red-600 mt-1" role="alert">{emailError}</p>
                   )}
                   {!emailError && duplicateEmailError && (
-                    <p className="text-xs text-red-600 mt-1">{duplicateEmailError}</p>
+                    <p id="email-error" className="text-xs text-red-600 mt-1" role="alert">{duplicateEmailError}</p>
                   )}
                   {!emailError && !duplicateEmailError && isCheckingDuplicate && (
-                    <p className="text-xs text-gray-500 mt-1">Checking availability...</p>
+                    <p className="text-xs text-gray-500 mt-1" aria-live="polite">Checking availability...</p>
                   )}
                 </div>
                 <div>
+                  <Label htmlFor="phone" className="text-sm font-medium">
+                    Phone Number
+                  </Label>
                   <Input
+                    id="phone"
                     name="phone"
                     type="tel"
-                    placeholder="Phone"
                     value={formData.phone}
                     onChange={handlePhoneChange}
-                    className={phoneError ? "border-red-500" : ""}
+                    className={`mt-1 ${phoneError ? "border-red-500" : ""}`}
+                    aria-describedby="phone-help"
                   />
                   {phoneError && (
-                    <p className="text-xs text-red-600 mt-1">{phoneError}</p>
+                    <p id="phone-help" className="text-xs text-red-600 mt-1" role="alert">{phoneError}</p>
                   )}
                   {!phoneError && formData.phone && (
-                    <p className="text-xs text-gray-500 mt-1">{getPhoneHelperText(formData.phone)}</p>
+                    <p id="phone-help" className="text-xs text-gray-500 mt-1">{getPhoneHelperText(formData.phone)}</p>
                   )}
                   {!phoneError && !formData.phone && (
-                    <p className="text-xs text-gray-500 mt-1">NZ format: +64 21 123 4567 or 021 123 4567</p>
+                    <p id="phone-help" className="text-xs text-gray-500 mt-1">Automatically formats to +64 (NZ). Accepts international numbers.</p>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1113,15 +1373,18 @@ export default function AddEmployeeModal({
 
                 <div className="flex items-center gap-2">
                   <Switch
+                    id="adminAccess"
                     checked={isAdminAccess}
                     onChange={(checked: boolean) => setIsAdminAccess(checked)}
+                    aria-describedby="admin-access-description"
                   />
-                  <Label className="text-sm">Admin Access?</Label>
+                  <Label htmlFor="adminAccess" className="text-sm">Admin Access?</Label>
+                  <p id="admin-access-description" className="sr-only">Grant this employee administrative privileges to manage system settings and other employees</p>
                 </div>
 
                 <Select
                   open={isDeptSelectOpen}
-                  onOpenChange={setIsDeptSelectOpen}
+                  onOpenChange={handleDeptOpenChange}
                   value={formData.departmentId || undefined}
                   onValueChange={(value) => {
                     setShowAllTemplates(false);
@@ -1132,7 +1395,14 @@ export default function AddEmployeeModal({
                     <SelectValue placeholder="Select Department" />
                   </SelectTrigger>
                   <SelectContent>
-                    {departments.map((d) => (
+                    {shouldShowDepartmentSearch && (
+                      <SelectSearchInput
+                        value={departmentSearch}
+                        onChange={setDepartmentSearch}
+                        placeholder="Search departments..."
+                      />
+                    )}
+                    {departmentOptions.map((d: any) => (
                       <SelectItem key={d.id} value={d.id}>
                         {d.name}
                       </SelectItem>
@@ -1147,7 +1417,7 @@ export default function AddEmployeeModal({
 
                 <Select
                   open={isRoleSelectOpen}
-                  onOpenChange={setIsRoleSelectOpen}
+                  onOpenChange={handleJobRoleOpenChange}
                   value={formData.jobRoleId || undefined}
                   onValueChange={(value) => {
                     setShowAllTemplates(false);
@@ -1158,7 +1428,14 @@ export default function AddEmployeeModal({
                     <SelectValue placeholder="Select Job Role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {jobRoles.map((j) => (
+                    {shouldShowJobRoleSearch && (
+                      <SelectSearchInput
+                        value={jobRoleSearch}
+                        onChange={setJobRoleSearch}
+                        placeholder="Search job roles..."
+                      />
+                    )}
+                    {jobRoleOptions.map((j: any) => (
                       <SelectItem key={j.id} value={j.id}>
                         {j.name}
                       </SelectItem>
@@ -1173,7 +1450,7 @@ export default function AddEmployeeModal({
 
                 <Select
                   open={isLocationSelectOpen}
-                  onOpenChange={setIsLocationSelectOpen}
+                  onOpenChange={handleLocationOpenChange}
                   value={formData.locationId || undefined}
                   onValueChange={(value) => setFormData({ ...formData, locationId: value })}
                 >
@@ -1181,7 +1458,14 @@ export default function AddEmployeeModal({
                     <SelectValue placeholder="Select Location" />
                   </SelectTrigger>
                   <SelectContent>
-                    {locations.map((l) => (
+                    {shouldShowLocationSearch && (
+                      <SelectSearchInput
+                        value={locationSearch}
+                        onChange={setLocationSearch}
+                        placeholder="Search locations..."
+                      />
+                    )}
+                    {locationOptions.map((l) => (
                       <SelectItem key={l.id} value={l.id}>
                         {l.name}
                       </SelectItem>
@@ -1196,7 +1480,7 @@ export default function AddEmployeeModal({
 
                 <Select
                   open={isContractTypeSelectOpen}
-                  onOpenChange={setIsContractTypeSelectOpen}
+                  onOpenChange={handleContractTypeOpenChange}
                   value={formData.contractType || undefined}
                   onValueChange={(value) => setFormData({ ...formData, contractType: value })}
                 >
@@ -1204,7 +1488,14 @@ export default function AddEmployeeModal({
                     <SelectValue placeholder="Select Contract Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {contractTypes.map((t) => (
+                    {shouldShowContractTypeSearch && (
+                      <SelectSearchInput
+                        value={contractTypeSearch}
+                        onChange={setContractTypeSearch}
+                        placeholder="Search contract types..."
+                      />
+                    )}
+                    {contractTypeOptions.map((t) => (
                       <SelectItem key={t.id} value={t.label}>
                         {t.label}
                       </SelectItem>
@@ -1218,6 +1509,8 @@ export default function AddEmployeeModal({
                 </Select>
 
                 <Select
+                  open={isManagerSelectOpen}
+                  onOpenChange={handleManagerOpenChange}
                   value={formData.managerId || undefined}
                   onValueChange={(value) =>
                     setFormData({ ...formData, managerId: value })
@@ -1227,25 +1520,24 @@ export default function AddEmployeeModal({
                     <SelectValue placeholder="Select Line Manager (Optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((emp: any) => (
+                    {shouldShowManagerSearch && (
+                      <SelectSearchInput
+                        value={managerSearch}
+                        onChange={setManagerSearch}
+                        placeholder="Search managers..."
+                      />
+                    )}
+                    {managerOptions.map((emp: any) => (
                       <SelectItem key={emp.id} value={emp.id}>
-                        {(emp.firstName || emp.lastName)
-                          ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
-                          : emp.email}
+                        {getEmployeeDisplayName(emp)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
 
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={sendInviteNow}
-                    onChange={(checked: boolean) => setSendInviteNow(checked)}
-                  />
-                  <Label className="text-sm">Send login invite now</Label>
-                </div>
-
                 <Select
+                  open={isTemplateSelectOpen}
+                  onOpenChange={handleTemplateOpenChange}
                   value={formData.onboardingTemplateId || undefined}
                   onValueChange={(value) => {
                     if (value === "show_all_templates") {
@@ -1268,7 +1560,14 @@ export default function AddEmployeeModal({
                     <SelectValue placeholder="Select Onboarding Template *" />
                   </SelectTrigger>
                   <SelectContent>
-                    {templatesToDisplay.map((t) => (
+                    {shouldShowTemplateSearch && (
+                      <SelectSearchInput
+                        value={templateSearch}
+                        onChange={setTemplateSearch}
+                        placeholder="Search templates..."
+                      />
+                    )}
+                    {templateOptions.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.name}
                       </SelectItem>
@@ -1330,6 +1629,8 @@ export default function AddEmployeeModal({
                         Tax Code
                       </Label>
                       <Select
+                        open={isTaxCodeSelectOpen}
+                        onOpenChange={handleTaxCodeOpenChange}
                         value={formData.taxCode || undefined}
                         onValueChange={(value) =>
                           setFormData({ ...formData, taxCode: value })
@@ -1339,7 +1640,14 @@ export default function AddEmployeeModal({
                           <SelectValue placeholder="Select tax code" />
                         </SelectTrigger>
                         <SelectContent>
-                          {NZ_TAX_CODES.map((code) => (
+                          {shouldShowTaxCodeSearch && (
+                            <SelectSearchInput
+                              value={taxCodeSearch}
+                              onChange={setTaxCodeSearch}
+                              placeholder="Search tax codes..."
+                            />
+                          )}
+                          {taxCodeOptions.map((code) => (
                             <SelectItem key={code.value} value={code.value}>
                               {code.label}
                             </SelectItem>
@@ -1375,12 +1683,15 @@ export default function AddEmployeeModal({
                   <div className="mt-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <Switch
+                        id="kiwiSaverEnrolled"
                         checked={formData.kiwiSaverEnrolled}
                         onChange={(checked: boolean) =>
                           setFormData({ ...formData, kiwiSaverEnrolled: checked })
                         }
+                        aria-describedby="kiwisaver-description"
                       />
-                      <Label className="text-sm">KiwiSaver Enrolled?</Label>
+                      <Label htmlFor="kiwiSaverEnrolled" className="text-sm">KiwiSaver Enrolled?</Label>
+                      <p id="kiwisaver-description" className="sr-only">Indicate if employee is enrolled in New Zealand KiwiSaver retirement savings scheme</p>
                     </div>
 
                     {formData.kiwiSaverEnrolled && (
@@ -1528,6 +1839,7 @@ export default function AddEmployeeModal({
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <Switch
+                        id="ninetyDayTrial"
                         checked={formData.ninetyDayTrialPeriod}
                         onChange={(checked: boolean) => {
                           setFormData({ 
@@ -1536,10 +1848,12 @@ export default function AddEmployeeModal({
                             trialPeriodAccepted: checked ? formData.trialPeriodAccepted : false
                           });
                         }}
+                        aria-describedby="trial-period-description"
                       />
-                      <Label className="text-sm font-medium">
+                      <Label htmlFor="ninetyDayTrial" className="text-sm font-medium">
                         90-Day Trial Period
                       </Label>
+                      <p id="trial-period-description" className="sr-only">Enable 90-day trial period for this employment agreement as allowed under Employment Relations Act 2000 for employers with fewer than 20 employees</p>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1615,6 +1929,8 @@ export default function AddEmployeeModal({
                     </Label>
                     <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
                       <Select
+                        open={isHolidayMonthSelectOpen}
+                        onOpenChange={handleHolidayMonthOpenChange}
                         value={holidayStartMonth || undefined}
                         onValueChange={handleHolidayMonthChange}
                       >
@@ -1622,7 +1938,14 @@ export default function AddEmployeeModal({
                           <SelectValue placeholder="Month" />
                         </SelectTrigger>
                         <SelectContent>
-                          {monthOptions.map((option) => (
+                          {shouldShowHolidayMonthSearch && (
+                            <SelectSearchInput
+                              value={holidayMonthSearch}
+                              onChange={setHolidayMonthSearch}
+                              placeholder="Search months..."
+                            />
+                          )}
+                          {holidayMonthOptions.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
                             </SelectItem>
@@ -1674,6 +1997,8 @@ export default function AddEmployeeModal({
                       Working Pattern
                     </Label>
                     <Select
+                      open={isWorkingPatternSelectOpen}
+                      onOpenChange={handleWorkingPatternOpenChange}
                       value={formData.workingPatternId || undefined}
                       onValueChange={(value) =>
                         setFormData({ ...formData, workingPatternId: value })
@@ -1683,7 +2008,14 @@ export default function AddEmployeeModal({
                         <SelectValue placeholder="Select working pattern" />
                       </SelectTrigger>
                       <SelectContent>
-                        {workingPatterns.map((pattern) => (
+                        {shouldShowWorkingPatternSearch && (
+                          <SelectSearchInput
+                            value={workingPatternSearch}
+                            onChange={setWorkingPatternSearch}
+                            placeholder="Search working patterns..."
+                          />
+                        )}
+                        {workingPatternOptions.map((pattern: any) => (
                           <SelectItem key={pattern.id} value={pattern.id}>
                             {pattern.name}
                           </SelectItem>
@@ -1984,6 +2316,31 @@ export default function AddEmployeeModal({
           }}
         />
       )}
+
+      {/* Discard Changes Confirmation Dialog */}
+      <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discard unsaved changes?</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">
+              You have unsaved changes in this form. If you close now, your progress will be lost.
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              Your draft is automatically saved and will be restored when you reopen this form.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelDiscard}>
+              Continue Editing
+            </Button>
+            <Button variant="destructive" onClick={confirmDiscard}>
+              Discard Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -90,7 +90,6 @@ export default async function AdminDashboardPage() {
                     size={80}
                     className="relative border-2 border-white shadow-premium"
                   />
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-[3px] border-white shadow-lg" />
                 </div>
 
                 {/* User Info with gradient text */}

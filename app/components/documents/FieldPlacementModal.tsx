@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
+import { Briefcase, PenLine, UserRound, X } from "lucide-react";
 
 interface Field {
   pageNumber: number;
@@ -20,6 +21,61 @@ interface Field {
   label?: string;
   assignedEmployeeId?: string;
 }
+
+const fieldThemes = {
+  signature: {
+    icon: PenLine,
+    border: "border-sky-200",
+    iconBg: "bg-sky-100 text-sky-700",
+    accent: "text-sky-700",
+  },
+  name: {
+    icon: UserRound,
+    border: "border-purple-200",
+    iconBg: "bg-purple-100 text-purple-700",
+    accent: "text-purple-700",
+  },
+  job: {
+    icon: Briefcase,
+    border: "border-emerald-200",
+    iconBg: "bg-emerald-100 text-emerald-700",
+    accent: "text-emerald-700",
+  },
+};
+
+const paletteOptions = [
+  {
+    type: "SIGNATURE" as const,
+    label: "Signature",
+    description: "Capture a legally binding e-signature.",
+    icon: PenLine,
+    accent: "text-sky-600",
+    iconBg: "bg-sky-100 text-sky-700",
+  },
+  {
+    type: "NAME" as const,
+    label: "Name",
+    description: "Collect the printed/full name.",
+    icon: UserRound,
+    accent: "text-purple-600",
+    iconBg: "bg-purple-100 text-purple-700",
+  },
+  {
+    type: "JOB_ROLE" as const,
+    label: "Job Role",
+    description: "Confirm the signer's title/role.",
+    icon: Briefcase,
+    accent: "text-emerald-600",
+    iconBg: "bg-emerald-100 text-emerald-700",
+  },
+];
+
+const getFieldTheme = (label?: string) => {
+  const normalized = (label || "").toLowerCase();
+  if (normalized.includes("job")) return fieldThemes.job;
+  if (normalized.includes("name")) return fieldThemes.name;
+  return fieldThemes.signature;
+};
 
 export default function FieldPlacementModal({
   isOpen,
@@ -150,7 +206,7 @@ export default function FieldPlacementModal({
           <div className="col-span-9">
             <div
               ref={containerRef}
-              className="relative border rounded overflow-hidden"
+              className="relative border border-slate-200 rounded-2xl overflow-hidden bg-slate-50"
               style={{ height: 600 }}
               onPointerMove={onPointerMoveContainer}
               onPointerUp={onPointerUpContainer}
@@ -159,48 +215,81 @@ export default function FieldPlacementModal({
               {docUrl ? (
                 <embed src={docUrl + "#toolbar=0&navpanes=0&scrollbar=1"} type="application/pdf" className="w-full h-full" />
               ) : null}
-              {fields.map((f, idx) => (
-                <div
-                  key={idx}
-                  className="absolute bg-amber-200 border border-amber-500 text-amber-900 text-xs flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
-                  style={{
-                    left: `${f.x * 100}%`,
-                    top: `${f.y * 100}%`,
-                    width: `${f.width * 100}%`,
-                    height: `${f.height * 100}%`,
-                    transform: "translate(-50%, -50%)",
-                    willChange: "left, top, transform",
-                  }}
-                  onPointerDown={(e) => onPointerDownField(idx, e)}
-                >
-                  <span className="pointer-events-none px-2 text-center truncate">
-                    {f.label || "Signature"}
-                  </span>
-                  <button
-                    type="button"
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-600 text-white leading-none flex items-center justify-center"
-                    aria-label="Remove field"
-                    onClick={(ev) => {
-                      ev.stopPropagation();
-                      setFields((prev) => prev.filter((_, i) => i !== idx));
+              {fields.map((f, idx) => {
+                const theme = getFieldTheme(f.label);
+                const Icon = theme.icon;
+                return (
+                  <div
+                    key={idx}
+                    className={`absolute border ${theme.border} bg-white/95 rounded-xl shadow-xl shadow-slate-900/10 backdrop-blur-sm cursor-grab active:cursor-grabbing select-none transition`}
+                    style={{
+                      left: `${f.x * 100}%`,
+                      top: `${f.y * 100}%`,
+                      width: `${f.width * 100}%`,
+                      height: `${f.height * 100}%`,
+                      transform: "translate(-50%, -50%)",
+                      willChange: "left, top, transform",
+                      padding: "12px 14px",
                     }}
+                    onPointerDown={(e) => onPointerDownField(idx, e)}
                   >
-                    ×
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3 pointer-events-none">
+                      <span className={`flex items-center justify-center w-9 h-9 rounded-full ${theme.iconBg}`}>
+                        <Icon className="w-4 h-4" />
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-semibold text-slate-900">
+                          {f.label || "Signature"}
+                        </span>
+                        <span className="text-[11px] text-slate-500">Drag to reposition</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full border border-white/80 bg-white/90 text-slate-500 shadow-sm flex items-center justify-center hover:text-slate-900"
+                      aria-label="Remove field"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        setFields((prev) => prev.filter((_, i) => i !== idx));
+                      }}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
           <div className="col-span-3 space-y-3">
-            <div className="border rounded p-2">
-              <div className="font-medium mb-2">Palette</div>
-              <div className="grid grid-cols-2 gap-2">
-                <Button onClick={() => addField("SIGNATURE")} variant="secondary">Signature</Button>
-                <Button onClick={() => addField("NAME")} variant="outline">Name</Button>
-                <Button onClick={() => addField("JOB_ROLE")} variant="outline">Job Role</Button>
+            <div className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm">
+              <div className="font-semibold text-sm text-slate-900 mb-3">Palette</div>
+              <div className="space-y-2">
+                {paletteOptions.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Button
+                      key={item.type}
+                      type="button"
+                      variant="ghost"
+                      className="w-full justify-between border border-slate-200 hover:border-slate-300 bg-white text-left h-auto py-3 px-3 rounded-xl"
+                      onClick={() => addField(item.type)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`flex items-center justify-center w-9 h-9 rounded-full ${item.iconBg}`}>
+                          <Icon className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <div className="text-sm font-semibold text-slate-900 leading-tight">{item.label}</div>
+                          <p className="text-xs text-muted-foreground leading-tight">{item.description}</p>
+                        </div>
+                      </div>
+                      <span className={`text-xs font-medium ${item.accent}`}>Add</span>
+                    </Button>
+                  );
+                })}
               </div>
             </div>
-            <div className="border rounded p-2">
+            <div className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm">
               <div className="font-medium mb-2">Assign signer</div>
               <select
                 className="w-full border rounded px-2 py-1 text-sm"

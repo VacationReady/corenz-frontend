@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
+import { apiFetch } from './client';
 
 export interface Survey {
   id: string;
@@ -24,10 +24,8 @@ export interface SurveyResponse {
  * Get pending surveys for the current user
  */
 export async function getPendingSurveys(): Promise<Survey[]> {
-  const response = await fetch(`${API_BASE_URL}/api/surveys?scope=assigned&status=active`, {
+  const response = await apiFetch('/api/surveys?scope=assigned&status=active', {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
@@ -41,10 +39,8 @@ export async function getPendingSurveys(): Promise<Survey[]> {
  * Get completed surveys
  */
 export async function getCompletedSurveys(): Promise<Survey[]> {
-  const response = await fetch(`${API_BASE_URL}/api/surveys?scope=completed`, {
+  const response = await apiFetch('/api/surveys?scope=completed', {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
@@ -58,10 +54,8 @@ export async function getCompletedSurveys(): Promise<Survey[]> {
  * Submit survey response
  */
 export async function submitSurveyResponse(surveyId: string, responses: any): Promise<SurveyResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/surveys/${surveyId}/responses`, {
+  const response = await apiFetch(`/api/surveys/${surveyId}/responses`, {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ responses }),
   });
 
@@ -77,10 +71,8 @@ export async function submitSurveyResponse(surveyId: string, responses: any): Pr
  * Get survey details
  */
 export async function getSurveyDetails(surveyId: string): Promise<Survey> {
-  const response = await fetch(`${API_BASE_URL}/api/surveys/${surveyId}`, {
+  const response = await apiFetch(`/api/surveys/${surveyId}`, {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {

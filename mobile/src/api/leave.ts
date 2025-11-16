@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
+import { apiFetch } from './client';
 
 export interface LeaveBalance {
   id: string;
@@ -33,10 +33,8 @@ export interface LeaveRequest {
  * Get leave balances for the current user
  */
 export async function getLeaveBalances(): Promise<LeaveBalance[]> {
-  const response = await fetch(`${API_BASE_URL}/api/leave-request?scope=balances`, {
+  const response = await apiFetch('/api/leave-request?scope=balances', {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
@@ -50,10 +48,8 @@ export async function getLeaveBalances(): Promise<LeaveBalance[]> {
  * Get leave requests for the current user
  */
 export async function getMyLeaveRequests(): Promise<LeaveRequest[]> {
-  const response = await fetch(`${API_BASE_URL}/api/leave-request?scope=my`, {
+  const response = await apiFetch('/api/leave-request?scope=my', {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
@@ -72,10 +68,8 @@ export async function submitLeaveRequest(data: {
   endDate: string;
   reason: string;
 }): Promise<LeaveRequest> {
-  const response = await fetch(`${API_BASE_URL}/api/leave-request`, {
+  const response = await apiFetch('/api/leave-request', {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -91,10 +85,8 @@ export async function submitLeaveRequest(data: {
  * Get leave policies
  */
 export async function getLeavePolicies() {
-  const response = await fetch(`${API_BASE_URL}/api/leave-policies`, {
+  const response = await apiFetch('/api/leave-policies', {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {

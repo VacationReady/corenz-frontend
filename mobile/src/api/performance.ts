@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
+import { apiFetch } from './client';
 
 export interface PerformanceReview {
   id: string;
@@ -28,10 +28,8 @@ export interface PerformanceReview {
  * Get performance reviews for the current user
  */
 export async function getMyPerformanceReviews(): Promise<PerformanceReview[]> {
-  const response = await fetch(`${API_BASE_URL}/api/performance/reviews?scope=my`, {
+  const response = await apiFetch('/api/performance/reviews?scope=my', {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
@@ -45,10 +43,8 @@ export async function getMyPerformanceReviews(): Promise<PerformanceReview[]> {
  * Get performance review details
  */
 export async function getPerformanceReviewDetails(reviewId: string): Promise<PerformanceReview> {
-  const response = await fetch(`${API_BASE_URL}/api/performance/reviews/${reviewId}`, {
+  const response = await apiFetch(`/api/performance/reviews/${reviewId}`, {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
@@ -62,10 +58,8 @@ export async function getPerformanceReviewDetails(reviewId: string): Promise<Per
  * Submit self-review
  */
 export async function submitSelfReview(reviewId: string, data: any): Promise<PerformanceReview> {
-  const response = await fetch(`${API_BASE_URL}/api/performance/reviews/${reviewId}/self-review`, {
+  const response = await apiFetch(`/api/performance/reviews/${reviewId}/self-review`, {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 
@@ -81,10 +75,8 @@ export async function submitSelfReview(reviewId: string, data: any): Promise<Per
  * Get objectives
  */
 export async function getMyObjectives() {
-  const response = await fetch(`${API_BASE_URL}/api/objectives?scope=my`, {
+  const response = await apiFetch('/api/objectives?scope=my', {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {

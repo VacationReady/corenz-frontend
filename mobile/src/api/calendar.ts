@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
+import { apiFetch } from './client';
 
 export interface CalendarEvent {
   id: string;
@@ -25,15 +25,11 @@ export async function getCalendarEvents(startDate?: string, endDate?: string): P
   const params = new URLSearchParams();
   if (startDate) params.append('startDate', startDate);
   if (endDate) params.append('endDate', endDate);
+  const suffix = params.toString();
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/calendar-events?${params.toString()}`,
-    {
-      method: 'GET',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-    }
-  );
+  const response = await apiFetch(`/api/calendar-events${suffix ? `?${suffix}` : ''}`, {
+    method: 'GET',
+  });
 
   if (!response.ok) {
     throw new Error('Failed to fetch calendar events');

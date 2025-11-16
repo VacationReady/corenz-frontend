@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
+import { apiFetch } from './client';
 
 export interface ActionItem {
   id: string;
@@ -25,10 +25,8 @@ export interface ActionItem {
  * Get action items for the current user
  */
 export async function getMyActionItems(): Promise<ActionItem[]> {
-  const response = await fetch(`${API_BASE_URL}/api/action-items?scope=my`, {
+  const response = await apiFetch('/api/action-items?scope=my', {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
@@ -42,10 +40,8 @@ export async function getMyActionItems(): Promise<ActionItem[]> {
  * Complete an action item
  */
 export async function completeActionItem(itemId: string): Promise<ActionItem> {
-  const response = await fetch(`${API_BASE_URL}/api/action-items/${itemId}`, {
+  const response = await apiFetch(`/api/action-items/${itemId}`, {
     method: 'PATCH',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status: 'COMPLETED' }),
   });
 
@@ -63,10 +59,8 @@ export async function updateActionItemStatus(
   itemId: string,
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
 ): Promise<ActionItem> {
-  const response = await fetch(`${API_BASE_URL}/api/action-items/${itemId}`, {
+  const response = await apiFetch(`/api/action-items/${itemId}`, {
     method: 'PATCH',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
   });
 

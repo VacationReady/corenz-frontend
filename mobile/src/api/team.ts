@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
+import { apiFetch } from './client';
 
 export interface Employee {
   id: string;
@@ -23,10 +23,8 @@ export interface Employee {
  * Get team members (direct reports if manager, or department colleagues)
  */
 export async function getMyTeam(): Promise<Employee[]> {
-  const response = await fetch(`${API_BASE_URL}/api/employees?scope=team`, {
+  const response = await apiFetch('/api/employees?scope=team', {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
@@ -50,12 +48,10 @@ export async function getAllEmployees(params?: {
   if (params?.search) queryParams.append('search', params.search);
 
   const queryString = queryParams.toString();
-  const url = `${API_BASE_URL}/api/employees${queryString ? `?${queryString}` : ''}`;
+  const url = `/api/employees${queryString ? `?${queryString}` : ''}`;
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {
@@ -69,10 +65,8 @@ export async function getAllEmployees(params?: {
  * Get employee details
  */
 export async function getEmployeeDetails(employeeId: string): Promise<Employee> {
-  const response = await fetch(`${API_BASE_URL}/api/employees/${employeeId}`, {
+  const response = await apiFetch(`/api/employees/${employeeId}`, {
     method: 'GET',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
   });
 
   if (!response.ok) {

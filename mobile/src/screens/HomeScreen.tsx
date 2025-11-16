@@ -9,6 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { getSession } from '../api/auth';
 import { getEmployeeProfile } from '../api/hr-data';
 import { getMyLeaveRequests } from '../api/leave';
@@ -22,6 +23,7 @@ import LoadingState from '../components/LoadingState';
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -161,21 +163,25 @@ export default function HomeScreen() {
               icon="calendar-outline"
               title="Book Leave"
               color="#3b82f6"
+              onPress={() => navigation.navigate('Leave')}
             />
             <QuickActionButton
               icon="document-text-outline"
               title="Surveys"
               color="#8b5cf6"
+              onPress={() => navigation.navigate('More', { screen: 'Surveys' })}
             />
             <QuickActionButton
               icon="bar-chart-outline"
               title="Reviews"
               color="#ef4444"
+              onPress={() => navigation.navigate('More', { screen: 'Performance' })}
             />
             <QuickActionButton
               icon="people-outline"
               title="My Team"
               color="#10b981"
+              onPress={() => navigation.navigate('Team')}
             />
           </View>
         </Card>
@@ -190,7 +196,10 @@ export default function HomeScreen() {
             <Text style={styles.cardDescription}>
               You have {stats.pendingActions} action item{stats.pendingActions !== 1 ? 's' : ''} waiting for your attention
             </Text>
-            <TouchableOpacity style={styles.viewAllButton}>
+            <TouchableOpacity
+              style={styles.viewAllButton}
+              onPress={() => navigation.navigate('More', { screen: 'ActionItems' })}
+            >
               <Text style={styles.viewAllText}>View All</Text>
               <Ionicons name="chevron-forward" size={16} color="#3b82f6" />
             </TouchableOpacity>
@@ -207,7 +216,10 @@ export default function HomeScreen() {
             <Text style={styles.cardDescription}>
               Complete {stats.pendingSurveys} survey{stats.pendingSurveys !== 1 ? 's' : ''} to share your feedback
             </Text>
-            <TouchableOpacity style={styles.viewAllButton}>
+            <TouchableOpacity
+              style={styles.viewAllButton}
+              onPress={() => navigation.navigate('More', { screen: 'Surveys' })}
+            >
               <Text style={styles.viewAllText}>Complete Surveys</Text>
               <Ionicons name="chevron-forward" size={16} color="#3b82f6" />
             </TouchableOpacity>
@@ -253,9 +265,9 @@ function StatCard({ icon, title, value, color }: any) {
   );
 }
 
-function QuickActionButton({ icon, title, color }: any) {
+function QuickActionButton({ icon, title, color, onPress }: any) {
   return (
-    <TouchableOpacity style={styles.quickAction}>
+    <TouchableOpacity style={styles.quickAction} onPress={onPress}>
       <View style={[styles.quickActionIcon, { backgroundColor: color + '15' }]}>
         <Ionicons name={icon} size={24} color={color} />
       </View>

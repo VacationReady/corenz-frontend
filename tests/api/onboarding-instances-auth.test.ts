@@ -195,7 +195,7 @@ test("GET /api/onboarding/instances/[employeeId] - successfully returns instance
   };
 
   const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  const res = await GET(req, { params: { employeeId: "emp1" } });
+  const res = await callGet(req, { params: { employeeId: "emp1" } });
   const data = await res.json();
 
   assert.equal(res.status, 200);

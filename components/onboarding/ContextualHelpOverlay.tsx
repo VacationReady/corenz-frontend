@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/Dialog";
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/Badge";
 import type { HelpContent, TenantSegment } from "@/lib/onboarding/help-content";
 import {

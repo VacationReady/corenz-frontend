@@ -20,6 +20,7 @@ export default function ApiConnectivityStatus() {
 
   const runConnectivityCheck = useCallback(async () => {
     if (!API_BASE_URL) {
+      console.warn("⚠️ No API base URL configured. Set EXPO_PUBLIC_API_BASE_URL in mobile/.env");
       setStatus('offline');
       setMessage('Set EXPO_PUBLIC_API_BASE_URL in mobile/.env to point at your backend.');
       return;
@@ -27,6 +28,7 @@ export default function ApiConnectivityStatus() {
 
     setStatus('checking');
     setMessage('');
+    console.log('🔍 Checking API connectivity at', `${API_BASE_URL}/api/auth/csrf`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 7000);
@@ -44,13 +46,16 @@ export default function ApiConnectivityStatus() {
       setStatus('online');
       setMessage('Successfully reached /api/auth/csrf');
       setLastChecked(new Date());
+      console.log('✅ Connectivity check succeeded');
     } catch (error) {
       if ((error as Error).name === 'AbortError') {
         setMessage('Timed out waiting for the backend. Is port 3000 accessible on your LAN?');
+        console.error('⏱️ Connectivity check timed out while calling /api/auth/csrf');
       } else {
         setMessage(
-          'Unable to contact the API. Ensure `npm run dev` is running, Windows Firewall allows Node.js, and your phone is on the same Wi‑Fi.'
+          'Unable to contact the API. Ensure `npm run dev` is running, Windows Firewall allows Node.js, and your phone is on the same Wi-Fi.'
         );
+        console.error('❌ Connectivity check failed:', error);
       }
       setStatus('offline');
       setLastChecked(new Date());

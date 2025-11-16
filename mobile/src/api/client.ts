@@ -45,3 +45,76 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
     credentials: 'omit',
   });
 }
+
+// API Client wrapper for easier usage
+export const apiClient = {
+  async get(path: string, config?: RequestInit) {
+    const response = await apiFetch(path, {
+      ...config,
+      method: 'GET',
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `Request failed with status ${response.status}`);
+    }
+    
+    return {
+      data: await response.json(),
+      status: response.status,
+    };
+  },
+
+  async post(path: string, data?: any, config?: RequestInit) {
+    const response = await apiFetch(path, {
+      ...config,
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `Request failed with status ${response.status}`);
+    }
+    
+    return {
+      data: await response.json(),
+      status: response.status,
+    };
+  },
+
+  async put(path: string, data?: any, config?: RequestInit) {
+    const response = await apiFetch(path, {
+      ...config,
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `Request failed with status ${response.status}`);
+    }
+    
+    return {
+      data: await response.json(),
+      status: response.status,
+    };
+  },
+
+  async delete(path: string, config?: RequestInit) {
+    const response = await apiFetch(path, {
+      ...config,
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `Request failed with status ${response.status}`);
+    }
+    
+    return {
+      data: await response.json(),
+      status: response.status,
+    };
+  },
+};

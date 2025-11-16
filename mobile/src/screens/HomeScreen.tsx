@@ -19,6 +19,7 @@ import { getUpcomingEvents } from '../api/calendar';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import LoadingState from '../components/LoadingState';
+import ClockWidget from '../components/ClockWidget';
 
 const { width } = Dimensions.get('window');
 
@@ -127,6 +128,9 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.content}>
+        {/* Clock In/Out Widget */}
+        <ClockWidget />
+
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <StatCard

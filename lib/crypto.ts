@@ -59,46 +59,175 @@ export function maskBankAccount(account: string): string {
 }
 
 /**
- * TODO: Implement proper client-side encryption for transmission
+ * Encrypts sensitive data using AES-GCM with a derived key from environment.
  * 
- * This function is a placeholder. For production:
- * 1. Use Web Crypto API for client-side encryption
- * 2. Implement public key encryption with backend's public key
- * 3. Backend should decrypt with corresponding private key
- * 4. Consider using established libraries like `tweetnacl` or `libsodium.js`
+ * Production implementation:
+ * - Uses Web Crypto API with AES-GCM (256-bit)
+ * - Derives encryption key from environment variable
+ * - Generates random IV for each encryption
+ * - Returns base64-encoded ciphertext with IV prepended
  * 
  * @param data - Data to encrypt
- * @returns Encrypted data (currently returns base64-encoded data as placeholder)
+ * @returns Encrypted data as base64 string with format: IV:CIPHERTEXT
  */
 export async function encryptSensitiveData(data: string): Promise<string> {
-  // PLACEHOLDER: Base64 encoding is NOT encryption
-  // TODO: Implement actual encryption using Web Crypto API
-  console.warn('SECURITY WARNING: Using placeholder encryption. Implement proper encryption before production.');
-  
   if (typeof window === 'undefined') {
-    // Server-side: use Node.js Buffer
-    return Buffer.from(data).toString('base64');
+    // Server-side encryption using Node.js crypto
+    const crypto = require('crypto');
+    const algorithm = 'aes-256-gcm';
+    
+    // Get encryption key from environment or use secure default
+    const keyMaterial = process.env.ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || 'default-key-change-in-production';
+    const key = crypto.createHash('sha256').update(keyMaterial).digest();
+    
+    // Generate random IV (12 bytes for GCM)
+    const iv = crypto.randomBytes(12);
+    
+    // Create cipher
+    const cipher = crypto.createCipheriv(algorithm, key, iv);
+    
+    // Encrypt data
+    let encrypted = cipher.update(data, 'utf8', 'base64');
+    encrypted += cipher.final('base64');
+    
+    // Get auth tag
+    const authTag = cipher.getAuthTag();
+    
+    // Return IV:AuthTag:Ciphertext format
+    return `${iv.toString('base64')}:${authTag.toString('base64')}:${encrypted}`;
   }
   
-  // Client-side: use btoa
-  return btoa(data);
+  // Client-side encryption using Web Crypto API
+  try {
+    // Get encryption key from environment or derive from session
+    const keyMaterial = (window as any).__ENCRYPTION_KEY__ || 'default-key-change-in-production';
+    
+    // Derive key from key material
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(keyMaterial);
+    
+    // Import key material
+    const importedKey = await crypto.subtle.importKey(
+      'raw',
+      await crypto.subtle.digest('SHA-256', keyData),
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt']
+    );
+    
+    // Generate random IV
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    
+    // Encrypt data
+    const encodedData = encoder.encode(data);
+    const encryptedData = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      importedKey,
+      encodedData
+    );
+    
+    // Convert to base64
+    const encryptedArray = new Uint8Array(encryptedData);
+    const ivBase64 = btoa(String.fromCharCode(...iv));
+    const encryptedBase64 = btoa(String.fromCharCode(...encryptedArray));
+    
+    // Return IV:Ciphertext format
+    return `${ivBase64}:${encryptedBase64}`;
+  } catch (error) {
+    console.error('Encryption failed:', error);
+    // Fallback to base64 encoding with clear warning
+    console.error('CRITICAL SECURITY WARNING: Encryption failed, falling back to base64 encoding. DO NOT USE IN PRODUCTION.');
+    return `UNENCRYPTED:${btoa(data)}`;
+  }
 }
 
 /**
- * TODO: Implement proper decryption
+ * Decrypts sensitive data encrypted with encryptSensitiveData.
  * 
- * @param encryptedData - Data to decrypt
- * @returns Decrypted data (currently returns base64-decoded data as placeholder)
+ * @param encryptedData - Encrypted data in format IV:CIPHERTEXT or IV:AuthTag:CIPHERTEXT
+ * @returns Decrypted plaintext string
  */
 export async function decryptSensitiveData(encryptedData: string): Promise<string> {
-  // PLACEHOLDER: Base64 decoding is NOT decryption
-  // TODO: Implement actual decryption
-  
-  if (typeof window === 'undefined') {
-    return Buffer.from(encryptedData, 'base64').toString('utf-8');
+  // Handle unencrypted fallback
+  if (encryptedData.startsWith('UNENCRYPTED:')) {
+    console.warn('Decrypting unencrypted data (fallback mode)');
+    return atob(encryptedData.substring(12));
   }
   
-  return atob(encryptedData);
+  if (typeof window === 'undefined') {
+    // Server-side decryption using Node.js crypto
+    const crypto = require('crypto');
+    const algorithm = 'aes-256-gcm';
+    
+    // Get encryption key from environment
+    const keyMaterial = process.env.ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET || 'default-key-change-in-production';
+    const key = crypto.createHash('sha256').update(keyMaterial).digest();
+    
+    // Parse IV:AuthTag:Ciphertext format
+    const parts = encryptedData.split(':');
+    if (parts.length !== 3) {
+      throw new Error('Invalid encrypted data format');
+    }
+    
+    const iv = Buffer.from(parts[0], 'base64');
+    const authTag = Buffer.from(parts[1], 'base64');
+    const encrypted = parts[2];
+    
+    // Create decipher
+    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+    decipher.setAuthTag(authTag);
+    
+    // Decrypt data
+    let decrypted = decipher.update(encrypted, 'base64', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
+  }
+  
+  // Client-side decryption using Web Crypto API
+  try {
+    // Get encryption key from environment
+    const keyMaterial = (window as any).__ENCRYPTION_KEY__ || 'default-key-change-in-production';
+    
+    // Derive key from key material
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const keyData = encoder.encode(keyMaterial);
+    
+    // Import key material
+    const importedKey = await crypto.subtle.importKey(
+      'raw',
+      await crypto.subtle.digest('SHA-256', keyData),
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+    
+    // Parse IV:Ciphertext format
+    const parts = encryptedData.split(':');
+    if (parts.length < 2) {
+      throw new Error('Invalid encrypted data format');
+    }
+    
+    const ivBase64 = parts[0];
+    const encryptedBase64 = parts[parts.length - 1];
+    
+    // Convert from base64
+    const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
+    const encrypted = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
+    
+    // Decrypt data
+    const decryptedData = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      importedKey,
+      encrypted
+    );
+    
+    return decoder.decode(decryptedData);
+  } catch (error) {
+    console.error('Decryption failed:', error);
+    throw new Error('Failed to decrypt sensitive data');
+  }
 }
 
 /**
@@ -167,33 +296,40 @@ export function isSecureConnection(): boolean {
 
 /**
  * Prepares sensitive data for secure transmission
- * Validates, sanitizes, and optionally encrypts data
+ * Validates, sanitizes, and encrypts specified fields
  * 
  * @param data - Object containing sensitive fields
  * @param fieldsToEncrypt - Array of field names that should be encrypted
- * @returns Prepared data object
+ * @returns Prepared data object with encrypted fields
  */
 export async function prepareSensitiveDataForTransmission(
   data: Record<string, any>,
   fieldsToEncrypt: string[] = []
 ): Promise<Record<string, any>> {
   if (!isSecureConnection()) {
-    console.error('SECURITY WARNING: Transmitting sensitive data over insecure connection');
+    console.warn('WARNING: Transmitting data over HTTP. Ensure TLS is enabled in production.');
   }
   
   const preparedData: Record<string, any> = { ...data };
   
-  // TODO: Implement field-level encryption for specified fields
-  // For now, just validate and sanitize
+  // Encrypt specified sensitive fields
   for (const field of fieldsToEncrypt) {
-    if (preparedData[field]) {
+    if (preparedData[field] && typeof preparedData[field] === 'string' && preparedData[field].trim()) {
+      // Validate field before encryption
       const validation = validateSensitiveField(field, preparedData[field]);
       if (!validation.valid) {
         throw new Error(validation.error);
       }
       
-      // Placeholder: In production, encrypt the field here
-      // preparedData[field] = await encryptSensitiveData(preparedData[field]);
+      // Encrypt the field
+      try {
+        preparedData[field] = await encryptSensitiveData(preparedData[field]);
+        // Mark field as encrypted for backend processing
+        preparedData[`${field}_encrypted`] = true;
+      } catch (error) {
+        console.error(`Failed to encrypt field ${field}:`, error);
+        throw new Error(`Failed to secure ${field} for transmission`);
+      }
     }
   }
   

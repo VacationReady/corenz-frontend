@@ -211,6 +211,7 @@ export function DataTable<TData, TValue>({
                                     value={(header.column.getFilterValue() as string[]) || []}
                                     onValueChange={(vals) => header.column.setFilterValue(vals)}
                                     placeholder={`Select ${header.column.id}...`}
+                                    autoOpen
                                   />
                                 );
                               }

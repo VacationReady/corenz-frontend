@@ -196,7 +196,7 @@ export function SidebarItem({
         "group flex items-center gap-4 rounded-xl px-4 py-3 text-base font-medium transition-glass",
         isActive
           ? "glass-strong text-primary shadow-depth-1"
-          : "text-foreground hover:glass-subtle hover:text-foreground",
+          : "text-foreground sidebar-hover-gradient",
         collapsed && "justify-center"
       )}
     >

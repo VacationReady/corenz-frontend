@@ -384,16 +384,15 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       const idMap: Record<string, string[]> = {};
       const blackoutEvents = blackoutData.map((b: any) => {
         const d = new Date(b.date);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-          d.getDate(),
-        ).padStart(2, "0")}`;
+        const key = utcDateKey(d);
+        const startDate = key;
         keys.add(key);
         if (!idMap[key]) idMap[key] = [];
         idMap[key].push(b.id);
         return {
           id: b.id,
           title: b.allEvents ? "Blackout Day (All Events)" : "Blackout Day",
-          start: b.date,
+          start: startDate,
           allDay: true,
           display: "background",
           backgroundColor: "#fecaca",
@@ -479,7 +478,10 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     })();
   }, []);
 
-  const dateKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const dateKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const utcDateKey = (d: Date) =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 
   const getHeatLevel = (count: number) => {
     if (count >= 7) return 5;

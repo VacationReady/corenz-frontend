@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useRef, useMemo, useState } from "react";
+import { Fragment, useRef, useMemo, useState, useEffect } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { Check, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -22,6 +22,7 @@ interface MultiSelectProps {
   disabled?: boolean;
   searchable?: boolean;
   searchPlaceholder?: string;
+  autoOpen?: boolean;
 }
 
 export function MultiSelect({
@@ -34,6 +35,7 @@ export function MultiSelect({
   disabled = false,
   searchable = false,
   searchPlaceholder = "Search...",
+  autoOpen = false,
 }: MultiSelectProps) {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const [query, setQuery] = useState("");
@@ -44,6 +46,21 @@ export function MultiSelect({
   if (!handleChange) {
     throw new Error("MultiSelect requires an onChange or onValueChange handler");
   }
+
+  useEffect(() => {
+    if (!autoOpen) return;
+    const button = menuButtonRef.current;
+    if (!button) return;
+    const isOpen = button.getAttribute("data-headlessui-state")?.includes("open");
+    if (isOpen) return;
+
+    const raf = requestAnimationFrame(() => {
+      if (!button.isConnected) return;
+      button.click();
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [autoOpen]);
 
   // ✅ Dynamically determine "All" label & value
   const isDepartment = placeholder.toLowerCase().includes("department");

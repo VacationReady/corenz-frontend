@@ -128,10 +128,10 @@ export default function EmployeeSidebar({
                 key={href}
                 href={href}
                 className={clsx(
-                  "flex items-center gap-4 px-4 py-3 rounded-2xl transition-glass hover-glass",
+                  "flex items-center gap-4 px-4 py-3 rounded-2xl transition-glass",
                   pathname === href
                     ? "bg-primary text-primary-foreground shadow-warm"
-                    : "text-foreground",
+                    : "text-foreground sidebar-hover-gradient",
                 )}
                 onClick={() => onMobileNavigate?.()}
               >
@@ -153,7 +153,7 @@ export default function EmployeeSidebar({
         >
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-destructive hover-glass rounded-2xl transition-glass"
+            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-destructive sidebar-hover-gradient rounded-2xl transition-glass"
           >
             <LogOut size={20} />
             <span className="font-medium">Logout</span>

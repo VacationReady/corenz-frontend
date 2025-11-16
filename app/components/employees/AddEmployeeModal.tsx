@@ -31,6 +31,9 @@ import type {
   PermissionProfile,
 } from "@/hooks/useEmployeeModalData";
 import { fetchWithCsrf } from "@/lib/csrf";
+import { prepareSensitiveDataForTransmission } from "@/lib/crypto";
+import { AddEmployeeModalErrorBoundary } from "./AddEmployeeModalErrorBoundary";
+import { RefreshCw } from "lucide-react";
 
 // 👇 Toggle
 import { Switch } from "@/components/ui/switch";
@@ -1010,7 +1013,7 @@ export default function AddEmployeeModal({
       
       console.log("[AddEmployeeModal] Admin toggle:", isAdminAccess, "Admin profile:", adminProfile);
 
-      const payload = {
+      const basePayload = {
         ...formData,
         // Determine role from Admin toggle. Manager role is based on line manager relationship.
         role: isAdminAccess ? "ADMIN" : "EMPLOYEE",
@@ -1031,8 +1034,7 @@ export default function AddEmployeeModal({
         permissionProfileId: adminProfile?.id || "",
         holidayYear: formData.holidayYear || "",
         workingPatternId: formData.workingPatternId || "",
-        // NZ-specific onboarding fields
-        // TODO: Encryption/masking review - sensitive data transmission (see lib/crypto.ts if implemented)
+        // NZ-specific onboarding fields (sensitive fields will be encrypted below)
         irdNumber: formData.irdNumber || "",
         taxCode: formData.taxCode || "",
         kiwiSaverEnrolled: formData.kiwiSaverEnrolled,
@@ -1054,6 +1056,10 @@ export default function AddEmployeeModal({
           ? new Date().toISOString() 
           : "",
       };
+
+      // Encrypt sensitive NZ payroll and visa data before transmission
+      const sensitiveFields = ['irdNumber', 'bankAccountNumber', 'workPermitType'];
+      const payload = await prepareSensitiveDataForTransmission(basePayload, sensitiveFields);
 
       // Use CSRF-protected fetch for security
       const res = await fetchWithCsrf("/api/employees", {
@@ -1230,8 +1236,20 @@ export default function AddEmployeeModal({
     );
   }, [formData.workingPatternId, formData.entitlementDays, holidayYearError]);
 
+  // Check for critical data loading errors
+  const hasCriticalError = modalData.templates.error;
+  const hasNonCriticalErrors = 
+    modalData.departments.error ||
+    modalData.jobRoles.error ||
+    modalData.locations.error ||
+    modalData.contractTypes.error ||
+    modalData.workingPatterns.error;
+
   return (
-    <>
+    <AddEmployeeModalErrorBoundary onReset={() => {
+      modalData.retryAll();
+      onClose();
+    }}>
       <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
         <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
           <Card className="w-full p-6 space-y-4">
@@ -2321,6 +2339,6 @@ export default function AddEmployeeModal({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </AddEmployeeModalErrorBoundary>
   );
 }

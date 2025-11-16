@@ -1,13 +1,16 @@
 "use client";
 
-import React from "react";
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import React, { useState, useMemo } from "react";
+import { PlusIcon, TrashIcon, MagnifyingGlassIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
 import Button from "@/components/ui/Button";
 import { hrReportFields, HRReportField, getFieldByKey } from "@/lib/hrReportFields";
 import type { ReportFilter, SortConfig, FilterOperator } from "@/lib/reportFilters";
+import { isFilterComplete, getFilterValidationError } from "@/lib/reportFilters";
 import { DatePresetSelector } from "./DatePresetSelector";
 import type { DatePresetSelection } from "@/lib/reportingDatePresets";
 import { DEFAULT_TIMEZONE } from "@/lib/datetime";
+import { Badge } from "@/components/ui/Badge";
 
 interface FilterConfigurationProps {
   filters: ReportFilter[];
@@ -15,6 +18,7 @@ interface FilterConfigurationProps {
   selectedFields: string[];
   onUpdateFilters: (filters: ReportFilter[]) => void;
   onUpdateSort: (sort?: SortConfig) => void;
+  onValidationChange?: (isValid: boolean, errors: string[]) => void;
   timeZone?: string;
   locale?: string;
 }
@@ -82,46 +86,134 @@ export default function FilterConfiguration({
   selectedFields,
   onUpdateFilters,
   onUpdateSort,
+  onValidationChange,
   timeZone,
   locale,
 }: FilterConfigurationProps) {
-  // Get available fields for filtering (only selected fields that are filterable)
-  const availableFields = selectedFields
-    .map(fieldKey => hrReportFields.find(f => f.field === fieldKey))
-    .filter((field): field is HRReportField => field !== undefined && field.filterable);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFieldPicker, setShowFieldPicker] = useState(false);
+  const [sorts, setSorts] = useState<SortConfig[]>(sort ? [sort] : []);
+  
+  // Get ALL filterable fields, not just selected ones
+  const allFilterableFields = useMemo(() => 
+    hrReportFields.filter(f => f.filterable),
+    []
+  );
+  
+  // Get fields that are in the output
+  const outputFields = useMemo(() => 
+    new Set(selectedFields),
+    [selectedFields]
+  );
+  
+  // Validation
+  const validationErrors = useMemo(() => {
+    const errors: string[] = [];
+    filters.forEach((filter, index) => {
+      const error = getFilterValidationError(filter);
+      if (error) {
+        errors.push(`Filter ${index + 1}: ${error}`);
+      }
+    });
+    return errors;
+  }, [filters]);
+  
+  const isValid = validationErrors.length === 0;
+  
+  // Notify parent of validation changes
+  React.useEffect(() => {
+    onValidationChange?.(isValid, validationErrors);
+  }, [isValid, validationErrors, onValidationChange]);
+  
+  // Ensure required fields are in selectedFields if filters reference them
+  const requiredFieldsFromFilters = useMemo(() => {
+    return filters
+      .filter(f => !f.hideFieldInResults)
+      .map(f => f.field)
+      .filter(field => !outputFields.has(field));
+  }, [filters, outputFields]);
 
-  const addFilter = () => {
-    if (availableFields.length === 0) return;
+  const addFilter = (fieldKey?: string) => {
+    if (allFilterableFields.length === 0) return;
+    
+    const field = fieldKey 
+      ? allFilterableFields.find(f => f.field === fieldKey)
+      : allFilterableFields[0];
+    
+    if (!field) return;
     
     const newFilter: ReportFilter = {
       id: `filter_${Date.now()}_${Math.random()}`,
-      field: availableFields[0].field,
+      field: field.field,
       operator: "equals",
       value: "",
+      hideFieldInResults: !outputFields.has(field.field),
     };
     
     onUpdateFilters([...filters, newFilter]);
+    setShowFieldPicker(false);
+    setSearchQuery("");
   };
 
-  const filterKey = (filter: ReportFilter, index: number) => filter.id ?? `filter_${index}`;
-
-  const updateFilter = (filterKeyValue: string, updates: Partial<ReportFilter>) => {
-    const updatedFilters = filters.map((filter, idx) => {
-      if (filterKey(filter, idx) === filterKeyValue) {
-        return { ...filter, id: filter.id ?? filterKeyValue, ...updates };
+  const updateFilter = (filterId: string, updates: Partial<ReportFilter>) => {
+    const updatedFilters = filters.map((filter) => {
+      if (filter.id === filterId) {
+        return { ...filter, ...updates };
       }
       return filter;
     });
     onUpdateFilters(updatedFilters);
   };
 
-  const removeFilter = (filterKeyValue: string) => {
-    const remaining = filters.filter((filter, idx) => filterKey(filter, idx) !== filterKeyValue);
+  const removeFilter = (filterId: string) => {
+    const remaining = filters.filter((filter) => filter.id !== filterId);
     onUpdateFilters(remaining);
   };
 
   const clearAllFilters = () => {
     onUpdateFilters([]);
+  };
+  
+  // Multi-sort handlers
+  const addSort = () => {
+    if (allFilterableFields.length === 0) return;
+    const sortableFields = allFilterableFields.filter(f => f.sortable);
+    if (sortableFields.length === 0) return;
+    const newSort: SortConfig = {
+      field: sortableFields[0].field,
+      direction: "asc",
+    };
+    const newSorts = [...sorts, newSort];
+    setSorts(newSorts);
+    onUpdateSort(newSorts[0]);
+  };
+  
+  const updateSort = (index: number, updates: Partial<SortConfig>) => {
+    const newSorts = sorts.map((s, i) => i === index ? { ...s, ...updates } : s);
+    setSorts(newSorts);
+    onUpdateSort(newSorts[0]);
+  };
+  
+  const removeSort = (index: number) => {
+    const newSorts = sorts.filter((_, i) => i !== index);
+    setSorts(newSorts);
+    onUpdateSort(newSorts[0]);
+  };
+  
+  const moveSortUp = (index: number) => {
+    if (index === 0) return;
+    const newSorts = [...sorts];
+    [newSorts[index - 1], newSorts[index]] = [newSorts[index], newSorts[index - 1]];
+    setSorts(newSorts);
+    onUpdateSort(newSorts[0]);
+  };
+  
+  const moveSortDown = (index: number) => {
+    if (index === sorts.length - 1) return;
+    const newSorts = [...sorts];
+    [newSorts[index], newSorts[index + 1]] = [newSorts[index + 1], newSorts[index]];
+    setSorts(newSorts);
+    onUpdateSort(newSorts[0]);
   };
 
   return (
@@ -132,62 +224,110 @@ export default function FilterConfiguration({
           Configure Filters & Sorting
         </h3>
         <p className="text-gray-600">
-          Set up filters to narrow down your data and choose how to sort the results.
+          Set up filters to narrow down your data and choose how to sort the results. You can filter on any field, even if it's not in your output columns.
         </p>
+        {requiredFieldsFromFilters.length > 0 && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> Some filters reference fields not in your output. These fields will be auto-included if needed.
+            </p>
+          </div>
+        )}
       </div>
+      
+      {/* Validation Errors */}
+      {validationErrors.length > 0 && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <h4 className="text-sm font-semibold text-red-900 mb-2">Please fix the following errors:</h4>
+          <ul className="list-disc list-inside space-y-1">
+            {validationErrors.map((error, index) => (
+              <li key={index} className="text-sm text-red-700">{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Sorting Configuration */}
       <div className="bg-gray-50 rounded-lg p-4">
-        <h4 className="font-medium text-gray-900 mb-3">Sorting</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Sort by field
-            </label>
-            <select
-              value={sort?.field || ""}
-              onChange={(e) => {
-                if (e.target.value) {
-                  onUpdateSort({
-                    field: e.target.value,
-                    direction: sort?.direction || "asc",
-                  });
-                } else {
-                  onUpdateSort(undefined);
-                }
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-medium text-gray-900">Sorting</h4>
+          {sorts.length < 3 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addSort}
+              className="flex items-center"
             >
-              <option value="">No sorting</option>
-              {availableFields
-                .filter(field => field.sortable)
-                .map(field => (
-                  <option key={field.field} value={field.field}>
-                    {field.label}
-                  </option>
-                ))}
-            </select>
-          </div>
-          
-          {sort?.field && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sort direction
-              </label>
-              <select
-                value={sort.direction}
-                onChange={(e) => onUpdateSort({
-                  field: sort.field,
-                  direction: e.target.value as "asc" | "desc",
-                })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="asc">Ascending (A-Z, 1-9, oldest first)</option>
-                <option value="desc">Descending (Z-A, 9-1, newest first)</option>
-              </select>
-            </div>
+              <PlusIcon className="w-4 h-4 mr-1" />
+              Add Sort Level
+            </Button>
           )}
         </div>
+        
+        {sorts.length === 0 ? (
+          <p className="text-sm text-gray-600">No sorting applied. Results will be in default order.</p>
+        ) : (
+          <div className="space-y-3">
+            {sorts.map((sortItem, index) => (
+              <div key={index} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200">
+                <div className="flex flex-col gap-1">
+                  <button
+                    onClick={() => moveSortUp(index)}
+                    disabled={index === 0}
+                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Move up"
+                  >
+                    <ChevronUpIcon className="w-4 h-4 text-gray-600" />
+                  </button>
+                  <button
+                    onClick={() => moveSortDown(index)}
+                    disabled={index === sorts.length - 1}
+                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Move down"
+                  >
+                    <ChevronDownIcon className="w-4 h-4 text-gray-600" />
+                  </button>
+                </div>
+                
+                <Badge variant="outline" className="flex-shrink-0">
+                  {index === 0 ? "Primary" : index === 1 ? "Secondary" : "Tertiary"}
+                </Badge>
+                
+                <select
+                  value={sortItem.field}
+                  onChange={(e) => updateSort(index, { field: e.target.value })}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {allFilterableFields
+                    .filter(field => field.sortable)
+                    .map(field => (
+                      <option key={field.field} value={field.field}>
+                        {field.label}
+                      </option>
+                    ))}
+                </select>
+                
+                <select
+                  value={sortItem.direction}
+                  onChange={(e) => updateSort(index, { direction: e.target.value as "asc" | "desc" })}
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="asc">↑ Asc</option>
+                  <option value="desc">↓ Desc</option>
+                </select>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeSort(index)}
+                  className="text-red-600 border-red-200 hover:bg-red-50 p-2"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Filters Section */}
@@ -208,8 +348,7 @@ export default function FilterConfiguration({
             <Button
               variant="outline"
               size="sm"
-              onClick={addFilter}
-              disabled={availableFields.length === 0}
+              onClick={() => setShowFieldPicker(!showFieldPicker)}
               className="flex items-center"
             >
               <PlusIcon className="w-4 h-4 mr-1" />
@@ -217,21 +356,77 @@ export default function FilterConfiguration({
             </Button>
           </div>
         </div>
-
-        {availableFields.length === 0 && (
-          <div className="text-center py-8 bg-gray-50 rounded-lg">
-            <p className="text-gray-600">
-              No filterable fields available. Please select some fields first.
-            </p>
+        
+        {/* Field Picker */}
+        {showFieldPicker && (
+          <div className="mb-4 p-4 bg-white border border-gray-300 rounded-lg shadow-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <MagnifyingGlassIcon className="w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search fields..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                autoFocus
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowFieldPicker(false);
+                  setSearchQuery("");
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+            <div className="max-h-64 overflow-y-auto space-y-1">
+              {allFilterableFields
+                .filter(field => 
+                  field.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  field.field.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+                .map(field => {
+                  const isInOutput = outputFields.has(field.field);
+                  const alreadyFiltered = filters.some(f => f.field === field.field);
+                  
+                  return (
+                    <button
+                      key={field.field}
+                      onClick={() => addFilter(field.field)}
+                      disabled={alreadyFiltered}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded-md flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium text-sm text-gray-900">{field.label}</div>
+                        <div className="text-xs text-gray-500">{field.field}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!isInOutput && (
+                          <Badge variant="outline" className="text-xs">
+                            Filter-only
+                          </Badge>
+                        )}
+                        {alreadyFiltered && (
+                          <Badge className="text-xs bg-gray-200 text-gray-700">
+                            Already added
+                          </Badge>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+            </div>
           </div>
         )}
 
-        {filters.length === 0 && availableFields.length > 0 && (
+        {filters.length === 0 && (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <p className="text-gray-600 mb-4">
               No filters applied. Your report will include all available data.
             </p>
-            <Button variant="outline" onClick={addFilter}>
+            <Button variant="outline" onClick={() => setShowFieldPicker(true)}>
               <PlusIcon className="w-4 h-4 mr-2" />
               Add Your First Filter
             </Button>
@@ -242,15 +437,19 @@ export default function FilterConfiguration({
         {filters.length > 0 && (
           <div className="space-y-4">
             {filters.map((filter, index) => {
-              const filterKeyValue = filterKey(filter, index);
+              const isInOutput = outputFields.has(filter.field);
+              const validationError = getFilterValidationError(filter);
+              
               return (
                 <FilterRow
-                  key={filterKeyValue}
+                  key={filter.id}
                   filter={filter}
-                  availableFields={availableFields}
+                  availableFields={allFilterableFields}
                   isFirst={index === 0}
-                  onUpdate={(updates) => updateFilter(filterKeyValue, updates)}
-                  onRemove={() => removeFilter(filterKeyValue)}
+                  isInOutput={isInOutput}
+                  validationError={validationError}
+                  onUpdate={(updates) => updateFilter(filter.id, updates)}
+                  onRemove={() => removeFilter(filter.id)}
                   timeZone={timeZone}
                   locale={locale}
                 />
@@ -268,6 +467,8 @@ function FilterRow({
   filter,
   availableFields,
   isFirst,
+  isInOutput,
+  validationError,
   onUpdate,
   onRemove,
   timeZone,
@@ -276,6 +477,8 @@ function FilterRow({
   filter: ReportFilter;
   availableFields: HRReportField[];
   isFirst: boolean;
+  isInOutput: boolean;
+  validationError: string | null;
   onUpdate: (updates: Partial<ReportFilter>) => void;
   onRemove: () => void;
   timeZone?: string;
@@ -298,17 +501,43 @@ function FilterRow({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
-      <div className="flex items-start space-x-4">
-        {/* AND/WHERE indicator */}
-        <div className="flex-shrink-0 mt-2">
+    <div className={`bg-white border rounded-lg p-4 ${
+      validationError ? 'border-red-300 bg-red-50' : 'border-gray-200'
+    }`}>
+      {/* Header with badges and remove button */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
           <span className={`
             px-2 py-1 text-xs font-medium rounded-md
             ${isFirst ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}
           `}>
             {isFirst ? 'WHERE' : 'AND'}
           </span>
+          
+          {!isInOutput && (
+            <Badge variant="outline" className="text-xs flex items-center gap-1">
+              <EyeSlashIcon className="w-3 h-3" />
+              Filter-only field
+            </Badge>
+          )}
+          
+          {validationError && (
+            <Badge variant="destructive" className="text-xs">
+              {validationError}
+            </Badge>
+          )}
         </div>
+        
+        <button
+          onClick={onRemove}
+          className="text-gray-400 hover:text-red-600 transition-colors p-1"
+          title="Remove filter"
+        >
+          <TrashIcon className="w-5 h-5" />
+        </button>
+      </div>
+      
+      <div className="flex items-start space-x-4">
 
         {/* Filter configuration */}
         <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4">

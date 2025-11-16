@@ -8,6 +8,7 @@ import HomeScreen from '../screens/HomeScreen';
 import LeaveScreen from '../screens/LeaveScreen';
 import TeamScreen from '../screens/TeamScreen';
 import MoreScreen from '../screens/MoreScreen';
+import ClockScreen from '../screens/ClockScreen';
 import ActionItemsScreen from '../screens/ActionItemsScreen';
 import SurveysScreen from '../screens/SurveysScreen';
 import PerformanceScreen from '../screens/PerformanceScreen';
@@ -71,6 +72,8 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
 
             if (route.name === 'Home') {
               iconName = focused ? 'home' : 'home-outline';
+            } else if (route.name === 'Clock') {
+              iconName = focused ? 'time' : 'time-outline';
             } else if (route.name === 'Leave') {
               iconName = focused ? 'calendar' : 'calendar-outline';
             } else if (route.name === 'Team') {
@@ -115,6 +118,19 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
           name="Home" 
           component={HomeScreen}
           options={{ headerShown: false }}
+        />
+        <Tab.Screen 
+          name="Clock" 
+          component={ClockScreen}
+          options={{ 
+            title: 'Clock In/Out',
+            headerStyle: {
+              backgroundColor: '#0F172A',
+            },
+            headerTitleStyle: {
+              color: '#FFFFFF',
+            },
+          }}
         />
         <Tab.Screen 
           name="Leave" 

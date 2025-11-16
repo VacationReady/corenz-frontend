@@ -147,6 +147,26 @@ export async function GET(req: Request) {
     const status = searchParams.get("status") || "active"; // active, archived, all
     const userId = searchParams.get("userId");
     const managerId = searchParams.get("managerId");
+    const scope = (searchParams.get("scope") || "directory").toLowerCase();
+
+    const getAllSubordinates = async (managerUserId: string): Promise<string[]> => {
+      const directReports = await prisma.user.findMany({
+        where: { managerId: managerUserId, companyId: session.user.companyId },
+        select: { id: true },
+      });
+
+      const subordinateIds = directReports.map((u) => u.id);
+      if (subordinateIds.length === 0) {
+        return [];
+      }
+
+      for (const subId of subordinateIds) {
+        const indirectReports = await getAllSubordinates(subId);
+        subordinateIds.push(...indirectReports);
+      }
+
+      return subordinateIds;
+    };
 
     // Base scoping
     const whereCondition: any = { companyId: session.user.companyId };
@@ -157,31 +177,25 @@ export async function GET(req: Request) {
     else if (status === "archived") whereCondition.isActive = false;
     // If status is "all", no isActive filter is applied
 
+    // Allow admins to explicitly scope to their managed hierarchy
+    if (
+      scope === "team" &&
+      (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN")
+    ) {
+      const allSubordinateUserIds = await getAllSubordinates(session.user.id);
+
+      whereCondition.user = {
+        ...(whereCondition.user || {}),
+        id: { in: allSubordinateUserIds.length > 0 ? allSubordinateUserIds : ["no-match"] },
+      };
+    }
+
     // Access control: ADMIN can list all; MANAGER limited to direct and indirect reports
     if (session.user.role === "MANAGER") {
       // Special case: allow managers to fetch their OWN employee record when explicitly queried
       if (userId && userId === session.user.id) {
         // Do not apply team restriction; self-lookup is allowed
       } else {
-        // Function to recursively get all direct and indirect reports
-        const getAllSubordinates = async (managerId: string): Promise<string[]> => {
-          const directReports = await prisma.user.findMany({
-            where: { managerId, companyId: session.user.companyId },
-            select: { id: true },
-          });
-
-          const subordinateIds = directReports.map((u) => u.id);
-          const allSubordinates = [...subordinateIds];
-
-          // Recursively get indirect reports
-          for (const subId of subordinateIds) {
-            const indirectReports = await getAllSubordinates(subId);
-            allSubordinates.push(...indirectReports);
-          }
-
-          return allSubordinates;
-        };
-
         // Get all direct and indirect reports
         const allSubordinateUserIds = await getAllSubordinates(session.user.id);
 

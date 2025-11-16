@@ -67,11 +67,22 @@ npm run web
 
 ### 🏠 Home Dashboard
 - ✅ Personalized greeting with user info
+- ✅ **Clock In/Out Widget** - Beautiful gradient button with live timer
 - ✅ Stats overview (action items, surveys, leave requests, events)
 - ✅ Quick action buttons for common tasks
 - ✅ Pending items summary
 - ✅ Employee information display
 - ✅ Real-time notifications badge
+
+### 🕐 Time Tracking & Clock In/Out
+- ✅ **One-tap clock in/out** from home screen
+- ✅ **Live timer** showing current shift duration
+- ✅ **Dedicated clock screen** with full interface
+- ✅ **GPS location tracking** (when enabled)
+- ✅ **Offline support** with automatic sync
+- ✅ **Real-time sync** to desktop timesheets
+- ✅ Beautiful gradient UI that changes with status
+- ✅ Connection status indicators
 
 ### 📅 Leave Management
 - ✅ View leave balances by policy type
@@ -184,6 +195,13 @@ The mobile app connects to the following Next.js API endpoints:
 |----------|---------|
 | `GET /api/calendar-events` | Get calendar events |
 
+### Time Tracking
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/time-tracking/status` | Get current clock status |
+| `POST /api/time-tracking/clock-in` | Clock in with location |
+| `POST /api/time-tracking/clock-out` | Clock out with location |
+
 All endpoints automatically scope data by `session.user.companyId` for multi-tenant isolation.
 
 ## Project Structure
@@ -193,8 +211,10 @@ mobile/
 ├── src/
 │   ├── api/
 │   │   ├── auth.ts              # Authentication helpers
+│   │   ├── client.ts            # API client wrapper
 │   │   ├── hr-data.ts           # HR data fetching
 │   │   ├── leave.ts             # Leave management API
+│   │   ├── time-tracking.ts     # Time tracking/clock API
 │   │   ├── surveys.ts           # Surveys API
 │   │   ├── performance.ts       # Performance reviews API
 │   │   ├── action-items.ts      # Action items API
@@ -204,13 +224,20 @@ mobile/
 │   │   ├── Card.tsx             # Reusable card component
 │   │   ├── Button.tsx           # Button with variants
 │   │   ├── Badge.tsx            # Status badges
+│   │   ├── ClockWidget.tsx      # Clock in/out widget
 │   │   ├── EmptyState.tsx       # Empty state placeholder
 │   │   └── LoadingState.tsx     # Loading indicator
+│   ├── services/
+│   │   ├── LocationService.ts   # GPS location handling
+│   │   ├── OfflineClockService.ts   # Offline clock sync
+│   │   ├── OfflineStorage.ts    # Offline data storage
+│   │   └── NotificationService.ts   # Push notifications
 │   ├── navigation/
 │   │   └── AppNavigator.tsx     # Tab & stack navigation
 │   └── screens/
 │       ├── LoginScreen.tsx      # Login UI
 │       ├── HomeScreen.tsx       # Dashboard home
+│       ├── ClockScreen.tsx      # Clock in/out screen
 │       ├── LeaveScreen.tsx      # Leave management
 │       ├── TeamScreen.tsx       # Team directory
 │       ├── MoreScreen.tsx       # More menu
@@ -221,6 +248,8 @@ mobile/
 ├── App.tsx                      # Root component
 ├── package.json
 ├── tsconfig.json
+├── CLOCK_SETUP_GUIDE.md         # Clock feature setup guide
+├── CLOCK_FEATURE_SUMMARY.md     # Clock feature overview
 └── .env                         # Environment config (create this)
 ```
 
@@ -249,12 +278,26 @@ If you keep getting logged out:
 2. Verify the session cookie is being returned by the API
 3. Check console logs for errors in `auth.ts`
 
+## 🎉 New: Clock In/Out Feature
+
+A beautiful clock in/out system is now available! See:
+- **[CLOCK_SETUP_GUIDE.md](./CLOCK_SETUP_GUIDE.md)** - Quick setup instructions
+- **[CLOCK_FEATURE_SUMMARY.md](./CLOCK_FEATURE_SUMMARY.md)** - Feature overview
+- **[../MOBILE_CLOCK_IN_OUT_IMPLEMENTATION.md](../MOBILE_CLOCK_IN_OUT_IMPLEMENTATION.md)** - Technical documentation
+
+### Key Highlights:
+- 🎨 Beautiful gradient widget on home screen
+- ⏱️ Live timer showing shift duration
+- 📍 GPS location tracking
+- 📱 Works offline with auto-sync
+- 🔄 Real-time sync to desktop timesheets
+
 ## Next Steps
 
 ### Planned Features
 - [ ] Document uploads and viewing
 - [ ] Push notifications for action items
-- [ ] Offline support with local caching
+- [x] ~~Offline support with local caching~~ ✅ Implemented
 - [ ] Biometric authentication (Face ID/Touch ID)
 - [ ] Dark mode support
 - [ ] Profile editing
@@ -262,6 +305,7 @@ If you keep getting logged out:
 - [ ] Real-time chat/messaging
 - [ ] News feed integration
 - [ ] Org chart visualization
+- [x] ~~Time tracking/clock in-out~~ ✅ Implemented
 
 ### Building for Production
 

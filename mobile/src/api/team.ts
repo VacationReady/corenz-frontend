@@ -22,8 +22,18 @@ export interface Employee {
 /**
  * Get team members (direct reports if manager, or department colleagues)
  */
-export async function getMyTeam(): Promise<Employee[]> {
-  const response = await apiFetch('/api/employees?scope=team', {
+export async function getMyTeam(params?: {
+  departmentId?: string;
+  includeInactive?: boolean;
+}): Promise<Employee[]> {
+  const searchParams = new URLSearchParams();
+  searchParams.set('scope', 'team');
+  searchParams.set('status', params?.includeInactive ? 'all' : 'active');
+  if (params?.departmentId) {
+    searchParams.set('departmentId', params.departmentId);
+  }
+
+  const response = await apiFetch(`/api/employees?${searchParams.toString()}`, {
     method: 'GET',
   });
 
@@ -37,14 +47,16 @@ export async function getMyTeam(): Promise<Employee[]> {
 /**
  * Get all employees (directory)
  */
-export async function getAllEmployees(params?: { 
-  status?: string; 
-  department?: string;
+export async function getAllEmployees(params?: {
+  status?: string;
+  departmentId?: string;
   search?: string;
+  includeInactive?: boolean;
 }): Promise<Employee[]> {
   const queryParams = new URLSearchParams();
-  if (params?.status) queryParams.append('status', params.status);
-  if (params?.department) queryParams.append('department', params.department);
+  const status = params?.status ?? (params?.includeInactive ? 'all' : 'active');
+  queryParams.append('status', status);
+  if (params?.departmentId) queryParams.append('departmentId', params.departmentId);
   if (params?.search) queryParams.append('search', params.search);
 
   const queryString = queryParams.toString();

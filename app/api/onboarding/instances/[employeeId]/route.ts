@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
-import { mapDbStepTypeToUi } from "@/lib/onboarding/stepTypeMapping";
+import { mapDbStepTypeToUi } from "@/lib/onboarding/mapStepType";
 import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
-
-const mapStepType = (type: string) => {
-  const mapped = mapDbStepTypeToUi(type);
-  if (mapped) {
-    return mapped;
-  }
-  return typeof type === "string"
-    ? type.toLowerCase().replace(/_/g, "-")
-    : type;
-};
 
 export async function GET(
   req: NextRequest,
   context: any,
 ) {
+  // 🔒 Authentication check
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const rawParams = context?.params;
   const { employeeId } = rawParams?.then ? await rawParams : rawParams;
 
@@ -25,9 +23,31 @@ export async function GET(
     return NextResponse.json({ error: "employeeId required" }, { status: 400 });
   }
 
+  // 🔒 Tenant-scoped access control: Verify employee belongs to user's company
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { companyId: true },
+  });
+
+  if (!employee) {
+    return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+  }
+
+  if (employee.companyId !== session.user.companyId) {
+    return NextResponse.json(
+      { error: "Forbidden: Cross-tenant access denied" },
+      { status: 403 },
+    );
+  }
+
   try {
+    // 🔒 Query with tenant scope enforcement
     const instance = await prisma.onboardingInstance.findFirst({
-      where: { employeeId, status: { in: ["active", "in_progress"] } },
+      where: {
+        employeeId,
+        status: { in: ["active", "in_progress"] },
+        OnboardingTemplate: { companyId: session.user.companyId },
+      },
       orderBy: { startedAt: "desc" },
       include: {
         OnboardingStepInstance: {
@@ -69,7 +89,7 @@ export async function GET(
             .createSignedUrl(tStep.Document.url, 60 * 5);
           url = signed?.signedUrl ?? null;
         }
-        const uiType = mapStepType(tStep.type);
+        const uiType = mapDbStepTypeToUi(tStep.type);
         return {
           id: tStep.id, // template step ID
           instanceStepId: instStep?.id || null, // ✅ onboardingStepInstance ID

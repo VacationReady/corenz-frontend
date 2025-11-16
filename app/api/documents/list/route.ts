@@ -36,12 +36,13 @@ export async function GET(req: Request) {
     ...(employeeId ? { employeeId } : { employeeId: null }),
   };
 
-  // ✅ Check if user has admin permissions for documents
-  const hasAdminAccess = hasPermission(user as any, "documents", "read");
-  const hasEditAccess = hasPermission(user as any, "documents", "edit");
+  // ✅ Determine if user can manage documents (edit/delete)
+  const canManageDocuments =
+    hasPermission(user as any, "documents", "edit") ||
+    hasPermission(user as any, "documents", "delete");
 
-  // ✅ Admin bypass - if user has read access to documents
-  if (hasAdminAccess) {
+  // ✅ Admin bypass only for document managers
+  if (canManageDocuments) {
     const adminDocs = await prisma.document.findMany({
       where: baseFilter,
       include: {
@@ -121,8 +122,8 @@ export async function GET(req: Request) {
     return NextResponse.json(withUrls);
   }
 
-  // ✅ Role flag - fallback to basic access if no admin permissions
-  const roleFlag = hasEditAccess
+  // ✅ Role flag - fallback to basic access if no management permissions
+  const roleFlag = canManageDocuments
     ? { canViewManager: true }
     : { canViewEmployee: true };
 

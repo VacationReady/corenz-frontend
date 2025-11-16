@@ -1289,15 +1289,28 @@ export default function OnboardingTemplateEditor({
       return;
     }
 
-    // Validate step label uniqueness
+    // Validate that all steps have non-empty titles
+    const emptyTitleSteps: number[] = [];
     const labelCounts = new Map<string, number>();
-    steps.forEach((step) => {
+    
+    steps.forEach((step, idx) => {
       const label = (step.title || "").trim();
-      if (label) {
+      if (!label) {
+        emptyTitleSteps.push(idx + 1);
+      } else {
         labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
       }
     });
 
+    // Reject empty titles - admins must provide explicit labels
+    if (emptyTitleSteps.length > 0) {
+      toast.error("Empty step titles detected", {
+        description: `Steps ${emptyTitleSteps.join(", ")} have no title. All steps must have a unique, non-empty title.`,
+      });
+      return;
+    }
+
+    // Validate step label uniqueness
     const duplicateLabels = Array.from(labelCounts.entries())
       .filter(([_, count]) => count > 1)
       .map(([label]) => label);

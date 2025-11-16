@@ -36,15 +36,27 @@ function isStep(step: any): step is {
 export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
   if (!Array.isArray(steps)) return [];
 
-  // Validate label uniqueness before mapping
+  // Validate that all steps have non-empty labels
+  const emptyLabelSteps: number[] = [];
   const labelCounts = new Map<string, number>();
-  steps.forEach((step) => {
+  
+  steps.forEach((step, idx) => {
     const label = String(step.title || step.label || "").trim();
-    if (label) {
+    if (!label) {
+      emptyLabelSteps.push(idx + 1);
+    } else {
       labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
     }
   });
 
+  // Reject empty labels - admins must provide explicit titles
+  if (emptyLabelSteps.length > 0) {
+    throw new Error(
+      `Steps ${emptyLabelSteps.join(", ")} have empty labels. All steps must have a unique, non-empty title.`
+    );
+  }
+
+  // Validate label uniqueness
   const duplicateLabels = Array.from(labelCounts.entries())
     .filter(([_, count]) => count > 1)
     .map(([label]) => label);
@@ -66,19 +78,8 @@ export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
         step.type,
         step.metadata,
       );
-      // Use the title/label as-is without modification
-      const safeTitle = String(step.title || step.label || "").trim();
-      const defaultLabelByType =
-        mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT
-          ? "Acknowledge Document"
-          : mappedType === OnboardingStepType.UPLOAD_DOCUMENT
-            ? "Upload Document"
-            : mappedType === OnboardingStepType.INSTRUCTION
-              ? "Instructions"
-              : mappedType === OnboardingStepType.FORM_FILL
-                ? "Fill Form"
-                : "Step";
-      const finalLabel = safeTitle || `${defaultLabelByType} ${i + 1}`;
+      // Use the title/label exactly as provided - NO automatic appending
+      const finalLabel = String(step.title || step.label || "").trim();
       const base = {
         id: `step_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}`,
         type: mappedType,

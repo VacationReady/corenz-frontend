@@ -483,6 +483,14 @@ model Employee {
   taxCodeLastUpdated               DateTime?
   kiwiSaverLastUpdated             DateTime?
   leaveBalanceLastUpdated          DateTime?
+  // Visa & Work Permit (Immigration Act 2009)
+  visaExpiryDate                   DateTime?
+  workPermitType                   String?
+  // Trial Period (Employment Relations Act 2000 - 90-day trial)
+  ninetyDayTrialPeriod             Boolean                            @default(false)
+  trialPeriodEndDate               DateTime?
+  trialPeriodAccepted              Boolean                            @default(false)
+  trialPeriodAcceptedAt            DateTime?
   Document                         Document[]
   DocumentAcknowledgement          DocumentAcknowledgement[]
   DocumentSignatureArtifact        DocumentSignatureArtifact[]

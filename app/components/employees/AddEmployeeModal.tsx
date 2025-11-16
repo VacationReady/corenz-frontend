@@ -39,6 +39,36 @@ import {
 } from "@/components/ui/tooltip";
 import { HelpCircle, X } from "lucide-react";
 
+// NZ Tax Code options based on IRD tables
+const NZ_TAX_CODES = [
+  { value: "M", label: "M - Primary employment" },
+  { value: "ME", label: "ME - Primary with ESCT" },
+  { value: "M_SL", label: "M SL - Primary with student loan" },
+  { value: "ME_SL", label: "ME SL - Primary with ESCT & student loan" },
+  { value: "SB", label: "SB - Secondary employment" },
+  { value: "SB_SL", label: "SB SL - Secondary with student loan" },
+  { value: "S", label: "S - Secondary (higher rate)" },
+  { value: "S_SL", label: "S SL - Secondary with student loan" },
+  { value: "SH", label: "SH - Special rates" },
+  { value: "SH_SL", label: "SH SL - Special rates with student loan" },
+  { value: "ST", label: "ST - Special tax rate" },
+  { value: "ST_SL", label: "ST SL - Special tax with student loan" },
+  { value: "CAE", label: "CAE - Casual agricultural employee" },
+  { value: "EDW", label: "EDW - Election day worker" },
+  { value: "ND", label: "ND - No declaration" },
+  { value: "NS", label: "NS - Non-notification" },
+  { value: "STC", label: "STC - Special tax code certificate" },
+  { value: "WT", label: "WT - Withholding tax" },
+];
+
+const KIWISAVER_RATES = [
+  { value: "3", label: "3%" },
+  { value: "4", label: "4%" },
+  { value: "6", label: "6%" },
+  { value: "8", label: "8%" },
+  { value: "10", label: "10%" },
+];
+
 const monthOptions = [
   { value: "1", label: "January" },
   { value: "2", label: "February" },
@@ -204,7 +234,27 @@ export default function AddEmployeeModal({
     sickLeaveDays: "10",
     alternativeHolidayDays: "0",
     publicHolidayEntitlement: "11",
+    // NZ-specific onboarding fields
+    irdNumber: "",
+    taxCode: undefined as string | undefined,
+    kiwiSaverEnrolled: false,
+    kiwiSaverEmployeeRate: undefined as string | undefined,
+    bankAccountNumber: "",
+    residencyStatus: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    emergencyContactRelationship: "",
+    // Visa & Work Permit fields
+    visaExpiryDate: "",
+    workPermitType: "",
+    // 90-day trial period fields
+    ninetyDayTrialPeriod: false,
+    trialPeriodAccepted: false,
   });
+
+  // Validation errors for NZ fields
+  const [irdError, setIrdError] = useState<string | null>(null);
+  const [bankAccountError, setBankAccountError] = useState<string | null>(null);
 
   const selectedHolidayRange = useMemo(
     () => parseHolidayYearValue(formData.holidayYear),
@@ -297,6 +347,46 @@ export default function AddEmployeeModal({
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Validate NZ IRD number (8 or 9 digits with optional dashes)
+  const validateIRD = (ird: string): boolean => {
+    if (!ird) return true; // Optional field
+    // Remove dashes and spaces
+    const cleaned = ird.replace(/[-\s]/g, "");
+    // Must be 8 or 9 digits
+    if (!/^\d{8,9}$/.test(cleaned)) {
+      setIrdError("IRD number must be 8 or 9 digits");
+      return false;
+    }
+    setIrdError(null);
+    return true;
+  };
+
+  // Validate NZ bank account format (XX-XXXX-XXXXXXX-XXX)
+  const validateBankAccount = (account: string): boolean => {
+    if (!account) return true; // Optional field
+    // Remove dashes and spaces
+    const cleaned = account.replace(/[-\s]/g, "");
+    // NZ bank account: 15-16 digits
+    if (!/^\d{15,16}$/.test(cleaned)) {
+      setBankAccountError("Bank account format: XX-XXXX-XXXXXXX-XXX (15-16 digits)");
+      return false;
+    }
+    setBankAccountError(null);
+    return true;
+  };
+
+  const handleIRDChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, irdNumber: value });
+    validateIRD(value);
+  };
+
+  const handleBankAccountChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, bankAccountNumber: value });
+    validateBankAccount(value);
   };
 
   const updateHolidayYearSelection = (
@@ -468,6 +558,22 @@ export default function AddEmployeeModal({
       toast.error("Please fill in all required fields");
       return;
     }
+    // Validate NZ-specific fields
+    if (irdError || bankAccountError) {
+      toast.error("Please fix validation errors before proceeding");
+      return;
+    }
+    if (formData.irdNumber && !validateIRD(formData.irdNumber)) {
+      return;
+    }
+    if (formData.bankAccountNumber && !validateBankAccount(formData.bankAccountNumber)) {
+      return;
+    }
+    // Validate 90-day trial period acceptance
+    if (formData.ninetyDayTrialPeriod && !formData.trialPeriodAccepted) {
+      toast.error("Employee must acknowledge 90-day trial period terms before proceeding");
+      return;
+    }
     setCurrentStep(2);
   };
 
@@ -531,6 +637,28 @@ export default function AddEmployeeModal({
         permissionProfileId: "",
         holidayYear: formData.holidayYear || "",
         workingPatternId: formData.workingPatternId || "",
+        // NZ-specific onboarding fields
+        // TODO: Encryption/masking review - sensitive data transmission (see lib/crypto.ts if implemented)
+        irdNumber: formData.irdNumber || "",
+        taxCode: formData.taxCode || "",
+        kiwiSaverEnrolled: formData.kiwiSaverEnrolled,
+        kiwiSaverEmployeeRate: formData.kiwiSaverEmployeeRate 
+          ? parseFloat(formData.kiwiSaverEmployeeRate) / 100 
+          : undefined,
+        bankAccountNumber: formData.bankAccountNumber || "",
+        residencyStatus: formData.residencyStatus || "",
+        emergencyContactName: formData.emergencyContactName || "",
+        emergencyContactPhone: formData.emergencyContactPhone || "",
+        emergencyContactRelationship: formData.emergencyContactRelationship || "",
+        // Visa & Work Permit fields
+        visaExpiryDate: formData.visaExpiryDate || "",
+        workPermitType: formData.workPermitType || "",
+        // 90-day trial period fields
+        ninetyDayTrialPeriod: formData.ninetyDayTrialPeriod,
+        trialPeriodAccepted: formData.trialPeriodAccepted,
+        trialPeriodAcceptedAt: formData.ninetyDayTrialPeriod && formData.trialPeriodAccepted 
+          ? new Date().toISOString() 
+          : "",
       };
 
       const res = await fetch("/api/employees", {
@@ -577,7 +705,24 @@ export default function AddEmployeeModal({
         sickLeaveDays: "10",
         alternativeHolidayDays: "0",
         publicHolidayEntitlement: "11",
+        // NZ-specific fields
+        irdNumber: "",
+        taxCode: undefined,
+        kiwiSaverEnrolled: false,
+        kiwiSaverEmployeeRate: undefined,
+        bankAccountNumber: "",
+        residencyStatus: "",
+        emergencyContactName: "",
+        emergencyContactPhone: "",
+        emergencyContactRelationship: "",
+        // Visa & trial fields
+        visaExpiryDate: "",
+        workPermitType: "",
+        ninetyDayTrialPeriod: false,
+        trialPeriodAccepted: false,
       });
+      setIrdError(null);
+      setBankAccountError(null);
       setSendInviteNow(true);
       setIsAdminAccess(false);
       setCurrentStep(1);
@@ -908,7 +1053,299 @@ export default function AddEmployeeModal({
                   </p>
                 )}
 
-                <div className="flex justify-end">
+                {/* NZ-specific onboarding fields */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="text-md font-medium mb-4">
+                    NZ Tax & Payroll Information
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="irdNumber" className="text-sm font-medium">
+                        IRD Number
+                      </Label>
+                      <Input
+                        id="irdNumber"
+                        name="irdNumber"
+                        placeholder="123-456-789"
+                        value={formData.irdNumber}
+                        onChange={handleIRDChange}
+                        className="mt-1"
+                      />
+                      {irdError && (
+                        <p className="text-xs text-red-600 mt-1">{irdError}</p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        8 or 9 digits (optional dashes)
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="taxCode" className="text-sm font-medium">
+                        Tax Code
+                      </Label>
+                      <Select
+                        value={formData.taxCode || undefined}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, taxCode: value })
+                        }
+                      >
+                        <SelectTrigger className="w-full mt-1">
+                          <SelectValue placeholder="Select tax code" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {NZ_TAX_CODES.map((code) => (
+                            <SelectItem key={code.value} value={code.value}>
+                              {code.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        IRD tax code for PAYE
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <Label htmlFor="bankAccountNumber" className="text-sm font-medium">
+                      Bank Account Number
+                    </Label>
+                    <Input
+                      id="bankAccountNumber"
+                      name="bankAccountNumber"
+                      placeholder="12-3456-7890123-00"
+                      value={formData.bankAccountNumber}
+                      onChange={handleBankAccountChange}
+                      className="mt-1"
+                    />
+                    {bankAccountError && (
+                      <p className="text-xs text-red-600 mt-1">{bankAccountError}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      NZ bank account format: XX-XXXX-XXXXXXX-XXX
+                    </p>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={formData.kiwiSaverEnrolled}
+                        onChange={(checked: boolean) =>
+                          setFormData({ ...formData, kiwiSaverEnrolled: checked })
+                        }
+                      />
+                      <Label className="text-sm">KiwiSaver Enrolled?</Label>
+                    </div>
+
+                    {formData.kiwiSaverEnrolled && (
+                      <div>
+                        <Label htmlFor="kiwiSaverRate" className="text-sm font-medium">
+                          KiwiSaver Employee Contribution Rate
+                        </Label>
+                        <Select
+                          value={formData.kiwiSaverEmployeeRate || undefined}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, kiwiSaverEmployeeRate: value })
+                          }
+                        >
+                          <SelectTrigger className="w-full mt-1">
+                            <SelectValue placeholder="Select contribution rate" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {KIWISAVER_RATES.map((rate) => (
+                              <SelectItem key={rate.value} value={rate.value}>
+                                {rate.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Minimum 3%, maximum 10%
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    <Label htmlFor="residencyStatus" className="text-sm font-medium">
+                      Residency Status
+                    </Label>
+                    <Input
+                      id="residencyStatus"
+                      name="residencyStatus"
+                      placeholder="e.g., NZ Citizen, Permanent Resident, Work Visa"
+                      value={formData.residencyStatus}
+                      onChange={handleChange}
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      For compliance and reporting
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <Label htmlFor="workPermitType" className="text-sm font-medium">
+                        Work Permit Type
+                      </Label>
+                      <Input
+                        id="workPermitType"
+                        name="workPermitType"
+                        placeholder="e.g., Essential Skills, Partnership"
+                        value={formData.workPermitType}
+                        onChange={handleChange}
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Required for non-residents/non-citizens
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="visaExpiryDate" className="text-sm font-medium">
+                        Visa/Permit Expiry Date
+                      </Label>
+                      <Input
+                        id="visaExpiryDate"
+                        type="date"
+                        name="visaExpiryDate"
+                        value={formData.visaExpiryDate}
+                        onChange={handleChange}
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Immigration Act 2009 compliance
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Emergency Contact Information */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="text-md font-medium mb-4">
+                    Emergency Contact
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="emergencyContactName" className="text-sm font-medium">
+                        Contact Name
+                      </Label>
+                      <Input
+                        id="emergencyContactName"
+                        name="emergencyContactName"
+                        placeholder="Full name"
+                        value={formData.emergencyContactName}
+                        onChange={handleChange}
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="emergencyContactPhone" className="text-sm font-medium">
+                          Contact Phone
+                        </Label>
+                        <Input
+                          id="emergencyContactPhone"
+                          name="emergencyContactPhone"
+                          placeholder="Phone number"
+                          value={formData.emergencyContactPhone}
+                          onChange={handleChange}
+                          className="mt-1"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="emergencyContactRelationship" className="text-sm font-medium">
+                          Relationship
+                        </Label>
+                        <Input
+                          id="emergencyContactRelationship"
+                          name="emergencyContactRelationship"
+                          placeholder="e.g., Spouse, Parent"
+                          value={formData.emergencyContactRelationship}
+                          onChange={handleChange}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 90-Day Trial Period Section */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="text-md font-medium mb-4">
+                    Trial Period (NZ Employment Relations Act 2000)
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={formData.ninetyDayTrialPeriod}
+                        onChange={(checked: boolean) => {
+                          setFormData({ 
+                            ...formData, 
+                            ninetyDayTrialPeriod: checked,
+                            trialPeriodAccepted: checked ? formData.trialPeriodAccepted : false
+                          });
+                        }}
+                      />
+                      <Label className="text-sm font-medium">
+                        90-Day Trial Period
+                      </Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="text-sm">
+                              Under the Employment Relations Act 2000, employers with fewer than 20 employees 
+                              may include a 90-day trial provision in employment agreements. During this period, 
+                              the employer may dismiss the employee without risk of personal grievance claims.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+
+                    {formData.ninetyDayTrialPeriod && (
+                      <div className="ml-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+                        <div className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            id="trialPeriodAccepted"
+                            checked={formData.trialPeriodAccepted}
+                            onChange={(e) => 
+                              setFormData({ ...formData, trialPeriodAccepted: e.target.checked })
+                            }
+                            className="mt-1"
+                          />
+                          <div>
+                            <Label htmlFor="trialPeriodAccepted" className="text-sm font-medium cursor-pointer">
+                              Employee acknowledges and accepts 90-day trial period terms
+                            </Label>
+                            <p className="text-xs text-gray-600 mt-1">
+                              By checking this box, the employee confirms they have received and understood the 
+                              trial period clause in their employment agreement. This must be clearly communicated 
+                              before employment commences.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.ninetyDayTrialPeriod && !formData.trialPeriodAccepted && (
+                      <p className="text-xs text-amber-700 mt-2">
+                        ⚠️ Employee must acknowledge trial period terms before proceeding
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end mt-6">
                   <Button type="button" onClick={nextStep}>
                     Next
                   </Button>

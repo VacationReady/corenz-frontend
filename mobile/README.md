@@ -26,9 +26,11 @@ This is the React Native mobile app built with Expo for the HR Management System
    EXPO_PUBLIC_API_BASE_URL=http://localhost:3000
    API_BASE_URL=http://localhost:3000
    ```
-   
-   - For development on a physical device, replace `localhost` with your computer's local IP address (e.g., `http://192.168.1.100:3000`)
-   - For production, use your deployed Next.js app URL (e.g., `https://your-app.vercel.app`)
+
+   - Only one base URL can be active at a time—`localhost` works for simulators/emulators that run on the same machine as the API server.
+   - When testing on a physical device, change both values to your computer's LAN IP (for example, based on the `ipconfig` output you shared, you would use `http://192.168.18.23:3000`).
+   - You can create alternate files such as `.env.device` with the LAN values and temporarily copy them over, or you can override at runtime with `EXPO_PUBLIC_API_BASE_URL=http://192.168.18.23:3000 API_BASE_URL=http://192.168.18.23:3000 npm start`.
+   - For production, use your deployed Next.js app URL (e.g., `https://your-app.vercel.app`).
 
 ## Running the App
 
@@ -285,6 +287,15 @@ eas build --platform android
 | `API_BASE_URL` | Fallback API base URL | `http://192.168.1.100:3000` |
 
 Note: Variables prefixed with `EXPO_PUBLIC_` are embedded in the client bundle and safe to access.
+
+### Diagnosing "Network request timed out" errors
+
+If you see `TypeError: Network request timed out` in the Expo logs when logging in:
+
+1. **Verify the backend is reachable from your device.** Start the Next.js app with `npm run dev` (binds to `0.0.0.0`) and, from the phone or emulator browser, open `http://<your-ip>:3000/api/auth/csrf`. If it does not load, the Expo client will not be able to authenticate either.
+2. **Double‑check the `.env` values inside `mobile/`.** Only a single origin can be active at a time, so use `http://localhost:3000` for same-machine simulators, or `http://192.168.18.23:3000` (replace with your LAN IP) for physical devices.
+3. **Allow Node.js through Windows Firewall (or your OS firewall).** The login call originates from the phone; if inbound connections to port `3000` are blocked the request will time out even though the backend is running locally.
+4. **Use the in-app API connectivity indicator.** The login screen now renders a panel that pings `/api/auth/csrf` and reports whether the device can talk to the configured base URL. Tap “Retry connectivity check” after changing Wi‑Fi networks or `.env` values to confirm everything is wired up before attempting to sign in again.
 
 ## Support
 

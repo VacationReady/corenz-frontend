@@ -1,52 +1,60 @@
 import useSWRImmutable from "swr/immutable";
 import { useState, useCallback } from "react";
 
-interface Department {
+export interface Department {
   id: string;
   name: string;
 }
 
-interface JobRole {
+export interface JobRole {
   id: string;
   name: string;
 }
 
-interface Employee {
+export interface EmployeeSummary {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
 }
 
-interface Location {
+export interface Location {
   id: string;
   name: string;
 }
 
-interface ContractType {
+export interface ContractType {
   id: string;
   label: string;
 }
 
-interface OnboardingTemplate {
+export interface OnboardingTemplate {
   id: string;
   name: string;
   departments?: { id: string }[];
   jobRoles?: { id: string }[];
 }
 
-interface WorkingPattern {
-  id: string;
-  name: string;
-  weeks: any[];
+export interface WorkingPatternDay {
+  type: string;
 }
 
-interface PermissionProfile {
+export interface WorkingPatternWeek {
+  days: WorkingPatternDay[];
+}
+
+export interface WorkingPattern {
+  id: string;
+  name: string;
+  weeks: WorkingPatternWeek[];
+}
+
+export interface PermissionProfile {
   id: string;
   name: string;
 }
 
-interface DatasetState<T> {
+export interface DatasetState<T> {
   data: T;
   isLoading: boolean;
   error: Error | null;
@@ -117,7 +125,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     error: employeesError,
     isLoading: employeesLoading,
     mutate: revalidateEmployees,
-  } = useSWRImmutable<Employee[]>(
+  } = useSWRImmutable<EmployeeSummary[]>(
     enabled ? `/api/employees?_v=${manualRevalidate}` : null,
     fetcher,
     {
@@ -291,7 +299,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
       isLoading: employeesLoading,
       error: employeesError,
       retry: revalidateEmployees,
-    } as DatasetState<Employee[]>,
+    } as DatasetState<EmployeeSummary[]>,
 
     // Locations
     locations: {

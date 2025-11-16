@@ -1,5 +1,14 @@
 "use client";
-import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  ChangeEvent,
+  FormEvent,
+  useMemo,
+  useCallback,
+  useRef,
+  KeyboardEvent,
+} from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -10,7 +19,17 @@ import NewContractTypeModal from "@/components/shared/NewContractTypeModal";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { validateEmail, validatePhone, getPhoneHelperText } from "@/lib/validators";
-import { useEmployeeModalData } from "@/app/hooks/useEmployeeModalData";
+import { useEmployeeModalData } from "@/hooks/useEmployeeModalData";
+import type {
+  Department,
+  JobRole,
+  EmployeeSummary,
+  Location,
+  ContractType,
+  OnboardingTemplate,
+  WorkingPattern,
+  PermissionProfile,
+} from "@/hooks/useEmployeeModalData";
 import { fetchWithCsrf } from "@/lib/csrf";
 
 // 👇 Toggle
@@ -63,6 +82,8 @@ const NZ_TAX_CODES = [
   { value: "STC", label: "STC - Special tax code certificate" },
   { value: "WT", label: "WT - Withholding tax" },
 ];
+
+type TaxCodeOption = (typeof NZ_TAX_CODES)[number];
 
 const KIWISAVER_RATES = [
   { value: "3", label: "3%" },
@@ -185,7 +206,7 @@ const SelectSearchInput = ({
       value={value}
       onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
       placeholder={placeholder ?? "Search..."}
-      onKeyDown={(e) => e.stopPropagation()}
+      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.stopPropagation()}
       autoFocus
       className="h-9"
     />
@@ -227,15 +248,15 @@ export default function AddEmployeeModal({
   // Use SWR hook for cached, resilient data fetching
   const modalData = useEmployeeModalData(open);
   
-  // Extract datasets from hook
-  const departments = modalData.departments.data;
-  const jobRoles = modalData.jobRoles.data;
-  const employees = modalData.employees.data;
-  const locations = modalData.locations.data;
-  const contractTypes = modalData.contractTypes.data;
-  const templates = modalData.templates.data;
-  const workingPatterns = modalData.workingPatterns.data;
-  const permissionProfiles = modalData.permissionProfiles.data;
+  // Extract datasets from hook with concrete typing
+  const departments: Department[] = modalData.departments.data;
+  const jobRoles: JobRole[] = modalData.jobRoles.data;
+  const employees: EmployeeSummary[] = modalData.employees.data;
+  const locations: Location[] = modalData.locations.data;
+  const contractTypes: ContractType[] = modalData.contractTypes.data;
+  const templates: OnboardingTemplate[] = modalData.templates.data;
+  const workingPatterns: WorkingPattern[] = modalData.workingPatterns.data;
+  const permissionProfiles: PermissionProfile[] = modalData.permissionProfiles.data;
   
   const [error, setError] = useState("");
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
@@ -359,31 +380,31 @@ export default function AddEmployeeModal({
   const [holidayMonthSearch, setHolidayMonthSearch] = useState("");
   const [workingPatternSearch, setWorkingPatternSearch] = useState("");
 
-  const getEmployeeDisplayName = (emp: any) =>
+  const getEmployeeDisplayName = (emp: EmployeeSummary) =>
     (emp.firstName || emp.lastName)
       ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
       : emp.email ?? "";
 
   const shouldShowDepartmentSearch = departments.length > 10;
-  const departmentOptions = useMemo(
+  const departmentOptions = useMemo<Department[]>(
     () =>
       shouldShowDepartmentSearch
-        ? filterBySearch(departments, (dept: any) => dept?.name ?? "", departmentSearch)
+        ? filterBySearch(departments, (dept) => dept?.name ?? "", departmentSearch)
         : departments,
     [departments, departmentSearch, shouldShowDepartmentSearch],
   );
 
   const shouldShowJobRoleSearch = jobRoles.length > 10;
-  const jobRoleOptions = useMemo(
+  const jobRoleOptions = useMemo<JobRole[]>(
     () =>
       shouldShowJobRoleSearch
-        ? filterBySearch(jobRoles, (role: any) => role?.name ?? "", jobRoleSearch)
+        ? filterBySearch(jobRoles, (role) => role?.name ?? "", jobRoleSearch)
         : jobRoles,
     [jobRoles, jobRoleSearch, shouldShowJobRoleSearch],
   );
 
   const shouldShowLocationSearch = locations.length > 10;
-  const locationOptions = useMemo(
+  const locationOptions = useMemo<Location[]>(
     () =>
       shouldShowLocationSearch
         ? filterBySearch(locations, (location) => location?.name ?? "", locationSearch)
@@ -392,7 +413,7 @@ export default function AddEmployeeModal({
   );
 
   const shouldShowContractTypeSearch = contractTypes.length > 10;
-  const contractTypeOptions = useMemo(
+  const contractTypeOptions = useMemo<ContractType[]>(
     () =>
       shouldShowContractTypeSearch
         ? filterBySearch(contractTypes, (type) => type?.label ?? "", contractTypeSearch)
@@ -401,25 +422,25 @@ export default function AddEmployeeModal({
   );
 
   const shouldShowManagerSearch = employees.length > 10;
-  const managerOptions = useMemo(
+  const managerOptions = useMemo<EmployeeSummary[]>(
     () =>
       shouldShowManagerSearch
-        ? filterBySearch(employees, (emp: any) => getEmployeeDisplayName(emp), managerSearch)
+        ? filterBySearch(employees, (emp) => getEmployeeDisplayName(emp), managerSearch)
         : employees,
     [employees, managerSearch, shouldShowManagerSearch],
   );
 
   const shouldShowWorkingPatternSearch = workingPatterns.length > 10;
-  const workingPatternOptions = useMemo(
+  const workingPatternOptions = useMemo<WorkingPattern[]>(
     () =>
       shouldShowWorkingPatternSearch
-        ? filterBySearch(workingPatterns, (pattern: any) => pattern?.name ?? "", workingPatternSearch)
+        ? filterBySearch(workingPatterns, (pattern) => pattern?.name ?? "", workingPatternSearch)
         : workingPatterns,
     [workingPatterns, workingPatternSearch, shouldShowWorkingPatternSearch],
   );
 
   const shouldShowTaxCodeSearch = NZ_TAX_CODES.length > 10;
-  const taxCodeOptions = useMemo(
+  const taxCodeOptions = useMemo<TaxCodeOption[]>(
     () =>
       shouldShowTaxCodeSearch
         ? filterBySearch(
@@ -817,8 +838,8 @@ export default function AddEmployeeModal({
 
     // Calculate employee days worked per week from pattern
     let employeeDaysPerWeek = 0;
-    selectedPattern.weeks.forEach((week: any) => {
-      week.days.forEach((day: any) => {
+    selectedPattern.weeks.forEach((week) => {
+      week.days.forEach((day) => {
         if (day.type === "FULL_DAY") {
           employeeDaysPerWeek += 1;
         } else if (day.type.includes("HALF_DAY")) {
@@ -1137,7 +1158,7 @@ export default function AddEmployeeModal({
 
   // Filter templates by chosen department/job role.
   // If neither is selected, show all. Templates with no restrictions always show.
-  const filteredTemplates = templates.filter((t: OnboardingTemplate) => {
+  const filteredTemplates: OnboardingTemplate[] = templates.filter((t) => {
     const matchesDept =
       !!formData.departmentId &&
       !!t.departments?.some((d) => d.id === formData.departmentId);
@@ -1160,7 +1181,7 @@ export default function AddEmployeeModal({
 
   const templatesToDisplay = showAllTemplates ? templates : filteredTemplates;
   const shouldShowTemplateSearch = templatesToDisplay.length > 10;
-  const templateOptions = useMemo(
+  const templateOptions = useMemo<OnboardingTemplate[]>(
     () =>
       shouldShowTemplateSearch
         ? filterBySearch(templatesToDisplay, (template) => template?.name ?? "", templateSearch)
@@ -1372,7 +1393,7 @@ export default function AddEmployeeModal({
                         placeholder="Search departments..."
                       />
                     )}
-                    {departmentOptions.map((d: any) => (
+                    {departmentOptions.map((d) => (
                       <SelectItem key={d.id} value={d.id}>
                         {d.name}
                       </SelectItem>
@@ -1389,7 +1410,7 @@ export default function AddEmployeeModal({
                   open={isRoleSelectOpen}
                   onOpenChange={handleJobRoleOpenChange}
                   value={formData.jobRoleId || undefined}
-                  onValueChange={(value) => {
+                  onValueChange={(value: string) => {
                     setShowAllTemplates(false);
                     setFormData({ ...formData, jobRoleId: value });
                   }}
@@ -1405,7 +1426,7 @@ export default function AddEmployeeModal({
                         placeholder="Search job roles..."
                       />
                     )}
-                    {jobRoleOptions.map((j: any) => (
+                    {jobRoleOptions.map((j) => (
                       <SelectItem key={j.id} value={j.id}>
                         {j.name}
                       </SelectItem>
@@ -1422,7 +1443,7 @@ export default function AddEmployeeModal({
                   open={isLocationSelectOpen}
                   onOpenChange={handleLocationOpenChange}
                   value={formData.locationId || undefined}
-                  onValueChange={(value) => setFormData({ ...formData, locationId: value })}
+                  onValueChange={(value: string) => setFormData({ ...formData, locationId: value })}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Location" />
@@ -1452,7 +1473,7 @@ export default function AddEmployeeModal({
                   open={isContractTypeSelectOpen}
                   onOpenChange={handleContractTypeOpenChange}
                   value={formData.contractType || undefined}
-                  onValueChange={(value) => setFormData({ ...formData, contractType: value })}
+                  onValueChange={(value: string) => setFormData({ ...formData, contractType: value })}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Contract Type" />
@@ -1482,7 +1503,7 @@ export default function AddEmployeeModal({
                   open={isManagerSelectOpen}
                   onOpenChange={handleManagerOpenChange}
                   value={formData.managerId || undefined}
-                  onValueChange={(value) =>
+                  onValueChange={(value: string) =>
                     setFormData({ ...formData, managerId: value })
                   }
                 >
@@ -1497,7 +1518,7 @@ export default function AddEmployeeModal({
                         placeholder="Search managers..."
                       />
                     )}
-                    {managerOptions.map((emp: any) => (
+                    {managerOptions.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id}>
                         {getEmployeeDisplayName(emp)}
                       </SelectItem>
@@ -1509,7 +1530,7 @@ export default function AddEmployeeModal({
                   open={isTemplateSelectOpen}
                   onOpenChange={handleTemplateOpenChange}
                   value={formData.onboardingTemplateId || undefined}
-                  onValueChange={(value) => {
+                  onValueChange={(value: string) => {
                     if (value === "show_all_templates") {
                       setShowAllTemplates(true);
                       return;
@@ -1602,7 +1623,7 @@ export default function AddEmployeeModal({
                         open={isTaxCodeSelectOpen}
                         onOpenChange={handleTaxCodeOpenChange}
                         value={formData.taxCode || undefined}
-                        onValueChange={(value) =>
+                        onValueChange={(value: string) =>
                           setFormData({ ...formData, taxCode: value })
                         }
                       >
@@ -2159,7 +2180,7 @@ export default function AddEmployeeModal({
               <Input
                 type="number"
                 value={fullTimeEntitlement}
-                onChange={(e) => setFullTimeEntitlement(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFullTimeEntitlement(e.target.value)}
                 placeholder="20"
                 className="mt-1"
               />
@@ -2175,7 +2196,7 @@ export default function AddEmployeeModal({
               <Input
                 type="number"
                 value={fullTimeHours}
-                onChange={(e) => setFullTimeHours(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setFullTimeHours(e.target.value)}
                 placeholder="40"
                 className="mt-1"
               />

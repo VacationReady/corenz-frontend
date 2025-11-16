@@ -1,13 +1,18 @@
 // /app/api/onboarding/instances/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // Template selection helper (uses .steps relation)
-async function findBestOnboardingTemplate(employee: any) {
+async function findBestOnboardingTemplate(employee: any, companyId: string) {
   // 1. By Job Role
   if (employee.jobRoleId) {
     const byJobRole = await prisma.onboardingTemplate.findFirst({
-      where: { JobRole: { some: { id: employee.jobRoleId } } },
+      where: { 
+        companyId,
+        JobRole: { some: { id: employee.jobRoleId } } 
+      },
       include: { OnboardingStep: true },
     });
     if (byJobRole) return byJobRole;
@@ -15,19 +20,28 @@ async function findBestOnboardingTemplate(employee: any) {
   // 2. By Department
   if (employee.departmentId) {
     const byDept = await prisma.onboardingTemplate.findFirst({
-      where: { Department: { some: { id: employee.departmentId } } },
+      where: { 
+        companyId,
+        Department: { some: { id: employee.departmentId } } 
+      },
       include: { OnboardingStep: true },
     });
     if (byDept) return byDept;
   }
   // 3. Default (fallback)
   return await prisma.onboardingTemplate.findFirst({
-    where: { isDefault: true },
+    where: { companyId, isDefault: true },
     include: { OnboardingStep: true },
   });
 }
 
 export async function POST(req: NextRequest) {
+  // 🔒 Authentication check
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.companyId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const { employeeId } = await req.json();
 
@@ -38,15 +52,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch employee with dept/role
+    // 🔒 Tenant-scoped employee lookup
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
       include: { Department: true, JobRole: true },
+      // Implicit: employee must exist; we'll check companyId next
     });
+    
     if (!employee) {
       return NextResponse.json(
         { error: "Employee not found" },
         { status: 404 },
+      );
+    }
+
+    // 🔒 Tenant boundary check
+    if (employee.companyId !== session.user.companyId) {
+      return NextResponse.json(
+        { error: "Forbidden: Cross-tenant access denied" },
+        { status: 403 },
       );
     }
 
@@ -61,8 +85,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find correct template (with steps)
-    const template = await findBestOnboardingTemplate(employee);
+    // 🔒 Find correct template (with steps) - scoped to tenant
+    const template = await findBestOnboardingTemplate(employee, session.user.companyId);
     if (!template) {
       return NextResponse.json(
         { error: "No onboarding template found" },

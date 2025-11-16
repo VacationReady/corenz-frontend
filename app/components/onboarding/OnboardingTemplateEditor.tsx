@@ -1289,6 +1289,26 @@ export default function OnboardingTemplateEditor({
       return;
     }
 
+    // Validate step label uniqueness
+    const labelCounts = new Map<string, number>();
+    steps.forEach((step) => {
+      const label = (step.title || "").trim();
+      if (label) {
+        labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
+      }
+    });
+
+    const duplicateLabels = Array.from(labelCounts.entries())
+      .filter(([_, count]) => count > 1)
+      .map(([label]) => label);
+
+    if (duplicateLabels.length > 0) {
+      toast.error("Duplicate step labels detected", {
+        description: `Each step must have a unique label. Duplicates: ${duplicateLabels.join(", ")}`,
+      });
+      return;
+    }
+
     toast.info(
       "This will not affect previously completed versions of this template, and any outstanding templates will not be altered. This will purely be for any future new starters onboarding using this template",
     );

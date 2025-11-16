@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ChangeEvent } from "react";
 import { Search, Workflow, Users, Calendar, CheckCircle2, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
 import Button from "@/components/ui/Button";
 import {
   Dialog,
@@ -11,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/Dialog";
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -202,7 +201,7 @@ export function JourneyTemplatePicker({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                 placeholder="Search by name, persona, category, or owner..."
                 className="pl-10"
                 autoFocus

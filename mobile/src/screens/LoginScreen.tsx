@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { signInWithCredentials } from '../api/auth';
+import ApiConnectivityStatus from '../components/ApiConnectivityStatus';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -99,6 +100,8 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             <Text style={styles.linkText}>Forgot password?</Text>
           </TouchableOpacity>
         </View>
+
+        <ApiConnectivityStatus />
       </View>
     </KeyboardAvoidingView>
   );

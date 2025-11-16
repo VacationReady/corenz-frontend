@@ -82,7 +82,11 @@ export async function signInWithCredentials(email: string, password: string) {
     
     // Provide more specific error messages
     const errorMessage = error?.message || String(error);
-    if (errorMessage.includes("Network request failed")) {
+    if (errorMessage.includes("timed out")) {
+      throw new Error(
+        `Request to ${API_BASE_URL} timed out. Make sure the backend is running (npm run dev), bound to your LAN, Windows Firewall allows Node.js on port 3000, and visit ${API_BASE_URL} from your phone to confirm it loads.`
+      );
+    } else if (errorMessage.includes("Network request failed")) {
       throw new Error(`Unable to connect to ${API_BASE_URL}. Please check:\n1. Server is running (npm run dev)\n2. IP address ${API_BASE_URL} is correct\n3. Phone and computer are on same WiFi`);
     } else if (errorMessage.includes("fetch")) {
       throw new Error("Connection error. Please ensure the server is running and accessible.");

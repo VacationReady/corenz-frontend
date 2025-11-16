@@ -1,5 +1,7 @@
 import type { ReportFilter, SortConfig } from "@/lib/reportFilters";
 
+type ReportFilterTemplate = Omit<ReportFilter, "id">;
+
 export interface ReportLibraryEntry {
   id: string;
   name: string;
@@ -8,7 +10,7 @@ export interface ReportLibraryEntry {
   icon: string;
   engine: "dynamic" | "custom" | "external";
   defaultFields: string[];
-  suggestedFilters?: ReportFilter[];
+  suggestedFilters?: ReportFilterTemplate[];
   defaultSort?: SortConfig;
   reportType?: string;
   externalUrl?: string;

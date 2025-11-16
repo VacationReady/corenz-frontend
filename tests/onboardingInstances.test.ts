@@ -7,11 +7,20 @@ import { GET } from "../app/api/onboarding/instances/[employeeId]/route";
 import { NextRequest } from "next/server";
 
 const originalLoad = (Module as any)._load;
+let mockSession: any = {
+  user: { id: "user1", companyId: "company1", email: "test@example.com" },
+};
+
 (Module as any)._load = function (
   request: string,
   parent: any,
   isMain: boolean,
 ) {
+  if (request === "next-auth") {
+    return {
+      getServerSession: async () => mockSession,
+    };
+  }
   if (request === "@/lib/supabase-admin") {
     return {
       storage: {
@@ -25,6 +34,12 @@ const originalLoad = (Module as any)._load;
 };
 
 test("GET onboarding instance hydrates metadata and responses", async () => {
+  (prisma as any).employee = {
+    findUnique: async () => ({
+      id: "emp1",
+      companyId: "company1",
+    }),
+  };
   (prisma as any).onboardingInstance = {
     findFirst: async () => ({
       id: "inst1",

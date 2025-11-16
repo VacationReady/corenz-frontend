@@ -243,4 +243,223 @@ test("Onboarding Instances API auth guards", async (t) => {
 
     assert.ok(queryWasScoped, "Query must include OnboardingTemplate.companyId filter");
   });
+
+  await run("correctly maps all step types from database enums to UI types", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+      }),
+    };
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async () => ({
+        id: "inst1",
+        OnboardingStepInstance: [
+          { id: "inst-1", stepId: "step-1", status: "pending", OnboardingStepResponse: [] },
+          { id: "inst-2", stepId: "step-2", status: "pending", OnboardingStepResponse: [] },
+          { id: "inst-3", stepId: "step-3", status: "pending", OnboardingStepResponse: [] },
+          { id: "inst-4", stepId: "step-4", status: "pending", OnboardingStepResponse: [] },
+          { id: "inst-5", stepId: "step-5", status: "pending", OnboardingStepResponse: [] },
+          { id: "inst-6", stepId: "step-6", status: "pending", OnboardingStepResponse: [] },
+        ],
+        OnboardingTemplate: {
+          name: "Comprehensive Step Types",
+          OnboardingStep: [
+            {
+              id: "step-1",
+              type: "PAYROLL_SETUP",
+              label: "Payroll Setup",
+              instruction: "Configure payroll",
+              uploadType: null,
+              documentId: null,
+              metadata: { fields: ["bankAccount"] },
+              formId: null,
+              order: 1,
+              Document: null,
+              Form: null,
+            },
+            {
+              id: "step-2",
+              type: "BENEFITS_ENROLLMENT",
+              label: "Enroll in Benefits",
+              instruction: "Choose benefits",
+              uploadType: null,
+              documentId: null,
+              metadata: {},
+              formId: null,
+              order: 2,
+              Document: null,
+              Form: null,
+            },
+            {
+              id: "step-3",
+              type: "EQUIPMENT_CHECKLIST",
+              label: "Equipment Sign-off",
+              instruction: "Confirm equipment",
+              uploadType: null,
+              documentId: null,
+              metadata: { items: [] },
+              formId: null,
+              order: 3,
+              Document: null,
+              Form: null,
+            },
+            {
+              id: "step-4",
+              type: "MANAGER_CHECKIN",
+              label: "Meet Manager",
+              instruction: "Schedule meeting",
+              uploadType: null,
+              documentId: null,
+              metadata: {},
+              formId: null,
+              order: 4,
+              Document: null,
+              Form: null,
+            },
+            {
+              id: "step-5",
+              type: "COMPLIANCE_TRAINING",
+              label: "Compliance Training",
+              instruction: "Complete training",
+              uploadType: null,
+              documentId: null,
+              metadata: {},
+              formId: null,
+              order: 5,
+              Document: null,
+              Form: null,
+            },
+            {
+              id: "step-6",
+              type: "JOURNEY_AUTOMATION",
+              label: "Automated Journey",
+              instruction: "Workflow trigger",
+              uploadType: null,
+              documentId: null,
+              metadata: {},
+              formId: null,
+              order: 6,
+              Document: null,
+              Form: null,
+            },
+          ],
+        },
+      }),
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.steps.length, 6, "Should have 6 steps");
+
+    // Verify all types are correctly mapped from DB enum to UI hyphenated format
+    const expectedMappings = [
+      { type: "payroll-setup", label: "Payroll Setup" },
+      { type: "benefits-enrollment", label: "Enroll in Benefits" },
+      { type: "equipment-checklist", label: "Equipment Sign-off" },
+      { type: "manager-checkin", label: "Meet Manager" },
+      { type: "compliance-training", label: "Compliance Training" },
+      { type: "journey-automation", label: "Automated Journey" },
+    ];
+
+    expectedMappings.forEach((expected, idx) => {
+      const step = data.steps[idx];
+      assert.equal(
+        step.type,
+        expected.type,
+        `Step ${idx + 1} type should be "${expected.type}" not "${step.type}"`,
+      );
+      assert.equal(
+        step.label,
+        expected.label,
+        `Step ${idx + 1} label should match`,
+      );
+      // Verify metadata is hydrated
+      assert.ok(
+        step.metadata !== undefined,
+        `Step ${idx + 1} should have metadata object`,
+      );
+    });
+  });
+
+  await run("metadata is hydrated for all step types", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+      }),
+    };
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async () => ({
+        id: "inst1",
+        OnboardingStepInstance: [
+          { id: "inst-1", stepId: "step-1", status: "pending", OnboardingStepResponse: [] },
+        ],
+        OnboardingTemplate: {
+          name: "Metadata Test",
+          OnboardingStep: [
+            {
+              id: "step-1",
+              type: "PAYROLL_SETUP",
+              label: "NZ Payroll",
+              instruction: "Enter IRD details",
+              uploadType: null,
+              documentId: null,
+              metadata: {
+                fields: ["irdNumber", "taxCode", "kiwiSaverRate"],
+                nzCompliance: true,
+                presetSlug: "nz-ird-number",
+                tenantScope: ["company1"],
+              },
+              formId: null,
+              order: 1,
+              Document: null,
+              Form: null,
+            },
+          ],
+        },
+      }),
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    const step = data.steps[0];
+    
+    // Verify all metadata fields are preserved
+    assert.ok(step.metadata, "Step should have metadata");
+    assert.deepEqual(
+      step.metadata.fields,
+      ["irdNumber", "taxCode", "kiwiSaverRate"],
+      "Metadata fields array should be preserved",
+    );
+    assert.equal(
+      step.metadata.presetSlug,
+      "nz-ird-number",
+      "Preset slug should be preserved",
+    );
+    assert.ok(
+      Array.isArray(step.metadata.tenantScope),
+      "Tenant scope should be preserved as array",
+    );
+    assert.ok(
+      step.metadata.tenantScope.includes("company1"),
+      "Tenant scope should include company1",
+    );
+  });
 });

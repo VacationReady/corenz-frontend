@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
 
@@ -11,7 +12,7 @@ export async function signInWithCredentials(email: string, password: string) {
   console.log("🔄 Attempting login to:", `${API_BASE_URL}/api/auth/callback/credentials`);
   console.log("📧 Email:", email);
   console.log("🌐 API Base URL:", API_BASE_URL);
-  console.log("📱 Platform:", typeof navigator !== 'undefined' ? navigator.userAgent : 'React Native');
+  console.log("📱 Platform:", `${Platform.OS} ${Platform.Version}`);
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/callback/credentials`, {
@@ -77,12 +78,17 @@ export async function signInWithCredentials(email: string, password: string) {
       stack: error?.stack,
       apiUrl: `${API_BASE_URL}/api/auth/callback/credentials`,
       errorType: typeof error,
-      errorKeys: error ? Object.keys(error) : []
+      errorKeys: error ? Object.keys(error) : [],
+      platform: `${Platform.OS} ${Platform.Version}`,
     });
-    
+
     // Provide more specific error messages
     const errorMessage = error?.message || String(error);
-    if (errorMessage.includes("Network request failed")) {
+    if (error?.name === "AbortError" || errorMessage.includes("timed out")) {
+      throw new Error(
+        `Request to ${API_BASE_URL} timed out. Make sure the backend is running (npm run dev), bound to your LAN, Windows Firewall allows Node.js on port 3000, and visit ${API_BASE_URL} from your phone to confirm it loads.`
+      );
+    } else if (errorMessage.includes("Network request failed")) {
       throw new Error(`Unable to connect to ${API_BASE_URL}. Please check:\n1. Server is running (npm run dev)\n2. IP address ${API_BASE_URL} is correct\n3. Phone and computer are on same WiFi`);
     } else if (errorMessage.includes("fetch")) {
       throw new Error("Connection error. Please ensure the server is running and accessible.");

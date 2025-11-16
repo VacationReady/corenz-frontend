@@ -37,14 +37,26 @@ let mockSession: any = null;
   return originalLoad(request, parent, isMain);
 };
 
-const { GET } = await import("../../app/api/onboarding/instances/[employeeId]/route");
+let routeModulePromise: Promise<typeof import("../../app/api/onboarding/instances/[employeeId]/route")> | null = null;
+
+async function getRouteModule() {
+  if (!routeModulePromise) {
+    routeModulePromise = import("../../app/api/onboarding/instances/[employeeId]/route");
+  }
+  return routeModulePromise;
+}
+
+async function callGet(req: NextRequest, context: any) {
+  const { GET } = await getRouteModule();
+  return GET(req, context);
+}
 
 test("GET /api/onboarding/instances/[employeeId] - returns 401 for unauthenticated requests", async () => {
   // No session
   mockSession = null;
 
   const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  const res = await GET(req, { params: { employeeId: "emp1" } });
+  const res = await callGet(req, { params: { employeeId: "emp1" } });
   const data = await res.json();
 
   assert.equal(res.status, 401);
@@ -58,7 +70,7 @@ test("GET /api/onboarding/instances/[employeeId] - returns 401 for session witho
   };
 
   const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  const res = await GET(req, { params: { employeeId: "emp1" } });
+  const res = await callGet(req, { params: { employeeId: "emp1" } });
   const data = await res.json();
 
   assert.equal(res.status, 401);
@@ -76,7 +88,7 @@ test("GET /api/onboarding/instances/[employeeId] - returns 404 for non-existent 
   };
 
   const req = new NextRequest("http://localhost/api/onboarding/instances/emp999");
-  const res = await GET(req, { params: { employeeId: "emp999" } });
+  const res = await callGet(req, { params: { employeeId: "emp999" } });
   const data = await res.json();
 
   assert.equal(res.status, 404);
@@ -97,7 +109,7 @@ test("GET /api/onboarding/instances/[employeeId] - returns 403 for cross-tenant 
   };
 
   const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  const res = await GET(req, { params: { employeeId: "emp1" } });
+  const res = await callGet(req, { params: { employeeId: "emp1" } });
   const data = await res.json();
 
   assert.equal(res.status, 403);
@@ -123,7 +135,7 @@ test("GET /api/onboarding/instances/[employeeId] - returns 404 when no active in
   };
 
   const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  const res = await GET(req, { params: { employeeId: "emp1" } });
+  const res = await callGet(req, { params: { employeeId: "emp1" } });
   const data = await res.json();
 
   assert.equal(res.status, 404);
@@ -223,7 +235,7 @@ test("GET /api/onboarding/instances/[employeeId] - tenant scope prevents cross-t
   };
 
   const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  await GET(req, { params: { employeeId: "emp1" } });
+  await callGet(req, { params: { employeeId: "emp1" } });
 
   assert.ok(queryWasScoped, "Query must include OnboardingTemplate.companyId filter");
 });

@@ -61,7 +61,12 @@ export default function EmployeeSidebar({
         {/* Logo Section */}
         <div className={clsx("border-b border-glass", headerPadding)}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <Link
+              href="/dashboard"
+              onClick={() => onMobileNavigate?.()}
+              className="flex items-center rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              aria-label={`Go to ${brandName} dashboard`}
+            >
               <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm overflow-hidden">
                 {brandLogo ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -80,7 +85,7 @@ export default function EmployeeSidebar({
                 <h2 className="text-2xl font-bold text-foreground">{brandName}</h2>
                 <p className="text-sm text-muted-foreground">Employee Portal</p>
               </div>
-            </div>
+            </Link>
             {isMobile && onMobileClose && (
               <button
                 onClick={onMobileClose}

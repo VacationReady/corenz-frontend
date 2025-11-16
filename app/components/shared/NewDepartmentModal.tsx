@@ -5,6 +5,14 @@ import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { mutate } from "swr";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function NewDepartmentModal({
   onClose,
@@ -89,16 +97,26 @@ export default function NewDepartmentModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md p-4 space-y-4">
-        <h2 className="text-lg font-semibold">Manage Departments</h2>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Manage Departments</DialogTitle>
+          <DialogDescription>Add or remove departments across your company.</DialogDescription>
+        </DialogHeader>
+
         {error && <p className="text-red-600 text-sm">{error}</p>}
 
-        <div className="space-y-2 max-h-64 overflow-auto border rounded p-2">
+        <Card className="border rounded-2xl p-3 space-y-2 max-h-64 overflow-auto">
           {departments.map((d) => (
             <div key={d.id} className="flex items-center justify-between gap-2">
               <span className="text-sm">{d.name}</span>
-              <Button size="sm" variant="danger" onClick={() => remove(d.id)} disabled={loading}>
+              <Button
+                type="button"
+                size="sm"
+                variant="danger"
+                onClick={() => remove(d.id)}
+                disabled={loading}
+              >
                 Delete
               </Button>
             </div>
@@ -106,23 +124,25 @@ export default function NewDepartmentModal({
           {departments.length === 0 && (
             <p className="text-sm text-muted-foreground">No departments yet.</p>
           )}
-        </div>
+        </Card>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3 mt-4">
           <Input
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             placeholder="Department Name"
             required
           />
-          <div className="flex justify-end space-x-2">
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
               Close
             </Button>
-            <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Add"}</Button>
-          </div>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Add"}
+            </Button>
+          </DialogFooter>
         </form>
-      </Card>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

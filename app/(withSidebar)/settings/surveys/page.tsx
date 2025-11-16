@@ -179,7 +179,7 @@ export default function SurveysPage() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {templatesWithInstances.map(({ definition, instance }) => (
-            <Card key={definition.slug} className="relative overflow-hidden border border-slate-200/60 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <Card key={definition.slug} className="relative overflow-hidden border border-slate-200/60 shadow-sm transition hover:shadow-lg">
               <div
                 className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${definition.accentGradient}`}
                 aria-hidden
@@ -282,7 +282,7 @@ export default function SurveysPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredSurveys.map((survey) => (
-              <Card key={survey.id} className="group transition-shadow hover:-translate-y-1 hover:shadow-lg">
+              <Card key={survey.id} className="group transition-shadow hover:shadow-lg">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">

@@ -54,6 +54,8 @@ interface SidebarHeaderProps {
   onToggle?: () => void;
   onClose?: () => void;
   variant?: "desktop" | "mobile";
+  homeHref?: string;
+  onNavigate?: () => void;
 }
 
 export function SidebarHeader({
@@ -63,28 +65,52 @@ export function SidebarHeader({
   onToggle,
   onClose,
   variant = "desktop",
+  homeHref,
+  onNavigate,
 }: SidebarHeaderProps) {
+  const contentClasses = clsx(
+    "flex items-center gap-3 transition-all duration-300",
+    collapsed && "justify-center",
+  );
+
+  const brandingContent = (
+    <>
+      {logo && (
+        <div className="flex-shrink-0 w-10 h-10">
+          {logo}
+        </div>
+      )}
+      {!collapsed && title && (
+        <h1 className="font-semibold text-xl text-foreground truncate">
+          {title}
+        </h1>
+      )}
+    </>
+  );
+
+  const brandingNode = homeHref ? (
+    <Link
+      href={homeHref}
+      onClick={onNavigate}
+      className={clsx(
+        contentClasses,
+        "flex-1 min-w-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+      )}
+      aria-label={title ? `Go to ${title} dashboard` : "Go to dashboard"}
+    >
+      {brandingContent}
+    </Link>
+  ) : (
+    <div className={contentClasses}>{brandingContent}</div>
+  );
+
   return (
     <div className={clsx(
       "glass-subtle border-b border-glass flex items-center justify-between",
       variant === "mobile" ? "px-6 py-6" : collapsed ? "px-4 py-6" : "px-6 py-6"
     )}>
-      <div className={clsx(
-        "flex items-center gap-3 transition-all duration-300",
-        collapsed && "justify-center"
-      )}>
-        {logo && (
-          <div className="flex-shrink-0 w-10 h-10">
-            {logo}
-          </div>
-        )}
-        {!collapsed && title && (
-          <h1 className="font-semibold text-xl text-foreground truncate">
-            {title}
-          </h1>
-        )}
-      </div>
-      
+      {brandingNode}
+
       {variant === "desktop" && onToggle && (
         <button
           onClick={onToggle}

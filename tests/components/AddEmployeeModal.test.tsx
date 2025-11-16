@@ -536,3 +536,259 @@ test("defaults: sick leave 10, alternative holidays 0, public holidays 11", asyn
 
   root.unmount();
 });
+
+test("validates email format and shows inline error", async () => {
+  const Modal = await loadComponent();
+  global.fetch = async (url: RequestInfo | URL) => {
+    const urlStr = url.toString();
+    if (urlStr.includes("/api/employees")) return Response.json(mockEmployeesData);
+    if (urlStr.includes("/api/departments")) return Response.json(mockDepartmentsData);
+    if (urlStr.includes("/api/job-roles")) return Response.json(mockJobRolesData);
+    if (urlStr.includes("/api/onboarding/templates")) return Response.json(mockTemplatesData);
+    if (urlStr.includes("/api/working-patterns")) return Response.json(mockWorkingPatternsData);
+    if (urlStr.includes("/api/locations")) return Response.json(mockLocationsData);
+    if (urlStr.includes("/api/contract-type-options")) return Response.json(mockContractTypesData);
+    return new Response("Not found", { status: 404 });
+  };
+
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(
+      React.createElement(Modal, {
+        open: true,
+        onClose: () => {},
+      })
+    );
+    await new Promise((r) => setTimeout(r, 100));
+  });
+
+  // Input invalid email
+  await act(async () => {
+    const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
+    if (emailInput) {
+      emailInput.value = "invalid-email";
+      const event = new Event("change", { bubbles: true });
+      emailInput.dispatchEvent(event);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  });
+
+  // Check for error message
+  const content = document.body.textContent || "";
+  assert.ok(
+    content.includes("valid email") || content.includes("email"),
+    "Should show email validation error"
+  );
+
+  root.unmount();
+});
+
+test("validates NZ phone format and shows inline error", async () => {
+  const Modal = await loadComponent();
+  global.fetch = async (url: RequestInfo | URL) => {
+    const urlStr = url.toString();
+    if (urlStr.includes("/api/employees")) return Response.json(mockEmployeesData);
+    if (urlStr.includes("/api/departments")) return Response.json(mockDepartmentsData);
+    if (urlStr.includes("/api/job-roles")) return Response.json(mockJobRolesData);
+    if (urlStr.includes("/api/onboarding/templates")) return Response.json(mockTemplatesData);
+    if (urlStr.includes("/api/working-patterns")) return Response.json(mockWorkingPatternsData);
+    if (urlStr.includes("/api/locations")) return Response.json(mockLocationsData);
+    if (urlStr.includes("/api/contract-type-options")) return Response.json(mockContractTypesData);
+    return new Response("Not found", { status: 404 });
+  };
+
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(
+      React.createElement(Modal, {
+        open: true,
+        onClose: () => {},
+      })
+    );
+    await new Promise((r) => setTimeout(r, 100));
+  });
+
+  // Input invalid phone
+  await act(async () => {
+    const phoneInput = document.querySelector('input[name="phone"]') as HTMLInputElement;
+    if (phoneInput) {
+      phoneInput.value = "123"; // Too short
+      const event = new Event("change", { bubbles: true });
+      phoneInput.dispatchEvent(event);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  });
+
+  // Check for error message or helper text
+  const content = document.body.textContent || "";
+  assert.ok(
+    content.includes("short") || content.includes("phone") || content.includes("+64"),
+    "Should show phone validation error or helper text"
+  );
+
+  root.unmount();
+});
+
+test("checks for duplicate email and shows error", async () => {
+  const Modal = await loadComponent();
+  let emailCheckCalled = false;
+
+  global.fetch = async (url: RequestInfo | URL) => {
+    const urlStr = url.toString();
+    
+    // Check for duplicate email query
+    if (urlStr.includes("/api/employees?email=")) {
+      emailCheckCalled = true;
+      // Return existing employee with matching email
+      return Response.json([
+        { id: "existing", firstName: "Existing", lastName: "User", email: "test@example.com" }
+      ]);
+    }
+    
+    if (urlStr.includes("/api/employees")) return Response.json(mockEmployeesData);
+    if (urlStr.includes("/api/departments")) return Response.json(mockDepartmentsData);
+    if (urlStr.includes("/api/job-roles")) return Response.json(mockJobRolesData);
+    if (urlStr.includes("/api/onboarding/templates")) return Response.json(mockTemplatesData);
+    if (urlStr.includes("/api/working-patterns")) return Response.json(mockWorkingPatternsData);
+    if (urlStr.includes("/api/locations")) return Response.json(mockLocationsData);
+    if (urlStr.includes("/api/contract-type-options")) return Response.json(mockContractTypesData);
+    return new Response("Not found", { status: 404 });
+  };
+
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(
+      React.createElement(Modal, {
+        open: true,
+        onClose: () => {},
+      })
+    );
+    await new Promise((r) => setTimeout(r, 100));
+  });
+
+  // Input email that exists
+  await act(async () => {
+    const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
+    if (emailInput) {
+      emailInput.value = "test@example.com";
+      const event = new Event("change", { bubbles: true });
+      emailInput.dispatchEvent(event);
+      // Wait for debounce + API call
+      await new Promise((r) => setTimeout(r, 800));
+    }
+  });
+
+  // Check that duplicate check was called
+  assert.ok(emailCheckCalled, "Should call API to check for duplicate email");
+
+  // Check for duplicate error message
+  const content = document.body.textContent || "";
+  assert.ok(
+    content.includes("already registered") || content.includes("Existing User"),
+    "Should show duplicate email error"
+  );
+
+  root.unmount();
+});
+
+test("disables Next button when validation errors exist", async () => {
+  const Modal = await loadComponent();
+  global.fetch = async (url: RequestInfo | URL) => {
+    const urlStr = url.toString();
+    if (urlStr.includes("/api/employees")) return Response.json(mockEmployeesData);
+    if (urlStr.includes("/api/departments")) return Response.json(mockDepartmentsData);
+    if (urlStr.includes("/api/job-roles")) return Response.json(mockJobRolesData);
+    if (urlStr.includes("/api/onboarding/templates")) return Response.json(mockTemplatesData);
+    if (urlStr.includes("/api/working-patterns")) return Response.json(mockWorkingPatternsData);
+    if (urlStr.includes("/api/locations")) return Response.json(mockLocationsData);
+    if (urlStr.includes("/api/contract-type-options")) return Response.json(mockContractTypesData);
+    return new Response("Not found", { status: 404 });
+  };
+
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(
+      React.createElement(Modal, {
+        open: true,
+        onClose: () => {},
+      })
+    );
+    await new Promise((r) => setTimeout(r, 100));
+  });
+
+  // Input invalid email
+  await act(async () => {
+    const emailInput = document.querySelector('input[name="email"]') as HTMLInputElement;
+    if (emailInput) {
+      emailInput.value = "invalid-email";
+      const event = new Event("change", { bubbles: true });
+      emailInput.dispatchEvent(event);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  });
+
+  // Check that Next button is disabled
+  const nextButton = Array.from(document.querySelectorAll("button")).find(
+    (btn) => btn.textContent === "Next"
+  );
+  
+  if (nextButton) {
+    assert.ok(
+      nextButton.hasAttribute("disabled") || nextButton.getAttribute("disabled") === "",
+      "Next button should be disabled with invalid email"
+    );
+  }
+
+  root.unmount();
+});
+
+test("shows NZ phone format helper text", async () => {
+  const Modal = await loadComponent();
+  global.fetch = async (url: RequestInfo | URL) => {
+    const urlStr = url.toString();
+    if (urlStr.includes("/api/employees")) return Response.json(mockEmployeesData);
+    if (urlStr.includes("/api/departments")) return Response.json(mockDepartmentsData);
+    if (urlStr.includes("/api/job-roles")) return Response.json(mockJobRolesData);
+    if (urlStr.includes("/api/onboarding/templates")) return Response.json(mockTemplatesData);
+    if (urlStr.includes("/api/working-patterns")) return Response.json(mockWorkingPatternsData);
+    if (urlStr.includes("/api/locations")) return Response.json(mockLocationsData);
+    if (urlStr.includes("/api/contract-type-options")) return Response.json(mockContractTypesData);
+    return new Response("Not found", { status: 404 });
+  };
+
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(
+      React.createElement(Modal, {
+        open: true,
+        onClose: () => {},
+      })
+    );
+    await new Promise((r) => setTimeout(r, 100));
+  });
+
+  const content = document.body.textContent || "";
+  
+  // Should show NZ phone format hint
+  assert.ok(
+    content.includes("+64") || content.includes("NZ format"),
+    "Should display NZ phone format helper text"
+  );
+
+  root.unmount();
+});

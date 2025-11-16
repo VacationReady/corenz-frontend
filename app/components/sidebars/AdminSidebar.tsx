@@ -84,6 +84,8 @@ export default function AdminSidebar({
           onToggle={variant === "desktop" ? toggleSidebar : undefined}
           onClose={onMobileClose}
           variant={variant}
+          homeHref="/dashboard"
+          onNavigate={onMobileNavigate}
         />
 
         {/* Main Navigation */}

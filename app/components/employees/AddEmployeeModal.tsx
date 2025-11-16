@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, ChangeEvent, FormEvent, useMemo } from "react";
+import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -9,6 +9,7 @@ import NewLocationModal from "@/components/shared/NewLocationModal";
 import NewContractTypeModal from "@/components/shared/NewContractTypeModal";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { validateEmail, validatePhone, getPhoneHelperText } from "@/lib/validators";
 
 // 👇 Toggle
 import { Switch } from "@/components/ui/switch";
@@ -166,6 +167,48 @@ const formatMonthDay = (month: number, day: number) =>
     day: "numeric",
   }).format(new Date(2024, month - 1, day));
 
+const normalizeSearch = (value: string) => value.trim().toLowerCase();
+
+const SelectSearchInput = ({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) => (
+  <div className="sticky top-0 z-10 bg-popover p-2 border-b border-muted/40">
+    <Input
+      value={value}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      placeholder={placeholder ?? "Search..."}
+      onKeyDown={(e) => e.stopPropagation()}
+      autoFocus
+      className="h-9"
+    />
+  </div>
+);
+
+const filterBySearch = <T,>(
+  items: T[],
+  accessor: (item: T) => string | undefined,
+  query: string,
+) => {
+  const normalized = normalizeSearch(query);
+  if (!normalized) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    const value = accessor(item);
+    if (!value) {
+      return false;
+    }
+    return value.toLowerCase().includes(normalized);
+  });
+};
+
 interface AddEmployeeModalProps {
   open: boolean;
   onClose: () => void;
@@ -202,6 +245,12 @@ export default function AddEmployeeModal({
   const [isRoleSelectOpen, setIsRoleSelectOpen] = useState(false);
   const [isLocationSelectOpen, setIsLocationSelectOpen] = useState(false);
   const [isContractTypeSelectOpen, setIsContractTypeSelectOpen] = useState(false);
+  const [isManagerSelectOpen, setIsManagerSelectOpen] = useState(false);
+  const [isTemplateSelectOpen, setIsTemplateSelectOpen] = useState(false);
+  const [isTaxCodeSelectOpen, setIsTaxCodeSelectOpen] = useState(false);
+  const [isKiwiSaverRateSelectOpen, setIsKiwiSaverRateSelectOpen] = useState(false);
+  const [isHolidayMonthSelectOpen, setIsHolidayMonthSelectOpen] = useState(false);
+  const [isWorkingPatternSelectOpen, setIsWorkingPatternSelectOpen] = useState(false);
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -255,6 +304,15 @@ export default function AddEmployeeModal({
   // Validation errors for NZ fields
   const [irdError, setIrdError] = useState<string | null>(null);
   const [bankAccountError, setBankAccountError] = useState<string | null>(null);
+  
+  // Validation errors for email and phone
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [duplicateEmailError, setDuplicateEmailError] = useState<string | null>(null);
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+  
+  // Ref for debounce timer
+  const emailCheckTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const selectedHolidayRange = useMemo(
     () => parseHolidayYearValue(formData.holidayYear),
@@ -270,6 +328,17 @@ export default function AddEmployeeModal({
   const [showAllTemplates, setShowAllTemplates] = useState(false);
   const [fullTimeEntitlement, setFullTimeEntitlement] = useState("20");
   const [calculatedEntitlement, setCalculatedEntitlement] = useState(0);
+
+  const [departmentSearch, setDepartmentSearch] = useState("");
+  const [jobRoleSearch, setJobRoleSearch] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
+  const [contractTypeSearch, setContractTypeSearch] = useState("");
+  const [managerSearch, setManagerSearch] = useState("");
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [taxCodeSearch, setTaxCodeSearch] = useState("");
+  const [kiwiSaverSearch, setKiwiSaverSearch] = useState("");
+  const [holidayMonthSearch, setHolidayMonthSearch] = useState("");
+  const [workingPatternSearch, setWorkingPatternSearch] = useState("");
 
   const fetchData = async () => {
     try {
@@ -324,6 +393,12 @@ export default function AddEmployeeModal({
       setIsSubmitting(false); // Reset loading state when modal closes
       setError(""); // Clear any errors
       setCurrentStep(1); // Reset to first step
+      // Clear validation errors
+      setEmailError(null);
+      setPhoneError(null);
+      setDuplicateEmailError(null);
+      setIrdError(null);
+      setBankAccountError(null);
       return;
     }
 
@@ -388,6 +463,97 @@ export default function AddEmployeeModal({
     setFormData({ ...formData, bankAccountNumber: value });
     validateBankAccount(value);
   };
+
+  // Check for duplicate email via API
+  const checkDuplicateEmail = useCallback(async (email: string) => {
+    if (!email || !email.trim()) {
+      setDuplicateEmailError(null);
+      setIsCheckingDuplicate(false);
+      return;
+    }
+
+    const validation = validateEmail(email);
+    if (!validation.isValid) {
+      setDuplicateEmailError(null);
+      setIsCheckingDuplicate(false);
+      return;
+    }
+
+    try {
+      setIsCheckingDuplicate(true);
+      const response = await fetch(`/api/employees?email=${encodeURIComponent(email.trim())}`);
+      
+      if (!response.ok) {
+        setDuplicateEmailError(null);
+        return;
+      }
+
+      const employees = await response.json();
+      
+      if (Array.isArray(employees) && employees.length > 0) {
+        const existingEmployee = employees.find(
+          (emp: any) => emp.email?.toLowerCase() === email.trim().toLowerCase()
+        );
+        
+        if (existingEmployee) {
+          setDuplicateEmailError(
+            `This email is already registered to ${existingEmployee.firstName} ${existingEmployee.lastName}`
+          );
+        } else {
+          setDuplicateEmailError(null);
+        }
+      } else {
+        setDuplicateEmailError(null);
+      }
+    } catch (error) {
+      console.error('Error checking duplicate email:', error);
+      setDuplicateEmailError(null);
+    } finally {
+      setIsCheckingDuplicate(false);
+    }
+  }, []);
+
+  // Handle email change with validation and debounced duplicate check
+  const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, email: value });
+
+    // Immediate format validation
+    const validation = validateEmail(value);
+    setEmailError(validation.error || null);
+
+    // Clear any previous duplicate check
+    setDuplicateEmailError(null);
+
+    // Debounce duplicate check
+    if (emailCheckTimerRef.current) {
+      clearTimeout(emailCheckTimerRef.current);
+    }
+
+    if (validation.isValid) {
+      emailCheckTimerRef.current = setTimeout(() => {
+        checkDuplicateEmail(value);
+      }, 600); // 600ms debounce
+    }
+  };
+
+  // Handle phone change with validation
+  const handlePhoneChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, phone: value });
+
+    const validation = validatePhone(value);
+    setPhoneError(validation.error || null);
+  };
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (emailCheckTimerRef.current) {
+        clearTimeout(emailCheckTimerRef.current);
+      }
+    };
+  }, []);
 
   const updateHolidayYearSelection = (
     monthValue: string,
@@ -553,9 +719,15 @@ export default function AddEmployeeModal({
       !formData.email ||
       !formData.startDate ||
       !formData.onboardingTemplateId ||
-      formData.onboardingTemplateId === ""
+      formData.onboardingTemplateId === "" ||
+      formData.onboardingTemplateId === "none"
     ) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+    // Validate email and phone
+    if (emailError || duplicateEmailError || phoneError) {
+      toast.error("Please fix validation errors before proceeding");
       return;
     }
     // Validate NZ-specific fields
@@ -588,7 +760,13 @@ export default function AddEmployeeModal({
     if (isSubmitting) return;
     
     try {
-      if (!formData.onboardingTemplateId) {
+      // Check for validation errors
+      if (emailError || duplicateEmailError || phoneError || irdError || bankAccountError) {
+        toast.error("Please fix validation errors before submitting");
+        return;
+      }
+
+      if (!formData.onboardingTemplateId || formData.onboardingTemplateId === "none") {
         toast.error("Please select an onboarding template");
         setIsSubmitting(false);
         return;
@@ -780,6 +958,47 @@ export default function AddEmployeeModal({
 
   const templatesToDisplay = showAllTemplates ? templates : filteredTemplates;
 
+  // Compute form validity for Step 1
+  const isStep1Valid = useMemo(() => {
+    return (
+      formData.firstName?.trim() &&
+      formData.lastName?.trim() &&
+      formData.email?.trim() &&
+      formData.startDate &&
+      formData.onboardingTemplateId &&
+      formData.onboardingTemplateId !== "none" &&
+      !emailError &&
+      !duplicateEmailError &&
+      !phoneError &&
+      !irdError &&
+      !bankAccountError &&
+      !isCheckingDuplicate
+    );
+  }, [
+    formData.firstName,
+    formData.lastName,
+    formData.email,
+    formData.startDate,
+    formData.onboardingTemplateId,
+    emailError,
+    duplicateEmailError,
+    phoneError,
+    irdError,
+    bankAccountError,
+    isCheckingDuplicate,
+  ]);
+
+  // Compute form validity for Step 2
+  const isStep2Valid = useMemo(() => {
+    return (
+      formData.workingPatternId &&
+      formData.workingPatternId !== "" &&
+      formData.entitlementDays &&
+      formData.entitlementDays !== "" &&
+      !holidayYearError
+    );
+  }, [formData.workingPatternId, formData.entitlementDays, holidayYearError]);
+
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -827,19 +1046,45 @@ export default function AddEmployeeModal({
                     required
                   />
                 </div>
-                <Input
-                  name="email"
-                  placeholder="Email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-                <Input
-                  name="phone"
-                  placeholder="Phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                />
+                <div>
+                  <Input
+                    name="email"
+                    type="email"
+                    placeholder="Email *"
+                    value={formData.email}
+                    onChange={handleEmailChange}
+                    required
+                    className={emailError || duplicateEmailError ? "border-red-500" : ""}
+                  />
+                  {emailError && (
+                    <p className="text-xs text-red-600 mt-1">{emailError}</p>
+                  )}
+                  {!emailError && duplicateEmailError && (
+                    <p className="text-xs text-red-600 mt-1">{duplicateEmailError}</p>
+                  )}
+                  {!emailError && !duplicateEmailError && isCheckingDuplicate && (
+                    <p className="text-xs text-gray-500 mt-1">Checking availability...</p>
+                  )}
+                </div>
+                <div>
+                  <Input
+                    name="phone"
+                    type="tel"
+                    placeholder="Phone"
+                    value={formData.phone}
+                    onChange={handlePhoneChange}
+                    className={phoneError ? "border-red-500" : ""}
+                  />
+                  {phoneError && (
+                    <p className="text-xs text-red-600 mt-1">{phoneError}</p>
+                  )}
+                  {!phoneError && formData.phone && (
+                    <p className="text-xs text-gray-500 mt-1">{getPhoneHelperText(formData.phone)}</p>
+                  )}
+                  {!phoneError && !formData.phone && (
+                    <p className="text-xs text-gray-500 mt-1">NZ format: +64 21 123 4567 or 021 123 4567</p>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1008,21 +1253,21 @@ export default function AddEmployeeModal({
                       return;
                     }
 
+                    // Treat "none" as undefined/null
+                    setFormData({
+                      ...formData,
+                      onboardingTemplateId: value === "none" ? undefined : value,
+                    });
+                    
                     if (value === "none") {
                       setShowAllTemplates(false);
                     }
-
-                    setFormData({
-                      ...formData,
-                      onboardingTemplateId: value,
-                    });
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Onboarding Template" />
+                    <SelectValue placeholder="Select Onboarding Template *" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
                     {templatesToDisplay.map((t) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.name}
@@ -1346,7 +1591,11 @@ export default function AddEmployeeModal({
                 </div>
 
                 <div className="flex justify-end mt-6">
-                  <Button type="button" onClick={nextStep}>
+                  <Button 
+                    type="button" 
+                    onClick={nextStep}
+                    disabled={!isStep1Valid}
+                  >
                     Next
                   </Button>
                 </div>
@@ -1541,7 +1790,7 @@ export default function AddEmployeeModal({
                     type="submit" 
                     loading={isSubmitting}
                     loadingText="Creating Employee..."
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !isStep2Valid}
                   >
                     Add Employee
                   </Button>

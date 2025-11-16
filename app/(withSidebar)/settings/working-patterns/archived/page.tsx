@@ -382,11 +382,11 @@ export default function ArchivedWorkingPatternsPage() {
       type="button"
       onClick={() => handleChipSelect(group, value)}
       className={cn(
-        "relative overflow-hidden rounded-full border border-white/10 px-3 py-1.5 text-sm font-medium transition-all",
+        "relative inline-flex items-center gap-3 rounded-2xl px-4 py-2 text-sm font-semibold transition-all",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2",
         isActive
           ? "text-primary-foreground shadow-[0_8px_24px_rgba(79,70,229,0.35)]"
-          : "text-foreground/70 hover:-translate-y-0.5 hover:text-foreground",
+          : "text-foreground/70 hover:text-foreground",
       )}
       whileTap={{ scale: 0.95 }}
       disabled={isNavigating && isActive}

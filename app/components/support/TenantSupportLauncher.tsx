@@ -141,7 +141,6 @@ export default function TenantSupportLauncher() {
           className={cn(
             "pointer-events-auto flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-primary-foreground shadow-xl",
             "transition-transform duration-300 motion-reduce:transition-none motion-reduce:transform-none",
-            "motion-safe:hover:-translate-y-0.5 motion-safe:focus-visible:-translate-y-0.5",
             !open && "motion-safe:animate-pulse",
           )}
           aria-label="Open support dialog"

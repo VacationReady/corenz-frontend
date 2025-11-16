@@ -13,7 +13,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import Module from "module";
 import { prisma } from "../../app/lib/prisma";
-import { GET } from "../../app/api/onboarding/instances/[employeeId]/route";
 import { NextRequest } from "next/server";
 
 // Mock next-auth getServerSession
@@ -37,6 +36,8 @@ let mockSession: any = null;
   }
   return originalLoad(request, parent, isMain);
 };
+
+const { GET } = await import("../../app/api/onboarding/instances/[employeeId]/route");
 
 test("GET /api/onboarding/instances/[employeeId] - returns 401 for unauthenticated requests", async () => {
   // No session

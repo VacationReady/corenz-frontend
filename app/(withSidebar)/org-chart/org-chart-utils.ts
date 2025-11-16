@@ -60,11 +60,14 @@ export const measureOrgForest = (
   let maxDepth = 0;
   let forestWidth = 0;
 
-  forest.forEach((tree: OrgNode) => {
+  forest.forEach((tree: OrgNode, index: number) => {
     const measured = measureNode(tree, config, 0);
     measuredForest.push(measured);
     maxDepth = Math.max(maxDepth, measured.depth);
     forestWidth += measured.width;
+    if (index < forest.length - 1) {
+      forestWidth += config.rootSpacing;
+    }
   });
 
   return { measuredForest, maxDepth, forestWidth };
@@ -76,29 +79,39 @@ const measureNode = (
   config: LayoutConfig,
   depth: number,
 ): MeasuredOrgNode => {
+  // Recursively measure all children
   const children = node.children.map((child: OrgNode) =>
     measureNode(child, config, depth + 1),
   );
 
-  const childWidth = children.reduce((sum: number, child: MeasuredOrgNode) => sum + child.width, 0);
-  const childDepth = children.length > 0
+  // Calculate depth (maximum depth among all children)
+  const maxChildDepth = children.length > 0
     ? Math.max(...children.map((child: MeasuredOrgNode) => child.depth))
-    : 0;
+    : depth;
 
-  const width = Math.max(
-    config.nodeWidth,
-    children.length > 0
-      ? childWidth + (children.length - 1) * config.horizontalSpacing
-      : config.nodeWidth,
-  );
-
-  const nodeDepth = depth + childDepth;
+  // Calculate width needed for this subtree
+  let width: number;
+  if (children.length === 0) {
+    // Leaf node - just the node width
+    width = config.nodeWidth;
+  } else if (children.length === 1) {
+    // Single child - use child's width (child will be centered below)
+    width = Math.max(config.nodeWidth, children[0].width);
+  } else {
+    // Multiple children - sum of children widths plus spacing between them
+    const totalChildWidth = children.reduce(
+      (sum: number, child: MeasuredOrgNode) => sum + child.width,
+      0,
+    );
+    const spacingWidth = (children.length - 1) * config.horizontalSpacing;
+    width = Math.max(config.nodeWidth, totalChildWidth + spacingWidth);
+  }
 
   return {
     node,
     width,
-    depth: nodeDepth,
-    children: children,
+    depth: maxChildDepth,
+    children,
   };
 };
 
@@ -110,21 +123,40 @@ export const assignMeasuredPositions = (
   y: number,
   positions: Map<string, { x: number; y: number }>,
 ): void => {
-  positions.set(measuredNode.node.id, { x, y });
+  // Center the current node within its allocated width
+  const nodeX = x + (measuredNode.width - config.nodeWidth) / 2;
+  positions.set(measuredNode.node.id, { x: nodeX, y });
 
   if (measuredNode.children.length === 0) {
     return;
   }
 
-  const totalChildWidth = measuredNode.children.reduce(
-    (sum: number, child: MeasuredOrgNode) => sum + child.width,
-    0,
-  );
+  // Calculate the Y position for children
+  const childY = y + config.nodeHeight + config.verticalSpacing;
 
-  let currentX = x + (measuredNode.width - totalChildWidth) / 2;
+  if (measuredNode.children.length === 1) {
+    // Single child - center it below the parent
+    const child = measuredNode.children[0];
+    const childX = x + (measuredNode.width - child.width) / 2;
+    assignMeasuredPositions(child, config, childX, childY, positions);
+  } else {
+    // Multiple children - distribute them horizontally
+    const totalChildWidth = measuredNode.children.reduce(
+      (sum: number, child: MeasuredOrgNode) => sum + child.width,
+      0,
+    );
+    const totalSpacing = (measuredNode.children.length - 1) * config.horizontalSpacing;
+    const totalWidth = totalChildWidth + totalSpacing;
+    
+    // Start X position to center all children under the parent
+    let currentX = x + (measuredNode.width - totalWidth) / 2;
 
-  measuredNode.children.forEach((child: MeasuredOrgNode) => {
-    assignMeasuredPositions(child, config, currentX, y + config.verticalSpacing, positions);
-    currentX += child.width;
-  });
+    measuredNode.children.forEach((child: MeasuredOrgNode, index: number) => {
+      assignMeasuredPositions(child, config, currentX, childY, positions);
+      currentX += child.width;
+      if (index < measuredNode.children.length - 1) {
+        currentX += config.horizontalSpacing;
+      }
+    });
+  }
 };

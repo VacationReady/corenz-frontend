@@ -40,6 +40,15 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        RelatedEmployee: {
+          select: {
+            Department: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -64,7 +73,10 @@ export async function GET(req: NextRequest) {
     // Group by department
     const byDepartment: Record<string, number> = {};
     allPending.forEach((item: any) => {
-      const dept = item.assignedTo?.Employee?.[0]?.Department?.name || "Unassigned";
+      const dept =
+        item.RelatedEmployee?.Department?.name ||
+        item.assignedTo?.Employee?.[0]?.Department?.name ||
+        "Unassigned";
       byDepartment[dept] = (byDepartment[dept] || 0) + 1;
     });
 

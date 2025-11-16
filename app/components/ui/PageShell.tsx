@@ -1,7 +1,10 @@
+"use client";
+
 import React from "react";
 import clsx from "clsx";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { BreadcrumbConfig } from "@/types/breadcrumb";
+import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 
 interface PageShellProps {
   title: string;
@@ -24,6 +27,9 @@ export function PageShell({
   breadcrumbs,
   showHomeIcon = true,
 }: PageShellProps) {
+  const autoBreadcrumbs = useBreadcrumbs();
+  const resolvedBreadcrumbs = breadcrumbs ?? autoBreadcrumbs;
+
   return (
     <div className={clsx("w-full min-h-screen bg-content-panel", className)}>
       {/* Sticky Header */}
@@ -38,9 +44,9 @@ export function PageShell({
         >
           <div className="relative z-10 px-8 py-6">
             {/* Breadcrumbs */}
-            {breadcrumbs && (
+            {resolvedBreadcrumbs && (
               <div className="mb-4">
-                <Breadcrumb items={breadcrumbs.items} showHomeIcon={showHomeIcon} />
+                <Breadcrumb items={resolvedBreadcrumbs.items} showHomeIcon={showHomeIcon} />
               </div>
             )}
 

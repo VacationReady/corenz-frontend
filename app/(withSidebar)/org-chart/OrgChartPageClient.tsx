@@ -59,9 +59,9 @@ import {
 
 const NODE_WIDTH = 288;
 const NODE_HEIGHT = 224;
-const HORIZONTAL_SPACING = 56;
-const ROOT_HORIZONTAL_SPACING = HORIZONTAL_SPACING * 2;
-const VERTICAL_SPACING = 32;
+const HORIZONTAL_SPACING = 40; // Reduced for tighter sibling spacing
+const ROOT_HORIZONTAL_SPACING = 120; // Reasonable spacing between separate trees
+const VERTICAL_SPACING = 80; // Increased for better visual hierarchy
 const HORIZONTAL_MARGIN = 96;
 const VERTICAL_MARGIN_TOP = 48;
 const VERTICAL_MARGIN_BOTTOM = 120;

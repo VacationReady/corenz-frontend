@@ -6,6 +6,8 @@ import Checkbox from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { JourneyTemplatePicker } from "@/components/onboarding/JourneyTemplatePicker";
+import { ContextualHelpButton } from "@/components/onboarding/ContextualHelpOverlay";
 
 import {
   ChecklistItem,
@@ -892,10 +894,11 @@ const metadataConfigs: Record<string, MetadataConfig<any>> = {
     Editor: ({ value, onChange }) => (
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label>Journey template ID</Label>
-          <Input
-            value={value.journeyTemplateId}
-            onChange={(e) => onChange({ ...value, journeyTemplateId: e.target.value })}
+          <Label>Journey template</Label>
+          <JourneyTemplatePicker
+            value={value.journeyTemplateId || ""}
+            onChange={(journeyTemplateId) => onChange({ ...value, journeyTemplateId })}
+            placeholder="Select a journey to trigger..."
           />
         </div>
         <div className="space-y-2">

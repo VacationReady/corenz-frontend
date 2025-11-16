@@ -419,7 +419,28 @@ test("Onboarding Instances API auth guards", async (t) => {
               uploadType: null,
               documentId: null,
               metadata: {
-                fields: ["irdNumber", "taxCode", "kiwiSaverRate"],
+                fields: [
+                  {
+                    id: "irdNumber",
+                    label: "IRD number",
+                    placeholder: "123-456-789",
+                    required: true,
+                    fieldType: "irdNumber",
+                  },
+                  {
+                    id: "taxCode",
+                    label: "Tax code",
+                    placeholder: "e.g. M SL",
+                    required: true,
+                    fieldType: "text",
+                  },
+                  {
+                    id: "kiwiSaverRate",
+                    label: "KiwiSaver rate",
+                    required: false,
+                    fieldType: "kiwiSaverEmployeeRate",
+                  },
+                ],
                 nzCompliance: true,
                 presetSlug: "nz-ird-number",
                 tenantScope: ["company1"],
@@ -441,13 +462,26 @@ test("Onboarding Instances API auth guards", async (t) => {
     assert.equal(res.status, 200);
     const step = data.steps[0];
     
-    // Verify all metadata fields are preserved
+    // Verify all metadata fields are preserved and normalized
     assert.ok(step.metadata, "Step should have metadata");
-    assert.deepEqual(
-      step.metadata.fields,
-      ["irdNumber", "taxCode", "kiwiSaverRate"],
-      "Metadata fields array should be preserved",
-    );
+    assert.ok(Array.isArray(step.metadata.fields), "Fields should be an array");
+    assert.equal(step.metadata.fields.length, 3, "Should have 3 fields");
+    
+    // Verify field structure is normalized correctly
+    const irdField = step.metadata.fields.find((f: any) => f.id === "irdNumber");
+    assert.ok(irdField, "IRD field should exist");
+    assert.equal(irdField.fieldType, "irdNumber", "IRD field type should be preserved");
+    assert.equal(irdField.required, true, "IRD field should be required");
+    
+    const taxField = step.metadata.fields.find((f: any) => f.id === "taxCode");
+    assert.ok(taxField, "Tax code field should exist");
+    assert.equal(taxField.fieldType, "text", "Tax code field type should be preserved");
+    
+    const kiwiField = step.metadata.fields.find((f: any) => f.id === "kiwiSaverRate");
+    assert.ok(kiwiField, "KiwiSaver field should exist");
+    assert.equal(kiwiField.fieldType, "kiwiSaverEmployeeRate", "KiwiSaver field type should be preserved");
+    
+    // Verify preset metadata is preserved
     assert.equal(
       step.metadata.presetSlug,
       "nz-ird-number",

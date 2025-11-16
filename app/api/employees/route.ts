@@ -83,7 +83,14 @@ export async function GET(req: Request) {
   try {
     await ensurePrismaConnected();
     const session = await getServerSession(authOptions);
+    console.log("[employees] Session check:", {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      companyId: session?.user?.companyId,
+      role: session?.user?.role,
+    });
     if (!session?.user?.companyId) {
+      console.error("[employees] Unauthorized: missing companyId");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -240,9 +247,14 @@ export async function GET(req: Request) {
       }),
     );
 
+    console.log(`[employees] Found ${flattened.length} employees for companyId: ${session.user.companyId}`);
     return NextResponse.json(flattened);
   } catch (error) {
-    console.error("Failed to load employees:", error);
+    console.error("[employees] Error details:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
       { error: "Error loading employees" },
       { status: 500 },

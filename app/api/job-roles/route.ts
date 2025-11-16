@@ -7,7 +7,14 @@ export async function GET() {
   try {
     await ensurePrismaConnected();
     const session = await getServerSession(authOptions);
+    console.log("[job-roles] Session check:", {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      companyId: session?.user?.companyId,
+      role: session?.user?.role,
+    });
     if (!session?.user?.companyId) {
+      console.error("[job-roles] Unauthorized: missing companyId");
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 },
@@ -27,9 +34,14 @@ export async function GET() {
       },
     });
 
+    console.log(`[job-roles] Found ${jobRoles.length} job roles for companyId: ${session.user.companyId}`);
     return NextResponse.json(jobRoles);
   } catch (error) {
-    console.error("Error fetching job roles:", error);
+    console.error("[job-roles] Error details:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
       { success: false, error: "Failed to fetch job roles" },
       { status: 500 },

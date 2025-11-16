@@ -192,7 +192,22 @@ test("Title validation in template mapper", async (t) => {
         title: "NZ Payroll",
         description: "IRD details",
         metadata: {
-          fields: ["irdNumber", "taxCode"],
+          fields: [
+            {
+              id: "irdNumber",
+              label: "IRD number",
+              placeholder: "123-456-789",
+              required: true,
+              fieldType: "irdNumber",
+            },
+            {
+              id: "taxCode",
+              label: "Tax code",
+              placeholder: "e.g. M SL",
+              required: true,
+              fieldType: "text",
+            },
+          ],
           presetSlug: "nz-ird-number",
           tenantScope: ["company1"],
         },
@@ -204,11 +219,14 @@ test("Title validation in template mapper", async (t) => {
     assert.equal(mapped.length, 1, "Should map step");
     assert.equal(mapped[0].label, "NZ Payroll", "Label should be preserved");
     assert.ok(mapped[0].metadata, "Metadata should be present");
-    assert.deepEqual(
-      mapped[0].metadata.fields,
-      ["irdNumber", "taxCode"],
-      "Metadata fields should be preserved during validation",
-    );
+    assert.ok(Array.isArray(mapped[0].metadata.fields), "Fields should be an array");
+    assert.equal(mapped[0].metadata.fields.length, 2, "Should have 2 fields");
+    
+    // Verify normalized fields contain expected IDs
+    const fieldIds = mapped[0].metadata.fields.map((f: any) => f.id);
+    assert.ok(fieldIds.includes("irdNumber"), "Should include irdNumber field");
+    assert.ok(fieldIds.includes("taxCode"), "Should include taxCode field");
+    
     assert.equal(
       mapped[0].metadata.presetSlug,
       "nz-ird-number",

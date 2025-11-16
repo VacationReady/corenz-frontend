@@ -7,7 +7,14 @@ export async function GET() {
   try {
     await ensurePrismaConnected();
     const session = await getServerSession(authOptions);
+    console.log("[departments] Session check:", {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      companyId: session?.user?.companyId,
+      role: session?.user?.role,
+    });
     if (!session?.user?.companyId) {
+      console.error("[departments] Unauthorized: missing companyId");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -26,9 +33,14 @@ export async function GET() {
       },
     });
 
+    console.log(`[departments] Found ${departments.length} departments for companyId: ${session.user.companyId}`);
     return NextResponse.json(departments); // ✅ Clean array for frontend
   } catch (error) {
-    console.error("Error fetching departments:", error);
+    console.error("[departments] Error details:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
       { error: "Failed to fetch departments" },
       { status: 500 },

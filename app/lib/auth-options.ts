@@ -62,13 +62,28 @@ export const authOptions: AuthOptions = {
             if (!candidate.password) continue;
             const ok = await bcrypt.compare(credentials.password, candidate.password);
             if (ok) {
+              // Validate that companyId exists
+              if (!candidate.companyId || candidate.companyId.trim() === "") {
+                console.error("[auth] User authenticated but has invalid companyId:", {
+                  userId: candidate.id,
+                  email: candidate.email,
+                  companyId: candidate.companyId,
+                });
+                return null;
+              }
+              console.log("[auth] User authenticated successfully:", {
+                userId: candidate.id,
+                email: candidate.email,
+                companyId: candidate.companyId,
+                role: candidate.role,
+              });
               return {
                 id: candidate.id,
                 email: candidate.email,
                 firstName: candidate.firstName,
                 lastName: candidate.lastName,
                 role: candidate.role,
-                companyId: candidate.companyId ?? "",
+                companyId: candidate.companyId,
               };
             }
           }

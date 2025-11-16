@@ -130,7 +130,28 @@ test("Metadata persistence through save/reload cycles", async (t) => {
           title: "Complete IRD Number",
           description: "Enter your IRD details",
           metadata: {
-            fields: ["irdNumber", "taxCode", "kiwiSaverRate"],
+            fields: [
+              {
+                id: "irdNumber",
+                label: "IRD number",
+                placeholder: "123-456-789",
+                required: true,
+                fieldType: "irdNumber",
+              },
+              {
+                id: "taxCode",
+                label: "Tax code",
+                placeholder: "e.g. M SL",
+                required: true,
+                fieldType: "text",
+              },
+              {
+                id: "kiwiSaverRate",
+                label: "KiwiSaver rate",
+                required: false,
+                fieldType: "kiwiSaverEmployeeRate",
+              },
+            ],
             nzCompliance: true,
             presetSlug: "nz-ird-number",
             tenantScope: ["company1"],
@@ -181,14 +202,17 @@ test("Metadata persistence through save/reload cycles", async (t) => {
     const payrollStep = savedSteps[0];
     assert.ok(payrollStep.metadata, "Payroll step should have metadata");
     assert.ok(
-      payrollStep.metadata.fields,
+      Array.isArray(payrollStep.metadata.fields),
       "Payroll step metadata should include fields array",
     );
-    assert.deepEqual(
-      payrollStep.metadata.fields,
-      ["irdNumber", "taxCode", "kiwiSaverRate"],
-      "IRD fields should be preserved",
-    );
+    assert.equal(payrollStep.metadata.fields.length, 3, "Should have 3 fields");
+    
+    // Verify normalized fields contain expected IDs
+    const fieldIds = payrollStep.metadata.fields.map((f: any) => f.id);
+    assert.ok(fieldIds.includes("irdNumber"), "Should include irdNumber field");
+    assert.ok(fieldIds.includes("taxCode"), "Should include taxCode field");
+    assert.ok(fieldIds.includes("kiwiSaverRate"), "Should include kiwiSaverRate field");
+    
     assert.equal(
       payrollStep.metadata.presetSlug,
       "nz-ird-number",
@@ -227,11 +251,15 @@ test("Metadata persistence through save/reload cycles", async (t) => {
       (s: any) => s.label === "Complete IRD Number",
     );
     assert.ok(loadedPayroll, "Should find payroll step");
-    assert.deepEqual(
-      loadedPayroll.metadata.fields,
-      ["irdNumber", "taxCode", "kiwiSaverRate"],
-      "Loaded payroll step should preserve IRD fields",
-    );
+    assert.ok(Array.isArray(loadedPayroll.metadata.fields), "Loaded fields should be an array");
+    assert.equal(loadedPayroll.metadata.fields.length, 3, "Should have 3 fields");
+    
+    // Verify loaded fields contain expected IDs
+    const loadedFieldIds = loadedPayroll.metadata.fields.map((f: any) => f.id);
+    assert.ok(loadedFieldIds.includes("irdNumber"), "Should include irdNumber field");
+    assert.ok(loadedFieldIds.includes("taxCode"), "Should include taxCode field");
+    assert.ok(loadedFieldIds.includes("kiwiSaverRate"), "Should include kiwiSaverRate field");
+    
     assert.equal(
       loadedPayroll.metadata.presetSlug,
       "nz-ird-number",

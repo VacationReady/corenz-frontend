@@ -47,10 +47,13 @@ export default function TenantSwitchPage() {
           return;
         }
 
+        // Force a hard redirect to ensure session cookies are properly set
         setStatus("success");
         setMessage(`Switched to ${data.companyName}. Redirecting...`);
+        
+        // Use a hard navigation to ensure cookies and session are fully refreshed
         setTimeout(() => {
-          router.push("/dashboard");
+          window.location.href = "/dashboard";
         }, 1000);
       } catch (error) {
         console.error("Switch error:", error);

@@ -7,6 +7,7 @@ import { CheckCircle, Clock, ArrowRight } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { WidgetLoading } from "@/components/ui/WidgetStates";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ModernSignatureCapture, { SignatureCaptureValue } from "@/components/documents/ModernSignatureCapture";
 import { toast } from "sonner";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 
@@ -33,7 +34,9 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<ActionItem | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<null | { id: string; name: string; url?: string }>(null);
+  const [previewDoc, setPreviewDoc] = useState<null | { id: string; name: string; url?: string; requiresSignature?: boolean; requiresAck?: boolean }>(null);
+  const [signatureValue, setSignatureValue] = useState<SignatureCaptureValue | null>(null);
+  const [signSubmitting, setSignSubmitting] = useState(false);
   const [viewAll, setViewAll] = useState(false);
 
   const toAuditValue = (val: unknown): string | null | undefined => {
@@ -239,7 +242,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                     metadata: doc,
                     actionLabel: "Review",
                     onAction: async () => {
-                      setPreviewDoc({ id: doc.id, name: doc.name, url: doc.url });
+                      setPreviewDoc({ id: doc.id, name: doc.name, url: doc.url, requiresAck: true, requiresSignature: doc.requiresSignature });
                     }
                   };
                 }
@@ -262,7 +265,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                     metadata: doc,
                     actionLabel: "Sign",
                     onAction: async () => {
-                      setPreviewDoc({ id: doc.id, name: doc.name, url: doc.url });
+                      setPreviewDoc({ id: doc.id, name: doc.name, url: doc.url, requiresSignature: true, requiresAck: doc.requiresAck });
                     }
                   };
                 }
@@ -573,7 +576,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={(e) => {
+                      onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         handleItemAction(item, "decline");
                       }}
@@ -585,7 +588,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                   )}
                   <Button
                     size="sm"
-                    onClick={async (e) => {
+                    onClick={async (e: React.MouseEvent) => {
                       e.stopPropagation();
                       if (item.type === "approval" || item.type === "change") {
                         await handleItemAction(item, "approve");
@@ -620,8 +623,14 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
       </DashboardWidget>
 
       {/* Document Preview Dialog */}
-      <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="max-w-4xl">
+      <Dialog open={!!previewDoc} onOpenChange={(open) => {
+        if (!open) {
+          setPreviewDoc(null);
+          setSignatureValue(null);
+          setSignSubmitting(false);
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{previewDoc?.name || "Document"}</DialogTitle>
           </DialogHeader>
@@ -638,31 +647,93 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
               ) : (
                 <p className="text-sm text-muted-foreground">Preview not available</p>
               )}
+              
+              {/* Signature Section */}
+              {previewDoc.requiresSignature && (
+                <div className="p-6 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200">
+                  <h3 className="font-semibold text-gray-900 mb-4 text-lg flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-indigo-600" />
+                    Sign Document
+                  </h3>
+                  <ModernSignatureCapture
+                    value={signatureValue}
+                    onChange={setSignatureValue}
+                  />
+                </div>
+              )}
+              
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setPreviewDoc(null)}>
+                <Button variant="outline" onClick={() => {
+                  setPreviewDoc(null);
+                  setSignatureValue(null);
+                }}>
                   Close
                 </Button>
-                <Button
-                  onClick={async () => {
-                    if (!previewDoc) return;
-                    try {
-                      await fetch("/api/documents/acknowledge", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ documentId: previewDoc.id })
-                      });
-                      toast.success("Document acknowledged");
-                      setActionItems(prev => prev.filter(item => 
-                        !item.id.includes(previewDoc.id)
-                      ));
-                      setPreviewDoc(null);
-                    } catch {
-                      toast.error("Failed to acknowledge document");
-                    }
-                  }}
-                >
-                  Acknowledge & Close
-                </Button>
+                
+                {previewDoc.requiresSignature ? (
+                  <Button
+                    disabled={!signatureValue || signSubmitting}
+                    loading={signSubmitting}
+                    onClick={async () => {
+                      if (!previewDoc || !signatureValue) return;
+                      setSignSubmitting(true);
+                      try {
+                        const res = await fetch("/api/documents/sign", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            documentId: previewDoc.id,
+                            method: signatureValue.method,
+                            typedText: signatureValue.typedText,
+                            drawnDataUrl: signatureValue.dataUrl,
+                          })
+                        });
+                        if (res.ok) {
+                          toast.success("Document signed successfully!");
+                          // Refresh action items to remove completed ones
+                          mutateActionItems();
+                          setActionItems(prev => prev.filter(item => 
+                            !item.id.includes(previewDoc.id)
+                          ));
+                          setPreviewDoc(null);
+                          setSignatureValue(null);
+                        } else {
+                          toast.error("Failed to sign document");
+                        }
+                      } catch {
+                        toast.error("Failed to sign document");
+                      } finally {
+                        setSignSubmitting(false);
+                      }
+                    }}
+                  >
+                    {signSubmitting ? "Signing..." : "Sign Document"}
+                  </Button>
+                ) : previewDoc.requiresAck ? (
+                  <Button
+                    onClick={async () => {
+                      if (!previewDoc) return;
+                      try {
+                        await fetch("/api/documents/acknowledge", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ documentId: previewDoc.id })
+                        });
+                        toast.success("Document acknowledged");
+                        // Refresh action items to remove completed ones
+                        mutateActionItems();
+                        setActionItems(prev => prev.filter(item => 
+                          !item.id.includes(previewDoc.id)
+                        ));
+                        setPreviewDoc(null);
+                      } catch {
+                        toast.error("Failed to acknowledge document");
+                      }
+                    }}
+                  >
+                    Acknowledge & Close
+                  </Button>
+                ) : null}
               </div>
             </div>
           )}

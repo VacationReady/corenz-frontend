@@ -199,6 +199,24 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Mark related action items as completed
+    await prisma.actionItem.updateMany({
+      where: {
+        companyId,
+        assignedToId: userId,
+        type: "DOCUMENT_ACKNOWLEDGEMENT",
+        status: "PENDING",
+        metadata: {
+          path: ["documentId"],
+          equals: documentId,
+        },
+      },
+      data: {
+        status: "COMPLETED",
+        updatedAt: new Date(),
+      },
+    });
+
     // If a drawn signature and a single field target, stamp the PDF visually and upload a new version
     try {
       if (method === "DRAWN") {

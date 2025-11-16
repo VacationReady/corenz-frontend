@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { toast } from "sonner";
 
 type EmployeeOption = {
@@ -17,6 +18,27 @@ type EventCategory = {
   id: string;
   name: string;
 };
+
+const DropdownSearchInput = ({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  placeholder?: string;
+}) => (
+  <div className="sticky top-0 z-10 bg-popover p-2 border-b border-muted/40">
+    <Input
+      value={value}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      placeholder={placeholder ?? "Search..."}
+      onKeyDown={(e) => e.stopPropagation()}
+      autoFocus
+      className="h-9"
+    />
+  </div>
+);
 
 export default function AddHolidayModal({
   open,
@@ -152,31 +174,50 @@ export default function AddHolidayModal({
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Employee</label>
-          <Input
-            placeholder="Search employees"
-            value={employeeSearch}
-            onChange={(e) => setEmployeeSearch(e.target.value)}
-            className="mb-2"
-          />
-          <select
-            className="w-full border rounded p-2"
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
+          <Select
+            value={employeeId || undefined}
+            onValueChange={(value: string) => {
+              if (value === "__clear__") {
+                setEmployeeId("");
+                return;
+              }
+              setEmployeeId(value);
+            }}
           >
-            <option value="">Select employee</option>
-            {filteredEmployees.length === 0 ? (
-              <option value="__no-results" disabled>
-                No employees match your search
-              </option>
-            ) : (
-              filteredEmployees.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                  {e.departmentName ? ` — ${e.departmentName}` : ""}
-                </option>
-              ))
-            )}
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select employee" />
+            </SelectTrigger>
+            <SelectContent className="max-h-72 p-0">
+              <DropdownSearchInput
+                value={employeeSearch}
+                onChange={setEmployeeSearch}
+                placeholder="Search employees..."
+              />
+              {employeeId ? (
+                <SelectItem value="__clear__" className="text-muted-foreground">
+                  Clear selection
+                </SelectItem>
+              ) : null}
+              {filteredEmployees.length === 0 ? (
+                <div className="px-3 py-2 text-sm text-muted-foreground">
+                  No employees match your search
+                </div>
+              ) : (
+                filteredEmployees.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium">{employee.name}</span>
+                      {employee.departmentName ? (
+                        <span className="text-xs text-muted-foreground">
+                          {employee.departmentName}
+                        </span>
+                      ) : null}
+                    </div>
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
@@ -184,7 +225,7 @@ export default function AddHolidayModal({
           <select
             className="w-full border rounded p-2"
             value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setCategoryId(e.target.value)}
           >
             <option value="">Select leave type</option>
             {categories.map((c) => (
@@ -197,17 +238,17 @@ export default function AddHolidayModal({
 
         <div>
           <label className="block text-sm font-medium">Start date</label>
-          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <Input type="date" value={startDate} onChange={(e: ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value)} />
         </div>
 
         <div>
           <label className="block text-sm font-medium">End date</label>
-          <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          <Input type="date" value={endDate} onChange={(e: ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value)} />
         </div>
 
         <div>
           <label className="block text-sm font-medium">Reason (optional)</label>
-          <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Optional note" />
+          <Input value={reason} onChange={(e: ChangeEvent<HTMLInputElement>) => setReason(e.target.value)} placeholder="Optional note" />
         </div>
 
         <div className="flex justify-end gap-2 pt-2">

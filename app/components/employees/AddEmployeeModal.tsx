@@ -10,6 +10,8 @@ import NewContractTypeModal from "@/components/shared/NewContractTypeModal";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { validateEmail, validatePhone, getPhoneHelperText } from "@/lib/validators";
+import { useEmployeeModalData } from "@/app/hooks/useEmployeeModalData";
+import { fetchWithCsrf } from "@/lib/csrf";
 
 // 👇 Toggle
 import { Switch } from "@/components/ui/switch";
@@ -38,7 +40,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HelpCircle, X } from "lucide-react";
+import { HelpCircle, X, AlertCircle } from "lucide-react";
 
 // NZ Tax Code options based on IRD tables
 const NZ_TAX_CODES = [
@@ -221,19 +223,20 @@ export default function AddEmployeeModal({
   onSuccess,
 }: AddEmployeeModalProps) {
   const { data: session } = useSession();
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [jobRoles, setJobRoles] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
-  const [contractTypes, setContractTypes] = useState<Array<{ id: string; label: string }>>([]);
-  interface OnboardingTemplate {
-    id: string;
-    name: string;
-    departments?: { id: string }[];
-    jobRoles?: { id: string }[];
-  }
-  const [templates, setTemplates] = useState<OnboardingTemplate[]>([]);
-  const [workingPatterns, setWorkingPatterns] = useState<any[]>([]);
+  
+  // Use SWR hook for cached, resilient data fetching
+  const modalData = useEmployeeModalData(open);
+  
+  // Extract datasets from hook
+  const departments = modalData.departments.data;
+  const jobRoles = modalData.jobRoles.data;
+  const employees = modalData.employees.data;
+  const locations = modalData.locations.data;
+  const contractTypes = modalData.contractTypes.data;
+  const templates = modalData.templates.data;
+  const workingPatterns = modalData.workingPatterns.data;
+  const permissionProfiles = modalData.permissionProfiles.data;
+  
   const [error, setError] = useState("");
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
@@ -486,50 +489,10 @@ export default function AddEmployeeModal({
     if (!open) setWorkingPatternSearch("");
   };
 
-  const fetchData = async () => {
-    try {
-      const [empRes, deptRes, roleRes, templateRes, patternsRes, locationsRes, contractTypeRes] =
-        await Promise.all([
-          fetch("/api/employees").then((r) => r.json()),
-          fetch("/api/departments").then((r) => r.json()),
-          fetch("/api/job-roles").then((r) => r.json()),
-          fetch("/api/onboarding/templates").then((r) => r.json()),
-          fetch("/api/working-patterns").then((r) => r.json()),
-          fetch("/api/locations").then((r) => r.json()),
-          fetch("/api/contract-type-options").then((r) => r.json()),
-        ]);
-
-      // API returns flattened employees with id, firstName, lastName, etc.
-      setEmployees(Array.isArray(empRes) ? empRes : []);
-      setDepartments(
-        Array.isArray(deptRes) ? deptRes : deptRes.departments || [],
-      );
-      setJobRoles(Array.isArray(roleRes) ? roleRes : roleRes.jobRoles || []);
-      const rawTemplates = Array.isArray(templateRes)
-        ? (templateRes as any[])
-        : (templateRes.templates as any[]) || [];
-
-      // Normalize possible API shapes -> ensure departments/jobRoles keys exist
-      const normalizedTemplates: OnboardingTemplate[] = rawTemplates.map((t: any) => ({
-        id: t.id,
-        name: t.name,
-        departments: (t.departments || t.Department || []).map((d: any) => ({ id: d.id })),
-        jobRoles: (t.jobRoles || t.JobRole || []).map((j: any) => ({ id: j.id })),
-      }));
-
-      setTemplates(normalizedTemplates);
-      setWorkingPatterns(patternsRes);
-      setLocations(Array.isArray(locationsRes) ? locationsRes : []);
-      setContractTypes(Array.isArray(contractTypeRes) ? contractTypeRes : []);
-    } catch {
-      setError("Failed to load data");
-    }
-  };
+  // Data is now fetched via SWR hook - no manual fetchData needed
 
   useEffect(() => {
     if (open) {
-      fetchData();
-      
       // Restore draft from sessionStorage
       try {
         const savedDraft = sessionStorage.getItem(storageKey);
@@ -545,7 +508,7 @@ export default function AddEmployeeModal({
         setInitialFormData(formData);
       }
     }
-  }, [open, storageKey]);
+  }, [open, storageKey, formData]);
 
   useEffect(() => {
     if (!open) {
@@ -1019,6 +982,13 @@ export default function AddEmployeeModal({
       setIsSubmitting(true);
       setError("");
 
+      // Find admin permission profile if admin access is enabled
+      const adminProfile = isAdminAccess 
+        ? permissionProfiles.find(p => p.name?.toLowerCase() === "admin" || p.name?.toLowerCase().includes("administrator"))
+        : null;
+      
+      console.log("[AddEmployeeModal] Admin toggle:", isAdminAccess, "Admin profile:", adminProfile);
+
       const payload = {
         ...formData,
         // Determine role from Admin toggle. Manager role is based on line manager relationship.
@@ -1036,8 +1006,8 @@ export default function AddEmployeeModal({
         managerId: formData.managerId || "",
         contractType: formData.contractType || "",
         locationId: formData.locationId || "",
-        // No profile picker; allow backend defaults
-        permissionProfileId: "",
+        // Set permission profile based on admin toggle
+        permissionProfileId: adminProfile?.id || "",
         holidayYear: formData.holidayYear || "",
         workingPatternId: formData.workingPatternId || "",
         // NZ-specific onboarding fields
@@ -1064,11 +1034,11 @@ export default function AddEmployeeModal({
           : "",
       };
 
-      const res = await fetch("/api/employees", {
+      // Use CSRF-protected fetch for security
+      const res = await fetchWithCsrf("/api/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-        credentials: "include",
       });
 
       if (!res.ok) {

@@ -51,138 +51,379 @@ async function callGet(req: NextRequest, context: any) {
   return GET(req, context);
 }
 
-test("GET /api/onboarding/instances/[employeeId] - returns 401 for unauthenticated requests", async () => {
-  // No session
+const originalEmployeeModel = prisma.employee;
+const originalInstanceModel = prisma.onboardingInstance;
+
+function resetMocks() {
   mockSession = null;
+  (prisma as any).employee = originalEmployeeModel;
+  (prisma as any).onboardingInstance = originalInstanceModel;
+}
 
-  const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  const res = await callGet(req, { params: { employeeId: "emp1" } });
-  const data = await res.json();
-
-  assert.equal(res.status, 401);
-  assert.equal(data.error, "Unauthorized");
-});
-
-test("GET /api/onboarding/instances/[employeeId] - returns 401 for session without companyId", async () => {
-  // Session without companyId
-  mockSession = {
-    user: { id: "user1", email: "test@example.com" },
+test("Onboarding Instances API auth guards", async (t) => {
+  const run = async (name: string, fn: () => Promise<void>) => {
+    await t.test(name, async () => {
+      resetMocks();
+      await fn();
+    });
   };
 
-  const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  const res = await callGet(req, { params: { employeeId: "emp1" } });
-  const data = await res.json();
+  await run("returns 401 for unauthenticated requests", async () => {
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
 
-  assert.equal(res.status, 401);
-  assert.equal(data.error, "Unauthorized");
-});
+    assert.equal(res.status, 401);
+    assert.equal(data.error, "Unauthorized");
+  });
 
-test("GET /api/onboarding/instances/[employeeId] - returns 404 for non-existent employee", async () => {
-  mockSession = {
-    user: { id: "user1", companyId: "company1", email: "test@example.com" },
-  };
+  await run("returns 401 for session without companyId", async () => {
+    mockSession = {
+      user: { id: "user1", email: "test@example.com" },
+    };
 
-  // Mock prisma to return no employee
-  (prisma as any).employee = {
-    findUnique: async () => null,
-  };
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
 
-  const req = new NextRequest("http://localhost/api/onboarding/instances/emp999");
-  const res = await callGet(req, { params: { employeeId: "emp999" } });
-  const data = await res.json();
+    assert.equal(res.status, 401);
+    assert.equal(data.error, "Unauthorized");
+  });
 
-  assert.equal(res.status, 404);
-  assert.equal(data.error, "Employee not found");
-});
+  await run("returns 404 for non-existent employee", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+    };
 
-test("GET /api/onboarding/instances/[employeeId] - returns 403 for cross-tenant access attempt", async () => {
-  mockSession = {
-    user: { id: "user1", companyId: "company1", email: "test@example.com" },
-  };
+    (prisma as any).employee = {
+      findUnique: async () => null,
+    };
 
-  // Mock employee belonging to different company
-  (prisma as any).employee = {
-    findUnique: async () => ({
-      id: "emp1",
-      companyId: "company2", // Different company!
-    }),
-  };
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp999");
+    const res = await callGet(req, { params: { employeeId: "emp999" } });
+    const data = await res.json();
 
-  const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  const res = await callGet(req, { params: { employeeId: "emp1" } });
-  const data = await res.json();
+    assert.equal(res.status, 404);
+    assert.equal(data.error, "Employee not found");
+  });
 
-  assert.equal(res.status, 403);
-  assert.equal(data.error, "Forbidden: Cross-tenant access denied");
-});
+  await run("returns 403 for cross-tenant access attempt", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+    };
 
-test("GET /api/onboarding/instances/[employeeId] - returns 404 when no active instance exists for valid employee", async () => {
-  mockSession = {
-    user: { id: "user1", companyId: "company1", email: "test@example.com" },
-  };
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company2",
+      }),
+    };
 
-  // Mock employee in same company
-  (prisma as any).employee = {
-    findUnique: async () => ({
-      id: "emp1",
-      companyId: "company1",
-    }),
-  };
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
 
-  // Mock no instance found
-  (prisma as any).onboardingInstance = {
-    findFirst: async () => null,
-  };
+    assert.equal(res.status, 403);
+    assert.equal(data.error, "Forbidden: Cross-tenant access denied");
+  });
 
-  const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  const res = await callGet(req, { params: { employeeId: "emp1" } });
-  const data = await res.json();
+  await run("returns 404 when no active instance exists for valid employee", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+    };
 
-  assert.equal(res.status, 404);
-  assert.equal(data.error, "No active onboarding found");
-});
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+      }),
+    };
 
-test("GET /api/onboarding/instances/[employeeId] - successfully returns instance for valid tenant-scoped request", async () => {
-  mockSession = {
-    user: { id: "user1", companyId: "company1", email: "test@example.com" },
-  };
+    (prisma as any).onboardingInstance = {
+      findFirst: async () => null,
+    };
 
-  // Mock employee in same company
-  (prisma as any).employee = {
-    findUnique: async () => ({
-      id: "emp1",
-      companyId: "company1",
-    }),
-  };
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
 
-  // Mock onboarding instance
-  (prisma as any).onboardingInstance = {
-    findFirst: async ({ where }: any) => {
-      // Verify tenant scope is enforced in query
-      assert.equal(where.employeeId, "emp1");
-      assert.equal(where.OnboardingTemplate.companyId, "company1");
+    assert.equal(res.status, 404);
+    assert.equal(data.error, "No active onboarding found");
+  });
 
-      return {
+  await run("successfully returns instance for valid tenant-scoped request", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+      }),
+    };
+
+    let capturedWhere: any = null;
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async ({ where }: any) => {
+        capturedWhere = where;
+        return {
+          id: "inst1",
+          OnboardingStepInstance: [
+            {
+              id: "inst-step-1",
+              stepId: "step-payroll",
+              status: "pending",
+              OnboardingStepResponse: [],
+            },
+          ],
+          OnboardingTemplate: {
+            name: "New Hire Onboarding",
+            OnboardingStep: [
+              {
+                id: "step-payroll",
+                type: "PAYROLL_SETUP",
+                label: "Complete Payroll Setup",
+                instruction: "Enter your bank details",
+                uploadType: null,
+                documentId: null,
+                metadata: { fields: ["bankAccount", "taxNumber"] },
+                formId: null,
+                order: 1,
+                Document: null,
+                Form: null,
+              },
+            ],
+          },
+        };
+      },
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.template.name, "New Hire Onboarding");
+    assert.equal(data.steps.length, 1);
+    assert.equal(capturedWhere?.employeeId, "emp1");
+    assert.equal(capturedWhere?.OnboardingTemplate?.companyId, "company1");
+
+    const payrollStep = data.steps[0];
+    assert.equal(payrollStep.type, "payroll-setup");
+    assert.equal(payrollStep.label, "Complete Payroll Setup");
+  });
+
+  await run("tenant scope prevents cross-tenant template access", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+      }),
+    };
+
+    let queryWasScoped = false;
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async ({ where }: any) => {
+        if (where.OnboardingTemplate?.companyId === "company1") {
+          queryWasScoped = true;
+        }
+        return null;
+      },
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    await callGet(req, { params: { employeeId: "emp1" } });
+
+    assert.ok(queryWasScoped, "Query must include OnboardingTemplate.companyId filter");
+  });
+
+  await run("correctly maps all step types from database enums to UI types", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+      }),
+    };
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async () => ({
         id: "inst1",
         OnboardingStepInstance: [
-          {
-            id: "inst-step-1",
-            stepId: "step-payroll",
-            status: "pending",
-            OnboardingStepResponse: [],
-          },
+          { id: "inst-1", stepId: "step-1", status: "pending", OnboardingStepResponse: [] },
+          { id: "inst-2", stepId: "step-2", status: "pending", OnboardingStepResponse: [] },
+          { id: "inst-3", stepId: "step-3", status: "pending", OnboardingStepResponse: [] },
+          { id: "inst-4", stepId: "step-4", status: "pending", OnboardingStepResponse: [] },
+          { id: "inst-5", stepId: "step-5", status: "pending", OnboardingStepResponse: [] },
+          { id: "inst-6", stepId: "step-6", status: "pending", OnboardingStepResponse: [] },
         ],
         OnboardingTemplate: {
-          name: "New Hire Onboarding",
+          name: "Comprehensive Step Types",
           OnboardingStep: [
             {
-              id: "step-payroll",
+              id: "step-1",
               type: "PAYROLL_SETUP",
-              label: "Complete Payroll Setup",
-              instruction: "Enter your bank details",
+              label: "Payroll Setup",
+              instruction: "Configure payroll",
               uploadType: null,
               documentId: null,
-              metadata: { fields: ["bankAccount", "taxNumber"] },
+              metadata: { fields: ["bankAccount"] },
+              formId: null,
+              order: 1,
+              Document: null,
+              Form: null,
+            },
+            {
+              id: "step-2",
+              type: "BENEFITS_ENROLLMENT",
+              label: "Enroll in Benefits",
+              instruction: "Choose benefits",
+              uploadType: null,
+              documentId: null,
+              metadata: {},
+              formId: null,
+              order: 2,
+              Document: null,
+              Form: null,
+            },
+            {
+              id: "step-3",
+              type: "EQUIPMENT_CHECKLIST",
+              label: "Equipment Sign-off",
+              instruction: "Confirm equipment",
+              uploadType: null,
+              documentId: null,
+              metadata: { items: [] },
+              formId: null,
+              order: 3,
+              Document: null,
+              Form: null,
+            },
+            {
+              id: "step-4",
+              type: "MANAGER_CHECKIN",
+              label: "Meet Manager",
+              instruction: "Schedule meeting",
+              uploadType: null,
+              documentId: null,
+              metadata: {},
+              formId: null,
+              order: 4,
+              Document: null,
+              Form: null,
+            },
+            {
+              id: "step-5",
+              type: "COMPLIANCE_TRAINING",
+              label: "Compliance Training",
+              instruction: "Complete training",
+              uploadType: null,
+              documentId: null,
+              metadata: {},
+              formId: null,
+              order: 5,
+              Document: null,
+              Form: null,
+            },
+            {
+              id: "step-6",
+              type: "JOURNEY_AUTOMATION",
+              label: "Automated Journey",
+              instruction: "Workflow trigger",
+              uploadType: null,
+              documentId: null,
+              metadata: {},
+              formId: null,
+              order: 6,
+              Document: null,
+              Form: null,
+            },
+          ],
+        },
+      }),
+    };
+
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.steps.length, 6, "Should have 6 steps");
+
+    // Verify all types are correctly mapped from DB enum to UI hyphenated format
+    const expectedMappings = [
+      { type: "payroll-setup", label: "Payroll Setup" },
+      { type: "benefits-enrollment", label: "Enroll in Benefits" },
+      { type: "equipment-checklist", label: "Equipment Sign-off" },
+      { type: "manager-checkin", label: "Meet Manager" },
+      { type: "compliance-training", label: "Compliance Training" },
+      { type: "journey-automation", label: "Automated Journey" },
+    ];
+
+    expectedMappings.forEach((expected, idx) => {
+      const step = data.steps[idx];
+      assert.equal(
+        step.type,
+        expected.type,
+        `Step ${idx + 1} type should be "${expected.type}" not "${step.type}"`,
+      );
+      assert.equal(
+        step.label,
+        expected.label,
+        `Step ${idx + 1} label should match`,
+      );
+      // Verify metadata is hydrated
+      assert.ok(
+        step.metadata !== undefined,
+        `Step ${idx + 1} should have metadata object`,
+      );
+    });
+  });
+
+  await run("metadata is hydrated for all step types", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", email: "test@example.com" },
+    };
+
+    (prisma as any).employee = {
+      findUnique: async () => ({
+        id: "emp1",
+        companyId: "company1",
+      }),
+    };
+
+    (prisma as any).onboardingInstance = {
+      findFirst: async () => ({
+        id: "inst1",
+        OnboardingStepInstance: [
+          { id: "inst-1", stepId: "step-1", status: "pending", OnboardingStepResponse: [] },
+        ],
+        OnboardingTemplate: {
+          name: "Metadata Test",
+          OnboardingStep: [
+            {
+              id: "step-1",
+              type: "PAYROLL_SETUP",
+              label: "NZ Payroll",
+              instruction: "Enter IRD details",
+              uploadType: null,
+              documentId: null,
+              metadata: {
+                fields: ["irdNumber", "taxCode", "kiwiSaverRate"],
+                nzCompliance: true,
+                presetSlug: "nz-ird-number",
+                tenantScope: ["company1"],
+              },
               formId: null,
               order: 1,
               Document: null,
@@ -190,52 +431,35 @@ test("GET /api/onboarding/instances/[employeeId] - successfully returns instance
             },
           ],
         },
-      };
-    },
-  };
+      }),
+    };
 
-  const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  const res = await GET(req, { params: { employeeId: "emp1" } });
-  const data = await res.json();
+    const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
+    const res = await callGet(req, { params: { employeeId: "emp1" } });
+    const data = await res.json();
 
-  assert.equal(res.status, 200);
-  assert.equal(data.template.name, "New Hire Onboarding");
-  assert.equal(data.steps.length, 1);
-  
-  // Verify step type mapping
-  const payrollStep = data.steps[0];
-  assert.equal(payrollStep.type, "payroll-setup"); // Hyphenated format
-  assert.equal(payrollStep.label, "Complete Payroll Setup");
-});
-
-test("GET /api/onboarding/instances/[employeeId] - tenant scope prevents cross-tenant template access", async () => {
-  mockSession = {
-    user: { id: "user1", companyId: "company1", email: "test@example.com" },
-  };
-
-  // Mock employee in same company
-  (prisma as any).employee = {
-    findUnique: async () => ({
-      id: "emp1",
-      companyId: "company1",
-    }),
-  };
-
-  let queryWasScoped = false;
-
-  // Mock to verify query includes tenant scope
-  (prisma as any).onboardingInstance = {
-    findFirst: async ({ where }: any) => {
-      // Check that the where clause includes tenant scoping
-      if (where.OnboardingTemplate?.companyId === "company1") {
-        queryWasScoped = true;
-      }
-      return null; // No instance found (expected for this test)
-    },
-  };
-
-  const req = new NextRequest("http://localhost/api/onboarding/instances/emp1");
-  await callGet(req, { params: { employeeId: "emp1" } });
-
-  assert.ok(queryWasScoped, "Query must include OnboardingTemplate.companyId filter");
+    assert.equal(res.status, 200);
+    const step = data.steps[0];
+    
+    // Verify all metadata fields are preserved
+    assert.ok(step.metadata, "Step should have metadata");
+    assert.deepEqual(
+      step.metadata.fields,
+      ["irdNumber", "taxCode", "kiwiSaverRate"],
+      "Metadata fields array should be preserved",
+    );
+    assert.equal(
+      step.metadata.presetSlug,
+      "nz-ird-number",
+      "Preset slug should be preserved",
+    );
+    assert.ok(
+      Array.isArray(step.metadata.tenantScope),
+      "Tenant scope should be preserved as array",
+    );
+    assert.ok(
+      step.metadata.tenantScope.includes("company1"),
+      "Tenant scope should include company1",
+    );
+  });
 });

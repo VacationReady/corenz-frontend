@@ -53,7 +53,7 @@ export default function ApiConnectivityStatus() {
         console.error('⏱️ Connectivity check timed out while calling /api/auth/csrf');
       } else {
         setMessage(
-          'Unable to contact the API. Ensure `npm run dev` is running, Windows Firewall allows Node.js, and your phone is on the same Wi‑Fi.'
+          'Unable to contact the API. Ensure `npm run dev` is running, Windows Firewall allows Node.js, and your phone is on the same Wi-Fi.'
         );
         console.error('❌ Connectivity check failed:', error);
       }

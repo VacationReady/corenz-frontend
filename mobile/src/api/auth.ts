@@ -17,19 +17,22 @@ export async function signInWithCredentials(email: string, password: string) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/callback/credentials`, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({ 
-        email, 
-        password, 
+      body: new URLSearchParams({
+        email,
+        password,
         json: "true",
-        redirect: "false" 
+        redirect: "false",
       }).toString(),
     });
 
     console.log("📡 Response status:", response.status);
-    console.log("📡 Response headers:", JSON.stringify(Object.fromEntries(response.headers.entries())));
+    console.log(
+      "📡 Response headers:",
+      JSON.stringify(Object.fromEntries(response.headers.entries()))
+    );
 
     const responseText = await response.text();
     console.log("📡 Response body:", responseText);
@@ -52,7 +55,7 @@ export async function signInWithCredentials(email: string, password: string) {
     // Extract and store session token from set-cookie header
     const setCookie = response.headers.get("set-cookie");
     console.log("🍪 Set-Cookie header:", setCookie);
-    
+
     if (setCookie) {
       // Extract the session token from the cookie string
       const match = setCookie.match(/next-auth\.session-token=([^;]+)/);
@@ -64,13 +67,13 @@ export async function signInWithCredentials(email: string, password: string) {
 
     // Return success - the session will be validated on subsequent requests
     console.log("✅ Login successful");
-    return { 
-      user: { 
+    return {
+      user: {
         email: email,
       },
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Network error during login:", error);
     console.error("❌ Error details:", {
       name: error?.name,
@@ -84,12 +87,15 @@ export async function signInWithCredentials(email: string, password: string) {
 
     // Provide more specific error messages
     const errorMessage = error?.message || String(error);
+
     if (error?.name === "AbortError" || errorMessage.includes("timed out")) {
       throw new Error(
         `Request to ${API_BASE_URL} timed out. Make sure the backend is running (npm run dev), bound to your LAN, Windows Firewall allows Node.js on port 3000, and visit ${API_BASE_URL} from your phone to confirm it loads.`
       );
     } else if (errorMessage.includes("Network request failed")) {
-      throw new Error(`Unable to connect to ${API_BASE_URL}. Please check:\n1. Server is running (npm run dev)\n2. IP address ${API_BASE_URL} is correct\n3. Phone and computer are on same WiFi`);
+      throw new Error(
+        `Unable to connect to ${API_BASE_URL}. Please check:\n1. Server is running (npm run dev)\n2. IP address ${API_BASE_URL} is correct\n3. Phone and computer are on same WiFi`
+      );
     } else if (errorMessage.includes("fetch")) {
       throw new Error("Connection error. Please ensure the server is running and accessible.");
     } else {
@@ -99,6 +105,11 @@ export async function signInWithCredentials(email: string, password: string) {
 }
 
 export async function getSession() {
+  if (!API_BASE_URL) {
+    console.error("❌ API_BASE_URL is not configured!");
+    throw new Error("API configuration missing");
+  }
+
   const response = await fetch(`${API_BASE_URL}/api/auth/session`, {
     method: "GET",
     credentials: "include",
@@ -112,6 +123,11 @@ export async function getSession() {
 }
 
 export async function signOut() {
+  if (!API_BASE_URL) {
+    console.error("❌ API_BASE_URL is not configured!");
+    return;
+  }
+
   try {
     await SecureStore.deleteItemAsync("next-auth.session-token");
     await fetch(`${API_BASE_URL}/api/auth/signout`, {

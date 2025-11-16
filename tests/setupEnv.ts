@@ -21,6 +21,10 @@ if (!globalThis.crypto) {
 // CRITICAL: Mock server-only modules BEFORE any imports
 // This prevents errors in test environment
 const originalLoad = (Module as any)._load;
+
+// Cache mocked modules to ensure all imports get the same instance
+let cachedPrismaMock: any = null;
+
 (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
   // Mock server-only package (throws in non-server contexts)
   if (request === "server-only") {
@@ -84,21 +88,40 @@ const originalLoad = (Module as any)._load;
   
   // Mock app/lib/prisma to return mock client
   if (request.includes("app/lib/prisma") || request.includes("lib/prisma")) {
-    return {
-      prisma: new Proxy({}, {
-        get: () => ({
-          findUnique: async () => null,
-          findMany: async () => [],
-          findFirst: async () => null,
-          create: async () => ({}),
-          update: async () => ({}),
-          delete: async () => ({}),
-          count: async () => 0,
-          createMany: async () => ({ count: 0 }),
+    // Return cached instance if it exists, otherwise create it
+    if (!cachedPrismaMock) {
+      // Create default mock methods
+      const defaultMock = {
+        findUnique: async () => null,
+        findMany: async () => [],
+        findFirst: async () => null,
+        create: async () => ({}),
+        update: async () => ({}),
+        delete: async () => ({}),
+        count: async () => 0,
+        createMany: async () => ({ count: 0 }),
+      };
+      
+      // Use a Proxy that allows property mutations while providing defaults
+      cachedPrismaMock = {
+        prisma: new Proxy({}, {
+          get: (target: any, prop: string) => {
+            // Return custom mock if set, otherwise return default mock
+            if (target[prop]) {
+              return target[prop];
+            }
+            return { ...defaultMock };
+          },
+          set: (target: any, prop: string, value: any) => {
+            // Allow tests to override specific models
+            target[prop] = value;
+            return true;
+          },
         }),
-      }),
-      getPrismaClient: () => null, // For public-holiday-checker.ts
-    };
+        getPrismaClient: () => null, // For public-holiday-checker.ts
+      };
+    }
+    return cachedPrismaMock;
   }
   
   return originalLoad(request, parent, isMain);

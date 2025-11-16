@@ -34,83 +34,103 @@ function isStep(step: any): step is {
 }
 
 export function mapSteps(steps: any[]): Prisma.OnboardingStepCreateInput[] {
-  return Array.isArray(steps)
-    ? (steps
-        .map((step: any, i: number) => {
-          const mappedTypeKey = mapUiStepTypeToDb(step.type);
-          const mappedType = mappedTypeKey
-            ? (OnboardingStepType as any)[mappedTypeKey] ?? typeMap[step.type]
-            : typeMap[step.type];
-          if (!mappedType) return undefined;
-          const normalizedMetadata = normalizeStepMetadata(
-            step.type,
-            step.metadata,
-          );
-          // Ensure each step has a unique, non-empty label per template to satisfy @@unique([templateId, label])
-          const safeTitle = String(step.title || step.label || "").trim();
-          const defaultLabelByType =
-            mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT
-              ? "Acknowledge Document"
-              : mappedType === OnboardingStepType.UPLOAD_DOCUMENT
-                ? "Upload Document"
-                : mappedType === OnboardingStepType.INSTRUCTION
-                  ? "Instructions"
-                  : mappedType === OnboardingStepType.FORM_FILL
-                    ? "Fill Form"
-                    : "Step";
-          const uniqueLabel = `${safeTitle || defaultLabelByType} ${i + 1}`;
-          const base = {
-            id: `step_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}`,
-            type: mappedType,
-            label: uniqueLabel,
-            order: i + 1,
-          };
-          if (mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT) {
-            return {
-              ...base,
-              documentId: step.documentId || null,
-              instruction: step.description || "",
-              metadata: normalizedMetadata,
-            };
-          }
-          if (mappedType === OnboardingStepType.UPLOAD_DOCUMENT) {
-            return {
-              ...base,
-              uploadType: (() => {
-                const mappedUpload = mapUiUploadTypeToDb(step.uploadType);
-                if (!mappedUpload) return null;
-                return (
-                  (OnboardingUploadType as Record<string, OnboardingUploadType>)[
-                    mappedUpload
-                  ] || uploadTypeMap[step.uploadType]
-                );
-              })(),
-              instruction: step.description || "",
-              metadata: normalizedMetadata,
-            };
-          }
-          if (mappedType === OnboardingStepType.INSTRUCTION) {
-            return {
-              ...base,
-              instruction: step.description || "",
-              metadata: normalizedMetadata,
-            };
-          }
-          if (mappedType === OnboardingStepType.FORM_FILL) {
-            return {
-              ...base,
-              formId: step.formId || null,
-              instruction: step.description || "",
-              metadata: normalizedMetadata,
-            };
-          }
-          return {
-            ...base,
-            instruction: step.description || "",
-            metadata: normalizedMetadata,
-          };
-        })
-        .filter(isStep) as Prisma.OnboardingStepCreateInput[])
-    : [];
+  if (!Array.isArray(steps)) return [];
+
+  // Validate that all steps have non-empty labels
+  const emptyLabelSteps: number[] = [];
+  const labelCounts = new Map<string, number>();
+  
+  steps.forEach((step, idx) => {
+    const label = String(step.title || step.label || "").trim();
+    if (!label) {
+      emptyLabelSteps.push(idx + 1);
+    } else {
+      labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
+    }
+  });
+
+  // Reject empty labels - admins must provide explicit titles
+  if (emptyLabelSteps.length > 0) {
+    throw new Error(
+      `Steps ${emptyLabelSteps.join(", ")} have empty labels. All steps must have a unique, non-empty title.`
+    );
+  }
+
+  // Validate label uniqueness
+  const duplicateLabels = Array.from(labelCounts.entries())
+    .filter(([_, count]) => count > 1)
+    .map(([label]) => label);
+
+  if (duplicateLabels.length > 0) {
+    throw new Error(
+      `Duplicate step labels detected: ${duplicateLabels.join(", ")}. Each step must have a unique label.`
+    );
+  }
+
+  return steps
+    .map((step: any, i: number) => {
+      const mappedTypeKey = mapUiStepTypeToDb(step.type);
+      const mappedType = mappedTypeKey
+        ? (OnboardingStepType as any)[mappedTypeKey] ?? typeMap[step.type]
+        : typeMap[step.type];
+      if (!mappedType) return undefined;
+      const normalizedMetadata = normalizeStepMetadata(
+        step.type,
+        step.metadata,
+      );
+      // Use the title/label exactly as provided - NO automatic appending
+      const finalLabel = String(step.title || step.label || "").trim();
+      const base = {
+        id: `step_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}`,
+        type: mappedType,
+        label: finalLabel,
+        order: i + 1,
+      };
+      if (mappedType === OnboardingStepType.ACKNOWLEDGE_DOCUMENT) {
+        return {
+          ...base,
+          documentId: step.documentId || null,
+          instruction: step.description || "",
+          metadata: normalizedMetadata,
+        };
+      }
+      if (mappedType === OnboardingStepType.UPLOAD_DOCUMENT) {
+        return {
+          ...base,
+          uploadType: (() => {
+            const mappedUpload = mapUiUploadTypeToDb(step.uploadType);
+            if (!mappedUpload) return null;
+            return (
+              (OnboardingUploadType as Record<string, OnboardingUploadType>)[
+                mappedUpload
+              ] || uploadTypeMap[step.uploadType]
+            );
+          })(),
+          instruction: step.description || "",
+          metadata: normalizedMetadata,
+        };
+      }
+      if (mappedType === OnboardingStepType.INSTRUCTION) {
+        return {
+          ...base,
+          instruction: step.description || "",
+          metadata: normalizedMetadata,
+        };
+      }
+      if (mappedType === OnboardingStepType.FORM_FILL) {
+        return {
+          ...base,
+          formId: step.formId || null,
+          instruction: step.description || "",
+          metadata: normalizedMetadata,
+        };
+      }
+      return {
+        ...base,
+        instruction: step.description || "",
+        metadata: normalizedMetadata,
+      };
+    })
+    .filter(isStep) as Prisma.OnboardingStepCreateInput[];
 }
 

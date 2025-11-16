@@ -1289,6 +1289,39 @@ export default function OnboardingTemplateEditor({
       return;
     }
 
+    // Validate that all steps have non-empty titles
+    const emptyTitleSteps: number[] = [];
+    const labelCounts = new Map<string, number>();
+    
+    steps.forEach((step, idx) => {
+      const label = (step.title || "").trim();
+      if (!label) {
+        emptyTitleSteps.push(idx + 1);
+      } else {
+        labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
+      }
+    });
+
+    // Reject empty titles - admins must provide explicit labels
+    if (emptyTitleSteps.length > 0) {
+      toast.error("Empty step titles detected", {
+        description: `Steps ${emptyTitleSteps.join(", ")} have no title. All steps must have a unique, non-empty title.`,
+      });
+      return;
+    }
+
+    // Validate step label uniqueness
+    const duplicateLabels = Array.from(labelCounts.entries())
+      .filter(([_, count]) => count > 1)
+      .map(([label]) => label);
+
+    if (duplicateLabels.length > 0) {
+      toast.error("Duplicate step labels detected", {
+        description: `Each step must have a unique label. Duplicates: ${duplicateLabels.join(", ")}`,
+      });
+      return;
+    }
+
     toast.info(
       "This will not affect previously completed versions of this template, and any outstanding templates will not be altered. This will purely be for any future new starters onboarding using this template",
     );

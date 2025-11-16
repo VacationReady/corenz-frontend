@@ -7,6 +7,7 @@ import slugify from "slugify";
 import { randomBytes, randomUUID } from "crypto";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
+import { seedTenantReferenceData } from "@/lib/tenant-seed";
 
 export const dynamic = "force-dynamic";
 
@@ -292,6 +293,9 @@ export async function POST(req: NextRequest) {
           userId: adminUser.id,
         },
       });
+
+      // Seed essential reference data for new tenant
+      await seedTenantReferenceData(tx, company.id);
 
       return {
         company,

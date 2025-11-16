@@ -76,6 +76,55 @@ const createEmployeeSchema = z.object({
     },
     z.number().nonnegative().optional(),
   ),
+  // NZ Leave Compliance Fields
+  sickLeaveDays: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === "") {
+        return 10; // NZ default: 10 days after 6 months
+      }
+      if (typeof val === "string") {
+        const parsed = Number(val);
+        return Number.isFinite(parsed) && parsed >= 0 ? parsed : 10;
+      }
+      if (typeof val === "number") {
+        return Number.isFinite(val) && val >= 0 ? val : 10;
+      }
+      return 10;
+    },
+    z.number().nonnegative(),
+  ),
+  alternativeHolidayDays: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === "") {
+        return 0;
+      }
+      if (typeof val === "string") {
+        const parsed = Number(val);
+        return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+      }
+      if (typeof val === "number") {
+        return Number.isFinite(val) && val >= 0 ? val : 0;
+      }
+      return 0;
+    },
+    z.number().nonnegative(),
+  ),
+  publicHolidayEntitlement: z.preprocess(
+    (val) => {
+      if (val === null || val === undefined || val === "") {
+        return 11; // NZ default: 11 national + regional holidays
+      }
+      if (typeof val === "string") {
+        const parsed = Number(val);
+        return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 11;
+      }
+      if (typeof val === "number") {
+        return Number.isFinite(val) && val >= 0 ? Math.floor(val) : 11;
+      }
+      return 11;
+    },
+    z.number().int().nonnegative(),
+  ),
 });
 
 // ✅ GET: Return employees with their user data for listing
@@ -243,6 +292,11 @@ export async function GET(req: Request) {
           offboardingRecord: emp.EmployeeOffboarding,
           profileImageUrl: profileUrl,
           permissionProfileName: emp.User.PermissionProfile?.name ?? null,
+          // NZ Leave Compliance Fields
+          sickLeaveDaysPerYear: emp.sickLeaveDaysPerYear,
+          alternativeHolidayBalance: emp.alternativeHolidayBalance,
+          publicHolidaysPerYear: emp.publicHolidaysPerYear,
+          employmentStartDate: emp.employmentStartDate,
         } as const;
       }),
     );
@@ -296,6 +350,9 @@ export async function POST(req: Request) {
       holidayYear,
       workingPatternId,
       entitlementDays,
+      sickLeaveDays,
+      alternativeHolidayDays,
+      publicHolidayEntitlement,
     } = createEmployeeSchema.parse(await req.json());
 
     // ✅ Enforce global email uniqueness across all tenants
@@ -395,6 +452,7 @@ export async function POST(req: Request) {
         isActive: true,
         // Persist canonical employment details
         startDate: new Date(startDate),
+        employmentStartDate: new Date(startDate), // Store for anniversary calculations
         Department: departmentId
           ? { connect: { id: departmentId } }
           : undefined,
@@ -414,6 +472,12 @@ export async function POST(req: Request) {
           : undefined,
         siteLocation: siteLocationLabel,
         contractType: contractType || undefined,
+        // NZ Leave Compliance Fields
+        sickLeaveDaysPerYear: sickLeaveDays,
+        alternativeHolidayBalance: alternativeHolidayDays,
+        publicHolidaysPerYear: publicHolidayEntitlement,
+        // Initialize sick leave balance with the annual entitlement
+        sickLeaveBalance: sickLeaveDays * 8, // Convert to hours (8 hours per day)
       },
     });
 

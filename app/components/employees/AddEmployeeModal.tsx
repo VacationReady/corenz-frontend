@@ -200,6 +200,10 @@ export default function AddEmployeeModal({
     holidayYear: undefined as string | undefined,
     workingPatternId: undefined as string | undefined,
     entitlementDays: "",
+    // NZ leave entitlements
+    sickLeaveDays: "10",
+    alternativeHolidayDays: "0",
+    publicHolidayEntitlement: "11",
   });
 
   const selectedHolidayRange = useMemo(
@@ -214,7 +218,7 @@ export default function AddEmployeeModal({
   // Calculate entitlement modal state
   const [fullTimeHours, setFullTimeHours] = useState("40");
   const [showAllTemplates, setShowAllTemplates] = useState(false);
-  const [fullTimeEntitlement, setFullTimeEntitlement] = useState("25");
+  const [fullTimeEntitlement, setFullTimeEntitlement] = useState("20");
   const [calculatedEntitlement, setCalculatedEntitlement] = useState(0);
 
   const fetchData = async () => {
@@ -367,29 +371,20 @@ export default function AddEmployeeModal({
     updateHolidayYearSelection(holidayStartMonth, numericValue);
   };
 
-  // Calculate prorated entitlement
+  // Calculate prorated entitlement based on NZ requirements
   const calculateEntitlement = () => {
     const fullTimeHoursNum = parseFloat(fullTimeHours);
-    const fullTimeEntitlementNum = parseFloat(fullTimeEntitlement);
+    const fullTimeEntitlementNum = parseFloat(fullTimeEntitlement || "20");
     const startDate = new Date(formData.startDate);
     const startDateValid = !Number.isNaN(startDate.getTime());
-    const holidayYear = formData.holidayYear;
 
     if (
       !fullTimeHoursNum ||
       !fullTimeEntitlementNum ||
       !startDateValid ||
-      !holidayYear ||
-      !formData.workingPatternId ||
-      holidayYearError
+      !formData.workingPatternId
     ) {
       toast.error("Please fill in all required fields");
-      return;
-    }
-
-    const holidayConfig = parseHolidayYearValue(holidayYear);
-    if (!holidayConfig) {
-      toast.error("Please select a valid holiday year start date");
       return;
     }
 
@@ -414,51 +409,37 @@ export default function AddEmployeeModal({
       });
     });
 
-    // Full-time entitlement is 28 days per holiday year (5.6 weeks)
-    const FULL_TIME_ENTITLEMENT = 28;
-
     // Calculate annual entitlement based on days worked per week
-    const annualEntitlement = (employeeDaysPerWeek / 5) * FULL_TIME_ENTITLEMENT;
+    // Uses configurable fullTimeEntitlement (default 20 days = 4 weeks for NZ)
+    const annualEntitlement = (employeeDaysPerWeek / 5) * fullTimeEntitlementNum;
 
-    // Calculate holiday year dates
-    const { startMonth, startDay, endMonth, endDay } = holidayConfig;
-    const currentYear = startDate.getFullYear();
-    let holidayYearStart = new Date(currentYear, startMonth - 1, startDay);
-    let holidayYearEnd = new Date(currentYear, endMonth - 1, endDay);
+    // NZ compliance: accrual based on 12-month anniversary from start date
+    // Calculate the first anniversary date
+    const anniversaryDate = new Date(startDate);
+    anniversaryDate.setFullYear(anniversaryDate.getFullYear() + 1);
 
-    if (holidayYearEnd <= holidayYearStart) {
-      holidayYearEnd.setFullYear(holidayYearEnd.getFullYear() + 1);
+    // Calculate days remaining from start date to first anniversary
+    const totalDaysToAnniversary = 365; // Standard year for proration
+    const today = new Date();
+    
+    // If start date is in the future or today, use full year calculation
+    // Otherwise, calculate days remaining until anniversary
+    let daysRemaining: number;
+    if (startDate > today) {
+      daysRemaining = totalDaysToAnniversary;
+    } else if (today >= anniversaryDate) {
+      // Past first anniversary - use full entitlement
+      daysRemaining = totalDaysToAnniversary;
+    } else {
+      // Between start date and first anniversary - prorate
+      daysRemaining = Math.ceil(
+        (anniversaryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
     }
-
-    // If start date is before holiday year start, use previous year's holiday year
-    if (startDate < holidayYearStart) {
-      holidayYearStart.setFullYear(holidayYearStart.getFullYear() - 1);
-      holidayYearEnd.setFullYear(holidayYearEnd.getFullYear() - 1);
-    }
-
-    // Calculate total days in holiday year
-    const totalDaysInHolidayYear =
-      Math.ceil(
-        (holidayYearEnd.getTime() - holidayYearStart.getTime()) /
-          (1000 * 60 * 60 * 24),
-      ) + 1;
-
-    if (totalDaysInHolidayYear <= 0) {
-      toast.error("Unable to calculate holiday year duration");
-      return;
-    }
-
-    // Calculate days remaining from start date to end of holiday year
-    const rawDaysRemaining =
-      Math.ceil(
-        (holidayYearEnd.getTime() - startDate.getTime()) /
-          (1000 * 60 * 60 * 24),
-      ) + 1;
-    const daysRemaining = Math.max(0, rawDaysRemaining);
 
     // Calculate pro-rated entitlement
     const proratedEntitlement =
-      annualEntitlement * (daysRemaining / totalDaysInHolidayYear);
+      annualEntitlement * (daysRemaining / totalDaysToAnniversary);
 
     // Round to nearest half day
     const roundedEntitlement = Math.round(proratedEntitlement * 2) / 2;
@@ -515,15 +496,12 @@ export default function AddEmployeeModal({
       }
 
       if (
-        !formData.holidayYear ||
-        formData.holidayYear === "" ||
-        !selectedHolidayRange ||
         !formData.workingPatternId ||
         formData.workingPatternId === "" ||
         !formData.entitlementDays ||
         formData.entitlementDays === ""
       ) {
-        toast.error("Please fill in all holiday settings");
+        toast.error("Please fill in working pattern and annual leave entitlement");
         setIsSubmitting(false);
         return;
       }
@@ -539,6 +517,10 @@ export default function AddEmployeeModal({
         companyId: session?.user?.companyId,
         sendInviteNow,
         entitlementDays: parseFloat(formData.entitlementDays),
+        // NZ leave entitlements
+        sickLeaveDays: parseFloat(formData.sickLeaveDays || "10"),
+        alternativeHolidayDays: parseFloat(formData.alternativeHolidayDays || "0"),
+        publicHolidayEntitlement: parseFloat(formData.publicHolidayEntitlement || "11"),
         // Convert undefined values to empty strings for backend
         departmentId: formData.departmentId || "",
         jobRoleId: formData.jobRoleId || "",
@@ -592,6 +574,9 @@ export default function AddEmployeeModal({
         holidayYear: undefined,
         workingPatternId: undefined,
         entitlementDays: "",
+        sickLeaveDays: "10",
+        alternativeHolidayDays: "0",
+        publicHolidayEntitlement: "11",
       });
       setSendInviteNow(true);
       setIsAdminAccess(false);
@@ -1023,14 +1008,14 @@ export default function AddEmployeeModal({
 
                   <div>
                     <Label className="text-sm font-medium">
-                      Holiday Entitlement (Days)
+                      Annual Leave Entitlement (Days)
                     </Label>
                     <div className="flex gap-2 mt-1">
                       <Input
                         type="number"
                         step="0.01"
                         name="entitlementDays"
-                        placeholder="25"
+                        placeholder="20"
                         value={formData.entitlementDays}
                         onChange={handleChange}
                         className="flex-1"
@@ -1043,6 +1028,65 @@ export default function AddEmployeeModal({
                       >
                         Calculate
                       </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      NZ: 4 weeks (20 days) after 12 months. Prorated before anniversary.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Sick Leave (Days/Year)
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        name="sickLeaveDays"
+                        placeholder="10"
+                        value={formData.sickLeaveDays}
+                        onChange={handleChange}
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        NZ minimum: 10 days after 6 months
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Alternative Holidays
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        name="alternativeHolidayDays"
+                        placeholder="0"
+                        value={formData.alternativeHolidayDays}
+                        onChange={handleChange}
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Days owed for working public holidays
+                      </p>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Public Holidays/Year
+                      </Label>
+                      <Input
+                        type="number"
+                        step="1"
+                        name="publicHolidayEntitlement"
+                        placeholder="11"
+                        value={formData.publicHolidayEntitlement}
+                        onChange={handleChange}
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        NZ: 11 national + regional holidays
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1091,17 +1135,16 @@ export default function AddEmployeeModal({
                   <TooltipContent className="max-w-xs">
                     <div className="space-y-2 text-sm">
                       <p>
-                        <strong>Full-time entitlement:</strong> 28 days per
-                        holiday year
+                        <strong>NZ Full-time entitlement:</strong> 20 days (4 weeks)
+                        after 12 months of continuous employment
                       </p>
                       <p>
                         <strong>Part-time calculation:</strong> Days worked per
-                        week × 5.6
+                        week ÷ 5 × Full-time entitlement
                       </p>
                       <p>
                         <strong>Pro-rata formula:</strong> Annual entitlement ×
-                        (Days remaining in holiday year ÷ Total days in holiday
-                        year)
+                        (Days remaining to anniversary ÷ 365)
                       </p>
                       <p>
                         <strong>Rounding:</strong> To nearest half day
@@ -1114,10 +1157,26 @@ export default function AddEmployeeModal({
 
             <div className="bg-blue-50 p-4 rounded-md border-l-4 border-blue-400">
               <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Full-time employees are entitled to 28
-                days of holiday per year (equivalent to 5.6 weeks). Part-time
+                <strong>NZ Compliance:</strong> Annual leave accrues as 4 weeks
+                (20 days) after 12 months of continuous employment. Part-time
                 employees receive pro-rata entitlement based on their working
-                pattern.
+                pattern. Leave is prorated before the first anniversary.
+              </p>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium">
+                Full-Time Annual Entitlement (Days)
+              </Label>
+              <Input
+                type="number"
+                value={fullTimeEntitlement}
+                onChange={(e) => setFullTimeEntitlement(e.target.value)}
+                placeholder="20"
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Default: 20 days (4 weeks) for NZ. Adjust if needed.
               </p>
             </div>
 

@@ -475,6 +475,10 @@ model Employee {
   annualLeaveAccrualRate           Decimal?                           @db.Decimal(4, 2) @default(0.08)
   sickLeaveEntitlement             Decimal?                           @db.Decimal(4, 1) @default(80)
   employmentStartDate              DateTime?
+  // NZ Leave Compliance Fields (Holidays Act 2003 - Annual Leave, Sick Leave, Alternative Holidays)
+  sickLeaveDaysPerYear             Decimal?                           @db.Decimal(4, 1) @default(10) // NZ minimum: 10 days after 6 months
+  alternativeHolidayBalance        Decimal?                           @db.Decimal(5, 1) @default(0)  // Earned when working public holidays
+  publicHolidaysPerYear            Int?                               @default(11)                   // NZ: 11 national + regional holidays
   // Audit Fields
   taxCodeLastUpdated               DateTime?
   kiwiSaverLastUpdated             DateTime?

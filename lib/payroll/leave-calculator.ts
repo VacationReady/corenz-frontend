@@ -367,6 +367,131 @@ export function validateLeaveBalance(
 }
 
 /**
+ * Calculate prorated annual leave entitlement based on start date anniversary
+ * 
+ * NZ Compliance: Annual leave accrues as 4 weeks after 12 months of continuous employment.
+ * Before the first anniversary, leave is prorated based on days remaining to anniversary.
+ * 
+ * @param startDate Employee's employment start date
+ * @param currentDate Current date (defaults to today)
+ * @param daysPerWeek Days worked per week (for part-time proration)
+ * @param fullTimeEntitlement Full-time annual entitlement in days (default: 20 days = 4 weeks)
+ * @returns Prorated annual leave entitlement in days
+ * 
+ * @example
+ * // Full-time employee, 6 months into first year
+ * calculateAnniversaryBasedEntitlement(new Date('2024-01-01'), new Date('2024-07-01'), 5, 20)
+ * // Returns: ~10 days (prorated from 20 days for 6 months remaining)
+ * 
+ * @example
+ * // Part-time employee, 3 days/week, 3 months into first year
+ * calculateAnniversaryBasedEntitlement(new Date('2024-01-01'), new Date('2024-04-01'), 3, 20)
+ * // Returns: ~9 days (12 days annual * 9/12 months remaining)
+ */
+export function calculateAnniversaryBasedEntitlement(
+  startDate: Date,
+  currentDate: Date = new Date(),
+  daysPerWeek: number = 5,
+  fullTimeEntitlement: number = 20
+): number {
+  // Validate inputs
+  if (startDate > currentDate) {
+    return 0; // Future start date
+  }
+  
+  if (daysPerWeek <= 0 || daysPerWeek > 7) {
+    throw new Error('daysPerWeek must be between 1 and 7');
+  }
+  
+  if (fullTimeEntitlement <= 0) {
+    throw new Error('fullTimeEntitlement must be positive');
+  }
+  
+  // Calculate the first anniversary date
+  const anniversaryDate = new Date(startDate);
+  anniversaryDate.setFullYear(anniversaryDate.getFullYear() + 1);
+  
+  // Calculate annual entitlement for this employee (pro-rated for part-time)
+  const annualEntitlement = (daysPerWeek / 5) * fullTimeEntitlement;
+  
+  // If current date is past first anniversary, use full entitlement
+  if (currentDate >= anniversaryDate) {
+    return Math.round(annualEntitlement * 2) / 2; // Round to nearest 0.5 days
+  }
+  
+  // Calculate days remaining from current date to first anniversary
+  const totalDaysToAnniversary = 365; // Standard year for proration
+  const daysRemaining = Math.max(
+    0,
+    Math.ceil((anniversaryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
+  );
+  
+  // Calculate pro-rated entitlement
+  const proratedEntitlement = annualEntitlement * (daysRemaining / totalDaysToAnniversary);
+  
+  // Round to nearest 0.5 days
+  return Math.round(proratedEntitlement * 2) / 2;
+}
+
+/**
+ * Calculate days worked per week from a working pattern
+ * 
+ * @param workingPattern Working pattern with weeks containing days
+ * @returns Average days worked per week
+ * 
+ * @example
+ * const pattern = {
+ *   weeks: [
+ *     {
+ *       days: [
+ *         { type: 'FULL_DAY' },
+ *         { type: 'FULL_DAY' },
+ *         { type: 'HALF_DAY_AM' },
+ *         { type: 'FULL_DAY' },
+ *         { type: 'FULL_DAY' },
+ *         { type: 'OFF' },
+ *         { type: 'OFF' },
+ *       ]
+ *     }
+ *   ]
+ * };
+ * calculateDaysPerWeek(pattern); // Returns: 4.5
+ */
+export function calculateDaysPerWeek(workingPattern: {
+  weeks: Array<{
+    days: Array<{ type: string }>;
+  }>;
+}): number {
+  if (!workingPattern?.weeks || workingPattern.weeks.length === 0) {
+    return 5; // Default to full-time
+  }
+  
+  let totalDays = 0;
+  let weekCount = 0;
+  
+  for (const week of workingPattern.weeks) {
+    if (!week.days || week.days.length === 0) continue;
+    
+    weekCount++;
+    for (const day of week.days) {
+      if (day.type === 'FULL_DAY') {
+        totalDays += 1;
+      } else if (day.type.includes('HALF_DAY')) {
+        totalDays += 0.5;
+      }
+      // OFF days contribute 0
+    }
+  }
+  
+  if (weekCount === 0) {
+    return 5; // Default to full-time
+  }
+  
+  // Return average days per week
+  return Math.round((totalDays / weekCount) * 2) / 2; // Round to nearest 0.5
+}
+
+/**
  * Get leave information
  */
 export function getLeaveInfo() {
@@ -375,6 +500,7 @@ export function getLeaveInfo() {
       entitlement: `${ANNUAL_LEAVE_WEEKS} weeks per year`,
       rate: `${(ANNUAL_LEAVE_RATE * 100).toFixed(0)}% of gross earnings`,
       hours: `${ANNUAL_LEAVE_WEEKS * 40} hours for 40hr/week employee`,
+      anniversaryBased: 'Accrues after 12 months of continuous employment',
     },
     sickLeave: {
       entitlement: `${SICK_LEAVE_DAYS} days per year`,

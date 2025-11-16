@@ -11,7 +11,8 @@
  * - 90-day trial period acknowledgment
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/userEvent';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import AddEmployeeModal from '@/app/components/employees/AddEmployeeModal';
 
@@ -206,7 +207,7 @@ describe('AddEmployeeModal - NZ Fields', () => {
       );
 
       const kiwiSaverSwitch = screen.getByLabelText('KiwiSaver Enrolled?');
-      fireEvent.click(kiwiSaverSwitch);
+      await userEvent.click(kiwiSaverSwitch);
 
       await waitFor(() => {
         expect(screen.getByText('KiwiSaver Employee Contribution Rate')).toBeInTheDocument();
@@ -225,8 +226,8 @@ describe('AddEmployeeModal - NZ Fields', () => {
       const kiwiSaverSwitch = screen.getByLabelText('KiwiSaver Enrolled?');
       
       // Enable then disable
-      fireEvent.click(kiwiSaverSwitch);
-      fireEvent.click(kiwiSaverSwitch);
+      await userEvent.click(kiwiSaverSwitch);
+      await userEvent.click(kiwiSaverSwitch);
 
       await waitFor(() => {
         expect(screen.queryByText('KiwiSaver Employee Contribution Rate')).not.toBeInTheDocument();
@@ -245,7 +246,7 @@ describe('AddEmployeeModal - NZ Fields', () => {
       );
 
       const taxCodeSelect = screen.getByPlaceholderText('Select tax code');
-      fireEvent.click(taxCodeSelect);
+      await userEvent.click(taxCodeSelect);
 
       await waitFor(() => {
         expect(screen.getByText(/M - Primary employment/)).toBeInTheDocument();
@@ -266,7 +267,7 @@ describe('AddEmployeeModal - NZ Fields', () => {
       );
 
       const trialSwitch = screen.getByLabelText('90-Day Trial Period');
-      fireEvent.click(trialSwitch);
+      await userEvent.click(trialSwitch);
 
       await waitFor(() => {
         expect(screen.getByText(/Employee acknowledges and accepts/)).toBeInTheDocument();
@@ -344,7 +345,7 @@ describe('AddEmployeeModal - NZ Fields', () => {
       fireEvent.click(trialSwitch);
 
       const acknowledgmentCheckbox = screen.getByLabelText(/Employee acknowledges and accepts/);
-      fireEvent.click(acknowledgmentCheckbox);
+      await userEvent.click(acknowledgmentCheckbox);
 
       // Try to go to next step
       const nextButton = screen.getByText('Next');
@@ -455,7 +456,7 @@ describe('AddEmployeeModal - NZ Fields', () => {
 
       // Select 6% rate (value="6")
       const rateSelect = screen.getByPlaceholderText('Select contribution rate');
-      fireEvent.change(rateSelect, { target: { value: '6' } });
+      await userEvent.selectOptions(rateSelect, '6');
 
       // Complete form and submit...
       

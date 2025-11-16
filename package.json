@@ -111,6 +111,8 @@
     "@fullcalendar/core": "^6.1.19",
     "@fullcalendar/list": "^6.1.19",
     "@testing-library/react": "^16.3.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.5.2",
     "@types/dagre": "^0.7.53",
     "@types/fullcalendar": "^3.8.0",
     "@types/jsdom": "^27.0.0",

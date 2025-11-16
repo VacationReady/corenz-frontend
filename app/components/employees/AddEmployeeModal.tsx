@@ -2247,16 +2247,11 @@ export default function AddEmployeeModal({
         <NewDepartmentModal
           onClose={() => {
             setDeptModalOpen(false);
-            fetchData();
           }}
-      onAdded={(created) => {
-        if (!created) return;
+          onAdded={(created) => {
+            modalData.departments.retry();
+            if (!created) return;
             setDeptModalOpen(false);
-            // Ensure list includes the created dept then select it
-            setDepartments((prev) => {
-              const exists = prev.some((d: any) => d.id === created.id);
-              return exists ? prev : [...prev, created];
-            });
             setFormData((prev) => ({ ...prev, departmentId: created.id }));
             setIsDeptSelectOpen(false);
           }}
@@ -2267,15 +2262,11 @@ export default function AddEmployeeModal({
         <NewJobRoleModal
           onClose={() => {
             setRoleModalOpen(false);
-            fetchData();
           }}
-      onAdded={(created) => {
-        if (!created) return;
+          onAdded={(created) => {
+            modalData.jobRoles.retry();
+            if (!created) return;
             setRoleModalOpen(false);
-            setJobRoles((prev) => {
-              const exists = prev.some((j: any) => j.id === created.id);
-              return exists ? prev : [...prev, created];
-            });
             setFormData((prev) => ({ ...prev, jobRoleId: created.id }));
             setIsRoleSelectOpen(false);
           }}
@@ -2285,15 +2276,11 @@ export default function AddEmployeeModal({
         <NewLocationModal
           onClose={() => {
             setLocationModalOpen(false);
-            fetchData();
           }}
-      onAdded={(created) => {
-        if (!created) return;
+          onAdded={(created) => {
+            modalData.locations.retry();
+            if (!created) return;
             setLocationModalOpen(false);
-            setLocations((prev) => {
-              const exists = prev.some((l: any) => l.id === created.id);
-              return exists ? prev : [...prev, created];
-            });
             setFormData((prev) => ({ ...prev, locationId: created.id }));
             setIsLocationSelectOpen(false);
           }}
@@ -2303,7 +2290,9 @@ export default function AddEmployeeModal({
         <NewContractTypeModal
           onClose={() => {
             setContractTypeModalOpen(false);
-            fetchData();
+          }}
+          onAdded={() => {
+            modalData.contractTypes.retry();
           }}
         />
       )}

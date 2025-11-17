@@ -150,6 +150,15 @@ export async function POST(req: NextRequest) {
 
     await logTemplateUsage(templateId, (session as any).user.companyId);
 
+    if (rule.triggerType === "SCHEDULED") {
+      const schedule = (rule.triggerConfig as any)?.schedule || (rule.triggerConfig as any)?.cronExpression;
+      console.info("[AutomationTemplates] Scheduled workflow installed", {
+        ruleId: rule.id,
+        name: rule.name,
+        schedule,
+      });
+    }
+
     return NextResponse.json({ 
       success: true, 
       rule, 
@@ -165,7 +174,7 @@ export async function POST(req: NextRequest) {
 function extractTriggerType(template: any): AutomationTriggerType {
   const triggerNode = (template.nodes || []).find((n: any) => n.type === "trigger");
   const type = triggerNode?.data?.config?.triggerType || triggerNode?.data?.triggerType || "MANUAL";
-  
+
   // Map workflow triggers to AutomationTriggerType enum values
   const triggerMap: Record<string, AutomationTriggerType> = {
     "EMPLOYEE_CREATED": "EMPLOYEE_CREATED" as AutomationTriggerType,
@@ -174,17 +183,19 @@ function extractTriggerType(template: any): AutomationTriggerType {
     "FORM_SUBMITTED": "FORM_SUBMITTED" as AutomationTriggerType,
     "DOCUMENT_EXPIRING": "DOCUMENT_EXPIRING" as AutomationTriggerType,
     "LEAVE_REQUEST": "FORM_SUBMITTED" as AutomationTriggerType,
-    "SCHEDULED": "FORM_SUBMITTED" as AutomationTriggerType, // Temporary mapping
+    "SCHEDULED": "SCHEDULED" as AutomationTriggerType,
     "RESIGNATION_SUBMITTED": "FORM_SUBMITTED" as AutomationTriggerType,
     "OFFER_ACCEPTED": "EMPLOYEE_CREATED" as AutomationTriggerType,
+    "MANUAL": "MANUAL" as AutomationTriggerType,
   };
-  
+
   return triggerMap[type] || ("FORM_SUBMITTED" as AutomationTriggerType);
 }
 
 function extractTriggerConfig(template: any, customizations?: any): any {
   const triggerNode = (template.nodes || []).find((n: any) => n.type === "trigger");
   const config = { ...(triggerNode?.data?.config || {}) };
+  const triggerType = triggerNode?.data?.config?.triggerType || triggerNode?.data?.triggerType;
   
   // Apply customizations
   if (customizations) {
@@ -193,6 +204,19 @@ function extractTriggerConfig(template: any, customizations?: any): any {
         config[key] = value;
       }
     });
+  }
+
+  if (triggerType === "SCHEDULED") {
+    const cronExpression =
+      customizations?.schedule ||
+      customizations?.cronExpression ||
+      config.schedule ||
+      config.cronExpression;
+
+    if (cronExpression) {
+      config.schedule = cronExpression;
+      config.cronExpression = cronExpression;
+    }
   }
   
   return config;

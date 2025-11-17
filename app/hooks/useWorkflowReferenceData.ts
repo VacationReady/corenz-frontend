@@ -135,8 +135,20 @@ export function useForms(): UseReferenceDataResult<{ id: string; name: string }>
 /**
  * Hook to fetch active employees
  */
-export function useActiveEmployees(): UseReferenceDataResult<{ id: string; name: string; email: string }> {
-  const [data, setData] = useState<{ id: string; name: string; email: string }[]>([]);
+export function useActiveEmployees(): UseReferenceDataResult<{
+  id: string;
+  name: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}> {
+  const [data, setData] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -153,11 +165,15 @@ export function useActiveEmployees(): UseReferenceDataResult<{ id: string; name:
 
       const result = await response.json();
       const employees = Array.isArray(result) ? result : [];
-      setData(employees.map(e => ({ 
-        id: e.id, 
-        name: `${e.firstName} ${e.lastName}`.trim(),
-        email: e.email 
-      })));
+      setData(
+        employees.map(e => ({
+          id: e.id,
+          name: `${e.firstName ?? ""} ${e.lastName ?? ""}`.trim() || e.email,
+          email: e.email,
+          firstName: e.firstName ?? "",
+          lastName: e.lastName ?? "",
+        })),
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load employees';
       setError(message);

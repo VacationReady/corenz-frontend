@@ -3,9 +3,44 @@
  * Tests optimistic locking, version conflicts, and autosave functionality
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import test, { describe, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
 import { prisma } from "@/lib/prisma";
 import { updateTemplate, TemplateConflictError } from "@/app/api/onboarding/templates/actions";
+
+// Align with node:test while keeping familiar Jest-style naming
+const it = test;
+
+// Minimal expect helper built on top of node:assert
+const expect: any = (actual: any) => ({
+  toBe(expected: any) {
+    assert.strictEqual(actual, expected);
+  },
+  toBeNull() {
+    assert.strictEqual(actual, null);
+  },
+  not: {
+    toBeNull() {
+      assert.notStrictEqual(actual, null);
+    },
+  },
+  toBeDefined() {
+    assert.notStrictEqual(actual, undefined);
+  },
+  toBeInstanceOf(ctor: any) {
+    assert.ok(actual instanceof ctor);
+  },
+  toBeGreaterThan(expected: number) {
+    assert.ok(actual > expected);
+  },
+  toBeGreaterThanOrEqual(expected: number) {
+    assert.ok(actual >= expected);
+  },
+});
+
+expect.fail = (message: string) => {
+  assert.fail(message);
+};
 
 describe("Template Versioning", () => {
   let testCompanyId: string;
@@ -73,14 +108,16 @@ describe("Template Versioning", () => {
       });
 
       // Attempt to update with stale version
-      await expect(
-        updateTemplate(session, {
-          id: testTemplateId,
-          name: "My update",
-          lastKnownVersion: template?.version,
-          steps: [],
-        }),
-      ).rejects.toThrow(TemplateConflictError);
+      await assert.rejects(
+        async () =>
+          updateTemplate(session, {
+            id: testTemplateId,
+            name: "My update",
+            lastKnownVersion: template?.version,
+            steps: [],
+          }),
+        TemplateConflictError,
+      );
     });
 
     it("should reject stale writes based on updatedAt timestamp", async () => {
@@ -100,14 +137,16 @@ describe("Template Versioning", () => {
       });
 
       // Attempt to update with stale timestamp
-      await expect(
-        updateTemplate(session, {
-          id: testTemplateId,
-          name: "My update",
-          lastKnownUpdatedAt: template?.updatedAt.toISOString(),
-          steps: [],
-        }),
-      ).rejects.toThrow(TemplateConflictError);
+      await assert.rejects(
+        async () =>
+          updateTemplate(session, {
+            id: testTemplateId,
+            name: "My update",
+            lastKnownUpdatedAt: template?.updatedAt.toISOString(),
+            steps: [],
+          }),
+        TemplateConflictError,
+      );
     });
 
     it("should allow update when version matches", async () => {
@@ -305,13 +344,15 @@ describe("Template Versioning", () => {
         user: { id: testUserId, companyId: otherCompanyId },
       };
 
-      await expect(
-        updateTemplate(session, {
-          id: testTemplateId,
-          name: "Cross-tenant update",
-          steps: [],
-        }),
-      ).rejects.toThrow("Template not found");
+      await assert.rejects(
+        async () =>
+          updateTemplate(session, {
+            id: testTemplateId,
+            name: "Cross-tenant update",
+            steps: [],
+          }),
+        /Template not found/,
+      );
 
       await prisma.company.deleteMany({ where: { id: otherCompanyId } });
     });

@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Input } from "@/components/ui/Input";
+import { Card, CardContent } from "@/components/ui/card";
+import Button from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ChevronDown,
   ChevronUp,
@@ -19,6 +20,35 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface WorkflowCategory {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: React.ReactNode;
+  color?: string;
+}
+
+interface WorkflowTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: React.ReactNode;
+  tags?: string[];
+  benefits?: string[];
+  estimatedTime?: string;
+  isInstalled?: boolean;
+  isPopular?: boolean;
+  isPremium?: boolean;
+  category?: WorkflowCategory;
+}
+
+interface TemplatesResponse {
+  templates?: WorkflowTemplate[];
+  categories?: WorkflowCategory[];
+  totalCount?: number;
+  installedCount?: number;
+}
+
 interface WorkflowAppStoreProps {
   onPreviewWorkflow: (templateId: string) => void;
   onInstallWorkflow: (templateId: string) => void;
@@ -30,8 +60,8 @@ export function WorkflowAppStore({
   onInstallWorkflow,
   onCreateCustom,
 }: WorkflowAppStoreProps) {
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
+  const [categories, setCategories] = useState<WorkflowCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
@@ -48,14 +78,15 @@ export function WorkflowAppStore({
       setLoading(true);
       const res = await fetch("/api/automation-rules/templates");
       if (res.ok) {
-        const data = await res.json();
-        setTemplates(data.templates || []);
-        setCategories(data.categories || []);
-        setTotalCount(Number(data.totalCount) || (data.templates?.length ?? 0));
-        const computedInstalled = Array.isArray(data.templates)
-          ? data.templates.filter((t: any) => t.isInstalled).length
-          : 0;
-        setInstalledCount(typeof data.installedCount === "number" ? data.installedCount : computedInstalled);
+        const data = (await res.json()) as TemplatesResponse;
+        const apiTemplates = data.templates ?? [];
+        setTemplates(apiTemplates);
+        setCategories(data.categories ?? []);
+        setTotalCount(typeof data.totalCount === "number" ? data.totalCount : apiTemplates.length);
+        const computedInstalled = apiTemplates.filter((t) => t.isInstalled).length;
+        setInstalledCount(
+          typeof data.installedCount === "number" ? data.installedCount : computedInstalled,
+        );
         
         // Expand first category by default
         if (data.categories?.[0]) {
@@ -68,25 +99,25 @@ export function WorkflowAppStore({
   };
 
   const toggleCategory = (categoryId: string) => {
-    setExpandedCategories(prev => ({
+    setExpandedCategories((prev) => ({
       ...prev,
       [categoryId]: !prev[categoryId],
     }));
   };
 
-  const filteredTemplates = templates.filter(t => {
+  const filteredTemplates = templates.filter((template) => {
     const matchesSearch = !searchQuery || 
-      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.tags?.some((tag: string) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      template.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      template.tags?.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    const matchesCategory = selectedCategory === "all" || t.category?.id === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || template.category?.id === selectedCategory;
     
     return matchesSearch && matchesCategory;
   });
 
   const getTemplatesByCategory = (categoryId: string) => {
-    return filteredTemplates.filter(t => t.category?.id === categoryId);
+    return filteredTemplates.filter((template) => template.category?.id === categoryId);
   };
 
   const popularTemplates = filteredTemplates.filter(t => t.isPopular).slice(0, 6);
@@ -140,11 +171,30 @@ export function WorkflowAppStore({
           <Input
             placeholder="Search workflows by name, category, or keyword..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(event.target.value)}
             className="pl-10 h-12 text-base bg-white border-2 focus:border-blue-400 shadow-sm"
           />
         </div>
       </div>
+
+      {/* Category Filter */}
+      {categories.length > 0 && (
+        <div className="max-w-xs mx-auto -mt-2">
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="h-12 bg-white border-2 focus:border-blue-400">
+              <SelectValue placeholder="Filter by category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Popular Workflows */}
       {!searchQuery && popularTemplates.length > 0 && (
@@ -264,15 +314,13 @@ export function WorkflowAppStore({
   );
 }
 
-function WorkflowCard({
-  template,
-  onPreview,
-  onInstall,
-}: {
-  template: any;
+interface WorkflowCardProps {
+  template: WorkflowTemplate;
   onPreview: () => void;
   onInstall: () => void;
-}) {
+}
+
+function WorkflowCard({ template, onPreview, onInstall }: WorkflowCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -320,7 +368,7 @@ function WorkflowCard({
               {tag}
             </Badge>
           ))}
-          {template.tags?.length > 3 && (
+          {template.tags && template.tags.length > 3 && (
             <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-700 border-0">
               +{template.tags.length - 3}
             </Badge>

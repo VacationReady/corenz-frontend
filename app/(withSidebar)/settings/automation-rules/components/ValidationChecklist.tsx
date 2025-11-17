@@ -17,23 +17,37 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+type ValidationSection = "trigger" | "conditions" | "actions" | "general";
+
 interface ValidationItem {
   key: string;
   label: string;
   status: "valid" | "error" | "warning" | "info";
   message?: string;
-  section?: "trigger" | "conditions" | "actions" | "general";
+  section?: ValidationSection;
+}
+
+interface RuleCondition {
+  type?: string;
+  [key: string]: unknown;
+}
+
+interface RuleAction {
+  type?: string;
+  [key: string]: unknown;
+}
+
+interface ValidationFormData {
+  name?: string;
+  triggerType?: string;
+  conditions?: RuleCondition[];
+  actions?: RuleAction[];
 }
 
 interface ValidationChecklistProps {
   validationErrors: Record<string, string>;
   validationHints: string[];
-  formData: {
-    name?: string;
-    triggerType?: string;
-    conditions?: any[];
-    actions?: any[];
-  };
+  formData: ValidationFormData;
   className?: string;
   onFocusSection?: (section: string) => void;
   compact?: boolean;
@@ -75,7 +89,7 @@ export const ValidationChecklist: React.FC<ValidationChecklistProps> = ({
     if (formData.triggerType) {
       const triggerErrors = Object.entries(validationErrors)
         .filter(([key]) => key.startsWith("triggerConfig"))
-        .map(([_, error]) => error);
+        .map(([, error]) => error);
       
       if (triggerErrors.length > 0) {
         items.push({
@@ -105,7 +119,7 @@ export const ValidationChecklist: React.FC<ValidationChecklistProps> = ({
 
     // Conditions validation (optional)
     if (formData.conditions && formData.conditions.length > 0) {
-      const hasIncompleteConditions = formData.conditions.some((c: any) => !c.type);
+      const hasIncompleteConditions = formData.conditions.some((condition) => !condition.type);
       if (hasIncompleteConditions) {
         items.push({
           key: "conditions",
@@ -128,7 +142,7 @@ export const ValidationChecklist: React.FC<ValidationChecklistProps> = ({
     if (formData.actions && formData.actions.length > 0) {
       const actionErrors = Object.entries(validationErrors)
         .filter(([key]) => key.startsWith("actions"))
-        .map(([_, error]) => error);
+        .map(([, error]) => error);
       
       if (actionErrors.length > 0) {
         items.push({
@@ -139,7 +153,7 @@ export const ValidationChecklist: React.FC<ValidationChecklistProps> = ({
           section: "actions",
         });
       } else {
-        const hasIncompleteActions = formData.actions.some((a: any) => !a.type);
+        const hasIncompleteActions = formData.actions.some((action) => !action.type);
         if (hasIncompleteActions) {
           items.push({
             key: "actions",

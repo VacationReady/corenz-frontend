@@ -32,7 +32,6 @@ const EMPLOYEE_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Calendar", href: "/calendar" },
   { label: "My Leave", href: "/leave" },
-  { label: "My Profile", href: "/profile" },
 ];
 
 const SUPER_ADMIN_EXTRA: NavItem[] = [

@@ -136,6 +136,16 @@ export async function DELETE(req: Request) {
     const body = await req.json();
     const { id } = body;
 
+    // CRITICAL: Verify template belongs to current tenant before deletion
+    const template = await prisma.onboardingTemplate.findUnique({
+      where: { id },
+      select: { companyId: true },
+    });
+
+    if (!template || template.companyId !== session.user.companyId) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
+
     // Remove step responses and instances before deleting steps
     await prisma.onboardingStepResponse.deleteMany({
       where: { OnboardingStepInstance: { OnboardingStep: { templateId: id } } },

@@ -271,13 +271,12 @@ function extractActions(template: any, customizations?: any): any[] {
 async function logTemplateUsage(templateId: string, companyId: string) {
   // Log usage for analytics (WorkflowTemplate table will be created in migration)
   try {
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "WorkflowTemplate" ("id", "name", "usageCount", "createdAt", "updatedAt") 
-       VALUES ($1, $2, 1, NOW(), NOW()) 
-       ON CONFLICT ("id") DO UPDATE SET "usageCount" = "WorkflowTemplate"."usageCount" + 1`,
-      templateId,
-      templateId,
-    );
+    await prisma.$executeRaw`
+      INSERT INTO "WorkflowTemplate" ("id", "name", "usageCount", "createdAt", "updatedAt")
+      VALUES (${templateId}, ${templateId}, 1, NOW(), NOW())
+      ON CONFLICT ("id") DO UPDATE SET "usageCount" = "WorkflowTemplate"."usageCount" + 1,
+        "updatedAt" = NOW()
+    `;
   } catch (error) {
     // Table might not exist yet, log and continue
     console.log("Template usage logging skipped:", error);

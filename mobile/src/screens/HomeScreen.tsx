@@ -94,6 +94,8 @@ export default function HomeScreen() {
     ? `${employee.firstName} ${employee.lastName}`
     : user?.name || 'User';
 
+  const firstName = employee?.firstName || user?.name?.split(' ')[0] || 'User';
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -110,13 +112,16 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>{getGreeting()},</Text>
-          <Text style={styles.userName}>{userName}</Text>
+          <Text style={styles.userName}>{firstName}</Text>
           {employee?.jobTitle && (
             <Text style={styles.userRole}>{employee.jobTitle}</Text>
           )}
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.notificationButton}>
+          <TouchableOpacity 
+            style={styles.notificationButton}
+            activeOpacity={0.7}
+          >
             <Ionicons name="notifications-outline" size={24} color="#fff" />
             {stats.pendingActions > 0 && (
               <View style={styles.notificationBadge}>
@@ -259,21 +264,28 @@ export default function HomeScreen() {
 
 function StatCard({ icon, title, value, color }: any) {
   return (
-    <View style={[styles.statCard, { borderLeftColor: color }]}>
-      <View style={[styles.statIconContainer, { backgroundColor: color + '15' }]}>
-        <Ionicons name={icon} size={20} color={color} />
+    <TouchableOpacity 
+      style={[styles.statCard, { borderLeftColor: color }]}
+      activeOpacity={0.8}
+    >
+      <View style={[styles.statIconContainer, { backgroundColor: color + '20' }]}>
+        <Ionicons name={icon} size={22} color={color} />
       </View>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statTitle}>{title}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 function QuickActionButton({ icon, title, color, onPress }: any) {
   return (
-    <TouchableOpacity style={styles.quickAction} onPress={onPress}>
-      <View style={[styles.quickActionIcon, { backgroundColor: color + '15' }]}>
-        <Ionicons name={icon} size={24} color={color} />
+    <TouchableOpacity 
+      style={styles.quickAction} 
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.quickActionIcon, { backgroundColor: color + '20' }]}>
+        <Ionicons name={icon} size={32} color={color} />
       </View>
       <Text style={styles.quickActionText}>{title}</Text>
     </TouchableOpacity>
@@ -289,10 +301,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#3b82f6',
     padding: 20,
     paddingTop: 60,
-    paddingBottom: 30,
+    paddingBottom: 32,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   greeting: {
     fontSize: 16,
@@ -300,10 +317,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   userName: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     color: '#fff',
     marginTop: 4,
+    letterSpacing: -0.5,
   },
   userRole: {
     fontSize: 14,
@@ -349,15 +367,15 @@ const styles = StyleSheet.create({
   },
   statCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 18,
     width: (width - 44) / 2,
     borderLeftWidth: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   statIconContainer: {
     width: 36,
@@ -380,31 +398,37 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0f172a',
-    marginBottom: 12,
+    marginBottom: 16,
+    letterSpacing: -0.3,
   },
   quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 16,
   },
   quickAction: {
-    width: (width - 76) / 4,
+    width: (width - 80) / 2,
     alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 64,
+    height: 64,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   quickActionText: {
-    fontSize: 12,
-    color: '#475569',
-    fontWeight: '600',
+    fontSize: 13,
+    color: '#334155',
+    fontWeight: '700',
     textAlign: 'center',
   },
   cardHeader: {

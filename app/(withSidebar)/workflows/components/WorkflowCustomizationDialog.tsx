@@ -222,6 +222,20 @@ export function WorkflowCustomizationDialog({
     return acc;
   }, {} as Record<string, CustomizationField[]>);
 
+  // Watch fieldsByCategory and workflow props - reset state when they change
+  useEffect(() => {
+    const categoryKeys = Object.keys(fieldsByCategory);
+    const firstCategory = categoryKeys.length > 0 ? categoryKeys[0] : 'basic';
+    
+    // Reset to first available category
+    setSelectedTab(firstCategory);
+    
+    // Reset to template defaults
+    setWorkflowName(workflow.name);
+    setAutoActivate(true);
+    initializeCustomizations();
+  }, [fieldsByCategory, workflow]);
+
   const handleConfirm = () => {
     onConfirm({
       name: workflowName,

@@ -65,8 +65,13 @@ export default function ClockWidget() {
     try {
       const response = await apiClient.get('/api/time-tracking/status');
       setStatus(response.data);
-    } catch (error) {
-      console.error('Error loading status:', error);
+    } catch (error: any) {
+      // Silently handle unauthorized errors (user may not have employee record yet)
+      if (error.message?.includes('Unauthorized') || error.message?.includes('Employee record not found')) {
+        setStatus({ isClockedIn: false, activeEntry: null });
+      } else {
+        console.error('Error loading status:', error);
+      }
     } finally {
       setLoading(false);
     }

@@ -46,8 +46,9 @@ export default function HomeScreen() {
         try {
           const employeeData = await getEmployeeProfile(sessionData.user.id);
           setEmployee(employeeData);
+          console.log('Employee data loaded:', employeeData?.firstName);
         } catch (err) {
-          console.log('No employee profile found');
+          console.log('No employee profile found, using session user data');
         }
       }
 
@@ -118,17 +119,9 @@ export default function HomeScreen() {
           )}
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity 
-            style={styles.notificationButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#fff" />
-            {stats.pendingActions > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>{stats.pendingActions}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <View style={styles.notificationButton}>
+            <Ionicons name="notifications-outline" size={24} color="rgba(255, 255, 255, 0.5)" />
+          </View>
         </View>
       </View>
 
@@ -335,26 +328,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: '#ef4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  notificationBadgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
+    opacity: 0.6,
   },
   content: {
     padding: 16,
@@ -363,7 +340,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: 16,
-    gap: 12,
+    marginHorizontal: -6,
   },
   statCard: {
     backgroundColor: '#fff',
@@ -376,6 +353,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
+    margin: 6,
   },
   statIconContainer: {
     width: 36,
@@ -406,16 +384,17 @@ const styles = StyleSheet.create({
   quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    marginHorizontal: -8,
   },
   quickAction: {
-    width: (width - 80) / 2,
+    width: (width - 64) / 2,
     alignItems: 'center',
     backgroundColor: '#f8fafc',
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    margin: 8,
   },
   quickActionIcon: {
     width: 64,

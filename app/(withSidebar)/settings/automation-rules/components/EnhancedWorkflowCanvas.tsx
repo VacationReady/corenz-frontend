@@ -9,7 +9,7 @@
 
 "use client";
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -50,7 +50,9 @@ import {
   ChevronLeft, ChevronRight, Eye, EyeOff,
   Maximize2, Minimize2, Download, Upload,
   Layout, Grid3x3, Circle, Layers, AlertTriangle,
-  Lock, Unlock, PlayCircleIcon, Pause
+  Lock, Unlock, PlayCircleIcon, Pause,
+  Undo, Redo, Copy, CheckCircle2, XCircle,
+  AlertCircle, Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -122,6 +124,11 @@ function EnhancedWorkflowCanvasInner({
   const [showPreviewWarning, setShowPreviewWarning] = useState(false);
   const prevSentSnapshotRef = useRef<string>("");
   const notifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Undo/Redo history
+  const [history, setHistory] = useState<{ nodes: Node[]; edges: Edge[] }[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const isUndoRedoAction = useRef(false);
 
   // Load reference data with proper error handling
   const referenceData = useWorkflowReferenceData();
@@ -131,6 +138,57 @@ function EnhancedWorkflowCanvasInner({
   const employees = referenceData.employees;
   const documentTypes = referenceData.documentTypes;
   const templates = referenceData.templates;
+  
+  // Validation logic - memoized for performance
+  const nodeValidation = useMemo(() => {
+    const validationMap = new Map<string, { isValid: boolean; errors: string[] }>();
+    
+    nodes.forEach(node => {
+      const errors: string[] = [];
+      const config = node.data?.config || {};
+      
+      if (node.type === 'trigger') {
+        if (!node.data?.triggerType && !config.triggerType) {
+          errors.push('Trigger type required');
+        }
+        if ((node.data?.triggerType === 'SCHEDULED' || config.triggerType === 'SCHEDULED') && !config.schedule) {
+          errors.push('Schedule required');
+        }
+        if ((node.data?.triggerType === 'FORM_SUBMITTED' || config.triggerType === 'FORM_SUBMITTED') && !config.formId) {
+          errors.push('Form selection required');
+        }
+      }
+      
+      if (node.type === 'condition') {
+        if (!node.data?.conditionType && !config.conditionType) {
+          errors.push('Condition type required');
+        }
+      }
+      
+      if (node.type === 'action') {
+        if (!node.data?.actionType && !config.actionType) {
+          errors.push('Action type required');
+        }
+        const actionType = node.data?.actionType || config.actionType;
+        if (actionType === 'send_notification' && (!config.subject || !config.message)) {
+          errors.push('Subject and message required');
+        }
+        if (actionType === 'webhook' && !config.url) {
+          errors.push('Webhook URL required');
+        }
+        if ((actionType === 'assign_form' || actionType === 'send_form') && !config.formId) {
+          errors.push('Form selection required');
+        }
+      }
+      
+      validationMap.set(node.id, {
+        isValid: errors.length === 0,
+        errors
+      });
+    });
+    
+    return validationMap;
+  }, [nodes]);
 
   // Helpers to ensure ReactFlow receives valid, unique nodes/edges
   const sanitizeNodesAndEdges = useCallback((rawNodes: Node[] = [], rawEdges: Edge[] = []) => {
@@ -191,14 +249,26 @@ function EnhancedWorkflowCanvasInner({
   useEffect(() => {
     if (workflow?.nodes && workflow?.edges) {
       const { nodesSafe, edgesSafe } = sanitizeNodesAndEdges(workflow.nodes, workflow.edges);
+      
+      // Enrich nodes with validation errors
+      const enrichedNodes = nodesSafe.map(node => {
+        const validation = nodeValidation.get(node.id);
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            validationErrors: validation?.errors || [],
+          },
+        };
+      });
 
       // Defer updates to next tick to avoid React error #185 during drag/render cycles
       const t = setTimeout(() => {
         // Only update local state if different from current state snapshot
-        const incomingSnapshot = JSON.stringify({ n: nodesSafe, e: edgesSafe });
+        const incomingSnapshot = JSON.stringify({ n: enrichedNodes, e: edgesSafe });
         const currentSnapshot = JSON.stringify({ n: nodes, e: edges });
         if (incomingSnapshot !== currentSnapshot) {
-          setNodes(nodesSafe);
+          setNodes(enrichedNodes);
           setEdges(edgesSafe);
 
           if (nodesSafe.length > 0) {
@@ -212,8 +282,36 @@ function EnhancedWorkflowCanvasInner({
       return () => clearTimeout(t);
     }
   // Intentionally exclude nodes/edges/setters from deps to avoid re-running during drags
-  }, [workflow, fitView, sanitizeNodesAndEdges]);
+  }, [workflow, fitView, sanitizeNodesAndEdges, nodeValidation]);
 
+  // Track history for undo/redo (only when not in read-only mode)
+  useEffect(() => {
+    if (readOnly || isUndoRedoAction.current) return;
+    
+    // Only add to history if there's a meaningful change
+    if (nodes.length === 0 && edges.length === 0) return;
+    
+    const newState = { nodes, edges };
+    const currentSnapshot = JSON.stringify(newState);
+    const lastSnapshot = history[historyIndex] ? JSON.stringify(history[historyIndex]) : '';
+    
+    if (currentSnapshot !== lastSnapshot) {
+      // Remove any future history if we're not at the end
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(newState);
+      
+      // Keep history limited to 50 states for performance
+      if (newHistory.length > 50) {
+        newHistory.shift();
+        setHistory(newHistory);
+        setHistoryIndex(newHistory.length - 1);
+      } else {
+        setHistory(newHistory);
+        setHistoryIndex(newHistory.length - 1);
+      }
+    }
+  }, [nodes, edges, readOnly]);
+  
   // Notify parent of changes (debounced) to prevent excessive parent re-renders during drag
   useEffect(() => {
     if (readOnly || !onWorkflowChange) return;
@@ -235,6 +333,60 @@ function EnhancedWorkflowCanvasInner({
     };
   }, [nodes, edges, readOnly, onWorkflowChange, workflow]);
 
+  // Undo/Redo functions - memoized for performance
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      isUndoRedoAction.current = true;
+      const prevState = history[historyIndex - 1];
+      setNodes(prevState.nodes);
+      setEdges(prevState.edges);
+      setHistoryIndex(historyIndex - 1);
+      toast.success('Undo', { duration: 1000 });
+      setTimeout(() => {
+        isUndoRedoAction.current = false;
+      }, 100);
+    }
+  }, [historyIndex, history, setNodes, setEdges]);
+  
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      isUndoRedoAction.current = true;
+      const nextState = history[historyIndex + 1];
+      setNodes(nextState.nodes);
+      setEdges(nextState.edges);
+      setHistoryIndex(historyIndex + 1);
+      toast.success('Redo', { duration: 1000 });
+      setTimeout(() => {
+        isUndoRedoAction.current = false;
+      }, 100);
+    }
+  }, [historyIndex, history, setNodes, setEdges]);
+  
+  // Duplicate selected node
+  const handleDuplicateNode = useCallback(() => {
+    if (!selectedNode || readOnly) return;
+    
+    const newNode: Node = {
+      ...selectedNode,
+      id: `${selectedNode.type}-${Date.now()}`,
+      position: {
+        x: selectedNode.position.x + 50,
+        y: selectedNode.position.y + 50,
+      },
+      data: {
+        ...selectedNode.data,
+        label: `${selectedNode.data?.label || selectedNode.type} (copy)`,
+      },
+    };
+    
+    setNodes((nds) => [...nds, newNode]);
+    setSelectedNode(newNode);
+    toast.success('Node duplicated', {
+      icon: <Copy className="w-4 h-4" />,
+      duration: 2000,
+    });
+  }, [selectedNode, readOnly, setNodes]);
+  
   // Handle connections
   const onConnect = useCallback((params: Connection) => {
     if (readOnly) return;
@@ -244,6 +396,7 @@ function EnhancedWorkflowCanvasInner({
       ...defaultEdgeOptions,
       id: `edge-${Date.now()}`,
     }, eds));
+    toast.success('Connection created', { duration: 1500 });
   }, [setEdges, readOnly]);
 
   // Handle drag over
@@ -280,7 +433,10 @@ function EnhancedWorkflowCanvasInner({
     };
 
     setNodes((nds) => [...nds, newNode]);
-    toast.success(`Added ${nodeConfig.label} node`);
+    toast.success(`Added ${nodeConfig.label}`, {
+      icon: nodeConfig.icon,
+      duration: 2000,
+    });
   }, [reactFlowInstance, setNodes, readOnly]);
 
   // Get node configuration
@@ -349,12 +505,13 @@ function EnhancedWorkflowCanvasInner({
   const deleteSelectedNode = useCallback(() => {
     if (!selectedNode || readOnly) return;
     
+    const nodeLabel = selectedNode.data?.label || selectedNode.type;
     setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id));
     setEdges((eds) => eds.filter((e) => 
       e.source !== selectedNode.id && e.target !== selectedNode.id
     ));
     setSelectedNode(null);
-    toast.success('Node deleted');
+    toast.success(`Deleted: ${nodeLabel}`, { duration: 2000 });
   }, [selectedNode, setNodes, setEdges, readOnly]);
 
   // Apply auto-layout
@@ -446,15 +603,36 @@ function EnhancedWorkflowCanvasInner({
     reader.readAsText(file);
   }, [setNodes, setEdges]);
 
-  // Test workflow execution via API
+  // Test workflow execution via API with enhanced toast guidance
   const testWorkflow = async () => {
     if (!workflow?.id) {
-      toast.error('Save the workflow first before testing');
+      toast.error('Save the workflow first before testing', {
+        icon: <AlertCircle className="w-4 h-4" />,
+        duration: 3000,
+      });
+      return;
+    }
+    
+    // Check for validation errors
+    const invalidNodes = Array.from(nodeValidation.entries())
+      .filter(([_, validation]) => !validation.isValid);
+    
+    if (invalidNodes.length > 0) {
+      toast.error(`${invalidNodes.length} node(s) have configuration errors`, {
+        icon: <XCircle className="w-4 h-4" />,
+        description: 'Fix validation errors before testing',
+        duration: 4000,
+      });
       return;
     }
 
     setIsExecuting(true);
     setExecutionResults(null);
+    
+    toast.loading('Starting workflow test...', {
+      id: 'workflow-test',
+      icon: <Sparkles className="w-4 h-4 animate-spin" />,
+    });
     
     try {
       // Start the test run
@@ -504,9 +682,19 @@ function EnhancedWorkflowCanvasInner({
           setShowExecutionDialog(true);
           
           if (status.status === 'COMPLETED') {
-            toast.success('Workflow test completed successfully');
+            toast.success('Workflow test completed successfully', {
+              id: 'workflow-test',
+              icon: <CheckCircle2 className="w-4 h-4" />,
+              description: `Executed ${status.logs?.length || 0} steps in ${status.duration || 0}ms`,
+              duration: 5000,
+            });
           } else {
-            toast.error(`Workflow test failed: ${status.error || 'Unknown error'}`);
+            toast.error(`Workflow test failed`, {
+              id: 'workflow-test',
+              icon: <XCircle className="w-4 h-4" />,
+              description: status.error || 'Unknown error',
+              duration: 5000,
+            });
           }
           break;
         }
@@ -515,11 +703,20 @@ function EnhancedWorkflowCanvasInner({
       }
       
       if (attempts >= maxAttempts) {
-        toast.warning('Test is taking longer than expected. Check status later.');
+        toast.warning('Test is taking longer than expected', {
+          id: 'workflow-test',
+          description: 'Check status later',
+          duration: 4000,
+        });
       }
     } catch (error: any) {
       console.error('Test execution error:', error);
-      toast.error(`Test failed: ${error.message}`);
+      toast.error('Test execution failed', {
+        id: 'workflow-test',
+        icon: <XCircle className="w-4 h-4" />,
+        description: error.message,
+        duration: 5000,
+      });
       setExecutionResults({
         success: false,
         error: error.message,
@@ -1689,6 +1886,12 @@ function EnhancedWorkflowCanvasInner({
             nodesConnectable={!readOnly}
             elementsSelectable={!readOnly}
             className="bg-gradient-to-br from-slate-50 via-white to-slate-50"
+            proOptions={{ hideAttribution: true }}
+            minZoom={0.2}
+            maxZoom={2}
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            snapToGrid={true}
+            snapGrid={[15, 15]}
           >
             <Background 
               variant={BackgroundVariant.Dots} 
@@ -1700,11 +1903,46 @@ function EnhancedWorkflowCanvasInner({
           </ReactFlow>
 
         {/* Top Action Bar */}
-        <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none">
+        <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-10">
           <div className="flex gap-2 pointer-events-auto">
             {!readOnly && (
               <>
-                <div className="flex items-center bg-white/90 backdrop-blur rounded-md">
+                {/* Undo/Redo/Duplicate Group */}
+                <div className="flex items-center gap-1 bg-white/95 backdrop-blur-xl rounded-lg shadow-lg border border-slate-200/60 px-1.5 py-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleUndo}
+                    disabled={historyIndex <= 0}
+                    className="h-8 px-2.5 hover:bg-slate-100 disabled:opacity-40 transition-all"
+                    title="Undo (Ctrl+Z)"
+                  >
+                    <Undo className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRedo}
+                    disabled={historyIndex >= history.length - 1}
+                    className="h-8 px-2.5 hover:bg-slate-100 disabled:opacity-40 transition-all"
+                    title="Redo (Ctrl+Y)"
+                  >
+                    <Redo className="h-4 w-4" />
+                  </Button>
+                  <div className="w-px h-5 bg-slate-200 mx-0.5" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDuplicateNode}
+                    disabled={!selectedNode}
+                    className="h-8 px-2.5 hover:bg-slate-100 disabled:opacity-40 transition-all"
+                    title="Duplicate selected node (Ctrl+D)"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-lg shadow-lg border border-slate-200/60">
                   <Select
                     onValueChange={(value: string) => {
                       if (value.startsWith('direction-')) {
@@ -1715,7 +1953,7 @@ function EnhancedWorkflowCanvasInner({
                     }}
                   >
                     <SelectTrigger className="w-32 h-8 border-0">
-                      <SelectValue placeholder="View" />
+                      <SelectValue placeholder="Layout" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="dagre">
@@ -1775,7 +2013,7 @@ function EnhancedWorkflowCanvasInner({
                   variant="ghost"
                   size="sm"
                   onClick={checkForCycles}
-                  className="bg-white/90 backdrop-blur"
+                  className="bg-white/95 backdrop-blur-xl rounded-lg shadow-lg border border-slate-200/60 h-9 px-3 hover:bg-slate-50 transition-all"
                   title="Detect cycles"
                 >
                   <AlertTriangle className="h-4 w-4" />

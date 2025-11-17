@@ -121,7 +121,8 @@ export default function NewReportBuilderPage() {
         category: config.template?.category || "custom",
         selectedFields: config.selectedFields,
         filterGroup: config.filterGroup,
-        sort: config.sort,
+        sort: config.sorts?.[0], // Legacy single sort (first sort in array)
+        sorts: config.sorts, // New multi-sort array
         templateId: config.template?.id,
       };
 
@@ -227,7 +228,7 @@ export default function NewReportBuilderPage() {
       },
       selectedFields: uniqueFields,
       filterGroup,
-      sort: template.defaultSort,
+      sorts: template.defaultSort ? [template.defaultSort] : [],
     });
     setShowWizard(true);
   }, []);

@@ -128,30 +128,11 @@ Check Token Cache
 
 ## Future Enhancements
 
-### Granular Error/Retry UI (Deferred)
-While the SWR hook provides retry capability, the UI doesn't yet expose granular retry buttons per dataset. Future enhancement would add:
-- Individual error badges per select field (departments, job roles, etc.)
-- "Retry" buttons next to failed datasets
-- Error messages with actionable guidance
-
-Example implementation:
-```tsx
-{modalData.departments.error && (
-  <div className="flex items-center gap-2 p-2 bg-red-50 rounded">
-    <AlertCircle className="w-4 h-4 text-red-600" />
-    <span className="text-sm text-red-700">
-      Failed to load departments
-    </span>
-    <Button
-      size="sm"
-      variant="ghost"
-      onClick={() => modalData.departments.retry()}
-    >
-      Retry
-    </Button>
-  </div>
-)}
-```
+### Granular Error/Retry UI
+Implemented in AddEmployeeModal (Nov 2025):
+- Critical dataset banner blocks submission until templates succeed and exposes "Retry all".
+- Non-critical datasets render inline amber alerts with contextual description + per-dataset Retry button wired to `modalData.{dataset}.retry()`.
+- Form content is wrapped in a `fieldset` that disables interactions while critical datasets are unavailable, preventing partial submissions and aligning with the resiliency audit.
 
 ### Error Boundary (Deferred)
 Add React Error Boundary to catch and log rendering errors:
@@ -179,9 +160,8 @@ None - changes are backward compatible
 - The modal will automatically revalidate data in the background
 
 ### Known Issues
-1. **Modal Callbacks**: `setDepartments`, `setJobRoles`, `setLocations` are no longer defined. Update child modal callbacks to use SWR's `mutate()` function instead
-2. **OnboardingTemplate Type**: Type definition was inlined but should be extracted to a shared types file
-3. **Lint Warnings**: Pre-existing Windows filesystem casing issues (Card/card, Button/button) unrelated to these changes
+1. **OnboardingTemplate Type**: Type definition was inlined but should be extracted to a shared types file
+2. **Lint Warnings**: Pre-existing Windows filesystem casing issues (Card/card, Button/button) unrelated to these changes
 
 ## Files Created
 - `app/hooks/useEmployeeModalData.ts` - SWR hook for modal reference data

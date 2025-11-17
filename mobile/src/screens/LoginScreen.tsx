@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,29 +9,21 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
-  Animated,
 } from 'react-native';
-import { signInWithCredentials, requestPasswordReset } from '../api/auth';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { signInWithCredentials } from '../api/auth';
 import ApiConnectivityStatus from '../components/ApiConnectivityStatus';
+import { AuthStackParamList } from '../navigation/types';
 
-interface LoginScreenProps {
+type LoginScreenProps = NativeStackScreenProps<AuthStackParamList, 'Login'> & {
   onLoginSuccess: () => void;
-}
+};
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
+export default function LoginScreen({ onLoginSuccess, navigation }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotSent, setForgotSent] = useState(false);
-  const [forgotError, setForgotError] = useState('');
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -54,76 +46,10 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     }
   };
 
-  useEffect(() => {
-    if (forgotSent) {
-      pulseLoop.current?.stop();
-      pulseLoop.current = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.05,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulseLoop.current.start();
-    } else {
-      pulseLoop.current?.stop();
-      pulseLoop.current = null;
-      pulseAnim.setValue(1);
-    }
-
-    return () => {
-      pulseLoop.current?.stop();
-    };
-  }, [forgotSent, pulseAnim]);
-
-  const handleOpenForgot = () => {
-    setForgotOpen(true);
-    setForgotEmail((prev) => prev || email);
-    setForgotError('');
-  };
-
-  const resetForgotState = () => {
-    setForgotOpen(false);
-    setForgotLoading(false);
-    setForgotSent(false);
-    setForgotError('');
-  };
-
-  const sendResetEmail = async () => {
-    const trimmedEmail = forgotEmail.trim();
-
-    if (!trimmedEmail) {
-      setForgotError('Enter your work email to continue');
-      setForgotSent(false);
-      return;
-    }
-
-    if (!EMAIL_REGEX.test(trimmedEmail)) {
-      setForgotError('Enter a valid email address');
-      setForgotSent(false);
-      return;
-    }
-
-    setForgotError('');
-    setForgotLoading(true);
-
-    try {
-      await requestPasswordReset(trimmedEmail);
-      setForgotSent(true);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to send reset email right now';
-      setForgotError(message);
-      setForgotSent(false);
-    } finally {
-      setForgotLoading(false);
-    }
+  const handleForgotPassword = () => {
+    navigation.navigate('ForgotPassword', {
+      prefillEmail: email.trim() || undefined,
+    });
   };
 
   return (
@@ -178,81 +104,9 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             )}
           </TouchableOpacity>
 
-          {forgotOpen ? (
-            <View style={styles.forgotCard}>
-              {!forgotSent ? (
-                <>
-                  <Text style={styles.forgotTitle}>Forgot password?</Text>
-                  <Text style={styles.forgotDescription}>
-                    We&apos;ll email you a secure link to reset your password.
-                  </Text>
-                  <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Work email</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="you@example.com"
-                      value={forgotEmail}
-                      onChangeText={setForgotEmail}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                      autoComplete="email"
-                      editable={!forgotLoading}
-                    />
-                  </View>
-                  {forgotError ? <Text style={styles.error}>{forgotError}</Text> : null}
-                  <TouchableOpacity
-                    style={[styles.button, forgotLoading && styles.buttonDisabled]}
-                    onPress={sendResetEmail}
-                    disabled={forgotLoading}
-                  >
-                    {forgotLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.buttonText}>Send reset link</Text>
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.secondaryLinkButton} onPress={resetForgotState}>
-                    <Text style={styles.secondaryLinkText}>Back to sign in</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <Animated.View style={[styles.checkEmailCard, { transform: [{ scale: pulseAnim }] }]}> 
-                    <Text style={styles.envelopeIcon}>📬</Text>
-                    <Text style={styles.checkEmailTitle}>Check your inbox</Text>
-                    <Text style={styles.checkEmailSubtitle}>
-                      We sent reset instructions to {forgotEmail.trim()}
-                    </Text>
-                  </Animated.View>
-                  {forgotError ? <Text style={styles.error}>{forgotError}</Text> : null}
-                  <TouchableOpacity
-                    style={[styles.button, forgotLoading && styles.buttonDisabled]}
-                    onPress={sendResetEmail}
-                    disabled={forgotLoading}
-                  >
-                    {forgotLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.buttonText}>Resend email</Text>
-                    )}
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.secondaryLinkButton}
-                    onPress={() => {
-                      setForgotSent(false);
-                      setForgotError('');
-                    }}
-                  >
-                    <Text style={styles.secondaryLinkText}>Use a different email</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-          ) : (
-            <TouchableOpacity style={styles.linkButton} onPress={handleOpenForgot}>
-              <Text style={styles.linkText}>Forgot password?</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={styles.linkButton} onPress={handleForgotPassword}>
+            <Text style={styles.linkText}>Forgot password?</Text>
+          </TouchableOpacity>
         </View>
 
         <ApiConnectivityStatus />
@@ -340,58 +194,5 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontSize: 14,
     fontWeight: '600',
-  },
-  forgotCard: {
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  forgotTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  forgotDescription: {
-    fontSize: 14,
-    color: '#4b5563',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  secondaryLinkButton: {
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  secondaryLinkText: {
-    color: '#1f2937',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  checkEmailCard: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    marginBottom: 12,
-    borderRadius: 12,
-    backgroundColor: '#dbeafe',
-  },
-  envelopeIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  checkEmailTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1d4ed8',
-  },
-  checkEmailSubtitle: {
-    fontSize: 14,
-    color: '#1e3a8a',
-    textAlign: 'center',
-    marginTop: 4,
   },
 });

@@ -112,20 +112,27 @@ export default function EmployeeDocumentsPage() {
   const [eligible, setEligible] = useState<boolean>(true);
   const [signSubmitting, setSignSubmitting] = useState(false);
   const [signatureValue, setSignatureValue] = useState<SignatureCaptureValue | null>(null);
+  const [pendingOpenId, setPendingOpenId] = useState<string | null>(null);
 
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
 
   const fetchUserRole = async () => {
-    const res = await fetch("/api/auth/session");
-    const session = await res.json();
-    setUserRole(session?.user?.role || null);
-    // Multi-tenancy: Get company name
-    if (session?.user?.companyId) {
-      const companyRes = await fetch(`/api/companies/${session.user.companyId}`);
-      if (companyRes.ok) {
-        const company = await companyRes.json();
-        setCompanyName(company?.name || "");
+    try {
+      const res = await fetch("/api/auth/session");
+      if (!res.ok) {
+        console.error("Failed to fetch session");
+        return;
       }
+      const session = await res.json();
+      const role = session?.user?.role || null;
+      setUserRole(role);
+
+      const companyNameFromSession = session?.user?.company?.name;
+      if (companyNameFromSession) {
+        setCompanyName(companyNameFromSession);
+      }
+    } catch (error) {
+      console.error("Error fetching user role", error);
     }
   };
 
@@ -181,16 +188,20 @@ export default function EmployeeDocumentsPage() {
       const url = new URL(window.location.href);
       const openId = url.searchParams.get("open");
       if (openId) {
-        setTimeout(() => {
-          const doc = (documents || []).find((d) => d.id === openId);
-          if (doc) {
-            setSelectedDoc(doc);
-            setIsPreviewModalOpen(true);
-          }
-        }, 300);
+        setPendingOpenId(openId);
       }
     }
   }, [employeeId]);
+
+  useEffect(() => {
+    if (!pendingOpenId || loading) return;
+    const doc = (documents || []).find((d) => d.id === pendingOpenId);
+    if (doc) {
+      setSelectedDoc(doc);
+      setIsPreviewModalOpen(true);
+    }
+    setPendingOpenId(null);
+  }, [pendingOpenId, documents, loading]);
 
   useEffect(() => {
     const handler = (e: Event) => {

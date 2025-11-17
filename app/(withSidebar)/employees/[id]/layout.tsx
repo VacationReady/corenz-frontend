@@ -63,53 +63,7 @@ export default async function EmployeeLayout({
   const userDepartmentId = employee.User?.Department_User_departmentIdToDepartment?.id?.trim();
   const userJobRole = employee.User?.JobRole?.name;
 
-  // DEBUG: log user context
-  console.log("=== FORM DEBUG INFO ===");
-  console.log("Employee:", {
-    id: employee.id,
-    role: userRole,
-    departmentId: userDepartmentId,
-    jobRole: userJobRole,
-  });
-
-  // DEBUG: manually filter all forms
-  const allForms = await prisma.form.findMany({
-    where: {
-      companyId: employee.companyId || "",
-      isActive: true,
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      formType: true,
-      visibleToRoles: true,
-      visibleToDepartments: true,
-      visibleToJobRoles: true,
-    },
-  });
-
-  allForms.forEach((form: any) => {
-    const roleMatch = form.visibleToRoles.includes(userRole);
-    const deptMatch =
-      form.visibleToDepartments.length === 0 ||
-      (userDepartmentId &&
-        form.visibleToDepartments.includes(userDepartmentId));
-    const jobRoleMatch =
-      form.visibleToJobRoles.length === 0 ||
-      (userJobRole && form.visibleToJobRoles.includes(userJobRole));
-
-    const shouldShow = roleMatch && deptMatch && jobRoleMatch;
-
-    console.log(`Form "${form.name}" visibility:`, {
-      roleMatch,
-      deptMatch,
-      jobRoleMatch,
-      shouldShow,
-    });
-  });
-
-  // FINAL QUERY: fetch forms with proper filter (EXCLUDE SURVEYS)
+  // Fetch forms with proper filter (EXCLUDE SURVEYS)
   let forms = await prisma.form.findMany({
     where: {
       companyId: employee.companyId || "",
@@ -157,9 +111,6 @@ export default async function EmployeeLayout({
     "demographics",
   ]);
   forms = forms.filter((f: any) => !hiddenSlugs.has(f.slug));
-
-  console.log("Final forms to show:", forms.length);
-  console.log("=== END DEBUG INFO ===");
 
   const menu = [
     { href: "/employees", label: "Employees" },

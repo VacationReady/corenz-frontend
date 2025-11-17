@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import LoginScreen from './src/screens/LoginScreen';
+import AuthNavigator from './src/navigation/AuthNavigator';
 import AppNavigator from './src/navigation/AppNavigator';
 import { getStoredSession, getSession } from './src/api/auth';
 
@@ -56,7 +56,7 @@ export default function App() {
       {isAuthenticated ? (
         <AppNavigator onLogout={handleLogout} />
       ) : (
-        <LoginScreen onLoginSuccess={handleLoginSuccess} />
+        <AuthNavigator onLoginSuccess={handleLoginSuccess} />
       )}
       <StatusBar style="auto" />
     </>

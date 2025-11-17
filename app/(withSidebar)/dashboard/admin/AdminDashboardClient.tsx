@@ -32,6 +32,7 @@ import { StageTimeline } from "@/components/approvals/StageTimeline";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
+import { Input } from "@/components/ui/Input";
  
 function EntitlementProjection({
   employeeId,
@@ -602,6 +603,8 @@ export default function AdminDashboardClient({
   const [loadingEmployees, setLoadingEmployees] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [selectedEmployeeForEdit, setSelectedEmployeeForEdit] = useState<any | null>(null);
+  const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   useEffect(() => {
     if (!editEmployeeOpen) return;
@@ -630,15 +633,30 @@ export default function AdminDashboardClient({
 
   const employeeOptions = useMemo(() => {
     if (!employeesForEdit) return [] as { id: string; label: string }[];
-    return employeesForEdit.map((e: any) => {
-      const id = e.id || e.employeeId;
-      const first = e.firstName || e.User?.firstName || "";
-      const last = e.lastName || e.User?.lastName || "";
-      const email = e.email || e.User?.email || "";
-      const label = `${first} ${last}`.trim() || email || id;
-      return { id, label };
-    });
+    return employeesForEdit
+      .map((e: any) => {
+        const id = e.id || e.employeeId;
+        const first = e.firstName || e.User?.firstName || "";
+        const last = e.lastName || e.User?.lastName || "";
+        const email = e.email || e.User?.email || "";
+        const label = `${first} ${last}`.trim() || email || id || "";
+        return { id, label };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
   }, [employeesForEdit]);
+
+  const normalizedEmployeeSearch = employeeSearch.trim().toLowerCase();
+  const filteredEmployeeOptions = useMemo(() => {
+    if (!normalizedEmployeeSearch) return employeeOptions;
+    return employeeOptions.filter((option) =>
+      option.label.toLowerCase().includes(normalizedEmployeeSearch),
+    );
+  }, [employeeOptions, normalizedEmployeeSearch]);
+
+  const shouldShowEmployeeSearch = employeeOptions.length > 10;
+  const displayedEmployeeOptions = shouldShowEmployeeSearch
+    ? filteredEmployeeOptions
+    : employeeOptions;
 
   const getEmployeeDisplay = (e: any) => {
     const first = e.firstName || e.User?.firstName || "";
@@ -670,6 +688,13 @@ export default function AdminDashboardClient({
   const resetEditEmployeeDialog = () => {
     setSelectedEmployeeId("");
     setSelectedEmployeeForEdit(null);
+  };
+
+  const handleEmployeeSelectOpenChange = (open: boolean) => {
+    setIsEmployeeSelectOpen(open);
+    if (!open) {
+      setEmployeeSearch("");
+    }
   };
 
   // (Dialog inlined below to avoid remounting per keystroke)
@@ -728,16 +753,38 @@ export default function AdminDashboardClient({
                   </div>
                 ) : (
                   <>
-                    <Select value={selectedEmployeeId} onValueChange={(v) => setSelectedEmployeeId(v)}>
+                    <Select
+                      open={isEmployeeSelectOpen}
+                      onOpenChange={handleEmployeeSelectOpenChange}
+                      value={selectedEmployeeId}
+                      onValueChange={(v) => setSelectedEmployeeId(v)}
+                    >
                       <SelectTrigger className="h-9 w-full">
                         <SelectValue placeholder="Select employee" />
                       </SelectTrigger>
                       <SelectContent>
-                        {employeeOptions.slice(0, 200).map((opt) => (
+                        {shouldShowEmployeeSearch && (
+                          <div className="sticky top-0 z-10 bg-popover p-2 border-b border-muted/40">
+                            <Input
+                              value={employeeSearch}
+                              onChange={(e) => setEmployeeSearch(e.target.value)}
+                              placeholder="Search employees..."
+                              onKeyDown={(e) => e.stopPropagation()}
+                              autoFocus
+                              className="h-9"
+                            />
+                          </div>
+                        )}
+                        {displayedEmployeeOptions.slice(0, 200).map((opt) => (
                           <SelectItem key={opt.id} value={opt.id}>
                             {opt.label}
                           </SelectItem>
                         ))}
+                        {displayedEmployeeOptions.length === 0 && (
+                          <div className="py-4 text-center text-sm text-muted-foreground">
+                            No employees found
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                     <div className="flex justify-end">

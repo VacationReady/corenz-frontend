@@ -29,6 +29,7 @@ import type {
   OnboardingTemplate,
   WorkingPattern,
   PermissionProfile,
+  DatasetState,
 } from "@/hooks/useEmployeeModalData";
 import { fetchWithCsrf } from "@/lib/csrf";
 import { prepareSensitiveDataForTransmission } from "@/lib/crypto";
@@ -87,6 +88,14 @@ const NZ_TAX_CODES = [
 ];
 
 type TaxCodeOption = (typeof NZ_TAX_CODES)[number];
+
+type DatasetHealthEntry = {
+  key: string;
+  label: string;
+  description: string;
+  state: DatasetState<unknown>;
+  critical?: boolean;
+};
 
 const KIWISAVER_RATES = [
   { value: "3", label: "3%" },
@@ -260,6 +269,61 @@ export default function AddEmployeeModal({
   const templates: OnboardingTemplate[] = modalData.templates.data;
   const workingPatterns: WorkingPattern[] = modalData.workingPatterns.data;
   const permissionProfiles: PermissionProfile[] = modalData.permissionProfiles.data;
+
+  const datasetHealth: DatasetHealthEntry[] = [
+    {
+      key: "templates",
+      label: "Onboarding templates",
+      description: "Required to create an employee.",
+      state: modalData.templates,
+      critical: true,
+    },
+    {
+      key: "departments",
+      label: "Departments",
+      description: "Used for template filtering and default metadata.",
+      state: modalData.departments,
+    },
+    {
+      key: "jobRoles",
+      label: "Job roles",
+      description: "Used for template filtering and manager context.",
+      state: modalData.jobRoles,
+    },
+    {
+      key: "locations",
+      label: "Locations",
+      description: "Populates the location selector.",
+      state: modalData.locations,
+    },
+    {
+      key: "contractTypes",
+      label: "Contract types",
+      description: "Populates the contract selector.",
+      state: modalData.contractTypes,
+    },
+    {
+      key: "workingPatterns",
+      label: "Working patterns",
+      description: "Required for Step 2 entitlement calculations.",
+      state: modalData.workingPatterns,
+    },
+    {
+      key: "permissionProfiles",
+      label: "Permission profiles",
+      description: "Required when enabling admin access.",
+      state: modalData.permissionProfiles,
+    },
+    {
+      key: "employees",
+      label: "Employees",
+      description: "Used for manager assignments.",
+      state: modalData.employees,
+    },
+  ];
+
+  const criticalErrors = datasetHealth.filter((entry) => entry.critical && entry.state.error);
+  const nonCriticalErrors = datasetHealth.filter((entry) => !entry.critical && entry.state.error);
   
   const [error, setError] = useState("");
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
@@ -1237,13 +1301,8 @@ export default function AddEmployeeModal({
   }, [formData.workingPatternId, formData.entitlementDays, holidayYearError]);
 
   // Check for critical data loading errors
-  const hasCriticalError = modalData.templates.error;
-  const hasNonCriticalErrors = 
-    modalData.departments.error ||
-    modalData.jobRoles.error ||
-    modalData.locations.error ||
-    modalData.contractTypes.error ||
-    modalData.workingPatterns.error;
+  const hasCriticalError = criticalErrors.length > 0;
+  const hasNonCriticalErrors = nonCriticalErrors.length > 0;
 
   return (
     <AddEmployeeModalErrorBoundary onReset={() => {
@@ -1274,6 +1333,83 @@ export default function AddEmployeeModal({
             {error && <p className="text-red-600">{error}</p>}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {hasCriticalError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4" role="alert">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <p className="text-sm font-semibold text-red-900">
+                          Required reference data failed to load
+                        </p>
+                        <p className="text-sm text-red-800">
+                          The modal can’t continue until these datasets succeed:
+                        </p>
+                      </div>
+                      <ul className="list-disc pl-5 text-sm text-red-800">
+                        {criticalErrors.map((entry) => (
+                          <li key={entry.key}>
+                            <span className="font-medium">{entry.label}</span>
+                            {": "}
+                            {entry.state.error?.message || "Unknown error"}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          className="flex items-center gap-2"
+                          onClick={modalData.retryAll}
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Retry all datasets
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {hasNonCriticalErrors && (
+                <div className="space-y-3" role="status" aria-live="polite">
+                  {nonCriticalErrors.map((entry) => (
+                    <div
+                      key={entry.key}
+                      className="rounded-lg border border-amber-200 bg-amber-50 p-3"
+                    >
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-amber-600" />
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-amber-900">
+                            {entry.label} failed to load
+                          </p>
+                          <p className="text-sm text-amber-800">
+                            {entry.state.error?.message || "Unknown error"}
+                          </p>
+                          <p className="text-xs text-amber-700 mt-1">
+                            {entry.description}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="min-w-[96px]"
+                          onClick={entry.state.retry}
+                          loading={entry.state.isLoading}
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <fieldset
+                disabled={hasCriticalError}
+                className={hasCriticalError ? "pointer-events-none opacity-60" : undefined}
+              >
             {currentStep === 1 && (
               <div className="space-y-4">
                 <h3 className="text-md font-medium">
@@ -1923,222 +2059,223 @@ export default function AddEmployeeModal({
                   </Button>
                 </div>
               </div>
-            )}
+              )}
 
-            {currentStep === 2 && (
-              <div className="space-y-4">
-                <h3 className="text-md font-medium">
-                  Holiday & Working Pattern Settings
-                </h3>
-
+              {currentStep === 2 && (
                 <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium">
-                      Holiday Year Start
-                    </Label>
-                    <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <h3 className="text-md font-medium">
+                    Holiday & Working Pattern Settings
+                  </h3>
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Holiday Year Start
+                      </Label>
+                      <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <Select
+                          open={isHolidayMonthSelectOpen}
+                          onOpenChange={handleHolidayMonthOpenChange}
+                          value={holidayStartMonth || undefined}
+                          onValueChange={handleHolidayMonthChange}
+                        >
+                          <SelectTrigger className="w-full sm:w-48">
+                            <SelectValue placeholder="Month" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {shouldShowHolidayMonthSearch && (
+                              <SelectSearchInput
+                                value={holidayMonthSearch}
+                                onChange={setHolidayMonthSearch}
+                                placeholder="Search months..."
+                              />
+                            )}
+                            {holidayMonthOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={31}
+                          placeholder="Day"
+                          value={holidayStartDay}
+                          onChange={handleHolidayDayChange}
+                          className="w-full sm:w-24"
+                        />
+                      </div>
+                      {holidayYearError ? (
+                        <p className="text-xs text-red-600 mt-2">
+                          {holidayYearError}
+                        </p>
+                      ) : selectedHolidayRange ? (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Holiday year runs from{" "}
+                          <span className="font-medium">
+                            {formatMonthDay(
+                              selectedHolidayRange.startMonth,
+                              selectedHolidayRange.startDay,
+                            )}
+                          </span>{" "}
+                          to{" "}
+                          <span className="font-medium">
+                            {formatMonthDay(
+                              selectedHolidayRange.endMonth,
+                              selectedHolidayRange.endDay,
+                            )}
+                          </span>
+                          .
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Choose the first day of your company holiday year.
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Working Pattern
+                      </Label>
                       <Select
-                        open={isHolidayMonthSelectOpen}
-                        onOpenChange={handleHolidayMonthOpenChange}
-                        value={holidayStartMonth || undefined}
-                        onValueChange={handleHolidayMonthChange}
+                        open={isWorkingPatternSelectOpen}
+                        onOpenChange={handleWorkingPatternOpenChange}
+                        value={formData.workingPatternId || undefined}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, workingPatternId: value })
+                        }
                       >
-                        <SelectTrigger className="w-full sm:w-48">
-                          <SelectValue placeholder="Month" />
+                        <SelectTrigger className="w-full mt-1">
+                          <SelectValue placeholder="Select working pattern" />
                         </SelectTrigger>
                         <SelectContent>
-                          {shouldShowHolidayMonthSearch && (
+                          {shouldShowWorkingPatternSearch && (
                             <SelectSearchInput
-                              value={holidayMonthSearch}
-                              onChange={setHolidayMonthSearch}
-                              placeholder="Search months..."
+                              value={workingPatternSearch}
+                              onChange={setWorkingPatternSearch}
+                              placeholder="Search working patterns..."
                             />
                           )}
-                          {holidayMonthOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
+                          {workingPatternOptions.map((pattern: any) => (
+                            <SelectItem key={pattern.id} value={pattern.id}>
+                              {pattern.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <Input
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        max={31}
-                        placeholder="Day"
-                        value={holidayStartDay}
-                        onChange={handleHolidayDayChange}
-                        className="w-full sm:w-24"
-                      />
                     </div>
-                    {holidayYearError ? (
-                      <p className="text-xs text-red-600 mt-2">
-                        {holidayYearError}
+
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Annual Leave Entitlement (Days)
+                      </Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          name="entitlementDays"
+                          placeholder="20"
+                          value={formData.entitlementDays}
+                          onChange={handleChange}
+                          className="flex-1"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsCalculateModalOpen(true)}
+                        >
+                          Calculate
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        NZ: 4 weeks (20 days) after 12 months. Prorated before anniversary.
                       </p>
-                    ) : selectedHolidayRange ? (
-                      <p className="text-xs text-gray-500 mt-2">
-                        Holiday year runs from{" "}
-                        <span className="font-medium">
-                          {formatMonthDay(
-                            selectedHolidayRange.startMonth,
-                            selectedHolidayRange.startDay,
-                          )}
-                        </span>{" "}
-                        to{" "}
-                        <span className="font-medium">
-                          {formatMonthDay(
-                            selectedHolidayRange.endMonth,
-                            selectedHolidayRange.endDay,
-                          )}
-                        </span>
-                        .
-                      </p>
-                    ) : (
-                      <p className="text-xs text-gray-500 mt-2">
-                        Choose the first day of your company holiday year.
-                      </p>
-                    )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium">
+                          Sick Leave (Days/Year)
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.5"
+                          name="sickLeaveDays"
+                          placeholder="10"
+                          value={formData.sickLeaveDays}
+                          onChange={handleChange}
+                          className="mt-1"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          NZ minimum: 10 days after 6 months
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium">
+                          Alternative Holidays
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.5"
+                          name="alternativeHolidayDays"
+                          placeholder="0"
+                          value={formData.alternativeHolidayDays}
+                          onChange={handleChange}
+                          className="mt-1"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Days owed for working public holidays
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium">
+                          Public Holidays/Year
+                        </Label>
+                        <Input
+                          type="number"
+                          step="1"
+                          name="publicHolidayEntitlement"
+                          placeholder="11"
+                          value={formData.publicHolidayEntitlement}
+                          onChange={handleChange}
+                          className="mt-1"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          NZ: 11 national + regional holidays
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <Label className="text-sm font-medium">
-                      Working Pattern
-                    </Label>
-                    <Select
-                      open={isWorkingPatternSelectOpen}
-                      onOpenChange={handleWorkingPatternOpenChange}
-                      value={formData.workingPatternId || undefined}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, workingPatternId: value })
-                      }
+                  <div className="flex justify-between">
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      onClick={prevStep}
+                      disabled={isSubmitting}
                     >
-                      <SelectTrigger className="w-full mt-1">
-                        <SelectValue placeholder="Select working pattern" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shouldShowWorkingPatternSearch && (
-                          <SelectSearchInput
-                            value={workingPatternSearch}
-                            onChange={setWorkingPatternSearch}
-                            placeholder="Search working patterns..."
-                          />
-                        )}
-                        {workingPatternOptions.map((pattern: any) => (
-                          <SelectItem key={pattern.id} value={pattern.id}>
-                            {pattern.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm font-medium">
-                      Annual Leave Entitlement (Days)
-                    </Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        name="entitlementDays"
-                        placeholder="20"
-                        value={formData.entitlementDays}
-                        onChange={handleChange}
-                        className="flex-1"
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsCalculateModalOpen(true)}
-                      >
-                        Calculate
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      NZ: 4 weeks (20 days) after 12 months. Prorated before anniversary.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <Label className="text-sm font-medium">
-                        Sick Leave (Days/Year)
-                      </Label>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        name="sickLeaveDays"
-                        placeholder="10"
-                        value={formData.sickLeaveDays}
-                        onChange={handleChange}
-                        className="mt-1"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        NZ minimum: 10 days after 6 months
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium">
-                        Alternative Holidays
-                      </Label>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        name="alternativeHolidayDays"
-                        placeholder="0"
-                        value={formData.alternativeHolidayDays}
-                        onChange={handleChange}
-                        className="mt-1"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Days owed for working public holidays
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium">
-                        Public Holidays/Year
-                      </Label>
-                      <Input
-                        type="number"
-                        step="1"
-                        name="publicHolidayEntitlement"
-                        placeholder="11"
-                        value={formData.publicHolidayEntitlement}
-                        onChange={handleChange}
-                        className="mt-1"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        NZ: 11 national + regional holidays
-                      </p>
-                    </div>
+                      Back
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      loading={isSubmitting}
+                      loadingText="Creating Employee..."
+                      disabled={isSubmitting || !isStep2Valid}
+                    >
+                      Add Employee
+                    </Button>
                   </div>
                 </div>
-
-                <div className="flex justify-between">
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    onClick={prevStep}
-                    disabled={isSubmitting}
-                  >
-                    Back
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    loading={isSubmitting}
-                    loadingText="Creating Employee..."
-                    disabled={isSubmitting || !isStep2Valid}
-                  >
-                    Add Employee
-                  </Button>
-                </div>
-              </div>
-            )}
-          </form>
+              )}
+              </fieldset>
+            </form>
           </Card>
         </DialogContent>
       </Dialog>

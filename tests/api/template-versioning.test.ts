@@ -3,10 +3,11 @@
  * Tests optimistic locking, version conflicts, and autosave functionality
  */
 
+import "../setupEnv";
 import test, { describe, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { prisma } from "@/lib/prisma";
-import { updateTemplate, TemplateConflictError } from "@/app/api/onboarding/templates/actions";
+import { updateTemplate, TemplateConflictError } from "../../app/api/onboarding/templates/actions";
 
 // Align with node:test while keeping familiar Jest-style naming
 const it = test;

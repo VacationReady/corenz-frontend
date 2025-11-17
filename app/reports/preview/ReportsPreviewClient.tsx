@@ -25,6 +25,7 @@ import { hrReportFields } from "@/lib/hrReportFields";
 import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
 import { ArrowLeft, X, Mail, History } from "lucide-react";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import Papa from "papaparse";
 import { exportTableToPdf } from "@/lib/pdfExport";
 import { SendReportModal } from "@/components/reports/SendReportModal";
@@ -236,6 +237,26 @@ export default function ReportsPreviewClient() {
   const [pageSize, setPageSize] = useState(50);
   const [total, setTotal] = useState<number>(0);
   const [exportingFull, setExportingFull] = useState(false);
+  const [tableLoading, setTableLoading] = useState(false);
+
+  // Generate a stable, meaningful reportId for localStorage persistence
+  const effectiveReportId = useMemo(() => {
+    if (reportIdParam) return reportIdParam;
+    if (templateIdParam) return `template_${templateIdParam}`;
+    // Hash selected fields for a deterministic key when no reportId/templateId
+    if (selectedFields.length > 0) {
+      const sorted = [...selectedFields].sort().join(",");
+      // Simple hash function for consistent key generation
+      let hash = 0;
+      for (let i = 0; i < sorted.length; i++) {
+        const char = sorted.charCodeAt(i);
+        hash = (hash << 5) - hash + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return `fields_${Math.abs(hash).toString(36)}`;
+    }
+    return "preview";
+  }, [reportIdParam, templateIdParam, selectedFields]);
 
   const returnToParam = searchParams?.get("returnTo") || "";
   const safeReturnTo = useMemo(() => {
@@ -842,7 +863,7 @@ export default function ReportsPreviewClient() {
       setShowPIIModal(true);
       return;
     }
-    if (exportingFull) return;
+    if (exportingFull || tableLoading) return;
     setExportingFull(true);
     try {
       const combined: any[] = [];
@@ -1030,14 +1051,16 @@ export default function ReportsPreviewClient() {
           needed.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={handleDownloadClick}>
+          <Button onClick={handleDownloadClick} disabled={tableLoading}>
             Download CSV ({filteredData.length} rows)
           </Button>
-          <Button onClick={handlePdfClick}>Export to PDF</Button>
+          <Button onClick={handlePdfClick} disabled={tableLoading}>Export to PDF</Button>
           {total > data.length ? (
-            <Button disabled={exportingFull} onClick={handleFullExport}>
+            <Button disabled={exportingFull || tableLoading} onClick={handleFullExport}>
               {exportingFull
                 ? "Exporting full report..."
+                : tableLoading
+                ? `Preparing export... (${total} rows)`
                 : `Download Full CSV (${total} rows)`}
             </Button>
           ) : null}
@@ -1064,18 +1087,26 @@ export default function ReportsPreviewClient() {
         </div>
       </div>
       <div className="min-h-[200px]">
+        {tableLoading && (
+          <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
+            <ArrowPathIcon className="h-4 w-4 animate-spin" />
+            <span>Applying filters...</span>
+          </div>
+        )}
         <FilterableDataTable
           columns={columns}
           data={data}
           total={total}
           page={page}
           pageSize={pageSize}
+          reportId={effectiveReportId}
           onFilteredDataChange={setFilteredData}
           onPageChange={setPage}
           onPageSizeChange={(size: number) => {
             setPageSize(size);
             setPage(1);
           }}
+          onTableLoadingChange={setTableLoading}
         />
       </div>
     </div>

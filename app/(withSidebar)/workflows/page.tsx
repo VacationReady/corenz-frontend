@@ -54,6 +54,13 @@ import {
   ChevronRight,
   Lightbulb,
   Target,
+  TrendingDown,
+  Gauge,
+  Timer,
+  Award,
+  RefreshCw,
+  X,
+  MessageSquarePlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -122,6 +129,7 @@ export default function WorkflowLibraryPage() {
   });
   const [workflowLibraryData, setWorkflowLibraryData] = useState<WorkflowTemplate[]>(workflowLibrary.templates);
   const [apiLoadFailed, setApiLoadFailed] = useState(false);
+  const [analyticsLoadFailed, setAnalyticsLoadFailed] = useState(false);
 
   const trendValues = useMemo(() => {
     if (trendSummary?.dailyExecutions?.length) {
@@ -171,6 +179,36 @@ export default function WorkflowLibraryPage() {
     });
   }, [topTemplates, workflowLibraryData]);
 
+  // Calculate trend indicators from 30-day execution data
+  const getTrendIndicator = (templateId: string) => {
+    if (!trendSummary?.dailyExecutions?.length) return null;
+    
+    const last7Days = trendSummary.dailyExecutions.slice(-7);
+    const prev7Days = trendSummary.dailyExecutions.slice(-14, -7);
+    
+    if (last7Days.length < 2 || prev7Days.length < 2) return null;
+    
+    const recentAvg = last7Days.reduce((sum, d) => sum + d.count, 0) / last7Days.length;
+    const previousAvg = prev7Days.reduce((sum, d) => sum + d.count, 0) / prev7Days.length;
+    
+    if (recentAvg > previousAvg * 1.1) return "up";
+    if (recentAvg < previousAvg * 0.9) return "down";
+    return "stable";
+  };
+
+  const topInstalledCategory = useMemo(() => {
+    if (!topTemplates.length) return null;
+    const topTemplate = workflowLibraryData.find(w => w.id === topTemplates[0]?.templateId);
+    return topTemplate?.category || null;
+  }, [topTemplates, workflowLibraryData]);
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("all");
+  };
+
+  const hasActiveFilters = searchQuery || selectedCategory !== "all";
+
   const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
   };
@@ -217,6 +255,7 @@ export default function WorkflowLibraryPage() {
   const loadAnalytics = async () => {
     try {
       setAnalyticsLoading(true);
+      setAnalyticsLoadFailed(false);
       const [analyticsRes, templatesRes] = await Promise.all([
         fetch("/api/automation-rules/analytics"),
         fetch("/api/automation-rules/templates"),
@@ -235,6 +274,9 @@ export default function WorkflowLibraryPage() {
         setActivationState(analyticsData.activationState || {});
         setTopTemplates(analyticsData.topTemplates || []);
         setTrendSummary(analyticsData.trendsLast30Days || null);
+        setAnalyticsLoadFailed(false);
+      } else {
+        setAnalyticsLoadFailed(true);
       }
 
       if (templatesRes.ok) {
@@ -258,7 +300,7 @@ export default function WorkflowLibraryPage() {
       }
     } catch (error) {
       console.error("Failed to load analytics:", error);
-      toast.error("Failed to load workflow analytics");
+      setAnalyticsLoadFailed(true);
       // On error, fall back to static bundle
       setApiLoadFailed(true);
       setWorkflowLibraryData(workflowLibrary.templates);
@@ -577,8 +619,45 @@ export default function WorkflowLibraryPage() {
         </div>
       }
     >
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      {/* Error Banner for Analytics/Template Fetch Failures */}
+      {(analyticsLoadFailed || apiLoadFailed) && (
+        <Card className="mb-6 border-amber-200 bg-amber-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+                <div>
+                  <p className="font-medium text-amber-900">
+                    {analyticsLoadFailed && apiLoadFailed
+                      ? "Failed to load analytics and templates"
+                      : analyticsLoadFailed
+                      ? "Failed to load workflow analytics"
+                      : "Failed to load template data"}
+                  </p>
+                  <p className="text-sm text-amber-700">
+                    {apiLoadFailed
+                      ? "Using static template library. Some features may be limited."
+                      : "Some statistics may be unavailable."}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadAnalytics}
+                className="border-amber-300 hover:bg-amber-100"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Redesigned Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Total Workflows */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -596,47 +675,74 @@ export default function WorkflowLibraryPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Success Rate Gauge */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Workflows</p>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">Success Rate</p>
                 {analyticsLoading ? (
-                  <Skeleton className="h-8 w-16 mt-1" />
+                  <Skeleton className="h-8 w-20 mt-1" />
                 ) : (
-                  <p className="text-2xl font-bold">{stats.activeWorkflows}</p>
-                )}
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <Check className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Executions Today</p>
-                {analyticsLoading ? (
-                  <Skeleton className="h-8 w-16 mt-1" />
-                ) : (
-                  <p className="text-2xl font-bold">{stats.executionsToday}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-2xl font-bold">
+                      {stats.successRate != null ? `${stats.successRate}%` : "—"}
+                    </p>
+                    {stats.successRate != null && stats.successRate >= 95 && (
+                      <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                        Excellent
+                      </Badge>
+                    )}
+                  </div>
                 )}
                 {analyticsLoading ? (
                   <Skeleton className="h-4 w-24 mt-2" />
                 ) : (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Success Rate: {stats.successRate != null ? `${stats.successRate}%` : "—"}
+                    {stats.executionsToday} executions today
                   </p>
                 )}
               </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <PlayCircle className="w-6 h-6 text-blue-600" />
+              <div className="p-3 bg-green-100 rounded-lg">
+                <Gauge className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Average Execution Time Chip */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground">Avg Execution Time</p>
+                {analyticsLoading ? (
+                  <Skeleton className="h-8 w-20 mt-1" />
+                ) : (
+                  <div className="mt-1">
+                    <p className="text-2xl font-bold">
+                      {formatExecutionTime(stats.avgExecutionTimeMs)}
+                    </p>
+                  </div>
+                )}
+                {analyticsLoading ? (
+                  <Skeleton className="h-4 w-24 mt-2" />
+                ) : stats.avgExecutionTimeMs && stats.avgExecutionTimeMs < 5000 ? (
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs mt-2">
+                    <Zap className="w-3 h-3 mr-1" />
+                    Fast
+                  </Badge>
+                ) : null}
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Timer className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Time Saved */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -648,10 +754,10 @@ export default function WorkflowLibraryPage() {
                   <p className="text-2xl font-bold">{stats.timeSaved}</p>
                 )}
                 {analyticsLoading ? (
-                  <Skeleton className="h-4 w-28 mt-2" />
+                  <Skeleton className="h-4 w-24 mt-2" />
                 ) : (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Avg Execution Time: {formatExecutionTime(stats.avgExecutionTimeMs)}
+                    {stats.activeWorkflows} active workflows
                   </p>
                 )}
               </div>
@@ -662,6 +768,46 @@ export default function WorkflowLibraryPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Top-Performing Templates Badge Row */}
+      {!analyticsLoading && resolvedTopTemplates.length > 0 && (
+        <Card className="mb-6 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Award className="w-5 h-5 text-amber-600" />
+              <h3 className="font-semibold text-amber-900">Top-Performing Templates</h3>
+              <Badge variant="secondary" className="bg-amber-100 text-amber-700">Last 30 Days</Badge>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {resolvedTopTemplates.slice(0, 5).map((template) => {
+                const trend = getTrendIndicator(template.templateId);
+                return (
+                  <Badge
+                    key={template.templateId}
+                    variant="outline"
+                    className="px-3 py-2 bg-white border-amber-200 hover:border-amber-300 cursor-pointer transition-colors"
+                    onClick={() => {
+                      const workflow = workflowLibraryData.find(w => w.id === template.templateId);
+                      if (workflow) setPreviewWorkflow(workflow);
+                    }}
+                  >
+                    <span className="mr-2">{template.icon}</span>
+                    <span className="font-medium">{template.displayName}</span>
+                    <span className="mx-2 text-muted-foreground">·</span>
+                    <span className="text-xs text-muted-foreground">{template.usageCount} installs</span>
+                    {trend === "up" && (
+                      <TrendingUp className="w-3 h-3 ml-2 text-green-600" title="Trending up" />
+                    )}
+                    {trend === "down" && (
+                      <TrendingDown className="w-3 h-3 ml-2 text-red-600" title="Trending down" />
+                    )}
+                  </Badge>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Analytics Deep Dive */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -845,42 +991,90 @@ export default function WorkflowLibraryPage() {
               <CardContent className="py-12">
                 <div className="text-center max-w-2xl mx-auto">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                    {searchQuery || selectedCategory !== "all" ? (
+                    {hasActiveFilters ? (
                       <Search className="w-8 h-8 text-primary" />
                     ) : (
                       <Sparkles className="w-8 h-8 text-primary" />
                     )}
                   </div>
                   <h3 className="text-lg font-semibold mb-2">
-                    {searchQuery || selectedCategory !== "all" 
+                    {hasActiveFilters
                       ? "No workflows found"
                       : "Start automating your HR processes"}
                   </h3>
                   <p className="text-muted-foreground mb-6">
-                    {searchQuery || selectedCategory !== "all"
+                    {hasActiveFilters
                       ? "Try adjusting your search or filters to find relevant workflows"
                       : "Browse our library of 40+ pre-built workflows designed specifically for New Zealand HR teams"}
                   </p>
-                  {!(searchQuery || selectedCategory !== "all") && (
+                  
+                  {/* Contextual Empty State - Filtered Results */}
+                  {hasActiveFilters && (
+                    <div className="flex items-center justify-center gap-3 mt-6">
+                      <Button
+                        variant="outline"
+                        onClick={clearFilters}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Clear Filters
+                      </Button>
+                      <Button
+                        variant="default"
+                        onClick={() => {
+                          // Open a dialog or navigate to request form
+                          toast.info("Template request feature coming soon!");
+                        }}
+                      >
+                        <MessageSquarePlus className="w-4 h-4 mr-2" />
+                        Request a Template
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* General Zero State - Analytics-Based Suggestions */}
+                  {!hasActiveFilters && (
                     <div className="grid grid-cols-3 gap-4 mt-6">
-                      <div className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
-                           onClick={() => setSelectedCategory("onboarding-probation")}>
-                        <Lightbulb className="w-6 h-6 text-amber-500 mb-2" />
-                        <h4 className="font-medium mb-1">Popular Start</h4>
-                        <p className="text-xs text-muted-foreground">
-                          Onboarding & probation automations
-                        </p>
-                      </div>
-                      <div className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
-                           onClick={() => setSelectedCategory("compliance-documentation")}>
+                      {topInstalledCategory ? (
+                        <div
+                          className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
+                          onClick={() => setSelectedCategory(topInstalledCategory.id)}
+                        >
+                          <div className="text-2xl mb-2">{topInstalledCategory.icon}</div>
+                          <h4 className="font-medium mb-1">Popular Choice</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {topInstalledCategory.name}
+                          </p>
+                          <Badge variant="secondary" className="mt-2 text-xs">
+                            <TrendingUp className="w-3 h-3 mr-1" />
+                            Trending
+                          </Badge>
+                        </div>
+                      ) : (
+                        <div
+                          className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
+                          onClick={() => setSelectedCategory("onboarding-probation")}
+                        >
+                          <Lightbulb className="w-6 h-6 text-amber-500 mb-2" />
+                          <h4 className="font-medium mb-1">Popular Start</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Onboarding & probation automations
+                          </p>
+                        </div>
+                      )}
+                      <div
+                        className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
+                        onClick={() => setSelectedCategory("compliance-documentation")}
+                      >
                         <Target className="w-6 h-6 text-blue-500 mb-2" />
                         <h4 className="font-medium mb-1">Stay Compliant</h4>
                         <p className="text-xs text-muted-foreground">
                           Document tracking & compliance
                         </p>
                       </div>
-                      <div className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
-                           onClick={() => router.push("/settings/automation-rules?mode=create")}>
+                      <div
+                        className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
+                        onClick={() => router.push("/settings/automation-rules?mode=create")}
+                      >
                         <Sparkles className="w-6 h-6 text-purple-500 mb-2" />
                         <h4 className="font-medium mb-1">Build Custom</h4>
                         <p className="text-xs text-muted-foreground">

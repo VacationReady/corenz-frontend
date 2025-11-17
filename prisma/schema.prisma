@@ -1359,14 +1359,21 @@ model OnboardingStep {
   slaWarningDays              Int?
   excludePublicHolidays       Boolean                  @default(true)
   excludeWeekends             Boolean                  @default(false)
+  // Versioning & collaboration
+  version                     Int                      @default(1)
+  updatedAt                   DateTime                 @updatedAt
+  updatedBy                   String?
   Document                    Document?                @relation(fields: [documentId], references: [id])
   Form                        Form?                    @relation(fields: [formId], references: [id])
   OnboardingTemplate          OnboardingTemplate       @relation(fields: [templateId], references: [id])
+  UpdatedByUser               User?                    @relation("OnboardingStepUpdatedBy", fields: [updatedBy], references: [id])
   OnboardingStepInstance      OnboardingStepInstance[]
   OnboardingReminders         OnboardingReminder[]
   AuditLogs                   OnboardingStepAuditLog[]
+  VersionHistory              TemplateStepVersion[]
 
   @@unique([templateId, label])
+  @@index([templateId, version])
 }
 
 model OnboardingStepInstance {
@@ -1397,9 +1404,13 @@ model OnboardingTemplate {
   isDefault            Boolean                      @default(false)
   companyId            String
   createdAt            DateTime                     @default(now())
-  updatedAt            DateTime
+  updatedAt            DateTime                     @updatedAt
   isActive             Boolean                      @default(false)
   updatedById          String?
+  // Versioning & collaboration
+  version              Int                          @default(1)
+  publishedAt          DateTime?
+  publishedBy          String?
   Employee             Employee[]
   OnboardingAssignment OnboardingAssignment[]
   OnboardingInstance   OnboardingInstance[]
@@ -1407,10 +1418,14 @@ model OnboardingTemplate {
   AuditLogs            OnboardingStepAuditLog[]
   Company              Company                      @relation(fields: [companyId], references: [id])
   User                 User?                        @relation(fields: [updatedById], references: [id])
+  PublishedByUser      User?                        @relation("OnboardingTemplatePublishedBy", fields: [publishedBy], references: [id])
   Department           Department[]                 @relation("OnboardingTemplateDepartments")
   JobRole              JobRole[]                    @relation("OnboardingTemplateJobRoles")
+  VersionHistory       TemplateVersion[]
 
   @@unique([companyId, name])
+  @@index([companyId, version])
+  @@index([companyId, isActive])
 }
 
 model OnboardingTemplateTelemetryEvent {
@@ -1483,6 +1498,79 @@ model OnboardingReminder {
   @@index([status, scheduledFor])
   @@index([companyId, employeeId])
   @@index([onboardingInstanceId])
+}
+
+/// Template version history for collaborative editing and rollback
+model TemplateVersion {
+  id                String             @id @default(cuid())
+  templateId        String
+  companyId         String
+  version           Int
+  status            TemplateVersionStatus @default(DRAFT)
+  name              String
+  description       String?
+  isActive          Boolean
+  departmentIds     String[]           @default([])
+  jobRoleIds        String[]           @default([])
+  stepsSnapshot     Json               // Full snapshot of steps at this version
+  createdAt         DateTime           @default(now())
+  createdBy         String
+  publishedAt       DateTime?
+  publishedBy       String?
+  changesSummary    String?            // Human-readable summary of changes
+  OnboardingTemplate OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  CreatedByUser     User               @relation("TemplateVersionCreatedBy", fields: [createdBy], references: [id])
+  PublishedByUser   User?              @relation("TemplateVersionPublishedBy", fields: [publishedBy], references: [id])
+  StepVersions      TemplateStepVersion[]
+
+  @@unique([templateId, version])
+  @@index([templateId, status])
+  @@index([companyId, createdAt])
+  @@index([status, publishedAt])
+}
+
+/// Step-level version history for granular autosave and undo/redo
+model TemplateStepVersion {
+  id                String             @id @default(cuid())
+  templateVersionId String
+  stepId            String
+  companyId         String
+  version           Int
+  type              OnboardingStepType
+  label             String
+  order             Int
+  documentId        String?
+  uploadType        OnboardingUploadType?
+  instruction       String?
+  formId            String?
+  dependencies      String[]           @default([])
+  metadata          Json?
+  slaDays           Int?
+  taskOwnerId       String?
+  trainingId        String?
+  reminderEnabled   Boolean            @default(false)
+  reminderDaysBefore Int?
+  reminderTime      String?
+  reminderEscalationEnabled Boolean    @default(false)
+  reminderEscalationDays Int?
+  reminderEscalationRole String?
+  reminderEscalationUserId String?
+  slaEnabled        Boolean            @default(false)
+  slaCompletionDays Int?
+  slaWarningDays    Int?
+  excludePublicHolidays Boolean        @default(true)
+  excludeWeekends   Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  createdBy         String
+  changeType        String?            // 'created' | 'updated' | 'deleted' | 'reordered'
+  TemplateVersion   TemplateVersion    @relation(fields: [templateVersionId], references: [id], onDelete: Cascade)
+  OnboardingStep    OnboardingStep     @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  CreatedByUser     User               @relation("TemplateStepVersionCreatedBy", fields: [createdBy], references: [id])
+
+  @@unique([templateVersionId, stepId, version])
+  @@index([stepId, version])
+  @@index([companyId, createdAt])
+  @@index([templateVersionId, order])
 }
 
 model PermissionAudit {
@@ -1808,6 +1896,11 @@ model User {
   ReviewSubmissionsAuthored                                                ReviewSubmission[]             @relation("ReviewSubmissionReviewer")
   TenantSwitchTokens                                                       TenantSwitchToken[]
   OnboardingStepAuditLogs                                                  OnboardingStepAuditLog[]       @relation("OnboardingStepAuditChangedBy")
+  OnboardingStepsUpdated                                                   OnboardingStep[]               @relation("OnboardingStepUpdatedBy")
+  OnboardingTemplatesPublished                                             OnboardingTemplate[]           @relation("OnboardingTemplatePublishedBy")
+  TemplateVersionsCreated                                                  TemplateVersion[]              @relation("TemplateVersionCreatedBy")
+  TemplateVersionsPublished                                                TemplateVersion[]              @relation("TemplateVersionPublishedBy")
+  TemplateStepVersionsCreated                                              TemplateStepVersion[]          @relation("TemplateStepVersionCreatedBy")
 
   @@unique([email, companyId])
 }
@@ -2165,6 +2258,12 @@ enum OnboardingUploadType {
   DRIVER_LICENSE
   TRAINING_CERTIFICATE
   OTHER
+}
+
+enum TemplateVersionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
 
 enum PaidStatus {

@@ -183,6 +183,8 @@ export async function updateTemplate(
     steps = [],
     isActive,
     lastKnownUpdatedAt,
+    lastKnownVersion,
+    createSnapshot = false,
   } = body;
   const departmentIds = sanitizeIds(departments);
   const jobRoleIds = sanitizeIds(jobRoles);
@@ -205,6 +207,7 @@ export async function updateTemplate(
     throw new Error("Template not found");
   }
 
+  // Enhanced version checking with both timestamp and version number
   if (lastKnownUpdatedAt) {
     const baseline = new Date(lastKnownUpdatedAt);
     if (Number.isNaN(baseline.getTime())) {
@@ -216,6 +219,35 @@ export async function updateTemplate(
         serializeTemplate(existingTemplate as any, session.user.companyId),
       );
     }
+  }
+
+  // Version number check for optimistic locking
+  if (lastKnownVersion !== undefined && existingTemplate.version !== lastKnownVersion) {
+    throw new TemplateConflictError(
+      `Version conflict: expected version ${lastKnownVersion}, but current version is ${existingTemplate.version}.`,
+      serializeTemplate(existingTemplate as any, session.user.companyId),
+    );
+  }
+
+  // Create version snapshot if requested (for autosave or explicit save)
+  if (createSnapshot) {
+    await prismaClient.templateVersion.create({
+      data: {
+        templateId: id,
+        companyId: session.user.companyId,
+        version: existingTemplate.version,
+        status: isActive ? 'PUBLISHED' : 'DRAFT',
+        name: existingTemplate.name,
+        description: existingTemplate.description || '',
+        isActive: existingTemplate.isActive,
+        departmentIds: existingTemplate.Department?.map((d: any) => d.id) || [],
+        jobRoleIds: existingTemplate.JobRole?.map((j: any) => j.id) || [],
+        stepsSnapshot: existingTemplate.OnboardingStep || [],
+        createdBy: session.user.id,
+        publishedAt: isActive ? new Date() : null,
+        publishedBy: isActive ? session.user.id : null,
+      },
+    });
   }
 
   // Remove existing step data with cascading order
@@ -233,7 +265,10 @@ export async function updateTemplate(
       name,
       description: description || "",
       isActive: Boolean(isActive),
+      version: { increment: 1 },
       updatedById: session.user.id,
+      publishedAt: isActive ? new Date() : existingTemplate.publishedAt,
+      publishedBy: isActive ? session.user.id : existingTemplate.publishedBy,
       Department: {
         set: [],
         connect: departmentIds.length > 0 ? departmentIds.map((id: string) => ({ id })) : [],

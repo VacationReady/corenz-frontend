@@ -17,7 +17,11 @@ const templateSelect = {
   description: true,
   isActive: true,
   updatedAt: true,
+  version: true,
+  publishedAt: true,
+  publishedBy: true,
   User: { select: { id: true, name: true, email: true } },
+  PublishedByUser: { select: { id: true, name: true, email: true } },
   Department: { select: { id: true, name: true } },
   JobRole: { select: { id: true, name: true } },
   OnboardingStep: {
@@ -69,7 +73,11 @@ export type RawTemplate = {
   description: string | null;
   isActive: boolean;
   updatedAt: Date;
+  version: number;
+  publishedAt: Date | null;
+  publishedBy: string | null;
   User: { id: string; name: string | null; email: string | null } | null;
+  PublishedByUser: { id: string; name: string | null; email: string | null } | null;
   Department: { id: string; name: string | null }[];
   JobRole: { id: string; name: string | null }[];
   OnboardingStep: RawStep[];
@@ -107,6 +115,9 @@ export type SerializedOnboardingTemplate = {
   description: string | null;
   isActive: boolean;
   updatedAt: Date;
+  version: number;
+  publishedAt: Date | null;
+  publishedBy: { id: string; name: string | null; email: string | null } | null;
   updatedBy: { id: string; name: string | null; email: string | null } | null;
   departments: { id: string; name: string | null }[];
   jobRoles: { id: string; name: string | null }[];
@@ -127,6 +138,9 @@ export function serializeTemplate(
     description: template.description ?? null,
     isActive: Boolean(template.isActive),
     updatedAt: template.updatedAt,
+    version: template.version,
+    publishedAt: template.publishedAt ?? null,
+    publishedBy: template.PublishedByUser ?? null,
     updatedBy: template.User ?? null,
     departments: template.Department ?? [],
     jobRoles: template.JobRole ?? [],

@@ -1662,6 +1662,112 @@ video {
   .cz-daycell--heat-4 { background: rgba(59,130,246,0.28); }
   .cz-daycell--heat-5 { background: rgba(59,130,246,0.34); }
   .cz-chip { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-radius: 8px; width: 100%; }
+  
+  /* Modern Badge Styles */
+  .cz-badge-modern {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: white;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transition: all 0.2s ease;
+  }
+  
+  .cz-badge-modern--blocked {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  /* Modern Chip Styles */
+  .cz-chip-modern {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 11px;
+    border-radius: 10px;
+    width: 100%;
+    font-size: 11px;
+    font-weight: 500;
+    color: white;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    transition: all 0.2s ease;
+  }
+  
+  .cz-chip-modern:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  
+  .cz-chip-modern__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.25);
+    font-size: 10px;
+    font-weight: 700;
+    backdrop-filter: blur(4px);
+  }
+  
+  /* Category-specific modern chip colors */
+  .cz-chip-modern--annual {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .cz-chip-modern--sick {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .cz-chip-modern--training {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .cz-chip-modern--parental {
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .cz-chip-modern--compassion {
+    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .cz-chip-modern--medical {
+    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .cz-chip-modern--unpaid {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .cz-chip-modern--toil {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
+  .cz-chip-modern--default {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  
   /* Background Utilities */
   .bg-app-background {
     background-color: hsl(var(--background));

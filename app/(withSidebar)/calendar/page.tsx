@@ -11,7 +11,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
 import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 import Button from "@/components/ui/Button";
-import { List, CalendarDays, Trash2, GraduationCap, Heart, Stethoscope, Smile, Palmtree } from "lucide-react";
+import { List, CalendarDays, Trash2, GraduationCap, Heart, Stethoscope, Smile, Palmtree, ShieldBan, Umbrella, Briefcase, Baby, Users, Coffee } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Copy } from "lucide-react";
@@ -393,7 +393,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       const idMap: Record<string, string[]> = {};
       const blackoutEvents = blackoutData.map((b: any) => {
         const d = new Date(b.date);
-        const key = utcDateKey(d);
+        // Use local date key to match dayCellContent logic
+        const key = dateKey(d);
         const startDate = key;
         keys.add(key);
         if (!idMap[key]) idMap[key] = [];
@@ -531,22 +532,27 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     return (
       <div className="cz-daycell__inner">
         {isBlackout ? (
-          <div className="cz-badge cz-badge--danger">Blocked</div>
+          <div className="cz-badge-modern cz-badge-modern--blocked">
+            <ShieldBan className="h-3 w-3" />
+            <span>Blocked</span>
+          </div>
         ) : null}
         <div className="cz-daycell__date">{arg.dayNumberText}</div>
         {count > 0 ? (
           <div className="mt-5 space-y-1">
             {entries.map(([label, n]) => (
               <div key={label} className="w-full text-[11px]">
-                <span className={`cz-chip ${getCategoryColor(label)} text-white`}>
-                  {getCategoryIcon(label)}
-                  <span className="font-medium">{label}</span>
-                  <span className="opacity-90">{n}</span>
+                <span className={`cz-chip-modern ${getCategoryColor(label)}`}>
+                  <span className="flex items-center gap-1.5">
+                    {getCategoryIcon(label)}
+                    <span className="font-semibold">{label}</span>
+                  </span>
+                  <span className="cz-chip-modern__count">{n}</span>
                 </span>
               </div>
             ))}
             {more > 0 ? (
-              <div className="text-[10px] text-muted-foreground">+{more} more</div>
+              <div className="text-[10px] text-muted-foreground font-medium">+{more} more</div>
             ) : null}
           </div>
         ) : null}
@@ -685,27 +691,30 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const getCategoryColor = (name: string) => {
     const key = (name || "").toLowerCase();
-    if (key.includes("annual") || key.includes("holiday")) return "bg-emerald-500";
-    if (key.includes("sick")) return "bg-amber-500";
-    if (key.includes("training")) return "bg-indigo-500";
-    if (key.includes("maternity") || key.includes("parent")) return "bg-pink-500";
-    if (key.includes("compassion") || key.includes("bereave")) return "bg-purple-500";
-    if (key.includes("doctor")) return "bg-teal-500";
-    if (key.includes("dentist")) return "bg-sky-500";
-    if (key.includes("unpaid")) return "bg-slate-500";
-    if (key.includes("toil") || key.includes("lieu")) return "bg-sky-500";
-    return "bg-blue-500";
+    if (key.includes("annual") || key.includes("holiday")) return "cz-chip-modern--annual";
+    if (key.includes("sick")) return "cz-chip-modern--sick";
+    if (key.includes("training")) return "cz-chip-modern--training";
+    if (key.includes("maternity") || key.includes("parent")) return "cz-chip-modern--parental";
+    if (key.includes("compassion") || key.includes("bereave")) return "cz-chip-modern--compassion";
+    if (key.includes("doctor")) return "cz-chip-modern--medical";
+    if (key.includes("dentist")) return "cz-chip-modern--medical";
+    if (key.includes("unpaid")) return "cz-chip-modern--unpaid";
+    if (key.includes("toil") || key.includes("lieu")) return "cz-chip-modern--toil";
+    return "cz-chip-modern--default";
   };
 
   const getCategoryIcon = (name: string) => {
     const key = (name || "").toLowerCase();
-    if (key.includes("annual") || key.includes("holiday")) return <Palmtree className="h-3 w-3" />;
-    if (key.includes("training")) return <GraduationCap className="h-3 w-3" />;
-    if (key.includes("maternity") || key.includes("parent")) return <Heart className="h-3 w-3" />;
-    if (key.includes("compassion") || key.includes("bereave")) return <Heart className="h-3 w-3" />;
-    if (key.includes("doctor")) return <Stethoscope className="h-3 w-3" />;
-    if (key.includes("dentist")) return <Smile className="h-3 w-3" />;
-    return null;
+    if (key.includes("annual") || key.includes("holiday")) return <Umbrella className="h-3.5 w-3.5" />;
+    if (key.includes("sick")) return <Stethoscope className="h-3.5 w-3.5" />;
+    if (key.includes("training")) return <GraduationCap className="h-3.5 w-3.5" />;
+    if (key.includes("maternity") || key.includes("parent")) return <Baby className="h-3.5 w-3.5" />;
+    if (key.includes("compassion") || key.includes("bereave")) return <Heart className="h-3.5 w-3.5" />;
+    if (key.includes("doctor")) return <Stethoscope className="h-3.5 w-3.5" />;
+    if (key.includes("dentist")) return <Smile className="h-3.5 w-3.5" />;
+    if (key.includes("unpaid")) return <Briefcase className="h-3.5 w-3.5" />;
+    if (key.includes("toil") || key.includes("lieu")) return <Coffee className="h-3.5 w-3.5" />;
+    return <CalendarDays className="h-3.5 w-3.5" />;
   };
 
   const formatEventRange = (start: string, end?: string) => {

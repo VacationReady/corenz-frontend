@@ -6,15 +6,20 @@ import ReactFlow, {
   BackgroundVariant,
   Connection,
   Controls,
-  Edge,
   MarkerType,
   MiniMap,
-  Node,
-  ReactFlowInstance,
   ReactFlowProvider,
   addEdge,
   useEdgesState,
   useNodesState,
+} from "reactflow";
+import type {
+  DefaultEdgeOptions,
+  Edge,
+  Node,
+  NodeTypes,
+  OnSelectionChangeParams,
+  ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import Button from "@/components/ui/Button";
@@ -32,25 +37,34 @@ import { DelayNode as RealDelayNode } from "./nodes/DelayNode";
 import { BranchNode as RealBranchNode } from "./nodes/BranchNode";
 import { LoopNode as RealLoopNode } from "./nodes/LoopNode";
 
-const nodeTypes = {
-  trigger: RealTriggerNode as any,
-  condition: RealConditionNode as any,
-  action: RealActionNode as any,
-  delay: RealDelayNode as any,
-  branch: RealBranchNode as any,
-  loop: RealLoopNode as any,
+const nodeTypes: NodeTypes = {
+  trigger: RealTriggerNode,
+  condition: RealConditionNode,
+  action: RealActionNode,
+  delay: RealDelayNode,
+  branch: RealBranchNode,
+  loop: RealLoopNode,
 };
 
-const defaultEdgeOptions = {
+const defaultEdgeOptions: DefaultEdgeOptions = {
   animated: true,
   style: { strokeWidth: 2, stroke: "#94a3b8" },
   markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
   type: 'smoothstep',
 };
 
+interface WorkflowDefinition {
+  id?: string;
+  name?: string;
+  description?: string;
+  nodes?: Node[];
+  edges?: Edge[];
+  [key: string]: unknown;
+}
+
 interface WorkflowCanvasProps {
-  workflow: any;
-  onWorkflowChange: (workflow: any) => void;
+  workflow?: WorkflowDefinition | null;
+  onWorkflowChange: (workflow: WorkflowDefinition) => void;
   onSave: () => void;
   onTest: () => void;
   isValid: boolean;
@@ -69,8 +83,8 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState(workflow?.nodes || []);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>(workflow?.nodes || []);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(workflow?.edges || []);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [showPalette, setShowPalette] = useState(!aiPreviewMode); // Hide in AI mode
   const [showProperties, setShowProperties] = useState(!aiPreviewMode); // Hide in AI mode
@@ -80,22 +94,22 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
   // Load incoming workflow when rule changes (safely)
   useEffect(() => {
-    if (workflow?.nodes || workflow?.edges) {
-      // Use setTimeout to avoid React #185 error (updating during render)
-      setTimeout(() => {
-        setNodes(workflow.nodes || []);
-        setEdges(workflow.edges || []);
-      }, 0);
-    }
-  }, [workflow?.nodes, workflow?.edges]);
+    if (!workflow) return;
+
+    const syncTimer = setTimeout(() => {
+      setNodes(workflow.nodes || []);
+      setEdges(workflow.edges || []);
+    }, 0);
+
+    return () => clearTimeout(syncTimer);
+  }, [workflow, setNodes, setEdges]);
 
   useEffect(() => {
-    // Debounce to avoid excessive updates
     const timer = setTimeout(() => {
       onWorkflowChange({ ...(workflow || {}), nodes, edges });
     }, 100);
     return () => clearTimeout(timer);
-  }, [nodes, edges]);
+  }, [nodes, edges, onWorkflowChange, workflow]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -138,7 +152,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     [reactFlowInstance, setNodes],
   );
 
-  const getLabel = (type: string) => {
+  const getLabel = (type: string): string => {
     return {
       trigger: "Trigger",
       condition: "Condition",
@@ -202,9 +216,9 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
               setSelectedNode(node);
               if (!showProperties) setShowProperties(true);
             }}
-            onSelectionChange={({ nodes: selNodes }) => {
+            onSelectionChange={({ nodes: selNodes }: OnSelectionChangeParams) => {
               if (selNodes && selNodes.length > 0) {
-                setSelectedNode(selNodes[0] as any);
+                setSelectedNode(selNodes[0]);
               }
             }}
             onDrop={onDrop}

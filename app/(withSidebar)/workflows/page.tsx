@@ -796,10 +796,10 @@ export default function WorkflowLibraryPage() {
                     <span className="mx-2 text-muted-foreground">·</span>
                     <span className="text-xs text-muted-foreground">{template.usageCount} installs</span>
                     {trend === "up" && (
-                      <TrendingUp className="w-3 h-3 ml-2 text-green-600" title="Trending up" />
+                      <TrendingUp className="w-3 h-3 ml-2 text-green-600" />
                     )}
                     {trend === "down" && (
-                      <TrendingDown className="w-3 h-3 ml-2 text-red-600" title="Trending down" />
+                      <TrendingDown className="w-3 h-3 ml-2 text-red-600" />
                     )}
                   </Badge>
                 );

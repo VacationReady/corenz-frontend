@@ -7,17 +7,19 @@ import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
 import { getTransactionalRecipients } from "@/lib/transactional-notifications";
 import { resend } from "@/lib/resend";
 import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
+import { canAccessEmployee } from "@/lib/permissions";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session)
+  if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const formData = await req.formData();
-  const employeeIdRaw = formData.get("employeeId");
-  const employeeId = Array.isArray(employeeIdRaw)
-    ? employeeIdRaw[0]
-    : (employeeIdRaw ?? "");
+  const employeeId = (formData.get("employeeId") as string | null)?.trim();
+  if (!employeeId) {
+    return NextResponse.json({ error: "employeeId is required" }, { status: 400 });
+  }
   const courseId = formData.get("courseId") as string;
   const providerId = formData.get("providerId") as string;
   const dateCompleted = new Date(formData.get("dateCompleted") as string);
@@ -33,6 +35,32 @@ export async function POST(req: Request) {
     reasons = JSON.parse(reasonsRaw);
   } catch {
     return NextResponse.json({ error: "Invalid reasons payload" }, { status: 400 });
+  }
+
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { id: true, companyId: true },
+  });
+
+  if (!employee) {
+    return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+  }
+
+  if (employee.companyId !== session.user.companyId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const allowed = await canAccessEmployee(
+    {
+      id: session.user.id,
+      role: session.user.role as any,
+      companyId: session.user.companyId,
+    },
+    employeeId,
+  );
+
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let documentId: string | null = null;
@@ -78,7 +106,7 @@ export async function POST(req: Request) {
     trainingRecord = await prisma.trainingRecord.create({
       data: {
         id: `record_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        employeeId: employeeId as string,
+        employeeId,
         courseId,
         providerId,
         dateCompleted,
@@ -90,7 +118,7 @@ export async function POST(req: Request) {
   } else {
     const recipients = await getTransactionalRecipients({
       companyId: session.user.companyId!,
-      employeeId: employeeId as string,
+      employeeId,
       section: "training",
       changedById: session.user.id,
     });
@@ -98,7 +126,7 @@ export async function POST(req: Request) {
     await (prisma as any).transactionalChangeRequest.create({
       data: {
         companyId: session.user.companyId!,
-        employeeId: employeeId as string,
+        employeeId,
         section: "training",
         action: "CREATE",
         targetId: null,
@@ -138,7 +166,7 @@ export async function POST(req: Request) {
     try {
       await createAuditLogs({
         companyId: session.user.companyId!,
-        employeeId: employeeId as string,
+        employeeId,
         section: "training",
         diffs,
         reasons,

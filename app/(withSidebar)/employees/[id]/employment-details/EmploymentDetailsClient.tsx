@@ -89,6 +89,10 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
     );
   }, [form?.siteLocation, form?.locationId, locations]);
 
+  const managerUserId = (form as any)?.manager?.id as string | undefined;
+  const managerEmployeeIdFromForm =
+    typeof form?.managerId === "string" ? form.managerId : undefined;
+
   // Load employees for manager dropdown (exclude current employee)
   useEffect(() => {
     (async () => {
@@ -108,26 +112,40 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             email: e.email,
           })),
         );
-
-        // Initialize controlled manager selection once we have both form and employees
-        const currentManagerUserId = (form as any)?.manager?.id as string | undefined;
-        if (currentManagerUserId) {
-          const match = filtered.find((e: any) => e.userId === currentManagerUserId);
-          setSelectedManagerEmployeeId(match?.id ?? "none");
-          // Ensure initialValues reflects existing manager for audit comparison
-          setInitialValues((prev: any | null) =>
-            prev ? { ...prev, managerId: match?.id ?? "" } : prev,
-          );
-        } else {
-          setSelectedManagerEmployeeId("none");
-          // No existing manager; make sure initialValues has empty managerId for consistency
-          setInitialValues((prev: any | null) => (prev ? { ...prev, managerId: "" } : prev));
-        }
       } catch {
         // no-op
       }
     })();
-  }, [employeeId, form]);
+  }, [employeeId]);
+
+  // Keep manager select + initial values in sync without re-fetching
+  useEffect(() => {
+    const hasExplicitSelection = managerEmployeeIdFromForm !== undefined;
+    const derivedFromSelection =
+      managerEmployeeIdFromForm === ""
+        ? "none"
+        : managerEmployeeIdFromForm;
+    const derivedFromRelation = managerUserId
+      ? employees.find((emp) => emp.userId === managerUserId)?.id
+      : undefined;
+
+    const nextSelected = hasExplicitSelection
+      ? derivedFromSelection ?? "none"
+      : derivedFromRelation ?? "none";
+
+    setSelectedManagerEmployeeId((prev) =>
+      prev === nextSelected ? prev : nextSelected,
+    );
+
+    setInitialValues((prev: any | null) => {
+      if (!prev) return prev;
+      const normalizedInitial = derivedFromRelation ?? "";
+      if ((prev.managerId ?? "") === normalizedInitial) {
+        return prev;
+      }
+      return { ...prev, managerId: normalizedInitial };
+    });
+  }, [employees, managerUserId, managerEmployeeIdFromForm]);
 
   const [initialValues, setInitialValues] = useState<any | null>(null);
   useEffect(() => {

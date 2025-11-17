@@ -1215,8 +1215,6 @@ export default function AddEmployeeModal({
     }
   };
 
-  if (!open) return null;
-
   const handleClearFilters = () => {
     setFormData((prev) => ({
       ...prev,
@@ -1298,12 +1296,17 @@ export default function AddEmployeeModal({
       formData.entitlementDays !== "" &&
       !holidayYearError
     );
-  }, [formData.workingPatternId, formData.entitlementDays, holidayYearError]);
+  }, [
+    formData.workingPatternId,
+    formData.entitlementDays,
+    holidayYearError,
+  ]);
 
   // Check for critical data loading errors
   const hasCriticalError = criticalErrors.length > 0;
   const hasNonCriticalErrors = nonCriticalErrors.length > 0;
 
+  if (!open) return null;
   return (
     <AddEmployeeModalErrorBoundary onReset={() => {
       modalData.retryAll();

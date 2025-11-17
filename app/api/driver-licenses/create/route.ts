@@ -7,14 +7,19 @@ import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
 import { getTransactionalRecipients } from "@/lib/transactional-notifications";
 import { resend } from "@/lib/resend";
 import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
+import { canAccessEmployee } from "@/lib/permissions";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session)
+  if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const formData = await req.formData();
-  const employeeId = formData.get("employeeId") as string;
+  const employeeId = (formData.get("employeeId") as string | null)?.trim();
+  if (!employeeId) {
+    return NextResponse.json({ error: "employeeId is required" }, { status: 400 });
+  }
   const type = formData.get("type") as string;
   const licenceNumber = formData.get("licenceNumber") as string;
   const issueDate = new Date(formData.get("issueDate") as string);
@@ -29,6 +34,31 @@ export async function POST(req: Request) {
     reasons = JSON.parse(reasonsRaw);
   } catch {
     return NextResponse.json({ error: "Invalid reasons payload" }, { status: 400 });
+  }
+
+  const employee = await prisma.employee.findFirst({
+    where: {
+      id: employeeId,
+      companyId: session.user.companyId,
+    },
+    select: { id: true },
+  });
+
+  if (!employee) {
+    return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+  }
+
+  const allowed = await canAccessEmployee(
+    {
+      id: session.user.id,
+      role: session.user.role as any,
+      companyId: session.user.companyId,
+    },
+    employeeId,
+  );
+
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let documentId: string | null = null; // ✅ FIXED TYPING

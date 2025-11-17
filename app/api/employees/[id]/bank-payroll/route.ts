@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { canAccessEmployee } from "@/lib/permissions";
 import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
 import { getTransactionalRecipients } from "@/lib/transactional-notifications";
 import { resend } from "@/lib/resend";
@@ -300,6 +301,30 @@ export async function GET(
     });
     if (!employee || employee.companyId !== session.user.companyId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const isPrivilegedRole =
+      session.user.role === "ADMIN" || session.user.role === "MANAGER";
+
+    // Bank & payroll data contains sensitive identifiers, so only admins/managers
+    // can read it and they must also satisfy the standard employee-access guard.
+    if (!isPrivilegedRole) {
+      return NextResponse.json(
+        { error: "Forbidden: Payroll details restricted to admins and managers" },
+        { status: 403 },
+      );
+    }
+
+    const canView = await canAccessEmployee(
+      {
+        id: session.user.id,
+        role: session.user.role as any,
+        companyId: session.user.companyId,
+      },
+      id,
+    );
+    if (!canView) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json({

@@ -262,6 +262,9 @@ test("POST /api/driver-licenses/create persists licence when admin is authorized
 
   assert.equal(res.status, 200);
   const payload = await res.json();
-  assert.equal(payload.id, "lic-1");
+  // API now auto-generates IDs - check it exists and is a valid string (UUID format)
+  assert.ok(payload.id, "Expected payload.id to exist");
+  assert.equal(typeof payload.id, "string", "Expected payload.id to be a string");
+  assert.match(payload.id, /^[a-f0-9-]+$/, "Expected payload.id to be a UUID-like format");
   assert.equal(mockDriverLicenceCreate.mock.calls.length, 1);
 });

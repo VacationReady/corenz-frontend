@@ -307,7 +307,10 @@ test("POST /api/training-records/create persists when admin authorized", async (
 
   assert.equal(res.status, 200);
   const payload = await res.json();
-  assert.equal(payload.id, "rec-1");
+  // API now auto-generates IDs - check it exists and is a valid string
+  assert.ok(payload.id, "Expected payload.id to exist");
+  assert.equal(typeof payload.id, "string", "Expected payload.id to be a string");
+  assert.ok(payload.id.length > 0, "Expected payload.id to be non-empty");
   assert.equal(mockTrainingRecordCreate.mock.calls.length, 1);
   assert.equal(mockCreateAuditLogs.mock.calls.length, 1);
 });

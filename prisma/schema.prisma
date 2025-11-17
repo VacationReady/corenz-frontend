@@ -1649,6 +1649,7 @@ model SavedReport {
   filters           Json?
   pagination        Json?
   sort              Json?
+  sorts             Json? // Array of SortConfig for multi-sort support
   fields            String[]
   Company           Company             @relation(fields: [companyId], references: [id])
   User              User                @relation(fields: [createdBy], references: [id])

@@ -379,8 +379,15 @@ export default function ReportsPreviewClient() {
           setPage(savedPagination.page ?? 1);
           setPageSize(savedPagination.limit ?? 50);
 
-          const savedSort =
-            report?.sort && typeof report.sort === "object" && report.sort.field
+          // Handle both new sorts array and legacy single sort
+          // Prefer sorts array if available, otherwise fall back to single sort
+          const savedSort = 
+            (Array.isArray(report?.sorts) && report.sorts.length > 0 && report.sorts[0]?.field)
+              ? {
+                  field: report.sorts[0].field,
+                  direction: (report.sorts[0].direction || "asc") as "asc" | "desc",
+                }
+              : (report?.sort && typeof report.sort === "object" && report.sort.field)
               ? {
                   field: report.sort.field,
                   direction: (report.sort.direction || "asc") as "asc" | "desc",

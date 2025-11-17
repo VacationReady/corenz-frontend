@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BarChart3, FileText, Plus, SortAsc, SortDesc } from "lucide-react";
 import ReportWizard, { ReportConfig } from "@/components/reports/ReportWizard";
-import { TemplateGallery } from "@/components/reports/TemplateGallery";
+import TemplateGallery from "../../components/reports/TemplateGallery";
 import Button from "@/components/ui/button";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -178,13 +178,10 @@ export default function NewReportBuilderPage() {
     setWizardInitialConfig(undefined);
   };
 
-  const handleTemplateSelect = useCallback((template: ReportLibraryEntry | null) => {
-    if (!template) {
-      setWizardInitialConfig(undefined);
-      setShowWizard(true);
-      return;
-    }
-
+  /**
+   * Execute a template report immediately - auto-saves and navigates to preview
+   */
+  const handleTemplateExecute = useCallback(async (template: ReportLibraryEntry) => {
     const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
     const allowedOperators: FilterOperator[] = [
       "equals",
@@ -197,9 +194,11 @@ export default function NewReportBuilderPage() {
       "in",
     ];
 
+    // Build complete field list
     const allFields = [...REQUIRED_FIELDS, ...template.defaultFields];
     const uniqueFields = Array.from(new Set(allFields));
 
+    // Build filter group from template
     const filterGroup = createRootFilterGroup();
     if (template.suggestedFilters && template.suggestedFilters.length > 0) {
       filterGroup.children = template.suggestedFilters.map((filter, index) =>
@@ -215,7 +214,12 @@ export default function NewReportBuilderPage() {
       );
     }
 
-    setWizardInitialConfig({
+    // Auto-save report with template name
+    const reportConfig: ReportConfig = {
+      name: template.name,
+      selectedFields: uniqueFields,
+      filterGroup,
+      sorts: template.defaultSort ? [template.defaultSort] : [],
       template: {
         id: template.id,
         name: template.name,
@@ -226,10 +230,16 @@ export default function NewReportBuilderPage() {
         defaultSort: template.defaultSort,
         icon: template.icon,
       },
-      selectedFields: uniqueFields,
-      filterGroup,
-      sorts: template.defaultSort ? [template.defaultSort] : [],
-    });
+    };
+
+    await handleCreateReport(reportConfig);
+  }, [handleCreateReport]);
+
+  /**
+   * Open wizard for custom report building
+   */
+  const handleCustomReportStart = useCallback(() => {
+    setWizardInitialConfig(undefined);
     setShowWizard(true);
   }, []);
 
@@ -269,8 +279,8 @@ export default function NewReportBuilderPage() {
         <Card>
           <CardContent className="p-6">
             <TemplateGallery
-              onSelectTemplate={handleTemplateSelect}
-              onStartCustom={() => handleTemplateSelect(null)}
+              onSelectTemplate={handleTemplateExecute}
+              onStartCustom={handleCustomReportStart}
               showCustomOptions
             />
           </CardContent>

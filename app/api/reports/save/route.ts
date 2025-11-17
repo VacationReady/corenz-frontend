@@ -97,8 +97,7 @@ export async function POST(req: Request) {
         fields: reportFields, // Store fields array
         filters: serializedFilterGroupJson, // Store serialized FilterGroup (backward compatible)
         sort: sortToStore ? sortToStore : undefined, // Store primary sort for legacy compatibility
-        // TODO: Add sorts field to schema for multi-sort support
-        // sorts: sortsToStore,
+        sorts: sortsToStore.length > 0 ? sortsToStore : undefined, // Store full sorts array for multi-sort
         createdBy: session.user.id,
         companyId: session.user.companyId,
         description: templateId ? `Created from template: ${templateId}` : undefined,

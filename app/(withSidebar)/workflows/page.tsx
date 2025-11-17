@@ -95,6 +95,8 @@ export default function WorkflowLibraryPage() {
     executionsToday: 0,
     timeSaved: "0 hrs",
   });
+  const [workflowLibraryData, setWorkflowLibraryData] = useState<WorkflowTemplate[]>(workflowLibrary.templates);
+  const [apiLoadFailed, setApiLoadFailed] = useState(false);
 
   // Load real analytics from API
   useEffect(() => {
@@ -130,10 +132,23 @@ export default function WorkflowLibraryPage() {
             .map((t: any) => t.id as string)
         );
         setInstalledWorkflows(installed);
+        
+        // Hydrate workflow library from server response
+        if (templatesData.templates && Array.isArray(templatesData.templates)) {
+          setWorkflowLibraryData(templatesData.templates);
+          setApiLoadFailed(false);
+        }
+      } else {
+        // API failed, use static bundle
+        setApiLoadFailed(true);
+        console.warn("Failed to load templates from API, using static bundle");
       }
     } catch (error) {
       console.error("Failed to load analytics:", error);
       toast.error("Failed to load workflow analytics");
+      // On error, fall back to static bundle
+      setApiLoadFailed(true);
+      setWorkflowLibraryData(workflowLibrary.templates);
     } finally {
       setAnalyticsLoading(false);
     }
@@ -141,7 +156,7 @@ export default function WorkflowLibraryPage() {
 
   // Filter workflows based on search and category
   const filteredWorkflows = useMemo(() => {
-    let workflows = [...workflowLibrary.templates];
+    let workflows = [...workflowLibraryData];
 
     // Filter by category
     if (selectedCategory !== "all") {
@@ -159,13 +174,14 @@ export default function WorkflowLibraryPage() {
     }
 
     return workflows;
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, workflowLibraryData]);
 
   // Get popular workflows
-  const popularWorkflows = useMemo(() => 
-    workflowLibrary.getPopular(5),
-    []
-  );
+  const popularWorkflows = useMemo(() => {
+    return workflowLibraryData
+      .filter(w => w.isPopular)
+      .slice(0, 5);
+  }, [workflowLibraryData]);
 
   const toggleCardExpansion = (id: string) => {
     setExpandedCards(prev => {

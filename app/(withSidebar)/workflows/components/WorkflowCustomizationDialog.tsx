@@ -34,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import { WorkflowTemplate } from "@/lib/workflows/workflowLibrary";
 import { useDepartments, useForms, useUsers } from "@/hooks/useWorkflowReferenceData";
+import { toast } from "sonner";
 
 interface CustomizationField {
   id: string;
@@ -63,6 +64,7 @@ export function WorkflowCustomizationDialog({
   const [workflowName, setWorkflowName] = useState(workflow.name);
   const [autoActivate, setAutoActivate] = useState(true);
   const [selectedTab, setSelectedTab] = useState("basic");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Load reference data with proper error handling
   const { data: departments, loading: departmentsLoading } = useDepartments();
@@ -237,6 +239,39 @@ export function WorkflowCustomizationDialog({
   }, [fieldsByCategory, workflow]);
 
   const handleConfirm = () => {
+    const errors: Record<string, string> = {};
+    
+    // Validate workflow name
+    if (!workflowName || workflowName.trim() === "") {
+      errors.workflowName = "Workflow name is required";
+    }
+    
+    // Validate required customization fields
+    fields.forEach(field => {
+      if (field.required) {
+        const value = customizations[field.id] ?? field.value;
+        
+        if (field.type === "text" && (!value || value.trim() === "")) {
+          errors[field.id] = `${field.label} is required`;
+        } else if (field.type === "select" && (!value || value === "")) {
+          errors[field.id] = `${field.label} is required`;
+        } else if (field.type === "multiselect" && (!value || value.length === 0)) {
+          errors[field.id] = `${field.label} must have at least one selection`;
+        } else if (field.type === "number" && (value === null || value === undefined || value === "")) {
+          errors[field.id] = `${field.label} is required`;
+        }
+      }
+    });
+    
+    // If there are validation errors, set them and show toast
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      toast.error("Please fix the validation errors before continuing");
+      return;
+    }
+    
+    // Clear errors and proceed
+    setValidationErrors({});
     onConfirm({
       name: workflowName,
       autoActivate,
@@ -258,9 +293,23 @@ export function WorkflowCustomizationDialog({
             <Input
               id={field.id}
               value={value || ''}
-              onChange={(e) => setCustomizations({ ...customizations, [field.id]: e.target.value })}
+              onChange={(e) => {
+                setCustomizations({ ...customizations, [field.id]: e.target.value });
+                // Clear error when user starts typing
+                if (validationErrors[field.id]) {
+                  setValidationErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[field.id];
+                    return newErrors;
+                  });
+                }
+              }}
               placeholder={field.description}
+              className={validationErrors[field.id] ? "border-destructive" : ""}
             />
+            {validationErrors[field.id] && (
+              <p className="text-xs text-destructive">{validationErrors[field.id]}</p>
+            )}
           </div>
         );
 
@@ -275,12 +324,25 @@ export function WorkflowCustomizationDialog({
               id={field.id}
               type="number"
               value={value || 0}
-              onChange={(e) => setCustomizations({ ...customizations, [field.id]: parseInt(e.target.value) })}
+              onChange={(e) => {
+                setCustomizations({ ...customizations, [field.id]: parseInt(e.target.value) });
+                // Clear error when user starts typing
+                if (validationErrors[field.id]) {
+                  setValidationErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[field.id];
+                    return newErrors;
+                  });
+                }
+              }}
               placeholder={field.description}
+              className={validationErrors[field.id] ? "border-destructive" : ""}
             />
-            {field.description && (
+            {validationErrors[field.id] ? (
+              <p className="text-xs text-destructive">{validationErrors[field.id]}</p>
+            ) : field.description ? (
               <p className="text-xs text-muted-foreground">{field.description}</p>
-            )}
+            ) : null}
           </div>
         );
 
@@ -293,9 +355,19 @@ export function WorkflowCustomizationDialog({
             </Label>
             <Select
               value={value || ''}
-              onValueChange={(v) => setCustomizations({ ...customizations, [field.id]: v })}
+              onValueChange={(v) => {
+                setCustomizations({ ...customizations, [field.id]: v });
+                // Clear error when user makes selection
+                if (validationErrors[field.id]) {
+                  setValidationErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[field.id];
+                    return newErrors;
+                  });
+                }
+              }}
             >
-              <SelectTrigger id={field.id}>
+              <SelectTrigger id={field.id} className={validationErrors[field.id] ? "border-destructive" : ""}>
                 <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
               </SelectTrigger>
               <SelectContent>
@@ -306,9 +378,11 @@ export function WorkflowCustomizationDialog({
                 ))}
               </SelectContent>
             </Select>
-            {field.description && (
+            {validationErrors[field.id] ? (
+              <p className="text-xs text-destructive">{validationErrors[field.id]}</p>
+            ) : field.description ? (
               <p className="text-xs text-muted-foreground">{field.description}</p>
-            )}
+            ) : null}
           </div>
         );
 
@@ -322,12 +396,24 @@ export function WorkflowCustomizationDialog({
             <MultiSelect
               options={field.options || []}
               selected={value || []}
-              onChange={(values) => setCustomizations({ ...customizations, [field.id]: values })}
+              onChange={(values) => {
+                setCustomizations({ ...customizations, [field.id]: values });
+                // Clear error when user makes selection
+                if (validationErrors[field.id]) {
+                  setValidationErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[field.id];
+                    return newErrors;
+                  });
+                }
+              }}
               placeholder={`Select ${field.label.toLowerCase()}`}
             />
-            {field.description && (
+            {validationErrors[field.id] ? (
+              <p className="text-xs text-destructive">{validationErrors[field.id]}</p>
+            ) : field.description ? (
               <p className="text-xs text-muted-foreground">{field.description}</p>
-            )}
+            ) : null}
           </div>
         );
 
@@ -398,13 +484,30 @@ export function WorkflowCustomizationDialog({
           <div className="space-y-6 mb-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="workflow-name">Workflow Name</Label>
+                <Label htmlFor="workflow-name">
+                  Workflow Name
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
                 <Input
                   id="workflow-name"
                   value={workflowName}
-                  onChange={(e) => setWorkflowName(e.target.value)}
+                  onChange={(e) => {
+                    setWorkflowName(e.target.value);
+                    // Clear error when user starts typing
+                    if (validationErrors.workflowName) {
+                      setValidationErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.workflowName;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   placeholder="Enter a custom name for this workflow"
+                  className={validationErrors.workflowName ? "border-destructive" : ""}
                 />
+                {validationErrors.workflowName && (
+                  <p className="text-xs text-destructive">{validationErrors.workflowName}</p>
+                )}
               </div>
 
               <div className="flex items-center justify-between">

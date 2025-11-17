@@ -4,17 +4,20 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BarChart3, FileText, Plus, SortAsc, SortDesc } from "lucide-react";
 import ReportWizard, { ReportConfig } from "@/components/reports/ReportWizard";
-import Button from "@/components/ui/Button";
+import { TemplateGallery } from "@/components/reports/TemplateGallery";
+import Button from "@/components/ui/button";
 import { PageShell } from "@/components/ui/PageShell";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import { formatLondon } from "@/lib/time";
 import { useSearchParams } from "next/navigation";
-import { reportLibrary } from "@/lib/reportLibrary";
+import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import type { BreadcrumbConfig } from "@/types/breadcrumb";
+import { createRootFilterGroup, createFilterRule } from "@/lib/reportFilters";
+import type { FilterOperator } from "@/lib/reportFilters";
 
 interface RecentReport {
   id: number;
@@ -30,6 +33,7 @@ export default function NewReportBuilderPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [showWizard, setShowWizard] = useState(false);
+  const [wizardInitialConfig, setWizardInitialConfig] = useState<Partial<ReportConfig> | undefined>(undefined);
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
   const [loadingReports, setLoadingReports] = useState<boolean>(true);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -116,7 +120,7 @@ export default function NewReportBuilderPage() {
         name: config.name,
         category: config.template?.category || "custom",
         selectedFields: config.selectedFields,
-        filters: config.filters,
+        filterGroup: config.filterGroup,
         sort: config.sort,
         templateId: config.template?.id,
       };
@@ -168,7 +172,65 @@ export default function NewReportBuilderPage() {
     setShowWizard(false);
   };
 
-  const handleCancelWizard = () => setShowWizard(false);
+  const handleCancelWizard = () => {
+    setShowWizard(false);
+    setWizardInitialConfig(undefined);
+  };
+
+  const handleTemplateSelect = useCallback((template: ReportLibraryEntry | null) => {
+    if (!template) {
+      setWizardInitialConfig(undefined);
+      setShowWizard(true);
+      return;
+    }
+
+    const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
+    const allowedOperators: FilterOperator[] = [
+      "equals",
+      "not_equals",
+      "contains",
+      "not_contains",
+      "greater_than",
+      "less_than",
+      "between",
+      "in",
+    ];
+
+    const allFields = [...REQUIRED_FIELDS, ...template.defaultFields];
+    const uniqueFields = Array.from(new Set(allFields));
+
+    const filterGroup = createRootFilterGroup();
+    if (template.suggestedFilters && template.suggestedFilters.length > 0) {
+      filterGroup.children = template.suggestedFilters.map((filter, index) =>
+        createFilterRule({
+          id: `filter_${index}`,
+          field: filter.field,
+          operator: allowedOperators.includes(filter.operator as FilterOperator)
+            ? (filter.operator as FilterOperator)
+            : "equals",
+          value: filter.value,
+          value2: filter.value2,
+        })
+      );
+    }
+
+    setWizardInitialConfig({
+      template: {
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        category: template.category,
+        defaultFields: template.defaultFields,
+        suggestedFilters: template.suggestedFilters,
+        defaultSort: template.defaultSort,
+        icon: template.icon,
+      },
+      selectedFields: uniqueFields,
+      filterGroup,
+      sort: template.defaultSort,
+    });
+    setShowWizard(true);
+  }, []);
 
   useEffect(() => {
     const templateId = searchParams?.get?.("templateId");
@@ -181,7 +243,11 @@ export default function NewReportBuilderPage() {
 
   if (showWizard) {
     return (
-      <ReportWizard onComplete={handleCreateReport} onCancel={handleCancelWizard} />
+      <ReportWizard 
+        onComplete={handleCreateReport} 
+        onCancel={handleCancelWizard}
+        initialConfig={wizardInitialConfig}
+      />
     );
   }
 
@@ -200,16 +266,11 @@ export default function NewReportBuilderPage() {
     >
       <div className="grid gap-6">
         <Card>
-          <CardContent className="p-0">
-            <EmptyState
-              icon={BarChart3}
-              title="Welcome to the HR Report Builder"
-              description="Create powerful, customised reports from your HR data. Our intuitive wizard guides you through selecting fields, applying filters, and configuring the perfect insights in just a few steps."
-              action={{
-                label: "Start a new report",
-                onClick: () => setShowWizard(true),
-              }}
-              className="py-12"
+          <CardContent className="p-6">
+            <TemplateGallery
+              onSelectTemplate={handleTemplateSelect}
+              onStartCustom={() => handleTemplateSelect(null)}
+              showCustomOptions
             />
           </CardContent>
         </Card>

@@ -1,24 +1,47 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { PlusIcon, TrashIcon, MagnifyingGlassIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/20/solid";
 import Button from "@/components/ui/Button";
 import { hrReportFields, HRReportField, getFieldByKey } from "@/lib/hrReportFields";
-import type { ReportFilter, SortConfig, FilterOperator } from "@/lib/reportFilters";
-import { isFilterComplete, getFilterValidationError } from "@/lib/reportFilters";
+import type {
+  SortConfig,
+  FilterOperator,
+  FilterGroup,
+  FilterRule,
+  FilterNode,
+  ReportFilter,
+} from "@/lib/reportFilters";
+import {
+  createFilterRule,
+  createFilterGroup,
+  createRootFilterGroup,
+  flattenFilterRules,
+  getFilterValidationError,
+  collectVisibleFields,
+  hasFilterRules,
+  isFilterGroup,
+  isFilterRule,
+  addRuleToGroup,
+  addGroupToGroup,
+  removeNodeFromGroup,
+  updateNodeInGroup,
+} from "@/lib/reportFilters";
 import { DatePresetSelector } from "./DatePresetSelector";
 import type { DatePresetSelection } from "@/lib/reportingDatePresets";
 import { DEFAULT_TIMEZONE } from "@/lib/datetime";
 import { Badge } from "@/components/ui/Badge";
+import Checkbox from "@/components/ui/Checkbox";
 
 interface FilterConfigurationProps {
-  filters: ReportFilter[];
+  filterGroup: FilterGroup;
   sort?: SortConfig;
   selectedFields: string[];
-  onUpdateFilters: (filters: ReportFilter[]) => void;
+  onUpdateFilterGroup: (group: FilterGroup) => void;
   onUpdateSort: (sort?: SortConfig) => void;
   onValidationChange?: (isValid: boolean, errors: string[]) => void;
+  onSyncSelectedFields?: (fields: string[]) => void;
   timeZone?: string;
   locale?: string;
 }
@@ -81,17 +104,19 @@ const operatorsWithoutValue: FilterOperator[] = ["is_null", "is_not_null"];
 const operatorsWithTwoValues: FilterOperator[] = ["between", "date_between"];
 
 export default function FilterConfiguration({
-  filters,
+  filterGroup,
   sort,
   selectedFields,
-  onUpdateFilters,
+  onUpdateFilterGroup,
   onUpdateSort,
   onValidationChange,
+  onSyncSelectedFields,
   timeZone,
   locale,
 }: FilterConfigurationProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showFieldPicker, setShowFieldPicker] = useState(false);
+  const [addToGroupId, setAddToGroupId] = useState<string | null>(null);
   const [sorts, setSorts] = useState<SortConfig[]>(sort ? [sort] : []);
   
   // Get ALL filterable fields, not just selected ones
@@ -106,17 +131,20 @@ export default function FilterConfiguration({
     [selectedFields]
   );
   
+  // Flatten rules for validation
+  const allRules = useMemo(() => flattenFilterRules(filterGroup), [filterGroup]);
+  
   // Validation
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
-    filters.forEach((filter, index) => {
-      const error = getFilterValidationError(filter);
+    allRules.forEach((rule, index) => {
+      const error = getFilterValidationError(rule);
       if (error) {
         errors.push(`Filter ${index + 1}: ${error}`);
       }
     });
     return errors;
-  }, [filters]);
+  }, [allRules]);
   
   const isValid = validationErrors.length === 0;
   
@@ -127,13 +155,25 @@ export default function FilterConfiguration({
   
   // Ensure required fields are in selectedFields if filters reference them
   const requiredFieldsFromFilters = useMemo(() => {
-    return filters
+    return allRules
       .filter(f => !f.hideFieldInResults)
       .map(f => f.field)
       .filter(field => !outputFields.has(field));
-  }, [filters, outputFields]);
+  }, [allRules, outputFields]);
 
-  const addFilter = (fieldKey?: string) => {
+  // Auto-sync visible fields from filters to selectedFields
+  useEffect(() => {
+    if (onSyncSelectedFields) {
+      const visibleFields = collectVisibleFields(filterGroup);
+      // Combine with existing selected fields
+      const combined = Array.from(new Set([...selectedFields, ...visibleFields]));
+      if (combined.length !== selectedFields.length) {
+        onSyncSelectedFields(combined);
+      }
+    }
+  }, [filterGroup, selectedFields, onSyncSelectedFields]);
+
+  const addFilter = (fieldKey?: string, groupId?: string) => {
     if (allFilterableFields.length === 0) return;
     
     const field = fieldKey 
@@ -142,36 +182,37 @@ export default function FilterConfiguration({
     
     if (!field) return;
     
-    const newFilter: ReportFilter = {
-      id: `filter_${Date.now()}_${Math.random()}`,
+    const newRule = createFilterRule({
       field: field.field,
-      operator: "equals",
-      value: "",
-      hideFieldInResults: !outputFields.has(field.field),
-    };
+      hideFieldInResults: false, // Don't hide by default
+    });
     
-    onUpdateFilters([...filters, newFilter]);
+    const targetGroupId = groupId || addToGroupId || filterGroup.id;
+    const updatedGroup = addRuleToGroup(filterGroup, targetGroupId, newRule);
+    onUpdateFilterGroup(updatedGroup);
     setShowFieldPicker(false);
     setSearchQuery("");
+    setAddToGroupId(null);
   };
 
-  const updateFilter = (filterId: string, updates: Partial<ReportFilter>) => {
-    const updatedFilters = filters.map((filter) => {
-      if (filter.id === filterId) {
-        return { ...filter, ...updates };
-      }
-      return filter;
-    });
-    onUpdateFilters(updatedFilters);
+  const updateNode = (nodeId: string, updates: Partial<FilterRule> | Partial<FilterGroup>) => {
+    const updatedGroup = updateNodeInGroup(filterGroup, nodeId, updates);
+    onUpdateFilterGroup(updatedGroup);
   };
 
-  const removeFilter = (filterId: string) => {
-    const remaining = filters.filter((filter) => filter.id !== filterId);
-    onUpdateFilters(remaining);
+  const removeNode = (nodeId: string) => {
+    const updatedGroup = removeNodeFromGroup(filterGroup, nodeId);
+    onUpdateFilterGroup(updatedGroup);
+  };
+
+  const addNestedGroup = (parentGroupId: string, logicOperator: "AND" | "OR" = "AND") => {
+    const newGroup = createFilterGroup({ logicOperator });
+    const updatedGroup = addGroupToGroup(filterGroup, parentGroupId, newGroup);
+    onUpdateFilterGroup(updatedGroup);
   };
 
   const clearAllFilters = () => {
-    onUpdateFilters([]);
+    onUpdateFilterGroup(createRootFilterGroup());
   };
   
   // Multi-sort handlers
@@ -335,7 +376,7 @@ export default function FilterConfiguration({
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-medium text-gray-900">Filters</h4>
           <div className="space-x-2">
-            {filters.length > 0 && (
+            {hasFilterRules(filterGroup) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -348,7 +389,10 @@ export default function FilterConfiguration({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowFieldPicker(!showFieldPicker)}
+              onClick={() => {
+                setAddToGroupId(filterGroup.id);
+                setShowFieldPicker(!showFieldPicker);
+              }}
               className="flex items-center"
             >
               <PlusIcon className="w-4 h-4 mr-1" />
@@ -389,7 +433,7 @@ export default function FilterConfiguration({
                 )
                 .map(field => {
                   const isInOutput = outputFields.has(field.field);
-                  const alreadyFiltered = filters.some(f => f.field === field.field);
+                  const alreadyFiltered = allRules.some(f => f.field === field.field);
                   
                   return (
                     <button
@@ -421,52 +465,176 @@ export default function FilterConfiguration({
           </div>
         )}
 
-        {filters.length === 0 && (
+        {!hasFilterRules(filterGroup) && (
           <div className="text-center py-8 bg-gray-50 rounded-lg">
             <p className="text-gray-600 mb-4">
               No filters applied. Your report will include all available data.
             </p>
-            <Button variant="outline" onClick={() => setShowFieldPicker(true)}>
+            <Button variant="outline" onClick={() => {
+              setAddToGroupId(filterGroup.id);
+              setShowFieldPicker(true);
+            }}>
               <PlusIcon className="w-4 h-4 mr-2" />
               Add Your First Filter
             </Button>
           </div>
         )}
 
-        {/* Filter List */}
-        {filters.length > 0 && (
-          <div className="space-y-4">
-            {filters.map((filter, index) => {
-              const isInOutput = outputFields.has(filter.field);
-              const validationError = getFilterValidationError(filter);
-              
-              return (
-                <FilterRow
-                  key={filter.id}
-                  filter={filter}
-                  availableFields={allFilterableFields}
-                  isFirst={index === 0}
-                  isInOutput={isInOutput}
-                  validationError={validationError}
-                  onUpdate={(updates) => updateFilter(filter.id, updates)}
-                  onRemove={() => removeFilter(filter.id)}
-                  timeZone={timeZone}
-                  locale={locale}
-                />
-              );
-            })}
-          </div>
+        {/* Filter Tree */}
+        {hasFilterRules(filterGroup) && (
+          <FilterGroupRenderer
+            group={filterGroup}
+            isRoot={true}
+            availableFields={allFilterableFields}
+            outputFields={outputFields}
+            onUpdateNode={updateNode}
+            onRemoveNode={removeNode}
+            onAddFilter={(groupId) => {
+              setAddToGroupId(groupId);
+              setShowFieldPicker(true);
+            }}
+            onAddGroup={addNestedGroup}
+            timeZone={timeZone}
+            locale={locale}
+          />
         )}
       </div>
     </div>
   );
 }
 
-// Individual Filter Row Component
-function FilterRow({
-  filter,
+// =============================================================================
+// FILTER TREE RENDERER COMPONENTS
+// =============================================================================
+
+// Recursive Filter Group Renderer
+function FilterGroupRenderer({
+  group,
+  isRoot,
   availableFields,
+  outputFields,
+  onUpdateNode,
+  onRemoveNode,
+  onAddFilter,
+  onAddGroup,
+  timeZone,
+  locale,
+}: {
+  group: FilterGroup;
+  isRoot: boolean;
+  availableFields: HRReportField[];
+  outputFields: Set<string>;
+  onUpdateNode: (nodeId: string, updates: Partial<FilterRule> | Partial<FilterGroup>) => void;
+  onRemoveNode: (nodeId: string) => void;
+  onAddFilter: (groupId: string) => void;
+  onAddGroup: (parentGroupId: string, logicOperator: "AND" | "OR") => void;
+  timeZone?: string;
+  locale?: string;
+}) {
+  const hasChildren = group.children.length > 0;
+
+  return (
+    <div className={`${!isRoot ? 'border-l-2 border-gray-300 pl-4 ml-2' : ''}`}>
+      {!isRoot && (
+        <div className="flex items-center justify-between mb-3 -ml-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const newLogic = group.logicOperator === "AND" ? "OR" : "AND";
+                onUpdateNode(group.id, { logicOperator: newLogic });
+              }}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition ${
+                group.logicOperator === "AND" 
+                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                  : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+              }`}
+              title="Click to toggle AND/OR"
+            >
+              {group.logicOperator}
+            </button>
+            <span className="text-sm text-gray-600">Group</span>
+          </div>
+          <button
+            onClick={() => onRemoveNode(group.id)}
+            className="text-gray-400 hover:text-red-600 p-1"
+            title="Remove group"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {group.children.map((child, index) => {
+          const isFirst = index === 0;
+
+          return (
+            <div key={child.id}>
+              {isFilterRule(child) ? (
+                <FilterRuleRenderer
+                  rule={child}
+                  isFirst={isRoot && isFirst}
+                  logicOperator={isRoot ? undefined : group.logicOperator}
+                  availableFields={availableFields}
+                  isInOutput={outputFields.has(child.field)}
+                  validationError={getFilterValidationError(child)}
+                  onUpdate={(updates) => onUpdateNode(child.id, updates)}
+                  onRemove={() => onRemoveNode(child.id)}
+                  timeZone={timeZone}
+                  locale={locale}
+                />
+              ) : (
+                <FilterGroupRenderer
+                  group={child}
+                  isRoot={false}
+                  availableFields={availableFields}
+                  outputFields={outputFields}
+                  onUpdateNode={onUpdateNode}
+                  onRemoveNode={onRemoveNode}
+                  onAddFilter={onAddFilter}
+                  onAddGroup={onAddGroup}
+                  timeZone={timeZone}
+                  locale={locale}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Action buttons */}
+      <div className="mt-3 flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onAddFilter(group.id)}
+          className="flex items-center text-xs"
+        >
+          <PlusIcon className="w-3 h-3 mr-1" />
+          Add Filter
+        </Button>
+        {!isRoot && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onAddGroup(group.id, "AND")}
+            className="flex items-center text-xs"
+          >
+            <PlusIcon className="w-3 h-3 mr-1" />
+            Add Group
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Individual Filter Rule Renderer
+function FilterRuleRenderer({
+  rule,
   isFirst,
+  logicOperator,
+  availableFields,
   isInOutput,
   validationError,
   onUpdate,
@@ -474,22 +642,23 @@ function FilterRow({
   timeZone,
   locale,
 }: {
-  filter: ReportFilter;
-  availableFields: HRReportField[];
+  rule: FilterRule;
   isFirst: boolean;
+  logicOperator?: "AND" | "OR";
+  availableFields: HRReportField[];
   isInOutput: boolean;
   validationError: string | null;
-  onUpdate: (updates: Partial<ReportFilter>) => void;
+  onUpdate: (updates: Partial<FilterRule>) => void;
   onRemove: () => void;
   timeZone?: string;
   locale?: string;
 }) {
-  const selectedField = getFieldByKey(filter.field);
+  const selectedField = getFieldByKey(rule.field);
   const fieldType = selectedField?.type || "string";
   const availableOperators = operatorsByType[fieldType] || operatorsByType.string;
 
-  const requiresNoValue = operatorsWithoutValue.includes(filter.operator);
-  const requiresTwoValues = operatorsWithTwoValues.includes(filter.operator);
+  const requiresNoValue = operatorsWithoutValue.includes(rule.operator);
+  const requiresTwoValues = operatorsWithTwoValues.includes(rule.operator);
 
   // Reset value when field or operator changes
   const handleFieldChange = (newField: string) => {
@@ -507,24 +676,31 @@ function FilterRow({
       {/* Header with badges and remove button */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
+          {/* Logic operator badge */}
           <span className={`
-            px-2 py-1 text-xs font-medium rounded-md
-            ${isFirst ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}
+            px-2 py-1 text-xs font-semibold rounded-md
+            ${
+              isFirst 
+                ? 'bg-blue-100 text-blue-700' 
+                : logicOperator === "OR"
+                  ? 'bg-purple-100 text-purple-700'
+                  : 'bg-gray-100 text-gray-700'
+            }
           `}>
-            {isFirst ? 'WHERE' : 'AND'}
+            {isFirst ? 'WHERE' : logicOperator || 'AND'}
           </span>
           
           {!isInOutput && (
-            <Badge variant="outline" className="text-xs flex items-center gap-1">
+            <span className="text-xs text-amber-600 flex items-center gap-1">
               <EyeSlashIcon className="w-3 h-3" />
-              Filter-only field
-            </Badge>
+              Filter-only
+            </span>
           )}
           
           {validationError && (
-            <Badge variant="destructive" className="text-xs">
+            <span className="text-xs text-red-600 font-medium">
               {validationError}
-            </Badge>
+            </span>
           )}
         </div>
         
@@ -547,7 +723,7 @@ function FilterRow({
               Field
             </label>
             <select
-              value={filter.field}
+              value={rule.field}
               onChange={(e) => handleFieldChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
@@ -565,7 +741,7 @@ function FilterRow({
               Condition
             </label>
             <select
-              value={filter.operator}
+              value={rule.operator}
               onChange={(e) => handleOperatorChange(e.target.value as FilterOperator)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
@@ -586,8 +762,8 @@ function FilterRow({
               <div className={requiresTwoValues ? "flex space-x-2" : ""}>
                 <FilterValueInput
                   field={selectedField}
-                  operator={filter.operator}
-                  value={filter.value}
+                  operator={rule.operator}
+                  value={rule.value}
                   onChange={(value) => onUpdate({ value })}
                   timeZone={timeZone}
                   locale={locale}
@@ -597,8 +773,8 @@ function FilterRow({
                     <span className="flex items-center text-gray-500 px-2">to</span>
                     <FilterValueInput
                       field={selectedField}
-                      operator={filter.operator}
-                      value={filter.value2}
+                      operator={rule.operator}
+                      value={rule.value2}
                       onChange={(value2) => onUpdate({ value2 })}
                       timeZone={timeZone}
                       locale={locale}
@@ -621,6 +797,22 @@ function FilterRow({
             <TrashIcon className="w-4 h-4" />
           </Button>
         </div>
+      </div>
+      
+      {/* Hide from results toggle */}
+      <div className="mt-3 pt-3 border-t border-gray-200">
+        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <Checkbox
+            checked={rule.hideFieldInResults || false}
+            onCheckedChange={(checked) => onUpdate({ hideFieldInResults: !!checked })}
+          />
+          <span>Hide this field from results (filter-only)</span>
+        </label>
+        {rule.hideFieldInResults && (
+          <p className="mt-1 text-xs text-gray-500 ml-6">
+            This field will be used for filtering but won't appear in the output columns.
+          </p>
+        )}
       </div>
     </div>
   );

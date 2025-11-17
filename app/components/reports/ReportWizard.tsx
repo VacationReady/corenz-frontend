@@ -25,7 +25,8 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import { ReportTemplate, hrReportFields, hrCategories, getFieldsByCategory } from "@/lib/hrReportFields";
-import type { ReportFilter, SortConfig, FilterOperator } from "@/lib/reportFilters";
+import type { ReportFilter, SortConfig, FilterOperator, FilterGroup } from "@/lib/reportFilters";
+import { createRootFilterGroup, createFilterRule, normalizeFilterGroupInput } from "@/lib/reportFilters";
 import FieldSelection from "./FieldSelection";
 import FilterConfiguration from "./FilterConfiguration";
 import { cn } from "@/lib/utils";
@@ -40,7 +41,7 @@ export type WizardStep = "template" | "fields" | "filters" | "preview";
 export interface ReportConfig {
   template?: ReportTemplate;
   selectedFields: string[];
-  filters: ReportFilter[];
+  filterGroup: FilterGroup;
   sort?: SortConfig;
   name?: string;
 }
@@ -48,6 +49,7 @@ export interface ReportConfig {
 interface ReportWizardProps {
   onComplete: (config: ReportConfig) => void;
   onCancel: () => void;
+  initialConfig?: Partial<ReportConfig>;
 }
 
 const steps: Array<{ id: WizardStep; title: string; description: string }> = [
@@ -73,12 +75,17 @@ const steps: Array<{ id: WizardStep; title: string; description: string }> = [
   },
 ];
 
-export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps) {
+export default function ReportWizard({ onComplete, onCancel, initialConfig }: ReportWizardProps) {
   const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
-  const [currentStep, setCurrentStep] = useState<WizardStep>("template");
+  const [currentStep, setCurrentStep] = useState<WizardStep>(
+    initialConfig ? "fields" : "template"
+  );
   const [config, setConfig] = useState<ReportConfig>({
-    selectedFields: REQUIRED_FIELDS,
-    filters: [],
+    selectedFields: initialConfig?.selectedFields || REQUIRED_FIELDS,
+    filterGroup: initialConfig?.filterGroup || createRootFilterGroup(),
+    template: initialConfig?.template,
+    sort: initialConfig?.sort,
+    name: initialConfig?.name,
   });
   const [fieldsPanelKey, setFieldsPanelKey] = useState<string>("all");
   const { timeZone, locale } = useReportingTimeConfig();
@@ -253,11 +260,10 @@ const allowedOperators: FilterOperator[] = [
                     REQUIRED_FIELDS,
                     ...base,
                   ]));
-                  updateConfig({
-                    template,
-                    selectedFields: withRequired,
-                    filters:
-                      template?.suggestedFilters?.map((filter, index) => ({
+                  const filterGroup = createRootFilterGroup();
+                  if (template?.suggestedFilters && template.suggestedFilters.length > 0) {
+                    filterGroup.children = template.suggestedFilters.map((filter, index) =>
+                      createFilterRule({
                         id: `filter_${index}`,
                         field: filter.field,
                         operator: allowedOperators.includes(filter.operator as FilterOperator)
@@ -265,7 +271,13 @@ const allowedOperators: FilterOperator[] = [
                           : "equals",
                         value: filter.value,
                         value2: filter.value2,
-                      })) || [],
+                      })
+                    );
+                  }
+                  updateConfig({
+                    template,
+                    selectedFields: withRequired,
+                    filterGroup,
                     sort: template?.defaultSort,
                   });
                   setCurrentStep("fields");
@@ -286,11 +298,12 @@ const allowedOperators: FilterOperator[] = [
 
             {currentStep === "filters" && (
               <FilterConfiguration
-                filters={config.filters}
+                filterGroup={config.filterGroup}
                 sort={config.sort}
                 selectedFields={config.selectedFields}
-                onUpdateFilters={(filters) => updateConfig({ filters })}
+                onUpdateFilterGroup={(filterGroup) => updateConfig({ filterGroup })}
                 onUpdateSort={(sort) => updateConfig({ sort })}
+                onSyncSelectedFields={(fields) => updateConfig({ selectedFields: fields })}
                 timeZone={timeZone}
                 locale={locale}
               />

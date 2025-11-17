@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import type { ChangeEvent, KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -100,10 +101,10 @@ const formatExecutionTime = (ms?: number) => {
 };
 
 export default function WorkflowLibraryPage() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowTemplate | null>(null);
   const [customizeWorkflow, setCustomizeWorkflow] = useState<WorkflowTemplate | null>(null);
   const [previewWorkflow, setPreviewWorkflow] = useState<WorkflowTemplate | null>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
@@ -204,7 +205,7 @@ export default function WorkflowLibraryPage() {
       description: "Create your own automation",
       icon: <Sparkles className="w-6 h-6 text-purple-500" aria-hidden="true" />,
       ariaLabel: "Build a custom automation workflow",
-      onActivate: () => window.location.href = "/settings/automation-rules?mode=create",
+      onActivate: () => router.push("/settings/automation-rules?mode=create"),
     },
   ];
 
@@ -523,7 +524,7 @@ export default function WorkflowLibraryPage() {
                   variant="outline"
                   onClick={() => {
                     // Navigate to automation rules to edit
-                    window.location.href = `/settings/automation-rules?edit=${workflow.id}`;
+                    router.push(`/settings/automation-rules?edit=${workflow.id}`);
                   }}
                 >
                   <Edit className="w-4 h-4 mr-2" />
@@ -561,7 +562,7 @@ export default function WorkflowLibraryPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.location.href = "/settings/automation-rules?mode=create"}
+            onClick={() => router.push("/settings/automation-rules?mode=create")}
           >
             <Upload className="w-4 h-4 mr-2" />
             Build Custom
@@ -879,7 +880,7 @@ export default function WorkflowLibraryPage() {
                         </p>
                       </div>
                       <div className="p-4 border rounded-lg text-left hover:border-primary/50 transition-colors cursor-pointer"
-                           onClick={() => window.location.href = "/settings/automation-rules?mode=create"}>
+                           onClick={() => router.push("/settings/automation-rules?mode=create")}>
                         <Sparkles className="w-6 h-6 text-purple-500 mb-2" />
                         <h4 className="font-medium mb-1">Build Custom</h4>
                         <p className="text-xs text-muted-foreground">

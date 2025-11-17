@@ -12,6 +12,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const companyId = session.user.companyId;
+  const userId = session.user.id;
+
   const { searchParams } = new URL(req.url);
   const department = searchParams.get("department");
   const departmentId = searchParams.get("departmentId");
@@ -19,29 +22,97 @@ export async function GET(req: Request) {
   const to = searchParams.get("to");
 
   try {
+    const role = session.user.role;
+    const isEmployee = role === "EMPLOYEE";
+    const isManager = role === "MANAGER";
+
+    async function getAllSubordinates(managerUserId: string): Promise<string[]> {
+      const directReports = await prisma.user.findMany({
+        where: { managerId: managerUserId, companyId },
+        select: { id: true },
+      });
+
+      const subordinateIds = directReports.map((u) => u.id);
+      if (subordinateIds.length === 0) {
+        return [];
+      }
+
+      for (const subId of subordinateIds) {
+        const indirectReports = await getAllSubordinates(subId);
+        subordinateIds.push(...indirectReports);
+      }
+
+      return subordinateIds;
+    }
+
     const fromDate = from ? new Date(from) : undefined;
     const toDate = to ? new Date(to) : undefined;
     const hasValidFrom = fromDate instanceof Date && !isNaN(fromDate.getTime());
     const hasValidTo = toDate instanceof Date && !isNaN(toDate.getTime());
 
-    const leaveRequests = await prisma.leaveRequest.findMany({
-      where: {
-        companyId: session.user.companyId,
-        approvalStatus: "APPROVED",
-        Employee: {
-          ...(department ? { Department: { is: { name: department } } } : {}),
-          ...(departmentId ? { departmentId } : {}),
+    let selfEmployee: { id: string; departmentId: string | null } | null = null;
+
+    if (isEmployee || isManager) {
+      selfEmployee = await prisma.employee.findFirst({
+        where: {
+          userId,
+          companyId,
         },
-        ...(hasValidFrom || hasValidTo
-          ? {
-              // overlap where (start <= to) AND (end >= from)
-              AND: [
-                hasValidTo ? { startDate: { lte: toDate! } } : {},
-                hasValidFrom ? { endDate: { gte: fromDate! } } : {},
-              ],
-            }
-          : {}),
-      },
+        select: {
+          id: true,
+          departmentId: true,
+        },
+      });
+
+      if (!selfEmployee) {
+        return NextResponse.json([]);
+      }
+    }
+
+    const subordinateUserIds = isManager
+      ? await getAllSubordinates(userId)
+      : [];
+
+    const leaveWhere: any = {
+      companyId,
+      approvalStatus: "APPROVED",
+      ...(hasValidFrom || hasValidTo
+        ? {
+            AND: [
+              hasValidTo ? { startDate: { lte: toDate! } } : {},
+              hasValidFrom ? { endDate: { gte: fromDate! } } : {},
+            ],
+          }
+        : {}),
+    };
+
+    if (isEmployee && selfEmployee) {
+      leaveWhere.Employee = {
+        OR: [
+          { id: selfEmployee.id },
+          selfEmployee.departmentId
+            ? { departmentId: selfEmployee.departmentId }
+            : undefined,
+        ].filter(Boolean),
+      };
+    } else if (isManager) {
+      const allowedUserIds = [session.user.id, ...subordinateUserIds];
+      leaveWhere.Employee = {
+        User: {
+          id: {
+            in: allowedUserIds.length > 0 ? allowedUserIds : ["no-match"],
+          },
+        },
+      };
+    } else {
+      leaveWhere.Employee = {
+        ...(department ? { Department: { is: { name: department } } } : {}),
+        ...(departmentId ? { departmentId } : {}),
+      };
+    }
+
+    const leaveRequests = await prisma.leaveRequest.findMany({
+      where: leaveWhere,
       include: {
         Employee: {
           include: {
@@ -108,25 +179,73 @@ export async function GET(req: Request) {
       }),
     );
 
-    // Fetch published shifts in date range
-    const shifts = await prisma.shift.findMany({
-      where: {
-        companyId: session.user.companyId,
-        isPublished: true,
-        employeeId: { not: null }, // Only assigned shifts
-        startTime: {
-          gte: hasValidFrom ? fromDate : undefined,
-          lte: hasValidTo ? toDate : undefined,
-        },
-        ...(department ? {
-          employee: {
-            Department: { is: { name: department } }
-          }
-        } : {}),
-        ...(departmentId ? {
-          departmentId
-        } : {}),
+    let filteredLeaveEvents = leaveEvents;
+
+    if (isEmployee && selfEmployee) {
+      const selfEmployeeId = selfEmployee.id;
+      filteredLeaveEvents = leaveEvents.filter((event: any) => {
+        const eventEmployeeId = event.employee?.id as string | undefined;
+        const categoryName = (event.categoryName as string | null) || "";
+        const lower = categoryName.toLowerCase();
+        const isSickness = lower.includes("sick");
+        const isAnnualLeave = lower.includes("annual");
+
+        // Always allow the logged-in employee to see their own events
+        if (eventEmployeeId && eventEmployeeId === selfEmployeeId) {
+          return true;
+        }
+
+        // For colleagues in their department, only show annual leave and never sickness
+        if (isSickness) {
+          return false;
+        }
+
+        return isAnnualLeave;
+      });
+    }
+
+    const shiftWhere: any = {
+      companyId,
+      isPublished: true,
+      employeeId: { not: null },
+      startTime: {
+        gte: hasValidFrom ? fromDate : undefined,
+        lte: hasValidTo ? toDate : undefined,
       },
+    };
+
+    if (isEmployee && selfEmployee) {
+      shiftWhere.Employee = {
+        OR: [
+          { id: selfEmployee.id },
+          selfEmployee.departmentId
+            ? { departmentId: selfEmployee.departmentId }
+            : undefined,
+        ].filter(Boolean),
+      };
+    } else if (isManager) {
+      const allowedUserIds = [session.user.id, ...subordinateUserIds];
+      shiftWhere.Employee = {
+        User: {
+          id: {
+            in: allowedUserIds.length > 0 ? allowedUserIds : ["no-match"],
+          },
+        },
+      };
+    } else {
+      if (department) {
+        shiftWhere.Employee = {
+          ...(shiftWhere.Employee || {}),
+          Department: { is: { name: department } },
+        };
+      }
+      if (departmentId) {
+        shiftWhere.departmentId = departmentId;
+      }
+    }
+
+    const shifts = await prisma.shift.findMany({
+      where: shiftWhere,
       include: {
         Employee: {
           include: {
@@ -152,7 +271,7 @@ export async function GET(req: Request) {
           },
         },
       },
-      orderBy: { startTime: 'asc' },
+      orderBy: { startTime: "asc" },
     });
 
     const shiftEvents = await Promise.all(
@@ -202,7 +321,7 @@ export async function GET(req: Request) {
       })
     );
 
-    return NextResponse.json([...leaveEvents, ...shiftEvents]);
+    return NextResponse.json([...filteredLeaveEvents, ...shiftEvents]);
   } catch (error) {
     console.error("[CALENDAR_EVENTS_GET]", error);
     return NextResponse.json(

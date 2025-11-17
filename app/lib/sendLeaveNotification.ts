@@ -12,6 +12,15 @@ interface LeaveNotificationParams {
   approverName?: string;
 }
 
+function formatDateDDMMYYYY(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 export async function sendLeaveNotification({
   to,
   subject,
@@ -23,8 +32,8 @@ export async function sendLeaveNotification({
   approverName,
 }: LeaveNotificationParams) {
   try {
-    const formattedStart = new Date(startDate).toLocaleDateString();
-    const formattedEnd = new Date(endDate).toLocaleDateString();
+    const formattedStart = formatDateDDMMYYYY(startDate);
+    const formattedEnd = formatDateDDMMYYYY(endDate);
     const baseUrl = getAppBaseUrl();
 
     const { html, text } = renderPeopleCoreEmail({

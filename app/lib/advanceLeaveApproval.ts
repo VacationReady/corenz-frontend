@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ApprovalStatus, ApprovalStageMode } from "@prisma/client";
 import { notifyApproversForStage, notifyRequesterStatusChange } from "./approvalNotifications";
+import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 async function _activateNextApproverSequential(stageId: string) {
   const next = await prisma.leaveApprovalDecision.findFirst({
@@ -186,7 +187,59 @@ export async function processDecision({
       return { leaveRequest: lr, activeStage: nextStage } as const;
     }
 
-    // No next stage -> finalize request
+    // No next stage -> finalize request and deduct entitlement
+    const lrFull = await tx.leaveRequest.findUnique({
+      where: { id: stage.leaveRequestId },
+      include: {
+        Employee: { include: { User: true } },
+        EventCategory: true,
+      },
+    });
+
+    if (!lrFull) {
+      throw new Error("Leave request not found");
+    }
+
+    // Only perform deduction if the request is not already approved
+    if (lrFull.approvalStatus !== "APPROVED") {
+      const totalDays: number[] = [];
+      let currentDate = new Date(lrFull.startDate);
+      const endDate = new Date(lrFull.endDate);
+      // End date is return-to-work (exclusive) for deduction purposes
+      const exclusiveEnd = new Date(endDate);
+      exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+
+      while (currentDate <= exclusiveEnd) {
+        const deduction = await calculateLeaveDeduction(
+          lrFull.employeeId,
+          currentDate,
+          tx,
+        );
+        totalDays.push(deduction);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      const totalDeduction = totalDays.reduce((sum, val) => sum + val, 0);
+
+      if (totalDeduction > 0) {
+        const entitlement = await tx.leaveEntitlement.findFirst({
+          where: {
+            employeeId: lrFull.employeeId,
+            eventCategoryId: lrFull.eventCategoryId,
+          },
+        });
+
+        if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
+          throw new Error("Insufficient leave balance.");
+        }
+
+        await tx.leaveEntitlement.update({
+          where: { id: entitlement.id },
+          data: { usedDays: entitlement.usedDays + totalDeduction },
+        });
+      }
+    }
+
     const lr = await tx.leaveRequest.update({
       where: { id: stage.leaveRequestId },
       data: { approvalStatus: "APPROVED", approvedById: actorUserId },

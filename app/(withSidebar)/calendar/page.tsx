@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 import BlockDayModal from "./BlockDayModal";
 import { EventInput, EventSourceFuncArg } from "@fullcalendar/core";
 import type { EventContentArg } from "@fullcalendar/core";
@@ -108,6 +109,14 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const blackoutKeyHashRef = useRef<string>("");
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
   const [holidayDefaultDate, setHolidayDefaultDate] = useState<Date | null>(null);
+  const { data: session } = useSession();
+  const role = (session?.user as any)?.role as
+    | "ADMIN"
+    | "MANAGER"
+    | "EMPLOYEE"
+    | "SUPER_ADMIN"
+    | undefined;
+  const isEmployeeRole = role === "EMPLOYEE";
 
   const inspectorBlackoutKey = inspectorDate
     ? `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth() + 1).padStart(2, "0")}-${String(inspectorDate.getDate()).padStart(2, "0")}`
@@ -781,7 +790,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           <FilterBar
             config={{
               searchPlaceholder: "Search people or leave...",
-              showDepartmentFilter: departments.length > 0,
+              showDepartmentFilter: false,
               showCategoryFilter: categoryOptions.length > 0,
               showLocationFilter: locationOptions.length > 0,
             }}

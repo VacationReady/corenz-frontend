@@ -1,7 +1,9 @@
 // lib/calculateLeaveDeduction.ts
 
 import { prisma } from "@/lib/prisma";
-import { DayType } from "@prisma/client";
+import { DayType, Prisma } from "@prisma/client";
+
+type PrismaClientLike = Prisma.TransactionClient | typeof prisma;
 
 /**
  * Calculates leave deduction based on employee working pattern.
@@ -12,6 +14,7 @@ import { DayType } from "@prisma/client";
 export async function calculateLeaveDeduction(
   employeeId: string,
   leaveDate: Date,
+  prismaClient: PrismaClientLike = prisma,
 ): Promise<number> {
   const toShortDay = (name: string): string => {
     const map: Record<string, string> = {
@@ -29,7 +32,7 @@ export async function calculateLeaveDeduction(
     return map[name] || name;
   };
 
-  const assignment = await prisma.employeeWorkingPatternAssignment.findFirst({
+  const assignment = await prismaClient.employeeWorkingPatternAssignment.findFirst({
     where: {
       employeeId,
       effectiveDate: { lte: leaveDate },

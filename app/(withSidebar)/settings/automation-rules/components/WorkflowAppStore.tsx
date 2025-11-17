@@ -17,6 +17,25 @@ import {
   CheckCircle2,
   Eye,
   Download,
+  Target,
+  Handshake,
+  FileCheck,
+  Calendar,
+  UserCheck,
+  Bell,
+  ClipboardCheck,
+  Briefcase,
+  Users,
+  TrendingUp,
+  Award,
+  BookOpen,
+  MessageSquare,
+  Gift,
+  Heart,
+  Activity,
+  Shield,
+  DollarSign,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -314,6 +333,43 @@ export function WorkflowAppStore({
   );
 }
 
+// Helper function to map emoji icons to modern Lucide icons
+function getIconComponent(icon: React.ReactNode) {
+  // If it's already a React node, return it
+  if (typeof icon !== 'string') {
+    return icon;
+  }
+  
+  const iconMap: Record<string, React.ReactNode> = {
+    "🎯": <Target className="w-6 h-6 text-blue-600" />,
+    "🤝": <Handshake className="w-6 h-6 text-purple-600" />,
+    "📋": <ClipboardCheck className="w-6 h-6 text-amber-600" />,
+    "📅": <Calendar className="w-6 h-6 text-green-600" />,
+    "✅": <CheckCircle2 className="w-6 h-6 text-green-600" />,
+    "👤": <UserCheck className="w-6 h-6 text-blue-600" />,
+    "🔔": <Bell className="w-6 h-6 text-orange-600" />,
+    "📄": <FileCheck className="w-6 h-6 text-blue-600" />,
+    "💼": <Briefcase className="w-6 h-6 text-indigo-600" />,
+    "👥": <Users className="w-6 h-6 text-purple-600" />,
+    "📈": <TrendingUp className="w-6 h-6 text-green-600" />,
+    "🏆": <Award className="w-6 h-6 text-amber-600" />,
+    "📚": <BookOpen className="w-6 h-6 text-blue-600" />,
+    "💬": <MessageSquare className="w-6 h-6 text-purple-600" />,
+    "🎁": <Gift className="w-6 h-6 text-pink-600" />,
+    "❤️": <Heart className="w-6 h-6 text-red-600" />,
+    "💪": <Activity className="w-6 h-6 text-orange-600" />,
+    "🏥": <Activity className="w-6 h-6 text-red-600" />,
+    "🛡️": <Shield className="w-6 h-6 text-blue-600" />,
+    "💰": <DollarSign className="w-6 h-6 text-green-600" />,
+    "🚀": <Target className="w-6 h-6 text-blue-600" />,
+    "🏖️": <Calendar className="w-6 h-6 text-teal-600" />,
+    "👋": <Handshake className="w-6 h-6 text-orange-600" />,
+    "🎉": <Gift className="w-6 h-6 text-pink-600" />,
+  };
+
+  return iconMap[icon] || <Target className="w-6 h-6 text-gray-600" />;
+}
+
 interface WorkflowCardProps {
   template: WorkflowTemplate;
   onPreview: () => void;
@@ -322,6 +378,7 @@ interface WorkflowCardProps {
 
 function WorkflowCard({ template, onPreview, onInstall }: WorkflowCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
 
   return (
     <Card
@@ -338,8 +395,8 @@ function WorkflowCard({ template, onPreview, onInstall }: WorkflowCardProps) {
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
-              {template.icon}
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+              {getIconComponent(template.icon)}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-bold text-base leading-tight mb-1 group-hover:text-blue-600 transition-colors">
@@ -375,13 +432,13 @@ function WorkflowCard({ template, onPreview, onInstall }: WorkflowCardProps) {
           )}
         </div>
 
-        {/* Benefits */}
-        {template.benefits && isHovered && (
-          <div className="space-y-1 pt-2 border-t">
+        {/* Benefits - Always visible */}
+        {template.benefits && template.benefits.length > 0 && (
+          <div className="space-y-1.5 pt-2 border-t">
             {template.benefits.slice(0, 2).map((benefit: string, idx: number) => (
               <div key={idx} className="flex items-start gap-2 text-xs text-muted-foreground">
                 <CheckCircle2 className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
-                <span>{benefit}</span>
+                <span className="leading-relaxed">{benefit}</span>
               </div>
             ))}
           </div>
@@ -427,10 +484,22 @@ function WorkflowCard({ template, onPreview, onInstall }: WorkflowCardProps) {
               <Button
                 size="sm"
                 className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                onClick={onInstall}
+                onClick={async () => {
+                  setIsInstalling(true);
+                  try {
+                    await onInstall();
+                  } finally {
+                    setIsInstalling(false);
+                  }
+                }}
+                disabled={isInstalling}
               >
-                <Plus className="w-4 h-4 mr-1" />
-                Add
+                {isInstalling ? (
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-1" />
+                )}
+                {isInstalling ? "Adding..." : "Add"}
               </Button>
             </>
           )}

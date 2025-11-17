@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import ModernSignatureCapture, { SignatureCaptureValue } from "@/components/documents/ModernSignatureCapture";
 import { toast } from "sonner";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
+import { HolidayApprovalModal } from "@/components/approvals/HolidayApprovalModal";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -38,6 +39,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
   const [signatureValue, setSignatureValue] = useState<SignatureCaptureValue | null>(null);
   const [signSubmitting, setSignSubmitting] = useState(false);
   const [viewAll, setViewAll] = useState(false);
+  const [holidayApprovalId, setHolidayApprovalId] = useState<string | null>(null);
 
   const toAuditValue = (val: unknown): string | null | undefined => {
     if (val === null || val === undefined) return null;
@@ -317,13 +319,20 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
             metadata: approval,
             actionLabel: "Review",
             onAction: async () => {
-              setSelectedItem({
-                id: `approval-${approval.id}`,
-                type: "approval",
-                title: approval.title || approval.type || "Approval request",
-                subtitle: approval.employee?.name || approval.dates,
-                metadata: approval
-              });
+              // Check if this is a leave/holiday approval
+              if (approval.type === 'LEAVE' || approval.source === 'leave') {
+                // Open the detailed holiday approval modal
+                setHolidayApprovalId(approval.id);
+              } else {
+                // Other types use the generic dialog
+                setSelectedItem({
+                  id: `approval-${approval.id}`,
+                  type: "approval",
+                  title: approval.title || approval.type || "Approval request",
+                  subtitle: approval.employee?.name || approval.dates,
+                  metadata: approval
+                });
+              }
             }
           });
         });
@@ -552,7 +561,10 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                 key={item.id}
                 className="group relative flex items-center justify-between p-3 rounded-lg border border-border/50 hover:border-border hover:bg-muted/30 transition-all cursor-pointer"
                 onClick={() => {
-                  if (item.type === "approval" || item.type === "change") {
+                  if (item.type === "approval" && (item.metadata.type === 'LEAVE' || item.metadata.source === 'leave')) {
+                    // Open holiday approval modal for leave requests
+                    setHolidayApprovalId(item.metadata.id);
+                  } else if (item.type === "approval" || item.type === "change") {
                     setSelectedItem(item);
                   } else if (item.onAction) {
                     item.onAction();
@@ -590,7 +602,10 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                     size="sm"
                     onClick={async (e: React.MouseEvent) => {
                       e.stopPropagation();
-                      if (item.type === "approval" || item.type === "change") {
+                      if (item.type === "approval" && (item.metadata.type === 'LEAVE' || item.metadata.source === 'leave')) {
+                        // Open holiday approval modal for leave requests
+                        setHolidayApprovalId(item.metadata.id);
+                      } else if (item.type === "approval" || item.type === "change") {
                         await handleItemAction(item, "approve");
                       } else if (item.onAction) {
                         await item.onAction();
@@ -739,6 +754,54 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Holiday Approval Modal */}
+      <HolidayApprovalModal
+        decisionId={holidayApprovalId}
+        open={!!holidayApprovalId}
+        onOpenChange={(open) => !open && setHolidayApprovalId(null)}
+        onApprove={async () => {
+          if (!holidayApprovalId) return;
+          setProcessing(holidayApprovalId);
+          try {
+            await fetch(`/api/approvals/${holidayApprovalId}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "approve" })
+            });
+            toast.success("Holiday approved");
+            mutateApprovals?.();
+            setActionItems(prev => prev.filter(i => i.metadata?.id !== holidayApprovalId));
+            setHolidayApprovalId(null);
+          } catch (error) {
+            toast.error("Failed to approve holiday");
+          } finally {
+            setProcessing(null);
+          }
+        }}
+        onDecline={async () => {
+          if (!holidayApprovalId) return;
+          const comment = prompt("Reason for declining:");
+          if (!comment) return;
+          
+          setProcessing(holidayApprovalId);
+          try {
+            await fetch(`/api/approvals/${holidayApprovalId}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "decline", comment })
+            });
+            toast.success("Holiday declined");
+            mutateApprovals?.();
+            setActionItems(prev => prev.filter(i => i.metadata?.id !== holidayApprovalId));
+            setHolidayApprovalId(null);
+          } catch (error) {
+            toast.error("Failed to decline holiday");
+          } finally {
+            setProcessing(null);
+          }
+        }}
+      />
 
       {/* Review Dialog for Approvals/Changes */}
       {selectedItem && (selectedItem.type === "approval" || selectedItem.type === "change") && (

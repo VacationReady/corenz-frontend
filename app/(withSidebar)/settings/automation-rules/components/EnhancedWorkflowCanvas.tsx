@@ -55,7 +55,6 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getLayoutedElements, getGridLayout, getCircularLayout, getLaneLayout, detectCycles, LayoutOptions } from "@/lib/workflows/autoLayout";
-import { workflowEngine } from "@/lib/workflows/WorkflowExecutionEngine";
 
 // Import custom nodes
 import { TriggerNode } from "./nodes/TriggerNode";
@@ -471,7 +470,7 @@ function EnhancedWorkflowCanvasInner({
     reader.readAsText(file);
   }, [setNodes, setEdges]);
 
-  // Test workflow execution
+  // Test workflow execution via API
   const testWorkflow = async () => {
     if (!workflow?.id) {
       toast.error('Save the workflow first before testing');
@@ -479,25 +478,80 @@ function EnhancedWorkflowCanvasInner({
     }
 
     setIsExecuting(true);
+    setExecutionResults(null);
+    
     try {
-      const result = await workflowEngine.executeWorkflow(workflow.id, {
-        testMode: true,
-        testData: {
-          employeeId: employees[0]?.id,
-          timestamp: new Date(),
-        },
+      // Start the test run
+      const startResponse = await fetch(`/api/automation-rules/${workflow.id}/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          skipDelays: true,
+          inputOverrides: {
+            employeeId: employees[0]?.id,
+            timestamp: new Date().toISOString(),
+          },
+        }),
       });
 
-      setExecutionResults(result);
-      setShowExecutionDialog(true);
+      if (!startResponse.ok) {
+        const error = await startResponse.json();
+        throw new Error(error.error || 'Failed to start test');
+      }
+
+      const { sessionId, statusUrl } = await startResponse.json();
       
-      if (result.success) {
-        toast.success('Workflow executed successfully');
-      } else {
-        toast.error(`Workflow failed: ${result.error}`);
+      // Poll for test completion
+      let attempts = 0;
+      const maxAttempts = 30; // 30 seconds max
+      
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const statusResponse = await fetch(statusUrl);
+        if (!statusResponse.ok) {
+          throw new Error('Failed to fetch test status');
+        }
+        
+        const status = await statusResponse.json();
+        
+        if (status.status === 'COMPLETED' || status.status === 'FAILED') {
+          setExecutionResults({
+            success: status.status === 'COMPLETED',
+            logs: status.logs || [],
+            duration: status.duration || 0,
+            executionId: sessionId,
+            status: status.status,
+            error: status.error,
+            data: status.result,
+          });
+          setShowExecutionDialog(true);
+          
+          if (status.status === 'COMPLETED') {
+            toast.success('Workflow test completed successfully');
+          } else {
+            toast.error(`Workflow test failed: ${status.error || 'Unknown error'}`);
+          }
+          break;
+        }
+        
+        attempts++;
+      }
+      
+      if (attempts >= maxAttempts) {
+        toast.warning('Test is taking longer than expected. Check status later.');
       }
     } catch (error: any) {
+      console.error('Test execution error:', error);
       toast.error(`Test failed: ${error.message}`);
+      setExecutionResults({
+        success: false,
+        error: error.message,
+        logs: [],
+        duration: 0,
+        executionId: '',
+        status: 'FAILED',
+      });
     } finally {
       setIsExecuting(false);
     }

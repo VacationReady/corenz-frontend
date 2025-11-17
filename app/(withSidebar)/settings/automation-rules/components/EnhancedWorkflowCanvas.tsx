@@ -55,6 +55,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getLayoutedElements, getGridLayout, getCircularLayout, getLaneLayout, detectCycles, LayoutOptions } from "@/lib/workflows/autoLayout";
+import { useWorkflowReferenceData } from "@/hooks/useWorkflowReferenceData";
 
 // Import custom nodes
 import { TriggerNode } from "./nodes/TriggerNode";
@@ -120,15 +121,16 @@ function EnhancedWorkflowCanvasInner({
   const [layoutDirection, setLayoutDirection] = useState<LayoutOptions["direction"]>("TB");
   const [showPreviewWarning, setShowPreviewWarning] = useState(false);
   const prevSentSnapshotRef = useRef<string>("");
-
-  // Dynamic options from API
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [jobRoles, setJobRoles] = useState<any[]>([]);
-  const [forms, setForms] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [documentTypes, setDocumentTypes] = useState<string[]>([]);
-  const [templates, setTemplates] = useState<any[]>([]);
   const notifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load reference data with proper error handling
+  const referenceData = useWorkflowReferenceData();
+  const departments = referenceData.departments;
+  const jobRoles = referenceData.jobRoles;
+  const forms = referenceData.forms;
+  const employees = referenceData.employees;
+  const documentTypes = referenceData.documentTypes;
+  const templates = referenceData.templates;
 
   // Helpers to ensure ReactFlow receives valid, unique nodes/edges
   const sanitizeNodesAndEdges = useCallback((rawNodes: Node[] = [], rawEdges: Edge[] = []) => {
@@ -184,32 +186,6 @@ function EnhancedWorkflowCanvasInner({
     return { nodesSafe, edgesSafe };
   }, []);
 
-  // Load dynamic options
-  useEffect(() => {
-    loadDynamicOptions();
-  }, []);
-
-  const loadDynamicOptions = async () => {
-    try {
-      const [deptsRes, rolesRes, formsRes, empsRes, docsRes, templatesRes] = await Promise.all([
-        fetch('/api/departments').then(r => r.json()).catch(() => []),
-        fetch('/api/job-roles').then(r => r.json()).catch(() => []),
-        fetch('/api/forms').then(r => r.json()).catch(() => []),
-        fetch('/api/employees?status=active').then(r => r.json()).catch(() => []),
-        fetch('/api/employment-checks/types').then(r => r.json()).catch(() => []),
-        fetch('/api/onboarding/templates').then(r => r.json()).catch(() => []),
-      ]);
-
-      setDepartments(Array.isArray(deptsRes) ? deptsRes : []);
-      setJobRoles(Array.isArray(rolesRes) ? rolesRes : rolesRes.jobRoles || []);
-      setForms(Array.isArray(formsRes) ? formsRes : []);
-      setEmployees(Array.isArray(empsRes) ? empsRes : []);
-      setDocumentTypes(Array.isArray(docsRes) ? docsRes : []);
-      setTemplates(Array.isArray(templatesRes) ? templatesRes : []);
-    } catch (error) {
-      console.error('Failed to load dynamic options:', error);
-    }
-  };
 
   // Load workflow nodes when workflow prop changes (deferred to avoid updates during render/drag)
   useEffect(() => {

@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WorkflowTemplate } from "@/lib/workflows/workflowLibrary";
+import { useDepartments, useForms, useUsers } from "@/hooks/useWorkflowReferenceData";
 
 interface CustomizationField {
   id: string;
@@ -62,31 +63,16 @@ export function WorkflowCustomizationDialog({
   const [workflowName, setWorkflowName] = useState(workflow.name);
   const [autoActivate, setAutoActivate] = useState(true);
   const [selectedTab, setSelectedTab] = useState("basic");
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [forms, setForms] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
 
-  // Load dynamic options
+  // Load reference data with proper error handling
+  const { data: departments, loading: departmentsLoading } = useDepartments();
+  const { data: forms, loading: formsLoading } = useForms();
+  const { data: users, loading: usersLoading } = useUsers(100);
+
+  // Initialize customizations when workflow or forms change
   useEffect(() => {
-    loadDynamicOptions();
     initializeCustomizations();
-  }, [workflow]);
-
-  const loadDynamicOptions = async () => {
-    try {
-      const [deptsRes, formsRes, usersRes] = await Promise.all([
-        fetch('/api/departments').then(r => r.json()).catch(() => []),
-        fetch('/api/forms').then(r => r.json()).catch(() => []),
-        fetch('/api/users?limit=100').then(r => r.json()).catch(() => []),
-      ]);
-
-      setDepartments(Array.isArray(deptsRes) ? deptsRes : []);
-      setForms(Array.isArray(formsRes) ? formsRes : []);
-      setUsers(Array.isArray(usersRes) ? usersRes : []);
-    } catch (error) {
-      console.error('Failed to load options:', error);
-    }
-  };
+  }, [workflow, forms]);
 
   const initializeCustomizations = () => {
     // Initialize with default values from workflow config

@@ -20,6 +20,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Parse limit parameter
+    const { searchParams } = new URL(req.url);
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+
     const users = await prisma.user.findMany({
       where: {
         isActivated: true,
@@ -33,6 +38,7 @@ export async function GET(req: NextRequest) {
         role: true,
       },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      ...(limit && limit > 0 ? { take: limit } : {}),
     });
 
     return NextResponse.json(users);

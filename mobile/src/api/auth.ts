@@ -122,6 +122,24 @@ export async function getSession() {
   return response.json();
 }
 
+export async function requestPasswordReset(email: string) {
+  if (!API_BASE_URL) {
+    console.error("❌ API_BASE_URL is not configured!");
+    throw new Error("API configuration missing");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/auth/password-reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email.trim() }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data?.error || "Unable to send reset email");
+  }
+}
+
 export async function signOut() {
   if (!API_BASE_URL) {
     console.error("❌ API_BASE_URL is not configured!");

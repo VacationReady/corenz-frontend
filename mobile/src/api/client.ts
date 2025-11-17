@@ -1,6 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
+const SESSION_TOKEN_KEY = 'next-auth.session-token';
+const SESSION_COOKIE_NAME = 'next-auth.session-token';
 
 function resolveUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) {
@@ -32,9 +34,9 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
     headers.set('Content-Type', 'application/json');
   }
 
-  const sessionToken = await SecureStore.getItemAsync('next-auth.session-token');
+  const sessionToken = await SecureStore.getItemAsync(SESSION_TOKEN_KEY);
   if (sessionToken) {
-    const cookie = `next-auth.session-token=${sessionToken}`;
+    const cookie = `${SESSION_COOKIE_NAME}=${sessionToken}`;
     const existingCookie = headers.get('Cookie');
     headers.set('Cookie', existingCookie ? `${existingCookie}; ${cookie}` : cookie);
   }

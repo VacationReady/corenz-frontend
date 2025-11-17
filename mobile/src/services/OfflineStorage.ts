@@ -1,5 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
-import { v4 as uuidv4 } from 'react-native-uuid';
+import uuid from 'react-native-uuid';
 import NetInfo from '@react-native-community/netinfo';
 
 export interface OfflineAction {
@@ -51,13 +51,13 @@ export async function queueOfflineAction(
   data: any
 ): Promise<string> {
   const action: OfflineAction = {
-    id: uuidv4() as string,
+    id: uuid.v4() as string,
     type,
     timestamp: new Date().toISOString(),
     data,
     retryCount: 0,
     synced: false,
-    localId: uuidv4() as string,
+    localId: uuid.v4() as string,
   };
 
   const actions = await getOfflineActions();

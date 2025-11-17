@@ -1,7 +1,20 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
-import { Check, ChevronLeft, ChevronRight, X, Search, Filter, Eye, Info, ChevronDown, FileText } from "lucide-react";
+import React, { useState, useCallback, useMemo, useEffect, useRef, useId } from "react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Search,
+  Filter,
+  Eye,
+  Info,
+  ChevronDown,
+  FileText,
+  ShieldAlert,
+  RefreshCcw,
+} from "lucide-react";
 import Button from "@/components/ui/Button";
 import {
   Card,
@@ -10,7 +23,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/ui/Card";
 import { ReportTemplate, hrReportFields, hrCategories, getFieldsByCategory } from "@/lib/hrReportFields";
 import type { ReportFilter, SortConfig, FilterOperator } from "@/lib/reportFilters";
 import FieldSelection from "./FieldSelection";
@@ -18,7 +31,9 @@ import FilterConfiguration from "./FilterConfiguration";
 import { cn } from "@/lib/utils";
 import { useReportingTimeConfig } from "@/hooks/useReportingTimeConfig";
 import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export type WizardStep = "template" | "fields" | "filters" | "preview";
 
@@ -89,6 +104,12 @@ export default function ReportWizard({ onComplete, onCancel }: ReportWizardProps
       setCurrentStep(steps[prevStepIndex].id);
     }
   }, [currentStepIndex, isFirstStep, onCancel]);
+
+  const goToStep = useCallback((step: WizardStep) => {
+    if (steps.some(({ id }) => id === step)) {
+      setCurrentStep(step);
+    }
+  }, []);
 
   const updateConfig = useCallback((updates: Partial<ReportConfig>) => {
     setConfig(prev => {
@@ -279,6 +300,7 @@ const allowedOperators: FilterOperator[] = [
               <ReportPreview
                 config={config}
                 onUpdateName={(name) => updateConfig({ name })}
+                onEditStep={goToStep}
               />
             )}
           </div>
@@ -746,62 +768,387 @@ function TemplateDetailsModal({
 function ReportPreview({
   config,
   onUpdateName,
+  onEditStep,
 }: {
   config: ReportConfig;
   onUpdateName: (name: string) => void;
+  onEditStep: (step: WizardStep) => void;
 }) {
+  const nameInputId = useId();
+  const helperId = `${nameInputId}-helper`;
+  const errorId = `${nameInputId}-error`;
+
+  const MAX_NAME_LENGTH = 80;
+  const PREVIEW_ROW_LIMIT = 25;
+  const PREVIEW_COLUMN_LIMIT = 6;
+
+  const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const [previewTotal, setPreviewTotal] = useState<number | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [manualRefreshToken, setManualRefreshToken] = useState(0);
+  const [piiAcknowledged, setPiiAcknowledged] = useState(true);
+  const prevHasPII = useRef(false);
+
+  const fieldMetadata = useMemo(() => {
+    const map: Record<string, { label: string; isPII?: boolean }> = {};
+    hrReportFields.forEach((field) => {
+      map[field.field] = { label: field.label, isPII: field.isPII };
+    });
+    return map;
+  }, []);
+
+  const previewColumns = useMemo(
+    () => config.selectedFields.slice(0, PREVIEW_COLUMN_LIMIT),
+    [config.selectedFields],
+  );
+
+  const getFieldLabel = useCallback(
+    (field: string) => {
+      return fieldMetadata[field]?.label || field.split(".").pop() || field;
+    },
+    [fieldMetadata],
+  );
+
+  const piiFields = useMemo(
+    () =>
+      config.selectedFields.filter((field) => {
+        return Boolean(fieldMetadata[field]?.isPII);
+      }),
+    [config.selectedFields, fieldMetadata],
+  );
+  const hasPIISelected = piiFields.length > 0;
+
+  useEffect(() => {
+    if (hasPIISelected && !prevHasPII.current) {
+      setPiiAcknowledged(false);
+    }
+    if (!hasPIISelected) {
+      setPiiAcknowledged(true);
+    }
+    prevHasPII.current = hasPIISelected;
+  }, [hasPIISelected]);
+
+  const getValueAtPath = useCallback((row: any, path: string) => {
+    return path.split(".").reduce((acc: any, key: string) => {
+      if (acc === null || acc === undefined) return acc;
+      if (Array.isArray(acc)) {
+        acc = acc[0];
+      }
+      return acc ? acc[key] : acc;
+    }, row);
+  }, []);
+
+  const formatCellValue = useCallback((value: unknown) => {
+    if (value === null || value === undefined) return "—";
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    if (typeof value === "number") return value.toLocaleString();
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return "—";
+      }
+    }
+    return String(value);
+  }, []);
+
+  const previewPayload = useMemo(
+    () => ({
+      selectedFields: config.selectedFields,
+      filters: config.filters,
+      sort: config.sort,
+    }),
+    [config.selectedFields, config.filters, config.sort],
+  );
+
+  const debouncedPayload = useDebounce(previewPayload, 400);
+
+  useEffect(() => {
+    if (!debouncedPayload?.selectedFields?.length) {
+      setPreviewRows([]);
+      setPreviewTotal(null);
+      setPreviewError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    let isMounted = true;
+
+    const fetchPreview = async () => {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      try {
+        const response = await fetch("/api/reports/run-preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedFields: debouncedPayload.selectedFields,
+            filters: debouncedPayload.filters,
+            sort: debouncedPayload.sort,
+            limit: PREVIEW_ROW_LIMIT,
+          }),
+          signal: controller.signal,
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Unable to load preview");
+        }
+
+        const payload = await response.json();
+        if (!isMounted || controller.signal.aborted) return;
+
+        const rows = Array.isArray(payload?.data) ? payload.data : [];
+        const total = typeof payload?.total === "number" ? payload.total : null;
+        setPreviewRows(rows.slice(0, PREVIEW_ROW_LIMIT));
+        setPreviewTotal(total ?? rows.length ?? 0);
+      } catch (error) {
+        if (controller.signal.aborted || !isMounted) return;
+        const message = error instanceof Error ? error.message : "Unable to load preview";
+        setPreviewRows([]);
+        setPreviewTotal(null);
+        setPreviewError(message);
+      } finally {
+        if (isMounted && !controller.signal.aborted) {
+          setPreviewLoading(false);
+        }
+      }
+    };
+
+    void fetchPreview();
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [debouncedPayload, PREVIEW_ROW_LIMIT, manualRefreshToken]);
+
+  const handleManualRefresh = () => setManualRefreshToken((value) => value + 1);
+
+  const rowsMatchingDisplay = useMemo(() => {
+    if (typeof previewTotal === "number") {
+      return previewTotal.toLocaleString();
+    }
+    if (previewLoading) return "—";
+    if (previewRows.length > 0) return previewRows.length.toString();
+    return "0";
+  }, [previewTotal, previewRows.length, previewLoading]);
+
+  const nameValue = config.name || "";
+  const trimmedName = nameValue.trim();
+  const nameError = trimmedName.length === 0 ? "Report name is required before saving." : null;
+  const charCountText = `${nameValue.length}/${MAX_NAME_LENGTH} characters`;
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-foreground">
-        Preview & Save Report
-      </h3>
-      <p className="text-sm text-muted-foreground">
-        Review your report configuration and give it a name.
-      </p>
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-foreground">Preview & Save Report</h3>
+        <p className="text-sm text-muted-foreground">
+          Give your report a clear name and validate the output before saving.
+        </p>
+      </div>
 
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="report-name" className="mb-2 block text-sm font-semibold text-foreground">
-            Report Name *
-          </label>
-          <input
-            type="text"
-            id="report-name"
-            value={config.name || ""}
-            onChange={(e) => onUpdateName(e.target.value)}
-            placeholder="Enter a name for your report"
-            className="w-full rounded-2xl border border-glass bg-background px-4 py-3 text-sm transition focus:outline-none focus:ring-2 focus:ring-primary"
-            required
-          />
-        </div>
-
-        <div className="rounded-2xl border border-glass bg-muted/40 p-4">
-          <h4 className="mb-2 text-sm font-semibold text-foreground">Report Summary</h4>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <div className="flex flex-wrap items-center gap-1">
-              <span className="font-semibold text-foreground">Template:</span>
-              {config.template?.name || "Custom Report"}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <div className="space-y-4">
+          <div>
+            <label
+              htmlFor={nameInputId}
+              className="mb-2 block text-sm font-semibold text-foreground"
+            >
+              Report name
+            </label>
+            <input
+              type="text"
+              id={nameInputId}
+              value={nameValue}
+              onChange={(e) => onUpdateName(e.target.value)}
+              onBlur={() => {
+                if (!nameError) return;
+              }}
+              placeholder="e.g. Monthly headcount change"
+              maxLength={MAX_NAME_LENGTH}
+              aria-invalid={nameError ? "true" : undefined}
+              aria-describedby={`${helperId} ${nameError ? errorId : ""}`.trim()}
+              className={cn(
+                "w-full rounded-2xl border bg-background px-4 py-3 text-sm transition focus:outline-none focus:ring-2",
+                nameError
+                  ? "border-destructive/60 focus:border-destructive focus:ring-destructive/40"
+                  : "border-glass focus:border-primary focus:ring-primary/20",
+              )}
+              required
+            />
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span id={helperId} className="text-muted-foreground">
+                Provide a memorable name so teammates can locate this report later.
+              </span>
+              <span
+                className={cn(
+                  "font-medium",
+                  nameValue.length > MAX_NAME_LENGTH - 10
+                    ? "text-amber-600"
+                    : "text-muted-foreground",
+                )}
+              >
+                {charCountText}
+              </span>
             </div>
-            <div className="space-y-1">
-              <span className="font-semibold text-foreground">Fields:</span>{" "}
-              {config.selectedFields.length} selected
-              {config.selectedFields.length > 0 && (
-                <div className="text-xs text-muted-foreground">
-                  {config.selectedFields.slice(0, 3).join(", ")}
-                  {config.selectedFields.length > 3 && ` and ${config.selectedFields.length - 3} more`}
+            {nameError && (
+              <p id={errorId} className="mt-1 text-xs font-medium text-destructive">
+                {nameError}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onEditStep("fields")}
+              className="rounded-full border-glass text-foreground"
+            >
+              Edit fields
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onEditStep("filters")}
+              className="rounded-full border-glass text-foreground"
+            >
+              Edit filters
+            </Button>
+          </div>
+
+          <div className="rounded-2xl border border-glass bg-muted/40 p-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-foreground">Report summary</h4>
+              <Badge variant="outline" className="text-xs">
+                Rows matching current criteria: {rowsMatchingDisplay}
+              </Badge>
+            </div>
+            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="font-semibold text-foreground">Template:</span>
+                {config.template?.name || "Custom"}
+              </div>
+              <div>
+                <span className="font-semibold text-foreground">Fields:</span> {config.selectedFields.length}
+                {config.selectedFields.length > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    {config.selectedFields.slice(0, 3).join(", ")}
+                    {config.selectedFields.length > 3 && ` and ${config.selectedFields.length - 3} more`}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                <span className="font-semibold text-foreground">Filters:</span>
+                {config.filters.length} applied
+              </div>
+              {config.sort && (
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="font-semibold text-foreground">Sorting:</span>
+                  {config.sort.field} ({config.sort.direction})
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-1">
-              <span className="font-semibold text-foreground">Filters:</span>
-              {config.filters.length} applied
-            </div>
-            {config.sort && (
-              <div className="flex flex-wrap items-center gap-1">
-                <span className="font-semibold text-foreground">Sorting:</span>
-                {config.sort.field} ({config.sort.direction})
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-glass bg-background/90 p-4 shadow-sm">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-foreground">Live data preview</h4>
+                <p className="text-xs text-muted-foreground">
+                  We run a lightweight preview with the current fields, filters, and sort order.
+                </p>
               </div>
-            )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleManualRefresh}
+                disabled={previewLoading}
+                className="flex items-center gap-1 text-muted-foreground"
+              >
+                <RefreshCcw className={cn("h-4 w-4", previewLoading && "animate-spin" )} />
+                Refresh
+              </Button>
+            </div>
+
+            <div aria-live="polite" className="sr-only">
+              {previewLoading
+                ? "Loading live preview"
+                : previewError
+                ? "Preview failed to load"
+                : `Showing ${previewRows.length} sample rows`}
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {previewError && (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  {previewError}. Try adjusting your filters or refresh to retry.
+                </div>
+              )}
+
+              {hasPIISelected && !piiAcknowledged ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <ShieldAlert className="h-5 w-5 text-amber-600" />
+                    <div className="space-y-2 text-sm">
+                      <p className="font-semibold text-amber-900">Sensitive fields selected</p>
+                      <p className="text-amber-900/80">
+                        This preview includes personally identifiable information ({piiFields
+                          .slice(0, 3)
+                          .map(getFieldLabel)
+                          .join(", ")}
+                        {piiFields.length > 3 && ` and ${piiFields.length - 3} more`}).
+                        Confirm you have permission before displaying sample rows.
+                      </p>
+                      <Button size="sm" onClick={() => setPiiAcknowledged(true)}>
+                        Acknowledge & show sample
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : previewLoading ? (
+                <div className="space-y-2" role="status" aria-live="polite">
+                  {[...Array(3)].map((_, index) => (
+                    <Skeleton key={index} className="h-10 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : previewRows.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-glass bg-muted/30 p-6 text-sm text-muted-foreground">
+                  No rows match the current criteria yet. Try widening your filters or selecting additional fields.
+                </div>
+              ) : (
+                <div className="overflow-auto rounded-2xl border border-glass">
+                  <table className="min-w-full divide-y divide-border text-sm">
+                    <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        {previewColumns.map((field) => (
+                          <th key={field} scope="col" className="px-4 py-2 text-left font-semibold">
+                            {getFieldLabel(field)}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {previewRows.map((row, rowIndex) => (
+                        <tr key={row?.id ?? rowIndex} className="bg-background/60">
+                          {previewColumns.map((field) => (
+                            <td key={`${field}-${row?.id ?? rowIndex}`} className="px-4 py-2 text-foreground/90">
+                              {formatCellValue(getValueAtPath(row, field))}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

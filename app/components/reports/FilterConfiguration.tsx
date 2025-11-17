@@ -36,10 +36,10 @@ import Checkbox from "@/components/ui/Checkbox";
 
 interface FilterConfigurationProps {
   filterGroup: FilterGroup;
-  sort?: SortConfig;
+  sorts: SortConfig[];
   selectedFields: string[];
   onUpdateFilterGroup: (group: FilterGroup) => void;
-  onUpdateSort: (sort?: SortConfig) => void;
+  onUpdateSorts: (sorts: SortConfig[]) => void;
   onValidationChange?: (isValid: boolean, errors: string[]) => void;
   onSyncSelectedFields?: (fields: string[]) => void;
   timeZone?: string;
@@ -105,10 +105,10 @@ const operatorsWithTwoValues: FilterOperator[] = ["between", "date_between"];
 
 export default function FilterConfiguration({
   filterGroup,
-  sort,
+  sorts: initialSorts,
   selectedFields,
   onUpdateFilterGroup,
-  onUpdateSort,
+  onUpdateSorts,
   onValidationChange,
   onSyncSelectedFields,
   timeZone,
@@ -117,7 +117,7 @@ export default function FilterConfiguration({
   const [searchQuery, setSearchQuery] = useState("");
   const [showFieldPicker, setShowFieldPicker] = useState(false);
   const [addToGroupId, setAddToGroupId] = useState<string | null>(null);
-  const [sorts, setSorts] = useState<SortConfig[]>(sort ? [sort] : []);
+  const [sorts, setSorts] = useState<SortConfig[]>(initialSorts);
   
   // Get ALL filterable fields, not just selected ones
   const allFilterableFields = useMemo(() => 
@@ -226,19 +226,19 @@ export default function FilterConfiguration({
     };
     const newSorts = [...sorts, newSort];
     setSorts(newSorts);
-    onUpdateSort(newSorts[0]);
+    onUpdateSorts(newSorts);
   };
   
   const updateSort = (index: number, updates: Partial<SortConfig>) => {
     const newSorts = sorts.map((s, i) => i === index ? { ...s, ...updates } : s);
     setSorts(newSorts);
-    onUpdateSort(newSorts[0]);
+    onUpdateSorts(newSorts);
   };
   
   const removeSort = (index: number) => {
     const newSorts = sorts.filter((_, i) => i !== index);
     setSorts(newSorts);
-    onUpdateSort(newSorts[0]);
+    onUpdateSorts(newSorts);
   };
   
   const moveSortUp = (index: number) => {
@@ -246,7 +246,7 @@ export default function FilterConfiguration({
     const newSorts = [...sorts];
     [newSorts[index - 1], newSorts[index]] = [newSorts[index], newSorts[index - 1]];
     setSorts(newSorts);
-    onUpdateSort(newSorts[0]);
+    onUpdateSorts(newSorts);
   };
   
   const moveSortDown = (index: number) => {
@@ -254,7 +254,7 @@ export default function FilterConfiguration({
     const newSorts = [...sorts];
     [newSorts[index], newSorts[index + 1]] = [newSorts[index + 1], newSorts[index]];
     setSorts(newSorts);
-    onUpdateSort(newSorts[0]);
+    onUpdateSorts(newSorts);
   };
 
   return (

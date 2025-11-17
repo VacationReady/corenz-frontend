@@ -48,7 +48,7 @@ export interface ReportConfig {
   template?: ReportTemplate;
   selectedFields: string[];
   filterGroup: FilterGroup;
-  sort?: SortConfig;
+  sorts: SortConfig[];
   name?: string;
 }
 
@@ -90,9 +90,11 @@ export default function ReportWizard({ onComplete, onCancel, initialConfig }: Re
     selectedFields: initialConfig?.selectedFields || REQUIRED_FIELDS,
     filterGroup: initialConfig?.filterGroup || createRootFilterGroup(),
     template: initialConfig?.template,
-    sort: initialConfig?.sort,
+    sorts: initialConfig?.sorts || [],
     name: initialConfig?.name,
   });
+  const [filterValidationErrors, setFilterValidationErrors] = useState<string[]>([]);
+  const [isFilterValid, setIsFilterValid] = useState(true);
   const [fieldsPanelKey, setFieldsPanelKey] = useState<string>("all");
   const { timeZone, locale } = useReportingTimeConfig();
 
@@ -146,13 +148,18 @@ const canProceed = () => {
       case "fields":
         return config.selectedFields.length > 0;
       case "filters":
-        return true; // Filters are optional
+        return isFilterValid; // Must have valid filters to proceed
       case "preview":
         return config.name && config.name.trim().length > 0;
       default:
         return false;
     }
   };
+
+  const handleValidationChange = useCallback((isValid: boolean, errors: string[]) => {
+    setIsFilterValid(isValid);
+    setFilterValidationErrors(errors);
+  }, []);
 
   const canMoveForward = canProceed();
 
@@ -284,7 +291,7 @@ const allowedOperators: FilterOperator[] = [
                     template,
                     selectedFields: withRequired,
                     filterGroup,
-                    sort: template?.defaultSort,
+                    sorts: template?.defaultSort ? [template.defaultSort] : [],
                   });
                   setCurrentStep("fields");
                 }}
@@ -305,15 +312,16 @@ const allowedOperators: FilterOperator[] = [
             {currentStep === "filters" && (
               <FilterConfiguration
                 filterGroup={config.filterGroup}
-                sort={config.sort}
+                sorts={config.sorts}
                 selectedFields={config.selectedFields}
                 onUpdateFilterGroup={(filterGroup) => updateConfig({ filterGroup })}
-                onUpdateSort={(sort) => updateConfig({ sort })}
+                onUpdateSorts={(sorts) => updateConfig({ sorts })}
+                onValidationChange={handleValidationChange}
                 onSyncSelectedFields={(fields) => updateConfig({ selectedFields: fields })}
                 timeZone={timeZone}
                 locale={locale}
               />
-            )}
+            )}  
 
             {currentStep === "preview" && (
               <ReportPreview
@@ -326,10 +334,17 @@ const allowedOperators: FilterOperator[] = [
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button variant="ghost" onClick={handleBack} className="flex items-center gap-2">
-            <ChevronLeft className="h-4 w-4" />
-            {isFirstStep ? "Cancel" : "Back"}
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button variant="ghost" onClick={handleBack} className="flex items-center gap-2">
+              <ChevronLeft className="h-4 w-4" />
+              {isFirstStep ? "Cancel" : "Back"}
+            </Button>
+            {currentStep === "filters" && !isFilterValid && filterValidationErrors.length > 0 && (
+              <p className="text-xs text-destructive font-medium">
+                Please fix {filterValidationErrors.length} filter issue{filterValidationErrors.length > 1 ? 's' : ''} before continuing
+              </p>
+            )}
+          </div>
 
           <Button
             onClick={handleNext}
@@ -879,9 +894,10 @@ function ReportPreview({
       selectedFields: config.selectedFields,
       filters: flattenedFilters,
       filterGroup: serializeFilterGroup(config.filterGroup),
-      sort: config.sort,
+      sort: config.sorts[0], // API still expects single sort, use primary
+      sorts: config.sorts, // Include full array for future compatibility
     }),
-    [config.selectedFields, flattenedFilters, config.filterGroup, config.sort],
+    [config.selectedFields, flattenedFilters, config.filterGroup, config.sorts],
   );
 
   const debouncedPayload = useDebounce(previewPayload, 400);
@@ -1068,10 +1084,15 @@ function ReportPreview({
                 <span className="font-semibold text-foreground">Filters:</span>
                 {flattenedFilters.length} applied
               </div>
-              {config.sort && (
+              {config.sorts.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1">
                   <span className="font-semibold text-foreground">Sorting:</span>
-                  {config.sort.field} ({config.sort.direction})
+                  {config.sorts.map((s, i) => (
+                    <span key={i}>
+                      {i > 0 && ', then '}
+                      {s.field} ({s.direction})
+                    </span>
+                  ))}
                 </div>
               )}
             </div>

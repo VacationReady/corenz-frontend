@@ -2,16 +2,17 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { POST as runReportQuery } from "../query/route";
 
+const sortConfigSchema = z.object({
+  field: z.string().trim().min(1),
+  direction: z.enum(["asc", "desc"]).optional(),
+});
+
 const previewSchema = z.object({
   selectedFields: z.array(z.string().trim().min(1)).min(1),
   filters: z.array(z.record(z.any())).optional(), // Legacy support
   filterGroup: z.any().optional(), // New grouped filter format
-  sort: z
-    .object({
-      field: z.string().trim().min(1),
-      direction: z.enum(["asc", "desc"]).optional(),
-    })
-    .optional(),
+  sort: sortConfigSchema.optional(), // Single sort (legacy)
+  sorts: z.array(sortConfigSchema).optional(), // Multi-sort array
   limit: z.number().int().positive().max(50).optional(),
 });
 

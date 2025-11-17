@@ -25,7 +25,8 @@ export async function POST(req: Request) {
       category, 
       filters, // Legacy flat array
       filterGroup, // New grouped format
-      sort, 
+      sort, // Single sort (legacy)
+      sorts, // Multi-sort array
       templateId 
     } = await req.json();
 
@@ -84,13 +85,20 @@ export async function POST(req: Request) {
       );
     }
 
+    // Store both single sort (for backwards compatibility) and sorts array
+    // Prefer sorts array if provided, otherwise use single sort
+    const sortToStore = sorts && sorts.length > 0 ? sorts[0] : sort;
+    const sortsToStore = sorts && sorts.length > 0 ? sorts : (sort ? [sort] : []);
+    
     const newReport = await prisma.savedReport.create({
       data: {
         name: name.trim(),
         category: category || "custom",
         fields: reportFields, // Store fields array
         filters: serializedFilterGroupJson, // Store serialized FilterGroup (backward compatible)
-        sort: sort ? sort : undefined, // Store sort config as JSON object
+        sort: sortToStore ? sortToStore : undefined, // Store primary sort for legacy compatibility
+        // TODO: Add sorts field to schema for multi-sort support
+        // sorts: sortsToStore,
         createdBy: session.user.id,
         companyId: session.user.companyId,
         description: templateId ? `Created from template: ${templateId}` : undefined,

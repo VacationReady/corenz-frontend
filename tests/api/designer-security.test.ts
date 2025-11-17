@@ -7,11 +7,56 @@
  * Run with: npm test tests/api/designer-security.test.ts
  */
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { prisma } from '@/lib/prisma';
-import { hasPermission } from '@/lib/permissions';
+import test, { describe, before, after } from "node:test";
+import assert from "node:assert/strict";
+import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/permissions";
 
-describe('Designer API Security - Tenant Isolation', () => {
+// Aliases to preserve existing Jest-style API naming while using node:test
+const it = test;
+const beforeAll = before;
+const afterAll = after;
+
+// Minimal expect helper implemented on top of node:assert to avoid Jest
+function expect(actual: any) {
+  return {
+    toBe(expected: any) {
+      assert.strictEqual(actual, expected);
+    },
+    toBeNull() {
+      assert.strictEqual(actual, null);
+    },
+    toBeUndefined() {
+      assert.strictEqual(actual, undefined);
+    },
+    toBeDefined() {
+      assert.notStrictEqual(actual, undefined);
+    },
+    toBeGreaterThan(expected: number) {
+      assert.ok(actual > expected);
+    },
+    toBeGreaterThanOrEqual(expected: number) {
+      assert.ok(actual >= expected);
+    },
+    toHaveLength(expected: number) {
+      assert.strictEqual(actual.length, expected);
+    },
+    toContain(expected: any) {
+      assert.ok(actual.includes(expected));
+    },
+    toThrow(message?: string | RegExp) {
+      const options =
+        typeof message === "undefined"
+          ? undefined
+          : message instanceof RegExp
+          ? message
+          : new RegExp(message);
+      assert.throws(actual, options as any);
+    },
+  };
+}
+
+describe("Designer API Security - Tenant Isolation", () => {
   let tenant1: any;
   let tenant2: any;
   let tenant1Template: any;
@@ -417,7 +462,7 @@ describe('Designer API Security - Tenant Isolation', () => {
         },
       };
 
-      await expect(
+      await assert.rejects(
         updateTemplate(
           mockSession,
           {
@@ -426,8 +471,9 @@ describe('Designer API Security - Tenant Isolation', () => {
             description: 'Should fail',
             steps: [],
           }
-        )
-      ).rejects.toThrow('Template not found');
+        ),
+        /Template not found/
+      );
     });
 
     it('should allow updating template from correct tenant', async () => {

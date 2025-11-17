@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -30,12 +31,13 @@ import {
   TrendingUp,
   AlertCircle,
   FileText,
+  Edit,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WorkflowTemplate } from "@/lib/workflows/workflowLibrary";
 import dynamic from "next/dynamic";
 
-// Dynamically import ReactFlow to avoid SSR issues
+// Dynamically import ReactFlow components to avoid SSR issues
 const ReactFlow = dynamic(
   () => import("reactflow").then(mod => mod.default),
   { 
@@ -46,6 +48,21 @@ const ReactFlow = dynamic(
       </div>
     ),
   }
+);
+
+const MiniMap = dynamic(
+  () => import("reactflow").then(mod => mod.MiniMap),
+  { ssr: false }
+);
+
+const Controls = dynamic(
+  () => import("reactflow").then(mod => mod.Controls),
+  { ssr: false }
+);
+
+const Background = dynamic(
+  () => import("reactflow").then(mod => mod.Background),
+  { ssr: false }
 );
 
 interface WorkflowPreviewDialogProps {
@@ -61,6 +78,7 @@ export function WorkflowPreviewDialog({
   onClose,
   onInstall,
 }: WorkflowPreviewDialogProps) {
+  const router = useRouter();
   const [selectedTab, setSelectedTab] = useState("overview");
 
   const getNodeIcon = (type: string) => {
@@ -263,18 +281,32 @@ export function WorkflowPreviewDialog({
             </TabsContent>
 
             <TabsContent value="visualization" className="p-4">
-              <div className="h-96 border rounded-lg bg-gradient-to-br from-slate-50 to-white">
+              <div className="h-96 border rounded-lg bg-gradient-to-br from-slate-50 to-white relative">
                 <ReactFlow
                   nodes={workflow.nodes}
                   edges={workflow.edges}
                   fitView
                   nodesDraggable={false}
                   nodesConnectable={false}
-                  elementsSelectable={false}
-                  zoomOnScroll={false}
-                  panOnScroll={false}
+                  elementsSelectable={true}
+                  zoomOnScroll={true}
+                  panOnScroll={true}
                   preventScrolling={false}
-                />
+                >
+                  <MiniMap
+                    nodeStrokeWidth={3}
+                    zoomable
+                    pannable
+                    className="bg-white border rounded shadow-sm"
+                  />
+                  <Controls
+                    showZoom={true}
+                    showFitView={true}
+                    showInteractive={false}
+                    className="bg-white border rounded shadow-sm"
+                  />
+                  <Background color="#e5e7eb" gap={16} />
+                </ReactFlow>
               </div>
             </TabsContent>
 
@@ -349,14 +381,27 @@ export function WorkflowPreviewDialog({
           </ScrollArea>
         </Tabs>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
+        <DialogFooter className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              router.push(`/settings/automation-rules?edit=${workflow.id}`);
+              onClose();
+            }}
+            className="mr-auto"
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Edit in Builder
           </Button>
-          <Button onClick={onInstall}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add to My Workflows
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+            <Button onClick={onInstall}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add to My Workflows
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -385,6 +385,110 @@ export default function WorkflowLibraryPage() {
     const isInstalled = installedWorkflows.has(workflow.id);
     const activation = activationState[workflow.id];
 
+    // List view: Dense table-like row
+    if (viewMode === "list") {
+      return (
+        <motion.div
+          key={workflow.id}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Card className={cn(
+            "group hover:shadow-md transition-all duration-200",
+            isInstalled && "border-green-500",
+            workflow.isPremium && "border-purple-500"
+          )}>
+            <CardContent className="py-4">
+              <div className="flex items-center gap-4">
+                {/* Icon & Name */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <span className="text-2xl flex-shrink-0">{workflow.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-sm truncate">{workflow.name}</h3>
+                    <p className="text-xs text-muted-foreground truncate">{workflow.description}</p>
+                  </div>
+                </div>
+
+                {/* Category */}
+                <div className="hidden md:flex items-center gap-2 w-40 flex-shrink-0">
+                  <span className="text-sm">{workflow.category.icon}</span>
+                  <span className="text-xs text-muted-foreground truncate">{workflow.category.name}</span>
+                </div>
+
+                {/* Installs/Status */}
+                <div className="w-32 flex-shrink-0 hidden lg:block">
+                  {isInstalled && activation ? (
+                    <Badge variant="secondary" className={cn(
+                      "bg-green-100 text-green-800 border-green-200",
+                      activation.active === 0 && "bg-gray-100 text-gray-600 border-gray-200"
+                    )}>
+                      {activation.active > 0 ? (
+                        <>
+                          <Check className="w-3 h-3 mr-1" />
+                          {activation.active} Active
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Installed
+                        </>
+                      )}
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Not installed</span>
+                  )}
+                </div>
+
+                {/* Last Run / Time Saved */}
+                <div className="w-28 flex-shrink-0 hidden xl:block">
+                  {workflow.estimatedTime ? (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="w-3 h-3" />
+                      <span>{workflow.estimatedTime}</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPreviewWorkflow(workflow)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  {isInstalled ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => router.push(`/settings/automation-rules?edit=${workflow.id}`)}
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Configure
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => setCustomizeWorkflow(workflow)}
+                      disabled={loading}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      );
+    }
+
+    // Grid view: Original card layout
     return (
       <motion.div
         key={workflow.id}

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { serializeFilterGroup, normalizeFilterGroupInput } from "@/lib/reportFilters";
+import type { FilterGroup } from "@/lib/reportFilters";
 
 
 
@@ -20,7 +22,8 @@ export async function POST(req: Request) {
       selectedFields, 
       fields, // Support legacy format
       category, 
-      filters, 
+      filters, // Legacy flat array
+      filterGroup, // New grouped format
       sort, 
       templateId 
     } = await req.json();
@@ -30,17 +33,32 @@ export async function POST(req: Request) {
       selectedFields: selectedFields ? `${selectedFields.length} fields: [${selectedFields.slice(0,3).join(', ')}${selectedFields.length > 3 ? '...' : ''}]` : "no selectedFields", 
       fields: fields ? `${fields.length} legacy fields` : "no legacy fields", 
       category, 
-      filters: Array.isArray(filters) ? `${filters.length} filters` : `filters type: ${typeof filters}`, 
+      filters: Array.isArray(filters) ? `${filters.length} legacy filters` : "no legacy filters",
+      filterGroup: filterGroup ? "FilterGroup present" : "no filterGroup",
       sort: sort ? `sort by ${sort.field || 'unknown field'}` : "no sorting", 
       templateId 
     });
 
-    console.log("🔍 Raw request data:", JSON.stringify({ selectedFields, fields }, null, 2));
+    console.log("🔍 Raw request data:", JSON.stringify({ selectedFields, fields, filterGroup }, null, 2));
 
     // Support both new format (selectedFields) and legacy format (fields)
     const reportFields = selectedFields || fields;
     
+    // Normalize filters: prefer filterGroup, fallback to legacy filters array
+    let normalizedFilterGroup: FilterGroup;
+    if (filterGroup) {
+      normalizedFilterGroup = normalizeFilterGroupInput(filterGroup);
+    } else if (filters && filters.length > 0) {
+      normalizedFilterGroup = normalizeFilterGroupInput(filters);
+    } else {
+      normalizedFilterGroup = normalizeFilterGroupInput(undefined);
+    }
+    
+    // Serialize for storage
+    const serializedFilterGroup = serializeFilterGroup(normalizedFilterGroup);
+    
     console.log("🔍 Final reportFields:", reportFields);
+    console.log("🔍 Serialized filterGroup:", JSON.stringify(serializedFilterGroup, null, 2));
     console.log("🔍 reportFields type:", typeof reportFields);
     console.log("🔍 reportFields isArray:", Array.isArray(reportFields));
     console.log("🔍 reportFields length:", reportFields?.length);
@@ -69,7 +87,7 @@ export async function POST(req: Request) {
         name: name.trim(),
         category: category || "custom",
         fields: reportFields, // Store fields array
-        filters: filters && filters.length > 0 ? filters : undefined, // Store filters as JSON object
+        filters: serializedFilterGroup, // Store serialized FilterGroup (backward compatible)
         sort: sort ? sort : undefined, // Store sort config as JSON object
         createdBy: session.user.id,
         companyId: session.user.companyId,

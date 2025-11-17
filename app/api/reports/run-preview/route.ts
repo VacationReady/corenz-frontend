@@ -4,7 +4,8 @@ import { POST as runReportQuery } from "../query/route";
 
 const previewSchema = z.object({
   selectedFields: z.array(z.string().trim().min(1)).min(1),
-  filters: z.array(z.record(z.any())).optional(),
+  filters: z.array(z.record(z.any())).optional(), // Legacy support
+  filterGroup: z.any().optional(), // New grouped filter format
   sort: z
     .object({
       field: z.string().trim().min(1),
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
     const headers = new Headers(req.headers);
     headers.set("Content-Type", "application/json");
 
+    // Pass through both legacy filters and new filterGroup
     const proxyRequest = new Request(req.url, {
       method: "POST",
       headers,

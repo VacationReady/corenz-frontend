@@ -6,6 +6,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 import { resolveReportingTimeConfig } from "@/lib/reportingTimeConfig";
+import { deserializeFilterGroup, normalizeFilterGroupInput, addRuleToGroup, createFilterRule } from "@/lib/reportFilters";
+import type { FilterGroup } from "@/lib/reportFilters";
 
 export const runtime = "nodejs";
 
@@ -26,6 +28,41 @@ const legacyFieldMap: Record<string, string> = {
 
 function translateFieldKey(field: string): string {
     return legacyFieldMap[field] || field;
+}
+
+// Helper to recursively translate field keys in a FilterGroup
+function translateFilterGroup(group: FilterGroup): FilterGroup {
+    return {
+        ...group,
+        children: group.children.map((child) => {
+            if (child.type === "rule") {
+                return {
+                    ...child,
+                    field: translateFieldKey(child.field),
+                };
+            } else {
+                return translateFilterGroup(child);
+            }
+        }),
+    };
+}
+
+// Helper to recursively rewrite fields in a FilterGroup for leave context
+function rewriteFilterGroupForLeaveContext(group: FilterGroup): FilterGroup {
+    return {
+        ...group,
+        children: group.children.map((child) => {
+            if (child.type === "rule") {
+                const rewrittenField = rewriteFieldsForLeaveContext([child.field])[0];
+                return {
+                    ...child,
+                    field: rewrittenField,
+                };
+            } else {
+                return rewriteFilterGroupForLeaveContext(child);
+            }
+        }),
+    };
 }
 
 // When any LeaveRequest field is present, rewrite generic User/EventCategory selections
@@ -345,7 +382,8 @@ const reportQuerySchema = z.object({
 	selectedFields: z
 		.array(z.string().trim().min(1, "Field name is required"))
 		.min(1, "At least one field must be selected"),
-	filters: z.array(filterSchema).optional(),
+	filters: z.array(filterSchema).optional(), // Legacy support
+	filterGroup: z.any().optional(), // New grouped filter format
 	pagination: paginationSchema,
 	sort: sortSchema,
 });
@@ -359,10 +397,24 @@ export async function POST(req: Request) {
 		}
 
         const parsedBody = reportQuerySchema.parse(await req.json());
-        const { selectedFields: requestedFields, filters = [], pagination, sort } = {
-                ...parsedBody,
-                filters: parsedBody.filters ?? [],
-        };
+        const { 
+                selectedFields: requestedFields, 
+                filters, 
+                filterGroup: rawFilterGroup,
+                pagination, 
+                sort 
+        } = parsedBody;
+
+        // Normalize filters: prefer filterGroup, fallback to legacy filters array
+        let normalizedFilterGroup: FilterGroup;
+        if (rawFilterGroup) {
+                normalizedFilterGroup = deserializeFilterGroup(rawFilterGroup);
+        } else if (filters && filters.length > 0) {
+                // Convert legacy flat filters to FilterGroup
+                normalizedFilterGroup = normalizeFilterGroupInput(filters);
+        } else {
+                normalizedFilterGroup = normalizeFilterGroupInput(undefined);
+        }
 
 		const companyId = session.user.companyId;
 
@@ -382,12 +434,12 @@ export async function POST(req: Request) {
 
         // Translate legacy keys first
         let translatedSelectedFields = (selectedFields as string[]).map(translateFieldKey);
-        let translatedFilters = (filters as any[]).map((f) => ({ ...f, field: translateFieldKey(f.field) }));
+        let translatedFilterGroup = translateFilterGroup(normalizedFilterGroup);
         let translatedSort = sort?.field ? { ...sort, field: translateFieldKey(sort.field) } : sort;
 
         // Rewrite to leave-anchored equivalents if applicable (includes LeaveEntitlement -> LeaveRequest.Employee.LeaveEntitlement)
         translatedSelectedFields = rewriteFieldsForLeaveContext(translatedSelectedFields);
-        translatedFilters = translatedFilters.map((f) => ({ ...f, field: rewriteFieldsForLeaveContext([f.field])[0] }));
+        translatedFilterGroup = rewriteFilterGroupForLeaveContext(translatedFilterGroup);
         if (translatedSort?.field) {
             const newSortField = rewriteFieldsForLeaveContext([translatedSort.field])[0];
             translatedSort = { ...translatedSort, field: newSortField } as any;
@@ -522,14 +574,21 @@ export async function POST(req: Request) {
                         includeNull?: boolean;
                 }>;
 
-                const enforcedFilters = Array.isArray(translatedFilters) ? [...translatedFilters] : [];
+                // Add tenant-scoped filters to the FilterGroup
+                let enforcedFilterGroup = translatedFilterGroup;
                 for (const { field, operator = "equals", includeNull } of tenantScopedFilters) {
                         const value = operator === "in"
                                 ? includeNull
                                         ? [tenantCompanyId, null]
                                         : [tenantCompanyId]
                                 : tenantCompanyId;
-                        enforcedFilters.push({ field, operator, value });
+                        const tenantRule = createFilterRule({
+                                field,
+                                operator: operator as any,
+                                value,
+                                hideFieldInResults: true,
+                        });
+                        enforcedFilterGroup = addRuleToGroup(enforcedFilterGroup, enforcedFilterGroup.id, tenantRule);
                 }
 
                 const timeConfig = await resolveReportingTimeConfig(session.user.id, companyId);
@@ -537,7 +596,7 @@ export async function POST(req: Request) {
         // Build and execute the constrained query
                 const { queries } = buildDynamicQuery({
                         selectedFields: sanitizedSelectedFields,
-                        filters: enforcedFilters,
+                        filters: enforcedFilterGroup,
                         pagination,
                         sort: translatedSort,
                 }, { timeZone: timeConfig.timeZone });

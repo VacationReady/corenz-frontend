@@ -13,6 +13,15 @@ import {
         shiftLocalYears,
         startOfLocalDay,
 } from "@/lib/zonedDateUtils";
+import type {
+        FilterGroup,
+        FilterRule,
+        FilterNode,
+} from "@/lib/reportFilters";
+import {
+        isFilterGroup,
+        isFilterRule,
+} from "@/lib/reportFilters";
 
 type Operator =
         | "equals" | "not_equals" | "contains" | "not_contains" | "starts_with" | "ends_with"
@@ -174,35 +183,140 @@ function mapOperatorToCondition(operator: Operator, value: any, value2: any, con
         }
 }
 
-function buildWhere(filters: any[], context?: QueryContext) {
+/**
+ * Build a nested where clause from a single filter rule.
+ * Returns a nested object matching the field path.
+ */
+function buildFilterRuleCondition(
+        rule: FilterRule,
+        context?: QueryContext,
+): Record<string, any> | null {
+        const { field, value, value2, operator } = rule;
+        if (!field || field.startsWith("_computed.")) return null;
+
+        const parts = field.split(".");
+        const where: Record<string, any> = {};
+        let current = where;
+
+        for (let i = 0; i < parts.length; i++) {
+                const key = parts[i];
+                const isLeaf = i === parts.length - 1;
+
+                if (isLeaf) {
+                        if (operator === "is_null") {
+                                current[key] = null;
+                        } else {
+                                const condition = mapOperatorToCondition(
+                                        operator as Operator,
+                                        value,
+                                        value2,
+                                        context,
+                                );
+                                current[key] = condition ?? null;
+                        }
+                } else {
+                        current[key] = current[key] || {};
+                        current = current[key];
+                }
+        }
+
+        return where;
+}
+
+/**
+ * Build a Prisma where clause from a FilterGroup tree.
+ * Supports nested AND/OR logic.
+ */
+function buildGroupedWhere(
+        group: FilterGroup,
+        context?: QueryContext,
+): Record<string, any> {
+        const conditions: Record<string, any>[] = [];
+
+        for (const child of group.children) {
+                if (isFilterRule(child)) {
+                        const condition = buildFilterRuleCondition(child, context);
+                        if (condition) {
+                                conditions.push(condition);
+                        }
+                } else if (isFilterGroup(child)) {
+                        const nestedCondition = buildGroupedWhere(child, context);
+                        if (Object.keys(nestedCondition).length > 0) {
+                                conditions.push(nestedCondition);
+                        }
+                }
+        }
+
+        if (conditions.length === 0) {
+                return {};
+        }
+
+        if (conditions.length === 1) {
+                return conditions[0];
+        }
+
+        // Multiple conditions: combine with AND or OR
+        if (group.logicOperator === "OR") {
+                return { OR: conditions };
+        } else {
+                return { AND: conditions };
+        }
+}
+
+/**
+ * Build a where clause from either a FilterGroup or legacy flat filter array.
+ * Maintains backward compatibility.
+ */
+function buildWhere(
+        filtersOrGroup: any[] | FilterGroup | undefined,
+        context?: QueryContext,
+): Record<string, any> {
+        // Handle FilterGroup (new format)
+        if (
+                filtersOrGroup &&
+                typeof filtersOrGroup === "object" &&
+                !Array.isArray(filtersOrGroup) &&
+                "type" in filtersOrGroup &&
+                filtersOrGroup.type === "group"
+        ) {
+                return buildGroupedWhere(filtersOrGroup as FilterGroup, context);
+        }
+
+        // Handle legacy flat array format
+        const filters = (filtersOrGroup as any[]) || [];
         const where: Record<string, any> = {};
 
         for (const filter of filters) {
                 const { field, value, value2, operator } = filter;
                 if (!field || field.startsWith("_computed.")) continue;
 
-		const parts = field.split(".");
-		let current = where;
+                const parts = field.split(".");
+                let current = where;
 
-		for (let i = 0; i < parts.length; i++) {
-			const key = parts[i];
-			const isLeaf = i === parts.length - 1;
+                for (let i = 0; i < parts.length; i++) {
+                        const key = parts[i];
+                        const isLeaf = i === parts.length - 1;
 
                         if (isLeaf) {
                                 if (operator === "is_null") {
                                         current[key] = null;
                                         continue;
                                 }
-                                const condition = mapOperatorToCondition(operator as Operator, value, value2, context);
+                                const condition = mapOperatorToCondition(
+                                        operator as Operator,
+                                        value,
+                                        value2,
+                                        context,
+                                );
                                 current[key] = condition ?? null;
                         } else {
                                 current[key] = current[key] || {};
                                 current = current[key];
                         }
-		}
-	}
+                }
+        }
 
-	return where;
+        return where;
 }
 
 function normalizeOrderBy(sort?: { field?: string; direction?: "asc" | "desc" }) {

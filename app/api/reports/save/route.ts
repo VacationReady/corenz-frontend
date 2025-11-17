@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { serializeFilterGroup, normalizeFilterGroupInput } from "@/lib/reportFilters";
 import type { FilterGroup } from "@/lib/reportFilters";
+import type { Prisma } from "@prisma/client";
 
 
 
@@ -56,6 +57,7 @@ export async function POST(req: Request) {
     
     // Serialize for storage
     const serializedFilterGroup = serializeFilterGroup(normalizedFilterGroup);
+    const serializedFilterGroupJson = serializedFilterGroup as unknown as Prisma.InputJsonValue;
     
     console.log("🔍 Final reportFields:", reportFields);
     console.log("🔍 Serialized filterGroup:", JSON.stringify(serializedFilterGroup, null, 2));
@@ -87,7 +89,7 @@ export async function POST(req: Request) {
         name: name.trim(),
         category: category || "custom",
         fields: reportFields, // Store fields array
-        filters: serializedFilterGroup, // Store serialized FilterGroup (backward compatible)
+        filters: serializedFilterGroupJson, // Store serialized FilterGroup (backward compatible)
         sort: sort ? sort : undefined, // Store sort config as JSON object
         createdBy: session.user.id,
         companyId: session.user.companyId,

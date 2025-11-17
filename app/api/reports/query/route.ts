@@ -410,8 +410,17 @@ export async function POST(req: Request) {
         if (rawFilterGroup) {
                 normalizedFilterGroup = deserializeFilterGroup(rawFilterGroup);
         } else if (filters && filters.length > 0) {
-                // Convert legacy flat filters to FilterGroup
-                normalizedFilterGroup = normalizeFilterGroupInput(filters);
+                // Convert legacy flat filters to FilterGroup (ensure required props)
+                const legacyFilters = filters.map((filter, index) => ({
+                        id: (filter as any)?.id ?? `legacy_filter_${index}`,
+                        field: filter.field,
+                        operator: filter.operator,
+                        value: filter.value,
+                        value2: filter.value2,
+                        hideFieldInResults: (filter as any)?.hideFieldInResults ?? false,
+                        type: "rule" as const,
+                }));
+                normalizedFilterGroup = normalizeFilterGroupInput(legacyFilters);
         } else {
                 normalizedFilterGroup = normalizeFilterGroupInput(undefined);
         }

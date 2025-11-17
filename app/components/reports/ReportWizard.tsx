@@ -26,7 +26,13 @@ import {
 } from "@/components/ui/Card";
 import { ReportTemplate, hrReportFields, hrCategories, getFieldsByCategory } from "@/lib/hrReportFields";
 import type { ReportFilter, SortConfig, FilterOperator, FilterGroup } from "@/lib/reportFilters";
-import { createRootFilterGroup, createFilterRule, normalizeFilterGroupInput } from "@/lib/reportFilters";
+import {
+  createRootFilterGroup,
+  createFilterRule,
+  normalizeFilterGroupInput,
+  flattenFilterRules,
+  serializeFilterGroup,
+} from "@/lib/reportFilters";
 import FieldSelection from "./FieldSelection";
 import FilterConfiguration from "./FilterConfiguration";
 import { cn } from "@/lib/utils";
@@ -866,13 +872,16 @@ function ReportPreview({
     return String(value);
   }, []);
 
+  const flattenedFilters = useMemo(() => flattenFilterRules(config.filterGroup), [config.filterGroup]);
+
   const previewPayload = useMemo(
     () => ({
       selectedFields: config.selectedFields,
-      filters: config.filters,
+      filters: flattenedFilters,
+      filterGroup: serializeFilterGroup(config.filterGroup),
       sort: config.sort,
     }),
-    [config.selectedFields, config.filters, config.sort],
+    [config.selectedFields, flattenedFilters, config.filterGroup, config.sort],
   );
 
   const debouncedPayload = useDebounce(previewPayload, 400);
@@ -898,6 +907,7 @@ function ReportPreview({
           body: JSON.stringify({
             selectedFields: debouncedPayload.selectedFields,
             filters: debouncedPayload.filters,
+            filterGroup: debouncedPayload.filterGroup,
             sort: debouncedPayload.sort,
             limit: PREVIEW_ROW_LIMIT,
           }),
@@ -1056,7 +1066,7 @@ function ReportPreview({
               </div>
               <div className="flex flex-wrap items-center gap-1">
                 <span className="font-semibold text-foreground">Filters:</span>
-                {config.filters.length} applied
+                {flattenedFilters.length} applied
               </div>
               {config.sort && (
                 <div className="flex flex-wrap items-center gap-1">

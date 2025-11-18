@@ -99,18 +99,137 @@ let cachedPrismaMock: any = null;
     
     // Otherwise, return cached mock instance if it exists, or create it
     if (!cachedPrismaMock) {
-      // Create default mock methods
-      const defaultMock = {
-        findUnique: async () => null,
-        findMany: async () => [],
-        findFirst: async () => null,
-        create: async () => ({}),
-        update: async () => ({}),
-        delete: async () => ({}),
-        deleteMany: async () => ({ count: 0 }),
-        count: async () => 0,
-        createMany: async () => ({ count: 0 }),
+      // In-memory data store for mocked Prisma operations
+      const dataStore = new Map<string, Map<string, any>>();
+      
+      const getModelStore = (modelName: string) => {
+        if (!dataStore.has(modelName)) {
+          dataStore.set(modelName, new Map());
+        }
+        return dataStore.get(modelName)!;
       };
+      
+      // Create default mock methods with in-memory storage
+      const createModelMock = (modelName: string) => ({
+        findUnique: async ({ where }: any) => {
+          const store = getModelStore(modelName);
+          return store.get(where.id) || null;
+        },
+        findMany: async ({ where }: any = {}) => {
+          const store = getModelStore(modelName);
+          const allRecords = Array.from(store.values());
+          
+          if (!where) return allRecords;
+          
+          // Filter by companyId if specified
+          return allRecords.filter(record => {
+            if (where.companyId && record.companyId !== where.companyId) {
+              return false;
+            }
+            if (where.templateId && record.templateId !== where.templateId) {
+              return false;
+            }
+            return true;
+          });
+        },
+        findFirst: async ({ where }: any = {}) => {
+          const results = await createModelMock(modelName).findMany({ where });
+          return results[0] || null;
+        },
+        create: async ({ data, select }: any) => {
+          const store = getModelStore(modelName);
+          const record = {
+            ...data,
+            createdAt: data.createdAt || new Date(),
+            updatedAt: data.updatedAt || new Date(),
+          };
+          
+          store.set(data.id, record);
+          
+          // If select is specified, only return selected fields
+          if (select) {
+            const selectedRecord: any = {};
+            Object.keys(select).forEach(key => {
+              if (select[key]) {
+                selectedRecord[key] = record[key];
+              }
+            });
+            return selectedRecord;
+          }
+          
+          return record;
+        },
+        update: async ({ where, data }: any) => {
+          const store = getModelStore(modelName);
+          const existing = store.get(where.id);
+          
+          if (!existing) {
+            throw new Error(`Record not found: ${where.id}`);
+          }
+          
+          const updated = {
+            ...existing,
+            ...data,
+            updatedAt: new Date(),
+          };
+          
+          // Handle increment operations
+          if (data.version && data.version.increment) {
+            updated.version = (existing.version || 0) + data.version.increment;
+          }
+          
+          store.set(where.id, updated);
+          return updated;
+        },
+        delete: async ({ where }: any) => {
+          const store = getModelStore(modelName);
+          const record = store.get(where.id);
+          store.delete(where.id);
+          return record || {};
+        },
+        deleteMany: async ({ where }: any = {}) => {
+          const store = getModelStore(modelName);
+          const allRecords = Array.from(store.values());
+          let count = 0;
+          
+          allRecords.forEach(record => {
+            let shouldDelete = true;
+            
+            if (where?.companyId && record.companyId !== where.companyId) {
+              shouldDelete = false;
+            }
+            if (where?.templateId && record.templateId !== where.templateId) {
+              shouldDelete = false;
+            }
+            
+            if (shouldDelete) {
+              store.delete(record.id);
+              count++;
+            }
+          });
+          
+          return { count };
+        },
+        count: async ({ where }: any = {}) => {
+          const results = await createModelMock(modelName).findMany({ where });
+          return results.length;
+        },
+        createMany: async ({ data }: any) => {
+          const store = getModelStore(modelName);
+          const records = Array.isArray(data) ? data : [data];
+          
+          records.forEach(record => {
+            const fullRecord = {
+              ...record,
+              createdAt: record.createdAt || new Date(),
+              updatedAt: record.updatedAt || new Date(),
+            };
+            store.set(record.id, fullRecord);
+          });
+          
+          return { count: records.length };
+        },
+      });
       
       // Use a Proxy that allows property mutations while providing defaults
       cachedPrismaMock = {
@@ -132,11 +251,11 @@ let cachedPrismaMock: any = null;
               };
             }
             
-            // Return custom mock if set, otherwise return default mock
+            // Return custom mock if set, otherwise return model mock with in-memory storage
             if (target[prop]) {
               return target[prop];
             }
-            return { ...defaultMock };
+            return createModelMock(prop);
           },
           set: (target: any, prop: string, value: any) => {
             // Allow tests to override specific models

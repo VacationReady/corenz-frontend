@@ -120,6 +120,17 @@ export async function POST(req: NextRequest) {
     // 6. Send email invitations
     const organizerName = `${meeting.Organizer.firstName || ''} ${meeting.Organizer.lastName || ''}`.trim();
 
+    const normalizedParticipants = participants.map((participant) => {
+      const displayName = `${participant.firstName || ''} ${participant.lastName || ''}`.trim();
+      return {
+        id: participant.id,
+        firstName:
+          participant.firstName || displayName || participant.email || 'Participant',
+        lastName: participant.lastName || '',
+        email: participant.email || 'no-email@example.com',
+      };
+    });
+
     const results = await sendMeetingInvites(
       {
         id: meeting.id,
@@ -130,12 +141,16 @@ export async function POST(req: NextRequest) {
         location: meeting.location,
         meetingUrl: meeting.meetingUrl,
         organizer: {
-          firstName: meeting.Organizer.firstName || organizerName || meeting.Organizer.email || 'Organizer',
+          firstName:
+            meeting.Organizer.firstName ||
+            organizerName ||
+            meeting.Organizer.email ||
+            'Organizer',
           lastName: meeting.Organizer.lastName || '',
           email: meeting.Organizer.email || 'no-reply@example.com',
         },
       },
-      participants
+      normalizedParticipants
     );
 
     // 7. Log results for observability

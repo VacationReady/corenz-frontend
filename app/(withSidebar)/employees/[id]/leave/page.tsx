@@ -124,6 +124,10 @@ export default function LeavePage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<{
+    type: "unauthorized" | "forbidden" | "not_found";
+    message: string;
+  } | null>(null);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [refreshToken, setRefreshToken] = useState(0);
 
@@ -157,6 +161,7 @@ export default function LeavePage() {
     const load = async () => {
       setLoading(true);
       setError(null);
+      setAuthError(null);
 
       try {
         const query = new URLSearchParams();
@@ -172,6 +177,40 @@ export default function LeavePage() {
           }`,
           { signal: controller.signal },
         );
+
+        // Handle authorization errors
+        if (res.status === 401) {
+          if (!active) return;
+          setAuthError({
+            type: "unauthorized",
+            message: "You need to be logged in to view leave requests.",
+          });
+          setLeaves([]);
+          return;
+        }
+
+        if (res.status === 403) {
+          if (!active) return;
+          const data = await res.json().catch(() => ({}));
+          setAuthError({
+            type: "forbidden",
+            message:
+              data.error ??
+              "You don't have permission to view this employee's leave requests.",
+          });
+          setLeaves([]);
+          return;
+        }
+
+        if (res.status === 404) {
+          if (!active) return;
+          setAuthError({
+            type: "not_found",
+            message: "Employee not found.",
+          });
+          setLeaves([]);
+          return;
+        }
 
         if (!res.ok) {
           throw new Error(`Request failed with status ${res.status}`);
@@ -281,6 +320,73 @@ export default function LeavePage() {
   const isPrivileged = isAdminOrManager(session);
 
   const limitOptions = ["3", "5", "10"];
+
+  // Show authorization error state
+  if (authError) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Leave Management</h1>
+            <p className="text-sm text-muted-foreground">
+              Review current and upcoming leave for this employee.
+            </p>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="p-8">
+            <div
+              className="flex flex-col items-center justify-center gap-4 text-center"
+              data-testid="leave-auth-error"
+            >
+              <div className="rounded-full bg-destructive/10 p-4">
+                <CalendarDays className="h-8 w-8 text-destructive" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">
+                  {authError.type === "unauthorized"
+                    ? "Authentication Required"
+                    : authError.type === "not_found"
+                      ? "Employee Not Found"
+                      : "Access Denied"}
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  {authError.message}
+                </p>
+              </div>
+              {authError.type === "unauthorized" && (
+                <Button
+                  onClick={() => router.push("/api/auth/signin")}
+                  size="sm"
+                >
+                  Sign In
+                </Button>
+              )}
+              {authError.type === "forbidden" && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/employees")}
+                  size="sm"
+                >
+                  Back to Employees
+                </Button>
+              )}
+              {authError.type === "not_found" && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/employees")}
+                  size="sm"
+                >
+                  Back to Employees
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

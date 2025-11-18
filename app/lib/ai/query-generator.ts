@@ -198,6 +198,8 @@ DEMOGRAPHICS & DIVERSITY EXAMPLES:
 
 INDIVIDUAL EMPLOYEE QUERIES - Contact Details & Personal Info:
 - "What's [name]'s phone number?" → employee model, findMany, filter by firstName/lastName, return phone
+- "What's [name]'s mobile number?" → employee model, findMany, filter by firstName/lastName, return phone
+- "What's [name]'s cell phone?" → employee model, findMany, filter by firstName/lastName, return phone
 - "What is [name]'s email?" → employee model, findMany, filter by firstName/lastName, return email
 - "Show me [name]'s contact details" → employee model, findMany, filter by firstName/lastName, return phone + email
 - "What's [name]'s address?" → employee model, findMany, filter by firstName/lastName, return address fields
@@ -208,6 +210,7 @@ INDIVIDUAL EMPLOYEE QUERIES - Contact Details & Personal Info:
 - "Find [name]" → employee model, findMany, filter by firstName/lastName
 - "Look up [name]" → employee model, findMany, filter by firstName/lastName
 - "Get [name]'s info" → employee model, findMany, filter by firstName/lastName
+- "What's [name]'s contact number?" → employee model, findMany, filter by firstName/lastName, return phone
 
 CRITICAL EXAMPLES - Study These Patterns:
 User: "How many employees?" → {queryType: "count", model: "employee", operation: "isActive = true"}
@@ -227,6 +230,7 @@ User: "Longest serving staff?" → {queryType: "findMany", model: "employee", op
 User: "Gender split?" → {queryType: "groupBy", model: "employee", operation: "GROUP BY GenderOption.label, COUNT"}
 User: "Pending leave requests?" → {queryType: "findMany", model: "leaveRequest", operation: "approvalStatus = PENDING"}
 User: "What's Alex Ward's phone number?" → {queryType: "findMany", model: "employee", operation: "firstName contains 'Alex' AND lastName contains 'Ward'"}
+User: "What's Alex Ward's mobile number?" → {queryType: "findMany", model: "employee", operation: "firstName contains 'Alex' AND lastName contains 'Ward'"}
 User: "Get Sarah Johnson's email" → {queryType: "findMany", model: "employee", operation: "firstName contains 'Sarah' AND lastName contains 'Johnson'"}
 User: "Show me John Smith's details" → {queryType: "findMany", model: "employee", operation: "firstName contains 'John' AND lastName contains 'Smith'"}
 
@@ -327,6 +331,9 @@ Respond with JSON in this format:
     const aiResponse = JSON.parse(
       completion.choices[0].message.content || "{}"
     );
+    
+    console.log('[AI Query Generator] Prompt:', prompt);
+    console.log('[AI Query Generator] AI Response:', JSON.stringify(aiResponse, null, 2));
 
     // Step 2: Execute the query safely
     const result = await executeSafeQuery(aiResponse, companyId, conversationContext);
@@ -402,6 +409,8 @@ async function executeQueryByType(
   companyId: string,
   conversationContext?: string
 ): Promise<any> {
+  console.log('[Query Executor] Model:', model, 'QueryType:', queryType, 'Operation:', operation);
+  
   // Common queries
   switch (model.toLowerCase()) {
     case "employee":
@@ -544,8 +553,8 @@ async function executeQueryByType(
           }
         }
         
-        // Default to active employees only if no specific filters
-        if (!where.irdNumber && !where.departmentId && !where.jobRoleId && !where.contractType && !where.siteLocation) {
+        // Default to active employees only if no specific filters (including name filter)
+        if (!where.irdNumber && !where.departmentId && !where.jobRoleId && !where.contractType && !where.siteLocation && !where.User) {
           where.isActive = true;
         }
         
@@ -1670,10 +1679,12 @@ async function executeQueryByType(
       break;
 
     default:
-      throw new Error(`Unsupported model: ${model}`);
+      console.error('[Query Executor] Unsupported model:', model);
+      throw new Error(`Unsupported model: ${model}. Supported models: employee, user, leaverequest, document, etc.`);
   }
 
-  throw new Error("Query pattern not recognized");
+  console.error('[Query Executor] Query pattern not recognized. Model:', model, 'QueryType:', queryType);
+  throw new Error(`Query pattern not recognized. Model: ${model}, QueryType: ${queryType}`);
 }
 
 async function handleDirectTimesheetQuery(

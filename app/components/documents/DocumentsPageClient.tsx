@@ -64,8 +64,11 @@ type Document = {
   canViewAdmin: boolean;
   canViewManager: boolean;
   canViewEmployee: boolean;
-  departments: { id: string; name: string }[];
-  jobRoles: { id: string; name: string }[];
+  // For backward compatibility we support both flattened and relation-based shapes
+  departments?: { id: string; name: string }[];
+  Department?: { id: string; name: string }[];
+  jobRoles?: { id: string; name: string }[];
+  JobRole?: { id: string; name: string }[];
   requiresAck: boolean;
   requiresSignature?: boolean;
   signatureDueAt?: string | null;
@@ -321,9 +324,14 @@ function DocumentsContent() {
       filters.departments.length > 0 &&
       !filters.departments.includes("all")
     ) {
-      filtered = filtered.filter((doc) =>
-        doc.departments.some((dept) => filters.departments.includes(dept.id)),
-      );
+      filtered = filtered.filter((doc) => {
+        const docDepartments: Array<{ id: string; name: string }> = Array.isArray(doc.departments)
+          ? (doc.departments as Array<{ id: string; name: string }>)
+          : Array.isArray(doc.Department)
+            ? (doc.Department as Array<{ id: string; name: string }>)
+            : [];
+        return docDepartments.some((dept) => filters.departments.includes(dept.id));
+      });
     }
     if (filters.sortBy) {
       filtered.sort((a, b) => {

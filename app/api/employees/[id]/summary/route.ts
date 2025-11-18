@@ -34,6 +34,7 @@ export async function GET(
           select: {
             firstName: true,
             lastName: true,
+            profileImageUrl: true,
           },
         },
         JobRole: {
@@ -46,7 +47,6 @@ export async function GET(
             name: true,
           },
         },
-        photoUrl: true,
       },
     });
 
@@ -79,10 +79,12 @@ export async function GET(
       id: employee.id,
       firstName: employee.User?.firstName || "",
       lastName: employee.User?.lastName || "",
-      fullName: `${employee.User?.firstName || ""} ${employee.User?.lastName || ""}`.trim() || "Unknown Employee",
+      fullName:
+        `${employee.User?.firstName || ""} ${employee.User?.lastName || ""}`.trim() ||
+        "Unknown Employee",
       title: employee.JobRole?.name || null,
       department: employee.Department?.name || null,
-      photoUrl: employee.photoUrl || null,
+      photoUrl: employee.User?.profileImageUrl || null,
     };
 
     return NextResponse.json(summary);

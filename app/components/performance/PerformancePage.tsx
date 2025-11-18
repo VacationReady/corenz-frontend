@@ -32,6 +32,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePerformanceData, Objective, Meeting, ActionItemWithSource } from "@/hooks/usePerformanceData";
 import { usePerformanceReferenceData, EmployeeSummary } from "@/hooks/usePerformanceReferenceData";
 import { usePerformanceDocuments, PerformanceDocument } from "@/hooks/usePerformanceDocuments";
+import { useEmployeeSummary } from "@/hooks/useEmployeeSummary";
+import { Avatar } from "@/components/ui/Avatar";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { BreadcrumbItem } from "@/components/ui/Breadcrumb";
 import { PendingActionItemsPanel } from "@/components/performance/PendingActionItemsPanel";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
@@ -286,6 +290,12 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
 
   const isEmployeeContext = Boolean(employeeId);
 
+  // Fetch employee summary for personalized header
+  const { employee: employeeSummary, isLoading: employeeSummaryLoading } = useEmployeeSummary(
+    employeeId,
+    { enabled: isEmployeeContext && Boolean(session) }
+  );
+
   const { departments, jobRoles, employees } = usePerformanceReferenceData({
     enabled: Boolean(session),
     includeEmployees: !isEmployeeContext,
@@ -311,6 +321,14 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
   useEffect(() => {
     setObjectivePage(0);
   }, [selectedDepartments, selectedRoles, objectiveStatus, debouncedSearchQuery, timeframe]);
+
+  // Re-fetch data when employeeId changes (for navigation between employees)
+  useEffect(() => {
+    if (employeeId) {
+      refresh();
+      refreshDocuments();
+    }
+  }, [employeeId]);
 
   // Fetch acknowledgement and signature status when document is selected
   useEffect(() => {
@@ -534,10 +552,47 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
     })();
   };
 
-  const pageTitle = isEmployeeContext ? "Employee Performance" : "Performance Management";
-  const pageDescription = isEmployeeContext
-    ? "Objectives, meetings, and reviews focused on this employee."
-    : "Manage objectives, 1-2-1s, and performance reviews";
+  // Dynamic page content based on context
+  const pageTitle = useMemo(() => {
+    if (isEmployeeContext && employeeSummary) {
+      return `${employeeSummary.fullName}'s Performance`;
+    }
+    return isEmployeeContext ? "Employee Performance" : "Performance Management";
+  }, [isEmployeeContext, employeeSummary]);
+
+  const pageDescription = useMemo(() => {
+    if (isEmployeeContext && employeeSummary) {
+      const parts = [];
+      if (employeeSummary.title) parts.push(employeeSummary.title);
+      if (employeeSummary.department) parts.push(employeeSummary.department);
+      return parts.length > 0
+        ? `${parts.join(" • ")} • Track objectives, meetings, and performance reviews`
+        : "Track objectives, meetings, and performance reviews for this employee";
+    }
+    return isEmployeeContext
+      ? "Objectives, meetings, and reviews focused on this employee."
+      : "Manage objectives, 1-2-1s, and performance reviews";
+  }, [isEmployeeContext, employeeSummary]);
+
+  // Breadcrumbs configuration
+  const breadcrumbs = useMemo(() => {
+    if (isEmployeeContext && employeeSummary) {
+      const items: BreadcrumbItem[] = [
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Employees", href: "/employees" },
+        { label: employeeSummary.fullName, href: `/employees/${employeeId}/overview` },
+        { label: "Performance", isCurrentPage: true },
+      ];
+      return { items };
+    } else if (!isEmployeeContext) {
+      const items: BreadcrumbItem[] = [
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Performance", isCurrentPage: true },
+      ];
+      return { items };
+    }
+    return null;
+  }, [isEmployeeContext, employeeSummary, employeeId]);
 
   const handleCreateObjective = () => {
     if (employeeId) {
@@ -547,12 +602,14 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
     router.push("/performance/objectives/new");
   };
 
+  // Loading state for initial data
   if (isLoading) {
     return (
       <PageShell
-        title={pageTitle}
-        description={pageDescription}
-        icon={<Target className="h-6 w-6" />}
+        title={employeeSummaryLoading ? "Loading..." : pageTitle}
+        description={employeeSummaryLoading ? "Please wait" : pageDescription}
+        icon={employeeSummaryLoading ? <Skeleton className="h-6 w-6 rounded-full" /> : <Target className="h-6 w-6" />}
+        breadcrumbs={breadcrumbs}
       >
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -563,28 +620,53 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
     );
   }
 
+  // Enhanced header with avatar for employee context
+  const headerIcon = isEmployeeContext && employeeSummary ? (
+    <div className="flex items-center gap-3">
+      <Avatar
+        src={employeeSummary.photoUrl}
+        name={employeeSummary.fullName}
+        size={48}
+      />
+      <Target className="h-6 w-6" />
+    </div>
+  ) : (
+    <Target className="h-6 w-6" />
+  );
+
+  // Action with optional "Company View" badge
+  const headerAction = (
+    <div className="flex items-center gap-2">
+      {!isEmployeeContext && (
+        <Badge variant="secondary" className="mr-2">
+          Company View
+        </Badge>
+      )}
+      {canManageTemplates && !isEmployeeContext ? (
+        <>
+          <Button variant="outline" onClick={refreshData}>
+            Refresh Data
+          </Button>
+          <Button onClick={() => router.push("/performance/templates/new")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Template
+          </Button>
+        </>
+      ) : isEmployeeContext ? (
+        <Button variant="outline" onClick={refreshData}>
+          Refresh Data
+        </Button>
+      ) : undefined}
+    </div>
+  );
+
   return (
     <PageShell
       title={pageTitle}
       description={pageDescription}
-      icon={<Target className="h-6 w-6" />}
-      action={
-        canManageTemplates && !isEmployeeContext ? (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={refreshData}>
-              Refresh Data
-            </Button>
-            <Button onClick={() => router.push("/performance/templates/new") }>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Template
-            </Button>
-          </div>
-        ) : isEmployeeContext ? (
-          <Button variant="outline" onClick={refreshData}>
-            Refresh Data
-          </Button>
-        ) : undefined
-      }
+      icon={headerIcon}
+      breadcrumbs={breadcrumbs}
+      action={headerAction}
     >
       <div className="space-y-6">
         {!isEmployeeContext && (

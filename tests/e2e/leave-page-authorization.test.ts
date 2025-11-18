@@ -9,7 +9,7 @@
  * logic is tested in tests/api/leave-requests.test.ts
  */
 
-import "./setupEnv";
+import "../setupEnv";
 import test from "node:test";
 import assert from "node:assert/strict";
 

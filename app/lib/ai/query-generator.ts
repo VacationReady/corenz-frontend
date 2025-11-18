@@ -196,6 +196,19 @@ DEMOGRAPHICS & DIVERSITY EXAMPLES:
 - "Show diversity breakdown" → employee model, findMany, include GenderOption
 - "Gender distribution by department" → employee model, group by department and gender
 
+INDIVIDUAL EMPLOYEE QUERIES - Contact Details & Personal Info:
+- "What's [name]'s phone number?" → employee model, findMany, filter by firstName/lastName, return phone
+- "What is [name]'s email?" → employee model, findMany, filter by firstName/lastName, return email
+- "Show me [name]'s contact details" → employee model, findMany, filter by firstName/lastName, return phone + email
+- "What's [name]'s address?" → employee model, findMany, filter by firstName/lastName, return address fields
+- "When did [name] start?" → employee model, findMany, filter by firstName/lastName, return startDate
+- "What department is [name] in?" → employee model, findMany, filter by firstName/lastName, return Department
+- "What's [name]'s job title?" → employee model, findMany, filter by firstName/lastName, return JobRole
+- "Show me [name]'s details" → employee model, findMany, filter by firstName/lastName, return all fields
+- "Find [name]" → employee model, findMany, filter by firstName/lastName
+- "Look up [name]" → employee model, findMany, filter by firstName/lastName
+- "Get [name]'s info" → employee model, findMany, filter by firstName/lastName
+
 CRITICAL EXAMPLES - Study These Patterns:
 User: "How many employees?" → {queryType: "count", model: "employee", operation: "isActive = true"}
 User: "How many in sales?" → {queryType: "count", model: "employee", operation: "Department filter sales"}
@@ -213,6 +226,9 @@ User: "Who works remotely?" → {queryType: "findMany", model: "employee", opera
 User: "Longest serving staff?" → {queryType: "findMany", model: "employee", operation: "ORDER BY startDate ASC"}
 User: "Gender split?" → {queryType: "groupBy", model: "employee", operation: "GROUP BY GenderOption.label, COUNT"}
 User: "Pending leave requests?" → {queryType: "findMany", model: "leaveRequest", operation: "approvalStatus = PENDING"}
+User: "What's Alex Ward's phone number?" → {queryType: "findMany", model: "employee", operation: "firstName contains 'Alex' AND lastName contains 'Ward'"}
+User: "Get Sarah Johnson's email" → {queryType: "findMany", model: "employee", operation: "firstName contains 'Sarah' AND lastName contains 'Johnson'"}
+User: "Show me John Smith's details" → {queryType: "findMany", model: "employee", operation: "firstName contains 'John' AND lastName contains 'Smith'"}
 
 Important Rules:
 1. ONLY generate SELECT queries (no UPDATE, DELETE, INSERT)
@@ -283,6 +299,14 @@ CRITICAL DECISION GUIDE:
 - "List", "Show me", "Who are", "Names of", "Display" = findMany
 - "Total salary", "Average salary", "Sum of" = aggregate
 - "Gender split", "breakdown by", "distribution by", "group by" = groupBy
+- "What's [name]'s phone/email/details" = findMany with name filter
+
+INDIVIDUAL EMPLOYEE LOOKUP RULES:
+- If query mentions a specific person's name (e.g., "Alex Ward", "John Smith"), use findMany
+- Extract the full name and create a filter: firstName contains 'FirstName' AND lastName contains 'LastName'
+- For queries like "What's Alex Ward's phone number?", the operation should be:
+  "firstName contains 'Alex' AND lastName contains 'Ward'"
+- Always return User.phone, User.email, Department, JobRole for individual lookups
 
 Respond with JSON in this format:
 {
@@ -649,22 +673,44 @@ async function executeQueryByType(
         }
         
         // Check if looking up specific person by name (for email, phone, etc.)
-        const nameMatch = operation.match(/(?:firstName|lastName|name).*?["']([^"']+)["']/i);
+        // Enhanced pattern matching for various name formats
+        const nameMatch = operation.match(/(?:firstName|lastName|name).*?["']([^"']+)["']/i) ||
+                         operation.match(/(?:contains|includes)\s+["']([^"']+)["']/i) ||
+                         // Match capitalized names (e.g., "Alex Ward", "John Smith")
+                         operation.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/);
+        
         if (nameMatch && !where.User) { // Don't override age filter
           const searchName = nameMatch[1];
-          // Search by first name OR last name
-          where.User = {
-            OR: [
-              { firstName: { contains: searchName, mode: 'insensitive' } },
-              { lastName: { contains: searchName, mode: 'insensitive' } },
-              { 
-                AND: [
-                  { firstName: { contains: searchName.split(' ')[0], mode: 'insensitive' } },
-                  { lastName: { contains: searchName.split(' ')[1] || searchName.split(' ')[0], mode: 'insensitive' } },
-                ],
-              },
-            ],
-          };
+          const nameParts = searchName.trim().split(/\s+/);
+          
+          if (nameParts.length >= 2) {
+            // Full name provided (e.g., "Alex Ward")
+            const firstName = nameParts[0];
+            const lastName = nameParts[nameParts.length - 1];
+            
+            where.User = {
+              OR: [
+                // Exact match on both names
+                { 
+                  AND: [
+                    { firstName: { contains: firstName, mode: 'insensitive' } },
+                    { lastName: { contains: lastName, mode: 'insensitive' } },
+                  ],
+                },
+                // Match on combined name field
+                { name: { contains: searchName, mode: 'insensitive' } },
+              ],
+            };
+          } else {
+            // Single name provided - search first or last name
+            where.User = {
+              OR: [
+                { firstName: { contains: searchName, mode: 'insensitive' } },
+                { lastName: { contains: searchName, mode: 'insensitive' } },
+                { name: { contains: searchName, mode: 'insensitive' } },
+              ],
+            };
+          }
         }
         
         // Parse department filter from operation OR conversation context

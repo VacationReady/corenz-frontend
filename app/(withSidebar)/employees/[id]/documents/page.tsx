@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
-import { FileText } from "lucide-react";
+import { FileText, AlertCircle, CheckCircle2, FileSignature } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import {
@@ -39,6 +39,8 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/Badge";
 import { toast } from "sonner";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
 import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
@@ -66,6 +68,10 @@ type Document = {
   signatureDueAt?: string | null;
   departments: Department[];
   jobRoles: JobRole[];
+  ackCompletedCount?: number;
+  ackOutstandingCount?: number;
+  signatureCompletedCount?: number;
+  signatureOutstandingCount?: number;
 };
 
 export default function EmployeeDocumentsPage() {
@@ -292,6 +298,34 @@ export default function EmployeeDocumentsPage() {
       ? `${(size / 1024).toFixed(1)} KB`
       : `${(size / 1024 / 1024).toFixed(1)} MB`;
 
+  // Calculate summary statistics
+  const calculateSummary = () => {
+    let totalAckPending = 0;
+    let totalSigPending = 0;
+    let docsRequiringAck = 0;
+    let docsRequiringSig = 0;
+
+    documents.forEach((doc) => {
+      if (doc.requiresAck && doc.ackOutstandingCount) {
+        totalAckPending += doc.ackOutstandingCount;
+        docsRequiringAck++;
+      }
+      if (doc.requiresSignature && doc.signatureOutstandingCount) {
+        totalSigPending += doc.signatureOutstandingCount;
+        docsRequiringSig++;
+      }
+    });
+
+    return {
+      totalAckPending,
+      totalSigPending,
+      docsRequiringAck,
+      docsRequiringSig,
+    };
+  };
+
+  const summary = calculateSummary();
+
   const handleRowClick = (doc: Document) => {
     setSelectedDoc(doc);
     setIsPreviewModalOpen(true);
@@ -406,6 +440,30 @@ export default function EmployeeDocumentsPage() {
     >
       <TooltipProvider>
         <div className="max-w-4xl mx-auto space-y-4">
+          {/* Document Status Summary */}
+          {isAdminUser && documents.length > 0 && (summary.totalAckPending > 0 || summary.totalSigPending > 0) && (
+            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="flex items-center gap-4 flex-wrap">
+                <span className="font-medium text-amber-900 dark:text-amber-100">
+                  Outstanding Items:
+                </span>
+                {summary.totalAckPending > 0 && (
+                  <Badge className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-100">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    {summary.totalAckPending} acknowledgement{summary.totalAckPending !== 1 ? 's' : ''} pending
+                  </Badge>
+                )}
+                {summary.totalSigPending > 0 && (
+                  <Badge className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-100">
+                    <FileSignature className="w-3 h-3 mr-1" />
+                    {summary.totalSigPending} signature{summary.totalSigPending !== 1 ? 's' : ''} pending
+                  </Badge>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {documents.length === 0 ? (
             <div className="text-center py-16">
               <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />

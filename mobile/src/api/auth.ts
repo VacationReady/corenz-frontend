@@ -14,6 +14,10 @@ export async function signInWithCredentials(email: string, password: string) {
   console.log("🌐 API Base URL:", API_BASE_URL);
   console.log("📱 Platform:", `${Platform.OS} ${Platform.Version}`);
 
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/callback/credentials`, {
       method: "POST",
@@ -26,6 +30,7 @@ export async function signInWithCredentials(email: string, password: string) {
         json: "true",
         redirect: "false",
       }).toString(),
+      signal: controller.signal,
     });
 
     console.log("📡 Response status:", response.status);
@@ -66,6 +71,7 @@ export async function signInWithCredentials(email: string, password: string) {
     }
 
     // Return success - the session will be validated on subsequent requests
+    clearTimeout(timeoutId);
     console.log("✅ Login successful");
     return {
       user: {
@@ -74,6 +80,7 @@ export async function signInWithCredentials(email: string, password: string) {
       expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     };
   } catch (error: any) {
+    clearTimeout(timeoutId);
     console.error("❌ Network error during login:", error);
     console.error("❌ Error details:", {
       name: error?.name,
@@ -110,16 +117,24 @@ export async function getSession() {
     throw new Error("API configuration missing");
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/auth/session`, {
-    method: "GET",
-    credentials: "include",
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-  if (!response.ok) {
-    throw new Error("Session expired");
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/session`, {
+      method: "GET",
+      credentials: "include",
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error("Session expired");
+    }
+
+    return response.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json();
 }
 
 export async function requestPasswordReset(email: string) {
@@ -128,15 +143,23 @@ export async function requestPasswordReset(email: string) {
     throw new Error("API configuration missing");
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/auth/password-reset`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: email.trim() }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data?.error || "Unable to send reset email");
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/password-reset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim() }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data?.error || "Unable to send reset email");
+    }
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

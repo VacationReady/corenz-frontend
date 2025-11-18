@@ -79,6 +79,7 @@ describe("Template Versioning", () => {
         name: "Test Template",
         companyId: testCompanyId,
         updatedAt: new Date(),
+        updatedById: testUserId,
         version: 1,
       },
     });

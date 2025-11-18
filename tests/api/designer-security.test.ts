@@ -67,19 +67,41 @@ describe("Designer API Security - Tenant Isolation", () => {
 
   beforeAll(async () => {
     // Create two test companies
+    const timestamp = Date.now();
     tenant1 = await prisma.company.create({
       data: {
-        id: `test-company-1-${Date.now()}`,
-        name: 'Test Company 1',
-        subdomain: `test1-${Date.now()}`,
+        id: `test-company-1-${timestamp}`,
+        name: `Test Company 1-${timestamp}`,
+        updatedAt: new Date(),
       },
     });
 
     tenant2 = await prisma.company.create({
       data: {
-        id: `test-company-2-${Date.now()}`,
-        name: 'Test Company 2',
-        subdomain: `test2-${Date.now()}`,
+        id: `test-company-2-${timestamp}`,
+        name: `Test Company 2-${timestamp}`,
+        updatedAt: new Date(),
+      },
+    });
+
+    // Create test users for each tenant
+    const user1 = await prisma.user.create({
+      data: {
+        id: `user-t1-${Date.now()}`,
+        email: `test1-${Date.now()}@test.com`,
+        password: 'test',
+        companyId: tenant1.id,
+        updatedAt: new Date(),
+      },
+    });
+
+    const user2 = await prisma.user.create({
+      data: {
+        id: `user-t2-${Date.now()}`,
+        email: `test2-${Date.now()}@test.com`,
+        password: 'test',
+        companyId: tenant2.id,
+        updatedAt: new Date(),
       },
     });
 
@@ -91,6 +113,7 @@ describe("Designer API Security - Tenant Isolation", () => {
         name: 'Tenant 1 Template',
         description: 'Test template for tenant 1',
         isActive: true,
+        updatedById: user1.id,
       },
     });
 
@@ -101,6 +124,7 @@ describe("Designer API Security - Tenant Isolation", () => {
         name: 'Tenant 2 Template',
         description: 'Test template for tenant 2',
         isActive: true,
+        updatedById: user2.id,
       },
     });
 
@@ -137,24 +161,40 @@ describe("Designer API Security - Tenant Isolation", () => {
   });
 
   afterAll(async () => {
-    // Cleanup test data
-    await prisma.journeyTemplate.deleteMany({
-      where: {
-        id: { in: [tenant1Journey.id, tenant2Journey.id] },
-      },
-    });
+    // Cleanup test data - delete in proper order to respect foreign keys
+    try {
+      // Delete journey templates
+      if (tenant1Journey?.id) {
+        await prisma.journeyTemplate.delete({ where: { id: tenant1Journey.id } }).catch(() => {});
+      }
+      if (tenant2Journey?.id) {
+        await prisma.journeyTemplate.delete({ where: { id: tenant2Journey.id } }).catch(() => {});
+      }
 
-    await prisma.onboardingTemplate.deleteMany({
-      where: {
-        id: { in: [tenant1Template.id, tenant2Template.id] },
-      },
-    });
+      // Delete onboarding templates
+      await prisma.onboardingTemplate.deleteMany({
+        where: {
+          companyId: { in: [tenant1.id, tenant2.id] },
+        },
+      });
 
-    await prisma.company.deleteMany({
-      where: {
-        id: { in: [tenant1.id, tenant2.id] },
-      },
-    });
+      // Delete users
+      await prisma.user.deleteMany({
+        where: {
+          companyId: { in: [tenant1.id, tenant2.id] },
+        },
+      });
+
+      // Delete companies
+      if (tenant1?.id) {
+        await prisma.company.delete({ where: { id: tenant1.id } }).catch(() => {});
+      }
+      if (tenant2?.id) {
+        await prisma.company.delete({ where: { id: tenant2.id } }).catch(() => {});
+      }
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
 
     await prisma.$disconnect();
   });
@@ -415,7 +455,7 @@ describe("Designer API Security - Tenant Isolation", () => {
 
   describe('Serialization Security', () => {
     it('should throw error when serializing template with wrong companyId', async () => {
-      const { serializeTemplate } = await import('@/app/api/onboarding/templates/tenantScopedFetch');
+      const { serializeTemplate } = await import('../../app/api/onboarding/templates/tenantScopedFetch');
 
       // Attempt to serialize tenant2 template as if it belongs to tenant1
       expect(() => {
@@ -433,7 +473,7 @@ describe("Designer API Security - Tenant Isolation", () => {
     });
 
     it('should successfully serialize template with correct companyId', async () => {
-      const { serializeTemplate } = await import('@/app/api/onboarding/templates/tenantScopedFetch');
+      const { serializeTemplate } = await import('../../app/api/onboarding/templates/tenantScopedFetch');
 
       const serialized = serializeTemplate(
         {
@@ -454,7 +494,7 @@ describe("Designer API Security - Tenant Isolation", () => {
 
   describe('Update and Delete Operations', () => {
     it('should prevent updating template from wrong tenant', async () => {
-      const { updateTemplate } = await import('@/app/api/onboarding/templates/actions');
+      const { updateTemplate } = await import('../../app/api/onboarding/templates/actions');
 
       const mockSession = {
         user: {
@@ -478,7 +518,7 @@ describe("Designer API Security - Tenant Isolation", () => {
     });
 
     it('should allow updating template from correct tenant', async () => {
-      const { updateTemplate } = await import('@/app/api/onboarding/templates/actions');
+      const { updateTemplate } = await import('../../app/api/onboarding/templates/actions');
 
       const mockSession = {
         user: {

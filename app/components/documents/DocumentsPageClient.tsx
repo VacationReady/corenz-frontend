@@ -210,22 +210,38 @@ function DocumentsContent() {
     }
   }, [selectedDoc]);
 
+  // Initial data fetch on mount
   useEffect(() => {
     fetchDocuments();
     fetchDropdownData();
     fetchUserRole();
+  }, []);
+
+  // Handle auto-open from query param after documents load
+  useEffect(() => {
+    if (loading || documents.length === 0) return;
+    
     const url = new URL(window.location.href);
     const openId = url.searchParams.get("open");
+    
     if (openId) {
-      setTimeout(() => {
-        const doc = (documents || []).find((d) => d.id === openId);
-        if (doc) {
-          setSelectedDoc(doc);
-          setIsPreviewModalOpen(true);
-        }
-      }, 300);
+      const doc = documents.find((d) => d.id === openId);
+      if (doc) {
+        setSelectedDoc(doc);
+        setIsPreviewModalOpen(true);
+        // Clean up query param after opening
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("open");
+        window.history.replaceState({}, "", newUrl.toString());
+      } else {
+        // Handle stale ID gracefully
+        console.warn(`Document with ID ${openId} not found or not accessible`);
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("open");
+        window.history.replaceState({}, "", newUrl.toString());
+      }
     }
-  }, []);
+  }, [documents, loading]);
 
   const { filters } = useFilters();
 

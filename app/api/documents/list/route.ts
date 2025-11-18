@@ -41,7 +41,10 @@ export async function GET(req: Request) {
     hasPermission(user as any, "documents", "edit") ||
     hasPermission(user as any, "documents", "delete");
 
-  // ✅ Admin bypass only for document managers
+  // ✅ Log role and permissions for debugging
+  console.log(`[Documents API] User ${session.user.id} - Role: ${user.role}, canManageDocuments: ${canManageDocuments}`);
+
+  // ✅ Admin/Manager bypass for document managers
   if (canManageDocuments) {
     const adminDocs = await prisma.document.findMany({
       where: baseFilter,
@@ -122,10 +125,17 @@ export async function GET(req: Request) {
     return NextResponse.json(withUrls);
   }
 
-  // ✅ Role flag - fallback to basic access if no management permissions
-  const roleFlag = canManageDocuments
-    ? { canViewManager: true }
-    : { canViewEmployee: true };
+  // ✅ Role flag - based on actual user role, not edit/delete permissions
+  // Managers with read-only access should still see canViewManager documents
+  // Only employees should be restricted to canViewEmployee
+  const roleFlag =
+    user.role === "ADMIN" || user.role === "SUPER_ADMIN"
+      ? { canViewAdmin: true } // Admins see admin-level docs
+      : user.role === "MANAGER"
+        ? { canViewManager: true } // Managers (even read-only) see manager-level docs
+        : { canViewEmployee: true }; // Employees see employee-level docs
+
+  console.log(`[Documents API] RoleFlag for non-manager user: ${JSON.stringify(roleFlag)}`);
 
   // ✅ Build OR conditions safely
   const orConditions: Prisma.DocumentWhereInput[] = [

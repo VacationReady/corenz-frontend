@@ -10,6 +10,7 @@ import { z } from "zod";
 import supabase from "@/lib/supabase-admin";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
+import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
 
 const optionalTrimmedString = z.preprocess(
   (val) => {
@@ -127,7 +128,51 @@ const createEmployeeSchema = z.object({
   ),
 });
 
-// ✅ GET: Return employees with their user data for listing
+/**
+ * Iteratively collect all subordinates (direct and indirect reports)
+ * using a queue-based approach instead of recursion.
+ * 
+ * Benefits:
+ * - Avoids stack overflow for deep hierarchies
+ * - More predictable memory usage
+ * - Easier to debug and test
+ * 
+ * @param managerUserId - The manager's user ID
+ * @param companyId - Company ID for tenant isolation
+ * @returns Array of all subordinate user IDs
+ */
+async function getAllSubordinatesIterative(
+  managerUserId: string,
+  companyId: string,
+): Promise<string[]> {
+  const allSubordinates = new Set<string>();
+  const queue: string[] = [managerUserId];
+
+  while (queue.length > 0) {
+    const currentManagerId = queue.shift()!;
+
+    // Fetch direct reports for current manager
+    const directReports = await prisma.user.findMany({
+      where: {
+        managerId: currentManagerId,
+        companyId,
+      },
+      select: { id: true },
+    });
+
+    // Add direct reports to results and queue for processing
+    for (const report of directReports) {
+      if (!allSubordinates.has(report.id)) {
+        allSubordinates.add(report.id);
+        queue.push(report.id); // Process their reports too
+      }
+    }
+  }
+
+  return Array.from(allSubordinates);
+}
+
+// ✅ GET: Return employees with pagination and optimized signed URL batching
 export async function GET(req: Request) {
   try {
     await ensurePrismaConnected();
@@ -148,25 +193,13 @@ export async function GET(req: Request) {
     const userId = searchParams.get("userId");
     const managerId = searchParams.get("managerId");
     const scope = (searchParams.get("scope") || "directory").toLowerCase();
-
-    const getAllSubordinates = async (managerUserId: string): Promise<string[]> => {
-      const directReports = await prisma.user.findMany({
-        where: { managerId: managerUserId, companyId: session.user.companyId },
-        select: { id: true },
-      });
-
-      const subordinateIds = directReports.map((u) => u.id);
-      if (subordinateIds.length === 0) {
-        return [];
-      }
-
-      for (const subId of subordinateIds) {
-        const indirectReports = await getAllSubordinates(subId);
-        subordinateIds.push(...indirectReports);
-      }
-
-      return subordinateIds;
-    };
+    
+    // Pagination parameters
+    const limit = Math.min(
+      Math.max(1, parseInt(searchParams.get("limit") || "50", 10)),
+      100, // Max 100 per page
+    );
+    const cursor = searchParams.get("cursor") || undefined;
 
     // Base scoping
     const whereCondition: any = { companyId: session.user.companyId };
@@ -182,7 +215,10 @@ export async function GET(req: Request) {
       scope === "team" &&
       (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN")
     ) {
-      const allSubordinateUserIds = await getAllSubordinates(session.user.id);
+      const allSubordinateUserIds = await getAllSubordinatesIterative(
+        session.user.id,
+        session.user.companyId,
+      );
 
       whereCondition.user = {
         ...(whereCondition.user || {}),
@@ -196,8 +232,11 @@ export async function GET(req: Request) {
       if (userId && userId === session.user.id) {
         // Do not apply team restriction; self-lookup is allowed
       } else {
-        // Get all direct and indirect reports
-        const allSubordinateUserIds = await getAllSubordinates(session.user.id);
+        // Get all direct and indirect reports using iterative approach
+        const allSubordinateUserIds = await getAllSubordinatesIterative(
+          session.user.id,
+          session.user.companyId,
+        );
 
         // Note: Managers should NOT see themselves in the employee list, only their reports
         // This makes it clear this is a team management view
@@ -229,6 +268,7 @@ export async function GET(req: Request) {
       whereCondition.OR = orConditions;
     }
 
+    // Cursor-based pagination query
     const employees = await prisma.employee.findMany({
       where: whereCondition,
       include: {
@@ -267,56 +307,72 @@ export async function GET(req: Request) {
         },
       },
       orderBy: { id: "desc" },
+      take: limit + 1, // Fetch one extra to determine if there are more results
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
-    const flattened = await Promise.all(
-      employees.map(async (emp) => {
-        let profileUrl: string | null = null;
-        if (emp.User.profileImageUrl) {
-          try {
-            const { data } = await supabase.storage
-              .from("documents")
-              .createSignedUrl(emp.User.profileImageUrl, 60 * 5);
-            profileUrl = data?.signedUrl ?? null;
-          } catch {
-            profileUrl = null;
-          }
-        }
+    // Determine if there are more results
+    const hasMore = employees.length > limit;
+    const results = hasMore ? employees.slice(0, limit) : employees;
+    const nextCursor = hasMore ? results[results.length - 1].id : null;
 
-        return {
-          id: emp.id,
-          userId: emp.User.id,
-          firstName: emp.User.firstName,
-          lastName: emp.User.lastName,
-          email: emp.User.email,
-          phone: emp.User.phone,
-          role: emp.User.role,
-          createdAt: emp.User.createdAt,
-          managerUserId: emp.User.managerId ?? null,
-          departmentId: emp.Department?.id ?? null,
-          departmentName: emp.Department?.name ?? null,
-          jobRoleId: emp.JobRole?.id ?? null,
-          jobRoleName: emp.JobRole?.name ?? null,
-          locationId: emp.Location?.id ?? null,
-          locationName: emp.Location?.name ?? null,
-          isActive: emp.isActive,
-          isActivated: emp.User.isActivated,
-          offboardingStatus: emp.offboardingStatus,
-          lastWorkingDate: emp.lastWorkingDate,
-          offboardingRecord: emp.EmployeeOffboarding,
-          profileImageUrl: profileUrl,
-          permissionProfileName: emp.User.PermissionProfile?.name ?? null,
-          // NZ Leave Compliance Fields
-          sickLeaveDaysPerYear: emp.sickLeaveDaysPerYear,
-          alternativeHolidayBalance: emp.alternativeHolidayBalance,
-          publicHolidaysPerYear: emp.publicHolidaysPerYear,
-          employmentStartDate: emp.employmentStartDate,
-        } as const;
-      }),
-    );
+    // ✅ Batch sign profile URLs (1 operation instead of N)
+    const profileSignRequests = results
+      .filter((emp) => emp.User.profileImageUrl)
+      .map((emp) => ({
+        id: emp.User.id,
+        path: emp.User.profileImageUrl!,
+      }));
+
+    const signedUrlMap = await batchSignProfileUrlsAsMap(profileSignRequests);
+
+    // Map employees to response format with signed URLs from batch
+    const flattened = results.map((emp) => {
+      const profileUrl = emp.User.profileImageUrl
+        ? signedUrlMap.get(emp.User.id) ?? null
+        : null;
+
+      return {
+        id: emp.id,
+        userId: emp.User.id,
+        firstName: emp.User.firstName,
+        lastName: emp.User.lastName,
+        email: emp.User.email,
+        phone: emp.User.phone,
+        role: emp.User.role,
+        createdAt: emp.User.createdAt,
+        managerUserId: emp.User.managerId ?? null,
+        departmentId: emp.Department?.id ?? null,
+        departmentName: emp.Department?.name ?? null,
+        jobRoleId: emp.JobRole?.id ?? null,
+        jobRoleName: emp.JobRole?.name ?? null,
+        locationId: emp.Location?.id ?? null,
+        locationName: emp.Location?.name ?? null,
+        isActive: emp.isActive,
+        isActivated: emp.User.isActivated,
+        offboardingStatus: emp.offboardingStatus,
+        lastWorkingDate: emp.lastWorkingDate,
+        offboardingRecord: emp.EmployeeOffboarding,
+        profileImageUrl: profileUrl,
+        permissionProfileName: emp.User.PermissionProfile?.name ?? null,
+        // NZ Leave Compliance Fields
+        sickLeaveDaysPerYear: emp.sickLeaveDaysPerYear,
+        alternativeHolidayBalance: emp.alternativeHolidayBalance,
+        publicHolidaysPerYear: emp.publicHolidaysPerYear,
+        employmentStartDate: emp.employmentStartDate,
+      } as const;
+    });
 
     console.log(`[employees] Found ${flattened.length} employees for companyId: ${session.user.companyId}`);
-    return NextResponse.json(flattened);
+    
+    return NextResponse.json({
+      data: flattened,
+      pagination: {
+        limit,
+        cursor: nextCursor,
+        hasMore,
+      },
+    });
   } catch (error) {
     console.error("[employees] Error details:", {
       error: error instanceof Error ? error.message : String(error),

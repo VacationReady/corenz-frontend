@@ -110,6 +110,42 @@ export async function GET(req: Request) {
           );
         }
 
+        // Acknowledgement counts (only if enabled)
+        let ackCompletedCount = 0;
+        let ackTargetCount = 0;
+        let ackOutstandingCount = 0;
+        if (doc.requiresAck) {
+          ackCompletedCount = await prisma.documentAcknowledgement.count({
+            where: { documentId: doc.id },
+          });
+
+          if (doc.employeeId) {
+            ackTargetCount = 1;
+          } else {
+            const deptIds = (doc.Department || []).map((d) => d.id);
+            const roleIds = (doc.JobRole || []).map((r) => r.id);
+            const hasDeptOrRole = deptIds.length > 0 || roleIds.length > 0;
+
+            if (hasDeptOrRole) {
+              ackTargetCount = await prisma.employee.count({
+                where: {
+                  isActive: true,
+                  User: { companyId: session.user.companyId },
+                  OR: [
+                    deptIds.length > 0 ? { departmentId: { in: deptIds } } : undefined,
+                    roleIds.length > 0 ? { jobRoleId: { in: roleIds } } : undefined,
+                  ].filter(Boolean) as any,
+                },
+              });
+            } else {
+              ackTargetCount = await prisma.employee.count({
+                where: { isActive: true, User: { companyId: session.user.companyId } },
+              });
+            }
+          }
+          ackOutstandingCount = Math.max(ackTargetCount - ackCompletedCount, 0);
+        }
+
         return {
           ...doc,
           url: signed?.signedUrl ?? null,
@@ -119,6 +155,9 @@ export async function GET(req: Request) {
           signatureCompletedCount,
           signatureTargetCount,
           signatureOutstandingCount,
+          ackCompletedCount,
+          ackTargetCount,
+          ackOutstandingCount,
         } as any;
       }),
     );
@@ -220,6 +259,42 @@ export async function GET(req: Request) {
         );
       }
 
+      // Acknowledgement counts (only if enabled)
+      let ackCompletedCount = 0;
+      let ackTargetCount = 0;
+      let ackOutstandingCount = 0;
+      if (doc.requiresAck) {
+        ackCompletedCount = await prisma.documentAcknowledgement.count({
+          where: { documentId: doc.id },
+        });
+
+        if (doc.employeeId) {
+          ackTargetCount = 1;
+        } else {
+          const deptIds = (doc.Department || []).map((d) => d.id);
+          const roleIds = (doc.JobRole || []).map((r) => r.id);
+          const hasDeptOrRole = deptIds.length > 0 || roleIds.length > 0;
+
+          if (hasDeptOrRole) {
+            ackTargetCount = await prisma.employee.count({
+              where: {
+                isActive: true,
+                User: { companyId: session.user.companyId },
+                OR: [
+                  deptIds.length > 0 ? { departmentId: { in: deptIds } } : undefined,
+                  roleIds.length > 0 ? { jobRoleId: { in: roleIds } } : undefined,
+                ].filter(Boolean) as any,
+              },
+            });
+          } else {
+            ackTargetCount = await prisma.employee.count({
+              where: { isActive: true, User: { companyId: session.user.companyId } },
+            });
+          }
+        }
+        ackOutstandingCount = Math.max(ackTargetCount - ackCompletedCount, 0);
+      }
+
       return {
         ...doc,
         url: signed?.signedUrl ?? null,
@@ -229,6 +304,9 @@ export async function GET(req: Request) {
         signatureCompletedCount,
         signatureTargetCount,
         signatureOutstandingCount,
+        ackCompletedCount,
+        ackTargetCount,
+        ackOutstandingCount,
       } as any;
     }),
   );

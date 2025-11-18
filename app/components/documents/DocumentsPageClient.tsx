@@ -72,6 +72,9 @@ type Document = {
   signatureCompletedCount?: number;
   signatureTargetCount?: number;
   signatureOutstandingCount?: number;
+  ackCompletedCount?: number;
+  ackTargetCount?: number;
+  ackOutstandingCount?: number;
 };
 
 function DocumentsContent() {
@@ -708,7 +711,31 @@ function DocumentsContent() {
                     </TableCell>
                     <TableCell>
                       {doc.requiresAck ? (
-                        <span className="text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs">✓ Required</span>
+                        typeof doc.ackCompletedCount === "number" &&
+                        typeof doc.ackTargetCount === "number" ? (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={
+                                doc.ackCompletedCount === doc.ackTargetCount
+                                  ? "text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs font-medium"
+                                  : doc.ackCompletedCount > 0
+                                  ? "text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-xs font-medium"
+                                  : "text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-xs font-medium"
+                              }
+                            >
+                              {doc.ackCompletedCount}/{doc.ackTargetCount}
+                            </span>
+                            {doc.ackOutstandingCount && doc.ackOutstandingCount > 0 ? (
+                              <span className="text-xs text-muted-foreground">
+                                ({doc.ackOutstandingCount} pending)
+                              </span>
+                            ) : (
+                              <span className="text-xs text-green-600">✓ Complete</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs">✓ Required</span>
+                        )
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
@@ -717,11 +744,31 @@ function DocumentsContent() {
                       {doc.requiresSignature ? (
                         typeof doc.signatureCompletedCount === "number" &&
                         typeof doc.signatureTargetCount === "number" ? (
-                          <SignatureProgressRing
-                            completed={doc.signatureCompletedCount}
-                            total={doc.signatureTargetCount}
-                            size="sm"
-                          />
+                          <div className="flex items-center gap-2">
+                            <SignatureProgressRing
+                              completed={doc.signatureCompletedCount}
+                              total={doc.signatureTargetCount}
+                              size="sm"
+                            />
+                            <div className="flex flex-col">
+                              <span
+                                className={
+                                  doc.signatureCompletedCount === doc.signatureTargetCount
+                                    ? "text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs font-medium"
+                                    : doc.signatureCompletedCount > 0
+                                    ? "text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-xs font-medium"
+                                    : "text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-xs font-medium"
+                                }
+                              >
+                                {doc.signatureCompletedCount}/{doc.signatureTargetCount}
+                              </span>
+                              {doc.signatureOutstandingCount && doc.signatureOutstandingCount > 0 ? (
+                                <span className="text-xs text-muted-foreground mt-1">
+                                  {doc.signatureOutstandingCount} pending
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
                         ) : (
                           <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">
                             Required

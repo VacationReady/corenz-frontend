@@ -196,7 +196,10 @@ describe("Designer API Security - Tenant Isolation", () => {
       console.error('Cleanup error:', error);
     }
 
-    await prisma.$disconnect();
+    // Disconnect if available
+    if (prisma.$disconnect) {
+      await prisma.$disconnect();
+    }
   });
 
   describe('Onboarding Template Queries', () => {

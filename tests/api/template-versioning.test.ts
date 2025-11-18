@@ -86,11 +86,15 @@ describe("Template Versioning", () => {
   });
 
   afterEach(async () => {
-    // Cleanup
-    await prisma.templateVersion.deleteMany({ where: { companyId: testCompanyId } });
-    await prisma.onboardingTemplate.deleteMany({ where: { companyId: testCompanyId } });
-    await prisma.user.deleteMany({ where: { companyId: testCompanyId } });
-    await prisma.company.deleteMany({ where: { id: testCompanyId } });
+    // Cleanup - delete in proper order
+    try {
+      await prisma.templateVersion.deleteMany({ where: { companyId: testCompanyId } }).catch(() => {});
+      await prisma.onboardingTemplate.deleteMany({ where: { companyId: testCompanyId } });
+      await prisma.user.deleteMany({ where: { companyId: testCompanyId } });
+      await prisma.company.delete({ where: { id: testCompanyId } }).catch(() => {});
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
   });
 
   describe("Optimistic Locking", () => {
@@ -356,7 +360,7 @@ describe("Template Versioning", () => {
         /Template not found/,
       );
 
-      await prisma.company.deleteMany({ where: { id: otherCompanyId } });
+      await prisma.company.delete({ where: { id: otherCompanyId } }).catch(() => {});
     });
   });
 });

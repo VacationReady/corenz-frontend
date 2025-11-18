@@ -6,7 +6,10 @@ import React, {
   useReducer,
   useCallback,
   useMemo,
+  useEffect,
+  useRef,
 } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { FilterState, FilterContextType } from "@/types/filter";
 
 const initialFilterState: FilterState = {
@@ -64,16 +67,191 @@ const FilterContext = createContext<FilterContextType | undefined>(undefined);
 interface FilterProviderProps {
   children: React.ReactNode;
   initialFilters?: Partial<FilterState>;
+  persistenceKey?: string; // e.g., "documents-filters" - enables URL and localStorage persistence
+  enableUrlSync?: boolean; // Default: true when persistenceKey is provided
+  enableLocalStorage?: boolean; // Default: true when persistenceKey is provided
+}
+
+/**
+ * Serialize filters to URL query params
+ */
+function serializeFiltersToUrl(filters: FilterState): URLSearchParams {
+  const params = new URLSearchParams();
+  
+  if (filters.search) params.set("search", filters.search);
+  if (filters.documentTypes.length > 0 && !filters.documentTypes.includes("all")) {
+    params.set("documentTypes", filters.documentTypes.join(","));
+  }
+  if (filters.categories.length > 0 && !filters.categories.includes("all")) {
+    params.set("categories", filters.categories.join(","));
+  }
+  if (filters.departments.length > 0 && !filters.departments.includes("all")) {
+    params.set("departments", filters.departments.join(","));
+  }
+  if (filters.jobRoles.length > 0 && !filters.jobRoles.includes("all")) {
+    params.set("jobRoles", filters.jobRoles.join(","));
+  }
+  if (filters.status.length > 0) {
+    params.set("status", filters.status.join(","));
+  }
+  if (filters.locations.length > 0) {
+    params.set("locations", filters.locations.join(","));
+  }
+  if (filters.authors.length > 0) {
+    params.set("authors", filters.authors.join(","));
+  }
+  if (filters.sortBy) params.set("sortBy", filters.sortBy);
+  if (filters.sortOrder && filters.sortOrder !== "asc") {
+    params.set("sortOrder", filters.sortOrder);
+  }
+  if (filters.dateRange.from) {
+    params.set("dateFrom", filters.dateRange.from.toISOString());
+  }
+  if (filters.dateRange.to) {
+    params.set("dateTo", filters.dateRange.to.toISOString());
+  }
+  
+  return params;
+}
+
+/**
+ * Deserialize filters from URL query params
+ */
+function deserializeFiltersFromUrl(searchParams: URLSearchParams): Partial<FilterState> {
+  const filters: Partial<FilterState> = {};
+  
+  const search = searchParams.get("search");
+  if (search) filters.search = search;
+  
+  const documentTypes = searchParams.get("documentTypes");
+  if (documentTypes) filters.documentTypes = documentTypes.split(",");
+  
+  const categories = searchParams.get("categories");
+  if (categories) filters.categories = categories.split(",");
+  
+  const departments = searchParams.get("departments");
+  if (departments) filters.departments = departments.split(",");
+  
+  const jobRoles = searchParams.get("jobRoles");
+  if (jobRoles) filters.jobRoles = jobRoles.split(",");
+  
+  const status = searchParams.get("status");
+  if (status) filters.status = status.split(",");
+  
+  const locations = searchParams.get("locations");
+  if (locations) filters.locations = locations.split(",");
+  
+  const authors = searchParams.get("authors");
+  if (authors) filters.authors = authors.split(",");
+  
+  const sortBy = searchParams.get("sortBy");
+  if (sortBy) filters.sortBy = sortBy;
+  
+  const sortOrder = searchParams.get("sortOrder");
+  if (sortOrder === "asc" || sortOrder === "desc") {
+    filters.sortOrder = sortOrder;
+  }
+  
+  const dateFrom = searchParams.get("dateFrom");
+  const dateTo = searchParams.get("dateTo");
+  if (dateFrom || dateTo) {
+    filters.dateRange = {};
+    if (dateFrom) filters.dateRange.from = new Date(dateFrom);
+    if (dateTo) filters.dateRange.to = new Date(dateTo);
+  }
+  
+  return filters;
+}
+
+/**
+ * Serialize filters to localStorage
+ */
+function saveFiltersToLocalStorage(key: string, filters: FilterState) {
+  try {
+    const serialized = JSON.stringify({
+      ...filters,
+      dateRange: {
+        from: filters.dateRange.from?.toISOString(),
+        to: filters.dateRange.to?.toISOString(),
+      },
+    });
+    localStorage.setItem(key, serialized);
+  } catch (error) {
+    console.warn("Failed to save filters to localStorage:", error);
+  }
+}
+
+/**
+ * Deserialize filters from localStorage
+ */
+function loadFiltersFromLocalStorage(key: string): Partial<FilterState> | null {
+  try {
+    const stored = localStorage.getItem(key);
+    if (!stored) return null;
+    
+    const parsed = JSON.parse(stored);
+    
+    // Convert date strings back to Date objects
+    if (parsed.dateRange) {
+      if (parsed.dateRange.from) {
+        parsed.dateRange.from = new Date(parsed.dateRange.from);
+      }
+      if (parsed.dateRange.to) {
+        parsed.dateRange.to = new Date(parsed.dateRange.to);
+      }
+    }
+    
+    return parsed;
+  } catch (error) {
+    console.warn("Failed to load filters from localStorage:", error);
+    return null;
+  }
 }
 
 export function FilterProvider({
   children,
   initialFilters,
+  persistenceKey,
+  enableUrlSync = !!persistenceKey,
+  enableLocalStorage = !!persistenceKey,
 }: FilterProviderProps) {
-  const [filters, dispatch] = useReducer(filterReducer, {
-    ...initialFilterState,
-    ...initialFilters,
-  });
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isInitialMount = useRef(true);
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Hydrate filters from URL or localStorage before first render
+  const hydratedInitialState = useMemo(() => {
+    let hydratedFilters = { ...initialFilterState, ...initialFilters };
+    
+    if (persistenceKey) {
+      // Priority 1: URL params (for bookmarkable views)
+      if (enableUrlSync && searchParams) {
+        const urlFilters = deserializeFiltersFromUrl(searchParams);
+        if (Object.keys(urlFilters).length > 0) {
+          hydratedFilters = { ...hydratedFilters, ...urlFilters };
+        } else if (enableLocalStorage && typeof window !== "undefined") {
+          // Priority 2: localStorage (fallback)
+          const storedFilters = loadFiltersFromLocalStorage(persistenceKey);
+          if (storedFilters) {
+            hydratedFilters = { ...hydratedFilters, ...storedFilters };
+          }
+        }
+      } else if (enableLocalStorage && typeof window !== "undefined") {
+        // No URL sync, just use localStorage
+        const storedFilters = loadFiltersFromLocalStorage(persistenceKey);
+        if (storedFilters) {
+          hydratedFilters = { ...hydratedFilters, ...storedFilters };
+        }
+      }
+    }
+    
+    return hydratedFilters;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run once on mount
+  
+  const [filters, dispatch] = useReducer(filterReducer, hydratedInitialState);
 
   const updateFilter = useCallback<
     <K extends keyof FilterState>(key: K, value: FilterState[K]) => void
@@ -103,6 +281,44 @@ export function FilterProvider({
       filters.dateRange.to !== undefined
     );
   }, [filters]);
+
+  // Sync filters to URL and localStorage when they change
+  useEffect(() => {
+    // Skip sync on initial mount - we just hydrated
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
+    if (!persistenceKey) return;
+    
+    // Debounce sync to avoid excessive updates
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+    
+    syncTimeoutRef.current = setTimeout(() => {
+      // Sync to URL
+      if (enableUrlSync && pathname) {
+        const params = serializeFiltersToUrl(filters);
+        const newUrl = params.toString()
+          ? `${pathname}?${params.toString()}`
+          : pathname;
+        router.replace(newUrl, { scroll: false });
+      }
+      
+      // Sync to localStorage
+      if (enableLocalStorage) {
+        saveFiltersToLocalStorage(persistenceKey, filters);
+      }
+    }, 150); // Small debounce to batch rapid changes
+    
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, [filters, persistenceKey, enableUrlSync, enableLocalStorage, router, pathname]);
 
   const contextValue = useMemo(
     () => ({

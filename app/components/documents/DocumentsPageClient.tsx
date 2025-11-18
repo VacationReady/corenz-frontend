@@ -1153,7 +1153,11 @@ function DocumentsContent() {
 
 export default function DocumentsPageClient() {
   return (
-    <FilterProvider>
+    <FilterProvider
+      persistenceKey="documents-filters"
+      enableUrlSync={true}
+      enableLocalStorage={true}
+    >
       <DocumentsContent />
     </FilterProvider>
   );

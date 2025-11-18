@@ -8,6 +8,11 @@ import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
 import { notifyApproversForStage } from "@/lib/approvalNotifications";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
+import {
+  canAccessLeaveRequests,
+  canCreateLeaveRequest,
+  createAuthContext,
+} from "@/lib/authz";
 import { z } from "zod";
 
 const optionalTrimmedString = z
@@ -61,8 +66,10 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await context.params;
+    const { id: employeeId } = await context.params;
     await ensurePrismaConnected();
+    
+    // 1. ✅ Authentication: Verify session exists
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json(
@@ -71,6 +78,48 @@ export async function GET(
       );
     }
 
+    // 2. ✅ Create auth context for authorization checks
+    const authContext = createAuthContext(session);
+    if (!authContext) {
+      return NextResponse.json(
+        { success: false, error: "Invalid session" },
+        { status: 401 },
+      );
+    }
+
+    // 3. ✅ Verify employee exists and belongs to same company (tenant isolation)
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { id: true, companyId: true, userId: true },
+    });
+
+    if (!employee) {
+      return NextResponse.json(
+        { success: false, error: "Employee not found" },
+        { status: 404 },
+      );
+    }
+
+    if (employee.companyId !== session.user.companyId) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Cross-tenant access denied" },
+        { status: 403 },
+      );
+    }
+
+    // 4. ✅ Authorization: Check if user can access this employee's leave requests
+    const hasAccess = await canAccessLeaveRequests(authContext, employeeId);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Forbidden: You do not have permission to view these leave requests" 
+        },
+        { status: 403 },
+      );
+    }
+
+    // 5. ✅ Parse query parameters
     const { searchParams } = new URL(req.url);
     const upcoming = searchParams.get("upcoming") === "true";
     const limitParam = searchParams.get("limit");
@@ -80,9 +129,10 @@ export async function GET(
 
     const now = new Date();
 
+    // 6. ✅ Query leave requests with multi-tenant filtering
     const where: any = {
-      employeeId: id,
-      // Use correct relation casing per Prisma schema: Employee
+      employeeId,
+      // Multi-tenant isolation: only fetch from user's company
       Employee: { companyId: session.user.companyId },
       approvalStatus: "APPROVED",
       ...(upcoming
@@ -124,8 +174,10 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await context.params;
+    const { id: employeeId } = await context.params;
     await ensurePrismaConnected();
+    
+    // 1. ✅ Authentication: Verify session exists
     const session = await getServerSession(authOptions);
     if (!session?.user?.id || !session.user.companyId) {
       console.log("❌ Unauthenticated attempt to submit leave request");
@@ -135,8 +187,16 @@ export async function POST(
       );
     }
 
+    // 2. ✅ Create auth context for authorization checks
+    const authContext = createAuthContext(session);
+    if (!authContext) {
+      return NextResponse.json(
+        { success: false, error: "Invalid session" },
+        { status: 401 },
+      );
+    }
+
     const userId = session.user.id;
-    const employeeId = id;
   const body = leaveRequestCreateSchema.parse(await req.json());
   const EventCategoryId = body.eventCategoryId || body.EventCategoryId;
   const { startDate, endDate, reason, sickReason, paidStatus, dayType } = body;
@@ -147,6 +207,7 @@ export async function POST(
     );
   }
 
+    // 3. ✅ Verify employee exists and belongs to same company (tenant isolation)
     const employee = await prisma.employee.findFirst({
       where: { id: employeeId, companyId: session.user.companyId },
       include: {
@@ -171,14 +232,15 @@ export async function POST(
       );
     }
 
-    if (
-      employee.User.id !== userId &&
-      session.user.role !== "ADMIN" &&
-      session.user.role !== "SUPER_ADMIN"
-    ) {
+    // 4. ✅ Authorization: Check if user can create leave request for this employee
+    const canCreate = await canCreateLeaveRequest(authContext, employeeId);
+    if (!canCreate) {
       console.log("❌ Unauthorized leave request submission attempt");
       return NextResponse.json(
-        { success: false, error: "Unauthorized" },
+        { 
+          success: false, 
+          error: "Forbidden: You do not have permission to create leave requests for this employee" 
+        },
         { status: 403 },
       );
     }

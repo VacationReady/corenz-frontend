@@ -48,8 +48,23 @@ export interface Objective {
 interface MeetingActionItem {
   id: string;
   title: string;
+  description?: string;
   status: string;
+  priority: string;
   dueDate?: string;
+  completedAt?: string;
+  Assignee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+export interface ActionItemWithSource extends MeetingActionItem {
+  sourceMeetingId: string;
+  sourceMeetingTitle: string;
+  type: 'MEETING';
 }
 
 export interface Meeting {
@@ -116,6 +131,26 @@ export function usePerformanceData({ timeframeDays = 30, employeeId, participant
     dedupingInterval: 5000,
   });
 
+  const actionItems: ActionItemWithSource[] = useMemo(() => {
+    const meetings = meetingsData?.meetings ?? [];
+    const items: ActionItemWithSource[] = [];
+    
+    meetings.forEach((meeting) => {
+      if (meeting.actionItems && meeting.actionItems.length > 0) {
+        meeting.actionItems.forEach((item) => {
+          items.push({
+            ...item,
+            sourceMeetingId: meeting.id,
+            sourceMeetingTitle: meeting.title,
+            type: 'MEETING' as const,
+          });
+        });
+      }
+    });
+    
+    return items;
+  }, [meetingsData?.meetings]);
+
   const stats: PerformanceStats = useMemo(() => {
     const objectives = objectivesData?.objectives ?? [];
     const meetings = meetingsData?.meetings ?? [];
@@ -134,10 +169,7 @@ export function usePerformanceData({ timeframeDays = 30, employeeId, participant
 
     const upcomingMeetings = meetings.filter((meeting) => meeting.status === "SCHEDULED").length;
     const completedMeetings = meetings.filter((meeting) => meeting.status === "COMPLETED").length;
-    const pendingActionItems = meetings.reduce((sum, meeting) => {
-      const openItems = meeting.actionItems?.filter((ai) => ai.status !== "COMPLETED").length ?? 0;
-      return sum + openItems;
-    }, 0);
+    const pendingActionItems = actionItems.length;
 
     return {
       totalObjectives,
@@ -149,7 +181,7 @@ export function usePerformanceData({ timeframeDays = 30, employeeId, participant
       completedMeetings,
       pendingActionItems,
     };
-  }, [objectivesData?.objectives, meetingsData?.meetings]);
+  }, [objectivesData?.objectives, meetingsData?.meetings, actionItems]);
 
   const refresh = () => {
     void mutateObjectives();
@@ -159,6 +191,7 @@ export function usePerformanceData({ timeframeDays = 30, employeeId, participant
   return {
     objectives: objectivesData?.objectives ?? [],
     meetings: meetingsData?.meetings ?? [],
+    actionItems,
     stats,
     isLoading: objectivesLoading || meetingsLoading,
     error: objectivesError ?? meetingsError,

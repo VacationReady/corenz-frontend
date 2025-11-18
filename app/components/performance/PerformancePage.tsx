@@ -29,9 +29,10 @@ import { ScheduleMeetingDialog } from "@/components/performance/ScheduleMeetingD
 import { CreateReviewCycleDialog } from "@/components/performance/CreateReviewCycleDialog";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { usePerformanceData, Objective, Meeting } from "@/hooks/usePerformanceData";
+import { usePerformanceData, Objective, Meeting, ActionItemWithSource } from "@/hooks/usePerformanceData";
 import { usePerformanceReferenceData, EmployeeSummary } from "@/hooks/usePerformanceReferenceData";
 import { usePerformanceDocuments, PerformanceDocument } from "@/hooks/usePerformanceDocuments";
+import { PendingActionItemsPanel } from "@/components/performance/PendingActionItemsPanel";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -290,7 +291,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
     includeEmployees: !isEmployeeContext,
   });
 
-  const { objectives, meetings, stats, isLoading, error, refresh } = usePerformanceData({
+  const { objectives, meetings, actionItems, stats, isLoading, error, refresh } = usePerformanceData({
     timeframeDays: timeframe,
     employeeId,
     participantId: employeeId,
@@ -946,6 +947,12 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
                   )}
                 </CardContent>
               </Card>
+
+              <PendingActionItemsPanel 
+                actionItems={actionItems}
+                onRefresh={refreshData}
+                isEmployeeContext={isEmployeeContext}
+              />
             </TabsContent>
 
             <TabsContent value="objectives" className="space-y-4">

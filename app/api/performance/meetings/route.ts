@@ -67,10 +67,18 @@ export async function GET(req: NextRequest) {
         },
         actionItems: {
           where: { status: { in: ["TODO", "IN_PROGRESS"] } },
-          orderBy: { dueDate: "asc" },
+          orderBy: [
+            { priority: "desc" },
+            { dueDate: "asc" },
+          ],
           include: {
             Assignee: {
-              select: { id: true, firstName: true, lastName: true },
+              select: { 
+                id: true, 
+                firstName: true, 
+                lastName: true, 
+                email: true,
+              },
             },
           },
         },

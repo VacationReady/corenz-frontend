@@ -36,9 +36,9 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import ModernDocumentPreview from "@/components/documents/ModernDocumentPreview";
-import ModernSignatureCapture, { SignatureCaptureValue } from "@/components/documents/ModernSignatureCapture";
 import SignatureSuccessAnimation from "@/components/documents/SignatureSuccessAnimation";
 import AcknowledgmentSuccessAnimation from "@/components/documents/AcknowledgmentSuccessAnimation";
+import type { SignatureCaptureValue } from "@/components/documents/ModernSignatureCapture";
 import { FileText, Download, Eye, CheckCircle, PenTool } from "lucide-react";
 
 const statusColors = {
@@ -262,13 +262,16 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
   // Documents tab state
   const [selectedDocument, setSelectedDocument] = useState<PerformanceDocument | null>(null);
   const [isDocPreviewOpen, setIsDocPreviewOpen] = useState(false);
-  const [isSignatureCaptureOpen, setIsSignatureCaptureOpen] = useState(false);
   const [showAckSuccess, setShowAckSuccess] = useState(false);
   const [showSignSuccess, setShowSignSuccess] = useState(false);
   const [signSubmitting, setSignSubmitting] = useState(false);
   const [acknowledged, setAcknowledged] = useState(false);
   const [ackDate, setAckDate] = useState<Date | null>(null);
   const [signed, setSigned] = useState(false);
+  const [successDocumentName, setSuccessDocumentName] = useState<string | null>(null);
+  const [successAcknowledgedAt, setSuccessAcknowledgedAt] = useState<Date | null>(null);
+  const [successSignedAt, setSuccessSignedAt] = useState<Date | null>(null);
+  const [successSignatureMethod, setSuccessSignatureMethod] = useState<"TYPED" | "DRAWN" | null>(null);
 
   const canManageTemplates =
     session?.user?.role === "ADMIN" ||
@@ -446,6 +449,83 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
   const refreshData = () => {
     refresh();
     refreshDocuments();
+  };
+
+  const handleCloseDocumentPreview = () => {
+    setIsDocPreviewOpen(false);
+    setSelectedDocument(null);
+    setAcknowledged(false);
+    setSigned(false);
+    setAckDate(null);
+  };
+
+  const handleAcknowledgeDocument = () => {
+    if (!selectedDocument) return;
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/documents/acknowledge", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentId: selectedDocument.id }),
+        });
+
+        if (res.ok) {
+          const now = new Date();
+          setAcknowledged(true);
+          setAckDate(now);
+          setSuccessDocumentName(selectedDocument.name);
+          setSuccessAcknowledgedAt(now);
+          setShowAckSuccess(true);
+          refreshDocuments();
+          toast.success("Document acknowledged successfully");
+          handleCloseDocumentPreview();
+        } else {
+          toast.error("Failed to acknowledge document");
+        }
+      } catch (error) {
+        toast.error("Error acknowledging document");
+      }
+    })();
+  };
+
+  const handleSignDocument = (signature: SignatureCaptureValue) => {
+    if (!selectedDocument) return;
+
+    void (async () => {
+      setSignSubmitting(true);
+      try {
+        const res = await fetch("/api/documents/sign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            documentId: selectedDocument.id,
+            method: signature.method,
+            typedText: signature.typedText,
+            drawnDataUrl: signature.dataUrl,
+          }),
+        });
+
+        if (res.ok) {
+          const now = new Date();
+          setSigned(true);
+          setAckDate(now);
+          setSuccessDocumentName(selectedDocument.name);
+          setSuccessSignedAt(now);
+          setSuccessSignatureMethod(signature.method);
+          setShowSignSuccess(true);
+          refreshDocuments();
+          toast.success("Document signed successfully");
+          handleCloseDocumentPreview();
+        } else {
+          toast.error("Failed to sign document");
+        }
+      } catch (error) {
+        toast.error("Error signing document");
+      } finally {
+        setSignSubmitting(false);
+      }
+    })();
   };
 
   const pageTitle = isEmployeeContext ? "Employee Performance" : "Performance Management";
@@ -1192,103 +1272,41 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
         {/* Document Preview Modal */}
         {selectedDocument && (
           <ModernDocumentPreview
-            open={isDocPreviewOpen}
-            onOpenChange={(open) => {
-              setIsDocPreviewOpen(open);
-              if (!open) {
-                setSelectedDocument(null);
-                setAcknowledged(false);
-                setSigned(false);
-                setAckDate(null);
-              }
+            isOpen={isDocPreviewOpen}
+            onClose={handleCloseDocumentPreview}
+            document={{
+              id: selectedDocument.id,
+              name: selectedDocument.name,
+              category: selectedDocument.category,
+              size: selectedDocument.size,
+              url: selectedDocument.url,
+              requiresAck: selectedDocument.requiresAck,
+              requiresSignature: selectedDocument.requiresSignature,
             }}
-            documentUrl={selectedDocument.url}
-            documentName={selectedDocument.name}
-            requiresAck={selectedDocument.requiresAck}
-            requiresSignature={selectedDocument.requiresSignature ?? false}
             acknowledged={acknowledged}
             ackDate={ackDate}
             signed={signed}
-            onAcknowledge={async () => {
-              try {
-                const res = await fetch("/api/documents/acknowledge", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ documentId: selectedDocument.id }),
-                });
-                if (res.ok) {
-                  setAcknowledged(true);
-                  setAckDate(new Date());
-                  setIsDocPreviewOpen(false);
-                  setShowAckSuccess(true);
-                  refreshDocuments();
-                  toast.success("Document acknowledged successfully");
-                } else {
-                  toast.error("Failed to acknowledge document");
-                }
-              } catch (error) {
-                toast.error("Error acknowledging document");
-              }
-            }}
-            onSign={() => {
-              setIsDocPreviewOpen(false);
-              setIsSignatureCaptureOpen(true);
-            }}
+            onAcknowledge={handleAcknowledgeDocument}
+            onSign={handleSignDocument}
+            signSubmitting={signSubmitting}
           />
         )}
 
         {/* Signature Capture Modal */}
-        {selectedDocument && (
-          <ModernSignatureCapture
-            open={isSignatureCaptureOpen}
-            onOpenChange={(open) => {
-              setIsSignatureCaptureOpen(open);
-              if (!open && !signSubmitting) {
-                setIsDocPreviewOpen(true);
-              }
-            }}
-            documentName={selectedDocument.name}
-            onSubmit={async (signature: SignatureCaptureValue) => {
-              setSignSubmitting(true);
-              try {
-                const res = await fetch("/api/documents/sign", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    documentId: selectedDocument.id,
-                    method: signature.method,
-                    typedText: signature.typedText,
-                    drawnDataUrl: signature.dataUrl,
-                  }),
-                });
-                if (res.ok) {
-                  setSigned(true);
-                  setAckDate(new Date());
-                  setIsSignatureCaptureOpen(false);
-                  setShowSignSuccess(true);
-                  refreshDocuments();
-                  toast.success("Document signed successfully");
-                } else {
-                  toast.error("Failed to sign document");
-                }
-              } catch (error) {
-                toast.error("Error signing document");
-              } finally {
-                setSignSubmitting(false);
-              }
-            }}
-            submitting={signSubmitting}
-          />
-        )}
 
         {/* Success Animations */}
         <AcknowledgmentSuccessAnimation
-          show={showAckSuccess}
-          onComplete={() => setShowAckSuccess(false)}
+          isOpen={showAckSuccess}
+          onClose={() => setShowAckSuccess(false)}
+          documentName={successDocumentName ?? selectedDocument?.name ?? ""}
+          acknowledgedAt={successAcknowledgedAt ?? ackDate ?? new Date()}
         />
         <SignatureSuccessAnimation
-          show={showSignSuccess}
-          onComplete={() => setShowSignSuccess(false)}
+          isOpen={showSignSuccess}
+          onClose={() => setShowSignSuccess(false)}
+          documentName={successDocumentName ?? selectedDocument?.name ?? ""}
+          signedAt={successSignedAt ?? ackDate ?? new Date()}
+          signatureMethod={successSignatureMethod ?? "DRAWN"}
         />
       </div>
     </PageShell>

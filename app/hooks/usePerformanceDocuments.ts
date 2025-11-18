@@ -95,10 +95,14 @@ export function usePerformanceDocuments({ employeeId, enabled = true }: UsePerfo
 
     // Count fully completed documents (all sigs + acks done)
     const completedDocuments = documents.filter((doc) => {
-      const sigComplete = !doc.requiresSignature || 
-        (doc.signatureCompletedCount === doc.signatureTargetCount && doc.signatureTargetCount > 0);
-      const ackComplete = !doc.requiresAck || 
-        (doc.ackCompletedCount === doc.ackTargetCount && doc.ackTargetCount > 0);
+      const sigCompleted = doc.signatureCompletedCount ?? 0;
+      const sigTarget = doc.signatureTargetCount ?? 0;
+      const ackCompleted = doc.ackCompletedCount ?? 0;
+      const ackTarget = doc.ackTargetCount ?? 0;
+
+      const sigComplete = !doc.requiresSignature || (sigTarget > 0 && sigCompleted === sigTarget);
+      const ackComplete = !doc.requiresAck || (ackTarget > 0 && ackCompleted === ackTarget);
+
       return sigComplete && ackComplete;
     }).length;
 

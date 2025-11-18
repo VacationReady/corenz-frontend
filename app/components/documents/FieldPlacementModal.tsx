@@ -7,10 +7,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
-import { Briefcase, PenLine, UserRound, X } from "lucide-react";
+import { Briefcase, PenLine, UserRound, X, AlertTriangle } from "lucide-react";
 
 interface Field {
   pageNumber: number;
@@ -106,17 +107,34 @@ export default function FieldPlacementModal({
   const [docUrl, setDocUrl] = useState<string>("");
   const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
+  
+  // Dirty state tracking
+  const [initialFields, setInitialFields] = useState<Field[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      // Reset dirty state when modal closes
+      setIsDirty(false);
+      setShowConfirmClose(false);
+      return;
+    }
     if (saveMode === "local") {
       setDocUrl(url);
       setFields((prev) => prev); // keep local edits
     } else {
       fetch(`/api/documents/signature-fields/${documentId}`)
         .then((r) => r.json())
-        .then((data) => setFields(data || []))
-        .catch(() => setFields([]));
+        .then((data) => {
+          const loadedFields = data || [];
+          setFields(loadedFields);
+          setInitialFields(JSON.parse(JSON.stringify(loadedFields))); // Deep copy for comparison
+        })
+        .catch(() => {
+          setFields([]);
+          setInitialFields([]);
+        });
       // Always fetch a fresh signed URL to guarantee preview
       fetch(`/api/documents/signed-url/${documentId}`)
         .then((r) => r.json())
@@ -134,6 +152,12 @@ export default function FieldPlacementModal({
       .catch(() => setAssignees([]));
   }, [documentId, isOpen, url, saveMode]);
 
+  // Check if fields have changed
+  useEffect(() => {
+    const hasChanged = JSON.stringify(fields) !== JSON.stringify(initialFields);
+    setIsDirty(hasChanged);
+  }, [fields, initialFields]);
+
   const addField = (type: "SIGNATURE" | "NAME" | "JOB_ROLE") => {
     const base = { pageNumber: 1, x: 0.1, y: 0.1, width: 0.25, height: 0.08 } as Field;
     const label = type === "SIGNATURE" ? "Signature" : type === "NAME" ? "Name" : "Job Role";
@@ -143,9 +167,28 @@ export default function FieldPlacementModal({
     ]);
   };
 
+  const handleClose = () => {
+    if (isDirty && !sendingNotifications) {
+      setShowConfirmClose(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const confirmClose = () => {
+    setShowConfirmClose(false);
+    setIsDirty(false);
+    onClose();
+  };
+
+  const cancelClose = () => {
+    setShowConfirmClose(false);
+  };
+
   const save = async () => {
     if (saveMode === "local" && onSaveFields) {
       onSaveFields(fields);
+      setIsDirty(false);
       onClose();
       return;
     }
@@ -160,6 +203,10 @@ export default function FieldPlacementModal({
       if (!res.ok) {
         throw new Error("Failed to save signature fields");
       }
+      
+      // Mark as saved
+      setIsDirty(false);
+      setInitialFields(JSON.parse(JSON.stringify(fields)));
       
       // If there's a completion callback (e.g., to send notifications), call it
       if (onSaveComplete) {
@@ -220,7 +267,8 @@ export default function FieldPlacementModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-5xl">
         <DialogHeader>
           <DialogTitle>Place Signature Fields</DialogTitle>
@@ -371,7 +419,7 @@ export default function FieldPlacementModal({
         <DialogFooter>
           <Button 
             variant="outline" 
-            onClick={onClose}
+            onClick={handleClose}
             disabled={sendingNotifications}
           >
             Cancel
@@ -386,6 +434,38 @@ export default function FieldPlacementModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Confirmation Dialog */}
+    <Dialog open={showConfirmClose} onOpenChange={cancelClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100">
+              <AlertTriangle className="w-6 h-6 text-amber-600" />
+            </div>
+            <DialogTitle>Discard Unsaved Changes?</DialogTitle>
+          </div>
+          <DialogDescription className="text-base">
+            You have unsaved signature field changes. If you close now, these fields will be lost and notifications will not be sent.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button 
+            variant="outline" 
+            onClick={cancelClose}
+          >
+            Keep Editing
+          </Button>
+          <Button 
+            variant="danger"
+            onClick={confirmClose}
+          >
+            Discard Changes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

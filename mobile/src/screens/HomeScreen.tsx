@@ -384,17 +384,17 @@ const styles = StyleSheet.create({
   quickActionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -8,
+    marginHorizontal: -6,
   },
   quickAction: {
-    width: (width - 64) / 2,
+    width: (width - 32 - 36 - 24) / 2, // screen width - content padding - card padding - margins
     alignItems: 'center',
     backgroundColor: '#f8fafc',
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    margin: 8,
+    margin: 6,
   },
   quickActionIcon: {
     width: 64,

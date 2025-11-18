@@ -156,7 +156,7 @@ export default function ClockWidget() {
       <LinearGradient
         colors={
           status.isClockedIn
-            ? ['#10b981', '#059669']
+            ? ['#ef4444', '#dc2626']
             : ['#3b82f6', '#2563eb']
         }
         start={{ x: 0, y: 0 }}
@@ -169,7 +169,7 @@ export default function ClockWidget() {
           <>
             <View style={styles.iconContainer}>
               <Ionicons
-                name={status.isClockedIn ? 'checkmark-circle' : 'time-outline'}
+                name={status.isClockedIn ? 'exit-outline' : 'time-outline'}
                 size={48}
                 color="#FFFFFF"
               />
@@ -177,7 +177,7 @@ export default function ClockWidget() {
             
             <View style={styles.textContainer}>
               <Text style={styles.statusText}>
-                {status.isClockedIn ? 'Clocked In' : 'Clock In'}
+                {status.isClockedIn ? 'Clock Out' : 'Clock In'}
               </Text>
               
               {status.isClockedIn && (
@@ -188,7 +188,7 @@ export default function ClockWidget() {
               )}
               
               <Text style={styles.actionText}>
-                {status.isClockedIn ? 'Tap to Clock Out' : 'Tap to Start Your Shift'}
+                {status.isClockedIn ? 'Tap to End Your Shift' : 'Tap to Start Your Shift'}
               </Text>
             </View>
 

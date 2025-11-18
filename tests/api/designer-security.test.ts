@@ -579,7 +579,7 @@ describe("Designer API Security - Tenant Isolation", () => {
             steps: [],
           }
         ),
-        /Template not found/
+        /Template does not belong to tenant/
       );
     });
 

@@ -397,9 +397,10 @@ describe("Template Versioning", () => {
           updateTemplate(session, {
             id: testTemplateId,
             name: "Cross-tenant update",
+            description: "Cross-tenant description",
             steps: [],
           }, prisma),
-        /Template not found/,
+        /Template does not belong to tenant/,
       );
 
       await prisma.company.delete({ where: { id: otherCompanyId } }).catch(() => {});

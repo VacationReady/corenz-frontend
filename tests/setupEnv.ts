@@ -121,11 +121,23 @@ let cachedPrismaMock: any = null;
           
           if (!where) return allRecords;
           
-          // Filter by companyId if specified
+          // Filter records based on where clause
           return allRecords.filter(record => {
+            // Filter by id (exact match)
+            if (where.id && typeof where.id === 'string' && record.id !== where.id) {
+              return false;
+            }
+            // Filter by id: { in: [...] } syntax
+            if (where.id && where.id.in && Array.isArray(where.id.in)) {
+              if (!where.id.in.includes(record.id)) {
+                return false;
+              }
+            }
+            // Filter by companyId
             if (where.companyId && record.companyId !== where.companyId) {
               return false;
             }
+            // Filter by templateId
             if (where.templateId && record.templateId !== where.templateId) {
               return false;
             }
@@ -151,7 +163,19 @@ let cachedPrismaMock: any = null;
             const selectedRecord: any = {};
             Object.keys(select).forEach(key => {
               if (select[key]) {
-                selectedRecord[key] = record[key];
+                // Handle relations - populate from other stores
+                if (key === 'PublishedByUser' && record.publishedBy) {
+                  const userStore = getModelStore('user');
+                  selectedRecord[key] = userStore.get(record.publishedBy) || null;
+                } else if (key === 'User' && record.updatedById) {
+                  const userStore = getModelStore('user');
+                  selectedRecord[key] = userStore.get(record.updatedById) || null;
+                } else if (key === 'Department' || key === 'JobRole' || key === 'OnboardingStep') {
+                  // Return empty arrays for relation fields
+                  selectedRecord[key] = [];
+                } else {
+                  selectedRecord[key] = record[key];
+                }
               }
             });
             return selectedRecord;
@@ -159,7 +183,7 @@ let cachedPrismaMock: any = null;
           
           return record;
         },
-        update: async ({ where, data }: any) => {
+        update: async ({ where, data, select }: any) => {
           const store = getModelStore(modelName);
           const existing = store.get(where.id);
           
@@ -179,6 +203,30 @@ let cachedPrismaMock: any = null;
           }
           
           store.set(where.id, updated);
+          
+          // If select is specified, only return selected fields
+          if (select) {
+            const selectedRecord: any = {};
+            Object.keys(select).forEach(key => {
+              if (select[key]) {
+                // Handle relations - populate from other stores
+                if (key === 'PublishedByUser' && updated.publishedBy) {
+                  const userStore = getModelStore('user');
+                  selectedRecord[key] = userStore.get(updated.publishedBy) || null;
+                } else if (key === 'User' && updated.updatedById) {
+                  const userStore = getModelStore('user');
+                  selectedRecord[key] = userStore.get(updated.updatedById) || null;
+                } else if (key === 'Department' || key === 'JobRole' || key === 'OnboardingStep') {
+                  // Return empty arrays for relation fields
+                  selectedRecord[key] = [];
+                } else {
+                  selectedRecord[key] = updated[key];
+                }
+              }
+            });
+            return selectedRecord;
+          }
+          
           return updated;
         },
         delete: async ({ where }: any) => {

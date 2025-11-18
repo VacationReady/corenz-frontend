@@ -125,6 +125,16 @@ function DocumentsContent() {
   const [fields, setFields] = useState<any[]>([]);
   const [showCapture, setShowCapture] = useState(false);
   const [activeFieldIdx, setActiveFieldIdx] = useState<number | null>(null);
+  
+  // Access permissions state for upload
+  const [canViewAdmin, setCanViewAdmin] = useState(true);
+  const [canViewManager, setCanViewManager] = useState(true);
+  const [canViewEmployee, setCanViewEmployee] = useState(true);
+  
+  // Placement pending state
+  const [placementPendingDocId, setPlacementPendingDocId] = useState<string | null>(null);
+  const [placementPendingDocName, setPlacementPendingDocName] = useState<string | null>(null);
+  const [sendingNotifications, setSendingNotifications] = useState(false);
 
   const isAdminUser = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
 
@@ -390,9 +400,9 @@ function DocumentsContent() {
       "jobRoles",
       JSON.stringify(uploadJobRoles.includes("all") ? [] : uploadJobRoles),
     );
-    formData.append("canViewAdmin", "true");
-    formData.append("canViewManager", "true");
-    formData.append("canViewEmployee", "true");
+    formData.append("canViewAdmin", canViewAdmin.toString());
+    formData.append("canViewManager", canViewManager.toString());
+    formData.append("canViewEmployee", canViewEmployee.toString());
     formData.append("requiresAck", requiresAck.toString());
     formData.append("requiresSignature", requiresSignature.toString());
     if (signatureDueAt) formData.append("signatureDueAt", signatureDueAt);
@@ -408,20 +418,30 @@ function DocumentsContent() {
       });
       if (res.ok) {
         const payload = await res.json();
-        toast("Document uploaded successfully!");
+        toast.success("Document uploaded successfully!");
         if (requiresSignature && payload?.Document?.id) {
+          // Set placement pending state
+          setPlacementPendingDocId(payload.Document.id);
+          setPlacementPendingDocName(payload.Document.name);
           setSigDocId(payload.Document.id);
           setSigDocName(payload.Document.name);
           setIsPlacementBeforeSendOpen(true);
         } else {
+          // Normal upload flow - close modal and refresh
+          resetUploadForm();
           setIsUploadModalOpen(false);
           fetchDocuments();
         }
-      } else toast("Failed to upload document.");
-    } catch {
-      toast("Error uploading document.");
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        toast.error(errorData?.error || "Failed to upload document.");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Network error uploading document. Please try again.");
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const handleAcknowledge = async () => {
@@ -462,6 +482,67 @@ function DocumentsContent() {
   const handleRowClick = (doc: Document) => {
     setSelectedDoc(doc);
     setIsPreviewModalOpen(true);
+  };
+
+  const resetUploadForm = () => {
+    setFile(null);
+    setName("");
+    setCategory("");
+    setRequiresAck(false);
+    setRequireAckFromNewStarters(false);
+    setRequiresSignature(false);
+    setSignatureDueAt("");
+    setUploadDepartments(["all"]);
+    setUploadJobRoles(["all"]);
+    setCanViewAdmin(true);
+    setCanViewManager(true);
+    setCanViewEmployee(true);
+  };
+
+  const handlePlacementComplete = async () => {
+    if (!placementPendingDocId) return;
+    
+    setSendingNotifications(true);
+    try {
+      const res = await fetch("/api/documents/send-notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: placementPendingDocId }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message || "Notifications sent successfully!");
+        // Clear pending state
+        setPlacementPendingDocId(null);
+        setPlacementPendingDocName(null);
+        setIsPlacementBeforeSendOpen(false);
+        resetUploadForm();
+        setIsUploadModalOpen(false);
+        fetchDocuments();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        toast.error(errorData?.error || "Failed to send notifications. You can retry from the document actions menu.");
+      }
+    } catch (error) {
+      console.error("Send notifications error:", error);
+      toast.error("Network error sending notifications. You can retry from the document actions menu.");
+    } finally {
+      setSendingNotifications(false);
+    }
+  };
+
+  const handlePlacementCancel = () => {
+    if (placementPendingDocId) {
+      toast.warning(
+        "Field placement not completed. The document is uploaded but notifications have not been sent. You can complete placement later from the document actions menu.",
+        { duration: 6000 }
+      );
+    }
+    setIsPlacementBeforeSendOpen(false);
+    resetUploadForm();
+    setIsUploadModalOpen(false);
+    fetchDocuments();
   };
 
   const handleSign = async (signature: SignatureCaptureValue) => {
@@ -796,6 +877,35 @@ function DocumentsContent() {
                 />
               </div>
               <div className="mt-2 space-y-3">
+                <div className="border-t pt-3">
+                  <Label className="text-sm font-semibold mb-2 block">Access Permissions</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="canViewAdmin" className="text-sm font-normal">Admins can view</Label>
+                      <Switch
+                        id="canViewAdmin"
+                        checked={canViewAdmin}
+                        onChange={setCanViewAdmin}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="canViewManager" className="text-sm font-normal">Managers can view</Label>
+                      <Switch
+                        id="canViewManager"
+                        checked={canViewManager}
+                        onChange={setCanViewManager}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="canViewEmployee" className="text-sm font-normal">Employees can view</Label>
+                      <Switch
+                        id="canViewEmployee"
+                        checked={canViewEmployee}
+                        onChange={setCanViewEmployee}
+                      />
+                    </div>
+                  </div>
+                </div>
                 <div className="flex items-center justify-between">
                   <Label>Requires Acknowledgement</Label>
                   <Switch checked={requiresAck} onChange={setRequiresAck} />
@@ -923,20 +1033,11 @@ function DocumentsContent() {
         {/* Place before send (post-upload) */}
         <FieldPlacementModal
           isOpen={isPlacementBeforeSendOpen}
-          onClose={() => {
-            setIsPlacementBeforeSendOpen(false);
-            setIsUploadModalOpen(false);
-            setFile(null);
-            setName("");
-            setCategory("");
-            setRequiresAck(false);
-            setRequireAckFromNewStarters(false);
-            setUploadDepartments(["all"]);
-            setUploadJobRoles(["all"]);
-            fetchDocuments();
-          }}
+          onClose={handlePlacementCancel}
           documentId={sigDocId || ""}
           url={selectedDoc?.url || ""}
+          onSaveComplete={handlePlacementComplete}
+          sendingNotifications={sendingNotifications}
         />
 
         {/* Modern Document Preview Panel */}

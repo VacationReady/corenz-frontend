@@ -84,6 +84,8 @@ export default function FieldPlacementModal({
   url,
   saveMode = "server",
   onSaveFields,
+  onSaveComplete,
+  sendingNotifications = false,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -91,6 +93,8 @@ export default function FieldPlacementModal({
   url: string;
   saveMode?: "server" | "local";
   onSaveFields?: (fields: Field[]) => void;
+  onSaveComplete?: () => Promise<void>;
+  sendingNotifications?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
@@ -145,12 +149,31 @@ export default function FieldPlacementModal({
       onClose();
       return;
     }
-    await fetch(`/api/documents/signature-fields/${documentId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(fields),
-    });
-    onClose();
+    
+    try {
+      const res = await fetch(`/api/documents/signature-fields/${documentId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
+      });
+      
+      if (!res.ok) {
+        throw new Error("Failed to save signature fields");
+      }
+      
+      // If there's a completion callback (e.g., to send notifications), call it
+      if (onSaveComplete) {
+        await onSaveComplete();
+      } else {
+        // Normal flow - just close the modal
+        onClose();
+      }
+    } catch (error) {
+      console.error("Error saving signature fields:", error);
+      // Even if there's an error, we might want to let the parent handle it
+      // For now, we'll still close to avoid blocking the user
+      onClose();
+    }
   };
 
   const onPointerDownField = (idx: number, e: React.PointerEvent<HTMLDivElement>) => {
@@ -346,8 +369,20 @@ export default function FieldPlacementModal({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={save}>Save</Button>
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            disabled={sendingNotifications}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={save}
+            loading={sendingNotifications}
+            loadingText="Sending notifications..."
+          >
+            {onSaveComplete ? "Save & Send Notifications" : "Save"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

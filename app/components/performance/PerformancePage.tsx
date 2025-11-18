@@ -35,6 +35,7 @@ import { usePerformanceDocuments, PerformanceDocument } from "@/hooks/usePerform
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ModernDocumentPreview from "@/components/documents/ModernDocumentPreview";
 import SignatureSuccessAnimation from "@/components/documents/SignatureSuccessAnimation";
 import AcknowledgmentSuccessAnimation from "@/components/documents/AcknowledgmentSuccessAnimation";
@@ -277,6 +278,10 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
     session?.user?.role === "ADMIN" ||
     session?.user?.role === "SUPER_ADMIN" ||
     session?.user?.role === "MANAGER";
+
+  const canScheduleMeetings = Boolean(session?.user);
+  const canCreateObjectives = Boolean(session?.user);
+  const canCreateReviewCycle = canManageTemplates;
 
   const isEmployeeContext = Boolean(employeeId);
 
@@ -793,19 +798,64 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
                     <CardDescription>Accelerate performance management workflows</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Button className="w-full justify-start" onClick={handleCreateObjective}>
-                      <Target className="mr-2 h-4 w-4" /> Create Objective
-                    </Button>
-                    <Button className="w-full justify-start" onClick={() => setShowScheduleMeeting(true)}>
-                      <Calendar className="mr-2 h-4 w-4" /> Schedule Meeting
-                    </Button>
-                    <Button
-                      className="w-full justify-start"
-                      onClick={() => setShowCreateReviewCycle(true)}
-                      disabled={!canManageTemplates}
-                    >
-                      <Layers className="mr-2 h-4 w-4" /> Create Review Cycle
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <Button 
+                              className="w-full justify-start" 
+                              onClick={handleCreateObjective}
+                              disabled={!canCreateObjectives}
+                            >
+                              <Target className="mr-2 h-4 w-4" /> Create Objective
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        {!canCreateObjectives && (
+                          <TooltipContent>
+                            <p>You must be logged in to create objectives</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <Button 
+                              className="w-full justify-start" 
+                              onClick={() => setShowScheduleMeeting(true)}
+                              disabled={!canScheduleMeetings}
+                            >
+                              <Calendar className="mr-2 h-4 w-4" /> Schedule Meeting
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        {!canScheduleMeetings && (
+                          <TooltipContent>
+                            <p>You must be logged in to schedule meetings</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <Button
+                              className="w-full justify-start"
+                              onClick={() => setShowCreateReviewCycle(true)}
+                              disabled={!canCreateReviewCycle}
+                            >
+                              <Layers className="mr-2 h-4 w-4" /> Create Review Cycle
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        {!canCreateReviewCycle && (
+                          <TooltipContent>
+                            <p>Only managers and admins can create review cycles</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   </CardContent>
                 </Card>
 

@@ -198,29 +198,12 @@ export async function updateTemplate(
 
   const filteredSteps = mapSteps(normalizedSteps);
 
-  // Fetch template with full select for versioning/conflict errors
-  let existingTemplate = await prismaClient.onboardingTemplate.findUnique({
+  // First, validate template exists and belongs to tenant with minimal query
+  const basicTemplate = await prismaClient.onboardingTemplate.findUnique({
     where: { id },
-    select: templateSelect,
   });
 
-  // Fallback: if template with full select fails, check basic fields for tenant validation
-  if (!existingTemplate) {
-    const basicTemplate = await prismaClient.onboardingTemplate.findUnique({
-      where: { id },
-      select: { id: true, companyId: true },
-    });
-    if (!basicTemplate || basicTemplate.companyId !== session.user.companyId) {
-      throw new Error("Template not found");
-    }
-    // Re-fetch with full select - this might work on second try
-    existingTemplate = await prismaClient.onboardingTemplate.findUnique({
-      where: { id },
-      select: templateSelect,
-    });
-  }
-
-  if (!existingTemplate || existingTemplate.companyId !== session.user.companyId) {
+  if (!basicTemplate || basicTemplate.companyId !== session.user.companyId) {
     throw new Error("Template not found");
   }
 
@@ -230,36 +213,62 @@ export async function updateTemplate(
     if (Number.isNaN(baseline.getTime())) {
       throw new Error("Invalid lastKnownUpdatedAt value");
     }
-    if (existingTemplate.updatedAt.getTime() !== baseline.getTime()) {
-      throw new TemplateConflictError(
-        "Template has been updated by another editor.",
-        serializeTemplate(existingTemplate as any, session.user.companyId),
-      );
+    if (basicTemplate.updatedAt.getTime() !== baseline.getTime()) {
+      // Fetch full template for conflict error response
+      const fullTemplate = await prismaClient.onboardingTemplate.findUnique({
+        where: { id },
+        select: templateSelect,
+      });
+      if (fullTemplate) {
+        throw new TemplateConflictError(
+          "Template has been updated by another editor.",
+          serializeTemplate(fullTemplate as any, session.user.companyId),
+        );
+      }
+      throw new Error("Template has been updated by another editor.");
     }
   }
 
   // Version number check for optimistic locking
-  if (lastKnownVersion !== undefined && existingTemplate.version !== lastKnownVersion) {
-    throw new TemplateConflictError(
-      `Version conflict: expected version ${lastKnownVersion}, but current version is ${existingTemplate.version}.`,
-      serializeTemplate(existingTemplate as any, session.user.companyId),
-    );
+  if (lastKnownVersion !== undefined && (basicTemplate as any).version !== lastKnownVersion) {
+    // Fetch full template for conflict error response
+    const fullTemplate = await prismaClient.onboardingTemplate.findUnique({
+      where: { id },
+      select: templateSelect,
+    });
+    if (fullTemplate) {
+      throw new TemplateConflictError(
+        `Version conflict: expected version ${lastKnownVersion}, but current version is ${(basicTemplate as any).version}.`,
+        serializeTemplate(fullTemplate as any, session.user.companyId),
+      );
+    }
+    throw new Error(`Version conflict: expected version ${lastKnownVersion}, but current version is ${(basicTemplate as any).version}.`);
   }
 
   // Create version snapshot if requested (for autosave or explicit save)
   if (createSnapshot) {
+    // Fetch related data for snapshot
+    const snapshotData = await prismaClient.onboardingTemplate.findUnique({
+      where: { id },
+      select: {
+        Department: { select: { id: true } },
+        JobRole: { select: { id: true } },
+        OnboardingStep: true,
+      },
+    });
+
     await prismaClient.templateVersion.create({
       data: {
         templateId: id,
         companyId: session.user.companyId,
-        version: existingTemplate.version,
+        version: (basicTemplate as any).version || 1,
         status: isActive ? 'PUBLISHED' : 'DRAFT',
-        name: existingTemplate.name,
-        description: existingTemplate.description || '',
-        isActive: existingTemplate.isActive,
-        departmentIds: existingTemplate.Department?.map((d: any) => d.id) || [],
-        jobRoleIds: existingTemplate.JobRole?.map((j: any) => j.id) || [],
-        stepsSnapshot: existingTemplate.OnboardingStep || [],
+        name: basicTemplate.name,
+        description: basicTemplate.description || '',
+        isActive: basicTemplate.isActive,
+        departmentIds: snapshotData?.Department?.map((d: any) => d.id) || [],
+        jobRoleIds: snapshotData?.JobRole?.map((jr: any) => jr.id) || [],
+        stepsSnapshot: snapshotData?.OnboardingStep || [],
         createdBy: session.user.id,
         publishedAt: isActive ? new Date() : null,
         publishedBy: isActive ? session.user.id : null,
@@ -284,8 +293,8 @@ export async function updateTemplate(
       isActive: Boolean(isActive),
       version: { increment: 1 },
       updatedById: session.user.id,
-      publishedAt: isActive ? new Date() : existingTemplate.publishedAt,
-      publishedBy: isActive ? session.user.id : existingTemplate.publishedBy,
+      publishedAt: isActive ? new Date() : (basicTemplate as any).publishedAt,
+      publishedBy: isActive ? session.user.id : (basicTemplate as any).publishedBy,
       Department: {
         set: [],
         connect: departmentIds.length > 0 ? departmentIds.map((id: string) => ({ id })) : [],

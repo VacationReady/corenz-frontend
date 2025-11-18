@@ -68,6 +68,7 @@ type WizardStep = (typeof wizardSteps)[number]["key"];
 
 export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess, employeeId }: ScheduleMeetingDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [sendingInvites, setSendingInvites] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   const { employees, departments, jobRoles, templates, employeesLoading } = usePerformanceReferenceData({
@@ -219,6 +220,8 @@ export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess, employeeI
     }
 
     setLoading(true);
+    let createdMeetingId: string | null = null;
+
     try {
       const payload: any = {
         title,
@@ -251,23 +254,65 @@ export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess, employeeI
       }
 
       const { meeting } = await res.json();
-
-      if (sendEmail) {
-        await fetch("/api/notifications/meeting-invite", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            meetingId: meeting.id,
-            participantIds,
-          }),
-        }).catch(console.error);
-      }
+      createdMeetingId = meeting.id;
 
       toast.success(
         isRecurring
           ? "Recurring meetings created successfully"
           : "Meeting scheduled successfully"
       );
+
+      // Send email invitations if requested
+      if (sendEmail) {
+        setSendingInvites(true);
+        try {
+          const inviteRes = await fetch("/api/notifications/meeting-invite", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              meetingId: meeting.id,
+              participantIds,
+            }),
+          });
+
+          const inviteData = await inviteRes.json();
+
+          if (inviteRes.ok) {
+            // All invitations sent successfully
+            toast.success(inviteData.message || "Meeting invitations sent successfully");
+          } else if (inviteRes.status === 207) {
+            // Partial success - some emails failed
+            const failedCount = inviteData.errors?.length || 0;
+            const successCount = participantIds.length - failedCount;
+            
+            toast.warning(
+              `Sent ${successCount} of ${participantIds.length} invitations. ${failedCount} failed.`,
+              {
+                description: "Check the console for details about failed invitations.",
+                duration: 5000,
+              }
+            );
+
+            // Log detailed errors for debugging
+            console.error("Failed to send some meeting invitations:", inviteData.errors);
+          } else {
+            // Complete failure
+            toast.error(inviteData.details || "Failed to send meeting invitations", {
+              description: "The meeting was created, but email notifications could not be sent.",
+              duration: 5000,
+            });
+            console.error("Failed to send meeting invitations:", inviteData);
+          }
+        } catch (inviteError: any) {
+          console.error("Failed to send meeting invitations:", inviteError);
+          toast.error("Failed to send meeting invitations", {
+            description: "The meeting was created, but email notifications could not be sent.",
+            duration: 5000,
+          });
+        } finally {
+          setSendingInvites(false);
+        }
+      }
 
       onSuccess?.();
       onOpenChange(false);
@@ -692,13 +737,26 @@ export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess, employeeI
               <div className="space-y-3 rounded-lg border p-4">
                 <h4 className="font-semibold">Notifications</h4>
                 <div className="flex items-center space-x-3">
-                  <Checkbox id="sendEmail" checked={sendEmail} onCheckedChange={(checked) => setSendEmail(!!checked)} />
+                  <Checkbox 
+                    id="sendEmail" 
+                    checked={sendEmail} 
+                    onCheckedChange={(checked) => setSendEmail(!!checked)}
+                    disabled={sendingInvites}
+                  />
                   <Label htmlFor="sendEmail" className="flex items-center gap-2">
                     <Mail className="h-4 w-4" /> Send email invitations to participants
                   </Label>
                 </div>
+                {sendingInvites && (
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-900">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                      <span>Sending invitations to {participantIds.length} participant{participantIds.length !== 1 ? 's' : ''}...</span>
+                    </div>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
-                  Participants receive a calendar invite with meeting details, location, and any linked template agenda items.
+                  Participants receive a calendar invite (.ics file) with meeting details, location, and any linked template agenda items.
                 </p>
               </div>
 
@@ -712,15 +770,22 @@ export function ScheduleMeetingDialog({ open, onOpenChange, onSuccess, employeeI
         </div>
 
         <DialogFooter className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading || sendingInvites}>
             Cancel
           </Button>
           <div className="flex items-center gap-2">
-            <Button variant="outline" disabled={currentStepIndex === 0 || loading} onClick={goToPreviousStep}>
+            <Button variant="outline" disabled={currentStepIndex === 0 || loading || sendingInvites} onClick={goToPreviousStep}>
               Back
             </Button>
-            <Button onClick={goToNextStep} disabled={loading}>
-              {currentStepIndex === wizardSteps.length - 1 ? "Schedule meeting" : "Continue"}
+            <Button onClick={goToNextStep} disabled={loading || sendingInvites}>
+              {loading || sendingInvites ? (
+                <span className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  {sendingInvites ? "Sending invites..." : "Creating..."}
+                </span>
+              ) : (
+                currentStepIndex === wizardSteps.length - 1 ? "Schedule meeting" : "Continue"
+              )}
             </Button>
           </div>
         </DialogFooter>

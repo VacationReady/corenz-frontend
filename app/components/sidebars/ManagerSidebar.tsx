@@ -48,7 +48,7 @@ export default function ManagerSidebar({
     <div
       className={cn(
         "transition-all duration-300 flex flex-col",
-        isMobile ? "h-full w-full max-w-sm p-4" : "min-h-screen m-4 ml-6 w-80",
+        isMobile ? "h-full w-full max-w-sm p-4" : "h-full m-4 ml-6 w-80",
       )}
     >
       {/* Glassmorphism Container */}

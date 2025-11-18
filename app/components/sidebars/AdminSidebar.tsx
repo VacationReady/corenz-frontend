@@ -75,7 +75,7 @@ export default function AdminSidebar({
   );
 
   return (
-    <div className={isMobile ? "h-full w-full" : "p-4"}>
+    <div className={isMobile ? "h-full w-full" : "h-full p-4"}>
       <SidebarContainer collapsed={collapsed} variant={variant}>
         <SidebarHeader
           logo={logoElement}

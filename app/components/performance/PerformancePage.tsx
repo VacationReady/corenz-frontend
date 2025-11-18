@@ -21,6 +21,7 @@ import {
   ArrowRight,
   ListTodo,
   Layers,
+  FileCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatLondon, formatLondonDate } from "@/lib/time";
@@ -30,9 +31,15 @@ import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { usePerformanceData, Objective, Meeting } from "@/hooks/usePerformanceData";
 import { usePerformanceReferenceData, EmployeeSummary } from "@/hooks/usePerformanceReferenceData";
+import { usePerformanceDocuments, PerformanceDocument } from "@/hooks/usePerformanceDocuments";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/useDebounce";
+import ModernDocumentPreview from "@/components/documents/ModernDocumentPreview";
+import ModernSignatureCapture, { SignatureCaptureValue } from "@/components/documents/ModernSignatureCapture";
+import SignatureSuccessAnimation from "@/components/documents/SignatureSuccessAnimation";
+import AcknowledgmentSuccessAnimation from "@/components/documents/AcknowledgmentSuccessAnimation";
+import { FileText, Download, Eye, CheckCircle, PenTool } from "lucide-react";
 
 const statusColors = {
   NOT_STARTED: "bg-gray-500",
@@ -127,7 +134,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
 
   const getInitialTab = () => {
     const param = searchParams?.get("tab");
-    if (param && ["overview", "objectives", "meetings"].includes(param)) {
+    if (param && ["overview", "objectives", "meetings", "documents"].includes(param)) {
       return param;
     }
     return "overview";
@@ -251,6 +258,17 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
 
   const [showScheduleMeeting, setShowScheduleMeeting] = useState(false);
   const [showCreateReviewCycle, setShowCreateReviewCycle] = useState(false);
+  
+  // Documents tab state
+  const [selectedDocument, setSelectedDocument] = useState<PerformanceDocument | null>(null);
+  const [isDocPreviewOpen, setIsDocPreviewOpen] = useState(false);
+  const [isSignatureCaptureOpen, setIsSignatureCaptureOpen] = useState(false);
+  const [showAckSuccess, setShowAckSuccess] = useState(false);
+  const [showSignSuccess, setShowSignSuccess] = useState(false);
+  const [signSubmitting, setSignSubmitting] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [ackDate, setAckDate] = useState<Date | null>(null);
+  const [signed, setSigned] = useState(false);
 
   const canManageTemplates =
     session?.user?.role === "ADMIN" ||
@@ -270,6 +288,11 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
     participantId: employeeId,
   });
 
+  const { documents, stats: docStats, isLoading: documentsLoading, error: documentsError, refresh: refreshDocuments } = usePerformanceDocuments({
+    employeeId,
+    enabled: Boolean(session),
+  });
+
   useEffect(() => {
     if (error) {
       toast.error(error.message || "Failed to load performance data");
@@ -279,6 +302,38 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
   useEffect(() => {
     setObjectivePage(0);
   }, [selectedDepartments, selectedRoles, objectiveStatus, debouncedSearchQuery, timeframe]);
+
+  // Fetch acknowledgement and signature status when document is selected
+  useEffect(() => {
+    if (!selectedDocument?.id) return;
+
+    // Reset states
+    setAcknowledged(false);
+    setSigned(false);
+    setAckDate(null);
+
+    // Fetch acknowledgement status
+    if (selectedDocument.requiresAck) {
+      fetch(`/api/documents/acknowledge/${selectedDocument.id}/me`)
+        .then((res) => res.json())
+        .then((data) => {
+          setAcknowledged(data.acknowledged);
+          setAckDate(data.acknowledged ? new Date(data.acknowledgedAt) : null);
+        })
+        .catch(() => {
+          setAcknowledged(false);
+          setAckDate(null);
+        });
+    }
+
+    // Fetch signature status
+    if (selectedDocument.requiresSignature) {
+      fetch(`/api/documents/signatures/${selectedDocument.id}/me`)
+        .then((res) => res.json())
+        .then((data) => setSigned(!!data.signed))
+        .catch(() => setSigned(false));
+    }
+  }, [selectedDocument?.id, selectedDocument?.requiresAck, selectedDocument?.requiresSignature]);
 
   const departmentOptions = useMemo(
     () =>
@@ -390,6 +445,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
 
   const refreshData = () => {
     refresh();
+    refreshDocuments();
   };
 
   const pageTitle = isEmployeeContext ? "Employee Performance" : "Performance Management";
@@ -522,7 +578,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
           </Card>
         )}
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Objectives</CardTitle>
@@ -581,6 +637,19 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
               <p className="text-xs text-muted-foreground">Across recent meetings</p>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending Documents</CardTitle>
+              <FileCheck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{docStats.pendingSignatures + docStats.pendingAcknowledgements}</div>
+              <p className="text-xs text-muted-foreground">
+                {docStats.pendingSignatures} sigs, {docStats.pendingAcknowledgements} acks
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         <Card>
@@ -628,10 +697,11 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
         <Card>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <CardHeader>
-              <TabsList className="grid w-full grid-cols-3 bg-muted">
+              <TabsList className="grid w-full grid-cols-4 bg-muted">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="objectives">Objectives</TabsTrigger>
                 <TabsTrigger value="meetings">1-2-1 Meetings</TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
               </TabsList>
             </CardHeader>
 
@@ -939,6 +1009,170 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="documents" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Documents</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isEmployeeContext
+                      ? "Documents assigned to this employee"
+                      : "Company policies, contracts, and documents requiring action"}
+                  </p>
+                </div>
+                {canManageTemplates && !isEmployeeContext && (
+                  <Button onClick={() => router.push("/documents")}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Manage Documents
+                  </Button>
+                )}
+              </div>
+
+              {documentsLoading ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <LoadingSpinner size="lg" showText text="Loading documents" />
+                  </CardContent>
+                </Card>
+              ) : documents.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                    <FileText className="mb-4 h-12 w-12 text-muted-foreground" />
+                    <h3 className="mb-2 text-lg font-semibold">No documents yet</h3>
+                    <p className="mb-4 text-sm text-muted-foreground">
+                      {isEmployeeContext
+                        ? "No documents have been assigned to this employee"
+                        : "No documents match your current filters"}
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {/* Documents Summary Cards */}
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{docStats.totalDocuments}</div>
+                        <p className="text-xs text-muted-foreground">Available in this context</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Pending Signatures</CardTitle>
+                        <PenTool className="h-4 w-4 text-orange-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{docStats.pendingSignatures}</div>
+                        <p className="text-xs text-muted-foreground">Awaiting signature</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Pending Acks</CardTitle>
+                        <CheckCircle className="h-4 w-4 text-blue-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{docStats.pendingAcknowledgements}</div>
+                        <p className="text-xs text-muted-foreground">Awaiting acknowledgement</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Documents List */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Document List</CardTitle>
+                      <CardDescription>
+                        Click any document to preview, sign, or acknowledge
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {documents.map((doc) => {
+                          const requiresAction = 
+                            (doc.requiresSignature && doc.signatureOutstandingCount && doc.signatureOutstandingCount > 0) ||
+                            (doc.requiresAck && doc.ackOutstandingCount && doc.ackOutstandingCount > 0);
+                          
+                          return (
+                            <div
+                              key={doc.id}
+                              onClick={() => {
+                                setSelectedDocument(doc);
+                                setIsDocPreviewOpen(true);
+                              }}
+                              className={cn(
+                                "flex items-start justify-between rounded-lg border p-4 cursor-pointer transition-colors hover:bg-muted",
+                                requiresAction && "border-orange-200 bg-orange-50/50"
+                              )}
+                            >
+                              <div className="flex items-start gap-3 flex-1">
+                                <div className="rounded-full bg-muted p-2">
+                                  <FileText className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{doc.name}</span>
+                                    {requiresAction && (
+                                      <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
+                                        Action Required
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {doc.category || "Uncategorized"} • {new Date(doc.createdAt).toLocaleDateString()}
+                                  </p>
+                                  <div className="flex items-center gap-3 text-xs">
+                                    {doc.requiresSignature && (
+                                      <span className={cn(
+                                        "flex items-center gap-1",
+                                        doc.signatureOutstandingCount && doc.signatureOutstandingCount > 0
+                                          ? "text-orange-700"
+                                          : "text-green-700"
+                                      )}>
+                                        <PenTool className="h-3 w-3" />
+                                        {doc.signatureCompletedCount ?? 0}/{doc.signatureTargetCount ?? 0} signed
+                                      </span>
+                                    )}
+                                    {doc.requiresAck && (
+                                      <span className={cn(
+                                        "flex items-center gap-1",
+                                        doc.ackOutstandingCount && doc.ackOutstandingCount > 0
+                                          ? "text-orange-700"
+                                          : "text-green-700"
+                                      )}>
+                                        <CheckCircle className="h-3 w-3" />
+                                        {doc.ackCompletedCount ?? 0}/{doc.ackTargetCount ?? 0} acknowledged
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedDocument(doc);
+                                  setIsDocPreviewOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
         </Card>
 
@@ -953,6 +1187,108 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
           open={showCreateReviewCycle}
           onOpenChange={setShowCreateReviewCycle}
           onSuccess={refreshData}
+        />
+
+        {/* Document Preview Modal */}
+        {selectedDocument && (
+          <ModernDocumentPreview
+            open={isDocPreviewOpen}
+            onOpenChange={(open) => {
+              setIsDocPreviewOpen(open);
+              if (!open) {
+                setSelectedDocument(null);
+                setAcknowledged(false);
+                setSigned(false);
+                setAckDate(null);
+              }
+            }}
+            documentUrl={selectedDocument.url}
+            documentName={selectedDocument.name}
+            requiresAck={selectedDocument.requiresAck}
+            requiresSignature={selectedDocument.requiresSignature ?? false}
+            acknowledged={acknowledged}
+            ackDate={ackDate}
+            signed={signed}
+            onAcknowledge={async () => {
+              try {
+                const res = await fetch("/api/documents/acknowledge", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ documentId: selectedDocument.id }),
+                });
+                if (res.ok) {
+                  setAcknowledged(true);
+                  setAckDate(new Date());
+                  setIsDocPreviewOpen(false);
+                  setShowAckSuccess(true);
+                  refreshDocuments();
+                  toast.success("Document acknowledged successfully");
+                } else {
+                  toast.error("Failed to acknowledge document");
+                }
+              } catch (error) {
+                toast.error("Error acknowledging document");
+              }
+            }}
+            onSign={() => {
+              setIsDocPreviewOpen(false);
+              setIsSignatureCaptureOpen(true);
+            }}
+          />
+        )}
+
+        {/* Signature Capture Modal */}
+        {selectedDocument && (
+          <ModernSignatureCapture
+            open={isSignatureCaptureOpen}
+            onOpenChange={(open) => {
+              setIsSignatureCaptureOpen(open);
+              if (!open && !signSubmitting) {
+                setIsDocPreviewOpen(true);
+              }
+            }}
+            documentName={selectedDocument.name}
+            onSubmit={async (signature: SignatureCaptureValue) => {
+              setSignSubmitting(true);
+              try {
+                const res = await fetch("/api/documents/sign", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    documentId: selectedDocument.id,
+                    method: signature.method,
+                    typedText: signature.typedText,
+                    drawnDataUrl: signature.dataUrl,
+                  }),
+                });
+                if (res.ok) {
+                  setSigned(true);
+                  setAckDate(new Date());
+                  setIsSignatureCaptureOpen(false);
+                  setShowSignSuccess(true);
+                  refreshDocuments();
+                  toast.success("Document signed successfully");
+                } else {
+                  toast.error("Failed to sign document");
+                }
+              } catch (error) {
+                toast.error("Error signing document");
+              } finally {
+                setSignSubmitting(false);
+              }
+            }}
+            submitting={signSubmitting}
+          />
+        )}
+
+        {/* Success Animations */}
+        <AcknowledgmentSuccessAnimation
+          show={showAckSuccess}
+          onComplete={() => setShowAckSuccess(false)}
+        />
+        <SignatureSuccessAnimation
+          show={showSignSuccess}
+          onComplete={() => setShowSignSuccess(false)}
         />
       </div>
     </PageShell>

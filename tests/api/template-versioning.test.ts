@@ -88,10 +88,19 @@ describe("Template Versioning", () => {
   afterEach(async () => {
     // Cleanup - delete in proper order
     try {
-      await prisma.templateVersion.deleteMany({ where: { companyId: testCompanyId } }).catch(() => {});
-      await prisma.onboardingTemplate.deleteMany({ where: { companyId: testCompanyId } });
-      await prisma.user.deleteMany({ where: { companyId: testCompanyId } });
-      await prisma.company.delete({ where: { id: testCompanyId } }).catch(() => {});
+      // Try deleteMany if available, otherwise skip
+      if (prisma.templateVersion?.deleteMany) {
+        await prisma.templateVersion.deleteMany({ where: { companyId: testCompanyId } }).catch(() => {});
+      }
+      if (prisma.onboardingTemplate?.delete) {
+        await prisma.onboardingTemplate.delete({ where: { id: testTemplateId } }).catch(() => {});
+      }
+      if (prisma.user?.deleteMany) {
+        await prisma.user.deleteMany({ where: { companyId: testCompanyId } }).catch(() => {});
+      }
+      if (prisma.company?.delete) {
+        await prisma.company.delete({ where: { id: testCompanyId } }).catch(() => {});
+      }
     } catch (error) {
       console.error('Cleanup error:', error);
     }

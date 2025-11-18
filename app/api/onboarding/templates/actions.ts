@@ -201,10 +201,17 @@ export async function updateTemplate(
   // First, validate template exists and belongs to tenant with minimal query
   const basicTemplate = await prismaClient.onboardingTemplate.findUnique({
     where: { id },
+  }).catch((err) => {
+    console.error('[updateTemplate] findUnique error:', err);
+    return null;
   });
 
-  if (!basicTemplate || basicTemplate.companyId !== session.user.companyId) {
-    throw new Error("Template not found");
+  if (!basicTemplate) {
+    throw new Error(`Template not found: ${id}`);
+  }
+  
+  if (basicTemplate.companyId !== session.user.companyId) {
+    throw new Error(`Template does not belong to tenant. Template companyId: ${basicTemplate.companyId}, Session companyId: ${session.user.companyId}`);
   }
 
   // Enhanced version checking with timestamp

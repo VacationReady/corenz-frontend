@@ -29,13 +29,13 @@ const expect: any = (actual: any) => ({
     assert.notStrictEqual(actual, undefined);
   },
   toBeInstanceOf(ctor: any) {
-    assert.ok(actual instanceof ctor);
+    assert.ok(actual instanceof ctor, `Expected ${actual} to be instance of ${ctor.name}`);
   },
   toBeGreaterThan(expected: number) {
-    assert.ok(actual > expected);
+    assert.ok(actual > expected, `Expected ${actual} to be greater than ${expected}`);
   },
   toBeGreaterThanOrEqual(expected: number) {
-    assert.ok(actual >= expected);
+    assert.ok(actual >= expected, `Expected ${actual} to be greater than or equal to ${expected}`);
   },
 });
 

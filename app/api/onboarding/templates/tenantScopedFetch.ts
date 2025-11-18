@@ -128,8 +128,22 @@ export function serializeTemplate(
   template: RawTemplate,
   currentCompanyId: string,
 ): SerializedOnboardingTemplate {
+  // Validate template object and companyId
+  if (!template || typeof template !== 'object') {
+    throw new Error("Invalid template object");
+  }
+  
+  if (!template.companyId) {
+    throw new Error("Template missing companyId");
+  }
+  
+  if (!currentCompanyId) {
+    throw new Error("Current companyId is required");
+  }
+  
+  // Strict tenant isolation check
   if (template.companyId !== currentCompanyId) {
-    throw new Error("Template does not belong to the current tenant");
+    throw new Error(`Template does not belong to the current tenant. Expected: ${currentCompanyId}, Got: ${template.companyId}`);
   }
 
   return {

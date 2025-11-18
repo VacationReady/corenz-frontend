@@ -201,9 +201,6 @@ export async function updateTemplate(
   // First, validate template exists and belongs to tenant with minimal query
   const basicTemplate = await prismaClient.onboardingTemplate.findUnique({
     where: { id },
-  }).catch((err) => {
-    console.error('[updateTemplate] findUnique error:', err);
-    return null;
   });
 
   if (!basicTemplate) {

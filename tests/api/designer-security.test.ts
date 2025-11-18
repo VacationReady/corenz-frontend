@@ -46,13 +46,16 @@ function expect(actual: any) {
       assert.ok(actual.includes(expected));
     },
     toThrow(message?: string | RegExp) {
-      const options =
-        typeof message === "undefined"
-          ? undefined
-          : message instanceof RegExp
-          ? message
-          : new RegExp(message);
-      assert.throws(actual, options as any);
+      if (typeof message === "undefined") {
+        assert.throws(actual);
+      } else if (message instanceof RegExp) {
+        assert.throws(actual, message);
+      } else {
+        // For string messages, check if error message contains the expected text
+        assert.throws(actual, (error: Error) => {
+          return error.message.includes(message);
+        });
+      }
     },
   };
 }
@@ -388,14 +391,14 @@ describe("Designer API Security - Tenant Isolation", () => {
     it('should enforce onboarding read permission', async () => {
       const userWithPermission = {
         role: 'ADMIN',
-        PermissionProfile: null,
+        permissionProfile: null,
       };
 
       const userWithoutPermission = {
-        role: 'USER',
-        PermissionProfile: {
+        role: 'EMPLOYEE',
+        permissionProfile: {
           permissions: {
-            onboarding: { read: false, edit: false },
+            onboarding: [],
           },
         },
       };
@@ -407,14 +410,14 @@ describe("Designer API Security - Tenant Isolation", () => {
     it('should enforce onboarding edit permission', async () => {
       const userWithEditPermission = {
         role: 'ADMIN',
-        PermissionProfile: null,
+        permissionProfile: null,
       };
 
       const userWithReadOnly = {
-        role: 'USER',
-        PermissionProfile: {
+        role: 'EMPLOYEE',
+        permissionProfile: {
           permissions: {
-            onboarding: { read: true, edit: false },
+            onboarding: ['read'],
           },
         },
       };
@@ -427,6 +430,7 @@ describe("Designer API Security - Tenant Isolation", () => {
   describe('Telemetry and Audit Logging', () => {
     it('should create telemetry events for cross-tenant access attempts', async () => {
       // Simulate a cross-tenant load attempt being logged
+      const fingerprint = `cross-tenant-${tenant1.id}-${tenant2Template.id}`;
       const telemetryEvent = await prisma.onboardingTemplateTelemetryEvent.create({
         data: {
           id: `telemetry-${Date.now()}`,
@@ -435,7 +439,8 @@ describe("Designer API Security - Tenant Isolation", () => {
           severity: 'error',
           message: `Cross-tenant template load attempt blocked for template ${tenant2Template.id}`,
           templateId: tenant2Template.id,
-          metadata: {
+          fingerprint,
+          details: {
             expectedCompanyId: tenant1.id,
             templateCompanyId: tenant2.id,
             templateName: tenant2Template.name,

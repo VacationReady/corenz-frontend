@@ -86,9 +86,18 @@ let cachedPrismaMock: any = null;
     };
   }
   
-  // Mock app/lib/prisma to return mock client
+  // Mock app/lib/prisma only if DATABASE_URL is not properly configured
   if (request.includes("app/lib/prisma") || request.includes("lib/prisma")) {
-    // Return cached instance if it exists, otherwise create it
+    // Check if we have a real database connection available
+    const hasRealDatabase = process.env.DATABASE_URL && 
+                           !process.env.DATABASE_URL.includes('test:test@localhost');
+    
+    // If we have a real database, use the actual Prisma client
+    if (hasRealDatabase) {
+      return originalLoad(request, parent, isMain);
+    }
+    
+    // Otherwise, return cached mock instance if it exists, or create it
     if (!cachedPrismaMock) {
       // Create default mock methods
       const defaultMock = {
@@ -98,6 +107,7 @@ let cachedPrismaMock: any = null;
         create: async () => ({}),
         update: async () => ({}),
         delete: async () => ({}),
+        deleteMany: async () => ({ count: 0 }),
         count: async () => 0,
         createMany: async () => ({ count: 0 }),
       };
@@ -106,6 +116,22 @@ let cachedPrismaMock: any = null;
       cachedPrismaMock = {
         prisma: new Proxy({}, {
           get: (target: any, prop: string) => {
+            // Handle Prisma client methods (not model methods)
+            if (prop === '$connect') {
+              return async () => Promise.resolve();
+            }
+            if (prop === '$disconnect') {
+              return async () => Promise.resolve();
+            }
+            if (prop === '$transaction') {
+              return async (fn: any) => {
+                if (typeof fn === 'function') {
+                  return fn(cachedPrismaMock.prisma);
+                }
+                return Promise.all(fn);
+              };
+            }
+            
             // Return custom mock if set, otherwise return default mock
             if (target[prop]) {
               return target[prop];

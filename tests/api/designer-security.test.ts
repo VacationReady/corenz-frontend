@@ -537,7 +537,8 @@ describe("Designer API Security - Tenant Isolation", () => {
           name: 'Updated Name',
           description: 'Updated description',
           steps: [],
-        }
+        },
+        prisma
       );
 
       expect(updated).toBeDefined();

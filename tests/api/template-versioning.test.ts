@@ -121,7 +121,7 @@ describe("Template Versioning", () => {
             name: "My update",
             lastKnownVersion: template?.version,
             steps: [],
-          }),
+          }, prisma),
         TemplateConflictError,
       );
     });
@@ -150,7 +150,7 @@ describe("Template Versioning", () => {
             name: "My update",
             lastKnownUpdatedAt: template?.updatedAt.toISOString(),
             steps: [],
-          }),
+          }, prisma),
         TemplateConflictError,
       );
     });
@@ -169,7 +169,7 @@ describe("Template Versioning", () => {
         name: "Updated name",
         lastKnownVersion: template?.version,
         steps: [],
-      });
+      }, prisma);
 
       expect(result.name).toBe("Updated name");
       expect(result.version).toBe((template?.version || 0) + 1);
@@ -187,7 +187,7 @@ describe("Template Versioning", () => {
         name: "Updated with snapshot",
         createSnapshot: true,
         steps: [],
-      });
+      }, prisma);
 
       const versions = await prisma.templateVersion.findMany({
         where: { templateId: testTemplateId },
@@ -208,7 +208,7 @@ describe("Template Versioning", () => {
         name: "Updated without snapshot",
         createSnapshot: false,
         steps: [],
-      });
+      }, prisma);
 
       const versions = await prisma.templateVersion.findMany({
         where: { templateId: testTemplateId },
@@ -230,7 +230,7 @@ describe("Template Versioning", () => {
         id: testTemplateId,
         name: "Update 1",
         steps: [],
-      });
+      }, prisma);
 
       const after1 = await prisma.onboardingTemplate.findUnique({
         where: { id: testTemplateId },
@@ -240,7 +240,7 @@ describe("Template Versioning", () => {
         id: testTemplateId,
         name: "Update 2",
         steps: [],
-      });
+      }, prisma);
 
       const after2 = await prisma.onboardingTemplate.findUnique({
         where: { id: testTemplateId },
@@ -262,7 +262,7 @@ describe("Template Versioning", () => {
         name: "Published template",
         isActive: true,
         steps: [],
-      });
+      }, prisma);
 
       expect(result.publishedAt).not.toBeNull();
       expect(result.publishedBy?.id).toBe(testUserId);
@@ -279,7 +279,7 @@ describe("Template Versioning", () => {
         name: "Published",
         isActive: true,
         steps: [],
-      });
+      }, prisma);
 
       const published = await prisma.onboardingTemplate.findUnique({
         where: { id: testTemplateId },
@@ -291,7 +291,7 @@ describe("Template Versioning", () => {
         name: "Draft update",
         isActive: false,
         steps: [],
-      });
+      }, prisma);
 
       const updated = await prisma.onboardingTemplate.findUnique({
         where: { id: testTemplateId },
@@ -323,7 +323,7 @@ describe("Template Versioning", () => {
           name: "My update",
           lastKnownVersion: template?.version,
           steps: [],
-        });
+        }, prisma);
         expect.fail("Should have thrown TemplateConflictError");
       } catch (error) {
         expect(error).toBeInstanceOf(TemplateConflictError);
@@ -356,7 +356,7 @@ describe("Template Versioning", () => {
             id: testTemplateId,
             name: "Cross-tenant update",
             steps: [],
-          }),
+          }, prisma),
         /Template not found/,
       );
 

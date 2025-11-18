@@ -71,16 +71,18 @@ describe("Template Versioning", () => {
       },
     });
 
-    // Create test template
+    // Create test template with all required fields
     testTemplateId = `test_template_${Date.now()}`;
     await prisma.onboardingTemplate.create({
       data: {
         id: testTemplateId,
         name: "Test Template",
+        description: "Test Description",
         companyId: testCompanyId,
         updatedAt: new Date(),
         updatedById: testUserId,
         version: 1,
+        isActive: false,
       },
     });
   });
@@ -116,6 +118,10 @@ describe("Template Versioning", () => {
         where: { id: testTemplateId },
       });
 
+      if (!template) {
+        throw new Error(`Template ${testTemplateId} not found in test setup`);
+      }
+
       // Simulate another user updating the template
       await prisma.onboardingTemplate.update({
         where: { id: testTemplateId },
@@ -128,7 +134,8 @@ describe("Template Versioning", () => {
           updateTemplate(session, {
             id: testTemplateId,
             name: "My update",
-            lastKnownVersion: template?.version,
+            description: "My description",
+            lastKnownVersion: template.version,
             steps: [],
           }, prisma),
         TemplateConflictError,
@@ -144,6 +151,10 @@ describe("Template Versioning", () => {
         where: { id: testTemplateId },
       });
 
+      if (!template) {
+        throw new Error(`Template ${testTemplateId} not found in test setup`);
+      }
+
       // Simulate another user updating the template
       await new Promise((resolve) => setTimeout(resolve, 10));
       await prisma.onboardingTemplate.update({
@@ -157,7 +168,8 @@ describe("Template Versioning", () => {
           updateTemplate(session, {
             id: testTemplateId,
             name: "My update",
-            lastKnownUpdatedAt: template?.updatedAt.toISOString(),
+            description: "My description",
+            lastKnownUpdatedAt: template.updatedAt.toISOString(),
             steps: [],
           }, prisma),
         TemplateConflictError,
@@ -173,15 +185,20 @@ describe("Template Versioning", () => {
         where: { id: testTemplateId },
       });
 
+      if (!template) {
+        throw new Error(`Template ${testTemplateId} not found in test setup`);
+      }
+
       const result = await updateTemplate(session, {
         id: testTemplateId,
         name: "Updated name",
-        lastKnownVersion: template?.version,
+        description: "Updated description",
+        lastKnownVersion: template.version,
         steps: [],
       }, prisma);
 
       expect(result.name).toBe("Updated name");
-      expect(result.version).toBe((template?.version || 0) + 1);
+      expect(result.version).toBe(template.version + 1);
     });
   });
 
@@ -194,6 +211,7 @@ describe("Template Versioning", () => {
       await updateTemplate(session, {
         id: testTemplateId,
         name: "Updated with snapshot",
+        description: "Updated description",
         createSnapshot: true,
         steps: [],
       }, prisma);
@@ -215,6 +233,7 @@ describe("Template Versioning", () => {
       await updateTemplate(session, {
         id: testTemplateId,
         name: "Updated without snapshot",
+        description: "Updated description",
         createSnapshot: false,
         steps: [],
       }, prisma);
@@ -235,9 +254,14 @@ describe("Template Versioning", () => {
         where: { id: testTemplateId },
       });
 
+      if (!initial) {
+        throw new Error(`Template ${testTemplateId} not found in test setup`);
+      }
+
       await updateTemplate(session, {
         id: testTemplateId,
         name: "Update 1",
+        description: "Description 1",
         steps: [],
       }, prisma);
 
@@ -248,6 +272,7 @@ describe("Template Versioning", () => {
       await updateTemplate(session, {
         id: testTemplateId,
         name: "Update 2",
+        description: "Description 2",
         steps: [],
       }, prisma);
 
@@ -255,8 +280,8 @@ describe("Template Versioning", () => {
         where: { id: testTemplateId },
       });
 
-      expect(after1?.version).toBe((initial?.version || 0) + 1);
-      expect(after2?.version).toBe((initial?.version || 0) + 2);
+      expect(after1?.version).toBe(initial.version + 1);
+      expect(after2?.version).toBe(initial.version + 2);
     });
   });
 
@@ -269,6 +294,7 @@ describe("Template Versioning", () => {
       const result = await updateTemplate(session, {
         id: testTemplateId,
         name: "Published template",
+        description: "Published description",
         isActive: true,
         steps: [],
       }, prisma);
@@ -286,6 +312,7 @@ describe("Template Versioning", () => {
       await updateTemplate(session, {
         id: testTemplateId,
         name: "Published",
+        description: "Published description",
         isActive: true,
         steps: [],
       }, prisma);
@@ -298,6 +325,7 @@ describe("Template Versioning", () => {
       await updateTemplate(session, {
         id: testTemplateId,
         name: "Draft update",
+        description: "Draft description",
         isActive: false,
         steps: [],
       }, prisma);
@@ -320,6 +348,10 @@ describe("Template Versioning", () => {
         where: { id: testTemplateId },
       });
 
+      if (!template) {
+        throw new Error(`Template ${testTemplateId} not found in test setup`);
+      }
+
       // Simulate concurrent update
       await prisma.onboardingTemplate.update({
         where: { id: testTemplateId },
@@ -330,7 +362,8 @@ describe("Template Versioning", () => {
         await updateTemplate(session, {
           id: testTemplateId,
           name: "My update",
-          lastKnownVersion: template?.version,
+          description: "My description",
+          lastKnownVersion: template.version,
           steps: [],
         }, prisma);
         expect.fail("Should have thrown TemplateConflictError");

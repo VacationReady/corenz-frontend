@@ -108,7 +108,7 @@ describe("Designer API Security - Tenant Isolation", () => {
       },
     });
 
-    // Create test templates for each tenant
+    // Create test templates for each tenant with explicit field selection
     tenant1Template = await prisma.onboardingTemplate.create({
       data: {
         id: `template-t1-${Date.now()}`,
@@ -117,6 +117,19 @@ describe("Designer API Security - Tenant Isolation", () => {
         description: 'Test template for tenant 1',
         isActive: true,
         updatedById: user1.id,
+        version: 1,
+      },
+      select: {
+        id: true,
+        companyId: true,
+        name: true,
+        description: true,
+        isActive: true,
+        updatedById: true,
+        updatedAt: true,
+        version: true,
+        publishedAt: true,
+        publishedBy: true,
       },
     });
 
@@ -128,6 +141,19 @@ describe("Designer API Security - Tenant Isolation", () => {
         description: 'Test template for tenant 2',
         isActive: true,
         updatedById: user2.id,
+        version: 1,
+      },
+      select: {
+        id: true,
+        companyId: true,
+        name: true,
+        description: true,
+        isActive: true,
+        updatedById: true,
+        updatedAt: true,
+        version: true,
+        publishedAt: true,
+        publishedBy: true,
       },
     });
 
@@ -474,17 +500,28 @@ describe("Designer API Security - Tenant Isolation", () => {
     it('should throw error when serializing template with wrong companyId', async () => {
       const { serializeTemplate } = await import('../../app/api/onboarding/templates/tenantScopedFetch');
 
-      // Attempt to serialize tenant2 template as if it belongs to tenant1
       expect(() => {
+        // Construct a complete template object with tenant2's companyId
+        const completeTemplate = {
+          id: tenant2Template.id,
+          companyId: tenant2Template.companyId, // This is tenant2.id
+          name: tenant2Template.name,
+          description: tenant2Template.description,
+          isActive: tenant2Template.isActive,
+          updatedAt: tenant2Template.updatedAt,
+          version: tenant2Template.version || 1,
+          publishedAt: tenant2Template.publishedAt || null,
+          publishedBy: tenant2Template.publishedBy || null,
+          User: null,
+          PublishedByUser: null,
+          Department: [],
+          JobRole: [],
+          OnboardingStep: [],
+        };
+
         serializeTemplate(
-          {
-            ...tenant2Template,
-            User: null,
-            Department: [],
-            JobRole: [],
-            OnboardingStep: [],
-          } as any,
-          tenant1.id
+          completeTemplate as any,
+          tenant1.id // Try to serialize with tenant1.id (wrong tenant)
         );
       }).toThrow('does not belong to the current tenant');
     });
@@ -492,14 +529,26 @@ describe("Designer API Security - Tenant Isolation", () => {
     it('should successfully serialize template with correct companyId', async () => {
       const { serializeTemplate } = await import('../../app/api/onboarding/templates/tenantScopedFetch');
 
+      // Construct a complete template object with all required fields
+      const completeTemplate = {
+        id: tenant1Template.id,
+        companyId: tenant1Template.companyId,
+        name: tenant1Template.name,
+        description: tenant1Template.description,
+        isActive: tenant1Template.isActive,
+        updatedAt: tenant1Template.updatedAt,
+        version: tenant1Template.version || 1,
+        publishedAt: tenant1Template.publishedAt || null,
+        publishedBy: tenant1Template.publishedBy || null,
+        User: null,
+        PublishedByUser: null,
+        Department: [],
+        JobRole: [],
+        OnboardingStep: [],
+      };
+
       const serialized = serializeTemplate(
-        {
-          ...tenant1Template,
-          User: null,
-          Department: [],
-          JobRole: [],
-          OnboardingStep: [],
-        } as any,
+        completeTemplate as any,
         tenant1.id
       );
 

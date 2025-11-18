@@ -1,4 +1,4 @@
-import { renderPeopleCoreEmail, getAppBaseUrl } from '@/app/lib/email/template';
+import { renderPeopleCoreEmail, getAppBaseUrl } from '@/lib/email/template';
 import { format } from 'date-fns';
 
 interface MeetingData {

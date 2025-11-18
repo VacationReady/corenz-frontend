@@ -118,6 +118,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. Send email invitations
+    const organizerName = `${meeting.Organizer.firstName || ''} ${meeting.Organizer.lastName || ''}`.trim();
+
     const results = await sendMeetingInvites(
       {
         id: meeting.id,
@@ -127,7 +129,11 @@ export async function POST(req: NextRequest) {
         duration: meeting.duration,
         location: meeting.location,
         meetingUrl: meeting.meetingUrl,
-        organizer: meeting.Organizer,
+        organizer: {
+          firstName: meeting.Organizer.firstName || organizerName || meeting.Organizer.email || 'Organizer',
+          lastName: meeting.Organizer.lastName || '',
+          email: meeting.Organizer.email || 'no-reply@example.com',
+        },
       },
       participants
     );

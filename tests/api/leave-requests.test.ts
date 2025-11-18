@@ -39,30 +39,21 @@ let mockPrisma: any = {};
   return originalLoad(request, parent, isMain);
 };
 
-let routeModulePromise: Promise<typeof import("../../app/api/employees/[id]/leave-requests/route")> | null = null;
-
-async function getRouteModule() {
-  if (!routeModulePromise) {
-    routeModulePromise = import("../../app/api/employees/[id]/leave-requests/route");
-  }
-  return routeModulePromise;
-}
-
 async function callGet(req: NextRequest, context: any) {
-  const { GET } = await getRouteModule();
+  // Import fresh each time to ensure mocks are picked up
+  const { GET } = await import("../../app/api/employees/[id]/leave-requests/route");
   return GET(req, context);
 }
 
 function resetMocks() {
   mockSession = null;
-  mockPrisma = {
-    employee: {
-      findUnique: async () => null,
-      findFirst: async () => null,
-    },
-    leaveRequest: {
-      findMany: async () => [],
-    },
+  // Don't replace mockPrisma, just update its properties to maintain the reference
+  mockPrisma.employee = {
+    findUnique: async () => null,
+    findFirst: async () => null,
+  };
+  mockPrisma.leaveRequest = {
+    findMany: async () => [],
   };
 }
 

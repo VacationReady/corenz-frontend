@@ -3,7 +3,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import Module from "module";
 import { prisma } from "../app/lib/prisma";
-import { GET } from "../app/api/onboarding/instances/[employeeId]/route";
 import { NextRequest } from "next/server";
 
 const originalLoad = (Module as any)._load;
@@ -11,6 +10,8 @@ let mockSession: any = {
   user: { id: "user1", companyId: "company1", email: "test@example.com" },
 };
 
+// Mock next-auth and supabase before importing the route so getServerSession
+// never calls headers() outside a request scope.
 (Module as any)._load = function (
   request: string,
   parent: any,
@@ -25,13 +26,22 @@ let mockSession: any = {
     return {
       storage: {
         from: () => ({
-          createSignedUrl: async () => ({ data: { signedUrl: "https://signed" }, error: null }),
+          createSignedUrl: async () => ({
+            data: { signedUrl: "https://signed" },
+            error: null,
+          }),
         }),
       },
     };
   }
   return originalLoad(request, parent, isMain);
 };
+
+const routePromise = import("../app/api/onboarding/instances/[employeeId]/route");
+
+test.after(() => {
+  (Module as any)._load = originalLoad;
+});
 
 test("GET onboarding instance hydrates metadata and responses", async () => {
   (prisma as any).employee = {
@@ -131,6 +141,7 @@ test("GET onboarding instance hydrates metadata and responses", async () => {
   };
 
   const req = new NextRequest("http://localhost");
+  const { GET } = await routePromise;
   const res = await GET(req, { params: { employeeId: "emp1" } });
   const data = await res.json();
 

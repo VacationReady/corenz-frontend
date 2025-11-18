@@ -10,7 +10,7 @@ import { NextRequest } from "next/server";
 test("POST /api/reports/query requires auth", async () => {
   const originalLoad = (Module as any)._load;
   (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
-    if (request === "../app/lib/prisma") {
+    if (request === "@/lib/prisma" || request === "../app/lib/prisma") {
       return {
         prisma: {},
         ensurePrismaConnected: async () => {},
@@ -19,10 +19,10 @@ test("POST /api/reports/query requires auth", async () => {
     if (request === "next-auth") {
       return { getServerSession: async () => null };
     }
-    if (request === "../app/lib/auth-options") {
+    if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
       return { authOptions: {} };
     }
-    if (request === "../app/lib/reportingTimeConfig") {
+    if (request === "@/lib/reportingTimeConfig" || request === "../app/lib/reportingTimeConfig") {
       return {
         resolveReportingTimeConfig: async () => ({
           timeZone: "UTC",
@@ -43,7 +43,7 @@ test("POST /api/reports/query requires auth", async () => {
 test("POST /api/reports/query restricts selectedFields to allowed reportFields", async () => {
   const originalLoad = (Module as any)._load;
   (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
-    if (request === "../app/lib/prisma") {
+    if (request === "@/lib/prisma" || request === "../app/lib/prisma") {
       return {
         prisma: {
           User: {
@@ -57,16 +57,16 @@ test("POST /api/reports/query restricts selectedFields to allowed reportFields",
     if (request === "next-auth") {
       return { getServerSession: async () => ({ user: { id: "u1", companyId: "c1" } }) };
     }
-    if (request === "../app/lib/auth-options") {
+    if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
       return { authOptions: {} };
     }
-    if (request === "../app/lib/queryBuilder") {
+    if (request === "@/lib/queryBuilder" || request === "../app/lib/queryBuilder") {
       return {
         buildDynamicQuery: () => ({ queries: [{ model: "User", prismaQuery: { where: {} } }] }),
         attachComputedFields: async (results: any[]) => results,
       };
     }
-    if (request === "../app/lib/hrReportFields") {
+    if (request === "@/lib/hrReportFields" || request === "../app/lib/hrReportFields") {
       return {
         getFieldByKey: (key: string) => {
           const fields: any = {
@@ -121,7 +121,7 @@ test("POST /api/reports/query injects tenant filter for User.companyId", async (
   const originalLoad = (Module as any)._load;
   let capturedWhere: any = null;
   (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
-    if (request === "../app/lib/prisma") {
+    if (request === "@/lib/prisma" || request === "../app/lib/prisma") {
       return {
         prisma: {
           User: {
@@ -138,16 +138,16 @@ test("POST /api/reports/query injects tenant filter for User.companyId", async (
     if (request === "next-auth") {
       return { getServerSession: async () => ({ user: { id: "u1", companyId: "tenant-123" } }) };
     }
-    if (request === "../app/lib/auth-options") {
+    if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
       return { authOptions: {} };
     }
-    if (request === "../app/lib/queryBuilder") {
+    if (request === "@/lib/queryBuilder" || request === "../app/lib/queryBuilder") {
       return {
         buildDynamicQuery: () => ({ queries: [{ model: "User", prismaQuery: { where: {} } }] }),
         attachComputedFields: async (results: any[]) => results,
       };
     }
-    if (request === "../app/lib/hrReportFields") {
+    if (request === "@/lib/hrReportFields" || request === "../app/lib/hrReportFields") {
       return {
         getFieldByKey: (key: string) => {
           const fields: any = {

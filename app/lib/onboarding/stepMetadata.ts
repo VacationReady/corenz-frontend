@@ -320,6 +320,7 @@ const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
       );
       return {
         items,
+        instructions: asString((base as any).instructions, ""),
       };
     },
     schema: {

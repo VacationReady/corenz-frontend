@@ -2,7 +2,6 @@ import "./setupEnv";
 import test from "node:test";
 import assert from "node:assert/strict";
 import Module from "module";
-import { POST } from "../app/api/onboarding/step/[stepId]/complete/route";
 import { prisma } from "../app/lib/prisma";
 
 const originalLoad = (Module as any)._load;
@@ -20,6 +19,12 @@ const originalLoad = (Module as any)._load;
   }
   return originalLoad(request, parent, isMain);
 };
+
+const routePromise = import("../app/api/onboarding/step/[stepId]/complete/route");
+
+test.after(() => {
+  (Module as any)._load = originalLoad;
+});
 
 function setupPrismaMocks(stepType: string, responses: any[] = []) {
   const createdPayloads: any[] = [];
@@ -67,6 +72,7 @@ test("POST onboarding step stores form payloads verbatim", async () => {
   const { createdPayloads, documentCreatedRef } = setupPrismaMocks("FORM_FILL");
 
   const req = { json: async () => ({ formResponse: { foo: "bar" } }) } as any;
+  const { POST } = await routePromise;
   const res = await POST(req, { params: { stepId: "stepInstance1" } });
 
   assert.equal(res.status, 200);
@@ -82,6 +88,7 @@ test("POST onboarding step infers acknowledgment payload when none provided", as
   const { createdPayloads, documentCreatedRef } = setupPrismaMocks("ACKNOWLEDGE_DOCUMENT");
 
   const req = { json: async () => ({}) } as any;
+  const { POST } = await routePromise;
   const res = await POST(req, { params: { stepId: "stepInstance1" } });
 
   assert.equal(res.status, 200);

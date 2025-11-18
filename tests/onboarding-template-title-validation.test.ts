@@ -68,19 +68,28 @@ test("Title validation in template mapper", async (t) => {
       { type: "upload-document", title: "Review", description: "Documents" }, // Duplicate 2
     ];
 
-    const error = assert.throws(
-      () => mapSteps(stepsWithMultipleDuplicates),
+    let capturedError: any = null;
+    assert.throws(
+      () => {
+        try {
+          mapSteps(stepsWithMultipleDuplicates);
+        } catch (err: any) {
+          capturedError = err;
+          throw err;
+        }
+      },
       /Duplicate step labels detected:/,
       "Should throw error for multiple duplicate titles",
     );
 
     // Verify both duplicates are mentioned
+    assert.ok(capturedError, "Expected an error to be captured");
     assert.ok(
-      error.message.includes("Setup"),
+      capturedError.message.includes("Setup"),
       "Error should mention 'Setup' as duplicate",
     );
     assert.ok(
-      error.message.includes("Review"),
+      capturedError.message.includes("Review"),
       "Error should mention 'Review' as duplicate",
     );
   });
@@ -218,17 +227,18 @@ test("Title validation in template mapper", async (t) => {
 
     assert.equal(mapped.length, 1, "Should map step");
     assert.equal(mapped[0].label, "NZ Payroll", "Label should be preserved");
-    assert.ok(mapped[0].metadata, "Metadata should be present");
-    assert.ok(Array.isArray(mapped[0].metadata.fields), "Fields should be an array");
-    assert.equal(mapped[0].metadata.fields.length, 2, "Should have 2 fields");
+    const mappedMetadata: any = mapped[0].metadata;
+    assert.ok(mappedMetadata, "Metadata should be present");
+    assert.ok(Array.isArray(mappedMetadata.fields), "Fields should be an array");
+    assert.equal(mappedMetadata.fields.length, 2, "Should have 2 fields");
     
     // Verify normalized fields contain expected IDs
-    const fieldIds = mapped[0].metadata.fields.map((f: any) => f.id);
+    const fieldIds = mappedMetadata.fields.map((f: any) => f.id);
     assert.ok(fieldIds.includes("irdNumber"), "Should include irdNumber field");
     assert.ok(fieldIds.includes("taxCode"), "Should include taxCode field");
     
     assert.equal(
-      mapped[0].metadata.presetSlug,
+      mappedMetadata.presetSlug,
       "nz-ird-number",
       "Preset slug should be preserved",
     );

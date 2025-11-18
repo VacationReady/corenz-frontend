@@ -42,9 +42,6 @@ const originalLoad = (Module as any)._load;
   if (request === "@/components/ui/Button") {
     return { default: (props: any) => React.createElement("button", props) };
   }
-  if (request === "@/components/ui/Card") {
-    return { Card: (props: any) => React.createElement("div", props) };
-  }
   if (request === "@/components/ui/Checkbox") {
     return { default: (props: any) => React.createElement("input", { ...props, type: "checkbox" }) };
   }

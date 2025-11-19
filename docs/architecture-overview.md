@@ -1992,6 +1992,84 @@ import { format, addDays, differenceInDays } from "date-fns";
 
 ---
 
+## Security & Authorization
+
+### Security Framework
+
+PeopleCore implements a comprehensive security model with multiple layers of protection:
+
+1. **Authentication**: NextAuth.js v4 with JWT sessions
+2. **Authorization**: Role-based access control (RBAC) with fine-grained permissions
+3. **Multi-Tenant Isolation**: Strict company-level data segregation
+4. **Audit Logging**: Security-relevant event tracking
+5. **Input Validation**: Zod schemas for all API inputs
+
+### Authorization Architecture
+
+**Core Files**:
+- `app/lib/authz.ts` - Leave-specific authorization policies
+- `app/lib/permissions.ts` - Generic RBAC and employee access control
+- `app/api/employees/[id]/leave-requests/route.ts` - Reference implementation
+
+**Role Hierarchy**:
+```
+SUPER_ADMIN → ADMIN → MANAGER → EMPLOYEE
+```
+
+**Access Control Matrix** (Leave Requests Example):
+
+| Role | Own Data | Direct Reports | All Employees | Cross-Tenant |
+|------|----------|----------------|---------------|--------------|
+| EMPLOYEE | ✅ | ❌ | ❌ | ❌ |
+| MANAGER | ✅ | ✅ | ❌ | ❌ |
+| ADMIN | ✅ | ✅ | ✅ | ❌ |
+| SUPER_ADMIN | ✅ | ✅ | ✅ | ❌ |
+
+### Security Testing
+
+**Test Coverage**:
+- ✅ 20+ unit tests for API authorization (`tests/api/leave-requests.test.ts`)
+- ✅ E2E tests for client-side guards (`tests/e2e/leave-page-authorization.test.ts`)
+- ✅ Cross-tenant access prevention
+- ✅ Role-based access enforcement
+- ✅ Authentication requirement validation
+
+### Multi-Tenant Isolation
+
+Every database query includes company-level filtering:
+
+```typescript
+// ✅ CORRECT: Always filter by companyId
+const data = await prisma.resource.findMany({
+  where: {
+    id: resourceId,
+    companyId: session.user.companyId, // Tenant isolation
+  },
+});
+```
+
+**Enforcement Layers**:
+1. Session validation (companyId required)
+2. Resource lookup with tenant filter
+3. Cross-tenant check before authorization
+4. Query-level filtering in Prisma
+
+### Security Documentation
+
+For comprehensive security controls, authorization policies, and compliance requirements, see:
+
+📄 **[Security Controls Documentation](./security-controls.md)**
+
+This document includes:
+- Complete role-based access matrix
+- Authorization helper function reference
+- Multi-tenant isolation patterns
+- Security testing guidelines
+- Audit logging requirements
+- GDPR and SOC 2 compliance notes
+
+---
+
 ## Performance Recommendations
 
 ### Immediate Optimizations

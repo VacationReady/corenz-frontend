@@ -468,4 +468,269 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
     assert.equal(data[0].EventCategory.name, "Annual Leave");
     assert.equal(data[1].dayType, "HALF_DAY_AM");
   });
+
+  // ========================================
+  // POST Endpoint Authorization Tests
+  // ========================================
+
+  await run("POST: returns 401 for unauthenticated requests", async () => {
+    mockSession = null;
+
+    const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
+    const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
+      method: "POST",
+      body: JSON.stringify({
+        eventCategoryId: "cat1",
+        startDate: "2025-01-01",
+        endDate: "2025-01-05",
+      }),
+    });
+    const res = await POST(req, { params: Promise.resolve({ id: "emp1" }) });
+    const data = await res.json();
+
+    assert.equal(res.status, 401);
+    assert.equal(data.error, "Unauthenticated");
+  });
+
+  await run("POST: ADMIN can create leave request for any employee in their company", async () => {
+    mockSession = {
+      user: { id: "admin1", companyId: "company1", role: "ADMIN", email: "admin@example.com" },
+    };
+
+    mockPrisma.employee.findFirst = async ({ where }: any) => {
+      if (where.id === "emp1" && where.companyId === "company1") {
+        return {
+          id: "emp1",
+          companyId: "company1",
+          userId: "user1",
+          departmentId: null,
+          jobRoleId: null,
+          User: {
+            id: "user1",
+            name: "Test Employee",
+            email: "employee@example.com",
+            managerId: null,
+            firstName: "Test",
+            lastName: "Employee",
+          },
+        };
+      }
+      return null;
+    };
+
+    mockPrisma.eventCategory = {
+      findFirst: async () => ({ name: "Annual Leave" }),
+    };
+
+    mockPrisma.leaveRequest = {
+      create: async () => ({
+        id: "leave1",
+        startDate: new Date("2025-01-01"),
+        endDate: new Date("2025-01-05"),
+        dayType: "FULL_DAY",
+        approvalStatus: "PENDING",
+      }),
+      update: async () => ({
+        id: "leave1",
+        approvalStatus: "APPROVED",
+      }),
+      findUnique: async () => null,
+      findMany: async () => [],
+    };
+
+    mockPrisma.leaveEntitlement = {
+      findFirst: async () => ({
+        id: "ent1",
+        totalDays: 20,
+        usedDays: 0,
+      }),
+      update: async () => ({}),
+    };
+
+    mockPrisma.$transaction = async (fn: any) => {
+      return fn(mockPrisma);
+    };
+
+    // Mock validateLeaveRequest to pass
+    const originalLoad = (Module as any)._load;
+    (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
+      if (request === "@/lib/validateLeaveRequest") {
+        return { validateLeaveRequest: async () => {} };
+      }
+      if (request === "@/lib/calculateLeaveDeduction") {
+        return { calculateLeaveDeduction: async () => 1 };
+      }
+      return originalLoad(request, parent, isMain);
+    };
+
+    const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
+    const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
+      method: "POST",
+      body: JSON.stringify({
+        eventCategoryId: "cat1",
+        startDate: "2025-01-01",
+        endDate: "2025-01-05",
+      }),
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ id: "emp1" }) });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.success, true);
+  });
+
+  await run("POST: EMPLOYEE can create leave request for themselves", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", role: "EMPLOYEE", email: "employee@example.com" },
+    };
+
+    mockPrisma.employee.findFirst = async ({ where }: any) => {
+      if (where.id === "emp1" && where.companyId === "company1") {
+        return {
+          id: "emp1",
+          companyId: "company1",
+          userId: "user1", // Matches session user
+          departmentId: null,
+          jobRoleId: null,
+          User: {
+            id: "user1",
+            name: "Test Employee",
+            email: "employee@example.com",
+            managerId: null,
+            firstName: "Test",
+            lastName: "Employee",
+          },
+        };
+      }
+      return null;
+    };
+
+    mockPrisma.employee.findUnique = async ({ where }: any) => {
+      if (where.id === "emp1") {
+        return { userId: "user1", companyId: "company1" };
+      }
+      return null;
+    };
+
+    mockPrisma.eventCategory = {
+      findFirst: async () => ({ name: "Annual Leave" }),
+    };
+
+    mockPrisma.leaveRequest = {
+      create: async () => ({
+        id: "leave1",
+        startDate: new Date("2025-01-01"),
+        endDate: new Date("2025-01-05"),
+        dayType: "FULL_DAY",
+        approvalStatus: "PENDING",
+      }),
+      findUnique: async () => ({
+        id: "leave1",
+        LeaveApprovalStage: [],
+      }),
+      findMany: async () => [],
+    };
+
+    const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
+    const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
+      method: "POST",
+      body: JSON.stringify({
+        eventCategoryId: "cat1",
+        startDate: "2025-01-01",
+        endDate: "2025-01-05",
+      }),
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ id: "emp1" }) });
+    const data = await res.json();
+
+    assert.equal(res.status, 200);
+    assert.equal(data.success, true);
+  });
+
+  await run("POST: EMPLOYEE cannot create leave request for another employee", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", role: "EMPLOYEE", email: "employee@example.com" },
+    };
+
+    mockPrisma.employee.findFirst = async ({ where }: any) => {
+      if (where.id === "emp2" && where.companyId === "company1") {
+        return {
+          id: "emp2",
+          companyId: "company1",
+          userId: "user2", // Different user!
+          User: {
+            id: "user2",
+            name: "Other Employee",
+            email: "other@example.com",
+          },
+        };
+      }
+      return null;
+    };
+
+    mockPrisma.employee.findUnique = async ({ where }: any) => {
+      if (where.id === "emp2") {
+        return { userId: "user2", companyId: "company1" };
+      }
+      return null;
+    };
+
+    const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
+    const req = new NextRequest("http://localhost/api/employees/emp2/leave-requests", {
+      method: "POST",
+      body: JSON.stringify({
+        eventCategoryId: "cat1",
+        startDate: "2025-01-01",
+        endDate: "2025-01-05",
+      }),
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ id: "emp2" }) });
+    const data = await res.json();
+
+    assert.equal(res.status, 403);
+    assert.ok(data.error.includes("Forbidden"));
+    assert.ok(data.error.includes("do not have permission to create leave requests"));
+  });
+
+  await run("POST: returns 403 for cross-tenant access attempt", async () => {
+    mockSession = {
+      user: { id: "user1", companyId: "company1", role: "ADMIN", email: "admin@example.com" },
+    };
+
+    // Employee belongs to company2, not company1
+    mockPrisma.employee.findFirst = async ({ where }: any) => {
+      if (where.id === "emp1") {
+        return {
+          id: "emp1",
+          companyId: "company2", // Different company!
+          userId: "user2",
+          User: {
+            id: "user2",
+            name: "Other Company Employee",
+            email: "other@example.com",
+          },
+        };
+      }
+      return null;
+    };
+
+    const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
+    const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
+      method: "POST",
+      body: JSON.stringify({
+        eventCategoryId: "cat1",
+        startDate: "2025-01-01",
+        endDate: "2025-01-05",
+      }),
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ id: "emp1" }) });
+    const data = await res.json();
+
+    assert.equal(res.status, 404);
+    assert.equal(data.error, "Employee not found.");
+  });
 });

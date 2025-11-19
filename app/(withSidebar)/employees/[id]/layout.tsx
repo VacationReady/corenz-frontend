@@ -113,7 +113,6 @@ export default async function EmployeeLayout({
   forms = forms.filter((f: any) => !hiddenSlugs.has(f.slug));
 
   const menu = [
-    { href: "/employees", label: "Employees" },
     { href: `/employees/${id}/overview`, label: "Overview" },
     {
       href: `/employees/${id}/personal-information`,

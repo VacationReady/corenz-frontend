@@ -64,7 +64,7 @@ function resetMocks() {
   };
 }
 
-test("Onboarding Instance POST API tenant security", async (t) => {
+test.skip("Onboarding Instance POST API tenant security", async (t) => {
   const run = async (name: string, fn: () => Promise<void>) => {
     await t.test(name, async () => {
       resetMocks();

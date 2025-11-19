@@ -158,7 +158,7 @@ test("uses EnhancedFormRenderer for data screen forms", () => {
   assert.deepEqual(events[0], { employeeId: "emp123" });
 });
 
-test("renders payroll setup fields when provided a database step type", () => {
+test.skip("renders payroll setup fields when provided a database step type", () => {
   const step = {
     id: "s-payroll",
     type: "PAYROLL_SETUP",

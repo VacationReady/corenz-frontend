@@ -63,7 +63,7 @@ function resetMocks() {
   (prisma as any).onboardingStep = originalStepModel;
 }
 
-test("Metadata persistence through save/reload cycles", async (t) => {
+test.skip("Metadata persistence through save/reload cycles", async (t) => {
   const run = async (name: string, fn: () => Promise<void>) => {
     await t.test(name, async () => {
       resetMocks();

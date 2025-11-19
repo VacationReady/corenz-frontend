@@ -7,10 +7,8 @@ import "./setupEnv";
  * Skipping until migrated to node:test.
  */
 
-console.log('\n⏭️  Skipping news-utils tests (needs migration from Vitest to node:test)\n');
-process.exit(0);
-
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+// File temporarily disabled - needs migration from Vitest to node:test
+/*
 import {
   handleNewsShare,
   getNewsPostUrl,
@@ -307,3 +305,4 @@ describe("News Utils", () => {
     });
   });
 });
+*/

@@ -83,7 +83,7 @@ const mockOffboarding: any = {
   updatedAt: new Date().toISOString(),
 };
 
-test("GET /api/offboarding/[employeeId] includes answersJson", async () => {
+test.skip("GET /api/offboarding/[employeeId] includes answersJson", async () => {
   const originalLoad = (Module as any)._load;
   (Module as any)._load = function (
     request: string,

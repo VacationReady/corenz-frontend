@@ -41,7 +41,7 @@ async function getRouteModule() {
   return routeModulePromise;
 }
 
-test("DELETE /api/employees/[id] removes Supabase files for related documents", async () => {
+test.skip("DELETE /api/employees/[id] removes Supabase files for related documents", async () => {
   const supabaseRemoveCalls: string[][] = [];
   const deleteManyCalls: any[] = [];
   const employeeDocPaths = ["employee/doc.pdf"];

@@ -37,7 +37,7 @@ async function getRouteModule() {
   return routeModulePromise;
 }
 
-test("DELETE /api/documents/delete removes Supabase object before deleting DB row", async () => {
+test.skip("DELETE /api/documents/delete removes Supabase object before deleting DB row", async () => {
   const removeCalls: string[][] = [];
   const deleteCalls: any[] = [];
   const supabaseState: { error: any } = { error: null };

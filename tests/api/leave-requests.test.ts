@@ -30,6 +30,11 @@ let mockPrisma: any = {};
       getServerSession: async () => mockSession,
     };
   }
+  if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
+    return {
+      authOptions: {},
+    };
+  }
   if (request === "@/lib/prisma") {
     return {
       prisma: mockPrisma,
@@ -70,16 +75,22 @@ async function getRouteModule() {
 }
 
 async function callGet(req: NextRequest, context: any) {
-  const { GET } = await getRouteModule();
+  const module = await getRouteModule();
+  const GET = (module as any).GET || (module as any).default?.GET;
   if (typeof GET !== "function") {
+    console.error("Module keys:", Object.keys(module));
+    console.error("Module.default keys:", module.default ? Object.keys(module.default) : "no default");
     throw new Error("Leave-requests route GET export is not a function");
   }
   return GET(req, context);
 }
 
 async function callPost(req: NextRequest, context: any) {
-  const { POST } = await getRouteModule();
+  const module = await getRouteModule();
+  const POST = (module as any).POST || (module as any).default?.POST;
   if (typeof POST !== "function") {
+    console.error("Module keys:", Object.keys(module));
+    console.error("Module.default keys:", module.default ? Object.keys(module.default) : "no default");
     throw new Error("Leave-requests route POST export is not a function");
   }
   return POST(req, context);

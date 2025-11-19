@@ -239,42 +239,55 @@ export default function AdminDashboardClient({
           .filter((d) => d?.requiresAck || d?.requiresSignature)
           .slice(0, 20);
 
-        const ackChecks = await Promise.all(
-          candidates.map(async (d) => {
-            if (!d?.requiresAck) return { id: d.id, name: d.name, needed: false };
-            try {
-              const r = await fetch(`/api/documents/acknowledge/${d.id}/me`, {
-                cache: "no-store",
-              });
-              const j = await r.json();
-              return { id: d.id, name: d.name, needed: !j?.acknowledged };
-            } catch {
-              return { id: d.id, name: d.name, needed: true };
-            }
-          }),
-        );
+        if (candidates.length === 0) {
+          if (!isMounted) return;
+          setDocActionItems({ ack: [], sign: [], loading: false, urlMap: {} });
+          return;
+        }
 
-        const signChecks = await Promise.all(
-          candidates.map(async (d) => {
-            if (!d?.requiresSignature) return { id: d.id, name: d.name, needed: false };
-            try {
-              const r = await fetch(`/api/documents/signatures/${d.id}/me`, {
-                cache: "no-store",
-              });
-              const j = await r.json();
-              return { id: d.id, name: d.name, needed: !j?.signed };
-            } catch {
-              return { id: d.id, name: d.name, needed: true };
-            }
-          }),
-        );
+        // ✅ Use batched endpoint instead of per-document fetches
+        const documentIds = candidates.map((d) => d.id);
+        const statusRes = await fetch(`/api/documents/status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentIds }),
+          cache: "no-store",
+        });
+
+        if (!statusRes.ok) {
+          throw new Error("Failed to fetch document statuses");
+        }
+
+        const { statuses } = await statusRes.json();
 
         if (!isMounted) return;
+
+        // Build action items from batched response
+        const ackItems: Array<{ id: string; name: string }> = [];
+        const signItems: Array<{ id: string; name: string }> = [];
         const urlMap: Record<string, string | undefined> = {};
-        uniqueDocs.forEach((d) => { if (d?.id) urlMap[d.id] = d.url; });
+
+        for (const doc of candidates) {
+          const status = statuses[doc.id];
+          if (!status) continue;
+
+          // Store URL for later use
+          if (doc.url) urlMap[doc.id] = doc.url;
+
+          // Check if acknowledgement is needed
+          if (status.requiresAck && !status.acknowledged) {
+            ackItems.push({ id: doc.id, name: doc.name });
+          }
+
+          // Check if signature is needed
+          if (status.requiresSignature && !status.signed) {
+            signItems.push({ id: doc.id, name: doc.name });
+          }
+        }
+
         setDocActionItems({
-          ack: ackChecks.filter((x) => x.needed).slice(0, 5).map(({ id, name }) => ({ id, name })),
-          sign: signChecks.filter((x) => x.needed).slice(0, 5).map(({ id, name }) => ({ id, name })),
+          ack: ackItems.slice(0, 5),
+          sign: signItems.slice(0, 5),
           loading: false,
           urlMap,
         });

@@ -160,6 +160,7 @@ test("GET onboarding instance hydrates metadata and responses", async () => {
   const equipmentStep = data.steps[2];
   assert.deepEqual(equipmentStep.metadata, {
     items: [{ id: "laptop", label: "Laptop", required: true, notes: "" }],
+    instructions: "",
   });
   assert.deepEqual(equipmentStep.existingResponse, {
     equipmentChecklist: [{ id: "laptop", completed: true }],

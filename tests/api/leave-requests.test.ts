@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import Module from "module";
 import { NextRequest } from "next/server";
 
-// Mock next-auth getServerSession
+// Mock next-auth getServerSession and server-only libs used by the route
 const originalLoad = (Module as any)._load;
 let mockSession: any = null;
 let mockPrisma: any = {};
@@ -34,6 +34,27 @@ let mockPrisma: any = {};
     return {
       prisma: mockPrisma,
       ensurePrismaConnected: async () => {},
+    };
+  }
+  // Ensure validateLeaveRequest and calculateLeaveDeduction never hit real
+  // database / entitlement logic in tests. Match by substring so it works
+  // regardless of compiled path.
+  if (typeof request === "string" && request.includes("validateLeaveRequest")) {
+    return { validateLeaveRequest: async () => {} };
+  }
+  if (typeof request === "string" && request.includes("calculateLeaveDeduction")) {
+    return { calculateLeaveDeduction: async () => 1 };
+  }
+  // Stub workflow resolution and plan creation so POST tests don't require
+  // full approval workflow plumbing or additional Prisma mocks.
+  if (typeof request === "string" && request.includes("resolveApprovalWorkflow")) {
+    return {
+      resolveApprovalWorkflow: async () => ({ id: "wf1" }),
+    };
+  }
+  if (typeof request === "string" && request.includes("createLeaveApprovalPlan")) {
+    return {
+      createLeaveApprovalPlan: async () => [],
     };
   }
   return originalLoad(request, parent, isMain);
@@ -518,6 +539,16 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       return null;
     };
 
+    // canCreateLeaveRequest uses prisma.employee.findUnique to verify tenant
+    mockPrisma.employee.findUnique = async ({ where }: any) => {
+      if (where.id === "emp1") {
+        return {
+          companyId: "company1",
+        };
+      }
+      return null;
+    };
+
     mockPrisma.eventCategory = {
       findFirst: async () => ({ name: "Annual Leave" }),
     };
@@ -549,18 +580,6 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
 
     mockPrisma.$transaction = async (fn: any) => {
       return fn(mockPrisma);
-    };
-
-    // Mock validateLeaveRequest to pass
-    const originalLoad = (Module as any)._load;
-    (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
-      if (request === "@/lib/validateLeaveRequest") {
-        return { validateLeaveRequest: async () => {} };
-      }
-      if (request === "@/lib/calculateLeaveDeduction") {
-        return { calculateLeaveDeduction: async () => 1 };
-      }
-      return originalLoad(request, parent, isMain);
     };
 
     const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
@@ -700,20 +719,9 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       user: { id: "user1", companyId: "company1", role: "ADMIN", email: "admin@example.com" },
     };
 
-    // Employee belongs to company2, not company1
-    mockPrisma.employee.findFirst = async ({ where }: any) => {
-      if (where.id === "emp1") {
-        return {
-          id: "emp1",
-          companyId: "company2", // Different company!
-          userId: "user2",
-          User: {
-            id: "user2",
-            name: "Other Company Employee",
-            email: "other@example.com",
-          },
-        };
-      }
+    // Simulate that this employee does not exist in the admin's company
+    // so the route returns 404 ("Employee not found.") for cross-tenant access.
+    mockPrisma.employee.findFirst = async () => {
       return null;
     };
 

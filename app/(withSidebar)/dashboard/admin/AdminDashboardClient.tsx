@@ -618,11 +618,11 @@ export default function AdminDashboardClient({
         let hasMore = true;
         
         while (hasMore && active) {
-          const url = `/api/employees?status=all&limit=100${cursor ? `&cursor=${cursor}` : ""}`;
-          const res = await fetch(url, { cache: "no-store" });
+          const url: string = `/api/employees?status=all&limit=100${cursor ? `&cursor=${cursor}` : ""}`;
+          const res: any = await fetch(url, { cache: "no-store" });
           
           if (res.ok) {
-            const response = await res.json();
+            const response: any = await res.json();
             
             // Handle both old array format and new paginated format
             const employeesData = Array.isArray(response) 

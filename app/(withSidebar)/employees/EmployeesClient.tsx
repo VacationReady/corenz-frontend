@@ -1,8 +1,27 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent, FormEvent, useMemo } from "react";
+/**
+ * Employees Directory - Client Component
+ * 
+ * Next.js 15 client component that handles all interactivity.
+ * Receives initial data from server component for fast page loads.
+ * 
+ * Features:
+ * - Interactive table with filters
+ * - Incremental pagination (Load More)
+ * - Server actions for mutations
+ * - Modal management
+ * 
+ * Related:
+ * - Prompt 6: Paginated API
+ * - Prompt 7: Client pagination
+ * - Prompt 8: Server-first refactor
+ */
+
+import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useTransition } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { PageShell } from "@/components/ui/PageShell";
 import { DataTable } from "@/components/ui/data-table";
@@ -18,11 +37,22 @@ import OffboardingModal from "@/components/employees/OffboardingModal";
 import { MoreVertical, Users, UserX, Archive } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { toast } from "sonner";
+import { deleteEmployeeAction, sendActivationEmailAction, refreshEmployeesAction } from "./actions";
 
 // ✅ Inline type definition to avoid import error
 type FilterOption = { label: string; value: string };
 
-export const dynamic = "force-dynamic";
+// Props received from server component
+interface EmployeesClientProps {
+  initialEmployees: Employee[];
+  initialPagination: {
+    cursor: string | null;
+    hasMore: boolean;
+    limit: number;
+  };
+  departments: any[];
+  jobRoles: any[];
+}
 
 interface Employee {
   id: string;
@@ -62,11 +92,15 @@ const sortEmployees = (list: Employee[]) =>
     return (a.email || "").localeCompare(b.email || "", undefined, { sensitivity: "base" });
   });
 
-function EmployeesContent() {
+function EmployeesContent(props: EmployeesClientProps) {
   const { data: session } = useSession();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [departments, setDepartments] = useState<any[]>([]);
-  const [jobRoles, setJobRoles] = useState<any[]>([]);
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  
+  // Initialize with server-provided data
+  const [employees, setEmployees] = useState<Employee[]>(sortEmployees(props.initialEmployees));
+  const [departments] = useState<any[]>(props.departments);
+  const [jobRoles] = useState<any[]>(props.jobRoles);
   const [isModalOpen, setModalOpen] = useState(false);
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
   const [isRoleModalOpen, setRoleModalOpen] = useState(false);
@@ -79,12 +113,16 @@ function EmployeesContent() {
   const [visibleEmployees, setVisibleEmployees] = useState<Employee[]>([]);
   const [resetFiltersTick, setResetFiltersTick] = useState(0);
   
-  // Pagination state
+  // Pagination state (initialized from server)
   const [pagination, setPagination] = useState<{
     cursor: string | null;
     hasMore: boolean;
     loading: boolean;
-  }>({ cursor: null, hasMore: false, loading: false });
+  }>({
+    cursor: props.initialPagination.cursor,
+    hasMore: props.initialPagination.hasMore,
+    loading: false,
+  });
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -110,11 +148,8 @@ function EmployeesContent() {
       const cursor = reset ? "" : pagination.cursor || "";
       const limit = 50; // Load 50 employees per page
       
-      const [empRes, deptRes, roleRes] = await Promise.all([
-        fetch(`/api/employees?status=${status}&limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`),
-        reset ? fetch("/api/departments") : Promise.resolve({ ok: true, json: async () => departments }),
-        reset ? fetch("/api/job-roles") : Promise.resolve({ ok: true, json: async () => jobRoles }),
-      ]);
+      // Fetch employees only (departments and jobRoles come from server props)
+      const empRes = await fetch(`/api/employees?status=${status}&limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`);
 
       // Employees (new paginated format)
       if (empRes.ok) {
@@ -144,39 +179,13 @@ function EmployeesContent() {
         console.error("employees fetch failed", msg);
         if (reset) setEmployees([]);
         setPagination(prev => ({ ...prev, loading: false }));
-      }
-
-      // Departments (only on reset)
-      if (reset && deptRes.ok) {
-        const data = await deptRes.json();
-        setDepartments(Array.isArray(data) ? data : data.departments || []);
-      } else if (reset) {
-        const msg = await deptRes.json().catch(() => ({}));
-        console.error("departments fetch failed", msg);
-        setDepartments([]);
-      }
-
-      // Job roles (only on reset)
-      if (reset && roleRes.ok) {
-        const data = await roleRes.json();
-        setJobRoles(Array.isArray(data) ? data : data.jobRoles || []);
-      } else if (reset) {
-        const msg = await roleRes.json().catch(() => ({}));
-        console.error("job-roles fetch failed", msg);
-        setJobRoles([]);
-      }
-
-      // Only show a banner if at least one failed
-      if (!empRes.ok || (reset && (!deptRes.ok || !roleRes.ok))) {
-        setError("Some data failed to load. Showing partial results.");
+        setError("Failed to load employees. Please try again.");
       }
     } catch (e) {
       console.error("fetchData error", e);
       setError("Failed to load data");
       if (reset) {
         setEmployees([]);
-        setDepartments([]);
-        setJobRoles([]);
       }
       setPagination(prev => ({ ...prev, loading: false }));
     }
@@ -188,8 +197,12 @@ function EmployeesContent() {
     }
   };
 
+  // Fetch data when tab changes (resets to first page)
   useEffect(() => {
-    fetchData(activeTab, true);
+    if (activeTab !== "active") {
+      // Only fetch if switching away from initial "active" tab
+      fetchData(activeTab, true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
@@ -368,18 +381,26 @@ function EmployeesContent() {
                   )
                     return;
                   try {
+                    // Optimistic update
                     setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
-                    const res = await fetch(`/api/employees/${emp.id}`, { method: "DELETE" });
-                    if (!res.ok) {
-                      const errorData = await res.json().catch(() => ({}));
-                      throw new Error((errorData as any).error || "Delete failed");
-                    }
-                    toast.success("Employee deleted");
-                    setTimeout(() => {
-                      fetchData(activeTab, true);
-                    }, 0);
+                    
+                    // Use server action
+                    startTransition(async () => {
+                      const result = await deleteEmployeeAction(emp.id);
+                      
+                      if (result.success) {
+                        toast.success("Employee deleted");
+                        // Refresh from server to ensure consistency
+                        router.refresh();
+                      } else {
+                        // Revert optimistic update
+                        fetchData(activeTab, true);
+                        toast.error(result.error || "Failed to delete employee");
+                      }
+                    });
                   } catch (err) {
-                    setTimeout(() => fetchData(activeTab, true), 0);
+                    // Revert optimistic update
+                    fetchData(activeTab, true);
                     toast.error(`Error deleting employee: ${(err as Error).message}`);
                     console.error(err);
                   }
@@ -391,14 +412,15 @@ function EmployeesContent() {
               <DropdownMenuItem
                 onClick={async () => {
                   try {
-                    const res = await fetch(`/api/employees/${emp.id}/send-invite`, { method: "POST" });
-                    if (!res.ok) {
-                      const data = await res.json().catch(() => ({}));
-                      toast.error(data.error || "Failed to send activation email");
-                      return;
-                    }
-                    toast.success(`Activation email sent to ${emp.email}`);
-                    fetchData(activeTab, true);
+                    startTransition(async () => {
+                      const result = await sendActivationEmailAction(emp.id);
+                      
+                      if (result.success) {
+                        toast.success(`Activation email sent to ${emp.email}`);
+                      } else {
+                        toast.error(result.error || "Failed to send activation email");
+                      }
+                    });
                   } catch (e) {
                     toast.error("Network error sending activation email");
                   }
@@ -535,13 +557,18 @@ function EmployeesContent() {
       <AddEmployeeModal
         open={isModalOpen}
         onClose={() => setModalOpen(false)}
-        onSuccess={() => fetchData(activeTab, true)}
+        onSuccess={() => {
+          startTransition(async () => {
+            await refreshEmployeesAction();
+            router.refresh();
+          });
+        }}
       />
       {isDeptModalOpen && (
         <NewDepartmentModal
           onClose={() => {
             setDeptModalOpen(false);
-            fetchData(activeTab, true);
+            startTransition(() => router.refresh());
           }}
         />
       )}
@@ -549,7 +576,7 @@ function EmployeesContent() {
         <NewJobRoleModal
           onClose={() => {
             setRoleModalOpen(false);
-            fetchData(activeTab, true);
+            startTransition(() => router.refresh());
           }}
         />
       )}
@@ -566,6 +593,6 @@ function EmployeesContent() {
   );
 }
 
-export default function EmployeesPageClient() {
-  return <EmployeesContent />;
+export default function EmployeesClient(props: EmployeesClientProps) {
+  return <EmployeesContent {...props} />;
 }

@@ -106,8 +106,13 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       firstName: emp.User.firstName,
       lastName: emp.User.lastName,
       email: emp.User.email,
+      phone: emp.User.phone,
       role: emp.User.role,
       isActivated: emp.User.isActivated,
+      profileImageUrl: signedProfileMap.get(emp.User.id) || emp.User.profileImageUrl,
+      // Flatten department and job role names for table filters
+      departmentName: emp.Department?.name,
+      jobRoleName: emp.JobRole?.name,
       user: {
         ...emp.User,
         profileImageUrl: signedProfileMap.get(emp.User.id) || emp.User.profileImageUrl,
@@ -116,6 +121,7 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       jobRole: emp.JobRole,
       location: emp.Location,
       offboarding: emp.EmployeeOffboarding,
+      offboardingRecord: emp.EmployeeOffboarding,
     }));
 
     // Fetch departments and job roles

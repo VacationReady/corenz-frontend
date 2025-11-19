@@ -29,7 +29,7 @@ let mockSupabase: any = { storage: { from: () => ({ createSignedUrl: async () =>
   if (request === "@/lib/prisma") {
     return {
       prisma: mockPrisma,
-      ensurePrismaConnected: async () => {},
+      ensurePrismaConnected: async () => { },
     };
   }
   if (request === "@/lib/supabase-admin") {
@@ -53,8 +53,10 @@ async function callGet(req: NextRequest) {
   return GET(req);
 }
 
-function resetMocks() {
+async function resetMocks() {
   mockSession = null;
+  const { __clearProfileUrlCacheForTests } = await import("../../app/lib/storage/signProfiles");
+  __clearProfileUrlCacheForTests();
   mockPrisma.employee = {
     findMany: async () => [],
     findFirst: async () => null,
@@ -77,7 +79,7 @@ function resetMocks() {
 test("Employees API - Pagination & Optimization", async (t) => {
   const run = async (name: string, fn: () => Promise<void>) => {
     await t.test(name, async () => {
-      resetMocks();
+      await resetMocks();
       await fn();
     });
   };
@@ -425,7 +427,7 @@ test("Employees API - Pagination & Optimization", async (t) => {
 
     assert.equal(res.status, 200);
     assert.equal(data.data.length, 5);
-    
+
     // Verify signed URLs are present for employees with images
     assert.ok(data.data[0].profileImageUrl, "First employee should have signed URL");
     assert.ok(data.data[1].profileImageUrl, "Second employee should have signed URL");
@@ -520,7 +522,7 @@ test("Employees API - Pagination & Optimization", async (t) => {
       // Verify authorization filter is applied
       assert.ok(where.user, "Should have user filter");
       assert.ok(where.user.id, "Should filter by user IDs");
-      
+
       return Array.from({ length: 2 }, (_, i) => ({
         id: `emp${i}`,
         companyId: "company1",

@@ -6,13 +6,15 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StageTimeline } from "@/components/approvals/StageTimeline";
+import { usePatchMutation } from "@/hooks/useMutationWithRefresh";
+import { useApi } from "@/hooks/useApi";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/Select";
+} from "@/components/ui/select";
 
 interface Decision {
   id: string;
@@ -53,14 +55,8 @@ interface LeaveRequest {
 }
 
 export default function ApprovalsPage() {
-  const [requests, setRequests] = useState<LeaveRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [canViewAll, setCanViewAll] = useState(false);
   const [scopeMy, setScopeMy] = useState(true);
-  const [departments, setDepartments] = useState<
-    { id: string; name: string }[]
-  >([]);
   const [departmentId, setDepartmentId] = useState<string | "all">("all");
 
   const scopeParam = useMemo(
@@ -68,94 +64,74 @@ export default function ApprovalsPage() {
     [canViewAll, scopeMy],
   );
 
-  useEffect(() => {
-    let isMounted = true;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const metricsRes = await fetch("/api/dashboard/metrics", {
-          cache: "no-store",
-        });
-        if (metricsRes.ok) {
-          const metrics = await metricsRes.json();
-          if (isMounted) setCanViewAll(Boolean(metrics?.canViewAllApprovals));
-        }
+  // Fetch metrics to determine permissions
+  const { data: metricsData } = useApi<{ canViewAllApprovals?: boolean }>(
+    '/api/dashboard/metrics'
+  );
 
-        const qs = new URLSearchParams({ status: "PENDING" });
-        if (scopeParam) qs.set("scope", scopeParam);
-        if (departmentId !== "all") qs.set("departmentId", departmentId);
-        const res = await fetch(`/api/leave-request?${qs.toString()}`, {
-          cache: "no-store",
-        });
-        const data = await res.json();
-        if (data.success) {
-          if (isMounted) setRequests(data.data);
-        } else {
-          toast.error(data.error || "Failed to fetch requests");
-        }
-      } catch {
-        toast.error("Error fetching leave requests");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      isMounted = false;
-    };
+  // Update canViewAll when metrics load
+  useEffect(() => {
+    if (metricsData?.canViewAllApprovals !== undefined) {
+      setCanViewAll(Boolean(metricsData.canViewAllApprovals));
+    }
+  }, [metricsData]);
+
+  // Build query params for leave requests
+  const leaveRequestParams = useMemo(() => {
+    const params: Record<string, string> = { status: 'PENDING' };
+    if (scopeParam) params.scope = scopeParam;
+    if (departmentId !== 'all') params.departmentId = departmentId;
+    return params;
   }, [scopeParam, departmentId]);
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadDepts = async () => {
-      try {
-        const res = await fetch("/api/departments", { cache: "no-store" });
-        if (res.ok) {
-          const items = await res.json();
-          if (isMounted)
-            setDepartments(items.map((d: any) => ({ id: d.id, name: d.name })));
-        }
-      } catch {}
-    };
-    loadDepts();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  // Fetch leave requests with filters
+  const { data: requestsData, isLoading: loading, mutate: refetchRequests } = useApi<{
+    success: boolean;
+    data: LeaveRequest[];
+    error?: string;
+  }>('/api/leave-request', { params: leaveRequestParams });
+
+  const requests = requestsData?.success ? requestsData.data : [];
+
+  // Fetch departments for filter
+  const { data: departmentsData } = useApi<Array<{ id: string; name: string }>>(
+    '/api/departments'
+  );
+  const departments = departmentsData || [];
+
+  // Mutation for approving/declining leave requests
+  const { trigger: updateLeaveRequest, isMutating: actionLoading } = usePatchMutation<
+    any,
+    { action: 'approve' | 'decline'; decisionId?: string }
+  >(
+    (body) => `/api/leave-request/${body?.requestId}`,
+    {
+      invalidateKeys: ['/api/leave-request'],
+      refreshRouter: true,
+      onSuccess: () => {
+        // Refetch to update the list
+        refetchRequests();
+      },
+    }
+  );
 
   const handleDecision = async (
     id: string,
     decisionId: string | undefined,
     action: "approve" | "decline",
   ) => {
-    setActionLoading(id);
-    try {
-      const res = await fetch(`/api/leave-request/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          decisionId ? { action, decisionId } : { action },
-        ),
-      });
+    const result = await updateLeaveRequest({
+      requestId: id,
+      action,
+      ...(decisionId && { decisionId }),
+    } as any);
 
-      if (res.ok) {
-        toast.success(
-          `Leave ${action === "approve" ? "approved" : "declined"}`,
-        );
-        setRequests((prev) => prev.filter((r) => r.id !== id));
-      } else {
-        const data = await res.json();
-        toast.error(data.error || "Failed to update request");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Error updating request");
-    } finally {
-      setActionLoading(null);
+    if (result.success) {
+      toast.success(
+        `Leave ${action === "approve" ? "approved" : "declined"}`
+      );
     }
   };
-
-  // StageTimeline now imported
 
   return (
     <div className="w-full px-6 pt-6 bg-gray-100 min-h-screen">

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { UploadCloud, FileText } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { apiClient } from "@/lib/apiClient";
+import { usePostMutation, useDeleteMutation } from "@/hooks/useMutationWithRefresh";
 import {
   Table,
   TableHeader,
@@ -446,35 +447,45 @@ function DocumentsContent() {
     }
   };
 
-  const handleAcknowledge = async () => {
-    if (!selectedDoc) return;
-    try {
-      const res = await fetch("/api/documents/acknowledge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId: selectedDoc.id }),
-      });
-      if (res.ok) {
+  // Mutation for acknowledging documents
+  const { trigger: acknowledgeDocument } = usePostMutation<any, { documentId: string }>(
+    '/api/documents/acknowledge',
+    {
+      successMessage: 'Document acknowledged successfully',
+      errorMessage: 'Failed to acknowledge document',
+      invalidateKeys: ['/api/documents/list'],
+      onSuccess: () => {
         setAcknowledged(true);
         const now = new Date();
         setAckDate(now);
         setIsPreviewModalOpen(false);
         setShowAckSuccess(true);
         refetchDocuments();
-      } else toast("Failed to acknowledge document.");
-    } catch {
-      toast("Error acknowledging document.");
+      },
     }
+  );
+
+  // Mutation for deleting documents
+  const { trigger: deleteDocument } = usePostMutation<any, { documentId: string }>(
+    '/api/documents/delete',
+    {
+      successMessage: 'Document deleted successfully',
+      errorMessage: 'Failed to delete document',
+      invalidateKeys: ['/api/documents/list'],
+      onSuccess: () => {
+        refetchDocuments();
+      },
+    }
+  );
+
+  const handleAcknowledge = async () => {
+    if (!selectedDoc) return;
+    await acknowledgeDocument({ documentId: selectedDoc.id });
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this document?")) return;
-    await fetch("/api/documents/delete", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ documentId: id }),
-    });
-    refetchDocuments();
+    await deleteDocument({ documentId: id });
   };
 
   const formatFileSize = (size: number) =>

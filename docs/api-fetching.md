@@ -18,6 +18,8 @@ The application uses a unified API client system that provides:
 
 1. **`lib/apiClient.ts`** - Low-level fetch wrapper with typed methods
 2. **`app/hooks/useApi.ts`** - React hooks for SWR integration
+3. **`lib/mutations.ts`** - Mutation helpers for POST/PUT/PATCH/DELETE operations
+4. **`app/hooks/useMutationWithRefresh.ts`** - React hooks for mutations with router refresh
 
 ### Key Features
 
@@ -732,9 +734,574 @@ const { data: jobRolesData } = useApi<JobRole[]>('/api/job-roles/active');
 
 ---
 
+## Mutation Patterns
+
+### Overview
+
+The mutation system provides a unified approach to POST/PUT/PATCH/DELETE operations with:
+
+- **Automatic toast notifications** - Success and error messages
+- **SWR cache invalidation** - Keeps data fresh after mutations
+- **Router refresh integration** - Updates server components
+- **Loading states** - Built-in mutation tracking
+- **Error handling** - Consistent error surfacing
+
+### Core Mutation Utilities
+
+#### Using `lib/mutations.ts` Directly
+
+For non-React contexts or when you need fine-grained control:
+
+```typescript
+import { mutatePost, mutatePut, mutateDelete } from '@/lib/mutations';
+
+// POST request with automatic cache invalidation
+const result = await mutatePost('/api/employees', employeeData, {
+  successMessage: 'Employee created successfully',
+  errorMessage: 'Failed to create employee',
+  invalidateKeys: ['/api/employees'],
+  onSuccess: (data) => {
+    console.log('Created:', data);
+  },
+});
+
+if (result.success) {
+  // Handle success
+  console.log(result.data);
+} else {
+  // Handle error
+  console.error(result.error);
+}
+```
+
+#### Mutation Configuration Options
+
+```typescript
+interface MutationConfig {
+  successMessage?: string | false;        // Toast on success (false = no toast)
+  errorMessage?: string | false;          // Toast on error (false = no toast)
+  invalidateKeys?: string[];              // SWR keys to invalidate
+  invalidatePattern?: RegExp;             // Invalidate keys matching pattern
+  onSuccess?: (data: any) => void;        // Success callback
+  onError?: (error: Error) => void;       // Error callback
+  showLoadingToast?: boolean;             // Show loading toast
+  loadingMessage?: string;                // Loading toast message
+}
+```
+
+### React Hooks for Mutations
+
+#### Basic Mutation Hook
+
+```typescript
+import { usePostMutation } from '@/hooks/useMutationWithRefresh';
+
+function CreateEmployeeForm() {
+  const { trigger, isMutating, data, error } = usePostMutation<
+    Employee,
+    CreateEmployeeDto
+  >('/api/employees', {
+    successMessage: 'Employee created!',
+    errorMessage: 'Failed to create employee',
+    invalidateKeys: ['/api/employees'],
+    refreshRouter: true, // Refresh Next.js server components
+  });
+
+  const handleSubmit = async (formData: CreateEmployeeDto) => {
+    const result = await trigger(formData);
+    if (result.success) {
+      // Navigate or update UI
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* form fields */}
+      <button disabled={isMutating}>
+        {isMutating ? 'Creating...' : 'Create'}
+      </button>
+    </form>
+  );
+}
+```
+
+#### PUT/PATCH Mutations
+
+```typescript
+const { trigger: updateEmployee, isMutating } = usePutMutation<
+  Employee,
+  UpdateEmployeeDto
+>(
+  `/api/employees/${employeeId}`,
+  {
+    successMessage: 'Employee updated',
+    invalidateKeys: ['/api/employees', `/api/employees/${employeeId}`],
+    refreshRouter: true,
+  }
+);
+
+// Usage
+await updateEmployee(updatedData);
+```
+
+#### DELETE Mutations
+
+```typescript
+const { trigger: deleteEmployee } = useDeleteMutation(
+  `/api/employees/${employeeId}`,
+  {
+    successMessage: 'Employee deleted',
+    invalidateKeys: ['/api/employees'],
+    refreshRouter: true,
+  }
+);
+
+// Usage
+const handleDelete = async () => {
+  if (confirm('Delete this employee?')) {
+    await deleteEmployee();
+  }
+};
+```
+
+#### Dynamic URLs
+
+For mutations where the URL depends on the data:
+
+```typescript
+const { trigger: updateLeaveRequest } = usePatchMutation<
+  LeaveRequest,
+  { requestId: string; action: string }
+>(
+  (body) => `/api/leave-request/${body?.requestId}`,
+  {
+    successMessage: 'Request updated',
+    invalidateKeys: ['/api/leave-request'],
+  }
+);
+
+// Usage
+await updateLeaveRequest({
+  requestId: '123',
+  action: 'approve',
+});
+```
+
+### Optimistic Updates
+
+Update UI immediately before server responds:
+
+```typescript
+import { useOptimisticMutation } from '@/hooks/useMutationWithRefresh';
+
+const { trigger } = useOptimisticMutation<Employee, UpdateEmployeeDto>(
+  `/api/employees/${id}`,
+  '/api/employees', // Cache key
+  {
+    optimisticData: (current) => ({
+      ...current,
+      ...updatedFields,
+    }),
+    successMessage: 'Employee updated',
+  }
+);
+```
+
+### Batch Mutations
+
+Execute multiple mutations sequentially or in parallel:
+
+```typescript
+import { batchMutations, parallelMutations } from '@/lib/mutations';
+
+// Sequential (stops on first error)
+const { success, results } = await batchMutations(
+  [
+    () => mutatePost('/api/employees', employee1),
+    () => mutatePost('/api/employees', employee2),
+    () => mutatePost('/api/employees', employee3),
+  ],
+  {
+    stopOnError: true,
+    successMessage: 'All employees created',
+    errorMessage: 'Failed to create some employees',
+  }
+);
+
+// Parallel (all execute simultaneously)
+const { success, results } = await parallelMutations(
+  [
+    () => mutateDelete('/api/documents/1'),
+    () => mutateDelete('/api/documents/2'),
+    () => mutateDelete('/api/documents/3'),
+  ],
+  {
+    successMessage: 'All documents deleted',
+  }
+);
+```
+
+### Real-World Examples
+
+#### Leave Approvals
+
+See `app/(withSidebar)/dashboard/approvals/page.tsx`:
+
+```typescript
+// Fetch leave requests with filters
+const { data: requestsData, mutate: refetchRequests } = useApi<{
+  success: boolean;
+  data: LeaveRequest[];
+}>('/api/leave-request', { params: leaveRequestParams });
+
+// Mutation for approving/declining
+const { trigger: updateLeaveRequest } = usePatchMutation<
+  any,
+  { action: 'approve' | 'decline'; decisionId?: string }
+>(
+  (body) => `/api/leave-request/${body?.requestId}`,
+  {
+    invalidateKeys: ['/api/leave-request'],
+    refreshRouter: true,
+    onSuccess: () => {
+      refetchRequests(); // Refresh the list
+    },
+  }
+);
+
+const handleDecision = async (
+  id: string,
+  action: 'approve' | 'decline'
+) => {
+  const result = await updateLeaveRequest({
+    requestId: id,
+    action,
+  });
+
+  if (result.success) {
+    toast.success(`Leave ${action}d`);
+  }
+};
+```
+
+**Benefits:**
+- ✅ Automatic cache invalidation via `invalidateKeys`
+- ✅ Router refresh updates server components
+- ✅ Manual refetch ensures immediate UI update
+- ✅ Consistent error handling and toasts
+
+#### Document Acknowledgements
+
+See `app/components/documents/DocumentsPageClient.tsx`:
+
+```typescript
+// Fetch documents
+const { data: documentsData, mutate: refetchDocuments } = useApi<Document[]>(
+  '/api/documents/list'
+);
+
+// Mutation for acknowledging
+const { trigger: acknowledgeDocument } = usePostMutation<
+  any,
+  { documentId: string }
+>('/api/documents/acknowledge', {
+  successMessage: 'Document acknowledged successfully',
+  errorMessage: 'Failed to acknowledge document',
+  invalidateKeys: ['/api/documents/list'],
+  onSuccess: () => {
+    setAcknowledged(true);
+    setAckDate(new Date());
+    setIsPreviewModalOpen(false);
+    setShowAckSuccess(true);
+    refetchDocuments();
+  },
+});
+
+// Mutation for deleting
+const { trigger: deleteDocument } = usePostMutation<
+  any,
+  { documentId: string }
+>('/api/documents/delete', {
+  successMessage: 'Document deleted successfully',
+  errorMessage: 'Failed to delete document',
+  invalidateKeys: ['/api/documents/list'],
+  onSuccess: () => {
+    refetchDocuments();
+  },
+});
+
+// Usage
+const handleAcknowledge = async () => {
+  if (!selectedDoc) return;
+  await acknowledgeDocument({ documentId: selectedDoc.id });
+};
+
+const handleDelete = async (id: string) => {
+  if (!confirm('Delete this document?')) return;
+  await deleteDocument({ documentId: id });
+};
+```
+
+**Benefits:**
+- ✅ Consistent toast notifications
+- ✅ Automatic cache invalidation
+- ✅ Success callbacks for UI updates
+- ✅ Simplified error handling
+
+#### Employee Edit Forms
+
+For employee edit forms, use mutations with optimistic updates:
+
+```typescript
+import { usePutMutation } from '@/hooks/useMutationWithRefresh';
+
+function EmployeeEditForm({ employeeId, initialData }: Props) {
+  const [formData, setFormData] = useState(initialData);
+
+  const { trigger: updateEmployee, isMutating } = usePutMutation<
+    Employee,
+    UpdateEmployeeDto
+  >(
+    `/api/employees/${employeeId}`,
+    {
+      successMessage: 'Employee updated successfully',
+      errorMessage: 'Failed to update employee',
+      invalidateKeys: [
+        '/api/employees',
+        `/api/employees/${employeeId}`,
+      ],
+      invalidatePattern: /^\/api\/employees\?/, // Invalidate paginated queries
+      refreshRouter: true,
+      refreshDelay: 500, // Wait 500ms before router refresh
+    }
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = await updateEmployee(formData);
+    
+    if (result.success) {
+      // Form submitted successfully
+      router.push('/employees');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* form fields */}
+      <button type="submit" disabled={isMutating}>
+        {isMutating ? 'Saving...' : 'Save Changes'}
+      </button>
+    </form>
+  );
+}
+```
+
+**Benefits:**
+- ✅ Pattern-based cache invalidation for paginated data
+- ✅ Router refresh with delay for smooth transitions
+- ✅ Loading state management
+- ✅ Automatic error surfacing
+
+### Cache Invalidation Strategies
+
+#### Specific Keys
+
+Invalidate exact cache keys:
+
+```typescript
+{
+  invalidateKeys: [
+    '/api/employees',
+    `/api/employees/${id}`,
+    '/api/dashboard/metrics',
+  ]
+}
+```
+
+#### Pattern Matching
+
+Invalidate all keys matching a pattern:
+
+```typescript
+{
+  invalidatePattern: /^\/api\/employees\?/  // All paginated employee queries
+}
+```
+
+#### Combined Approach
+
+Use both for comprehensive invalidation:
+
+```typescript
+{
+  invalidateKeys: ['/api/employees'],
+  invalidatePattern: /^\/api\/employees\//  // All employee detail pages
+}
+```
+
+### Error Handling
+
+#### Automatic Error Toasts
+
+Errors are automatically shown as toasts:
+
+```typescript
+const { trigger } = usePostMutation('/api/employees', {
+  errorMessage: 'Failed to create employee', // Shown on error
+});
+```
+
+#### Custom Error Handling
+
+Handle errors programmatically:
+
+```typescript
+const { trigger } = usePostMutation('/api/employees', {
+  errorMessage: false, // Disable automatic toast
+  onError: (error) => {
+    // Custom error handling
+    if (error.message.includes('duplicate')) {
+      toast.error('Employee already exists');
+    } else {
+      toast.error('An unexpected error occurred');
+    }
+  },
+});
+```
+
+#### Error Recovery
+
+```typescript
+const result = await trigger(data);
+
+if (!result.success) {
+  // Retry logic
+  if (shouldRetry(result.error)) {
+    await trigger(data);
+  }
+}
+```
+
+### Loading States
+
+#### Button States
+
+```typescript
+<button disabled={isMutating}>
+  {isMutating ? (
+    <>
+      <Spinner className="mr-2" />
+      Saving...
+    </>
+  ) : (
+    'Save'
+  )}
+</button>
+```
+
+#### Form States
+
+```typescript
+<form onSubmit={handleSubmit}>
+  <fieldset disabled={isMutating}>
+    {/* form fields */}
+  </fieldset>
+  <button type="submit" disabled={isMutating}>
+    Submit
+  </button>
+</form>
+```
+
+#### Loading Toast
+
+Show a toast during long operations:
+
+```typescript
+const { trigger } = usePostMutation('/api/bulk-import', {
+  showLoadingToast: true,
+  loadingMessage: 'Importing employees...',
+  successMessage: 'Import complete',
+});
+```
+
+### Best Practices
+
+#### 1. Always Invalidate Related Caches
+
+```typescript
+// ✅ Good - invalidates list and detail
+{
+  invalidateKeys: ['/api/employees', `/api/employees/${id}`]
+}
+
+// ❌ Bad - only invalidates list
+{
+  invalidateKeys: ['/api/employees']
+}
+```
+
+#### 2. Use Router Refresh for Server Components
+
+```typescript
+// ✅ Good - updates server-rendered data
+{
+  refreshRouter: true
+}
+
+// ❌ Bad - server components stay stale
+{
+  refreshRouter: false
+}
+```
+
+#### 3. Provide Meaningful Messages
+
+```typescript
+// ✅ Good - specific and actionable
+{
+  successMessage: 'Employee John Doe created successfully',
+  errorMessage: 'Failed to create employee. Please check the form and try again.'
+}
+
+// ❌ Bad - generic and unhelpful
+{
+  successMessage: 'Success',
+  errorMessage: 'Error'
+}
+```
+
+#### 4. Handle Loading States
+
+```typescript
+// ✅ Good - shows loading state
+<button disabled={isMutating}>
+  {isMutating ? 'Saving...' : 'Save'}
+</button>
+
+// ❌ Bad - no feedback
+<button onClick={handleSave}>Save</button>
+```
+
+#### 5. Use Optimistic Updates for Better UX
+
+```typescript
+// ✅ Good - immediate feedback
+const { trigger } = useOptimisticMutation(url, cacheKey, {
+  optimisticData: updatedData,
+});
+
+// ⚠️ Acceptable - but slower UX
+const { trigger } = usePostMutation(url, {
+  onSuccess: () => mutate(cacheKey),
+});
+```
+
+---
+
 ## Summary
 
-The centralized API fetching system provides:
+The centralized API fetching and mutation system provides:
 
 ✅ **Type safety** - Full TypeScript support  
 ✅ **Automatic caching** - SWR handles caching and revalidation  
@@ -743,7 +1310,15 @@ The centralized API fetching system provides:
 ✅ **Optimistic updates** - Better UX with immediate feedback  
 ✅ **Pagination support** - Built-in cursor-based pagination  
 ✅ **Batch requests** - Efficient multi-resource fetching  
+✅ **Mutation helpers** - Unified POST/PUT/PATCH/DELETE with toasts and cache invalidation  
+✅ **Router integration** - Automatic server component refresh  
 
-Use `useApi` for GET requests, `useApiMutation` for mutations, and `apiClient` for non-React contexts.
+**For GET requests:** Use `useApi` hook  
+**For mutations:** Use `usePostMutation`, `usePutMutation`, `usePatchMutation`, or `useDeleteMutation` hooks  
+**For non-React contexts:** Use `apiClient` and mutation helpers from `lib/mutations.ts`  
 
-For questions or issues, refer to the source code in `lib/apiClient.ts` and `app/hooks/useApi.ts`.
+For questions or issues, refer to:
+- `lib/apiClient.ts` - Core API client
+- `app/hooks/useApi.ts` - React hooks for data fetching
+- `lib/mutations.ts` - Mutation utilities
+- `app/hooks/useMutationWithRefresh.ts` - React hooks for mutations

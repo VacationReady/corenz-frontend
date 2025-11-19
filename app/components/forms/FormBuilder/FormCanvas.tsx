@@ -52,16 +52,23 @@ export function FormCanvas({
     <TooltipProvider>
       <div
         ref={setNodeRef}
-        className={`min-h-[400px] border-2 border-dashed rounded-lg p-4 transition-colors ${
-          isOver ? "border-blue-400 bg-blue-50" : "border-gray-200 bg-gray-50"
-        }`}
+        className={`min-h-[600px] rounded-2xl p-6 transition-all duration-300 ${isOver ? "bg-primary/5 ring-2 ring-primary/20" : "glass-subtle"
+          }`}
       >
-        <h3 className="text-lg font-semibold mb-3">Form Layout</h3>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gradient-premium">Form Layout</h3>
+          <div className="text-xs text-muted-foreground">
+            {sections.length} Section{sections.length !== 1 ? 's' : ''}
+          </div>
+        </div>
 
         {sections.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-gray-400 py-12">
-            <PlusCircle className="h-8 w-8 mb-2 opacity-60" />
-            <p className="italic text-sm">Add a section to begin</p>
+          <div className="flex flex-col items-center justify-center text-muted-foreground py-20 border-2 border-dashed border-white/20 rounded-xl bg-white/5">
+            <div className="h-16 w-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
+              <PlusCircle className="h-8 w-8 opacity-60" />
+            </div>
+            <p className="font-medium">Start building your form</p>
+            <p className="text-sm opacity-70 mt-1">Add a section or drag fields here</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -111,36 +118,36 @@ function SectionBox({
   const { setNodeRef, isOver } = useDroppable({ id: `section-${section.id}` });
 
   return (
-    <div className="bg-white border rounded-md p-3">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+    <div className="glass-card rounded-xl p-1 overflow-hidden group hover:shadow-md transition-all">
+      <div className="bg-white/50 border-b border-white/20 p-3 flex items-center justify-between">
+        <div className="flex items-center gap-3 flex-1">
           <input
-            className="text-sm font-medium border rounded px-2 py-1"
+            className="text-sm font-semibold bg-transparent border-transparent hover:border-white/40 focus:border-primary/50 rounded px-2 py-1 transition-colors w-full max-w-xs outline-none"
             value={section.title || "Untitled section"}
             onChange={(e) => onTitleChange(e.target.value)}
+            placeholder="Section Title"
           />
-          <select
-            className="text-xs border rounded px-2 py-1"
-            value={String(section.columns || 1)}
-            onChange={(e) => onColumnsChange(Number(e.target.value) as 1 | 2 | 3)}
-          >
-            <option value="1">1 col</option>
-            <option value="2">2 col</option>
-            <option value="3">3 col</option>
-          </select>
         </div>
+        <select
+          className="text-xs bg-white/50 border-white/20 rounded-md px-2 py-1 hover:bg-white/80 transition-colors cursor-pointer"
+          value={String(section.columns || 1)}
+          onChange={(e) => onColumnsChange(Number(e.target.value) as 1 | 2 | 3)}
+        >
+          <option value="1">1 Column</option>
+          <option value="2">2 Columns</option>
+          <option value="3">3 Columns</option>
+        </select>
       </div>
 
       <div
         ref={setNodeRef}
-        className={`min-h-[120px] rounded-md p-3 ${isOver ? "ring-2 ring-blue-400" : ""} ${
-          section.fields.length ? "bg-gray-50" : "bg-gray-50"
-        }`}
+        className={`min-h-[120px] p-4 transition-colors ${isOver ? "bg-primary/5" : "bg-transparent"
+          }`}
       >
         {section.fields.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-gray-400 py-6">
-            <PlusCircle className="h-6 w-6 mb-2 opacity-60" />
-            <p className="italic text-xs">Drag fields here</p>
+          <div className="flex flex-col items-center justify-center text-muted-foreground py-8 border-2 border-dashed border-white/20 rounded-lg m-2">
+            <PlusCircle className="h-5 w-5 mb-2 opacity-50" />
+            <p className="text-xs font-medium">Drop fields here</p>
           </div>
         ) : (
           <SortableContext items={section.fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>

@@ -353,6 +353,9 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                 </SelectTrigger>
                 <SelectContent className="glass-premium">
                   <SelectItem value="SURVEY">Survey (One-time)</SelectItem>
+                  <SelectItem value="FORM">Standard Form</SelectItem>
+                  <SelectItem value="DATA_SCREEN">Data Screen</SelectItem>
+                  <SelectItem value="TABLE">Table View</SelectItem>
                 </SelectContent>
               </Select>
             </div>

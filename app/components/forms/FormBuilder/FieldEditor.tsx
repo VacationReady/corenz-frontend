@@ -63,19 +63,23 @@ export function FieldEditor({
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 bg-white rounded-md border shadow-sm">
-      <div className="border-b pb-2 mb-2">
-        <h3 className="font-semibold text-lg">Edit Field</h3>
-        <p className="text-sm text-gray-600">Type: {field.type}</p>
+    <div className="flex flex-col gap-5 p-5 glass-card rounded-2xl">
+      <div className="border-b border-white/20 pb-4">
+        <h3 className="font-semibold text-lg text-gradient-premium">Field Properties</h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          Type: <span className="font-medium text-foreground/80">{field.type}</span>
+        </p>
       </div>
 
       <Tabs defaultValue="basics">
-        <TabsList className="grid grid-cols-3 w-full mb-2">
+        <TabsList className="glass-subtle grid grid-cols-3 w-full mb-1 p-1">
           <TabsTrigger value="basics">Basics</TabsTrigger>
           <TabsTrigger value="validation">Validation</TabsTrigger>
           <TabsTrigger value="conditions">Conditions</TabsTrigger>
         </TabsList>
-        <div className="text-xs text-gray-500 -mt-1 mb-2">Tip: Start with Basics for the label and help text. Use Conditions for calculations and logic. Validation makes answers required.</div>
+        <div className="text-xs text-muted-foreground/80 mb-4 px-1">
+          💡 Start with Basics for label and help text. Use Conditions for calculations. Validation makes fields required.
+        </div>
 
         <TabsContent value="basics">
           <div className="space-y-4">
@@ -149,8 +153,8 @@ export function FieldEditor({
                       Configure the columns for your table
                     </p>
                   </div>
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     onClick={() => {
                       const columns = field.tableColumns || [];
                       const newColumn: TableColumn = {
@@ -160,8 +164,8 @@ export function FieldEditor({
                         required: false,
                       };
                       onChange({ ...field, tableColumns: [...columns, newColumn] });
-                    }} 
-                    size="sm" 
+                    }}
+                    size="sm"
                     variant="primary"
                     className="h-8"
                   >
@@ -206,8 +210,8 @@ export function FieldEditor({
                                 value={column.type}
                                 onChange={(e) => {
                                   const newColumns = [...(field.tableColumns || [])];
-                                  newColumns[colIndex] = { 
-                                    ...column, 
+                                  newColumns[colIndex] = {
+                                    ...column,
                                     type: e.target.value as any,
                                     // Clear options if switching away from select
                                     options: e.target.value === "select" ? column.options : undefined
@@ -530,7 +534,7 @@ export function FieldEditor({
                       </p>
                     </div>
                   </div>
-                  
+
                   {(field.calculationConfig?.expression || field.calculation) && (
                     <div className="space-y-4 mt-4 pt-4 border-t border-blue-200">
                       <div className="bg-white rounded-lg p-4 space-y-4">
@@ -538,7 +542,7 @@ export function FieldEditor({
                           <label className="block text-sm font-semibold text-gray-900 mb-3">
                             What do you want to calculate?
                           </label>
-                          
+
                           {/* Simple calculation builder */}
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 text-sm text-gray-700">
@@ -549,8 +553,8 @@ export function FieldEditor({
                                 className="w-20 text-center"
                                 value={(() => {
                                   // Extract the decimal multiplier and convert back to percentage
-                                  const match = field.calculationConfig?.expression?.match(/\*\s*([0-9.]+)/) || 
-                                               field.calculationConfig?.expression?.match(/([0-9.]+)\s*\*/);
+                                  const match = field.calculationConfig?.expression?.match(/\*\s*([0-9.]+)/) ||
+                                    field.calculationConfig?.expression?.match(/([0-9.]+)\s*\*/);
                                   if (match?.[1]) {
                                     const decimal = parseFloat(match[1]);
                                     return (decimal * 100).toString();
@@ -560,14 +564,14 @@ export function FieldEditor({
                                 onChange={(e) => {
                                   const percentageInput = e.target.value;
                                   if (!percentageInput) return;
-                                  
+
                                   const percentage = parseFloat(percentageInput);
                                   const decimal = percentage / 100;
-                                  
-                                  const sourceField = allFields.find(f => 
+
+                                  const sourceField = allFields.find(f =>
                                     field.calculationConfig?.expression?.includes(f.id)
                                   )?.id || "";
-                                  
+
                                   if (sourceField) {
                                     onChange({
                                       ...field,
@@ -581,7 +585,7 @@ export function FieldEditor({
                               />
                               <span className="font-medium">% of</span>
                             </div>
-                            
+
                             <select
                               className="w-full border-2 rounded-lg px-4 py-3 text-sm font-medium"
                               value={allFields.find(f => field.calculationConfig?.expression?.includes(f.id))?.id || ""}
@@ -599,8 +603,8 @@ export function FieldEditor({
                             >
                               <option value="">Select a field...</option>
                               {allFields
-                                .filter(f => 
-                                  f.id !== field.id && 
+                                .filter(f =>
+                                  f.id !== field.id &&
                                   (f.type === "currency" || f.type === "number" || f.type === "computed")
                                 )
                                 .map(f => (
@@ -614,7 +618,7 @@ export function FieldEditor({
 
                           <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                             <p className="text-sm text-green-800">
-                              <strong>💡 Example:</strong> If you select "Revenue Billed" and enter 25%, 
+                              <strong>💡 Example:</strong> If you select "Revenue Billed" and enter 25%,
                               this field will automatically show 25% of whatever value is in the Revenue Billed field.
                             </p>
                           </div>
@@ -695,7 +699,7 @@ export function FieldEditor({
                 👁️ Show/Hide this field conditionally
               </label>
               <p className="text-sm text-gray-600 -mt-2">Only show this field when certain conditions are met</p>
-              
+
               <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="text-xs text-gray-600 mb-1 block">When this field</label>
@@ -715,7 +719,7 @@ export function FieldEditor({
                     }
                   </select>
                 </div>
-                
+
                 {field.conditional?.field && (
                   <>
                     <div>
@@ -732,7 +736,7 @@ export function FieldEditor({
                         <option value="lessThan">Less than</option>
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="text-xs text-gray-600 mb-1 block">This value</label>
                       <Input

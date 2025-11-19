@@ -148,22 +148,19 @@ const GROUPS: { title: string; items: PaletteItem[] }[] = [
 export function FieldPalette() {
   return (
     <TooltipProvider>
-      <div className="bg-white border rounded-lg p-4 shadow-sm">
-        <h3 className="font-semibold mb-3 text-lg">Field Types</h3>
-        <div className="space-y-4">
-          {GROUPS.map((group) => (
-            <div key={group.title}>
-              <div className="text-xs uppercase tracking-wide text-gray-500 mb-2">
-                {group.title}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {group.items.map((item) => (
-                  <DraggableField key={`${group.title}-${item.type}`} field={item} />
-                ))}
-              </div>
+      <div className="space-y-6">
+        {GROUPS.map((group) => (
+          <div key={group.title}>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 px-1">
+              {group.title}
             </div>
-          ))}
-        </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {group.items.map((item) => (
+                <DraggableField key={`${group.title}-${item.type}`} field={item} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </TooltipProvider>
   );
@@ -196,17 +193,24 @@ function DraggableField({
           {...attributes}
           {...listeners}
           style={style}
-          className={`border rounded-md p-2 text-sm bg-white hover:bg-gray-50 select-none shadow-sm hover:shadow transition-shadow ${
-            isDragging ? "ring-2 ring-blue-400" : ""
-          }`}
+          className={`
+            group flex items-center gap-3 p-3 rounded-xl text-sm font-medium
+            glass-subtle border-white/20 hover:border-primary/30 hover:bg-white/60
+            transition-all duration-200 select-none cursor-grab active:cursor-grabbing
+            ${isDragging ? "ring-2 ring-primary/50 shadow-lg scale-105" : "hover:shadow-md hover:-translate-y-0.5"}
+          `}
         >
-          <div className="flex items-center gap-2">
-            {field.icon ? <field.icon className="h-4 w-4 text-gray-600" /> : null}
-            <span>{field.label}</span>
+          <div className={`
+            p-2 rounded-lg bg-white/50 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors
+          `}>
+            {field.icon ? <field.icon className="h-4 w-4" /> : null}
           </div>
+          <span className="text-foreground/80 group-hover:text-foreground">{field.label}</span>
         </div>
       </TooltipTrigger>
-      <TooltipContent side="right">{field.hint}</TooltipContent>
+      <TooltipContent side="right" className="glass-premium text-xs">
+        {field.hint}
+      </TooltipContent>
     </Tooltip>
   );
 }

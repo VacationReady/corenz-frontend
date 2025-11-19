@@ -2106,6 +2106,17 @@ video {
   .bg-sunset-3 {
     background-color: hsl(var(--sunset-3));
   }
+
+  .bg-aurora {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--sunset-1) / 0.3),
+      hsl(var(--sunset-2) / 0.3),
+      hsl(var(--sunset-3) / 0.3)
+    );
+    background-size: 200% 200%;
+    animation: aurora 15s ease infinite;
+  }
 }
 
 @layer utilities {

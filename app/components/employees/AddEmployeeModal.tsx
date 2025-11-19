@@ -702,7 +702,9 @@ export default function AddEmployeeModal({
         return;
       }
 
-      const employees = await response.json();
+      const result = await response.json();
+      // Handle paginated response format
+      const employees = result.data || result;
       
       if (Array.isArray(employees) && employees.length > 0) {
         const existingEmployee = employees.find(

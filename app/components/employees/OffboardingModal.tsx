@@ -172,11 +172,15 @@ export default function OffboardingModal({
 
   const fetchEmployees = async () => {
     try {
+      // API defaults to limit=50, max=100
+      // For offboarding modal, we rely on the default limit
       const response = await fetch("/api/employees?status=active");
       if (response.ok) {
-        const data = await response.json();
+        const result = await response.json();
+        // Handle paginated response format
+        const employeesList = result.data || result;
         setEmployees(
-          data.filter((emp: Employee) => emp.userId !== employee?.userId),
+          employeesList.filter((emp: Employee) => emp.userId !== employee?.userId),
         );
       }
     } catch (error) {

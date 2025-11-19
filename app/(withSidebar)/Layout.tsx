@@ -80,11 +80,11 @@ export default function WithSidebarLayout({
   );
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen">
       <div className="w-80 flex-shrink-0 hidden lg:block">
         <AdminSidebar />
       </div>
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto bg-background/80 backdrop-blur-sm">{children}</main>
     </div>
   );
 }

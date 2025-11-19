@@ -33,7 +33,7 @@ export function SidebarContainer({
   );
 
   const containerClasses = clsx(
-    "glass-strong rounded-3xl shadow-depth-2 flex flex-col h-full overflow-hidden",
+    "glass-premium rounded-3xl shadow-depth-2 flex flex-col h-full overflow-hidden",
     variant === "mobile" && "rounded-none h-screen"
   );
 
@@ -123,7 +123,7 @@ export function SidebarHeader({
           )} />
         </button>
       )}
-      
+
       {variant === "mobile" && onClose && (
         <button
           onClick={onClose}
@@ -205,7 +205,7 @@ export function SidebarItem({
         isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
         collapsed ? "w-6 h-6" : "w-5 h-5"
       )} />
-      
+
       {!collapsed && (
         <>
           <span className="flex-1 truncate">{label}</span>
@@ -336,7 +336,7 @@ export function SidebarProfile({
             </div>
           )}
         </div>
-        
+
         {!collapsed && (
           <div className="flex-1 min-w-0">
             <p className="text-base font-medium text-foreground truncate">

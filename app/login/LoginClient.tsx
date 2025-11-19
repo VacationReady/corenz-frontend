@@ -41,7 +41,7 @@ export default function LoginClient() {
     try {
       const saved = window.localStorage.getItem("lastLoginEmail");
       if (saved) setEmail(saved);
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -51,8 +51,8 @@ export default function LoginClient() {
       urlError === "OAuthAccountNotLinked"
         ? "This email is already linked to a different sign-in method. Please use that provider or contact support."
         : urlError === "AccessDenied"
-        ? "Access denied. Please contact your administrator."
-        : "Unable to sign in. Please try again.";
+          ? "Access denied. Please contact your administrator."
+          : "Unable to sign in. Please try again.";
     setError(message);
   }, [search]);
 
@@ -104,7 +104,7 @@ export default function LoginClient() {
               }
             }
           }
-        } catch {}
+        } catch { }
 
         if (role === "ADMIN" || role === "SUPER_ADMIN") {
           router.push("/dashboard/admin");
@@ -118,10 +118,10 @@ export default function LoginClient() {
           res?.error === "CredentialsSignin"
             ? "Invalid email or password"
             : res?.error === "OAuthAccountNotLinked"
-            ? "This email is already linked to a different sign-in method. Please use that provider or contact support."
-            : res?.error === "AccessDenied"
-            ? "Access denied. Please contact your administrator."
-            : "Unable to sign in. Please try again.";
+              ? "This email is already linked to a different sign-in method. Please use that provider or contact support."
+              : res?.error === "AccessDenied"
+                ? "Access denied. Please contact your administrator."
+                : "Unable to sign in. Please try again.";
         setError(message);
       }
     } catch (error) {
@@ -135,12 +135,12 @@ export default function LoginClient() {
     setEmail(value);
     try {
       window.localStorage.setItem("lastLoginEmail", value);
-    } catch {}
+    } catch { }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface dark:bg-surface-dark px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white dark:bg-surface-dark p-8 shadow-sm transition-colors">
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl glass-card p-8 shadow-sm transition-colors">
         <div className="mb-6 text-center">
           {logoSrc ? (
             <div className="mb-3 flex justify-center">
@@ -235,7 +235,7 @@ export default function LoginClient() {
         <div className="space-y-2">
           <Button
             variant="outline"
-            className="w-full gap-2 bg-white dark:bg-gray-800"
+            className="w-full gap-2 glass-subtle hover:glass-strong border-glass"
             onClick={() => {
               if (loading || ssoLoading) return;
               setSsoLoading("azure-ad");
@@ -250,7 +250,7 @@ export default function LoginClient() {
           </Button>
           <Button
             variant="outline"
-            className="w-full gap-2 bg-white dark:bg-gray-800"
+            className="w-full gap-2 glass-subtle hover:glass-strong border-glass"
             onClick={() => {
               if (loading || ssoLoading) return;
               setSsoLoading("google");

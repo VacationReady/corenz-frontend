@@ -77,22 +77,28 @@ async function getRouteModule() {
 async function callGet(req: NextRequest, context: any) {
   const module = await getRouteModule();
   const GET = (module as any).GET || (module as any).default?.GET;
-  if (typeof GET !== "function") {
+  if (!GET) {
     console.error("Module keys:", Object.keys(module));
     console.error("Module.default keys:", module.default ? Object.keys(module.default) : "no default");
-    throw new Error("Leave-requests route GET export is not a function");
+    console.error("GET type:", typeof GET);
+    console.error("GET value:", GET);
+    throw new Error("Leave-requests route GET export not found");
   }
+  // Call it regardless of typeof check - it might be a Proxy or wrapped function
   return GET(req, context);
 }
 
 async function callPost(req: NextRequest, context: any) {
   const module = await getRouteModule();
   const POST = (module as any).POST || (module as any).default?.POST;
-  if (typeof POST !== "function") {
+  if (!POST) {
     console.error("Module keys:", Object.keys(module));
     console.error("Module.default keys:", module.default ? Object.keys(module.default) : "no default");
-    throw new Error("Leave-requests route POST export is not a function");
+    console.error("POST type:", typeof POST);
+    console.error("POST value:", POST);
+    throw new Error("Leave-requests route POST export not found");
   }
+  // Call it regardless of typeof check - it might be a Proxy or wrapped function
   return POST(req, context);
 }
 

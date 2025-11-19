@@ -60,22 +60,29 @@ let mockPrisma: any = {};
   return originalLoad(request, parent, isMain);
 };
 
-async function loadLeaveRequestsRoute() {
-  const mod: any = await import(
-    "../../app/api/employees/[id]/leave-requests/route",
-  );
-  const GET = (mod as any).GET || (mod as any).default?.GET;
-  const POST = (mod as any).POST || (mod as any).default?.POST;
-  return { GET, POST };
+let routeModulePromise: Promise<typeof import("../../app/api/employees/[id]/leave-requests/route")> | null = null;
+
+async function getRouteModule() {
+  if (!routeModulePromise) {
+    routeModulePromise = import("../../app/api/employees/[id]/leave-requests/route");
+  }
+  return routeModulePromise;
 }
 
 async function callGet(req: NextRequest, context: any) {
-  // Import fresh each time to ensure mocks are picked up
-  const { GET } = await loadLeaveRequestsRoute();
+  const { GET } = await getRouteModule();
   if (typeof GET !== "function") {
     throw new Error("Leave-requests route GET export is not a function");
   }
   return GET(req, context);
+}
+
+async function callPost(req: NextRequest, context: any) {
+  const { POST } = await getRouteModule();
+  if (typeof POST !== "function") {
+    throw new Error("Leave-requests route POST export is not a function");
+  }
+  return POST(req, context);
 }
 
 function resetMocks() {
@@ -509,7 +516,6 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
   await run("POST: returns 401 for unauthenticated requests", async () => {
     mockSession = null;
 
-    const { POST } = await loadLeaveRequestsRoute();
     const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
       method: "POST",
       body: JSON.stringify({
@@ -518,7 +524,7 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
         endDate: "2025-01-05",
       }),
     });
-    const res = await POST(req, { params: Promise.resolve({ id: "emp1" }) });
+    const res = await callPost(req, { params: Promise.resolve({ id: "emp1" }) });
     const data = await res.json();
 
     assert.equal(res.status, 401);
@@ -594,7 +600,6 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       return fn(mockPrisma);
     };
 
-    const { POST } = await loadLeaveRequestsRoute();
     const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
       method: "POST",
       body: JSON.stringify({
@@ -603,8 +608,7 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
         endDate: "2025-01-05",
       }),
     });
-
-    const res = await POST(req, { params: Promise.resolve({ id: "emp1" }) });
+    const res = await callPost(req, { params: Promise.resolve({ id: "emp1" }) });
     const data = await res.json();
 
     assert.equal(res.status, 200);
@@ -663,7 +667,6 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       findMany: async () => [],
     };
 
-    const { POST } = await loadLeaveRequestsRoute();
     const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
       method: "POST",
       body: JSON.stringify({
@@ -672,8 +675,7 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
         endDate: "2025-01-05",
       }),
     });
-
-    const res = await POST(req, { params: Promise.resolve({ id: "emp1" }) });
+    const res = await callPost(req, { params: Promise.resolve({ id: "emp1" }) });
     const data = await res.json();
 
     assert.equal(res.status, 200);
@@ -708,7 +710,6 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       return null;
     };
 
-    const { POST } = await loadLeaveRequestsRoute();
     const req = new NextRequest("http://localhost/api/employees/emp2/leave-requests", {
       method: "POST",
       body: JSON.stringify({
@@ -717,8 +718,7 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
         endDate: "2025-01-05",
       }),
     });
-
-    const res = await POST(req, { params: Promise.resolve({ id: "emp2" }) });
+    const res = await callPost(req, { params: Promise.resolve({ id: "emp2" }) });
     const data = await res.json();
 
     assert.equal(res.status, 403);
@@ -737,7 +737,6 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       return null;
     };
 
-    const { POST } = await loadLeaveRequestsRoute();
     const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
       method: "POST",
       body: JSON.stringify({
@@ -747,7 +746,7 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       }),
     });
 
-    const res = await POST(req, { params: Promise.resolve({ id: "emp1" }) });
+    const res = await callPost(req, { params: Promise.resolve({ id: "emp1" }) });
     const data = await res.json();
 
     assert.equal(res.status, 404);

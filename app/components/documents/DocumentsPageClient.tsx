@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import Button from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import Button from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { UploadCloud, FileText } from "lucide-react";
@@ -36,7 +36,7 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui/Select";
+} from "@/components/ui/select";
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
@@ -120,12 +120,6 @@ function DocumentsContent() {
   const [sigDocId, setSigDocId] = useState<string | null>(null);
   const [sigDocName, setSigDocName] = useState<string | null>(null);
   const [isFieldPlacementOpen, setIsFieldPlacementOpen] = useState(false);
-  const [departmentsList, setDepartmentsList] = useState<
-    { label: string; value: string }[]
-  >([]);
-  const [jobRolesList, setJobRolesList] = useState<
-    { label: string; value: string }[]
-  >([]);
   const [uploadDepartments, setUploadDepartments] = useState<string[]>([]);
   const [uploadJobRoles, setUploadJobRoles] = useState<string[]>([]);
   const [acknowledged, setAcknowledged] = useState(false);
@@ -227,8 +221,6 @@ function DocumentsContent() {
 
   // Initial data fetch on mount
   useEffect(() => {
-    fetchDocuments();
-    fetchDropdownData();
     fetchUserRole();
   }, []);
 
@@ -440,7 +432,7 @@ function DocumentsContent() {
           // Normal upload flow - close modal and refresh
           resetUploadForm();
           setIsUploadModalOpen(false);
-          fetchDocuments();
+          refetchDocuments();
         }
       } else {
         const errorData = await res.json().catch(() => ({}));
@@ -468,7 +460,7 @@ function DocumentsContent() {
         setAckDate(now);
         setIsPreviewModalOpen(false);
         setShowAckSuccess(true);
-        fetchDocuments();
+        refetchDocuments();
       } else toast("Failed to acknowledge document.");
     } catch {
       toast("Error acknowledging document.");
@@ -482,7 +474,7 @@ function DocumentsContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ documentId: id }),
     });
-    fetchDocuments();
+    refetchDocuments();
   };
 
   const formatFileSize = (size: number) =>
@@ -529,7 +521,7 @@ function DocumentsContent() {
         setIsPlacementBeforeSendOpen(false);
         resetUploadForm();
         setIsUploadModalOpen(false);
-        fetchDocuments();
+        refetchDocuments();
       } else {
         const errorData = await res.json().catch(() => ({}));
         toast.error(errorData?.error || "Failed to send notifications. You can retry from the document actions menu.");
@@ -552,7 +544,7 @@ function DocumentsContent() {
     setIsPlacementBeforeSendOpen(false);
     resetUploadForm();
     setIsUploadModalOpen(false);
-    fetchDocuments();
+    refetchDocuments();
   };
 
   const handleSign = async (signature: SignatureCaptureValue) => {
@@ -585,7 +577,7 @@ function DocumentsContent() {
         // Show success animation
         setShowSignSuccess(true);
         // Refresh documents list
-        fetchDocuments();
+        refetchDocuments();
       } else {
         toast("Failed to submit signature");
       }
@@ -1133,7 +1125,7 @@ function DocumentsContent() {
           isOpen={isEditAccessOpen}
           onClose={() => setIsEditAccessOpen(false)}
           document={editingDoc}
-          onSaved={fetchDocuments}
+          onSaved={refetchDocuments}
         />
         <ViewAcknowledgementsModal
           isOpen={isViewAckOpen}

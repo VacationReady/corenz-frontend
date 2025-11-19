@@ -102,7 +102,7 @@ export default function ApprovalsPage() {
   // Mutation for approving/declining leave requests
   const { trigger: updateLeaveRequest, isMutating: actionLoading } = usePatchMutation<
     any,
-    { action: 'approve' | 'decline'; decisionId?: string }
+    { requestId: string; action: 'approve' | 'decline'; decisionId?: string }
   >(
     (body) => `/api/leave-request/${body?.requestId}`,
     {
@@ -120,11 +120,15 @@ export default function ApprovalsPage() {
     decisionId: string | undefined,
     action: "approve" | "decline",
   ) => {
-    const result = await updateLeaveRequest({
+    const payload: { requestId: string; action: "approve" | "decline"; decisionId?: string } = {
       requestId: id,
       action,
-      ...(decisionId && { decisionId }),
-    } as any);
+    };
+    if (decisionId) {
+      payload.decisionId = decisionId;
+    }
+
+    const result = await updateLeaveRequest(payload);
 
     if (result.success) {
       toast.success(
@@ -200,17 +204,17 @@ export default function ApprovalsPage() {
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => handleDecision(req.id, req.myDecision?.id, "approve")}
-                  disabled={actionLoading === req.id}
+                  disabled={actionLoading}
                   className="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 disabled:opacity-50"
                 >
-                  {actionLoading === req.id ? "Approving..." : "Approve"}
+                  {actionLoading ? "Approving..." : "Approve"}
                 </button>
                 <button
                   onClick={() => handleDecision(req.id, req.myDecision?.id, "decline")}
-                  disabled={actionLoading === req.id}
+                  disabled={actionLoading}
                   className="bg-red-600 text-white px-4 py-1 rounded hover:bg-red-700 disabled:opacity-50"
                 >
-                  {actionLoading === req.id ? "Declining..." : "Decline"}
+                  {actionLoading ? "Declining..." : "Decline"}
                 </button>
               </div>
             </div>

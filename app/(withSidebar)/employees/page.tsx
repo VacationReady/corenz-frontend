@@ -17,50 +17,124 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
 import EmployeesPageClient from "./EmployeesClient";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Fetch initial employee data server-side
- * Uses the paginated API endpoint for consistency
+ * Directly queries database instead of API route to avoid auth issues
  */
 async function getInitialData(status: "active" | "archived" | "all" = "active") {
   const session = await getServerSession(authOptions);
   
-  if (!session?.user) {
+  if (!session?.user?.companyId) {
     redirect("/login");
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  
   try {
-    // Fetch first page of employees (50)
-    const employeesRes = await fetch(
-      `${baseUrl}/api/employees?status=${status}&limit=50`,
-      {
-        headers: {
-          cookie: `next-auth.session-token=${session.user.id}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const limit = 50;
+    
+    // Build where condition based on status
+    const whereCondition: any = { companyId: session.user.companyId };
+    if (status === "active") whereCondition.isActive = true;
+    else if (status === "archived") whereCondition.isActive = false;
 
-    // Fetch departments and job roles in parallel
-    const [deptsRes, rolesRes] = await Promise.all([
-      fetch(`${baseUrl}/api/departments`, { cache: "no-store" }),
-      fetch(`${baseUrl}/api/job-roles`, { cache: "no-store" }),
+    // Fetch employees with same logic as API route
+    const employees = await prisma.employee.findMany({
+      where: whereCondition,
+      include: {
+        User: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            role: true,
+            createdAt: true,
+            profileImageUrl: true,
+            managerId: true,
+            isActivated: true,
+            PermissionProfile: { select: { name: true } },
+          },
+        },
+        Department: {
+          select: { id: true, name: true },
+        },
+        JobRole: {
+          select: { id: true, name: true },
+        },
+        Location: {
+          select: { id: true, name: true },
+        },
+        EmployeeOffboarding: {
+          select: {
+            id: true,
+            status: true,
+            lastWorkingDate: true,
+            offboardingType: true,
+            completedAt: true,
+          },
+        },
+      },
+      orderBy: { id: "desc" },
+      take: limit + 1,
+    });
+
+    // Determine pagination
+    const hasMore = employees.length > limit;
+    const results = hasMore ? employees.slice(0, limit) : employees;
+    const nextCursor = hasMore ? results[results.length - 1].id : null;
+
+    // Batch sign profile URLs
+    const profileSignRequests = results
+      .filter((emp) => emp.User.profileImageUrl)
+      .map((emp) => ({
+        id: emp.User.id,
+        path: emp.User.profileImageUrl!,
+      }));
+
+    const signedProfileMap = await batchSignProfileUrlsAsMap(profileSignRequests);
+
+    // Format employees with signed URLs - flatten the structure to match client expectations
+    const formattedEmployees = results.map((emp) => ({
+      ...emp,
+      // Flatten User fields to top level for backward compatibility
+      firstName: emp.User.firstName,
+      lastName: emp.User.lastName,
+      email: emp.User.email,
+      role: emp.User.role,
+      isActivated: emp.User.isActivated,
+      user: {
+        ...emp.User,
+        profileImageUrl: signedProfileMap.get(emp.User.id) || emp.User.profileImageUrl,
+      },
+      department: emp.Department,
+      jobRole: emp.JobRole,
+      location: emp.Location,
+      offboarding: emp.EmployeeOffboarding,
+    }));
+
+    // Fetch departments and job roles
+    const [departments, jobRoles] = await Promise.all([
+      prisma.department.findMany({
+        where: { companyId: session.user.companyId },
+        orderBy: { name: "asc" },
+      }),
+      prisma.jobRole.findMany({
+        where: { companyId: session.user.companyId },
+        orderBy: { name: "asc" },
+      }),
     ]);
 
-    const employeesData = employeesRes.ok ? await employeesRes.json() : { data: [], pagination: { cursor: null, hasMore: false } };
-    const departments = deptsRes.ok ? await deptsRes.json() : [];
-    const jobRoles = rolesRes.ok ? await rolesRes.json() : [];
-
     return {
-      initialEmployees: Array.isArray(employeesData) ? employeesData : (employeesData.data || []),
-      initialPagination: employeesData.pagination || { cursor: null, hasMore: false, limit: 50 },
-      departments: Array.isArray(departments) ? departments : (departments.departments || []),
-      jobRoles: Array.isArray(jobRoles) ? jobRoles : (jobRoles.jobRoles || []),
+      initialEmployees: formattedEmployees as any, // Type cast - Prisma types don't exactly match client Employee type
+      initialPagination: { cursor: nextCursor, hasMore, limit },
+      departments,
+      jobRoles,
     };
   } catch (error) {
     console.error("[EmployeesPage] Failed to fetch initial data:", error);

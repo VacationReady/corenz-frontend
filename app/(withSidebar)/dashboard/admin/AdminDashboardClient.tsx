@@ -33,6 +33,8 @@ import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { Input } from "@/components/ui/Input";
+import { useApi, useBatchedApi } from "@/hooks/useApi";
+import { apiClient } from "@/lib/apiClient";
  
 function EntitlementProjection({
   employeeId,
@@ -206,124 +208,95 @@ export default function AdminDashboardClient({
   );
   
   // ---------------- Documents Action Items (Ack & Sign) ----------------
+  // Fetch documents list
+  const { data: companyDocs } = useApi<any[]>('/api/documents/list-company');
+  const { data: employeeDocs } = useApi<any[]>(
+    employeeId ? `/api/documents/list-employee` : null,
+    { params: employeeId ? { employeeId } : undefined }
+  );
+
+  // Combine and deduplicate documents
+  const candidateDocuments = useMemo(() => {
+    const docs = [...(companyDocs || []), ...(employeeDocs || [])];
+    const uniqueDocsMap = new Map<string, any>();
+    for (const d of docs) {
+      if (d && d.id && !uniqueDocsMap.has(d.id)) uniqueDocsMap.set(d.id, d);
+    }
+    return Array.from(uniqueDocsMap.values())
+      .filter((d) => d?.requiresAck || d?.requiresSignature)
+      .slice(0, 20);
+  }, [companyDocs, employeeDocs]);
+
+  // Batch fetch document statuses
+  const documentIds = useMemo(
+    () => candidateDocuments.map((d) => d.id),
+    [candidateDocuments]
+  );
+
+  const { data: statusData, isLoading: loadingStatuses } = useBatchedApi<
+    { statuses: Record<string, { requiresAck: boolean; acknowledged: boolean; requiresSignature: boolean; signed: boolean }> },
+    { documentIds: string[] }
+  >(
+    '/api/documents/status',
+    { documentIds },
+    { enabled: documentIds.length > 0 }
+  );
+
+  // Build action items from batched response
   useEffect(() => {
-    let isMounted = true;
-    const load = async () => {
-      try {
-        setDocActionItems((prev) => ({ ...prev, loading: true }));
-        // Fetch documents visible to current user (company-scoped)
-        const [companyDocsRes, employeeDocsRes] = await Promise.all([
-          fetch(`/api/documents/list-company`, { cache: "no-store" }),
-          employeeId
-            ? fetch(`/api/documents/list-employee?employeeId=${employeeId}`, {
-                cache: "no-store",
-              })
-            : Promise.resolve({ ok: false, json: async () => [] as any[] } as Response),
-        ]);
-        const companyDocs = companyDocsRes.ok
-          ? ((await companyDocsRes.json()) as any[])
-          : [];
-        const employeeDocs = employeeDocsRes.ok
-          ? ((await employeeDocsRes.json()) as any[])
-          : [];
-        const docs: any[] = [...companyDocs, ...employeeDocs];
-        // De-duplicate by id
-        const uniqueDocsMap = new Map<string, any>();
-        for (const d of docs) {
-          if (d && d.id && !uniqueDocsMap.has(d.id)) uniqueDocsMap.set(d.id, d);
-        }
-        const uniqueDocs = Array.from(uniqueDocsMap.values());
+    if (!statusData || !candidateDocuments.length) {
+      setDocActionItems({ ack: [], sign: [], loading: false, urlMap: {} });
+      return;
+    }
 
-        // Limit to a reasonable number to avoid too many network calls
-        const candidates = uniqueDocs
-          .filter((d) => d?.requiresAck || d?.requiresSignature)
-          .slice(0, 20);
+    const ackItems: Array<{ id: string; name: string }> = [];
+    const signItems: Array<{ id: string; name: string }> = [];
+    const urlMap: Record<string, string | undefined> = {};
 
-        if (candidates.length === 0) {
-          if (!isMounted) return;
-          setDocActionItems({ ack: [], sign: [], loading: false, urlMap: {} });
-          return;
-        }
+    for (const doc of candidateDocuments) {
+      const status = statusData.statuses[doc.id];
+      if (!status) continue;
 
-        // ✅ Use batched endpoint instead of per-document fetches
-        const documentIds = candidates.map((d) => d.id);
-        const statusRes = await fetch(`/api/documents/status`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ documentIds }),
-          cache: "no-store",
-        });
+      if (doc.url) urlMap[doc.id] = doc.url;
 
-        if (!statusRes.ok) {
-          throw new Error("Failed to fetch document statuses");
-        }
-
-        const { statuses } = await statusRes.json();
-
-        if (!isMounted) return;
-
-        // Build action items from batched response
-        const ackItems: Array<{ id: string; name: string }> = [];
-        const signItems: Array<{ id: string; name: string }> = [];
-        const urlMap: Record<string, string | undefined> = {};
-
-        for (const doc of candidates) {
-          const status = statuses[doc.id];
-          if (!status) continue;
-
-          // Store URL for later use
-          if (doc.url) urlMap[doc.id] = doc.url;
-
-          // Check if acknowledgement is needed
-          if (status.requiresAck && !status.acknowledged) {
-            ackItems.push({ id: doc.id, name: doc.name });
-          }
-
-          // Check if signature is needed
-          if (status.requiresSignature && !status.signed) {
-            signItems.push({ id: doc.id, name: doc.name });
-          }
-        }
-
-        setDocActionItems({
-          ack: ackItems.slice(0, 5),
-          sign: signItems.slice(0, 5),
-          loading: false,
-          urlMap,
-        });
-      } catch {
-        if (!isMounted) return;
-        setDocActionItems({ ack: [], sign: [], loading: false });
+      if (status.requiresAck && !status.acknowledged) {
+        ackItems.push({ id: doc.id, name: doc.name });
       }
-    };
-    load();
-    return () => {
-      isMounted = false;
-    };
-  }, [employeeId]);
+
+      if (status.requiresSignature && !status.signed) {
+        signItems.push({ id: doc.id, name: doc.name });
+      }
+    }
+
+    setDocActionItems({
+      ack: ackItems.slice(0, 5),
+      sign: signItems.slice(0, 5),
+      loading: loadingStatuses,
+      urlMap,
+    });
+  }, [statusData, candidateDocuments, loadingStatuses]);
   
+  // Fetch dashboard metrics with department filter
+  const { data: metricsData, isLoading: loadingMetricsData } = useApi<{
+    headcount: number;
+    managers: number;
+    newStartersThisMonth: number;
+    pendingApprovals: { my: number; all?: number };
+    canViewAllApprovals: boolean;
+  }>('/api/dashboard/metrics', {
+    params: selectedDepartment !== 'all' ? { departmentId: selectedDepartment } : undefined,
+  });
+
   useEffect(() => {
-    let isMounted = true;
-    const load = async () => {
-      setLoadingMetrics(true);
-      try {
-        const res = await fetch(
-          `/api/dashboard/metrics${selectedDepartment !== "all" ? `?departmentId=${selectedDepartment}` : ""}`,
-          { cache: "no-store" },
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted) setMetrics(data);
-        }
-      } finally {
-        if (isMounted) setLoadingMetrics(false);
-      }
-    };
-    load();
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedDepartment]);
+    if (metricsData) {
+      setMetrics(metricsData);
+      setLoadingMetrics(false);
+    }
+  }, [metricsData]);
+
+  useEffect(() => {
+    setLoadingMetrics(loadingMetricsData);
+  }, [loadingMetricsData]);
 
   useEffect(() => {
     let isMounted = true;

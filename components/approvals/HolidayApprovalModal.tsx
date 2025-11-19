@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import { Calendar, User, Users, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { useApi } from "@/hooks/useApi";
 
 interface HolidayApprovalModalProps {
   decisionId: string | null;
@@ -61,39 +62,22 @@ export function HolidayApprovalModal({
   onApprove,
   onDecline,
 }: HolidayApprovalModalProps) {
-  const [details, setDetails] = useState<ApprovalDetails | null>(null);
-  const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
 
+  // Fetch approval details using API hook
+  const { data: response, error, isLoading: loading } = useApi<{ success: boolean; data: ApprovalDetails }>(
+    decisionId && open ? `/api/approvals/${decisionId}/details` : null
+  );
+
+  const details = response?.success ? response.data : null;
+
+  // Handle fetch errors
   useEffect(() => {
-    if (open && decisionId) {
-      fetchDetails();
-    } else {
-      setDetails(null);
-    }
-  }, [open, decisionId]);
-
-  const fetchDetails = async () => {
-    if (!decisionId) return;
-
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/approvals/${decisionId}/details`);
-      const data = await res.json();
-      
-      if (data.success) {
-        setDetails(data.data);
-      } else {
-        toast.error("Failed to load approval details");
-        onOpenChange(false);
-      }
-    } catch (error) {
+    if (error && open) {
       toast.error("Failed to load approval details");
       onOpenChange(false);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [error, open, onOpenChange]);
 
   const handleApprove = async () => {
     setProcessing(true);

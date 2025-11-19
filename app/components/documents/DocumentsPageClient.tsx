@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { UploadCloud, FileText } from "lucide-react";
+import { useApi } from "@/hooks/useApi";
+import { apiClient } from "@/lib/apiClient";
 import {
   Table,
   TableHeader,
@@ -81,7 +83,14 @@ type Document = {
 };
 
 function DocumentsContent() {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  // Fetch documents using API hook
+  const { data: documentsData, error: documentsError, isLoading: loading, mutate: refetchDocuments } = useApi<Document[]>('/api/documents/list');
+  const documents = documentsData || [];
+
+  // Fetch departments and job roles
+  const { data: departmentsData } = useApi<Array<{ id: string; name: string }>>('/api/departments/active');
+  const { data: jobRolesData } = useApi<Array<{ id: string; name: string }>>('/api/job-roles/active');
+
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -94,7 +103,6 @@ function DocumentsContent() {
   const [categoriesList, setCategoriesList] = useState<string[]>([]);
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isPlacementBeforeSendOpen, setIsPlacementBeforeSendOpen] = useState(false);
@@ -144,49 +152,40 @@ function DocumentsContent() {
 
   const isAdminUser = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
 
-  const fetchDocuments = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/documents/list`);
-      if (!res.ok) {
-        setDocuments([]);
-        setLoading(false);
-        return;
-      }
-      const data = await res.json();
-      setDocuments(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error("Failed to load documents", e);
-      setDocuments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Build dropdown lists from fetched data
+  const departmentsList = useMemo(() => {
+    if (!departmentsData) return [];
+    return [
+      { label: "All Departments", value: "all" },
+      ...departmentsData.map((d) => ({ label: d.name, value: d.id })),
+    ];
+  }, [departmentsData]);
 
-  const fetchDropdownData = async () => {
-    try {
-      const [deptRes, roleRes] = await Promise.all([
-        fetch("/api/departments/active"),
-        fetch("/api/job-roles/active"),
-      ]);
-      const deptDataRaw = await deptRes.json();
-      const roleDataRaw = await roleRes.json();
-      const deptData = Array.isArray(deptDataRaw) ? deptDataRaw : [];
-      const roleData = Array.isArray(roleDataRaw) ? roleDataRaw : [];
-      setDepartmentsList([
-        { label: "All Departments", value: "all" },
-        ...deptData.map((d: any) => ({ label: d.name, value: d.id })),
-      ]);
-      setJobRolesList([
-        { label: "All Job Roles", value: "all" },
-        ...roleData.map((r: any) => ({ label: r.name, value: r.id })),
-      ]);
-      if (!uploadDepartments.length) setUploadDepartments(["all"]);
-      if (!uploadJobRoles.length) setUploadJobRoles(["all"]);
-    } catch (err) {
-      console.error("Failed to load dropdown data", err);
+  const jobRolesList = useMemo(() => {
+    if (!jobRolesData) return [];
+    return [
+      { label: "All Job Roles", value: "all" },
+      ...jobRolesData.map((r) => ({ label: r.name, value: r.id })),
+    ];
+  }, [jobRolesData]);
+
+  // Initialize upload filters
+  useEffect(() => {
+    if (departmentsList.length && !uploadDepartments.length) {
+      setUploadDepartments(["all"]);
     }
-  };
+    if (jobRolesList.length && !uploadJobRoles.length) {
+      setUploadJobRoles(["all"]);
+    }
+  }, [departmentsList, jobRolesList, uploadDepartments.length, uploadJobRoles.length]);
+
+  // Handle document fetch errors
+  useEffect(() => {
+    if (documentsError) {
+      console.error("Failed to load documents", documentsError);
+      toast.error("Failed to load documents");
+    }
+  }, [documentsError]);
 
   const fetchUserRole = async () => {
     try {

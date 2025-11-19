@@ -60,9 +60,21 @@ let mockPrisma: any = {};
   return originalLoad(request, parent, isMain);
 };
 
+async function loadLeaveRequestsRoute() {
+  const mod: any = await import(
+    "../../app/api/employees/[id]/leave-requests/route",
+  );
+  const GET = (mod as any).GET || (mod as any).default?.GET;
+  const POST = (mod as any).POST || (mod as any).default?.POST;
+  return { GET, POST };
+}
+
 async function callGet(req: NextRequest, context: any) {
   // Import fresh each time to ensure mocks are picked up
-  const { GET } = await import("../../app/api/employees/[id]/leave-requests/route");
+  const { GET } = await loadLeaveRequestsRoute();
+  if (typeof GET !== "function") {
+    throw new Error("Leave-requests route GET export is not a function");
+  }
   return GET(req, context);
 }
 
@@ -497,7 +509,7 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
   await run("POST: returns 401 for unauthenticated requests", async () => {
     mockSession = null;
 
-    const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
+    const { POST } = await loadLeaveRequestsRoute();
     const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
       method: "POST",
       body: JSON.stringify({
@@ -582,7 +594,7 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       return fn(mockPrisma);
     };
 
-    const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
+    const { POST } = await loadLeaveRequestsRoute();
     const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
       method: "POST",
       body: JSON.stringify({
@@ -651,7 +663,7 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       findMany: async () => [],
     };
 
-    const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
+    const { POST } = await loadLeaveRequestsRoute();
     const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
       method: "POST",
       body: JSON.stringify({
@@ -696,7 +708,7 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       return null;
     };
 
-    const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
+    const { POST } = await loadLeaveRequestsRoute();
     const req = new NextRequest("http://localhost/api/employees/emp2/leave-requests", {
       method: "POST",
       body: JSON.stringify({
@@ -725,7 +737,7 @@ test("Leave Requests API - Authentication & Authorization", async (t) => {
       return null;
     };
 
-    const { POST } = await import("../../app/api/employees/[id]/leave-requests/route");
+    const { POST } = await loadLeaveRequestsRoute();
     const req = new NextRequest("http://localhost/api/employees/emp1/leave-requests", {
       method: "POST",
       body: JSON.stringify({

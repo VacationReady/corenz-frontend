@@ -535,6 +535,10 @@ model Employee {
   OnboardingReminders              OnboardingReminder[]
 
   @@unique([companyId, irdNumber])
+  @@index([companyId, isActive])
+  @@index([companyId, departmentId])
+  @@index([companyId, jobRoleId])
+  @@index([companyId, userId])
 }
 
 model EmployeePerformanceReview {

@@ -78,6 +78,14 @@ function EmployeesContent() {
   const [error, setError] = useState("");
   const [visibleEmployees, setVisibleEmployees] = useState<Employee[]>([]);
   const [resetFiltersTick, setResetFiltersTick] = useState(0);
+  
+  // Pagination state
+  const [pagination, setPagination] = useState<{
+    cursor: string | null;
+    hasMore: boolean;
+    loading: boolean;
+  }>({ cursor: null, hasMore: false, loading: false });
+  
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -90,61 +98,99 @@ function EmployeesContent() {
     managerId: "",
   });
 
-  const fetchData = async (status = "all") => {
+  const fetchData = async (status = "all", reset = true) => {
     setError("");
+    if (reset) {
+      setPagination({ cursor: null, hasMore: false, loading: true });
+    } else {
+      setPagination(prev => ({ ...prev, loading: true }));
+    }
+    
     try {
+      const cursor = reset ? "" : pagination.cursor || "";
+      const limit = 50; // Load 50 employees per page
+      
       const [empRes, deptRes, roleRes] = await Promise.all([
-        fetch(`/api/employees?status=${status}`),
-        fetch("/api/departments"),
-        fetch("/api/job-roles"),
+        fetch(`/api/employees?status=${status}&limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`),
+        reset ? fetch("/api/departments") : Promise.resolve({ ok: true, json: async () => departments }),
+        reset ? fetch("/api/job-roles") : Promise.resolve({ ok: true, json: async () => jobRoles }),
       ]);
 
-      // Employees
+      // Employees (new paginated format)
       if (empRes.ok) {
-        const data = await empRes.json();
-        const employeesData: Employee[] = Array.isArray(data) ? data : [];
-        setEmployees(sortEmployees(employeesData));
+        const response = await empRes.json();
+        
+        // Handle both old array format (backward compatibility) and new paginated format
+        const employeesData: Employee[] = Array.isArray(response) 
+          ? response 
+          : (response.data || []);
+        
+        const paginationData = response.pagination || { cursor: null, hasMore: false };
+        
+        if (reset) {
+          setEmployees(sortEmployees(employeesData));
+        } else {
+          // Append to existing employees
+          setEmployees(prev => sortEmployees([...prev, ...employeesData]));
+        }
+        
+        setPagination({
+          cursor: paginationData.cursor,
+          hasMore: paginationData.hasMore,
+          loading: false,
+        });
       } else {
         const msg = await empRes.json().catch(() => ({}));
         console.error("employees fetch failed", msg);
-        setEmployees([]);
+        if (reset) setEmployees([]);
+        setPagination(prev => ({ ...prev, loading: false }));
       }
 
-      // Departments
-      if (deptRes.ok) {
+      // Departments (only on reset)
+      if (reset && deptRes.ok) {
         const data = await deptRes.json();
         setDepartments(Array.isArray(data) ? data : data.departments || []);
-      } else {
+      } else if (reset) {
         const msg = await deptRes.json().catch(() => ({}));
         console.error("departments fetch failed", msg);
         setDepartments([]);
       }
 
-      // Job roles
-      if (roleRes.ok) {
+      // Job roles (only on reset)
+      if (reset && roleRes.ok) {
         const data = await roleRes.json();
         setJobRoles(Array.isArray(data) ? data : data.jobRoles || []);
-      } else {
+      } else if (reset) {
         const msg = await roleRes.json().catch(() => ({}));
         console.error("job-roles fetch failed", msg);
         setJobRoles([]);
       }
 
       // Only show a banner if at least one failed
-      if (!empRes.ok || !deptRes.ok || !roleRes.ok) {
+      if (!empRes.ok || (reset && (!deptRes.ok || !roleRes.ok))) {
         setError("Some data failed to load. Showing partial results.");
       }
     } catch (e) {
       console.error("fetchData error", e);
       setError("Failed to load data");
-      setEmployees([]);
-      setDepartments([]);
-      setJobRoles([]);
+      if (reset) {
+        setEmployees([]);
+        setDepartments([]);
+        setJobRoles([]);
+      }
+      setPagination(prev => ({ ...prev, loading: false }));
+    }
+  };
+  
+  const loadMore = () => {
+    if (!pagination.loading && pagination.hasMore) {
+      fetchData(activeTab, false);
     }
   };
 
   useEffect(() => {
-    fetchData(activeTab);
+    fetchData(activeTab, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const handleChange = (
@@ -186,7 +232,7 @@ function EmployeesContent() {
         jobRoleId: "",
         managerId: "",
       });
-      fetchData();
+      fetchData(activeTab, true);
     } catch {
       setError("Network error");
     }
@@ -199,7 +245,7 @@ function EmployeesContent() {
   };
 
   const handleOffboardingSuccess = () => {
-    fetchData(activeTab);
+    fetchData(activeTab, true);
     setSelectedEmployee(null);
   };
 
@@ -330,10 +376,10 @@ function EmployeesContent() {
                     }
                     toast.success("Employee deleted");
                     setTimeout(() => {
-                      fetchData(activeTab);
+                      fetchData(activeTab, true);
                     }, 0);
                   } catch (err) {
-                    setTimeout(() => fetchData(activeTab), 0);
+                    setTimeout(() => fetchData(activeTab, true), 0);
                     toast.error(`Error deleting employee: ${(err as Error).message}`);
                     console.error(err);
                   }
@@ -352,7 +398,7 @@ function EmployeesContent() {
                       return;
                     }
                     toast.success(`Activation email sent to ${emp.email}`);
-                    fetchData(activeTab);
+                    fetchData(activeTab, true);
                   } catch (e) {
                     toast.error("Network error sending activation email");
                   }
@@ -463,19 +509,39 @@ function EmployeesContent() {
           onFilteredRowsChange={(rows) => setVisibleEmployees(rows as Employee[])}
           resetFiltersAt={resetFiltersTick}
         />
+        
+        {/* Load More Button */}
+        {pagination.hasMore && (
+          <div className="mt-4 flex justify-center">
+            <Button
+              variant="outline"
+              onClick={loadMore}
+              disabled={pagination.loading}
+            >
+              {pagination.loading ? "Loading..." : "Load More Employees"}
+            </Button>
+          </div>
+        )}
+        
+        {/* Loading indicator for initial load */}
+        {pagination.loading && employees.length === 0 && (
+          <div className="mt-4 text-center text-sm text-muted-foreground">
+            Loading employees...
+          </div>
+        )}
       </div>
 
       {/* Modals */}
       <AddEmployeeModal
         open={isModalOpen}
         onClose={() => setModalOpen(false)}
-        onSuccess={() => fetchData(activeTab)}
+        onSuccess={() => fetchData(activeTab, true)}
       />
       {isDeptModalOpen && (
         <NewDepartmentModal
           onClose={() => {
             setDeptModalOpen(false);
-            fetchData(activeTab);
+            fetchData(activeTab, true);
           }}
         />
       )}
@@ -483,7 +549,7 @@ function EmployeesContent() {
         <NewJobRoleModal
           onClose={() => {
             setRoleModalOpen(false);
-            fetchData(activeTab);
+            fetchData(activeTab, true);
           }}
         />
       )}

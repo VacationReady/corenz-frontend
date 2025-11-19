@@ -612,13 +612,39 @@ export default function AdminDashboardClient({
     const loadEmployees = async () => {
       setLoadingEmployees(true);
       try {
-        const res = await fetch("/api/employees?status=all", { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          if (active) setEmployeesForEdit(Array.isArray(data) ? data : []);
-        } else {
-          if (active) setEmployeesForEdit([]);
+        // Load all employees with pagination
+        let allEmployees: any[] = [];
+        let cursor: string | null = null;
+        let hasMore = true;
+        
+        while (hasMore && active) {
+          const url = `/api/employees?status=all&limit=100${cursor ? `&cursor=${cursor}` : ""}`;
+          const res = await fetch(url, { cache: "no-store" });
+          
+          if (res.ok) {
+            const response = await res.json();
+            
+            // Handle both old array format and new paginated format
+            const employeesData = Array.isArray(response) 
+              ? response 
+              : (response.data || []);
+            
+            allEmployees = [...allEmployees, ...employeesData];
+            
+            // Check pagination
+            if (response.pagination) {
+              cursor = response.pagination.cursor;
+              hasMore = response.pagination.hasMore;
+            } else {
+              // Old format, no more pages
+              hasMore = false;
+            }
+          } else {
+            hasMore = false;
+          }
         }
+        
+        if (active) setEmployeesForEdit(allEmployees);
       } catch {
         if (active) setEmployeesForEdit([]);
       } finally {

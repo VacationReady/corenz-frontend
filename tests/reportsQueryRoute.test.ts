@@ -7,94 +7,89 @@ import { NextRequest } from "next/server";
 // Skip tests in CI if there's no database
 // Uses Module._load mocking to avoid database requirements
 
+const originalLoad = (Module as any)._load;
+let mockSession: any = null;
+let mockPrisma: any = {};
+let mockQueryBuilder: any = {};
+let mockHrReportFields: any = {};
+
+(Module as any)._load = function (request: string, parent: any, isMain: boolean) {
+  if (request === "@/lib/prisma" || request === "../app/lib/prisma") {
+    return {
+      prisma: mockPrisma,
+      ensurePrismaConnected: async () => {},
+    };
+  }
+  if (request === "next-auth") {
+    return { getServerSession: async () => mockSession };
+  }
+  if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
+    return { authOptions: {} };
+  }
+  if (request === "@/lib/queryBuilder" || request === "../app/lib/queryBuilder") {
+    return mockQueryBuilder;
+  }
+  if (request === "@/lib/hrReportFields" || request === "../app/lib/hrReportFields") {
+    return mockHrReportFields;
+  }
+  if (request === "@/lib/reportingTimeConfig" || request === "../app/lib/reportingTimeConfig") {
+    return {
+      resolveReportingTimeConfig: async () => ({
+        timeZone: "UTC",
+        locale: "en-GB",
+        tenant: { timeZone: "UTC", locale: "en-GB", template: null },
+        source: { timeZone: "default", locale: "default" },
+      }),
+    };
+  }
+  return originalLoad(request, parent, isMain);
+};
+
+let routeModulePromise: Promise<typeof import("../app/api/reports/query/route")> | null = null;
+
+async function getRouteModule() {
+  if (!routeModulePromise) {
+    routeModulePromise = import("../app/api/reports/query/route");
+  }
+  return routeModulePromise;
+}
+
 test("POST /api/reports/query requires auth", async () => {
-  const originalLoad = (Module as any)._load;
-  (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
-    if (request === "@/lib/prisma" || request === "../app/lib/prisma") {
-      return {
-        prisma: {},
-        ensurePrismaConnected: async () => {},
-      };
-    }
-    if (request === "next-auth") {
-      return { getServerSession: async () => null };
-    }
-    if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
-      return { authOptions: {} };
-    }
-    if (request === "@/lib/reportingTimeConfig" || request === "../app/lib/reportingTimeConfig") {
-      return {
-        resolveReportingTimeConfig: async () => ({
-          timeZone: "UTC",
-          locale: "en-GB",
-          tenant: { timeZone: "UTC", locale: "en-GB", template: null },
-          source: { timeZone: "default", locale: "default" },
-        }),
-      };
-    }
-    return originalLoad(request, parent, isMain);
-  };
-  const { POST } = await import("../app/api/reports/query/route");
+  mockSession = null;
+  mockPrisma = {};
+  
+  const { POST } = await getRouteModule();
   const res = await POST(new Request("http://localhost/api/reports/query", { method: "POST", body: JSON.stringify({ selectedFields: ["User.id"], filters: [], pagination: {}, sort: {} }) } as any));
   assert.equal(res.status, 401);
-  (Module as any)._load = originalLoad;
 });
 
 test("POST /api/reports/query restricts selectedFields to allowed reportFields", async () => {
-  const originalLoad = (Module as any)._load;
-  (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
-    if (request === "@/lib/prisma" || request === "../app/lib/prisma") {
-      return {
-        prisma: {
-          User: {
-            findMany: async (_args: any) => [{ id: "u1", email: "a@b.com" }],
-            count: async () => 1,
-          },
-        },
-        ensurePrismaConnected: async () => {},
+  mockSession = { user: { id: "u1", companyId: "c1" } };
+  mockPrisma = {
+    User: {
+      findMany: async (_args: any) => [{ id: "u1", email: "a@b.com" }],
+      count: async () => 1,
+    },
+  };
+  mockQueryBuilder = {
+    buildDynamicQuery: () => ({ queries: [{ model: "User", prismaQuery: { where: {} } }] }),
+    attachComputedFields: async (results: any[]) => results,
+  };
+  mockHrReportFields = {
+    getFieldByKey: (key: string) => {
+      const fields: any = {
+        "User.id": { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
+        "User.email": { model: "User", field: "User.email", label: "email", type: "string", filterable: true },
       };
-    }
-    if (request === "next-auth") {
-      return { getServerSession: async () => ({ user: { id: "u1", companyId: "c1" } }) };
-    }
-    if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
-      return { authOptions: {} };
-    }
-    if (request === "@/lib/queryBuilder" || request === "../app/lib/queryBuilder") {
-      return {
-        buildDynamicQuery: () => ({ queries: [{ model: "User", prismaQuery: { where: {} } }] }),
-        attachComputedFields: async (results: any[]) => results,
-      };
-    }
-    if (request === "@/lib/hrReportFields" || request === "../app/lib/hrReportFields") {
-      return {
-        getFieldByKey: (key: string) => {
-          const fields: any = {
-            "User.id": { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
-            "User.email": { model: "User", field: "User.email", label: "email", type: "string", filterable: true },
-          };
-          return fields[key];
-        },
-        hrReportFields: [
-          { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
-          { model: "User", field: "User.email", label: "email", type: "string", filterable: true },
-        ],
-      };
-    }
-    if (request === "../app/lib/reportingTimeConfig") {
-      return {
-        resolveReportingTimeConfig: async () => ({
-          timeZone: "UTC",
-          locale: "en-GB",
-          tenant: { timeZone: "UTC", locale: "en-GB", template: null },
-          source: { timeZone: "default", locale: "default" },
-        }),
-      };
-    }
-    return originalLoad(request, parent, isMain);
+      return fields[key];
+    },
+    hrReportFields: [
+      { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
+      { model: "User", field: "User.email", label: "email", type: "string", filterable: true },
+    ],
   };
 
-  const { POST } = await import("../app/api/reports/query/route");
+  const { POST } = await getRouteModule();
   const body = {
     selectedFields: ["User.id", "User.email", "User.password"],
     filters: [],
@@ -114,66 +109,38 @@ test("POST /api/reports/query restricts selectedFields to allowed reportFields",
   assert.equal(data.data.length, 1);
   assert.equal(Object.keys(data.data[0]).includes("password"), false);
   assert.equal(data.total, 1);
-  (Module as any)._load = originalLoad;
 });
 
 test("POST /api/reports/query injects tenant filter for User.companyId", async () => {
-  const originalLoad = (Module as any)._load;
   let capturedWhere: any = null;
-  (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
-    if (request === "@/lib/prisma" || request === "../app/lib/prisma") {
-      return {
-        prisma: {
-          User: {
-            findMany: async (args: any) => {
-              capturedWhere = args?.where;
-              return [{ id: "u1", email: "a@b.com" }];
-            },
-            count: async (_args: any) => 1,
-          },
-        },
-        ensurePrismaConnected: async () => {},
+  
+  mockSession = { user: { id: "u1", companyId: "tenant-123" } };
+  mockPrisma = {
+    User: {
+      findMany: async (args: any) => {
+        capturedWhere = args?.where;
+        return [{ id: "u1", email: "a@b.com" }];
+      },
+      count: async (_args: any) => 1,
+    },
+  };
+  mockQueryBuilder = {
+    buildDynamicQuery: () => ({ queries: [{ model: "User", prismaQuery: { where: {} } }] }),
+    attachComputedFields: async (results: any[]) => results,
+  };
+  mockHrReportFields = {
+    getFieldByKey: (key: string) => {
+      const fields: any = {
+        "User.id": { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
       };
-    }
-    if (request === "next-auth") {
-      return { getServerSession: async () => ({ user: { id: "u1", companyId: "tenant-123" } }) };
-    }
-    if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
-      return { authOptions: {} };
-    }
-    if (request === "@/lib/queryBuilder" || request === "../app/lib/queryBuilder") {
-      return {
-        buildDynamicQuery: () => ({ queries: [{ model: "User", prismaQuery: { where: {} } }] }),
-        attachComputedFields: async (results: any[]) => results,
-      };
-    }
-    if (request === "@/lib/hrReportFields" || request === "../app/lib/hrReportFields") {
-      return {
-        getFieldByKey: (key: string) => {
-          const fields: any = {
-            "User.id": { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
-          };
-          return fields[key];
-        },
-        hrReportFields: [
-          { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
-        ],
-      };
-    }
-    if (request === "../app/lib/reportingTimeConfig") {
-      return {
-        resolveReportingTimeConfig: async () => ({
-          timeZone: "UTC",
-          locale: "en-GB",
-          tenant: { timeZone: "UTC", locale: "en-GB", template: null },
-          source: { timeZone: "default", locale: "default" },
-        }),
-      };
-    }
-    return originalLoad(request, parent, isMain);
+      return fields[key];
+    },
+    hrReportFields: [
+      { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
+    ],
   };
 
-  const { POST } = await import("../app/api/reports/query/route");
+  const { POST } = await getRouteModule();
   const res = await POST(
     new Request("http://localhost/api/reports/query", {
       method: "POST",
@@ -183,7 +150,6 @@ test("POST /api/reports/query injects tenant filter for User.companyId", async (
   assert.equal(res.status, 200);
   assert.ok(capturedWhere);
   assert.equal(capturedWhere.companyId, "tenant-123");
-  (Module as any)._load = originalLoad;
 });
 
 

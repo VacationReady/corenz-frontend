@@ -18,7 +18,7 @@ import { NextRequest } from "next/server";
 const originalLoad = (Module as any)._load;
 let mockSession: any = null;
 let mockPrisma: any = {};
-let mockSupabase: any = {};
+let mockSupabase: any = { storage: { from: () => ({ createSignedUrl: async () => ({ data: { signedUrl: "https://example.com/signed/profile.jpg" }, error: null }) }) } };
 
 (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
   if (request === "next-auth") {
@@ -33,7 +33,8 @@ let mockSupabase: any = {};
     };
   }
   if (request === "@/lib/supabase-admin") {
-    return { default: mockSupabase };
+    // Return an ESModule-like shape so both default and namespace imports work
+    return { __esModule: true, default: mockSupabase, ...mockSupabase };
   }
   return originalLoad(request, parent, isMain);
 };
@@ -54,25 +55,23 @@ async function callGet(req: NextRequest) {
 
 function resetMocks() {
   mockSession = null;
-  mockPrisma = {
-    employee: {
-      findMany: async () => [],
-      findFirst: async () => null,
-    },
-    user: {
-      findMany: async () => [],
-    },
+  mockPrisma.employee = {
+    findMany: async () => [],
+    findFirst: async () => null,
   };
-  mockSupabase = {
-    storage: {
-      from: () => ({
-        createSignedUrl: async () => ({
-          data: { signedUrl: "https://example.com/signed/profile.jpg" },
-          error: null,
-        }),
-      }),
-    },
+  mockPrisma.user = {
+    findMany: async () => [],
   };
+  // Preserve mockSupabase object reference so imported supabase sees updated methods
+  if (!mockSupabase.storage) {
+    mockSupabase.storage = {};
+  }
+  mockSupabase.storage.from = () => ({
+    createSignedUrl: async () => ({
+      data: { signedUrl: "https://example.com/signed/profile.jpg" },
+      error: null,
+    }),
+  });
 }
 
 test("Iterative Subordinate Collection", async (t) => {

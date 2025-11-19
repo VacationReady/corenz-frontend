@@ -18,6 +18,13 @@
 
 import supabase from "@/lib/supabase-admin";
 
+// Allow tests to inject a mock Supabase client without relying on module loader hacks
+let supabaseClient: any = supabase;
+
+export function __setSupabaseClientForTests(client: any) {
+  supabaseClient = client;
+}
+
 export interface ProfileSignRequest {
   /** Unique identifier for this request (e.g., userId or employeeId) */
   id: string;
@@ -64,7 +71,7 @@ export async function batchSignProfileUrls(
   const results = await Promise.allSettled(
     requests.map(async (req) => {
       try {
-        const { data, error } = await supabase.storage
+        const { data, error } = await supabaseClient.storage
           .from("documents")
           .createSignedUrl(req.path, expiresInSeconds);
 

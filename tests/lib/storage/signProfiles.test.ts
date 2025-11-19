@@ -5,7 +5,7 @@
  * for profile image signed URL generation.
  */
 
-import "../setupEnv";
+import "../../setupEnv";
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -32,22 +32,12 @@ const mockSupabase = {
   },
 };
 
-// Mock the supabase-admin module
-import Module from "module";
-const originalLoad = (Module as any)._load;
-(Module as any)._load = function (request: string, parent: any, isMain: boolean) {
-  if (request === "@/lib/supabase-admin") {
-    return { default: mockSupabase };
-  }
-  return originalLoad(request, parent, isMain);
-};
-
-// Import after mocking
 import {
   batchSignProfileUrls,
   createSignedUrlMap,
   batchSignProfileUrlsAsMap,
   type ProfileSignRequest,
+  __setSupabaseClientForTests,
 } from "../../../app/lib/storage/signProfiles";
 
 test("Profile Signed URL Batching", async (t) => {
@@ -55,6 +45,7 @@ test("Profile Signed URL Batching", async (t) => {
     await t.test(name, async () => {
       // Reset mocks before each test
       mockSupabaseResponses.clear();
+      __setSupabaseClientForTests(mockSupabase);
       await fn();
     });
   };

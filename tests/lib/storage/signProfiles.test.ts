@@ -11,11 +11,14 @@ import assert from "node:assert/strict";
 
 // Mock Supabase admin client
 let mockSupabaseResponses: Map<string, { signedUrl: string | null; error: any }> = new Map();
+let supabaseCallCount = 0;
 
 const mockSupabase = {
   storage: {
     from: (bucket: string) => ({
       createSignedUrl: async (path: string, expiresIn: number) => {
+        supabaseCallCount += 1;
+
         const response = mockSupabaseResponses.get(path);
         if (response) {
           return {
@@ -36,8 +39,10 @@ import {
   batchSignProfileUrls,
   createSignedUrlMap,
   batchSignProfileUrlsAsMap,
+  getSignedProfileUrl,
   type ProfileSignRequest,
   __setSupabaseClientForTests,
+  __clearProfileUrlCacheForTests,
 } from "../../../app/lib/storage/signProfiles";
 
 test("Profile Signed URL Batching", async (t) => {
@@ -45,7 +50,9 @@ test("Profile Signed URL Batching", async (t) => {
     await t.test(name, async () => {
       // Reset mocks before each test
       mockSupabaseResponses.clear();
+      supabaseCallCount = 0;
       __setSupabaseClientForTests(mockSupabase);
+      __clearProfileUrlCacheForTests();
       await fn();
     });
   };
@@ -101,6 +108,23 @@ test("Profile Signed URL Batching", async (t) => {
     assert.equal(results.length, 1);
     assert.ok(results[0].signedUrl);
     assert.ok(results[0].signedUrl!.includes(`exp=${customExpiry}`));
+  });
+
+  await run("batchSignProfileUrls: reuses cached URLs for repeated requests", async () => {
+    const requests: ProfileSignRequest[] = [
+      { id: "user1", path: "profiles/user1.jpg" },
+    ];
+
+    const firstResults = await batchSignProfileUrls(requests, 300);
+    const firstUrl = firstResults[0].signedUrl;
+
+    assert.ok(firstUrl, "First call should return a signed URL");
+
+    const secondResults = await batchSignProfileUrls(requests, 300);
+    const secondUrl = secondResults[0].signedUrl;
+
+    assert.equal(secondUrl, firstUrl, "Second call should reuse cached URL");
+    assert.equal(supabaseCallCount, 1, "Supabase should be called only once for cached path");
   });
 
   // ========================================
@@ -271,6 +295,14 @@ test("Profile Signed URL Batching", async (t) => {
     results.forEach((result) => {
       assert.ok(result.signedUrl, `URL for ${result.id} should be signed`);
     });
+  });
+
+  await run("getSignedProfileUrl: uses batching helper for single path", async () => {
+    const url = await getSignedProfileUrl("profiles/single-user.jpg", 600);
+
+    assert.ok(url);
+    assert.ok(url!.includes("profiles/single-user.jpg"));
+    assert.equal(supabaseCallCount, 1, "Single helper should issue exactly one Supabase call");
   });
 
   // ========================================

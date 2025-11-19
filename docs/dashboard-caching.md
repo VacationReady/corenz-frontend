@@ -17,6 +17,7 @@ The admin dashboard implements efficient data fetching patterns using batched AP
 3. [Dashboard Widgets](#dashboard-widgets)
 4. [Best Practices](#best-practices)
 5. [Performance Metrics](#performance-metrics)
+6. [Batched Profile Avatar URL Signing](#batched-profile-avatar-url-signing)
 
 ---
 
@@ -431,6 +432,37 @@ useEffect(() => {
 | Metrics | 1 | ~100ms | 5 |
 | Calendar | 1 | ~150ms | 3 |
 | **Total** | **5** | **~400ms** | **13** |
+
+### Profile Avatar URL Batching
+
+The dashboard and employees directory share a common helper for signing profile avatar URLs in batches: `batchSignProfileUrlsAsMap` from `app/lib/storage/signProfiles.ts`.
+
+Instead of calling Supabase once per employee, server-side code constructs a list of storage paths and signs them in a single logical operation:
+
+```typescript
+import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
+
+const profileSignRequests = employees
+  .filter((emp) => emp.User.profileImageUrl)
+  .map((emp) => ({
+    id: emp.User.id,
+    path: emp.User.profileImageUrl!,
+  }));
+
+const signedUrlMap = await batchSignProfileUrlsAsMap(profileSignRequests);
+
+const enriched = employees.map((emp) => ({
+  ...emp,
+  profileImageUrl: emp.User.profileImageUrl
+    ? signedUrlMap.get(emp.User.id) ?? null
+    : null,
+}));
+```
+
+**Guidance:**
+- Use the helper whenever a dashboard widget needs profile avatars for multiple employees (e.g. people metrics, team overviews).
+- For single-avatar cases (such as the admin hero card), call `getDownloadUrl(path)`, which internally delegates to the same helper and benefits from its in-memory cache.
+- Avoid direct `supabase.storage.createSignedUrl` calls in widgets; centralize logic in `signProfiles.ts` for consistent behavior, logging, and caching.
 
 ### Improvement Summary
 

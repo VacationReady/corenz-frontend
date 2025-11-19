@@ -140,16 +140,18 @@ export default function LoginClient() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-2xl glass-card p-8 shadow-sm transition-colors">
+      <div className="w-full max-w-md rounded-3xl bg-white/80 backdrop-blur-xl border border-white/40 p-8 shadow-2xl transition-all">
         <div className="mb-6 text-center">
           {logoSrc ? (
-            <div className="mb-3 flex justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={logoSrc}
-                alt={`${brandName} logo`}
-                className="h-12 w-auto"
-              />
+            <div className="mb-6 flex justify-center">
+              <div className="bg-white rounded-2xl p-3 shadow-sm ring-1 ring-gray-900/5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoSrc}
+                  alt={`${brandName} logo`}
+                  className="h-8 w-auto"
+                />
+              </div>
             </div>
           ) : (
             <h1 className="text-2xl font-bold text-primary">{brandName}</h1>

@@ -21,8 +21,22 @@ import supabase from "@/lib/supabase-admin";
 // Allow tests to inject a mock Supabase client without relying on module loader hacks
 let supabaseClient: any = supabase;
 
+interface ProfileUrlCacheEntry {
+  signedUrl: string | null;
+  expiresAt: number;
+}
+
+// Simple in-memory cache keyed by storage path. This is per app instance and
+// is safe for short-lived signed URLs.
+const profileUrlCache = new Map<string, ProfileUrlCacheEntry>();
+
 export function __setSupabaseClientForTests(client: any) {
   supabaseClient = client;
+}
+
+// Test-only helper to clear the in-memory cache between test cases
+export function __clearProfileUrlCacheForTests() {
+  profileUrlCache.clear();
 }
 
 export interface ProfileSignRequest {
@@ -66,10 +80,18 @@ export async function batchSignProfileUrls(
     return [];
   }
 
+  const now = Date.now();
+
   // Process all requests in parallel using Promise.allSettled
   // This ensures one failure doesn't block others
   const results = await Promise.allSettled(
     requests.map(async (req) => {
+      // Reuse cached signed URL if we have a fresh entry for this path
+      const cached = profileUrlCache.get(req.path);
+      if (cached && cached.expiresAt > now) {
+        return { id: req.id, signedUrl: cached.signedUrl };
+      }
+
       try {
         const { data, error } = await supabaseClient.storage
           .from("documents")
@@ -77,13 +99,30 @@ export async function batchSignProfileUrls(
 
         if (error) {
           console.warn(`[signProfiles] Failed to sign URL for ${req.id}:`, error.message);
-          return { id: req.id, signedUrl: null };
+          const signedUrl = null;
+          profileUrlCache.set(req.path, {
+            signedUrl,
+            expiresAt: now + expiresInSeconds * 1000,
+          });
+          return { id: req.id, signedUrl };
         }
 
-        return { id: req.id, signedUrl: data?.signedUrl ?? null };
+        const signedUrl = data?.signedUrl ?? null;
+
+        profileUrlCache.set(req.path, {
+          signedUrl,
+          expiresAt: now + expiresInSeconds * 1000,
+        });
+
+        return { id: req.id, signedUrl };
       } catch (err) {
         console.warn(`[signProfiles] Exception signing URL for ${req.id}:`, err);
-        return { id: req.id, signedUrl: null };
+        const signedUrl = null;
+        profileUrlCache.set(req.path, {
+          signedUrl,
+          expiresAt: now + expiresInSeconds * 1000,
+        });
+        return { id: req.id, signedUrl };
       }
     }),
   );
@@ -132,4 +171,25 @@ export async function batchSignProfileUrlsAsMap(
 ): Promise<Map<string, string | null>> {
   const results = await batchSignProfileUrls(requests, expiresInSeconds);
   return createSignedUrlMap(results);
+}
+
+/**
+ * Convenience helper for signing a single profile image URL.
+ * Internally reuses the batching + cache logic.
+ */
+export async function getSignedProfileUrl(
+  path: string,
+  expiresInSeconds: number = 60 * 5,
+): Promise<string | null> {
+  const [result] = await batchSignProfileUrls(
+    [
+      {
+        id: path,
+        path,
+      },
+    ],
+    expiresInSeconds,
+  );
+
+  return result?.signedUrl ?? null;
 }

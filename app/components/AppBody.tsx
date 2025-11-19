@@ -28,14 +28,14 @@ export function AppBody({
       <div className="fixed inset-0 pointer-events-none z-0">
         {/* Base gradient layer */}
         <div className="absolute inset-0 bg-gradient-landscape opacity-60" />
-        
+
         {/* Aurora overlay for color richness */}
         {mounted && (
-          <div className="absolute inset-0 bg-aurora opacity-30" />
+          <div className="absolute inset-0 bg-aurora" />
         )}
-        
+
         {/* Subtle noise texture for depth */}
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.015] mix-blend-overlay"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' seed='5' /%3E%3C/filter%3E%3C/defs%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E")`,
@@ -43,16 +43,16 @@ export function AppBody({
         />
 
         {/* Radial gradient vignette for focus */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: `radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.02) 100%)`,
           }}
         />
-        
+
         {/* Top light accent */}
         {mounted && (
-          <div 
+          <div
             className="absolute -top-1/2 left-1/2 -translate-x-1/2 w-[200%] h-[100%] opacity-40"
             style={{
               background: `radial-gradient(ellipse at center, hsl(var(--primary) / 0.1) 0%, transparent 50%)`,

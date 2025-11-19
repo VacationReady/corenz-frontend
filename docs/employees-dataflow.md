@@ -103,6 +103,36 @@ export default async function EmployeesPage() {
 - **All departments** (from `/api/departments`)
 - **All job roles** (from `/api/job-roles`)
 
+### Profile Avatar URL Signing
+
+To avoid N individual Supabase calls for N employees, the server component batches profile avatar URL signing using `batchSignProfileUrlsAsMap` from `app/lib/storage/signProfiles.ts`:
+
+```typescript
+import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
+
+// After loading `results` from Prisma
+const profileSignRequests = results
+  .filter((emp) => emp.User.profileImageUrl)
+  .map((emp) => ({
+    id: emp.User.id,
+    path: emp.User.profileImageUrl!,
+  }));
+
+const signedProfileMap = await batchSignProfileUrlsAsMap(profileSignRequests);
+
+const formattedEmployees = results.map((emp) => ({
+  // ...other flattened fields...
+  profileImageUrl: emp.User.profileImageUrl
+    ? signedProfileMap.get(emp.User.id) ?? null
+    : null,
+}));
+```
+
+**Guidance:**
+- **DO** construct `ProfileSignRequest[]` only for employees that actually have a `profileImageUrl` path.
+- **DO** use the returned `Map<string, string | null>` for O(1) lookups when flattening employee records.
+- **DON'T** call Supabase inside a loop; always batch via the shared helper.
+
 **Benefits:**
 - ⚡ Fast initial page load (server-rendered)
 - 🔍 SEO-friendly (rendered HTML)

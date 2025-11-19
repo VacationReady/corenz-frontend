@@ -42,6 +42,14 @@ let mockHrReportFields: any = {};
       }),
     };
   }
+  if (request === "@/lib/reportFilters" || request === "../app/lib/reportFilters") {
+    return {
+      deserializeFilterGroup: (fg: any) => fg,
+      normalizeFilterGroupInput: (input: any) => input || { type: "group", combinator: "AND", rules: [] },
+      addRuleToGroup: (group: any, rule: any) => group,
+      createFilterRule: (field: any, operator: any, value: any) => ({ field, operator, value }),
+    };
+  }
   return originalLoad(request, parent, isMain);
 };
 
@@ -78,10 +86,10 @@ test("POST /api/reports/query restricts selectedFields to allowed reportFields",
   mockHrReportFields = {
     getFieldByKey: (key: string) => {
       const fields: any = {
-        "User.id": { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
-        "User.email": { model: "User", field: "User.email", label: "email", type: "string", filterable: true },
+        "User.id": { model: "User", field: "User.id", label: "id", type: "string", filterable: true, dependsOn: [] },
+        "User.email": { model: "User", field: "User.email", label: "email", type: "string", filterable: true, dependsOn: [] },
       };
-      return fields[key];
+      return fields[key] || null;
     },
     hrReportFields: [
       { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
@@ -131,9 +139,9 @@ test("POST /api/reports/query injects tenant filter for User.companyId", async (
   mockHrReportFields = {
     getFieldByKey: (key: string) => {
       const fields: any = {
-        "User.id": { model: "User", field: "User.id", label: "id", type: "string", filterable: true },
+        "User.id": { model: "User", field: "User.id", label: "id", type: "string", filterable: true, dependsOn: [] },
       };
-      return fields[key];
+      return fields[key] || null;
     },
     hrReportFields: [
       { model: "User", field: "User.id", label: "id", type: "string", filterable: true },

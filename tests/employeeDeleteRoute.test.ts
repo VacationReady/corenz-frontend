@@ -3,30 +3,60 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import Module from "module";
 
-test("DELETE /api/employees/[id] removes Supabase files for related documents", async () => {
-  const originalLoad = (Module as any)._load;
-  const supabaseRemoveCalls: string[][] = [];
-  const deleteManyCalls: any[] = [];
-  const employeeDocPaths = ["employee/doc.pdf"];
-  const companyDocPaths = ["company/doc.pdf"];
+const originalLoad = (Module as any)._load;
+let mockPrisma: any = {};
+let mockSupabase: any = {};
+let mockSession: any = null;
+let mockPermissions: any = {};
 
-  (Module as any)._load = function (
+(Module as any)._load = function (
     request: string,
     parent: any,
     isMain: boolean,
   ) {
     if (request === "@/lib/prisma") {
-      return {
-        prisma: {
-          employee: {
-            findUnique: async (args: any) => ({
-              id: args.where.id,
-              userId: "user-1",
-              companyId: "company-1",
-              user: { companyId: "company-1" },
-            }),
-          },
-          $transaction: async (callback: any) => {
+      return { prisma: mockPrisma, ensurePrismaConnected: async () => {} };
+    }
+    if (request === "@/lib/supabase-admin") {
+      return { default: mockSupabase };
+    }
+    if (request === "next-auth") {
+      return { getServerSession: async () => mockSession };
+    }
+    if (request === "@/lib/auth-options") {
+      return { authOptions: {} };
+    }
+    if (request === "@/lib/permissions") {
+      return mockPermissions;
+    }
+    return originalLoad(request, parent, isMain);
+  };
+
+let routeModulePromise: Promise<typeof import("../app/api/employees/[id]/route")> | null = null;
+
+async function getRouteModule() {
+  if (!routeModulePromise) {
+    routeModulePromise = import("../app/api/employees/[id]/route");
+  }
+  return routeModulePromise;
+}
+
+test("DELETE /api/employees/[id] removes Supabase files for related documents", async () => {
+  const supabaseRemoveCalls: string[][] = [];
+  const deleteManyCalls: any[] = [];
+  const employeeDocPaths = ["employee/doc.pdf"];
+  const companyDocPaths = ["company/doc.pdf"];
+
+  mockPrisma = {
+    employee: {
+      findUnique: async (args: any) => ({
+        id: args.where.id,
+        userId: "user-1",
+        companyId: "company-1",
+        user: { companyId: "company-1" },
+      }),
+    },
+    $transaction: async (callback: any) => {
             const tx: any = {
               onboardingStepResponse: { deleteMany: async () => ({}) },
               onboardingStepInstance: { deleteMany: async () => ({}) },
@@ -69,43 +99,31 @@ test("DELETE /api/employees/[id] removes Supabase files for related documents", 
               employee: { delete: async () => ({}) },
             };
 
-            return callback(tx);
-          },
+      return callback(tx);
+    },
+  };
+  
+  mockSupabase = {
+    storage: {
+      from: () => ({
+        remove: async (paths: string[]) => {
+          supabaseRemoveCalls.push(paths);
+          return { data: null, error: null };
         },
-      };
-    }
-    if (request === "@/lib/supabase-admin") {
-      return {
-        default: {
-          storage: {
-            from: () => ({
-              remove: async (paths: string[]) => {
-                supabaseRemoveCalls.push(paths);
-                return { data: null, error: null };
-              },
-            }),
-          },
-        },
-      };
-    }
-    if (request === "next-auth") {
-      return {
-        getServerSession: async () => ({
-          user: { id: "admin-1", companyId: "company-1", role: "ADMIN" },
-        }),
-      };
-    }
-    if (request === "@/lib/auth-options") {
-      return { authOptions: {} };
-    }
-    if (request === "@/lib/permissions") {
-      return { canAccessEmployee: async () => true };
-    }
-    return originalLoad(request, parent, isMain);
+      }),
+    },
+  };
+  
+  mockSession = {
+    user: { id: "admin-1", companyId: "company-1", role: "ADMIN" },
+  };
+  
+  mockPermissions = {
+    canAccessEmployee: async () => true,
   };
 
   try {
-    const { DELETE } = await import("../app/api/employees/[id]/route");
+    const { DELETE } = await getRouteModule();
     const res = await DELETE({} as Request, { params: { id: "emp-1" } });
 
     assert.equal(res.status, 200);
@@ -118,6 +136,6 @@ test("DELETE /api/employees/[id] removes Supabase files for related documents", 
     assert.equal(removed.has("company/doc.pdf"), true);
     assert.equal(deleteManyCalls.length, 2);
   } finally {
-    (Module as any)._load = originalLoad;
+    // Cleanup handled by module-level mocks
   }
 });

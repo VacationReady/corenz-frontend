@@ -83,6 +83,42 @@ Contains primary HR features with sidebar navigation:
 ##### **`app/(noSidebar)/`**
 Minimal layout for full-width pages (e.g., certain settings).
 
+##### **Informational & Public Pages** (Server-Rendered)
+
+The following pages are implemented as **server components** for optimal performance and SEO:
+
+- **`app/page.tsx`** - Home/welcome page
+  - Server-rendered with tenant branding fetched server-side
+  - Displays company name and login link
+  - No client-side JavaScript required
+  
+- **`app/login/page.tsx`** - Login page wrapper
+  - Server component with Suspense boundary
+  - Delegates to `LoginClient.tsx` for form interactivity
+  
+- **`app/activate/page.tsx`** - Account activation wrapper
+  - Server component with Suspense boundary
+  - Delegates to `ActivateClient.tsx` for token processing
+  
+- **`app/unauthorized/page.tsx`** - Access denied page
+  - Pure server component (static content only)
+  - No client-side hooks or state
+  
+- **`app/tenants/page.tsx`** - Tenant management (Super Admin)
+  - Server component with authentication and data fetching
+  - Fetches tenant list server-side, passes to client component
+
+**Client-Required Pages** (Retain "use client"):
+- **`app/forgot-password/page.tsx`** - Password reset form (requires state, validation, API calls)
+- **`app/tenant-switch/page.tsx`** - Tenant switching flow (requires token processing, navigation)
+- **`app/exit-interview/[token]/page.tsx`** - Dynamic form rendering (requires complex state management)
+
+**Server-First Benefits:**
+- ⚡ Faster initial page load (no client-side hydration delay)
+- 🔍 SEO-friendly (fully rendered HTML)
+- 📦 Smaller JavaScript bundle (no unnecessary client code)
+- 🚀 Better Core Web Vitals (LCP, FID, CLS)
+
 ##### **`app/api/`** - Backend API (80+ Endpoints)
 
 Major categories:

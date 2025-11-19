@@ -1,11 +1,60 @@
-"use client";
-
-import { useTenantBranding } from "@/components/TenantBrandingProvider";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
+import { normalizeTenantBranding, extractBrandingFromSession } from "@/lib/tenant-branding";
 
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  const { branding } = useTenantBranding();
+async function getTenantBranding() {
+  const session = await getServerSession(authOptions);
+  
+  // Try to extract branding from session first
+  if (session) {
+    const sessionBranding = extractBrandingFromSession(session);
+    if (sessionBranding) {
+      return sessionBranding;
+    }
+  }
+  
+  // Fallback: fetch from database if user is authenticated
+  if (session?.user?.companyId) {
+    try {
+      const [company, config] = await Promise.all([
+        prisma.company.findUnique({
+          where: { id: session.user.companyId },
+          select: { id: true, name: true },
+        }),
+        prisma.brandingConfiguration.findUnique({
+          where: { companyId: session.user.companyId },
+          select: {
+            logoUrl: true,
+            accentColor: true,
+            emailFooterText: true,
+          },
+        }),
+      ]);
+
+      if (company) {
+        return normalizeTenantBranding({
+          name: company.name,
+          shortName: company.name,
+          logoUrl: config?.logoUrl ?? null,
+          squareLogoUrl: config?.logoUrl ?? null,
+          accentColor: config?.accentColor ?? null,
+          tagline: config?.emailFooterText ?? null,
+        });
+      }
+    } catch (error) {
+      console.error("[home] Failed to load tenant branding:", error);
+    }
+  }
+  
+  // Default branding
+  return normalizeTenantBranding(null);
+}
+
+export default async function HomePage() {
+  const branding = await getTenantBranding();
   const brandName = branding.shortName || branding.name;
 
   return (

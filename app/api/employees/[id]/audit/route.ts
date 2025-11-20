@@ -76,12 +76,199 @@ export async function GET(
       prisma.employeeAuditLog.count({ where }),
     ]);
 
+    // Collect IDs for relational fields so we can return human-friendly names
+    const managerUserIds = new Set<string>();
+    const departmentIds = new Set<string>();
+    const courseIds = new Set<string>();
+    const providerIds = new Set<string>();
+    const workingPatternIds = new Set<string>();
+    const documentIds = new Set<string>();
+
+    const addId = (set: Set<string>, value: string | null) => {
+      if (value && value.trim() !== "") {
+        set.add(value);
+      }
+    };
+
+    for (const log of auditLogs) {
+      const field = log.field;
+      switch (field) {
+        case "managerId":
+          // managerId diffs store the manager's User.id
+          addId(managerUserIds, log.oldValue);
+          addId(managerUserIds, log.newValue);
+          break;
+        case "departmentId":
+          addId(departmentIds, log.oldValue);
+          addId(departmentIds, log.newValue);
+          break;
+        case "courseId":
+          addId(courseIds, log.oldValue);
+          addId(courseIds, log.newValue);
+          break;
+        case "providerId":
+          addId(providerIds, log.oldValue);
+          addId(providerIds, log.newValue);
+          break;
+        case "workingPatternId":
+          addId(workingPatternIds, log.oldValue);
+          addId(workingPatternIds, log.newValue);
+          break;
+        case "documentId":
+          addId(documentIds, log.oldValue);
+          addId(documentIds, log.newValue);
+          break;
+        default:
+          break;
+      }
+    }
+
+    // Fetch lookup data in batches (only when needed)
+    const [managerUsers, departments, courses, providers, workingPatterns, documents] =
+      await Promise.all([
+        managerUserIds.size
+          ? prisma.user.findMany({
+              where: {
+                id: { in: Array.from(managerUserIds) },
+                companyId: session.user.companyId,
+              },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            })
+          : Promise.resolve([] as any[]),
+        departmentIds.size
+          ? prisma.department.findMany({
+              where: {
+                id: { in: Array.from(departmentIds) },
+                companyId: session.user.companyId,
+              },
+              select: { id: true, name: true },
+            })
+          : Promise.resolve([] as any[]),
+        courseIds.size
+          ? prisma.course.findMany({
+              where: {
+                id: { in: Array.from(courseIds) },
+                OR: [
+                  { companyId: session.user.companyId },
+                  { companyId: null },
+                ],
+              },
+              select: { id: true, name: true },
+            })
+          : Promise.resolve([] as any[]),
+        providerIds.size
+          ? prisma.trainingProvider.findMany({
+              where: {
+                id: { in: Array.from(providerIds) },
+                OR: [
+                  { companyId: session.user.companyId },
+                  { companyId: null },
+                ],
+              },
+              select: { id: true, name: true },
+            })
+          : Promise.resolve([] as any[]),
+        workingPatternIds.size
+          ? prisma.workingPattern.findMany({
+              where: {
+                id: { in: Array.from(workingPatternIds) },
+                companyId: session.user.companyId,
+              },
+              select: { id: true, name: true },
+            })
+          : Promise.resolve([] as any[]),
+        documentIds.size
+          ? prisma.document.findMany({
+              where: {
+                id: { in: Array.from(documentIds) },
+                companyId: session.user.companyId,
+              },
+              select: { id: true, name: true },
+            })
+          : Promise.resolve([] as any[]),
+      ]);
+
+    const managerUserMap = managerUsers.reduce<Record<string, any>>((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+
+    const departmentMap = departments.reduce<Record<string, any>>((acc, dept) => {
+      acc[dept.id] = dept;
+      return acc;
+    }, {});
+
+    const courseMap = courses.reduce<Record<string, any>>((acc, course) => {
+      acc[course.id] = course;
+      return acc;
+    }, {});
+
+    const providerMap = providers.reduce<Record<string, any>>((acc, provider) => {
+      acc[provider.id] = provider;
+      return acc;
+    }, {});
+
+    const workingPatternMap = workingPatterns.reduce<Record<string, any>>(
+      (acc, pattern) => {
+        acc[pattern.id] = pattern;
+        return acc;
+      },
+      {},
+    );
+
+    const documentMap = documents.reduce<Record<string, any>>((acc, doc) => {
+      acc[doc.id] = doc;
+      return acc;
+    }, {});
+
+    const resolveDisplayValue = (field: string, value: string | null): string | null => {
+      if (!value || value.trim() === "") return value;
+
+      switch (field) {
+        case "managerId": {
+          const user = managerUserMap[value];
+          if (user) {
+            const fullName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
+            return fullName || user.email || value;
+          }
+          return value;
+        }
+        case "departmentId": {
+          const dept = departmentMap[value];
+          return (dept && dept.name) || value;
+        }
+        case "courseId": {
+          const course = courseMap[value];
+          return (course && course.name) || value;
+        }
+        case "providerId": {
+          const provider = providerMap[value];
+          return (provider && provider.name) || value;
+        }
+        case "workingPatternId": {
+          const pattern = workingPatternMap[value];
+          return (pattern && pattern.name) || value;
+        }
+        case "documentId": {
+          const doc = documentMap[value];
+          return (doc && doc.name) || value;
+        }
+        default:
+          return value;
+      }
+    };
+
     const serialized = auditLogs.map((log: any) => ({
       id: log.id,
       section: log.section,
       field: log.field,
-      oldValue: log.oldValue,
-      newValue: log.newValue,
+      oldValue: resolveDisplayValue(log.field, log.oldValue),
+      newValue: resolveDisplayValue(log.field, log.newValue),
       reason: log.reason,
       changedAt: log.changedAt,
       changedBy: log.User,

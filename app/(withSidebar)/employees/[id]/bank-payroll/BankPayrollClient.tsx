@@ -229,7 +229,13 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
   const isBankInvalid =
     normalizedBankAccount.length > 0 && !isValidNzBankAccountNumber(normalizedBankAccount);
   const isIrdInvalid = normalizedIrd.length > 0 && !isValidIrdNumber(normalizedIrd);
-  const disableSave = isBankInvalid || isIrdInvalid;
+  
+  // For employees, only validate bank account since they can only edit that field.
+  // IRD number validation should not block saves for employees as they can't edit it.
+  // For admins/managers, validate both bank account and IRD number since they can edit both.
+  const disableSave = isEmployee && !isPrivileged 
+    ? isBankInvalid 
+    : (isBankInvalid || isIrdInvalid);
 
   const getCurrentValues = () => {
     const values: any = {

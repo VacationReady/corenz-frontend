@@ -74,7 +74,7 @@ export default async function PersonalInformationPage(context: { params: Promise
           <div className="border-b p-4">
             <h2 className="text-lg font-semibold">Basic details</h2>
           </div>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 pb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
             <form
               action={`/api/employees/${id}/personal-info`}
               method="PATCH"
@@ -183,6 +183,32 @@ export default async function PersonalInformationPage(context: { params: Promise
                     readOnly={!canEdit}
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Pronouns
+                  </label>
+                  {canEdit ? (
+                    <select
+                      name="pronouns"
+                      defaultValue={user.pronouns ?? ""}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select pronouns</option>
+                      <option value="She/Her">She/Her</option>
+                      <option value="He/Him">He/Him</option>
+                      <option value="They/Them">They/Them</option>
+                      <option value="She/They">She/They</option>
+                      <option value="He/They">He/They</option>
+                      <option value="Any pronouns">Any pronouns</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  ) : (
+                    <Input
+                      readOnly
+                      defaultValue={user.pronouns ?? ""}
+                    />
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-2">
                 <div>
@@ -192,16 +218,6 @@ export default async function PersonalInformationPage(context: { params: Promise
                   <Input
                     name="nationalId"
                     defaultValue={user.nationalId ?? ""}
-                    readOnly={!canEdit}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Pronouns
-                  </label>
-                  <Input
-                    name="pronouns"
-                    defaultValue={user.pronouns ?? ""}
                     readOnly={!canEdit}
                   />
                 </div>

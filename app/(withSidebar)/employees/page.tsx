@@ -84,6 +84,17 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       take: limit + 1,
     });
 
+    const [activeCount, archivedCount] = await Promise.all([
+      prisma.employee.count({
+        where: { companyId: session.user.companyId, isActive: true },
+      }),
+      prisma.employee.count({
+        where: { companyId: session.user.companyId, isActive: false },
+      }),
+    ]);
+
+    const totalCount = activeCount + archivedCount;
+
     // Determine pagination
     const hasMore = employees.length > limit;
     const results = hasMore ? employees.slice(0, limit) : employees;
@@ -141,6 +152,11 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       initialPagination: { cursor: nextCursor, hasMore, limit },
       departments,
       jobRoles,
+      initialCounts: {
+        active: activeCount,
+        archived: archivedCount,
+        all: totalCount,
+      },
     };
   } catch (error) {
     console.error("[EmployeesPage] Failed to fetch initial data:", error);
@@ -149,6 +165,11 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       initialPagination: { cursor: null, hasMore: false, limit: 50 },
       departments: [],
       jobRoles: [],
+      initialCounts: {
+        active: 0,
+        archived: 0,
+        all: 0,
+      },
     };
   }
 }
@@ -162,6 +183,7 @@ export default async function EmployeesPage() {
       initialPagination={data.initialPagination}
       departments={data.departments}
       jobRoles={data.jobRoles}
+      initialCounts={data.initialCounts}
     />
   );
 }

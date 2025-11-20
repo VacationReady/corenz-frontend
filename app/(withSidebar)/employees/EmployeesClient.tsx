@@ -18,7 +18,7 @@
  * - Prompt 8: Server-first refactor
  */
 
-import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useTransition } from "react";
+import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useTransition, useRef } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -52,6 +52,11 @@ interface EmployeesClientProps {
   };
   departments: any[];
   jobRoles: any[];
+  initialCounts?: {
+    active: number;
+    archived: number;
+    all: number;
+  };
 }
 
 interface Employee {
@@ -112,6 +117,13 @@ function EmployeesContent(props: EmployeesClientProps) {
   const [error, setError] = useState("");
   const [visibleEmployees, setVisibleEmployees] = useState<Employee[]>([]);
   const [resetFiltersTick, setResetFiltersTick] = useState(0);
+  const [counts, setCounts] = useState(() =>
+    props.initialCounts || {
+      active: props.initialEmployees.filter((emp) => emp.isActive).length,
+      archived: props.initialEmployees.filter((emp) => !emp.isActive).length,
+      all: props.initialEmployees.length,
+    },
+  );
   
   // Pagination state (initialized from server)
   const [pagination, setPagination] = useState<{
@@ -201,9 +213,13 @@ function EmployeesContent(props: EmployeesClientProps) {
     }
   };
 
+  const hasMountedRef = useRef(false);
+
   // Fetch data when tab changes (resets to first page)
   useEffect(() => {
-    if (activeTab !== "active") {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+    } else {
       // Only fetch if switching away from initial "active" tab
       fetchData(activeTab, true);
     }
@@ -506,14 +522,14 @@ function EmployeesContent(props: EmployeesClientProps) {
           <TabsList className="grid w-full max-w-md grid-cols-3">
             <TabsTrigger value="active" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Active ({employees.filter((emp) => emp.isActive).length})
+              Active ({counts.active})
             </TabsTrigger>
             <TabsTrigger value="archived" className="flex items-center gap-2">
               <Archive className="w-4 h-4" />
-              Archived ({employees.filter((emp) => !emp.isActive).length})
+              Archived ({counts.archived})
             </TabsTrigger>
             <TabsTrigger value="all" className="flex items-center gap-2">
-              All ({employees.length})
+              All ({counts.all})
             </TabsTrigger>
           </TabsList>
         </Tabs>

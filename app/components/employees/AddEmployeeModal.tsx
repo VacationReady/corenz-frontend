@@ -695,7 +695,11 @@ export default function AddEmployeeModal({
 
     try {
       setIsCheckingDuplicate(true);
-      const response = await fetch(`/api/employees?email=${encodeURIComponent(email.trim())}`);
+      const headers: HeadersInit = {};
+      if (session?.user?.companyId) {
+        headers["x-company-id"] = session.user.companyId;
+      }
+      const response = await fetch(`/api/employees?email=${encodeURIComponent(email.trim())}`, { headers });
 
       if (!response.ok) {
         setDuplicateEmailError(null);

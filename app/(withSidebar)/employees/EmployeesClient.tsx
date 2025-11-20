@@ -149,7 +149,11 @@ function EmployeesContent(props: EmployeesClientProps) {
       const limit = 50; // Load 50 employees per page
       
       // Fetch employees only (departments and jobRoles come from server props)
-      const empRes = await fetch(`/api/employees?status=${status}&limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`);
+      const headers: HeadersInit = {};
+      if (session?.user?.companyId) {
+        headers["x-company-id"] = session.user.companyId;
+      }
+      const empRes = await fetch(`/api/employees?status=${status}&limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`, { headers });
 
       // Employees (new paginated format)
       if (empRes.ok) {

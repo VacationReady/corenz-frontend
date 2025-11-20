@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
@@ -51,6 +52,7 @@ export default function AddHolidayModal({
   defaultDate: Date | null;
   onSubmitted?: () => void;
 }) {
+  const { data: session } = useSession();
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [categories, setCategories] = useState<EventCategory[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,8 +82,12 @@ export default function AddHolidayModal({
     if (!open) return;
     (async () => {
       try {
+        const headers: HeadersInit = {};
+        if (session?.user?.companyId) {
+          headers["x-company-id"] = session.user.companyId;
+        }
         const [empRes, catRes] = await Promise.all([
-          fetch("/api/employees?status=active"),
+          fetch("/api/employees?status=active", { headers }),
           fetch("/api/event-categories"),
         ]);
         if (empRes.ok) {
@@ -110,7 +116,7 @@ export default function AddHolidayModal({
         toast.error("Error loading data");
       }
     })();
-  }, [open]);
+  }, [open, session?.user?.companyId]);
 
   useEffect(() => {
     if (!open) {

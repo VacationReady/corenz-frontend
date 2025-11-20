@@ -147,6 +147,9 @@ export function useEntitlementProjection(
  * Uses pagination from Prompt 8
  */
 export function useEmployees(enabled: boolean) {
+  const { data: session } = useSession();
+  const companyId = session?.user?.companyId;
+  
   const { data, error, isLoading } = useSWR(
     enabled ? "/api/employees?status=active&limit=100" : null,
     async (url: string) => {
@@ -155,9 +158,14 @@ export function useEmployees(enabled: boolean) {
       let cursor: string | null = null;
       let hasMore: boolean = true;
 
+      const headers: HeadersInit = {};
+      if (companyId) {
+        headers["x-company-id"] = companyId;
+      }
+
       while (hasMore) {
         const fetchUrl: string = cursor ? `${url}&cursor=${cursor}` : url;
-        const response: Response = await fetch(fetchUrl, { cache: "no-store" });
+        const response: Response = await fetch(fetchUrl, { cache: "no-store", headers });
         
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         

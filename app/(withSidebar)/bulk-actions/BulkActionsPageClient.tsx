@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import Button from "@/components/ui/Button";
 import {
   Card,
@@ -62,6 +63,7 @@ const defaultFilters: FiltersState = {
 };
 
 export default function BulkActionsPageClient() {
+  const { data: session } = useSession();
   const breadcrumbs = useBreadcrumbs();
   const [employees, setEmployees] = useState<EmployeeRow[]>([]);
   const [filters, setFilters] = useState<FiltersState>(defaultFilters);
@@ -79,8 +81,13 @@ export default function BulkActionsPageClient() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchEmployees = useCallback(async () => {
+    const headers: HeadersInit = {};
+    if (session?.user?.companyId) {
+      headers["x-company-id"] = session.user.companyId;
+    }
     const response = await fetch("/api/employees?status=all", {
       cache: "no-store",
+      headers,
     });
     if (!response.ok) {
       throw new Error("Failed to load employees");
@@ -108,7 +115,7 @@ export default function BulkActionsPageClient() {
     });
 
     setEmployees(mapped);
-  }, []);
+  }, [session?.user?.companyId]);
 
   const fetchMetadata = useCallback(async () => {
     try {

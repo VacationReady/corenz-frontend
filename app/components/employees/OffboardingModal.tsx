@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   Dialog,
   DialogContent,
@@ -115,6 +116,7 @@ export default function OffboardingModal({
   employee,
   onSuccess,
 }: OffboardingModalProps) {
+  const { data: session } = useSession();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -140,6 +142,28 @@ export default function OffboardingModal({
     assetsToReturn: [],
     hrNotes: "",
   });
+
+  const fetchEmployees = async () => {
+    try {
+      // API defaults to limit=50, max=100
+      // For offboarding modal, we rely on the default limit
+      const headers: HeadersInit = {};
+      if (session?.user?.companyId) {
+        headers["x-company-id"] = session.user.companyId;
+      }
+      const response = await fetch("/api/employees?status=active", { headers });
+      if (response.ok) {
+        const result = await response.json();
+        // Handle paginated response format
+        const employeesList = result.data || result;
+        setEmployees(
+          employeesList.filter((emp: Employee) => emp.userId !== employee?.userId),
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -168,25 +192,8 @@ export default function OffboardingModal({
         hrNotes: "",
       });
     }
-  }, [open]);
-
-  const fetchEmployees = async () => {
-    try {
-      // API defaults to limit=50, max=100
-      // For offboarding modal, we rely on the default limit
-      const response = await fetch("/api/employees?status=active");
-      if (response.ok) {
-        const result = await response.json();
-        // Handle paginated response format
-        const employeesList = result.data || result;
-        setEmployees(
-          employeesList.filter((emp: Employee) => emp.userId !== employee?.userId),
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching employees:", error);
-    }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, session?.user?.companyId]);
 
   const fetchFormTemplates = async () => {
     try {

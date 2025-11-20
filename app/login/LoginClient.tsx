@@ -156,9 +156,9 @@ export default function LoginClient() {
         <div className="relative mb-6 text-center">
           {logoSrc ? (
             <div className="mb-4 flex justify-center">
-              {/* Integrated logo + name pill that feels part of the card */}
+              {/* Integrated logo pill that feels part of the card */}
               <div
-                className="inline-flex items-center gap-3 rounded-full px-4 py-2 shadow-sm ring-1 ring-white/60 bg-white/80 backdrop-blur-md"
+                className="inline-flex items-center justify-center rounded-full px-6 py-3 shadow-sm ring-1 ring-white/60 bg-white/80 backdrop-blur-md"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -166,9 +166,6 @@ export default function LoginClient() {
                   alt={`${brandName} logo`}
                   className="h-8 w-auto"
                 />
-                <span className="text-sm font-semibold tracking-tight text-primary">
-                  {brandName}
-                </span>
               </div>
             </div>
           ) : (

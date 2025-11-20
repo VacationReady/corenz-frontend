@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { ChangeEvent, KeyboardEvent, useMemo, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import {
   Dialog,
@@ -41,6 +41,49 @@ import {
 import { format } from "date-fns";
 import { toUTCFromLondon } from "@/lib/time";
 import { useToast } from "@/hooks/use-toast";
+
+// Helper functions for searchable dropdowns
+const normalizeSearch = (value: string) => value.trim().toLowerCase();
+
+const SelectSearchInput = ({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) => (
+  <div className="sticky top-0 z-10 bg-popover p-2 border-b border-muted/40">
+    <Input
+      value={value}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      placeholder={placeholder ?? "Search..."}
+      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.stopPropagation()}
+      autoFocus
+      className="h-9"
+    />
+  </div>
+);
+
+const filterBySearch = <T,>(
+  items: T[],
+  accessor: (item: T) => string | undefined,
+  query: string,
+) => {
+  const normalized = normalizeSearch(query);
+  if (!normalized) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    const value = accessor(item);
+    if (!value) {
+      return false;
+    }
+    return value.toLowerCase().includes(normalized);
+  });
+};
 
 interface Employee {
   id: string;
@@ -121,6 +164,10 @@ export default function OffboardingModal({
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
+  const [handoverSearch, setHandoverSearch] = useState("");
+  const [interviewerSearch, setInterviewerSearch] = useState("");
+  const [isHandoverSelectOpen, setIsHandoverSelectOpen] = useState(false);
+  const [isInterviewerSelectOpen, setIsInterviewerSelectOpen] = useState(false);
   const [formData, setFormData] = useState<OffboardingFormData>({
     lastWorkingDate: null,
     offboardingType: "",
@@ -142,6 +189,57 @@ export default function OffboardingModal({
     assetsToReturn: [],
     hrNotes: "",
   });
+
+  // Helper function to get employee display name
+  const getEmployeeDisplayName = (emp: Employee) =>
+    (emp.firstName || emp.lastName)
+      ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
+      : emp.email ?? "";
+
+  // Sort and filter employees for dropdowns
+  const sortedEmployees = useMemo(() => {
+    return [...employees].sort((a, b) => {
+      const lastNameCompare = (a.lastName || "").localeCompare(b.lastName || "", undefined, {
+        sensitivity: "base",
+      });
+      if (lastNameCompare !== 0) return lastNameCompare;
+
+      const firstNameCompare = (a.firstName || "").localeCompare(b.firstName || "", undefined, {
+        sensitivity: "base",
+      });
+      if (firstNameCompare !== 0) return firstNameCompare;
+
+      return (a.email || "").localeCompare(b.email || "", undefined, { sensitivity: "base" });
+    });
+  }, [employees]);
+
+  const shouldShowHandoverSearch = sortedEmployees.length > 10;
+  const handoverOptions = useMemo(
+    () =>
+      shouldShowHandoverSearch
+        ? filterBySearch(sortedEmployees, (emp) => getEmployeeDisplayName(emp), handoverSearch)
+        : sortedEmployees,
+    [sortedEmployees, handoverSearch, shouldShowHandoverSearch],
+  );
+
+  const shouldShowInterviewerSearch = sortedEmployees.length > 10;
+  const interviewerOptions = useMemo(
+    () =>
+      shouldShowInterviewerSearch
+        ? filterBySearch(sortedEmployees, (emp) => getEmployeeDisplayName(emp), interviewerSearch)
+        : sortedEmployees,
+    [sortedEmployees, interviewerSearch, shouldShowInterviewerSearch],
+  );
+
+  const handleHandoverOpenChange = (open: boolean) => {
+    setIsHandoverSelectOpen(open);
+    if (!open) setHandoverSearch("");
+  };
+
+  const handleInterviewerOpenChange = (open: boolean) => {
+    setIsInterviewerSelectOpen(open);
+    if (!open) setInterviewerSearch("");
+  };
 
   const fetchEmployees = async () => {
     try {
@@ -606,6 +704,8 @@ export default function OffboardingModal({
               <div>
                 <Label htmlFor="handoverAssignedTo">Assign handover to</Label>
                 <Select
+                  open={isHandoverSelectOpen}
+                  onOpenChange={handleHandoverOpenChange}
                   value={formData.handoverAssignedTo}
                   onValueChange={(value) =>
                     setFormData((prev) => ({
@@ -618,7 +718,14 @@ export default function OffboardingModal({
                     <SelectValue placeholder="Select employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((emp) => (
+                    {shouldShowHandoverSearch && (
+                      <SelectSearchInput
+                        value={handoverSearch}
+                        onChange={setHandoverSearch}
+                        placeholder="Search employees..."
+                      />
+                    )}
+                    {handoverOptions.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id}>
                         {emp.firstName} {emp.lastName} - {emp.departmentName}
                       </SelectItem>
@@ -754,6 +861,8 @@ export default function OffboardingModal({
                       Interviewer
                     </Label>
                     <Select
+                      open={isInterviewerSelectOpen}
+                      onOpenChange={handleInterviewerOpenChange}
                       value={formData.exitInterviewInterviewer}
                       onValueChange={(value) =>
                         setFormData((prev) => ({
@@ -766,7 +875,14 @@ export default function OffboardingModal({
                         <SelectValue placeholder="Select interviewer" />
                       </SelectTrigger>
                       <SelectContent>
-                        {employees.map((emp) => (
+                        {shouldShowInterviewerSearch && (
+                          <SelectSearchInput
+                            value={interviewerSearch}
+                            onChange={setInterviewerSearch}
+                            placeholder="Search interviewers..."
+                          />
+                        )}
+                        {interviewerOptions.map((emp) => (
                           <SelectItem key={emp.id} value={emp.userId}>
                             {emp.firstName} {emp.lastName}
                           </SelectItem>

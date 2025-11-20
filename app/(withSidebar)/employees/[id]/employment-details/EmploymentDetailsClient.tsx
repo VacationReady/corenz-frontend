@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -24,6 +24,49 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+// Helper functions for searchable dropdowns
+const normalizeSearch = (value: string) => value.trim().toLowerCase();
+
+const SelectSearchInput = ({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) => (
+  <div className="sticky top-0 z-10 bg-popover p-2 border-b border-muted/40">
+    <Input
+      value={value}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      placeholder={placeholder ?? "Search..."}
+      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.stopPropagation()}
+      autoFocus
+      className="h-9"
+    />
+  </div>
+);
+
+const filterBySearch = <T,>(
+  items: T[],
+  accessor: (item: T) => string | undefined,
+  query: string,
+) => {
+  const normalized = normalizeSearch(query);
+  if (!normalized) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    const value = accessor(item);
+    if (!value) {
+      return false;
+    }
+    return value.toLowerCase().includes(normalized);
+  });
+};
+
 export default function EmploymentDetailsClient({ employeeId }: { employeeId: string }) {
   const { data: session } = useSession();
   const tenantFetch = useTenantFetch();
@@ -39,10 +82,12 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
   const [manageKind, setManageKind] = useState<"employment" | "contract" | "location" | "department" | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
   const [selectedManagerEmployeeId, setSelectedManagerEmployeeId] = useState<string>("none");
+  const [managerSearch, setManagerSearch] = useState("");
   // Control select open states so they close when opening Manage dialog
   const [employmentSelectOpen, setEmploymentSelectOpen] = useState(false);
   const [contractSelectOpen, setContractSelectOpen] = useState(false);
   const [locationSelectOpen, setLocationSelectOpen] = useState(false);
+  const [isManagerSelectOpen, setIsManagerSelectOpen] = useState(false);
 
   const canEdit =
     session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
@@ -50,6 +95,43 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
     session?.user?.role === "ADMIN" ||
     session?.user?.role === "SUPER_ADMIN" ||
     session?.user?.role === "MANAGER";
+
+  // Helper function to get employee display name
+  const getEmployeeDisplayName = (emp: { firstName?: string | null; lastName?: string | null; email: string }) =>
+    (emp.firstName || emp.lastName)
+      ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
+      : emp.email ?? "";
+
+  // Sort and filter employees for manager dropdown
+  const sortedEmployees = useMemo(() => {
+    return [...employees].sort((a, b) => {
+      const lastNameCompare = (a.lastName || "").localeCompare(b.lastName || "", undefined, {
+        sensitivity: "base",
+      });
+      if (lastNameCompare !== 0) return lastNameCompare;
+
+      const firstNameCompare = (a.firstName || "").localeCompare(a.firstName || "", undefined, {
+        sensitivity: "base",
+      });
+      if (firstNameCompare !== 0) return firstNameCompare;
+
+      return (a.email || "").localeCompare(b.email || "", undefined, { sensitivity: "base" });
+    });
+  }, [employees]);
+
+  const shouldShowManagerSearch = sortedEmployees.length > 10;
+  const managerOptions = useMemo(
+    () =>
+      shouldShowManagerSearch
+        ? filterBySearch(sortedEmployees, (emp) => getEmployeeDisplayName(emp), managerSearch)
+        : sortedEmployees,
+    [sortedEmployees, managerSearch, shouldShowManagerSearch],
+  );
+
+  const handleManagerOpenChange = (open: boolean) => {
+    setIsManagerSelectOpen(open);
+    if (!open) setManagerSearch("");
+  };
 
   const reloadOptions = async () => {
     const [et, ct, loc, deps] = await Promise.all([
@@ -321,6 +403,8 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             <label className="block text-sm font-medium mb-1">Manager</label>
             {canEdit ? (
               <Select
+                open={isManagerSelectOpen}
+                onOpenChange={handleManagerOpenChange}
                 value={selectedManagerEmployeeId}
                 onValueChange={(v) => {
                   setSelectedManagerEmployeeId(v);
@@ -331,12 +415,17 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
                   <SelectValue placeholder="Select Line Manager" />
                 </SelectTrigger>
                 <SelectContent>
+                  {shouldShowManagerSearch && (
+                    <SelectSearchInput
+                      value={managerSearch}
+                      onChange={setManagerSearch}
+                      placeholder="Search managers..."
+                    />
+                  )}
                   <SelectItem value="none">No manager</SelectItem>
-                  {employees.map((emp) => (
+                  {managerOptions.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
-                      {(emp.firstName || emp.lastName)
-                        ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
-                        : emp.email}
+                      {getEmployeeDisplayName(emp)}
                     </SelectItem>
                   ))}
                 </SelectContent>

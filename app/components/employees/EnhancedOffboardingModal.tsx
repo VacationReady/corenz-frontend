@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { ChangeEvent, KeyboardEvent, useMemo, useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,49 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+
+// Helper functions for searchable dropdowns
+const normalizeSearch = (value: string) => value.trim().toLowerCase();
+
+const SelectSearchInput = ({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) => (
+  <div className="sticky top-0 z-10 bg-popover p-2 border-b border-muted/40">
+    <Input
+      value={value}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      placeholder={placeholder ?? "Search..."}
+      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.stopPropagation()}
+      autoFocus
+      className="h-9"
+    />
+  </div>
+);
+
+const filterBySearch = <T,>(
+  items: T[],
+  accessor: (item: T) => string | undefined,
+  query: string,
+) => {
+  const normalized = normalizeSearch(query);
+  if (!normalized) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    const value = accessor(item);
+    if (!value) {
+      return false;
+    }
+    return value.toLowerCase().includes(normalized);
+  });
+};
 
 interface Employee {
   id: string;
@@ -106,6 +149,8 @@ export default function EnhancedOffboardingModal({
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
+  const [interviewerSearch, setInterviewerSearch] = useState("");
+  const [isInterviewerSelectOpen, setIsInterviewerSelectOpen] = useState(false);
   const [formData, setFormData] = useState<OffboardingFormData>({
     exitInterviewDate: undefined,
     exitInterviewTime: "09:00",
@@ -119,6 +164,43 @@ export default function EnhancedOffboardingModal({
     formTemplateId: "",
     formTiming: "NOW",
   });
+
+  // Helper function to get user display name
+  const getUserDisplayName = (user: User) =>
+    (user.firstName || user.lastName)
+      ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
+      : user.email ?? "";
+
+  // Sort and filter users for dropdown
+  const sortedUsers = useMemo(() => {
+    return [...users].sort((a, b) => {
+      const lastNameCompare = (a.lastName || "").localeCompare(b.lastName || "", undefined, {
+        sensitivity: "base",
+      });
+      if (lastNameCompare !== 0) return lastNameCompare;
+
+      const firstNameCompare = (a.firstName || "").localeCompare(b.firstName || "", undefined, {
+        sensitivity: "base",
+      });
+      if (firstNameCompare !== 0) return firstNameCompare;
+
+      return (a.email || "").localeCompare(b.email || "", undefined, { sensitivity: "base" });
+    });
+  }, [users]);
+
+  const shouldShowInterviewerSearch = sortedUsers.length > 10;
+  const interviewerOptions = useMemo(
+    () =>
+      shouldShowInterviewerSearch
+        ? filterBySearch(sortedUsers, (user) => getUserDisplayName(user), interviewerSearch)
+        : sortedUsers,
+    [sortedUsers, interviewerSearch, shouldShowInterviewerSearch],
+  );
+
+  const handleInterviewerOpenChange = (open: boolean) => {
+    setIsInterviewerSelectOpen(open);
+    if (!open) setInterviewerSearch("");
+  };
 
   useEffect(() => {
     if (open) {
@@ -374,6 +456,8 @@ export default function EnhancedOffboardingModal({
             <div>
               <Label htmlFor="interviewer">Interviewer</Label>
               <Select
+                open={isInterviewerSelectOpen}
+                onOpenChange={handleInterviewerOpenChange}
                 value={formData.interviewerUserId || "other"}
                 onValueChange={handleInterviewerChange}
               >
@@ -381,7 +465,14 @@ export default function EnhancedOffboardingModal({
                   <SelectValue placeholder="Select interviewer" />
                 </SelectTrigger>
                 <SelectContent>
-                  {users.map((user) => (
+                  {shouldShowInterviewerSearch && (
+                    <SelectSearchInput
+                      value={interviewerSearch}
+                      onChange={setInterviewerSearch}
+                      placeholder="Search interviewers..."
+                    />
+                  )}
+                  {interviewerOptions.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.firstName} {user.lastName} - {user.email}
                     </SelectItem>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,49 @@ import { MultiSelect } from "@/components/ui/MultiSelect";
 import SignatureCapture from "@/components/documents/SignatureCapture";
 import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
 
+// Helper functions for searchable dropdowns
+const normalizeSearch = (value: string) => value.trim().toLowerCase();
+
+const SelectSearchInput = ({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) => (
+  <div className="sticky top-0 z-10 bg-popover p-2 border-b border-muted/40">
+    <Input
+      value={value}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      placeholder={placeholder ?? "Search..."}
+      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.stopPropagation()}
+      autoFocus
+      className="h-9"
+    />
+  </div>
+);
+
+const filterBySearch = <T,>(
+  items: T[],
+  accessor: (item: T) => string | undefined,
+  query: string,
+) => {
+  const normalized = normalizeSearch(query);
+  if (!normalized) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    const value = accessor(item);
+    if (!value) {
+      return false;
+    }
+    return value.toLowerCase().includes(normalized);
+  });
+};
+
 export default function AddDocumentModal({
   open,
   onClose,
@@ -47,6 +90,8 @@ export default function AddDocumentModal({
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false);
 
   // ✅ Departments & Job Roles for Company Docs
   const [departmentsList, setDepartmentsList] = useState<
@@ -77,6 +122,43 @@ export default function AddDocumentModal({
   const [objectUrl, setObjectUrl] = useState<string>("");
 
   const user = session?.user;
+
+  // Helper function to get employee display name
+  const getEmployeeDisplayName = (emp: any) =>
+    (emp.firstName || emp.lastName)
+      ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
+      : emp.email ?? "";
+
+  // Sort and filter employees for dropdown
+  const sortedEmployees = useMemo(() => {
+    return [...employees].sort((a, b) => {
+      const lastNameCompare = (a.lastName || "").localeCompare(b.lastName || "", undefined, {
+        sensitivity: "base",
+      });
+      if (lastNameCompare !== 0) return lastNameCompare;
+
+      const firstNameCompare = (a.firstName || "").localeCompare(b.firstName || "", undefined, {
+        sensitivity: "base",
+      });
+      if (firstNameCompare !== 0) return firstNameCompare;
+
+      return (a.email || "").localeCompare(b.email || "", undefined, { sensitivity: "base" });
+    });
+  }, [employees]);
+
+  const shouldShowEmployeeSearch = sortedEmployees.length > 10;
+  const employeeOptions = useMemo(
+    () =>
+      shouldShowEmployeeSearch
+        ? filterBySearch(sortedEmployees, (emp) => getEmployeeDisplayName(emp), employeeSearch)
+        : sortedEmployees,
+    [sortedEmployees, employeeSearch, shouldShowEmployeeSearch],
+  );
+
+  const handleEmployeeOpenChange = (open: boolean) => {
+    setIsEmployeeSelectOpen(open);
+    if (!open) setEmployeeSearch("");
+  };
 
   // ✅ Fetch employees, departments, job roles
   useEffect(() => {
@@ -350,12 +432,23 @@ export default function AddDocumentModal({
         {type === "employee" && (
           <div>
             <Label>Select Employee</Label>
-            <Select onValueChange={setEmployeeId}>
+            <Select 
+              open={isEmployeeSelectOpen}
+              onOpenChange={handleEmployeeOpenChange}
+              onValueChange={setEmployeeId}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Choose an employee" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((emp) => (
+                {shouldShowEmployeeSearch && (
+                  <SelectSearchInput
+                    value={employeeSearch}
+                    onChange={setEmployeeSearch}
+                    placeholder="Search employees..."
+                  />
+                )}
+                {employeeOptions.map((emp) => (
                   <SelectItem key={emp.id} value={emp.id}>
                     {emp.firstName} {emp.lastName} ({emp.email})
                   </SelectItem>

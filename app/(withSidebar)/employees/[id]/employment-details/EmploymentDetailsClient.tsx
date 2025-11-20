@@ -110,7 +110,7 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
       });
       if (lastNameCompare !== 0) return lastNameCompare;
 
-      const firstNameCompare = (a.firstName || "").localeCompare(a.firstName || "", undefined, {
+      const firstNameCompare = (a.firstName || "").localeCompare(b.firstName || "", undefined, {
         sensitivity: "base",
       });
       if (firstNameCompare !== 0) return firstNameCompare;
@@ -183,7 +183,9 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
       try {
         const res = await tenantFetch(`/api/employees?status=active`);
         if (!res.ok) return;
-        const list = await res.json();
+        const result = await res.json();
+        // Handle paginated response format
+        const list = result.data || result;
         const filtered = Array.isArray(list)
           ? list.filter((e: any) => e.id !== employeeId)
           : [];

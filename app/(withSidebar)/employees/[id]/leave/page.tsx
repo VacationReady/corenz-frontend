@@ -113,13 +113,16 @@ function getStatusMeta(status?: string | null) {
   };
 }
 
+import { useTenantFetch } from "@/hooks/useTenantFetch";
+
 export default function LeavePage() {
   const params = useParams();
   const employeeId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const tenantFetch = useTenantFetch();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -155,6 +158,8 @@ export default function LeavePage() {
   const upcomingOnly = upcomingQueryValue !== "false";
 
   useEffect(() => {
+    if (status === "loading") return;
+
     const controller = new AbortController();
     let active = true;
 
@@ -171,9 +176,8 @@ export default function LeavePage() {
         }
 
         const queryString = query.toString();
-        const res = await fetch(
-          `/api/employees/${employeeId}/leave-requests${
-            queryString ? `?${queryString}` : ""
+        const res = await tenantFetch(
+          `/api/employees/${employeeId}/leave-requests${queryString ? `?${queryString}` : ""
           }`,
           { signal: controller.signal },
         );

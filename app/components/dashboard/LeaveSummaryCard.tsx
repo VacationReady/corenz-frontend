@@ -19,32 +19,19 @@ type LeaveEntitlement = {
   };
 };
 
+import { useApi } from "@/hooks/useApi";
+
 export default function LeaveSummaryCard({
   employeeId,
 }: {
   employeeId: string;
 }) {
   const { data: session } = useSession();
-  const [entitlements, setEntitlements] = useState<LeaveEntitlement[]>([]);
+  const { data: entitlementsData } = useApi<LeaveEntitlement[]>(`/api/employees/${employeeId}/entitlement`);
+  const entitlements = entitlementsData || [];
+
   const [modalOpen, setModalOpen] = useState(false);
   const isAdminOrManager = isAdminOrManagerHelper(session);
-
-  useEffect(() => {
-    const fetchEntitlements = async () => {
-      try {
-        const res = await fetch(`/api/employees/${employeeId}/entitlement`);
-        if (res.ok) {
-          const data = await res.json();
-          setEntitlements(data);
-        } else {
-          console.error("Failed to fetch entitlements.");
-        }
-      } catch (error) {
-        console.error("Error fetching entitlements:", error);
-      }
-    };
-    fetchEntitlements();
-  }, [employeeId]);
 
   const totalAllowance = entitlements.reduce((acc, e) => acc + e.totalDays, 0);
   const totalTaken = entitlements.reduce((acc, e) => acc + e.usedDays, 0);

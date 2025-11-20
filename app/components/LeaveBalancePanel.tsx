@@ -25,6 +25,8 @@ interface LeaveBalancePanelProps {
   isAdminOrManager?: boolean;
 }
 
+import { useTenantFetch } from "@/hooks/useTenantFetch";
+
 export default function LeaveBalancePanel({
   leaveEntitlements,
   employeeId,
@@ -32,10 +34,11 @@ export default function LeaveBalancePanel({
 }: LeaveBalancePanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [entitlements, setEntitlements] = useState(leaveEntitlements);
+  const tenantFetch = useTenantFetch();
 
   const refreshEntitlements = async () => {
     try {
-      const res = await fetch(`/api/employees/${employeeId}/entitlement`);
+      const res = await tenantFetch(`/api/employees/${employeeId}/entitlement`);
       if (res.ok) {
         const data = await res.json();
         setEntitlements(data);

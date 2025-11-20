@@ -32,7 +32,7 @@ import { useSession } from 'next-auth/react';
 import useSWR, { type SWRConfiguration, type SWRResponse } from 'swr';
 import useSWRMutation, { type SWRMutationConfiguration } from 'swr/mutation';
 import { apiClient, swrFetcher, type ApiRequestOptions, type ApiError } from '@/lib/apiClient';
-import { getTenantHeadersSync } from '@/lib/tenant-fetch';
+import { getTenantHeadersSync, requiresTenantHeader } from '@/lib/tenant-fetch';
 
 /**
  * Hook options extending SWR configuration
@@ -92,14 +92,20 @@ export function useApi<T>(
   url: string | null,
   options?: UseApiOptions<T>
 ): SWRResponse<T, Error> & { isLoading: boolean } {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { params, enabled = true, timeout, companyId = session?.user?.companyId, ...swrOptions } = options || {};
 
   // Build URL with params
   const finalUrl = url && params ? buildUrlWithParams(url, params) : url;
 
-  // Disable fetching if enabled is false or url is null
-  const shouldFetch = enabled && finalUrl !== null;
+  // Determine if we should fetch
+  // We must wait for companyId if the path requires tenant context
+  const isTenantPath = url ? requiresTenantHeader(url) : false;
+  const hasCompanyId = !!companyId;
+  const isWaitingForSession = isTenantPath && !hasCompanyId && status === "loading";
+
+  // Disable fetching if enabled is false, url is null, or we're waiting for tenant context
+  const shouldFetch = enabled && finalUrl !== null && (!isTenantPath || hasCompanyId);
 
   // Create tenant-aware fetcher
   const fetcher = createTenantSwrFetcher<T>(companyId);
@@ -116,7 +122,7 @@ export function useApi<T>(
 
   return {
     ...swr,
-    isLoading: !swr.error && !swr.data && shouldFetch,
+    isLoading: (!swr.error && !swr.data && shouldFetch) || isWaitingForSession,
   };
 }
 
@@ -281,18 +287,27 @@ export function useBatchedApi<TResponse, TRequest = unknown>(
   requestData: TRequest,
   options?: UseApiOptions<TResponse>
 ) {
-  const { enabled = true, ...swrOptions } = options || {};
+  const { data: session, status } = useSession();
+  const { enabled = true, companyId = session?.user?.companyId, ...swrOptions } = options || {};
 
-  // Create a stable key for SWR that includes the request data
-  const swrKey = enabled ? [url, JSON.stringify(requestData)] : null;
+  // Determine if we should fetch
+  const isTenantPath = url ? requiresTenantHeader(url) : false;
+  const hasCompanyId = !!companyId;
+  const isWaitingForSession = isTenantPath && !hasCompanyId && status === "loading";
+
+  const shouldFetch = enabled && (!isTenantPath || hasCompanyId);
+
+  // Create a stable key for SWR that includes the request data and companyId
+  const swrKey = shouldFetch ? [url, JSON.stringify(requestData), companyId] : null;
 
   const swr = useSWR<TResponse, Error>(
     swrKey,
-    async ([url, requestDataStr]) => {
+    async ([url, requestDataStr, companyId]) => {
       const parsedRequestData = JSON.parse(requestDataStr) as TRequest;
       const response = await apiClient.post<TResponse, TRequest>(
         url,
-        parsedRequestData
+        parsedRequestData,
+        { companyId }
       );
 
       if (response.error) {
@@ -312,7 +327,7 @@ export function useBatchedApi<TResponse, TRequest = unknown>(
   return {
     data: swr.data,
     error: swr.error,
-    isLoading: !swr.error && !swr.data && enabled,
+    isLoading: (!swr.error && !swr.data && shouldFetch) || isWaitingForSession,
   };
 }
 

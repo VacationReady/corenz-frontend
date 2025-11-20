@@ -32,7 +32,7 @@ const RATE_LIMITED_PATHS = [
 /**
  * Check if a URL path requires tenant context
  */
-function requiresTenantHeader(url: string): boolean {
+export function requiresTenantHeader(url: string): boolean {
   return RATE_LIMITED_PATHS.some((path) => url.startsWith(path));
 }
 
@@ -80,7 +80,7 @@ export function mergeTenantHeaders(
   companyId?: string | null
 ): HeadersInit {
   const tenantHeaders = getTenantHeadersSync(url, companyId);
-  
+
   if (!existingHeaders) {
     return tenantHeaders;
   }

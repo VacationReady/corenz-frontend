@@ -89,9 +89,6 @@ export async function GET(
     const auditLogs = await prisma.timesheetEntryAudit.findMany({
       where: {
         timesheetId,
-        Timesheet: {
-          companyId: requestingEmployee.companyId,
-        },
       },
       include: {
         Entry: {

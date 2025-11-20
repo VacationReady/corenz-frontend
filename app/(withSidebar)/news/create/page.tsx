@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
@@ -144,6 +145,7 @@ const uploadWithProgress = (
   });
 
 export default function CreateNewsPostPage() {
+  const tenantFetch = useTenantFetch();
   const router = useRouter();
   const { data: session } = useSession();
 
@@ -364,8 +366,9 @@ export default function CreateNewsPostPage() {
     setSubmittingAction(asDraft ? "draft" : "publish");
 
     try {
-      const res = await fetch("/api/news", {
+      const res = await tenantFetch("/api/news", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
           content,

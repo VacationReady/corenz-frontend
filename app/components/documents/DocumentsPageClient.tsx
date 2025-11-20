@@ -9,6 +9,7 @@ import { UploadCloud, FileText } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { apiClient } from "@/lib/apiClient";
 import { usePostMutation, useDeleteMutation } from "@/hooks/useMutationWithRefresh";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 import {
   Table,
   TableHeader,
@@ -84,6 +85,7 @@ type Document = {
 };
 
 function DocumentsContent() {
+  const tenantFetch = useTenantFetch();
   // Fetch documents using API hook
   const { data: documentsData, error: documentsError, isLoading: loading, mutate: refetchDocuments } = useApi<Document[]>('/api/documents/list');
   const documents = documentsData || [];
@@ -201,7 +203,7 @@ function DocumentsContent() {
 
   useEffect(() => {
     if (selectedDoc?.id && selectedDoc.requiresAck) {
-      fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
+      tenantFetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
         .then((res) => res.json())
         .then((data) => {
           setAcknowledged(data.acknowledged);
@@ -209,16 +211,16 @@ function DocumentsContent() {
         });
     }
     if (selectedDoc?.id && (selectedDoc as any).requiresSignature) {
-      fetch(`/api/documents/signatures/${selectedDoc.id}/me`)
+      tenantFetch(`/api/documents/signatures/${selectedDoc.id}/me`)
         .then((res) => res.json())
         .then((data) => setSigned(!!data.signed))
         .catch(() => setSigned(false));
-      fetch(`/api/documents/signature-fields/${selectedDoc.id}`)
+      tenantFetch(`/api/documents/signature-fields/${selectedDoc.id}`)
         .then((r) => r.json())
         .then((data) => setFields(Array.isArray(data) ? data : []))
         .catch(() => setFields([]));
     }
-  }, [selectedDoc]);
+  }, [selectedDoc, tenantFetch]);
 
   // Initial data fetch on mount
   useEffect(() => {
@@ -415,7 +417,7 @@ function DocumentsContent() {
       requireAckFromNewStarters.toString(),
     );
     try {
-      const res = await fetch("/api/documents/upload", {
+      const res = await tenantFetch("/api/documents/upload", {
         method: "POST",
         body: formData,
       });
@@ -517,7 +519,7 @@ function DocumentsContent() {
     
     setSendingNotifications(true);
     try {
-      const res = await fetch("/api/documents/send-notifications", {
+      const res = await tenantFetch("/api/documents/send-notifications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: placementPendingDocId }),
@@ -562,7 +564,7 @@ function DocumentsContent() {
     if (!selectedDoc) return;
     setSignSubmitting(true);
     try {
-      const res = await fetch("/api/documents/sign", {
+      const res = await tenantFetch("/api/documents/sign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -579,7 +581,7 @@ function DocumentsContent() {
         setAckDate(payload?.signature?.signedAt ? new Date(payload.signature.signedAt) : new Date());
         // Refresh the signed URL
         try {
-          const u = await fetch(`/api/documents/signed-url/${selectedDoc.id}`).then((r) => r.json());
+          const u = await tenantFetch(`/api/documents/signed-url/${selectedDoc.id}`).then((r) => r.json());
           if (u?.url) {
             setSelectedDoc({ ...selectedDoc, url: u.url });
           }

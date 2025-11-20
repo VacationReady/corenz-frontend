@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface Props {
   slug: string;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function DeleteNewsButton({ slug, variant = "default" }: Props) {
+  const tenantFetch = useTenantFetch();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +22,7 @@ export default function DeleteNewsButton({ slug, variant = "default" }: Props) {
 
     setLoading(true);
 
-    const res = await fetch(`/api/news/${slug}`, {
+    const res = await tenantFetch(`/api/news/${slug}`, {
       method: "DELETE",
     });
 

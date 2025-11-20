@@ -28,6 +28,7 @@ import {
 import { FilterOption } from "@/types/filter";
 import { formatDistanceToNow } from "date-fns";
 import { handleNewsShare, createShareOptions, fetchNewsPage, PaginationState } from "@/lib/news-utils";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface NewsPost {
   id: string;
@@ -76,6 +77,8 @@ const viewModes = [
 ];
 
 function NewsContent({ posts, canPost }: NewsPageClientProps) {
+  const { data: session } = useSession();
+  const tenantFetch = useTenantFetch();
   const { filters } = useFilters();
   const breadcrumbs = useBreadcrumbs();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -246,7 +249,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
     );
 
     try {
-      const response = await fetch(`/api/news/${targetPost.slug}/reaction`, {
+      const response = await tenantFetch(`/api/news/${targetPost.slug}/reaction`, {
         method: isRemoving ? "DELETE" : "POST",
         headers: isRemoving ? undefined : { "Content-Type": "application/json" },
         body: isRemoving ? undefined : JSON.stringify({ reaction: reactionId }),
@@ -305,7 +308,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
     );
 
     try {
-      const response = await fetch(`/api/news/${targetPost.slug}/bookmark`, {
+      const response = await tenantFetch(`/api/news/${targetPost.slug}/bookmark`, {
         method: "POST",
       });
 
@@ -348,7 +351,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
       excerpt: post.excerpt,
     });
 
-    await handleNewsShare(post.slug, shareOptions);
+    await handleNewsShare(post.slug, shareOptions, session?.user?.companyId);
   };
 
   /**
@@ -361,7 +364,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
     try {
       const nextPage = pagination.page + 1;
-      const data = await fetchNewsPage(nextPage, pagination.limit);
+      const data = await fetchNewsPage(nextPage, pagination.limit, session?.user?.companyId);
 
       setPostState((prev) => [...prev, ...data.posts]);
       setPagination({

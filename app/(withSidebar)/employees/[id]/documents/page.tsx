@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 import Button from "@/components/ui/Button";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
@@ -142,8 +143,10 @@ export default function EmployeeDocumentsPage() {
     }
   };
 
+  const tenantFetch = useTenantFetch();
+
   const fetchDocuments = async () => {
-    const res = await fetch(`/api/documents/list?employeeId=${employeeId}`);
+    const res = await tenantFetch(`/api/documents/list?employeeId=${employeeId}`);
     const data = await res.json();
     setDocuments(data);
     setLoading(false);
@@ -151,7 +154,7 @@ export default function EmployeeDocumentsPage() {
 
   const fetchEmployeeName = async () => {
     try {
-      const res = await fetch(`/api/employees/${employeeId}`);
+      const res = await tenantFetch(`/api/employees/${employeeId}`);
       if (res.ok) {
         const employee = await res.json();
         const name = `${employee.user?.firstName || ""} ${employee.user?.lastName || ""}`.trim();
@@ -164,7 +167,7 @@ export default function EmployeeDocumentsPage() {
 
   useEffect(() => {
     if (selectedDoc?.id) {
-      fetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
+      tenantFetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
         .then((res) => res.json())
         .then((data) => {
           if (data.acknowledged) {
@@ -175,16 +178,16 @@ export default function EmployeeDocumentsPage() {
             setAckDate(null);
           }
         });
-      fetch(`/api/documents/signatures/${selectedDoc.id}/me`)
+      tenantFetch(`/api/documents/signatures/${selectedDoc.id}/me`)
         .then((res) => res.json())
         .then((data) => { setSigned(!!data.signed); setEligible(!!data.eligible); })
         .catch(() => { setSigned(false); setEligible(false); });
-      fetch(`/api/documents/signature-fields/${selectedDoc.id}`)
+      tenantFetch(`/api/documents/signature-fields/${selectedDoc.id}`)
         .then((r) => r.json())
         .then((data) => setFields(Array.isArray(data) ? data : []))
         .catch(() => setFields([]));
     }
-  }, [selectedDoc]);
+  }, [selectedDoc, tenantFetch]);
 
   useEffect(() => {
     if (employeeId) {
@@ -244,7 +247,7 @@ export default function EmployeeDocumentsPage() {
     formData.append("deferNotifications", requiresSignature ? "true" : "false");
 
     try {
-      const res = await fetch("/api/documents/upload", {
+      const res = await tenantFetch("/api/documents/upload", {
         method: "POST",
         body: formData,
       });
@@ -284,7 +287,7 @@ export default function EmployeeDocumentsPage() {
 
   const confirmDelete = async (id: string) => {
     if (!confirm("Delete this document?")) return;
-    await fetch("/api/documents/delete", {
+    await tenantFetch("/api/documents/delete", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ documentId: id }),
@@ -334,7 +337,7 @@ export default function EmployeeDocumentsPage() {
   const handleAcknowledge = async () => {
     if (!selectedDoc?.id) return;
     try {
-      const res = await fetch("/api/documents/acknowledge", {
+      const res = await tenantFetch("/api/documents/acknowledge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: selectedDoc.id }),
@@ -360,7 +363,7 @@ export default function EmployeeDocumentsPage() {
     if (!selectedDoc) return;
     setSignSubmitting(true);
     try {
-      const res = await fetch("/api/documents/sign", {
+      const res = await tenantFetch("/api/documents/sign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -377,7 +380,7 @@ export default function EmployeeDocumentsPage() {
         setAckDate(payload?.signature?.signedAt ? new Date(payload.signature.signedAt) : new Date());
         // Refresh the signed URL
         try {
-          const u = await fetch(`/api/documents/signed-url/${selectedDoc.id}`).then((r) => r.json());
+          const u = await tenantFetch(`/api/documents/signed-url/${selectedDoc.id}`).then((r) => r.json());
           if (u?.url) {
             setSelectedDoc({ ...selectedDoc, url: u.url });
           }

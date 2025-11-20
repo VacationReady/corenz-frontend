@@ -7,10 +7,13 @@
  * - AbortSignal support for request cancellation
  * - Consistent error structure across the application
  * - Integration with SWR and React Query
+ * - Automatic tenant context headers for rate-limited paths
  * 
  * @example
  * ```typescript
- * const { data, error } = await apiClient.get<Employee[]>('/api/employees');
+ * const { data, error } = await apiClient.get<Employee[]>('/api/employees', {
+ *   companyId: session?.user?.companyId
+ * });
  * if (error) {
  *   console.error('Failed to fetch employees:', error.message);
  *   return;
@@ -45,6 +48,8 @@ export interface ApiRequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined | null>;
   /** Request timeout in milliseconds */
   timeout?: number;
+  /** Company ID for tenant context (automatically added to headers for rate-limited paths) */
+  companyId?: string | null;
 }
 
 /**
@@ -100,7 +105,7 @@ async function request<T>(
   url: string,
   options: ApiRequestOptions = {}
 ): Promise<ApiResponse<T>> {
-  const { params, timeout, ...fetchOptions } = options;
+  const { params, timeout, companyId, ...fetchOptions } = options;
 
   // Build URL with query params
   const finalUrl = buildUrl(url, params);
@@ -114,14 +119,24 @@ async function request<T>(
     timeoutId = setTimeout(() => controller.abort(), timeout);
   }
 
+  // Import tenant utilities (dynamic import to avoid circular dependencies)
+  const { mergeTenantHeaders } = await import('@/app/lib/tenant-fetch');
+  
+  // Merge tenant headers with existing headers
+  const mergedHeaders = mergeTenantHeaders(
+    finalUrl,
+    {
+      'Content-Type': 'application/json',
+      ...fetchOptions.headers,
+    },
+    companyId
+  );
+
   try {
     const response = await fetch(finalUrl, {
       ...fetchOptions,
       signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...fetchOptions.headers,
-      },
+      headers: mergedHeaders,
     });
 
     if (timeoutId) clearTimeout(timeoutId);

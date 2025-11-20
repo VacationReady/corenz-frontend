@@ -28,9 +28,11 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import useSWR, { type SWRConfiguration, type SWRResponse } from 'swr';
 import useSWRMutation, { type SWRMutationConfiguration } from 'swr/mutation';
 import { apiClient, swrFetcher, type ApiRequestOptions, type ApiError } from '@/lib/apiClient';
+import { getTenantHeadersSync } from '@/app/lib/tenant-fetch';
 
 /**
  * Hook options extending SWR configuration
@@ -42,6 +44,8 @@ export interface UseApiOptions<T> extends SWRConfiguration<T> {
   enabled?: boolean;
   /** Request timeout in milliseconds */
   timeout?: number;
+  /** Company ID for tenant context (auto-detected from session if not provided) */
+  companyId?: string | null;
 }
 
 /**
@@ -55,7 +59,8 @@ export function useApi<T>(
   url: string | null,
   options?: UseApiOptions<T>
 ): SWRResponse<T, Error> & { isLoading: boolean } {
-  const { params, enabled = true, timeout, ...swrOptions } = options || {};
+  const { data: session } = useSession();
+  const { params, enabled = true, timeout, companyId = session?.user?.companyId, ...swrOptions } = options || {};
 
   // Build URL with params
   const finalUrl = url && params ? buildUrlWithParams(url, params) : url;
@@ -63,9 +68,12 @@ export function useApi<T>(
   // Disable fetching if enabled is false or url is null
   const shouldFetch = enabled && finalUrl !== null;
 
+  // Create tenant-aware fetcher
+  const fetcher = createTenantSwrFetcher<T>(companyId);
+
   const swr = useSWR<T, Error>(
     shouldFetch ? finalUrl : null,
-    swrFetcher<T>,
+    fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
@@ -90,8 +98,13 @@ export function useApi<T>(
 export function useApiMutation<TData, TVariables = unknown>(
   url: string,
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'POST',
-  options?: SWRMutationConfiguration<TData, Error, string, TVariables>
+  options?: SWRMutationConfiguration<TData, Error, string, TVariables> & {
+    companyId?: string | null;
+  }
 ) {
+  const { data: session } = useSession();
+  const { companyId = session?.user?.companyId, ...swrOptions } = options || {};
+
   const mutation = useSWRMutation<TData, Error, string, TVariables>(
     url,
     async (key, { arg }) => {
@@ -99,16 +112,16 @@ export function useApiMutation<TData, TVariables = unknown>(
 
       switch (method) {
         case 'POST':
-          response = await apiClient.post<TData, TVariables>(key, arg);
+          response = await apiClient.post<TData, TVariables>(key, arg, { companyId });
           break;
         case 'PUT':
-          response = await apiClient.put<TData, TVariables>(key, arg);
+          response = await apiClient.put<TData, TVariables>(key, arg, { companyId });
           break;
         case 'PATCH':
-          response = await apiClient.patch<TData, TVariables>(key, arg);
+          response = await apiClient.patch<TData, TVariables>(key, arg, { companyId });
           break;
         case 'DELETE':
-          response = await apiClient.delete<TData>(key);
+          response = await apiClient.delete<TData>(key, { companyId });
           break;
       }
 
@@ -118,7 +131,7 @@ export function useApiMutation<TData, TVariables = unknown>(
 
       return response.data as TData;
     },
-    options
+    swrOptions
   );
 
   return mutation;

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { CheckCircle, Clock, ArrowRight } from "lucide-react";
@@ -11,8 +12,13 @@ import ModernSignatureCapture, { SignatureCaptureValue } from "@/components/docu
 import { toast } from "sonner";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { HolidayApprovalModal } from "@/components/approvals/HolidayApprovalModal";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { getTenantHeadersSync } from "@/app/lib/tenant-fetch";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const createFetcher = (companyId?: string | null) => (url: string) => {
+  const headers = getTenantHeadersSync(url, companyId);
+  return fetch(url, { headers }).then((r) => r.json());
+};
 
 interface ActionItem {
   id: string;
@@ -31,6 +37,9 @@ interface UnifiedActionItemsProps {
 }
 
 export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedActionItemsProps) {
+  const { data: session } = useSession();
+  const tenantFetch = useTenantFetch();
+  const fetcher = createFetcher(session?.user?.companyId);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<ActionItem | null>(null);
@@ -255,7 +264,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
             
             if (doc.requiresSignature) {
               try {
-                const r = await fetch(`/api/documents/signatures/${doc.id}/me`, { cache: "no-store" });
+                const r = await tenantFetch(`/api/documents/signatures/${doc.id}/me`, { cache: "no-store" });
                 const j = await r.json();
                 if (!j?.signed) {
                   return {
@@ -693,7 +702,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                       if (!previewDoc || !signatureValue) return;
                       setSignSubmitting(true);
                       try {
-                        const res = await fetch("/api/documents/sign", {
+                        const res = await tenantFetch("/api/documents/sign", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
@@ -729,7 +738,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                     onClick={async () => {
                       if (!previewDoc) return;
                       try {
-                        await fetch("/api/documents/acknowledge", {
+                        await tenantFetch("/api/documents/acknowledge", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ documentId: previewDoc.id })

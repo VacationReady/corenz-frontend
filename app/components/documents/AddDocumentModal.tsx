@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { useSession } from "next-auth/react";
 import { fetchEmployees } from "@/lib/fetchData";
 import { toast } from "sonner";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import SignatureCapture from "@/components/documents/SignatureCapture";
 import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
@@ -35,6 +36,7 @@ export default function AddDocumentModal({
   onClose: () => void;
 }) {
   const { data: session } = useSession();
+  const tenantFetch = useTenantFetch();
   const [type, setType] = useState<"employee" | "company" | null>(null);
   const [employeeId, setEmployeeId] = useState("");
   const [title, setTitle] = useState("");
@@ -217,7 +219,7 @@ export default function AddDocumentModal({
         formData.append("signerEmployees", JSON.stringify(signerEmployees));
       }
 
-      const res = await fetch("/api/documents/upload", {
+      const res = await tenantFetch("/api/documents/upload", {
         method: "POST",
         body: formData,
       });
@@ -232,7 +234,7 @@ export default function AddDocumentModal({
       if (requiresSignature && payload?.Document?.id) {
         // If we have pre-placement fields, post them now (server save) to preserve pre-upload UX
         if (pendingFields && pendingFields.length > 0) {
-          await fetch(`/api/documents/signature-fields/${payload.Document.id}` as any, {
+          await tenantFetch(`/api/documents/signature-fields/${payload.Document.id}` as any, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(pendingFields),
@@ -288,14 +290,14 @@ export default function AddDocumentModal({
         formData.append("signerEmployees", JSON.stringify(signerEmployees));
       }
       // No defer here; local placement happens pre-upload
-      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
+      const res = await tenantFetch("/api/documents/upload", { method: "POST", body: formData });
       if (!res.ok) {
         const { error } = await res.json();
         throw new Error(error || "Upload failed");
       }
       const payload = await res.json();
       if (requiresSignature && fields && fields.length > 0 && payload?.Document?.id) {
-        await fetch(`/api/documents/signature-fields/${payload.Document.id}` as any, {
+        await tenantFetch(`/api/documents/signature-fields/${payload.Document.id}` as any, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(fields),

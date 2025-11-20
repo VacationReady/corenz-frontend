@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { format } from "date-fns";
 import NewsContentRenderer from "./NewsContentRenderer";
 import NewsContentTipTapRenderer from "./NewsContentTipTapRenderer";
@@ -109,6 +110,7 @@ export default function NewsDetailClient({
   canEdit,
   currentUserId,
 }: NewsDetailClientProps) {
+  const tenantFetch = useTenantFetch();
   const router = useRouter();
   const [viewCount, setViewCount] = useState(post.views ?? 0);
   const [reactions, setReactions] = useState<Record<string, number>>(post.reactions ?? {});
@@ -123,9 +125,9 @@ export default function NewsDetailClient({
 
     const trackView = async () => {
       try {
-        const response = await fetch(`/api/news/${post.slug}/view`, {
-          method: "POST",
-        });
+      const response = await tenantFetch(`/api/news/${post.slug}/view`, {
+        method: "POST",
+      });
 
         if (!response.ok) return;
         const data = await response.json();
@@ -207,7 +209,7 @@ export default function NewsDetailClient({
     setShowReactions(false);
 
     try {
-      const response = await fetch(`/api/news/${post.slug}/reaction`, {
+      const response = await tenantFetch(`/api/news/${post.slug}/reaction`, {
         method: isRemoving ? "DELETE" : "POST",
         headers: isRemoving ? undefined : { "Content-Type": "application/json" },
         body: isRemoving ? undefined : JSON.stringify({ reaction: reactionId }),
@@ -243,7 +245,7 @@ export default function NewsDetailClient({
     setBookmarkCount(previousState ? Math.max(previousCount - 1, 0) : previousCount + 1);
 
     try {
-      const response = await fetch(`/api/news/${post.slug}/bookmark`, {
+      const response = await tenantFetch(`/api/news/${post.slug}/bookmark`, {
         method: "POST",
       });
 

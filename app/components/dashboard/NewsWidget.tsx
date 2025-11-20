@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { Megaphone } from "lucide-react";
 import Link from "next/link";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface NewsPost {
   id: string;
@@ -19,13 +20,14 @@ type NewsWidgetProps = {
 };
 
 export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
+  const tenantFetch = useTenantFetch();
   const [items, setItems] = useState<NewsPost[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLatestNews = async () => {
       try {
-        const res = await fetch(`/api/news?limit=${limit}`);
+        const res = await tenantFetch(`/api/news?limit=${limit}`);
         const data = await res.json();
         if (Array.isArray(data)) setItems(data);
         else setItems([]);
@@ -36,7 +38,7 @@ export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
     };
 
     fetchLatestNews();
-  }, [limit]);
+  }, [limit, tenantFetch]);
 
   return (
     <DashboardWidget title="Latest News" icon={Megaphone} className="h-full">

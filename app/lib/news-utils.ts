@@ -3,6 +3,7 @@
  */
 
 import { toast } from "sonner";
+import { getTenantHeadersSync } from "@/app/lib/tenant-fetch";
 
 export interface ShareOptions {
   title: string;
@@ -14,16 +15,20 @@ export interface ShareOptions {
  * Record a share action via API and handle sharing via Web Share API or clipboard
  * @param slug - The news post slug
  * @param options - Share options (title, text, url)
+ * @param companyId - Optional company ID for tenant context
  * @returns Promise<boolean> - Returns true if share was successful
  */
 export async function handleNewsShare(
   slug: string,
-  options: ShareOptions
+  options: ShareOptions,
+  companyId?: string | null
 ): Promise<boolean> {
   try {
     // Record the share action
+    const headers = getTenantHeadersSync(`/api/news/${slug}/share`, companyId);
     const response = await fetch(`/api/news/${slug}/share`, {
       method: "POST",
+      headers,
     });
 
     if (!response.ok) {
@@ -99,11 +104,13 @@ export interface PaginationState {
  * Fetch more news posts with pagination
  * @param page - Page number to fetch
  * @param limit - Number of posts per page
+ * @param companyId - Optional company ID for tenant context
  * @returns Promise with posts and pagination data
  */
 export async function fetchNewsPage(
   page: number,
-  limit: number = 12
+  limit: number = 12,
+  companyId?: string | null
 ): Promise<{
   posts: any[];
   pagination: {
@@ -114,12 +121,14 @@ export async function fetchNewsPage(
     hasMore: boolean;
   };
 }> {
+  const tenantHeaders = getTenantHeadersSync(`/api/news?page=${page}&limit=${limit}`, companyId);
   const response = await fetch(
     `/api/news?page=${page}&limit=${limit}`,
     {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        ...tenantHeaders,
       },
     }
   );

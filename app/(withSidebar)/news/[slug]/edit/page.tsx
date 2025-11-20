@@ -22,6 +22,7 @@ type ContentBlock =
   | { type: "bullet_list"; items: string[] };
 
 export default function EditNewsPostPage() {
+  const tenantFetch = useTenantFetch();
   const params = useParams();
   const slug = Array.isArray(params?.slug) ? params.slug[0] : (params?.slug as string);
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function EditNewsPostPage() {
     if (!session?.user) return router.push("/news");
 
     async function fetchPost() {
-      const res = await fetch(`/api/news/${slug}`);
+      const res = await tenantFetch(`/api/news/${slug}`);
       if (!res.ok) return router.push("/news");
 
       const post = await res.json();
@@ -107,9 +108,9 @@ export default function EditNewsPostPage() {
       attachments.map((file) => uploadFileToSupabase(file)),
     );
 
-    const res = await fetch(`/api/news/${slug}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      const res = await tenantFetch(`/api/news/${slug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title,
         content,

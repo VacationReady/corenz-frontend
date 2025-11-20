@@ -12,6 +12,7 @@ import {
 import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
 import { Briefcase, PenLine, UserRound, X, AlertTriangle } from "lucide-react";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface Field {
   pageNumber: number;
@@ -124,7 +125,7 @@ export default function FieldPlacementModal({
       setDocUrl(url);
       setFields((prev) => prev); // keep local edits
     } else {
-      fetch(`/api/documents/signature-fields/${documentId}`)
+      tenantFetch(`/api/documents/signature-fields/${documentId}`)
         .then((r) => r.json())
         .then((data) => {
           const loadedFields = data || [];
@@ -136,13 +137,13 @@ export default function FieldPlacementModal({
           setInitialFields([]);
         });
       // Always fetch a fresh signed URL to guarantee preview
-      fetch(`/api/documents/signed-url/${documentId}`)
+      tenantFetch(`/api/documents/signed-url/${documentId}`)
         .then((r) => r.json())
         .then((d) => setDocUrl(d?.url || url))
         .catch(() => setDocUrl(url));
     }
     // Load employee list for assignees (supports server route: /api/employees?status=active)
-    fetch(`/api/employees?status=active`)
+    tenantFetch(`/api/employees?status=active`)
       .then((r) => r.ok ? r.json() : [])
       .then((arr) =>
         setAssignees(
@@ -150,7 +151,7 @@ export default function FieldPlacementModal({
         ),
       )
       .catch(() => setAssignees([]));
-  }, [documentId, isOpen, url, saveMode]);
+  }, [documentId, isOpen, url, saveMode, tenantFetch]);
 
   // Check if fields have changed
   useEffect(() => {
@@ -194,7 +195,7 @@ export default function FieldPlacementModal({
     }
     
     try {
-      const res = await fetch(`/api/documents/signature-fields/${documentId}`, {
+      const res = await tenantFetch(`/api/documents/signature-fields/${documentId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(fields),

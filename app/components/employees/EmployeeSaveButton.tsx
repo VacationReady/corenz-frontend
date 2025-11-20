@@ -5,6 +5,7 @@ import Button from "@/components/ui/Button";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "../audit/ChangeReasonModal";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface EmployeeSaveButtonProps {
   employeeId: string;
@@ -60,6 +61,7 @@ export default function EmployeeSaveButton({
   disabled = false,
   valueFormatter,
 }: EmployeeSaveButtonProps) {
+  const tenantFetch = useTenantFetch();
   const [loading, setLoading] = useState(false);
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
@@ -105,7 +107,7 @@ export default function EmployeeSaveButton({
         changedPayload[change.field] = currentValues[change.field];
       }
 
-      const res = await fetch(`/api/employees/${employeeId}/${endpoint}`, {
+      const res = await tenantFetch(`/api/employees/${employeeId}/${endpoint}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...changedPayload, reasons }),

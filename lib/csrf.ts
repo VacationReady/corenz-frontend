@@ -3,6 +3,9 @@
  * 
  * Provides client-side CSRF token management for secure POST/PUT/DELETE requests.
  * Tokens are retrieved from NextAuth session or API endpoint.
+ * 
+ * Note: For tenant-aware requests, use `useTenantFetch` hook instead, which includes
+ * both CSRF protection and tenant headers automatically.
  */
 
 let cachedToken: string | null = null;
@@ -55,29 +58,43 @@ async function fetchCsrfToken(): Promise<string> {
  * 
  * @param url - The URL to fetch
  * @param options - Fetch options (method, headers, body, etc.)
+ * @param companyId - Optional company ID for tenant-aware requests
  * @returns Promise<Response>
  */
 export async function fetchWithCsrf(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  companyId?: string | null
 ): Promise<Response> {
   const method = (options.method || "GET").toUpperCase();
   const needsCsrf = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
 
+  // Import tenant utilities dynamically
+  const { getTenantHeadersSync } = await import('@/lib/tenant-fetch');
+  const tenantHeaders = getTenantHeadersSync(url, companyId);
+
   if (!needsCsrf) {
     // GET requests don't need CSRF protection
+    const headers = new Headers(options.headers);
+    Object.entries(tenantHeaders).forEach(([key, value]) => {
+      headers.set(key, value);
+    });
     return fetch(url, {
       ...options,
       credentials: options.credentials || "include",
+      headers,
     });
   }
 
   try {
     const csrfToken = await fetchCsrfToken();
 
-    // Add CSRF token to headers
+    // Add CSRF token and tenant headers
     const headers = new Headers(options.headers);
     headers.set("x-csrf-token", csrfToken);
+    Object.entries(tenantHeaders).forEach(([key, value]) => {
+      headers.set(key, value);
+    });
 
     return fetch(url, {
       ...options,
@@ -87,9 +104,14 @@ export async function fetchWithCsrf(
   } catch (error) {
     console.error("[CSRF] Request failed:", error);
     // Fall back to regular fetch without CSRF (server should reject it)
+    const headers = new Headers(options.headers);
+    Object.entries(tenantHeaders).forEach(([key, value]) => {
+      headers.set(key, value);
+    });
     return fetch(url, {
       ...options,
       credentials: options.credentials || "include",
+      headers,
     });
   }
 }

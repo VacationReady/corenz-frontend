@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -6,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 import {
   Table,
   TableHeader,
@@ -38,6 +41,7 @@ export default function ViewAcknowledgementsModal({
   documentName,
   isEmployeeDocument = false,
 }: Props) {
+  const tenantFetch = useTenantFetch();
   const [acknowledged, setAcknowledged] = useState<Acknowledgement[]>([]);
   const [pending, setPending] = useState<Acknowledgement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,7 +52,7 @@ export default function ViewAcknowledgementsModal({
 
       if (isEmployeeDocument) {
         // ✅ Employee-specific docs: single acknowledgement check
-        fetch(`/api/documents/acknowledge/${documentId}`)
+        tenantFetch(`/api/documents/acknowledge/${documentId}`)
           .then((res) => res.json())
           .then((data) => {
             if (data.acknowledged) {
@@ -70,7 +74,7 @@ export default function ViewAcknowledgementsModal({
           .finally(() => setLoading(false));
       } else {
         // ✅ Company-wide docs: fetch full lists
-        fetch(`/api/documents/acknowledge/${documentId}`)
+        tenantFetch(`/api/documents/acknowledge/${documentId}`)
           .then((res) => res.json())
           .then((data) => {
             setAcknowledged(
@@ -87,7 +91,7 @@ export default function ViewAcknowledgementsModal({
           .finally(() => setLoading(false));
       }
     }
-  }, [documentId, isOpen, isEmployeeDocument]); // ✅ Depend on all relevant triggers
+  }, [documentId, isOpen, isEmployeeDocument, tenantFetch]); // ✅ Depend on all relevant triggers
 
   const exportCSV = () => {
     const rows = [

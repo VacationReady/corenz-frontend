@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 type Contact = {
   id: string;
@@ -17,6 +18,7 @@ type Contact = {
 };
 
 export default function EmergencyContactsClient({ employeeId }: { employeeId: string }) {
+  const tenantFetch = useTenantFetch();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [originalContacts, setOriginalContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,7 +28,7 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
   const [pendingPayload, setPendingPayload] = useState<any>(null);
 
   const load = async () => {
-    const res = await fetch(`/api/employees/${employeeId}/emergency-contacts`);
+    const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`);
     if (!res.ok) return;
     const data: Contact[] = await res.json();
     setContacts(data);
@@ -35,7 +37,7 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
 
   useEffect(() => {
     load();
-  }, [employeeId]);
+  }, [employeeId, tenantFetch]);
 
   const addEmpty = () => {
     setContacts((c) => [
@@ -80,7 +82,7 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
       return;
     }
     if (!changes.some(changeRequiresReason)) {
-      const res = await fetch(`/api/employees/${employeeId}/emergency-contacts`, {
+      const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...contact, reasons: {} }),
@@ -224,21 +226,21 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
           try {
             setLoading(true);
             if (pendingAction === "create") {
-              const res = await fetch(`/api/employees/${employeeId}/emergency-contacts`, {
+              const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...pendingPayload, reason: reasons["__create__"] }),
               });
               if (!res.ok) throw new Error("Failed to create");
             } else if (pendingAction === "update") {
-              const res = await fetch(`/api/employees/${employeeId}/emergency-contacts`, {
+              const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ...pendingPayload, reasons }),
               });
               if (!res.ok) throw new Error("Failed to update");
             } else if (pendingAction === "delete") {
-              const res = await fetch(`/api/employees/${employeeId}/emergency-contacts`, {
+              const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: pendingPayload.id, reason: reasons["__delete__"] }),

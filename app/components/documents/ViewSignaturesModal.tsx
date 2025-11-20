@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 export default function ViewSignaturesModal({
   isOpen,
@@ -20,14 +21,15 @@ export default function ViewSignaturesModal({
   documentId: string | null;
   documentName: string | null;
 }) {
+  const tenantFetch = useTenantFetch();
   const [data, setData] = useState<any>(null);
   useEffect(() => {
     if (!isOpen || !documentId) return;
-    fetch(`/api/documents/signatures/${documentId}`)
+    tenantFetch(`/api/documents/signatures/${documentId}`)
       .then((r) => r.json())
       .then(setData)
       .catch(() => setData(null));
-  }, [isOpen, documentId]);
+  }, [isOpen, documentId, tenantFetch]);
 
   const exportCsv = () => {
     if (!data) return;

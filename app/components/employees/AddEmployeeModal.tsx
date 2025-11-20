@@ -1131,12 +1131,12 @@ export default function AddEmployeeModal({
       const sensitiveFields = ['irdNumber', 'bankAccountNumber', 'workPermitType'];
       const payload = await prepareSensitiveDataForTransmission(basePayload, sensitiveFields);
 
-      // Use CSRF-protected fetch for security
+      // Use CSRF-protected fetch for security with tenant headers
       const res = await fetchWithCsrf("/api/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      });
+      }, session?.user?.companyId);
 
       if (!res.ok) {
         const data = await res.json();

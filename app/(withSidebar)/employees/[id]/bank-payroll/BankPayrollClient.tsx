@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import Link from "next/link";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 import EmployeeSaveButton from "@/components/employees/EmployeeSaveButton";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 import {
   Select,
   SelectContent,
@@ -63,6 +64,7 @@ interface InitialValuesState {
 }
 
 export default function BankPayrollClient({ employeeId }: { employeeId: string }) {
+  const tenantFetch = useTenantFetch();
   const [form, setForm] = useState<FormState>({
     bankAccountNumber: "",
     irdNumber: "",
@@ -121,7 +123,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/employees/${employeeId}/bank-payroll`);
+        const res = await tenantFetch(`/api/employees/${employeeId}/bank-payroll`);
         if (!res.ok) return;
         const data = await res.json();
 
@@ -166,7 +168,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
         setTouched({ bankAccountNumber: false, irdNumber: false });
       } catch {}
     })();
-  }, [employeeId]);
+  }, [employeeId, tenantFetch]);
 
   const handleBankAccountChange = (value: string) => {
     const formatted = formatBankAccountNumber(value);

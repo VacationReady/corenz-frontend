@@ -22,6 +22,7 @@ import {
 } from "@/lib/onboarding/stepMetadata";
 import { validateIRDNumber } from "@/lib/payroll/validators";
 import { mapDbStepTypeToUi } from "@/lib/onboarding/stepTypeMapping";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 type OnboardingStepProps = {
   step: {
@@ -52,6 +53,7 @@ export default function OnboardingStepRenderer({
   __companyId,
   isCompleting = false,
 }: OnboardingStepProps) {
+  const tenantFetch = useTenantFetch();
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [ack, setAck] = useState(false);
@@ -502,7 +504,7 @@ export default function OnboardingStepRenderer({
                   formData.append("requiresAck", "false");
 
                   try {
-                    const res = await fetch("/api/documents/upload-employee", {
+                    const res = await tenantFetch("/api/documents/upload-employee", {
                       method: "POST",
                       body: formData,
                     });

@@ -46,6 +46,7 @@ import SignatureSuccessAnimation from "@/components/documents/SignatureSuccessAn
 import AcknowledgmentSuccessAnimation from "@/components/documents/AcknowledgmentSuccessAnimation";
 import type { SignatureCaptureValue } from "@/components/documents/ModernSignatureCapture";
 import { FileText, Download, Eye, CheckCircle, PenTool } from "lucide-react";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 const statusColors = {
   NOT_STARTED: "bg-gray-500",
@@ -85,6 +86,7 @@ export interface PerformancePageProps {
 }
 
 export default function PerformancePage({ employeeId }: PerformancePageProps = {}) {
+  const tenantFetch = useTenantFetch();
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -341,7 +343,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
 
     // Fetch acknowledgement status
     if (selectedDocument.requiresAck) {
-      fetch(`/api/documents/acknowledge/${selectedDocument.id}/me`)
+      tenantFetch(`/api/documents/acknowledge/${selectedDocument.id}/me`)
         .then((res) => res.json())
         .then((data) => {
           setAcknowledged(data.acknowledged);
@@ -355,7 +357,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
 
     // Fetch signature status
     if (selectedDocument.requiresSignature) {
-      fetch(`/api/documents/signatures/${selectedDocument.id}/me`)
+      tenantFetch(`/api/documents/signatures/${selectedDocument.id}/me`)
         .then((res) => res.json())
         .then((data) => setSigned(!!data.signed))
         .catch(() => setSigned(false));

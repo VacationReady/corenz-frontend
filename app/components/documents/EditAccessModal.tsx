@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -10,6 +12,7 @@ import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -41,6 +44,7 @@ export default function EditAccessModal({
   onSaved,
   isEmployeeDocument = false,
 }: EditAccessModalProps) {
+  const tenantFetch = useTenantFetch();
   const [deptIds, setDeptIds] = useState<string[]>([]);
   const [roleIds, setRoleIds] = useState<string[]>([]);
   const [canAdmin, setCanAdmin] = useState(false);
@@ -61,7 +65,7 @@ export default function EditAccessModal({
   // Fetch dropdowns if not employee document
   useEffect(() => {
     if (!isEmployeeDocument) {
-      fetch("/api/departments/active")
+      tenantFetch("/api/departments/active")
         .then((res) => res.json())
         .then((data) => {
           setDepartmentsList([
@@ -69,7 +73,7 @@ export default function EditAccessModal({
             ...data.map((d: any) => ({ label: d.name, value: d.id })),
           ]);
         });
-      fetch("/api/job-roles/active")
+      tenantFetch("/api/job-roles/active")
         .then((res) => res.json())
         .then((data) => {
           setJobRolesList([
@@ -100,11 +104,11 @@ export default function EditAccessModal({
       setRequiresSignature(document.requiresSignature || false);
       setSignatureDueAt(document.signatureDueAt || "");
     }
-  }, [document]);
+  }, [document, tenantFetch]);
 
   const handleSave = async () => {
     if (!document) return;
-    const res = await fetch("/api/documents/update-access", {
+    const res = await tenantFetch("/api/documents/update-access", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -6,6 +6,7 @@ import { Save } from "lucide-react";
 import { toast } from "sonner";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "../audit/ChangeReasonModal";
 import { useUnsavedChangesContext } from "@/components/ui/UnsavedChangesGuard";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 export default function PersonalInfoSaveButton({
   employeeId,
@@ -14,6 +15,7 @@ export default function PersonalInfoSaveButton({
   employeeId: string;
   section?: string;
 }) {
+  const tenantFetch = useTenantFetch();
   const [loading, setLoading] = useState(false);
   const [initialValues, setInitialValues] = useState<Record<string, any>>({});
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
@@ -123,7 +125,7 @@ export default function PersonalInfoSaveButton({
 
   const performSave = async (payload: Record<string, any>, reasons: Record<string, string>) => {
     try {
-      const res = await fetch(`/api/employees/${employeeId}/personal-info`, {
+      const res = await tenantFetch(`/api/employees/${employeeId}/personal-info`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, reasons, section }),

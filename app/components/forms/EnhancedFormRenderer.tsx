@@ -14,6 +14,7 @@ import { PageLoader } from "@/components/ui/LoadingSpinner";
 import HistoryButton from "@/components/audit/HistoryButton";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
 import UnsavedChangesGuard, { useUnsavedChangesContext } from "@/components/ui/UnsavedChangesGuard";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 const isSerializableValue = (value: unknown) => {
   if (value === undefined) return false;
@@ -364,7 +365,7 @@ export function EnhancedFormRenderer({
           fd.append("canViewEmployee", "true");
           fd.append("requiresAck", "false");
           try {
-            const uploadRes = await fetch("/api/documents/upload-employee", {
+            const uploadRes = await tenantFetch("/api/documents/upload-employee", {
               method: "POST",
               body: fd,
             });

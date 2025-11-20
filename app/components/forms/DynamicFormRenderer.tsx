@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface DynamicFormRendererProps {
   formId: string;
@@ -33,6 +34,7 @@ export function DynamicFormRenderer({
   employeeId,
   onSubmitSuccess,
 }: DynamicFormRendererProps) {
+  const tenantFetch = useTenantFetch();
   const [fields, setFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(true);
   const [isReasonOpen, setIsReasonOpen] = useState(false);
@@ -116,7 +118,7 @@ export function DynamicFormRenderer({
             formData.append("name", field.label || file.name);
             formData.append("category", formId);
 
-            const res = await fetch("/api/documents/upload-employee", {
+            const res = await tenantFetch("/api/documents/upload-employee", {
               method: "POST",
               body: formData,
             });

@@ -60,6 +60,7 @@ interface FormSubmission {
 }
 
 export default function EmployeeFormsPage() {
+  const tenantFetch = useTenantFetch();
   const params = useParams();
   const employeeId = params?.id ? String(params.id) : "";
 
@@ -74,9 +75,9 @@ export default function EmployeeFormsPage() {
     const fetchData = async () => {
       try {
         const [assignmentsRes, submissionsRes, employeeRes] = await Promise.all([
-          fetch(`/api/employees/${employeeId}/form-assignments`),
-          fetch(`/api/employees/${employeeId}/form-submissions`),
-          fetch(`/api/employees/${employeeId}`),
+          tenantFetch(`/api/employees/${employeeId}/form-assignments`),
+          tenantFetch(`/api/employees/${employeeId}/form-submissions`),
+          tenantFetch(`/api/employees/${employeeId}`),
         ]);
 
         if (assignmentsRes.ok) {
@@ -146,7 +147,7 @@ export default function EmployeeFormsPage() {
     if (!selectedForm) return;
 
     try {
-      const res = await fetch(
+      const res = await tenantFetch(
         `/api/forms/${selectedForm.form.id}/submissions`,
         {
           method: "POST",

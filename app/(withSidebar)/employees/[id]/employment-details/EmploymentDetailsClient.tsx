@@ -8,6 +8,7 @@ import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 import EmployeeSaveButton from "@/components/employees/EmployeeSaveButton";
 import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/Badge";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,7 @@ import {
 
 export default function EmploymentDetailsClient({ employeeId }: { employeeId: string }) {
   const { data: session } = useSession();
+  const tenantFetch = useTenantFetch();
   const [form, setForm] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Array<{ id: string; userId: string; firstName?: string | null; lastName?: string | null; email: string }>>([]);
@@ -51,10 +53,10 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
 
   const reloadOptions = async () => {
     const [et, ct, loc, deps] = await Promise.all([
-      fetch(`/api/employment-type-options`).then((r) => r.json()).catch(() => []),
-      fetch(`/api/contract-type-options`).then((r) => r.json()).catch(() => []),
-      fetch(`/api/locations`).then((r) => r.json()).catch(() => []),
-      fetch(`/api/departments`).then((r) => r.json()).catch(() => []),
+      tenantFetch(`/api/employment-type-options`).then((r) => r.json()).catch(() => []),
+      tenantFetch(`/api/contract-type-options`).then((r) => r.json()).catch(() => []),
+      tenantFetch(`/api/locations`).then((r) => r.json()).catch(() => []),
+      tenantFetch(`/api/departments`).then((r) => r.json()).catch(() => []),
     ]);
     setEmploymentTypes(et);
     setContractTypes(ct);
@@ -64,14 +66,14 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
 
   useEffect(() => {
     (async () => {
-      const res = await fetch(`/api/employees/${employeeId}/employment-details`);
+      const res = await tenantFetch(`/api/employees/${employeeId}/employment-details`);
       if (!res.ok) return;
       const data = await res.json();
       setForm(data);
       setInitialValues(data);
       await reloadOptions();
     })();
-  }, [employeeId]);
+  }, [employeeId, tenantFetch]);
 
   useEffect(() => {
     if (!form?.siteLocation || form.locationId || locations.length === 0) {
@@ -97,7 +99,7 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/employees?status=active`);
+        const res = await tenantFetch(`/api/employees?status=active`);
         if (!res.ok) return;
         const list = await res.json();
         const filtered = Array.isArray(list)
@@ -116,7 +118,7 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
         // no-op
       }
     })();
-  }, [employeeId]);
+  }, [employeeId, tenantFetch]);
 
   // Keep manager select + initial values in sync without re-fetching
   useEffect(() => {
@@ -158,13 +160,13 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
     if (!newOption.trim()) return;
     const label = newOption.trim();
     if (manageKind === "employment") {
-      await fetch(`/api/employment-type-options`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label }) });
+      await tenantFetch(`/api/employment-type-options`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label }) });
     } else if (manageKind === "contract") {
-      await fetch(`/api/contract-type-options`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label }) });
+      await tenantFetch(`/api/contract-type-options`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label }) });
     } else if (manageKind === "location") {
-      await fetch(`/api/locations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
+      await tenantFetch(`/api/locations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
     } else if (manageKind === "department") {
-      await fetch(`/api/departments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
+      await tenantFetch(`/api/departments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: label }) });
     }
     setNewOption("");
     await reloadOptions();
@@ -172,13 +174,13 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
 
   const deleteOption = async (id: string) => {
     if (manageKind === "employment") {
-      await fetch(`/api/employment-type-options`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      await tenantFetch(`/api/employment-type-options`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     } else if (manageKind === "contract") {
-      await fetch(`/api/contract-type-options`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      await tenantFetch(`/api/contract-type-options`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     } else if (manageKind === "location") {
-      await fetch(`/api/locations`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      await tenantFetch(`/api/locations`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     } else if (manageKind === "department") {
-      await fetch(`/api/departments`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      await tenantFetch(`/api/departments`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     }
     await reloadOptions();
   };
@@ -465,7 +467,7 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             onSaveSuccess={async () => {
               try {
                 setLoading(true);
-                const res = await fetch(`/api/employees/${employeeId}/employment-details`);
+                const res = await tenantFetch(`/api/employees/${employeeId}/employment-details`);
                 if (res.ok) {
                   const latest = await res.json();
                   setForm(latest);

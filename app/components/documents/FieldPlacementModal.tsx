@@ -113,6 +113,8 @@ export default function FieldPlacementModal({
   const [initialFields, setInitialFields] = useState<Field[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  
+  const tenantFetch = useTenantFetch();
 
   useEffect(() => {
     if (!isOpen) {
@@ -126,8 +128,8 @@ export default function FieldPlacementModal({
       setFields((prev) => prev); // keep local edits
     } else {
       tenantFetch(`/api/documents/signature-fields/${documentId}`)
-        .then((r) => r.json())
-        .then((data) => {
+        .then((r: Response) => r.json())
+        .then((data: any) => {
           const loadedFields = data || [];
           setFields(loadedFields);
           setInitialFields(JSON.parse(JSON.stringify(loadedFields))); // Deep copy for comparison
@@ -138,14 +140,14 @@ export default function FieldPlacementModal({
         });
       // Always fetch a fresh signed URL to guarantee preview
       tenantFetch(`/api/documents/signed-url/${documentId}`)
-        .then((r) => r.json())
-        .then((d) => setDocUrl(d?.url || url))
+        .then((r: Response) => r.json())
+        .then((d: any) => setDocUrl(d?.url || url))
         .catch(() => setDocUrl(url));
     }
     // Load employee list for assignees (supports server route: /api/employees?status=active)
     tenantFetch(`/api/employees?status=active`)
-      .then((r) => r.ok ? r.json() : [])
-      .then((arr) =>
+      .then((r: Response) => r.ok ? r.json() : [])
+      .then((arr: any[]) =>
         setAssignees(
           (arr || []).map((e: any) => ({ id: e.id, name: `${e.firstName || e.user?.firstName || ""} ${e.lastName || e.user?.lastName || ""}`.trim() })),
         ),
@@ -195,7 +197,7 @@ export default function FieldPlacementModal({
     }
     
     try {
-      const res = await tenantFetch(`/api/documents/signature-fields/${documentId}`, {
+      const res: Response = await tenantFetch(`/api/documents/signature-fields/${documentId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(fields),

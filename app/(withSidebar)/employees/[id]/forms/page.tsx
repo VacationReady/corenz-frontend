@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import HistoryButton from "@/components/audit/HistoryButton";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface FormAssignment {
   id: string;

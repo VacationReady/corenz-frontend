@@ -530,6 +530,48 @@ High-quality implementation achieved through:
 
 ---
 
+## Developer Training & Code Review Checklist
+
+### Training Note
+
+All developers working on tenant-scoped APIs (especially timesheets, overtime, and audits) should:
+
+- Re-read `SECURITY_AUDIT_TIMESHEET_TENANT_ISOLATION.md` and `SECURITY_AUDIT_SUMMARY.md` to internalize the original vulnerability.
+- Review `lib/tenant-validation.ts` to understand how `validateTimesheetTenant()`, `validateTimesheetEntryTenant()`, `getRequestingEmployee()`, and `logTenantViolationAttempt()` are intended to be used.
+- Walk through at least one fixed endpoint (for example, `app/api/timesheets/[id]/route.ts`) to see the end-to-end pattern applied.
+
+### Code Review Checklist (Tenant Isolation)
+
+When reviewing any API that touches tenant data (timesheets or otherwise), confirm:
+
+- **Company scoping in queries**
+  - All Prisma queries for tenant-scoped resources include a `companyId` filter (e.g. `findFirst({ where: { id, companyId: requestingEmployee.companyId } })`).
+  - There are no `findUnique`/`findMany` calls on tenant-scoped models that rely on `id` alone.
+
+- **Use of tenant validation helpers**
+  - Endpoints use `getRequestingEmployee(session.user.id)` to obtain `companyId` and role information.
+  - Timesheet endpoints call `validateTimesheetTenant()` or `validateTimesheetEntryTenant()` *before* any read/write of sensitive data.
+  - Bulk operations use `validateTimesheetsTenant()` where appropriate.
+
+- **Error semantics for cross-tenant access**
+  - Tenant validation failures are handled via `TenantValidationError` and return **404 Not Found**, not 403, to avoid leaking resource existence across tenants.
+  - 403 responses are reserved for authorization failures *within* the same tenant (e.g. wrong role/department).
+
+- **Security logging & monitoring**
+  - On tenant validation failure, endpoints call `logTenantViolationAttempt()` with the correct `userId`, `resourceType`, `resourceId`, and `requestedCompanyId`.
+  - No code path swallows tenant violations without logging.
+
+- **Tests & CI coverage**
+  - Relevant changes are covered by tests (unit/integration) and do not break `tests/security/timesheet-tenant-isolation.test.ts`.
+  - The GitHub Actions job `timesheet-tenant-security` remains green after changes; if new tenant-scoped endpoints are added, consider extending the security tests.
+
+This checklist should be used for:
+- All PRs that add or modify tenant-scoped endpoints.
+- Periodic security reviews of existing APIs.
+- Onboarding new developers to the multi-tenant security model.
+
+---
+
 ## Conclusion
 
 Successfully implemented comprehensive tenant isolation fixes for the PeopleCore timesheet system with:

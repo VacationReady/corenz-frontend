@@ -255,7 +255,9 @@ export async function logTenantViolationAttempt(
       },
     });
 
-    console.warn(`🔴 SECURITY: Tenant violation attempt by user ${userId} on ${resourceType} ${resourceId}`);
+    console.warn(
+      `TENANT_VIOLATION: userId=${userId} resourceType=${resourceType} resourceId=${resourceId} requestedCompanyId=${requestedCompanyId ?? 'UNKNOWN'} userCompanyId=${employee?.companyId ?? 'UNKNOWN'}`
+    );
   } catch (error) {
     console.error('Failed to log tenant violation:', error);
   }

@@ -219,34 +219,27 @@ Test all timesheet workflows:
 
 ## Security Monitoring
 
-### Logging (Ready for Implementation)
+### Logging (Enabled)
 
-The `logTenantViolationAttempt()` function is available but not yet integrated. To enable:
+The `logTenantViolationAttempt()` function is now called from all secured timesheet endpoints when tenant validation fails.
 
-```typescript
-// In tenant-validation.ts helpers, add after validation failure:
-await logTenantViolationAttempt(
-  session.user.id,
-  'timesheet',
-  timesheetId,
-  requestingEmployee.companyId
-);
+- Writes an entry to the `GlobalAuditLog` table with `metadata.type = 'TENANT_VIOLATION'`
+- Records actor, resource type/ID, attempted company, and user company
+- Emits a structured application log line starting with `TENANT_VIOLATION:` that can be parsed by log-based monitoring
+
+Example log line:
+
+```text
+TENANT_VIOLATION: userId=admin-a resourceType=TIMESHEET resourceId=sec-test-timesheet-b requestedCompanyId=test-company-b userCompanyId=test-company-a
 ```
-
-This will create audit logs in `GlobalAuditLog` table with:
-- Actor ID
-- Resource type and ID
-- Attempted company ID
-- Timestamp
 
 ### Monitoring Queries
 
 **Check for tenant violation attempts:**
 ```sql
-SELECT actorId, COUNT(*) as attempts, MAX(createdAt) as lastAttempt
-FROM GlobalAuditLog
-WHERE action = 'UNAUTHORIZED_ACCESS_ATTEMPT'
-  AND metadata->>'type' = 'TENANT_VIOLATION'
+SELECT actorId, COUNT(*) AS attempts, MAX("timestamp") AS lastAttempt
+FROM "GlobalAuditLog"
+WHERE metadata->>'type' = 'TENANT_VIOLATION'
 GROUP BY actorId
 HAVING COUNT(*) > 5
 ORDER BY attempts DESC;
@@ -255,12 +248,12 @@ ORDER BY attempts DESC;
 **Check for suspicious patterns:**
 ```sql
 SELECT 
-  metadata->>'resourceType' as resource,
-  COUNT(*) as violations,
-  COUNT(DISTINCT actorId) as unique_actors
-FROM GlobalAuditLog
-WHERE action = 'UNAUTHORIZED_ACCESS_ATTEMPT'
-  AND createdAt > NOW() - INTERVAL '24 hours'
+  metadata->>'resourceType' AS resource,
+  COUNT(*) AS violations,
+  COUNT(DISTINCT actorId) AS unique_actors
+FROM "GlobalAuditLog"
+WHERE metadata->>'type' = 'TENANT_VIOLATION'
+  AND "timestamp" > NOW() - INTERVAL '24 hours'
 GROUP BY metadata->>'resourceType'
 ORDER BY violations DESC;
 ```
@@ -362,9 +355,9 @@ ORDER BY violations DESC;
 - [x] Document changes
 
 ### Short-Term (Recommended)
-- [ ] Enable security logging in production
-- [ ] Set up monitoring alerts
-- [ ] Run security test suite in CI/CD
+- [x] Enable security logging in production (tenant validation helpers now call `logTenantViolationAttempt()` in all secured timesheet endpoints)
+- [x] Set up monitoring alerts (use `TENANT_VIOLATION` log lines and the `GlobalAuditLog` queries above with thresholds such as > 10 violations per hour)
+- [x] Run security test suite in CI/CD (GitHub Actions job `timesheet-tenant-security` runs `tests/security/timesheet-tenant-isolation.test.ts` against a Postgres service on every push/PR)
 - [ ] Review audit logs for past breaches
 
 ### Long-Term (Future Work)

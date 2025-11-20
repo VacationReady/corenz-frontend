@@ -142,9 +142,9 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
   const systemJoinedDisplay = format(employee.User.createdAt, "MMM d, yyyy");
   const totalLeaveBalance = employee.LeaveEntitlement.length
     ? employee.LeaveEntitlement.reduce((acc: number, entitlement: any) => {
-        const remaining = (entitlement.totalDays ?? 0) - (entitlement.usedDays ?? 0);
-        return acc + remaining;
-      }, 0)
+      const remaining = (entitlement.totalDays ?? 0) - (entitlement.usedDays ?? 0);
+      return acc + remaining;
+    }, 0)
     : null;
 
   const salaryAmount = employee.salaryAmount ? Number(employee.salaryAmount) : null;
@@ -157,8 +157,8 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
     employee.kiwiSaverEnrolled === null || employee.kiwiSaverEnrolled === undefined
       ? "Not provided"
       : employee.kiwiSaverEnrolled
-      ? `Enrolled${employee.kiwiSaverContribution !== null && employee.kiwiSaverContribution !== undefined ? ` (${employee.kiwiSaverContribution}% contribution)` : ""}`
-      : "Not enrolled";
+        ? `Enrolled${employee.kiwiSaverContribution !== null && employee.kiwiSaverContribution !== undefined ? ` (${employee.kiwiSaverContribution}% contribution)` : ""}`
+        : "Not enrolled";
 
   const insights = [
     {
@@ -363,15 +363,10 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
                   <LeaveBalancePanel
                     leaveEntitlements={leaveEntitlementsForPanel}
                     employeeId={employee.id}
+                    isAdminOrManager={Boolean(isAdminOrManager)}
                   />
                 );
               })()}
-
-              {/* ✅ Leave Booking Button */}
-              <AddLeaveRequestDialog
-                employeeId={employee.id}
-                isAdminOrManager={Boolean(isAdminOrManager)}
-              />
             </div>
           </Card>
         </div>

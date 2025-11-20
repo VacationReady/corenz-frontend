@@ -31,7 +31,7 @@ export function PageShell({
   const resolvedBreadcrumbs = breadcrumbs ?? autoBreadcrumbs;
 
   return (
-    <div className={clsx("w-full min-h-screen bg-content-panel", className)}>
+    <div className={clsx("w-full min-h-screen", className)}>
       {/* Sticky Header */}
       <div className="sticky top-0 z-10">
         <div

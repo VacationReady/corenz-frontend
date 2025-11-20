@@ -61,9 +61,23 @@ export interface DatasetState<T> {
   retry: () => void;
 }
 
-const fetcher = async (url: string) => {
+/**
+ * Creates a fetcher function with optional company ID header for tenant-scoped requests.
+ * @param companyId - Optional company ID to include in request headers
+ */
+const createFetcher = (companyId?: string) => async (url: string) => {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  };
+
+  // Include x-company-id header if available for tenant-scoped endpoints
+  if (companyId) {
+    headers["x-company-id"] = companyId;
+  }
+
   const response = await fetch(url, {
     credentials: "include",
+    headers,
   });
   if (!response.ok) {
     const errorPayload = await response.json().catch(() => ({}));
@@ -79,8 +93,11 @@ const fetcher = async (url: string) => {
 /**
  * Shared hook for employee modal reference data with SWR caching.
  * Provides stale-while-revalidate semantics with granular error handling per dataset.
+ * @param enabled - Whether to fetch data (default: true)
+ * @param companyId - Optional company ID for tenant-scoped requests
  */
-export function useEmployeeModalData(enabled: boolean = true) {
+export function useEmployeeModalData(enabled: boolean = true, companyId?: string) {
+  const fetcher = createFetcher(companyId);
   const [manualRevalidate, setManualRevalidate] = useState(0);
 
   // Departments

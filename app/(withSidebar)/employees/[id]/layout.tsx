@@ -160,7 +160,7 @@ export default async function EmployeeLayout({
       </aside>
 
       {/* Profile content */}
-      <main className="flex-1 p-6">{children}</main>
+      <main className="flex-1">{children}</main>
     </div>
   );
 }

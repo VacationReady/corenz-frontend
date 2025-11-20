@@ -27,7 +27,7 @@
  * ```
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import useSWR, { type SWRConfiguration, type SWRResponse } from 'swr';
 import useSWRMutation, { type SWRMutationConfiguration } from 'swr/mutation';
 import { apiClient, swrFetcher, type ApiRequestOptions, type ApiError } from '@/lib/apiClient';
@@ -193,19 +193,19 @@ export function usePaginatedApi<T>(
     }
   }, [data]);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (!hasMore || isLoadingMore || isLoading) return;
     setIsLoadingMore(true);
     await mutate();
-  };
+  }, [hasMore, isLoadingMore, isLoading, mutate]);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setAllData(undefined);
     setCursor(null);
     setHasMore(true);
     setIsLoadingMore(false);
     mutate();
-  };
+  }, [mutate]);
 
   return {
     data: allData,

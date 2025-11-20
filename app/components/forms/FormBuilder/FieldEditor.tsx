@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FormField, TableColumn } from "@/api/forms/[id]/types";
+import { FormField, TableColumn, getFieldCapabilities } from "@/api/forms/[id]/types";
 import { Input } from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +30,12 @@ export function FieldEditor({
       field.type === "radio" ||
       field.type === "checkbox") &&
     options.length < 2;
+  const capabilities = getFieldCapabilities(field.type);
+  const showValidationTab = capabilities.supportsValidationTab;
+  const showConditionsTab =
+    capabilities.supportsConditionsTab ||
+    capabilities.supportsConditionalVisibility ||
+    capabilities.supportsCalculation;
 
   useEffect(() => {
     setLocalOptions(field.options?.join("\n") || "");
@@ -74,72 +80,87 @@ export function FieldEditor({
       <Tabs defaultValue="basics">
         <TabsList className="glass-subtle grid grid-cols-3 w-full mb-1 p-1">
           <TabsTrigger value="basics">Basics</TabsTrigger>
-          <TabsTrigger value="validation">Validation</TabsTrigger>
-          <TabsTrigger value="conditions">Conditions</TabsTrigger>
+          {showValidationTab && (
+            <TabsTrigger value="validation">Validation</TabsTrigger>
+          )}
+          {showConditionsTab && (
+            <TabsTrigger value="conditions">Conditions</TabsTrigger>
+          )}
         </TabsList>
         <div className="text-xs text-muted-foreground/80 mb-4 px-1">
           💡 Start with Basics for label and help text. Use Conditions for calculations. Validation makes fields required.
         </div>
+        {capabilities.group === "layout" && (
+          <div className="text-xs text-muted-foreground/60 mb-2 px-1">
+            Some properties are hidden because this is a layout/display element.
+          </div>
+        )}
 
         <TabsContent value="basics">
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Label <span className="text-red-500">*</span>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
-                    </TooltipTrigger>
-                    <TooltipContent>What users will see as the question title.</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </label>
-              <Input
-                value={field.label || ""}
-                onChange={(e) => onChange({ ...field, label: e.target.value })}
-                placeholder="Enter field label"
-                className={labelInvalid ? "border-red-500 focus:ring-red-500" : ""}
-                autoFocus={!field.label}
-              />
-              {labelInvalid && (
-                <div className="flex items-center gap-2 text-xs text-red-500 mt-1">
-                  <AlertCircle className="h-4 w-4" />
-                  Label is required
-                </div>
-              )}
-            </div>
+            {capabilities.supportsLabel && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Label <span className="text-red-500">*</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent>What users will see as the question title.</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </label>
+                <Input
+                  value={field.label || ""}
+                  onChange={(e) => onChange({ ...field, label: e.target.value })}
+                  placeholder="Enter field label"
+                  className={labelInvalid ? "border-red-500 focus:ring-red-500" : ""}
+                  autoFocus={!field.label}
+                />
+                {labelInvalid && (
+                  <div className="flex items-center gap-2 text-xs text-red-500 mt-1">
+                    <AlertCircle className="h-4 w-4" />
+                    Label is required
+                  </div>
+                )}
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Help text
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
-                    </TooltipTrigger>
-                    <TooltipContent>Short guidance shown under the label.</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </label>
-              <Textarea
-                value={field.helpText || ""}
-                onChange={(e) => onChange({ ...field, helpText: e.target.value })}
-                placeholder="Shown below the label as guidance"
-                className="min-h-[60px]"
-              />
-            </div>
+            {capabilities.supportsHelpText && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Help text
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
+                      </TooltipTrigger>
+                      <TooltipContent>Short guidance shown under the label.</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </label>
+                <Textarea
+                  value={field.helpText || ""}
+                  onChange={(e) => onChange({ ...field, helpText: e.target.value })}
+                  placeholder="Shown below the label as guidance"
+                  className="min-h-[60px]"
+                />
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Placeholder
-              </label>
-              <Input
-                value={field.placeholder || ""}
-                onChange={(e) => onChange({ ...field, placeholder: e.target.value })}
-                placeholder="e.g. Enter your name"
-              />
-            </div>
+            {capabilities.supportsPlaceholder && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Placeholder
+                </label>
+                <Input
+                  value={field.placeholder || ""}
+                  onChange={(e) => onChange({ ...field, placeholder: e.target.value })}
+                  placeholder="e.g. Enter your name"
+                />
+              </div>
+            )}
 
             {/* Table Column Configuration */}
             {field.type === "table" && (
@@ -336,41 +357,47 @@ export function FieldEditor({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Width
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
-                      </TooltipTrigger>
-                      <TooltipContent>Controls how wide the field is within a row.</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </label>
-                <select
-                  className="border rounded w-full px-2 py-2 text-sm"
-                  value={field.width || "full"}
-                  onChange={(e) => onChange({ ...field, width: e.target.value as any })}
-                >
-                  <option value="full">Full</option>
-                  <option value="half">Half</option>
-                  <option value="third">Third</option>
-                  <option value="auto">Auto</option>
-                </select>
+            {(capabilities.supportsWidth || capabilities.supportsInline) && (
+              <div className="grid grid-cols-2 gap-3">
+                {capabilities.supportsWidth && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Width
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="inline h-3.5 w-3.5 ml-1 text-gray-400" />
+                          </TooltipTrigger>
+                          <TooltipContent>Controls how wide the field is within a row.</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </label>
+                    <select
+                      className="border rounded w-full px-2 py-2 text-sm"
+                      value={field.width || "full"}
+                      onChange={(e) => onChange({ ...field, width: e.target.value as any })}
+                    >
+                      <option value="full">Full</option>
+                      <option value="half">Half</option>
+                      <option value="third">Third</option>
+                      <option value="auto">Auto</option>
+                    </select>
+                  </div>
+                )}
+                {capabilities.supportsInline && (
+                  <div className="flex items-center gap-2 mt-6">
+                    <Checkbox
+                      id={`inline-${field.id}`}
+                      checked={Boolean(field.inline)}
+                      onCheckedChange={(v) => onChange({ ...field, inline: Boolean(v) })}
+                    />
+                    <label htmlFor={`inline-${field.id}`} className="text-sm">Inline layout</label>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2 mt-6">
-                <Checkbox
-                  id={`inline-${field.id}`}
-                  checked={Boolean(field.inline)}
-                  onCheckedChange={(v) => onChange({ ...field, inline: Boolean(v) })}
-                />
-                <label htmlFor={`inline-${field.id}`} className="text-sm">Inline layout</label>
-              </div>
-            </div>
+            )}
 
-            {(field.type === "select" || field.type === "radio" || field.type === "checkbox") && (
+            {capabilities.supportsOptions && (field.type === "select" || field.type === "radio" || field.type === "checkbox") && (
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-gray-700">
@@ -433,84 +460,103 @@ export function FieldEditor({
               </div>
             )}
 
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id={`required-${field.id}`}
-                checked={field.required}
-                onCheckedChange={(v) => onChange({ ...field, required: Boolean(v) })}
-              />
-              <label htmlFor={`required-${field.id}`} className="text-sm cursor-pointer select-none">Required field</label>
-            </div>
+            {capabilities.supportsRequiredToggle && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id={`required-${field.id}`}
+                  checked={field.required}
+                  onCheckedChange={(v) => onChange({ ...field, required: Boolean(v) })}
+                />
+                <label htmlFor={`required-${field.id}`} className="text-sm cursor-pointer select-none">Required field</label>
+              </div>
+            )}
+
+            {(field.type === "multiselect" || field.type === "chips") && !capabilities.supportsOptions && (
+              <div className="text-xs text-muted-foreground/80">
+                Options for this field are managed via advanced configuration and will be editable in a future update.
+              </div>
+            )}
           </div>
         </TabsContent>
 
-        <TabsContent value="validation">
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Min</label>
-                <Input
-                  type="number"
-                  value={field.validation?.min ?? ""}
-                  onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), min: Number(e.target.value) } })}
-                  placeholder="e.g. 0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Max</label>
-                <Input
-                  type="number"
-                  value={field.validation?.max ?? ""}
-                  onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), max: Number(e.target.value) } })}
-                  placeholder="e.g. 100"
-                />
-              </div>
-            </div>
+        {capabilities.supportsValidationTab && (
+          <TabsContent value="validation">
+            <div className="space-y-3">
+              {capabilities.supportsMinMax && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Min</label>
+                    <Input
+                      type="number"
+                      value={field.validation?.min ?? ""}
+                      onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), min: Number(e.target.value) } })}
+                      placeholder="e.g. 0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max</label>
+                    <Input
+                      type="number"
+                      value={field.validation?.max ?? ""}
+                      onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), max: Number(e.target.value) } })}
+                      placeholder="e.g. 100"
+                    />
+                  </div>
+                </div>
+              )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Min length</label>
-                <Input
-                  type="number"
-                  value={field.validation?.minLength ?? ""}
-                  onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), minLength: Number(e.target.value) } })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Max length</label>
-                <Input
-                  type="number"
-                  value={field.validation?.maxLength ?? ""}
-                  onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), maxLength: Number(e.target.value) } })}
-                />
-              </div>
-            </div>
+              {capabilities.supportsLength && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Min length</label>
+                    <Input
+                      type="number"
+                      value={field.validation?.minLength ?? ""}
+                      onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), minLength: Number(e.target.value) } })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max length</label>
+                    <Input
+                      type="number"
+                      value={field.validation?.maxLength ?? ""}
+                      onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), maxLength: Number(e.target.value) } })}
+                    />
+                  </div>
+                </div>
+              )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Regex pattern</label>
-              <Input
-                value={field.validation?.pattern || ""}
-                onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), pattern: e.target.value } })}
-                placeholder="e.g. ^[A-Za-z0-9]+$"
-              />
+              {capabilities.supportsPattern && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Regex pattern</label>
+                    <Input
+                      value={field.validation?.pattern || ""}
+                      onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), pattern: e.target.value } })}
+                      placeholder="e.g. ^[A-Za-z0-9]+$"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Pattern message</label>
+                    <Input
+                      value={field.validation?.patternMessage || ""}
+                      onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), patternMessage: e.target.value } })}
+                      placeholder="Shown when regex is not matched"
+                    />
+                  </div>
+                </>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pattern message</label>
-              <Input
-                value={field.validation?.patternMessage || ""}
-                onChange={(e) => onChange({ ...field, validation: { ...(field.validation || {}), patternMessage: e.target.value } })}
-                placeholder="Shown when regex is not matched"
-              />
-            </div>
-          </div>
-        </TabsContent>
+          </TabsContent>
+        )}
 
         {/* Conditions Tab */}
-        <TabsContent value="conditions">
-          <div className="space-y-6">
-            {/* Calculation - for currency, number, and computed fields */}
-            {(field.type === "currency" || field.type === "number" || field.type === "computed" || field.type === "percentage") && (
-              <div className="space-y-4">
+        {showConditionsTab && (
+          <TabsContent value="conditions">
+            <div className="space-y-6">
+              {/* Calculation - for currency, number, and computed fields */}
+              {capabilities.supportsCalculation && (field.type === "currency" || field.type === "number" || field.type === "computed" || field.type === "percentage") && (
+                <div className="space-y-4">
                 <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <Checkbox
@@ -691,82 +737,93 @@ export function FieldEditor({
                   )}
                 </div>
               </div>
-            )}
+              )}
 
-            {/* Conditional Logic */}
-            <div className="space-y-3 pt-2">
-              <label className="block text-sm font-semibold text-gray-900">
-                👁️ Show/Hide this field conditionally
-              </label>
-              <p className="text-sm text-gray-600 -mt-2">Only show this field when certain conditions are met</p>
+              {/* Conditional Logic */}
+              {capabilities.supportsConditionalVisibility && (
+                <div className="space-y-3 pt-2">
+                  <label className="block text-sm font-semibold text-gray-900">
+                    👁️ Show/Hide this field conditionally
+                  </label>
+                  <p className="text-sm text-gray-600 -mt-2">Only show this field when certain conditions are met</p>
 
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <label className="text-xs text-gray-600 mb-1 block">When this field</label>
-                  <select
-                    className="border-2 rounded-lg w-full px-3 py-2 text-sm"
-                    value={field.conditional?.field || ""}
-                    onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { operator: "equals", value: "" }), field: e.target.value } })}
-                  >
-                    <option value="">Always show this field</option>
-                    {allFields
-                      .filter(f => f.id !== field.id)
-                      .map(f => (
-                        <option key={f.id} value={f.id}>
-                          {f.label || f.id}
-                        </option>
-                      ))
-                    }
-                  </select>
-                </div>
-
-                {field.conditional?.field && (
-                  <>
+                  <div className="grid grid-cols-1 gap-3">
                     <div>
-                      <label className="text-xs text-gray-600 mb-1 block">Is</label>
+                      <label className="text-xs text-gray-600 mb-1 block">When this field</label>
                       <select
                         className="border-2 rounded-lg w-full px-3 py-2 text-sm"
-                        value={field.conditional?.operator || "equals"}
-                        onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", value: "" }), operator: e.target.value as any } })}
+                        value={field.conditional?.field || ""}
+                        onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { operator: "equals", value: "" }), field: e.target.value } })}
                       >
-                        <option value="equals">Equal to</option>
-                        <option value="notEquals">Not equal to</option>
-                        <option value="contains">Contains</option>
-                        <option value="greaterThan">Greater than</option>
-                        <option value="lessThan">Less than</option>
+                        <option value="">Always show this field</option>
+                        {allFields
+                          .filter(f => f.id !== field.id)
+                          .map(f => (
+                            <option key={f.id} value={f.id}>
+                              {f.label || f.id}
+                            </option>
+                          ))
+                        }
                       </select>
                     </div>
 
-                    <div>
-                      <label className="text-xs text-gray-600 mb-1 block">This value</label>
-                      <Input
-                        value={field.conditional?.value !== undefined ? String(field.conditional.value) : ""}
-                        onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", operator: "equals" }), value: e.target.value } })}
-                        placeholder="Enter value"
-                        className="text-sm"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+                    {field.conditional?.field && (
+                      <>
+                        <div>
+                          <label className="text-xs text-gray-600 mb-1 block">Is</label>
+                          <select
+                            className="border-2 rounded-lg w-full px-3 py-2 text-sm"
+                            value={field.conditional?.operator || "equals"}
+                            onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", value: "" }), operator: e.target.value as any } })}
+                          >
+                            <option value="equals">Equal to</option>
+                            <option value="notEquals">Not equal to</option>
+                            <option value="contains">Contains</option>
+                            <option value="greaterThan">Greater than</option>
+                            <option value="lessThan">Less than</option>
+                          </select>
+                        </div>
 
-            {/* Read-only option */}
-            <div className="flex items-center gap-3 pt-4 border-t">
-              <Checkbox
-                id={`readonly-${field.id}`}
-                checked={Boolean(field.readOnly)}
-                onCheckedChange={(v) => onChange({ ...field, readOnly: Boolean(v) })}
-              />
-              <div>
-                <label htmlFor={`readonly-${field.id}`} className="text-sm font-medium cursor-pointer block">
-                  🔒 Make this field read-only
-                </label>
-                <p className="text-xs text-gray-500">Users can see the value but cannot edit it</p>
-              </div>
+                        <div>
+                          <label className="text-xs text-gray-600 mb-1 block">This value</label>
+                          <Input
+                            value={field.conditional?.value !== undefined ? String(field.conditional.value) : ""}
+                            onChange={(e) => onChange({ ...field, conditional: { ...(field.conditional || { field: "", operator: "equals" }), value: e.target.value } })}
+                            placeholder="Enter value"
+                            className="text-sm"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Read-only option */}
+              {capabilities.supportsReadOnlyToggle && (
+                <div className="flex items-center gap-3 pt-4 border-t">
+                  <Checkbox
+                    id={`readonly-${field.id}`}
+                    checked={Boolean(field.readOnly)}
+                    onCheckedChange={(v) => onChange({ ...field, readOnly: Boolean(v) })}
+                  />
+                  <div>
+                    <label htmlFor={`readonly-${field.id}`} className="text-sm font-medium cursor-pointer block">
+                      🔒 Make this field read-only
+                    </label>
+                    <p className="text-xs text-gray-500">Users can see the value but cannot edit it</p>
+                  </div>
+                </div>
+              )}
+              {capabilities.forceReadOnly && (
+                <div className="flex items-center gap-2 pt-2 text-xs text-gray-500">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>This field is always read-only for end users.</span>
+                </div>
+              )}
             </div>
-          </div>
-        </TabsContent>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

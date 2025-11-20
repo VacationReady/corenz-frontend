@@ -35,7 +35,25 @@ export async function GET(req: NextRequest) {
       orderBy: [{ effectiveFrom: "desc" }, { name: "asc" }],
     });
 
-    return NextResponse.json(policies);
+    const normalizedPolicies = policies.map((policy) => ({
+      ...policy,
+      // Normalized relation for frontend consumption while preserving original Prisma relation
+      eventCategory: policy.EventCategory
+        ? {
+            id: policy.EventCategory.id,
+            name: policy.EventCategory.name,
+            color: policy.EventCategory.color ?? undefined,
+          }
+        : null,
+      // Keep raw relation but also expose a friendlier alias
+      assignments: policy.LeavePolicyAssignment ?? [],
+      _count: {
+        ...policy._count,
+        assignments: policy._count?.LeavePolicyAssignment ?? 0,
+      },
+    }));
+
+    return NextResponse.json(normalizedPolicies);
   } catch (error) {
     console.error("Error fetching leave policies:", error);
     return NextResponse.json(

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Link from "next/link";
@@ -65,6 +66,10 @@ interface InitialValuesState {
 
 export default function BankPayrollClient({ employeeId }: { employeeId: string }) {
   const tenantFetch = useTenantFetch();
+  const { data: session } = useSession();
+  const userRole = session?.user?.role as "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN" | undefined;
+  const isEmployee = userRole === "EMPLOYEE";
+  const isPrivileged = userRole === "ADMIN" || userRole === "MANAGER" || userRole === "SUPER_ADMIN";
   const [form, setForm] = useState<FormState>({
     bankAccountNumber: "",
     irdNumber: "",
@@ -226,41 +231,63 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
   const isIrdInvalid = normalizedIrd.length > 0 && !isValidIrdNumber(normalizedIrd);
   const disableSave = isBankInvalid || isIrdInvalid;
 
-  const getCurrentValues = () => ({
-    bankAccountNumber: normalizedBankAccount
-      ? formatBankAccountNumber(normalizedBankAccount)
-      : null,
-    irdNumber: normalizedIrd ? normalizedIrd : null,
-    taxCode: form.taxCode || null,
-    kiwiSaverEnrolled:
-      form.kiwiSaverEnrolled === "yes"
-        ? true
-        : form.kiwiSaverEnrolled === "no"
-        ? false
+  const getCurrentValues = () => {
+    const values: any = {
+      bankAccountNumber: normalizedBankAccount
+        ? formatBankAccountNumber(normalizedBankAccount)
         : null,
-    kiwiSaverContribution: form.kiwiSaverContribution
-      ? Number(form.kiwiSaverContribution)
-      : null,
-    kiwiSaverEmployeeRate: form.kiwiSaverEmployeeRate
-      ? Number(form.kiwiSaverEmployeeRate) / 100
-      : null,
-    kiwiSaverEmployerRate: form.kiwiSaverEmployerRate
-      ? Number(form.kiwiSaverEmployerRate) / 100
-      : null,
-    hasStudentLoan:
-      form.hasStudentLoan === "yes"
-        ? true
-        : form.hasStudentLoan === "no"
-        ? false
+      irdNumber: normalizedIrd ? normalizedIrd : null,
+      taxCode: form.taxCode || null,
+      kiwiSaverEnrolled:
+        form.kiwiSaverEnrolled === "yes"
+          ? true
+          : form.kiwiSaverEnrolled === "no"
+          ? false
+          : null,
+      kiwiSaverContribution: form.kiwiSaverContribution
+        ? Number(form.kiwiSaverContribution)
         : null,
-    studentLoanRate: form.studentLoanRate
-      ? Number(form.studentLoanRate) / 100
-      : null,
-    specialTaxRate: form.specialTaxRate
-      ? Number(form.specialTaxRate) / 100
-      : null,
-    taxExemptionReason: form.taxExemptionReason || null,
-  });
+      kiwiSaverEmployeeRate: form.kiwiSaverEmployeeRate
+        ? Number(form.kiwiSaverEmployeeRate) / 100
+        : null,
+      kiwiSaverEmployerRate: form.kiwiSaverEmployerRate
+        ? Number(form.kiwiSaverEmployerRate) / 100
+        : null,
+      hasStudentLoan:
+        form.hasStudentLoan === "yes"
+          ? true
+          : form.hasStudentLoan === "no"
+          ? false
+          : null,
+      studentLoanRate: form.studentLoanRate
+        ? Number(form.studentLoanRate) / 100
+        : null,
+      specialTaxRate: form.specialTaxRate
+        ? Number(form.specialTaxRate) / 100
+        : null,
+      taxExemptionReason: form.taxExemptionReason || null,
+    };
+
+    // For employees, only include bankAccountNumber (other fields match initialValues to prevent changes)
+    if (isEmployee && !isPrivileged) {
+      return {
+        bankAccountNumber: values.bankAccountNumber,
+        // Keep other fields matching initialValues so they're not detected as changed
+        irdNumber: initialValues.irdNumber,
+        taxCode: initialValues.taxCode,
+        kiwiSaverEnrolled: initialValues.kiwiSaverEnrolled,
+        kiwiSaverContribution: initialValues.kiwiSaverContribution,
+        kiwiSaverEmployeeRate: initialValues.kiwiSaverEmployeeRate,
+        kiwiSaverEmployerRate: initialValues.kiwiSaverEmployerRate,
+        hasStudentLoan: initialValues.hasStudentLoan,
+        studentLoanRate: initialValues.studentLoanRate,
+        specialTaxRate: initialValues.specialTaxRate,
+        taxExemptionReason: initialValues.taxExemptionReason,
+      };
+    }
+
+    return values;
+  };
 
   const handleSaveSuccess = () => {
     const currentValues = getCurrentValues();
@@ -337,6 +364,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                 placeholder="123-456-789"
                 inputMode="numeric"
                 maxLength={11}
+                disabled={isEmployee && !isPrivileged}
               />
               {errors.irdNumber && (
                 <p className="mt-1 text-sm text-destructive">{errors.irdNumber}</p>
@@ -379,6 +407,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                 onValueChange={(value) =>
                   setForm((prev) => ({ ...prev, taxCode: value as TaxCodeFormValue }))
                 }
+                disabled={isEmployee && !isPrivileged}
               >
                 <SelectTrigger id="taxCode">
                   <SelectValue placeholder="Select tax code" />
@@ -409,7 +438,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
               </label>
               <select
                 id="kiwiSaverEnrolled"
-                className="block w-full border rounded-md h-9 px-3"
+                className="block w-full border rounded-md h-9 px-3 disabled:bg-muted disabled:cursor-not-allowed"
                 value={form.kiwiSaverEnrolled}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -417,11 +446,15 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                     kiwiSaverEnrolled: e.target.value as FormState["kiwiSaverEnrolled"],
                   }))
                 }
+                disabled={isEmployee && !isPrivileged}
               >
                 <option value="">Select</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
               </select>
+              {isEmployee && !isPrivileged && (
+                <p className="mt-1 text-xs text-muted-foreground">Read-only for employees</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1" htmlFor="kiwiSaverContribution">
@@ -437,6 +470,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                 onChange={(e) =>
                   setForm((f) => ({ ...f, kiwiSaverContribution: e.target.value }))
                 }
+                disabled={isEmployee && !isPrivileged}
               />
               <p className="mt-1 text-xs text-muted-foreground">Legacy field - use employee/employer rates below instead</p>
             </div>
@@ -465,7 +499,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                 onValueChange={(value) =>
                   setForm((prev) => ({ ...prev, kiwiSaverEmployeeRate: value }))
                 }
-                disabled={form.kiwiSaverEnrolled !== "yes"}
+                disabled={(form.kiwiSaverEnrolled !== "yes") || (isEmployee && !isPrivileged)}
               >
                 <SelectTrigger id="kiwiSaverEmployeeRate">
                   <SelectValue placeholder="Select rate" />
@@ -509,7 +543,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                 onChange={(e) =>
                   setForm((f) => ({ ...f, kiwiSaverEmployerRate: e.target.value }))
                 }
-                disabled={form.kiwiSaverEnrolled !== "yes"}
+                disabled={(form.kiwiSaverEnrolled !== "yes") || (isEmployee && !isPrivileged)}
                 placeholder="3"
               />
             </div>
@@ -519,7 +553,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
               </label>
               <select
                 id="hasStudentLoan"
-                className="block w-full border rounded-md h-9 px-3"
+                className="block w-full border rounded-md h-9 px-3 disabled:bg-muted disabled:cursor-not-allowed"
                 value={form.hasStudentLoan}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -527,6 +561,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                     hasStudentLoan: e.target.value as FormState["hasStudentLoan"],
                   }))
                 }
+                disabled={isEmployee && !isPrivileged}
               >
                 <option value="">Select</option>
                 <option value="yes">Yes</option>
@@ -563,7 +598,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                 onChange={(e) =>
                   setForm((f) => ({ ...f, studentLoanRate: e.target.value }))
                 }
-                disabled={form.hasStudentLoan !== "yes"}
+                disabled={(form.hasStudentLoan !== "yes") || (isEmployee && !isPrivileged)}
                 placeholder="12"
               />
             </div>
@@ -598,6 +633,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                   onChange={(e) =>
                     setForm((f) => ({ ...f, specialTaxRate: e.target.value }))
                   }
+                  disabled={isEmployee && !isPrivileged}
                   placeholder="e.g., 17.5"
                 />
                 <Input
@@ -606,6 +642,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                   onChange={(e) =>
                     setForm((f) => ({ ...f, taxExemptionReason: e.target.value }))
                   }
+                  disabled={isEmployee && !isPrivileged}
                   placeholder="Reason for special rate (required if rate set)"
                 />
               </div>

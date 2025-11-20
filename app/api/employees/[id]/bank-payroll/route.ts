@@ -42,6 +42,17 @@ export async function PATCH(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    const isEmployeeViewingOwnRecord = employee.userId === session.user.id;
+    const isPrivilegedRole = session.user.role === "ADMIN" || session.user.role === "MANAGER";
+
+    // Check permissions: employees can only edit their own bank account number
+    if (!isPrivilegedRole && !isEmployeeViewingOwnRecord) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only edit your own bank account number" },
+        { status: 403 },
+      );
+    }
+
     const body = (await req.json()) as Record<string, any>;
     const { reasons, ...updateFields } = body;
     
@@ -62,6 +73,10 @@ export async function PATCH(
     const updates: Record<string, any> = {};
     for (const key of allowed) {
       if (Object.prototype.hasOwnProperty.call(updateFields, key)) {
+        // Employees can only update bankAccountNumber
+        if (isEmployeeViewingOwnRecord && !isPrivilegedRole && key !== "bankAccountNumber") {
+          continue; // Skip non-bankAccountNumber fields for employees
+        }
         updates[key] = updateFields[key as string];
       }
     }
@@ -305,26 +320,43 @@ export async function GET(
 
     const isPrivilegedRole =
       session.user.role === "ADMIN" || session.user.role === "MANAGER";
+    const isEmployeeViewingOwnRecord = employee.userId === session.user.id;
 
-    // Bank & payroll data contains sensitive identifiers, so only admins/managers
-    // can read it and they must also satisfy the standard employee-access guard.
-    if (!isPrivilegedRole) {
+    // Bank & payroll data contains sensitive identifiers.
+    // Admins/managers can read it if they have access, and employees can view their own data.
+    if (!isPrivilegedRole && !isEmployeeViewingOwnRecord) {
       return NextResponse.json(
-        { error: "Forbidden: Payroll details restricted to admins and managers" },
+        { error: "Forbidden: Payroll details restricted to admins, managers, or the employee themselves" },
         { status: 403 },
       );
     }
 
-    const canView = await canAccessEmployee(
-      {
-        id: session.user.id,
-        role: session.user.role as any,
-        companyId: session.user.companyId,
-      },
-      id,
-    );
-    if (!canView) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // For non-admin roles, verify they can access this employee record
+    if (!isPrivilegedRole) {
+      const canView = await canAccessEmployee(
+        {
+          id: session.user.id,
+          role: session.user.role as any,
+          companyId: session.user.companyId,
+        },
+        id,
+      );
+      if (!canView) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    } else {
+      // For privileged roles, also check standard employee access guard
+      const canView = await canAccessEmployee(
+        {
+          id: session.user.id,
+          role: session.user.role as any,
+          companyId: session.user.companyId,
+        },
+        id,
+      );
+      if (!canView) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
     }
 
     return NextResponse.json({

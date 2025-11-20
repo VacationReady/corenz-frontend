@@ -2306,6 +2306,40 @@ video {
     }
   }
 
+  /* Prefers Reduced Motion Support */
+  @media (prefers-reduced-motion: reduce) {
+    /* Disable all background animations - set static positions */
+    .bg-gradient-landscape {
+      animation: none !important;
+      background-position: center;
+    }
+
+    .bg-aurora {
+      animation: none !important;
+      background-position: center;
+      /* Remove transform scaling from aurora effect */
+    }
+
+    .shimmer-premium {
+      animation: none !important;
+      background-position: center;
+    }
+
+    /* Reduce or disable other animations and transitions */
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    /* Disable scroll animations */
+    html {
+      scroll-behavior: auto !important;
+    }
+  }
+
   /* Smooth Transitions */
   .transition-premium {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);

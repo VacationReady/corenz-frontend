@@ -6,7 +6,12 @@ import { z } from 'zod';
 import { calculateHours } from '@/lib/timesheet-calculations';
 import { calculateOvertimeForEntry, OvertimeSettings, EmployeeOvertimeConfig } from '@/lib/overtime-calculator';
 import { cancelPendingTimesheetApprovalActionItems } from '@/lib/action-items-helper';
-import { validateTimesheetTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
+import {
+  validateTimesheetTenant,
+  getRequestingEmployee,
+  TenantValidationError,
+  logTenantViolationAttempt,
+} from '@/lib/tenant-validation';
 
 const updateTimesheetSchema = z.object({
   entries: z.array(
@@ -44,6 +49,7 @@ export async function GET(
       await validateTimesheetTenant(id, requestingEmployee.companyId);
     } catch (error) {
       if (error instanceof TenantValidationError) {
+        await logTenantViolationAttempt(session.user.id, 'TIMESHEET', id, requestingEmployee.companyId);
         // Return 404 to avoid leaking existence of resources in other tenants
         return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
       }
@@ -51,8 +57,8 @@ export async function GET(
     }
 
     // Safe to fetch full timesheet data - tenant ownership validated
-    const timesheet = await prisma.timesheet.findUnique({
-      where: { id: id },
+    const timesheet = await prisma.timesheet.findFirst({
+      where: { id, companyId: requestingEmployee.companyId },
       include: {
         ClockEntries: {
           orderBy: {
@@ -93,8 +99,8 @@ export async function GET(
     }
 
     // Get employee details
-    const employee = await prisma.employee.findUnique({
-      where: { id: timesheet.employeeId },
+    const employee = await prisma.employee.findFirst({
+      where: { id: timesheet.employeeId, companyId: requestingEmployee.companyId },
       include: {
         User: {
           select: {
@@ -147,14 +153,15 @@ export async function PUT(
       await validateTimesheetTenant(id, requestingEmployee.companyId);
     } catch (error) {
       if (error instanceof TenantValidationError) {
+        await logTenantViolationAttempt(session.user.id, 'TIMESHEET', id, requestingEmployee.companyId);
         return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
       }
       throw error;
     }
 
     // Safe to fetch timesheet - tenant ownership validated
-    const timesheet = await prisma.timesheet.findUnique({
-      where: { id: id },
+    const timesheet = await prisma.timesheet.findFirst({
+      where: { id, companyId: requestingEmployee.companyId },
       include: {
         Employee: {
           select: {
@@ -212,6 +219,9 @@ export async function PUT(
           where: {
             timesheetId: id,
             entryType: { in: ['MANUAL', 'ADJUSTED'] },
+            Timesheet: {
+              companyId: requestingEmployee.companyId,
+            },
           },
         });
 
@@ -246,8 +256,11 @@ export async function PUT(
         };
 
         // Get employee overtime config
-        const employee = await tx.employee.findUnique({
-          where: { id: timesheet.employeeId },
+        const employee = await tx.employee.findFirst({
+          where: {
+            id: timesheet.employeeId,
+            companyId: requestingEmployee.companyId,
+          },
           select: {
             overtimeEligible: true,
             overtimeThreshold: true,
@@ -330,7 +343,12 @@ export async function PUT(
 
         // Recalculate timesheet totals from all entries
         const allEntries = await tx.timesheetEntry.findMany({
-          where: { timesheetId: id },
+          where: {
+            timesheetId: id,
+            Timesheet: {
+              companyId: requestingEmployee.companyId,
+            },
+          },
           select: {
             hours: true,
             regularHours: true,
@@ -357,8 +375,11 @@ export async function PUT(
           0
         );
 
-        await tx.timesheet.update({
-          where: { id: id },
+        const updateResult = await tx.timesheet.updateMany({
+          where: {
+            id,
+            companyId: requestingEmployee.companyId,
+          },
           data: {
             totalHours,
             regularHours,
@@ -366,6 +387,10 @@ export async function PUT(
             breakHours,
           },
         });
+
+        if (updateResult.count === 0) {
+          throw new TenantValidationError('Timesheet not found or access denied');
+        }
       });
     }
 
@@ -388,8 +413,8 @@ export async function PUT(
     });
 
     // Fetch updated timesheet
-    const updatedTimesheet = await prisma.timesheet.findUnique({
-      where: { id: id },
+    const updatedTimesheet = await prisma.timesheet.findFirst({
+      where: { id, companyId: requestingEmployee.companyId },
       include: {
         TimesheetEntries: {
           orderBy: {
@@ -447,14 +472,15 @@ export async function DELETE(
       await validateTimesheetTenant(id, requestingEmployee.companyId);
     } catch (error) {
       if (error instanceof TenantValidationError) {
+        await logTenantViolationAttempt(session.user.id, 'TIMESHEET', id, requestingEmployee.companyId);
         return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
       }
       throw error;
     }
 
     // Safe to fetch timesheet - tenant ownership validated
-    const timesheet = await prisma.timesheet.findUnique({
-      where: { id: id },
+    const timesheet = await prisma.timesheet.findFirst({
+      where: { id, companyId: requestingEmployee.companyId },
       include: {
         Employee: {
           select: {
@@ -514,9 +540,13 @@ export async function DELETE(
     });
 
     // Delete timesheet (cascade will delete entries and stages)
-    await prisma.timesheet.delete({
-      where: { id: id },
+    const deleteResult = await prisma.timesheet.deleteMany({
+      where: { id, companyId: requestingEmployee.companyId },
     });
+
+    if (deleteResult.count === 0) {
+      return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
+    }
 
     // Create audit log
     await prisma.globalAuditLog.create({

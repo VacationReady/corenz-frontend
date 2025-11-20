@@ -338,11 +338,14 @@ export async function canAmendOvertime(
     return false;
   }
 
-  const employee = await db.employee.findUnique({
-    where: { id: employeeId },
-    select: { 
+  const employee = await db.employee.findFirst({
+    where: {
+      id: employeeId,
+      companyId: user.Employee.companyId,
+    },
+    select: {
       companyId: true,
-      departmentId: true 
+      departmentId: true,
     },
   });
 

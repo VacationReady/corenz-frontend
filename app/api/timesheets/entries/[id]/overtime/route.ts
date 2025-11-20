@@ -16,7 +16,12 @@ import {
   validateOvertimeAmendment,
   canAmendOvertime,
 } from '@/lib/overtime-validation';
-import { validateTimesheetEntryTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
+import {
+  validateTimesheetEntryTenant,
+  getRequestingEmployee,
+  TenantValidationError,
+  logTenantViolationAttempt,
+} from '@/lib/tenant-validation';
 
 const amendOvertimeSchema = z.object({
   regularHours: z.number().min(0).max(24),
@@ -47,6 +52,12 @@ export async function PATCH(
       entry = await validateTimesheetEntryTenant(entryId, requestingEmployee.companyId);
     } catch (error) {
       if (error instanceof TenantValidationError) {
+        await logTenantViolationAttempt(
+          session.user.id,
+          'TIMESHEET_ENTRY_OVERTIME',
+          entryId,
+          requestingEmployee.companyId
+        );
         return NextResponse.json(
           { error: 'Timesheet entry not found' },
           { status: 404 }
@@ -120,8 +131,13 @@ export async function PATCH(
     // Update entry in transaction with audit log
     const result = await prisma.$transaction(async (tx) => {
       // Update the entry
-      const updatedEntry = await tx.timesheetEntry.update({
-        where: { id: entryId },
+      const updateResult = await tx.timesheetEntry.updateMany({
+        where: {
+          id: entryId,
+          Timesheet: {
+            companyId: requestingEmployee.companyId,
+          },
+        },
         data: {
           regularHours: amendment.regularHours,
           overtimeHours: amendment.overtimeHours,
@@ -134,6 +150,23 @@ export async function PATCH(
           managerAdjustmentNote: amendment.reason,
         },
       });
+
+      if (updateResult.count === 0) {
+        throw new TenantValidationError('Timesheet entry not found or access denied');
+      }
+
+      const updatedEntry = await tx.timesheetEntry.findFirst({
+        where: {
+          id: entryId,
+          Timesheet: {
+            companyId: requestingEmployee.companyId,
+          },
+        },
+      });
+
+      if (!updatedEntry) {
+        throw new TenantValidationError('Timesheet entry not found or access denied');
+      }
 
       // Create audit log entry
       await tx.overtimeAuditLog.create({
@@ -167,6 +200,12 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Error amending overtime:', error);
+    if (error instanceof TenantValidationError) {
+      return NextResponse.json(
+        { error: 'Timesheet entry not found' },
+        { status: 404 }
+      );
+    }
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -200,6 +239,12 @@ export async function GET(
       await validateTimesheetEntryTenant(entryId, requestingEmployee.companyId);
     } catch (error) {
       if (error instanceof TenantValidationError) {
+        await logTenantViolationAttempt(
+          session.user.id,
+          'TIMESHEET_ENTRY_OVERTIME',
+          entryId,
+          requestingEmployee.companyId
+        );
         return NextResponse.json(
           { error: 'Timesheet entry not found' },
           { status: 404 }
@@ -212,6 +257,7 @@ export async function GET(
     const auditLogs = await prisma.overtimeAuditLog.findMany({
       where: {
         timesheetEntryId: entryId,
+        companyId: requestingEmployee.companyId,
         action: 'MANAGER_OVERRIDE',
       },
       orderBy: { triggeredAt: 'desc' },

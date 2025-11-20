@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import { validateTimesheetTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
+import {
+  validateTimesheetTenant,
+  getRequestingEmployee,
+  TenantValidationError,
+  logTenantViolationAttempt,
+} from '@/lib/tenant-validation';
 
 /**
  * GET /api/timesheets/[id]/audit
@@ -29,14 +34,20 @@ export async function GET(
       await validateTimesheetTenant(timesheetId, requestingEmployee.companyId);
     } catch (error) {
       if (error instanceof TenantValidationError) {
+        await logTenantViolationAttempt(
+          session.user.id,
+          'TIMESHEET_AUDIT',
+          timesheetId,
+          requestingEmployee.companyId
+        );
         return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
       }
       throw error;
     }
 
     // Safe to fetch timesheet - tenant ownership validated
-    const timesheet = await prisma.timesheet.findUnique({
-      where: { id: timesheetId },
+    const timesheet = await prisma.timesheet.findFirst({
+      where: { id: timesheetId, companyId: requestingEmployee.companyId },
       include: {
         Employee: {
           select: {
@@ -76,7 +87,12 @@ export async function GET(
 
     // Get audit logs for all entries in this timesheet
     const auditLogs = await prisma.timesheetEntryAudit.findMany({
-      where: { timesheetId },
+      where: {
+        timesheetId,
+        Timesheet: {
+          companyId: requestingEmployee.companyId,
+        },
+      },
       include: {
         Entry: {
           select: {

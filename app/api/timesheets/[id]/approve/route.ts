@@ -12,7 +12,12 @@ import {
 } from '@/lib/action-items-helper';
 import { renderPeopleCoreEmail, getAppBaseUrl } from '@/lib/email/template';
 import { resend, PEOPLECORE_FROM_EMAIL } from '@/lib/resend';
-import { validateTimesheetTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
+import {
+  validateTimesheetTenant,
+  getRequestingEmployee,
+  TenantValidationError,
+  logTenantViolationAttempt,
+} from '@/lib/tenant-validation';
 
 const approveSchema = z.object({
   comments: z.string().optional(),
@@ -42,14 +47,15 @@ export async function POST(
       await validateTimesheetTenant(id, requestingEmployee.companyId);
     } catch (error) {
       if (error instanceof TenantValidationError) {
+        await logTenantViolationAttempt(session.user.id, 'TIMESHEET', id, requestingEmployee.companyId);
         return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
       }
       throw error;
     }
 
     // Safe to fetch timesheet - tenant ownership validated
-    const timesheet = await prisma.timesheet.findUnique({
-      where: { id: id },
+    const timesheet = await prisma.timesheet.findFirst({
+      where: { id, companyId: requestingEmployee.companyId },
       include: {
         ApprovalStages: {
           include: {
@@ -245,8 +251,8 @@ export async function POST(
 
         // Send notifications to next stage approvers
         for (const decision of nextStageDecisions) {
-          const approverEmployee = await prisma.employee.findUnique({
-            where: { id: decision.approverId },
+          const approverEmployee = await prisma.employee.findFirst({
+            where: { id: decision.approverId, companyId: requestingEmployee.companyId },
             include: {
               User: {
                 select: {
@@ -275,8 +281,8 @@ export async function POST(
         }
       } else {
         // All stages complete - approve timesheet
-        await prisma.timesheet.update({
-          where: { id: id },
+        const updateResult = await prisma.timesheet.updateMany({
+          where: { id, companyId: requestingEmployee.companyId },
           data: {
             approvalStatus: 'APPROVED',
             approvedAt: new Date(),
@@ -284,11 +290,15 @@ export async function POST(
           },
         });
 
+        if (updateResult.count === 0) {
+          throw new TenantValidationError('Timesheet not found or access denied');
+        }
+
         await cancelPendingTimesheetApprovalActionItems(timesheet.id);
 
         // Notify employee
-        const employee = await prisma.employee.findUnique({
-          where: { id: timesheet.employeeId },
+        const employee = await prisma.employee.findFirst({
+          where: { id: timesheet.employeeId, companyId: requestingEmployee.companyId },
           include: {
             User: {
               select: {
@@ -349,8 +359,8 @@ export async function POST(
     }
 
     // Fetch updated timesheet
-    const updatedTimesheet = await prisma.timesheet.findUnique({
-      where: { id: id },
+    const updatedTimesheet = await prisma.timesheet.findFirst({
+      where: { id, companyId: requestingEmployee.companyId },
       include: {
         ApprovalStages: {
           include: {

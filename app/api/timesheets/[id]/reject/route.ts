@@ -4,7 +4,12 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { cancelTimesheetApprovalActionItem } from '@/lib/action-items-helper';
-import { validateTimesheetTenant, getRequestingEmployee, TenantValidationError } from '@/lib/tenant-validation';
+import {
+  validateTimesheetTenant,
+  getRequestingEmployee,
+  TenantValidationError,
+  logTenantViolationAttempt,
+} from '@/lib/tenant-validation';
 // import { sendEmail } from '@/lib/email'; // TODO: Implement email service
 
 const rejectSchema = z.object({
@@ -34,14 +39,15 @@ export async function POST(
       await validateTimesheetTenant(id, requestingEmployee.companyId);
     } catch (error) {
       if (error instanceof TenantValidationError) {
+        await logTenantViolationAttempt(session.user.id, 'TIMESHEET', id, requestingEmployee.companyId);
         return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
       }
       throw error;
     }
 
     // Safe to fetch timesheet - tenant ownership validated
-    const timesheet = await prisma.timesheet.findUnique({
-      where: { id: id },
+    const timesheet = await prisma.timesheet.findFirst({
+      where: { id, companyId: requestingEmployee.companyId },
       include: {
         ApprovalStages: {
           include: { Decisions: true },
@@ -98,14 +104,18 @@ export async function POST(
       data: { status: 'DECLINED', isActive: false, completedAt: new Date() },
     });
 
-    await prisma.timesheet.update({
-      where: { id: id },
+    const updateResult = await prisma.timesheet.updateMany({
+      where: { id, companyId: requestingEmployee.companyId },
       data: { approvalStatus: 'DECLINED', rejectedReason: data.reason },
     });
 
+    if (updateResult.count === 0) {
+      throw new TenantValidationError('Timesheet not found or access denied');
+    }
+
     // Notify employee
-    const employee = await prisma.employee.findUnique({
-      where: { id: timesheet.employeeId },
+    const employee = await prisma.employee.findFirst({
+      where: { id: timesheet.employeeId, companyId: requestingEmployee.companyId },
       include: { User: { select: { email: true, name: true } } },
     });
 
@@ -142,8 +152,8 @@ export async function POST(
       },
     });
 
-    const updatedTimesheet = await prisma.timesheet.findUnique({
-      where: { id: id },
+    const updatedTimesheet = await prisma.timesheet.findFirst({
+      where: { id, companyId: requestingEmployee.companyId },
       include: {
         ApprovalStages: {
           include: { Decisions: true },

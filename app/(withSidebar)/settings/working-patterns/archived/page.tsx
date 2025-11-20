@@ -552,9 +552,6 @@ export default function ArchivedWorkingPatternsPage() {
                           <span className="font-medium text-foreground">Days:</span> {meta.daySummary}
                         </div>
                       </div>
-                      <div className="pointer-events-none absolute -right-16 top-6 rotate-45 bg-gradient-to-r from-amber-400 to-orange-500 px-14 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-[0_12px_35px_-18px_rgba(249,115,22,0.75)]">
-                        Archived
-                      </div>
                       <div className="absolute inset-y-4 right-4 flex translate-x-12 items-center gap-3 rounded-2xl bg-background/75 px-4 py-3 text-sm shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100">
                         <Button
                           size="sm"

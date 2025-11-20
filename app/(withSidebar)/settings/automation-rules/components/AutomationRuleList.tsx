@@ -18,12 +18,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  DropdownMenu,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-} from "@/components/ui/dropdown-menu";
-import {
   Plus,
   Search,
   Zap,
@@ -35,7 +29,6 @@ import {
   Edit,
   Copy,
   Trash2,
-  MoreVertical,
   ChevronRight,
   AlertTriangle,
   CheckCircle2,
@@ -335,7 +328,7 @@ const filteredRules = rules.filter((rule) => {
               <Card
                 key={rule.id}
                 className={cn(
-                  "cursor-pointer hover:shadow-sm transition-all",
+                  "relative group cursor-pointer hover:shadow-sm transition-all",
                   selectedRuleId === rule.id && "ring-2 ring-primary ring-offset-1"
                 )}
                 onClick={() => onSelectRule(rule)}
@@ -363,79 +356,6 @@ const filteredRules = rules.filter((rule) => {
                         </p>
                       )}
                     </div>
-            <DropdownMenu align="right">
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="w-3.5 h-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <div className="py-1">
-                <DropdownMenuItem onClick={() => {
-                  onEditRule(rule);
-                }}>
-                  <div className="flex items-center">
-                    <Edit className="w-3.5 h-3.5 mr-2" />
-                    Edit
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  onRunTest(rule);
-                }}>
-                  <div className="flex items-center">
-                    <TestTube className="w-3.5 h-3.5 mr-2" />
-                    Test
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  onToggleStatus(rule.id!, !rule.isActive);
-                }}>
-                  <div className="flex items-center">
-                    {rule.isActive ? (
-                      <>
-                        <Pause className="w-3.5 h-3.5 mr-2" />
-                        Deactivate
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-3.5 h-3.5 mr-2" />
-                        Activate
-                      </>
-                    )}
-                  </div>
-                </DropdownMenuItem>
-                {onDuplicateRule && (
-                  <DropdownMenuItem onClick={() => {
-                    onDuplicateRule(rule);
-                  }}>
-                    <div className="flex items-center">
-                      <Copy className="w-3.5 h-3.5 mr-2" />
-                      Duplicate
-                    </div>
-                  </DropdownMenuItem>
-                )}
-                <div className="my-1 h-px bg-gray-200" />
-                <DropdownMenuItem
-                  className="text-destructive hover:bg-red-50"
-                  onClick={() => {
-                    if (confirm("Are you sure you want to delete this rule?")) {
-                      onDeleteRule(rule.id!);
-                    }
-                  }}
-                >
-                  <div className="flex items-center text-red-600">
-                    <Trash2 className="w-3.5 h-3.5 mr-2" />
-                    Delete
-                  </div>
-                </DropdownMenuItem>
-              </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
                   </div>
 
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -477,6 +397,72 @@ const filteredRules = rules.filter((rule) => {
                     </div>
                   )}
                 </CardContent>
+
+                <div
+                  className="absolute inset-y-3 right-3 flex translate-x-10 flex-col items-stretch gap-2 rounded-2xl bg-background/80 px-3 py-2 text-xs shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="justify-start h-7"
+                    onClick={() => onEditRule(rule)}
+                  >
+                    <Edit className="w-3.5 h-3.5 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="justify-start h-7"
+                    onClick={() => onRunTest(rule)}
+                  >
+                    <TestTube className="w-3.5 h-3.5 mr-2" />
+                    Test
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="justify-start h-7"
+                    onClick={() => onToggleStatus(rule.id!, !rule.isActive)}
+                  >
+                    {rule.isActive ? (
+                      <>
+                        <Pause className="w-3.5 h-3.5 mr-2" />
+                        Deactivate
+                      </>
+                    ) : (
+                      <>
+                        <Play className="w-3.5 h-3.5 mr-2" />
+                        Activate
+                      </>
+                    )}
+                  </Button>
+                  {onDuplicateRule && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="justify-start h-7"
+                      onClick={() => onDuplicateRule(rule)}
+                    >
+                      <Copy className="w-3.5 h-3.5 mr-2" />
+                      Duplicate
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    className="justify-start h-7 text-red-600"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this rule?")) {
+                        onDeleteRule(rule.id!);
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-2" />
+                    Delete
+                  </Button>
+                </div>
               </Card>
             ))}
           </div>

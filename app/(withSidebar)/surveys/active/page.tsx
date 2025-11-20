@@ -21,13 +21,11 @@ import {
   AlertCircle,
   Eye,
   TrendingUp,
-  MoreVertical,
   Pause,
   Play,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 
 interface ActiveSurvey {
   id: string;
@@ -294,7 +292,10 @@ export default function ActiveSurveysPage() {
         ) : (
           <div className="space-y-4">
             {surveys.map((survey) => (
-              <Card key={survey.id} className="hover:shadow-md transition-shadow">
+              <Card
+                key={survey.id}
+                className="hover:shadow-md transition-shadow relative group"
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -359,40 +360,53 @@ export default function ActiveSurveysPage() {
                           View Details
                         </Link>
                       </Button>
-                      
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => handleSendReminder(survey.id)}>
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Send Reminder
-                        </DropdownMenuItem>
-                        {survey.status === "active" ? (
-                          <DropdownMenuItem onClick={() => handlePauseSurvey(survey.id)}>
-                            <Pause className="w-4 h-4 mr-2" />
-                            Pause Survey
-                          </DropdownMenuItem>
-                        ) : survey.status === "paused" ? (
-                          <DropdownMenuItem onClick={() => handleResumeSurvey(survey.id)}>
-                            <Play className="w-4 h-4 mr-2" />
-                            Resume Survey
-                          </DropdownMenuItem>
-                        ) : null}
-                        <DropdownMenuItem asChild>
-                          <Link href={`/surveys/analytics/${survey.id}`}>
-                            <TrendingUp className="w-4 h-4 mr-2" />
-                            View Analytics
-                          </Link>
-                        </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
                   </div>
                 </CardHeader>
+
+                <div className="absolute inset-y-4 right-4 flex translate-x-10 flex-col items-stretch gap-2 rounded-2xl bg-background/80 px-3 py-3 text-xs shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => handleSendReminder(survey.id)}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Send Reminder
+                  </Button>
+                  {survey.status === "active" ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handlePauseSurvey(survey.id)}
+                    >
+                      <Pause className="w-4 h-4 mr-2" />
+                      Pause Survey
+                    </Button>
+                  ) : survey.status === "paused" ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="justify-start"
+                      onClick={() => handleResumeSurvey(survey.id)}
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Resume Survey
+                    </Button>
+                  ) : null}
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="ghost"
+                    className="justify-start"
+                  >
+                    <Link href={`/surveys/analytics/${survey.id}`}>
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      View Analytics
+                    </Link>
+                  </Button>
+                </div>
               </Card>
             ))}
           </div>

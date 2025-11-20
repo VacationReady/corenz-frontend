@@ -8,9 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { Plus, Users, Calendar, Settings, Trash2, MoreVertical, Copy, Eye, Download, Upload, Filter } from "lucide-react";
+import { Plus, Users, Calendar, Settings, Trash2, Copy, Eye, Download, Upload, Filter } from "lucide-react";
 import { toast } from "sonner";
-import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
 
 interface Form {
   id: string;
@@ -254,7 +253,10 @@ export default function FormsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredForms.map((f) => (
-            <Card key={f.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={f.id}
+              className="relative group hover:shadow-md transition-shadow"
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{f.name}</CardTitle>
@@ -262,77 +264,6 @@ export default function FormsPage() {
                     <Badge variant={f.isActive ? "default" : "secondary"}>
                       {f.isActive ? "Active" : "Inactive"}
                     </Badge>
-                    <DropdownMenu align="right">
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => setPreviewForm(f)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Preview
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(
-                              `/api/forms/${f.id}/clone`,
-                              { method: "POST" },
-                            );
-                            if (!res.ok) throw new Error("Failed to duplicate");
-                            const cloned = await res.json();
-                            setForms([cloned, ...forms]);
-                            toast.success("Form duplicated");
-                          } catch (e) {
-                            toast.error("Failed to duplicate");
-                          }
-                        }}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Duplicate
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(
-                              `/api/forms/${f.id}/export`,
-                            );
-                            if (!res.ok) throw new Error("Failed to export");
-                            const data = await res.json();
-                            const blob = new Blob(
-                              [JSON.stringify(data, null, 2)],
-                              { type: "application/json" },
-                            );
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = `${(f as any).slug || f.name}.json`;
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            URL.revokeObjectURL(url);
-                          } catch (e) {
-                            toast.error("Failed to export");
-                          }
-                        }}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Export JSON
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteForm(f.id, f.name)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Form
-                      </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
                   </div>
                 </div>
               </CardHeader>
@@ -385,6 +316,80 @@ export default function FormsPage() {
                   </Button>
                 </div>
               </CardContent>
+
+              <div className="absolute inset-y-4 right-4 flex translate-x-10 flex-col items-stretch gap-2 rounded-2xl bg-background/80 px-3 py-3 text-xs shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="justify-start"
+                  onClick={() => setPreviewForm(f)}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="justify-start"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(
+                        `/api/forms/${f.id}/clone`,
+                        { method: "POST" },
+                      );
+                      if (!res.ok) throw new Error("Failed to duplicate");
+                      const cloned = await res.json();
+                      setForms([cloned, ...forms]);
+                      toast.success("Form duplicated");
+                    } catch (e) {
+                      toast.error("Failed to duplicate");
+                    }
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicate
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="justify-start"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(
+                        `/api/forms/${f.id}/export`,
+                      );
+                      if (!res.ok) throw new Error("Failed to export");
+                      const data = await res.json();
+                      const blob = new Blob(
+                        [JSON.stringify(data, null, 2)],
+                        { type: "application/json" },
+                      );
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `${(f as any).slug || f.name}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(url);
+                    } catch (e) {
+                      toast.error("Failed to export");
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export JSON
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  className="justify-start"
+                  onClick={() => handleDeleteForm(f.id, f.name)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Form
+                </Button>
+              </div>
             </Card>
           ))}
         </div>

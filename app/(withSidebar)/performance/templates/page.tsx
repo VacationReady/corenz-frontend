@@ -14,7 +14,6 @@ import {
   Edit,
   Copy,
   Trash2,
-  MoreVertical,
   Users,
   MapPin,
   Briefcase,
@@ -30,13 +29,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { TEMPLATE_TYPE_INFO } from "@/types/performance-templates";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const ICON_MAP: Record<string, any> = {
   MessageSquare,
@@ -249,7 +241,10 @@ export default function TemplatesPage() {
                 (template.audienceFilters?.jobRoles?.length || 0);
 
               return (
-                <Card key={template.id} className="hover:shadow-md transition-shadow">
+                <Card
+                  key={template.id}
+                  className="relative group hover:shadow-md transition-shadow"
+                >
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -267,46 +262,6 @@ export default function TemplatesPage() {
                           )}
                         </div>
                       </div>
-
-                      {canManageTemplates && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() =>
-                                router.push(`/performance/templates/${template.id}`)
-                              }
-                            >
-                              <FileText className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                router.push(`/performance/templates/${template.id}/edit`)
-                              }
-                            >
-                              <Edit className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleClone(template)}>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Clone
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(template.id)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
                     </div>
                   </CardHeader>
 
@@ -380,6 +335,51 @@ export default function TemplatesPage() {
                       </Button>
                     </div>
                   </CardContent>
+
+                  {canManageTemplates && (
+                    <div className="absolute inset-y-4 right-4 flex translate-x-10 flex-col items-stretch gap-2 rounded-2xl bg-background/80 px-3 py-3 text-xs shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="justify-start"
+                        onClick={() =>
+                          router.push(`/performance/templates/${template.id}`)
+                        }
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        View Details
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="justify-start"
+                        onClick={() =>
+                          router.push(`/performance/templates/${template.id}/edit`)
+                        }
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="justify-start"
+                        onClick={() => handleClone(template)}
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Clone
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        className="justify-start"
+                        onClick={() => handleDelete(template.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               );
             })}

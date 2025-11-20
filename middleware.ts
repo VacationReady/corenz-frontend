@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { isAllowedOrigin } from "./app/lib/origin";
+import { isAllowedOrigin, originAllowList } from "./app/lib/origin";
 import { rateLimit } from "./app/lib/rate-limit";
 
 const RESTRICTED_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
@@ -41,8 +41,18 @@ export async function middleware(request: NextRequest) {
       const origin = request.headers.get("origin");
       const selfOrigin = request.nextUrl.origin;
       // Allow same-origin and no-origin requests; enforce allowlist only for true cross-origin
-      if (origin && origin !== selfOrigin && !isAllowedOrigin(origin)) {
-        return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
+      if (origin && origin !== selfOrigin) {
+        const allowed = originAllowList.length > 0 && isAllowedOrigin(origin);
+        if (!allowed) {
+          console.warn("middleware: origin rejected", {
+            path,
+            method: request.method,
+            origin,
+            selfOrigin,
+            originAllowListSize: originAllowList.length,
+          });
+          return NextResponse.json({ error: "Origin not allowed" }, { status: 403 });
+        }
       }
     }
 
@@ -63,31 +73,64 @@ export async function middleware(request: NextRequest) {
 
     // Rate limiting with timeout protection
     if (RATE_LIMIT_PATHS.some((p) => path.startsWith(p))) {
+      const forwardedFor = requestHeaders.get("x-forwarded-for");
+      const ip =
+        forwardedFor?.split(",")[0]?.trim() ||
+        requestHeaders.get("x-real-ip") ||
+        "unknown";
+      const tenantId = requestHeaders.get("x-company-id");
+
+      if (!tenantId) {
+        console.warn("middleware: missing tenant header for rate-limited path", {
+          path,
+          method: request.method,
+          ip,
+          headersPresent: {
+            hasCompanyId: false,
+            hasForwardedFor: Boolean(forwardedFor),
+            hasRealIp: Boolean(requestHeaders.get("x-real-ip")),
+          },
+        });
+        return NextResponse.json(
+          { error: "Tenant context is required for this operation" },
+          { status: 401 },
+        );
+      }
+
       try {
-        const forwardedFor = requestHeaders.get("x-forwarded-for");
-        const ip = forwardedFor?.split(",")[0]?.trim() || requestHeaders.get("x-real-ip") || "unknown";
-        const tenantId = requestHeaders.get("x-company-id") || "public";
         const key = `${tenantId}:${ip}`;
         const limit = Number(process.env.RATE_LIMIT_MAX ?? "120");
         const windowMs = Number(process.env.RATE_LIMIT_WINDOW_MS ?? "60000");
-        
+
         // Add timeout to rate limiting
         const rateLimitPromise = rateLimit(key, { limit, windowMs });
-        const timeoutPromise = new Promise<boolean>((_, reject) => 
-          setTimeout(() => reject(new Error("Rate limit timeout")), 5000)
+        const timeoutPromise = new Promise<boolean>((_, reject) =>
+          setTimeout(() => reject(new Error("Rate limit timeout")), 5000),
         );
-        
+
         const limited = await Promise.race([rateLimitPromise, timeoutPromise]);
-        
+
         if (limited) {
           return NextResponse.json(
             { error: "Too many requests" },
             { status: 429 },
           );
         }
-      } catch (error) {
-        console.warn("Rate limiting failed:", error);
-        // Continue without rate limiting if it fails
+      } catch (error: any) {
+        console.error("middleware: rate limiting failed, failing closed", {
+          path,
+          method: request.method,
+          tenantId,
+          ip,
+          error: {
+            name: error?.name,
+            message: error?.message,
+          },
+        });
+        return NextResponse.json(
+          { error: "Rate limiting temporarily unavailable" },
+          { status: 503 },
+        );
       }
     }
 

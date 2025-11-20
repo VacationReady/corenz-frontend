@@ -32,7 +32,7 @@ import { useSession } from 'next-auth/react';
 import useSWR, { type SWRConfiguration, type SWRResponse } from 'swr';
 import useSWRMutation, { type SWRMutationConfiguration } from 'swr/mutation';
 import { apiClient, swrFetcher, type ApiRequestOptions, type ApiError } from '@/lib/apiClient';
-import { getTenantHeadersSync } from '@/app/lib/tenant-fetch';
+import { getTenantHeadersSync } from '@/lib/tenant-fetch';
 
 /**
  * Hook options extending SWR configuration
@@ -46,6 +46,39 @@ export interface UseApiOptions<T> extends SWRConfiguration<T> {
   timeout?: number;
   /** Company ID for tenant context (auto-detected from session if not provided) */
   companyId?: string | null;
+}
+
+/**
+ * Create a tenant-aware SWR fetcher
+ * 
+ * @example
+ * ```typescript
+ * const { data: session } = useSession();
+ * const fetcher = createTenantSwrFetcher(session?.user?.companyId);
+ * const { data, error } = useSWR('/api/employees', fetcher);
+ * ```
+ */
+export function createTenantSwrFetcher<T>(companyId?: string | null) {
+  return async (url: string): Promise<T> => {
+    const tenantHeaders = getTenantHeadersSync(url, companyId);
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...tenantHeaders,
+    };
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error?.error || error?.message || `Request failed with status ${response.status}`);
+    }
+
+    return response.json();
+  };
 }
 
 /**

@@ -29,6 +29,7 @@ import { FilterOption } from "@/types/filter";
 import { formatDistanceToNow } from "date-fns";
 import { handleNewsShare, createShareOptions, fetchNewsPage, PaginationState } from "@/lib/news-utils";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { useSession } from "next-auth/react";
 
 interface NewsPost {
   id: string;

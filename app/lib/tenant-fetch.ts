@@ -43,8 +43,8 @@ function requiresTenantHeader(url: string): boolean {
 export async function getTenantHeaders(
   url: string,
   companyId?: string | null
-): Promise<HeadersInit> {
-  const headers: HeadersInit = {};
+): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {};
 
   if (requiresTenantHeader(url) && companyId) {
     headers["x-company-id"] = companyId;
@@ -60,8 +60,8 @@ export async function getTenantHeaders(
 export function getTenantHeadersSync(
   url: string,
   companyId?: string | null
-): HeadersInit {
-  const headers: HeadersInit = {};
+): Record<string, string> {
+  const headers: Record<string, string> = {};
 
   if (requiresTenantHeader(url) && companyId) {
     headers["x-company-id"] = companyId;
@@ -89,7 +89,7 @@ export function mergeTenantHeaders(
   if (existingHeaders instanceof Headers) {
     const merged = new Headers(existingHeaders);
     if (tenantHeaders["x-company-id"]) {
-      merged.set("x-company-id", tenantHeaders["x-company-id"] as string);
+      merged.set("x-company-id", tenantHeaders["x-company-id"]);
     }
     return merged;
   }
@@ -97,7 +97,7 @@ export function mergeTenantHeaders(
   // Handle plain object
   if (typeof existingHeaders === "object" && !Array.isArray(existingHeaders)) {
     return {
-      ...existingHeaders,
+      ...(existingHeaders as Record<string, string>),
       ...tenantHeaders,
     };
   }
@@ -106,7 +106,7 @@ export function mergeTenantHeaders(
   if (Array.isArray(existingHeaders)) {
     const merged = new Headers(existingHeaders);
     if (tenantHeaders["x-company-id"]) {
-      merged.set("x-company-id", tenantHeaders["x-company-id"] as string);
+      merged.set("x-company-id", tenantHeaders["x-company-id"]);
     }
     return merged;
   }

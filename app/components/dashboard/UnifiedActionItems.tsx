@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { HolidayApprovalModal } from "@/components/approvals/HolidayApprovalModal";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
-import { getTenantHeadersSync } from "@/app/lib/tenant-fetch";
+import { getTenantHeadersSync } from "@/lib/tenant-fetch";
 
 const createFetcher = (companyId?: string | null) => (url: string) => {
   const headers = getTenantHeadersSync(url, companyId);

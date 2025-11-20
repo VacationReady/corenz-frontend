@@ -17,7 +17,7 @@
 
 import { useSession } from "next-auth/react";
 import { useCallback } from "react";
-import { mergeTenantHeaders } from "@/app/lib/tenant-fetch";
+import { mergeTenantHeaders } from "@/lib/tenant-fetch";
 
 export function useTenantFetch() {
   const { data: session } = useSession();

@@ -3,7 +3,7 @@
  */
 
 import { toast } from "sonner";
-import { getTenantHeadersSync } from "@/app/lib/tenant-fetch";
+import { getTenantHeadersSync } from "@/lib/tenant-fetch";
 
 export interface ShareOptions {
   title: string;

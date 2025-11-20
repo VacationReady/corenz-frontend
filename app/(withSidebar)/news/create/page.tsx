@@ -383,9 +383,6 @@ export default function CreateNewsPostPage() {
           featured,
           publishedAt: asDraft ? null : new Date().toISOString(),
         }),
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
 
       if (res.ok) {

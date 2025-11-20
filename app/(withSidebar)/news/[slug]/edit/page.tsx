@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";

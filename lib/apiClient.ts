@@ -120,7 +120,7 @@ async function request<T>(
   }
 
   // Import tenant utilities (dynamic import to avoid circular dependencies)
-  const { mergeTenantHeaders } = await import('@/app/lib/tenant-fetch');
+  const { mergeTenantHeaders } = await import('@/lib/tenant-fetch');
   
   // Merge tenant headers with existing headers
   const mergedHeaders = mergeTenantHeaders(

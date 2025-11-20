@@ -678,7 +678,7 @@ export default function AdminDashboardClient({
       e.jobRoleName ||
       e.User?.JobRole?.name ||
       "";
-    return { name, email, avatar, sub };
+    return { name, avatar, sub };
   };
 
   const employeeScreens = (employeeId: string) => [

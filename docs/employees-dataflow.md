@@ -521,6 +521,46 @@ try {
 }
 ```
 
+### GET /api/employees/minimal
+
+Lightweight, paginated endpoint used by the admin “Edit Employee” modal to populate the employee picker without loading the full employee payload.
+
+**Query Parameters:**
+
+- `status`: `"active"` | `"archived"` | `"all"` (default: `"active"`)
+- `limit`: Number (default: 50, max: 100)
+- `cursor`: Employee ID for cursor-based pagination
+
+**Response:**
+
+```typescript
+{
+  data: Array<{
+    id: string;          // Employee ID
+    userId: string;      // Underlying User ID
+    fullName: string;    // Derived from firstName + lastName (falls back to email/id)
+    departmentId: string | null;
+    jobRoleId: string | null;
+    avatar: {
+      path: string | null;       // Original storage path in Supabase (e.g. "profiles/abc.jpg")
+      signedUrl: string | null;  // Short-lived signed URL for use in <Avatar> components
+    };
+  }>;
+  pagination: {
+    limit: number;
+    cursor: string | null;
+    hasMore: boolean;
+  };
+}
+```
+
+**Implementation Notes:**
+
+- The route lives at `app/api/employees/minimal/route.ts` and is restricted to `ADMIN` / `SUPER_ADMIN` users scoped to their `companyId`.
+- Pagination semantics match the main `/api/employees` endpoint (descending `id` order, cursor is the last `id` from the previous page).
+- Avatar URLs are **not** computed client-side; the handler batches signing via `batchSignProfileUrlsAsMap` from `app/lib/storage/signProfiles.ts` and returns both the storage `path` and the signed URL.
+- The admin dashboard’s `AdminDashboardClient` uses the shared `usePaginatedApi`/`useApi` helpers to lazily load this dataset when the “Edit Employee” dialog is opened, with SWR providing client-side caching.
+
 ### GET /api/departments
 
 **Response:**

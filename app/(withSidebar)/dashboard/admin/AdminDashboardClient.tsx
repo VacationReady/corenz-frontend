@@ -33,7 +33,7 @@ import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { Input } from "@/components/ui/Input";
-import { useApi, useBatchedApi } from "@/hooks/useApi";
+import { useApi, useBatchedApi, usePaginatedApi } from "@/hooks/useApi";
 import { apiClient } from "@/lib/apiClient";
  
 function EntitlementProjection({
@@ -592,69 +592,68 @@ export default function AdminDashboardClient({
   const [isEmployeeSelectOpen, setIsEmployeeSelectOpen] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState("");
 
+  type MinimalEmployeeForEdit = {
+    id: string;
+    userId: string;
+    fullName: string;
+    departmentId: string | null;
+    jobRoleId: string | null;
+    avatar: {
+      path: string | null;
+      signedUrl: string | null;
+    };
+  };
+
+  const {
+    data: minimalEmployees,
+    isLoading: loadingMinimalEmployees,
+    loadMore: loadMoreMinimalEmployees,
+    hasMore: hasMoreMinimalEmployees,
+    reset: resetMinimalEmployees,
+  } = usePaginatedApi<MinimalEmployeeForEdit[]>(
+    "/api/employees/minimal",
+    {
+      params: {
+        status: "all",
+        limit: 50,
+      },
+      enabled: editEmployeeOpen,
+    },
+  );
+
   useEffect(() => {
     if (!editEmployeeOpen) return;
-    let active = true;
-    const loadEmployees = async () => {
-      setLoadingEmployees(true);
-      try {
-        // Load all employees with pagination
-        let allEmployees: any[] = [];
-        let cursor: string | null = null;
-        let hasMore = true;
-        
-        while (hasMore && active) {
-          const url: string = `/api/employees?status=all&limit=100${cursor ? `&cursor=${cursor}` : ""}`;
-          const res: any = await fetch(url, { cache: "no-store" });
-          
-          if (res.ok) {
-            const response: any = await res.json();
-            
-            // Handle both old array format and new paginated format
-            const employeesData = Array.isArray(response) 
-              ? response 
-              : (response.data || []);
-            
-            allEmployees = [...allEmployees, ...employeesData];
-            
-            // Check pagination
-            if (response.pagination) {
-              cursor = response.pagination.cursor;
-              hasMore = response.pagination.hasMore;
-            } else {
-              // Old format, no more pages
-              hasMore = false;
-            }
-          } else {
-            hasMore = false;
-          }
-        }
-        
-        if (active) setEmployeesForEdit(allEmployees);
-      } catch {
-        if (active) setEmployeesForEdit([]);
-      } finally {
-        if (active) setLoadingEmployees(false);
-      }
-    };
-    loadEmployees();
-    return () => {
-      active = false;
-    };
-  }, [editEmployeeOpen]);
+    if (!hasMoreMinimalEmployees || loadingMinimalEmployees) return;
+    // Automatically prefetch additional pages while the dialog is open
+    loadMoreMinimalEmployees();
+  }, [editEmployeeOpen, hasMoreMinimalEmployees, loadingMinimalEmployees, loadMoreMinimalEmployees]);
+
+  useEffect(() => {
+    if (!editEmployeeOpen) {
+      setEmployeesForEdit(null);
+      setLoadingEmployees(false);
+      resetMinimalEmployees();
+      return;
+    }
+    if (minimalEmployees) {
+      setEmployeesForEdit(minimalEmployees);
+      setLoadingEmployees(loadingMinimalEmployees);
+    } else {
+      setLoadingEmployees(loadingMinimalEmployees);
+    }
+  }, [editEmployeeOpen, minimalEmployees, loadingMinimalEmployees, resetMinimalEmployees]);
 
   const employeeOptions = useMemo(() => {
     if (!employeesForEdit) return [] as { id: string; label: string }[];
     return employeesForEdit
       .map((e: any) => {
         const id = e.id || e.employeeId;
-        const first = e.firstName || e.User?.firstName || "";
-        const last = e.lastName || e.User?.lastName || "";
-        const email = e.email || e.User?.email || "";
-        const label = `${first} ${last}`.trim() || email || id || "";
+        const label = e.fullName || id || "";
         return { id, label };
       })
-      .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+      .sort((a, b) =>
+        a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+      );
   }, [employeesForEdit]);
 
   const normalizedEmployeeSearch = employeeSearch.trim().toLowerCase();
@@ -671,12 +670,14 @@ export default function AdminDashboardClient({
     : employeeOptions;
 
   const getEmployeeDisplay = (e: any) => {
-    const first = e.firstName || e.User?.firstName || "";
-    const last = e.lastName || e.User?.lastName || "";
-    const email = e.email || e.User?.email || "";
-    const name = `${first} ${last}`.trim() || email || "Unknown";
-    const avatar = e.User?.profileImageUrl || e.profileImageUrl;
-    const sub = e.departmentName || e.JobRole?.name || e.jobRoleName || e.User?.JobRole?.name || email;
+    const name = e.fullName || "Unknown";
+    const avatar = e.avatar?.signedUrl || null;
+    const sub =
+      e.departmentName ||
+      e.JobRole?.name ||
+      e.jobRoleName ||
+      e.User?.JobRole?.name ||
+      "";
     return { name, email, avatar, sub };
   };
 

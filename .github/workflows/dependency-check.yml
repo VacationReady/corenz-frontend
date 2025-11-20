@@ -76,8 +76,8 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Run database migrations
-        run: npx prisma migrate deploy
+      - name: Sync database schema (security tests)
+        run: npx prisma db push
 
       - name: Run tenant isolation security tests
         run: npm test -- tests/security/timesheet-tenant-isolation.test.ts

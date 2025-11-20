@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { BarChart3, FileText, Plus, SortAsc, SortDesc } from "lucide-react";
 import ReportWizard, { ReportConfig } from "@/components/reports/ReportWizard";
@@ -29,6 +30,7 @@ interface RecentReport {
 }
 
 export default function NewReportBuilderPage() {
+  const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -52,7 +54,11 @@ export default function NewReportBuilderPage() {
   const fetchRecentReports = useCallback(async () => {
     setLoadingReports(true);
     try {
-      const res = await fetch("/api/reports", { cache: "no-store" });
+      const headers: HeadersInit = {};
+      if (session?.user?.companyId) {
+        headers["x-company-id"] = session.user.companyId;
+      }
+      const res = await fetch("/api/reports", { cache: "no-store", headers });
       if (!res.ok) throw new Error("Failed to load reports");
       const data = await res.json();
       setRecentReports(Array.isArray(data) ? data.slice(0, 5) : []);
@@ -69,7 +75,7 @@ export default function NewReportBuilderPage() {
     } finally {
       setLoadingReports(false);
     }
-  }, [toast]);
+  }, [toast, session?.user?.companyId]);
 
   useEffect(() => {
     void fetchRecentReports();

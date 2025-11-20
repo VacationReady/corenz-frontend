@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import Button from "@/components/ui/Button";
@@ -31,6 +32,7 @@ interface SavedReport {
 }
 
 export default function ReportsPage() {
+  const { data: session } = useSession();
   const [reports, setReports] = useState<SavedReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,11 @@ export default function ReportsPage() {
       setError(null);
 
       try {
-        const res = await fetch("/api/reports");
+        const headers: HeadersInit = {};
+        if (session?.user?.companyId) {
+          headers["x-company-id"] = session.user.companyId;
+        }
+        const res = await fetch("/api/reports", { headers });
 
       if (!res.ok) {
         let message = "Failed to load reports.";
@@ -92,7 +98,7 @@ export default function ReportsPage() {
         setIsRefreshing(false);
       }
     }
-  }, []);
+  }, [session?.user?.companyId]);
 
   useEffect(() => {
     void fetchReports({ initial: true });
@@ -107,7 +113,11 @@ export default function ReportsPage() {
     setReports((prev) => prev.filter((r) => r.id !== id));
 
     try {
-      const response = await fetch(`/api/reports/${id}`, { method: "DELETE" });
+      const headers: HeadersInit = {};
+      if (session?.user?.companyId) {
+        headers["x-company-id"] = session.user.companyId;
+      }
+      const response = await fetch(`/api/reports/${id}`, { method: "DELETE", headers });
 
       if (!response.ok) {
         let message = "Failed to delete report.";

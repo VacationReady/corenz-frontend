@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import FilterableDataTable from "@/components/reports/FilterableDataTable";
 import Button from "@/components/ui/Button";
@@ -127,6 +128,7 @@ function downloadCSV(data: any[], columns: ColumnDefinition[]) {
 }
 
 export default function ReportsPreviewClient() {
+  const { data: session } = useSession();
   const REQUIRED_FIELDS_USER = ["User.firstName", "User.lastName"];
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -312,7 +314,11 @@ export default function ReportsPreviewClient() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch("/api/reports/fields", { cache: "no-store" });
+        const headers: HeadersInit = {};
+        if (session?.user?.companyId) {
+          headers["x-company-id"] = session.user.companyId;
+        }
+        const res = await fetch("/api/reports/fields", { cache: "no-store", headers });
         if (!res.ok) throw new Error(String(res.status));
         const list = await res.json();
         if (Array.isArray(list)) {
@@ -333,7 +339,7 @@ export default function ReportsPreviewClient() {
       }
     };
     load();
-  }, []);
+  }, [session?.user?.companyId]);
 
   const fieldLabels = useMemo(() => {
     const map: Record<string, string> = {};
@@ -381,7 +387,11 @@ export default function ReportsPreviewClient() {
       const loadReport = async () => {
         setLoadingReport(true);
         try {
-          const res = await fetch(`/api/reports/${reportIdParam}`);
+          const headers: HeadersInit = {};
+          if (session?.user?.companyId) {
+            headers["x-company-id"] = session.user.companyId;
+          }
+          const res = await fetch(`/api/reports/${reportIdParam}`, { headers });
           if (!res.ok) throw new Error(`Failed to load report: ${res.status}`);
           const report = await res.json();
           setReportConfig(report);
@@ -431,6 +441,10 @@ export default function ReportsPreviewClient() {
       return;
     }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportIdParam, session?.user?.companyId]);
+
+  useEffect(() => {
     if (templateIdParam && engineParam === "custom" && reportTypeParam) {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
@@ -564,10 +578,15 @@ export default function ReportsPreviewClient() {
   // Helper to fetch a specific page (used by both initial load and full export)
   const fetchReportPage = useCallback(
     async (pageToFetch: number, limitToFetch: number) => {
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (session?.user?.companyId) {
+        headers["x-company-id"] = session.user.companyId;
+      }
+
       if (engineParam === "custom" && reportTypeParam) {
         const res = await fetch("/api/reports/generate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({
             reportType: reportTypeParam,
             filters: Object.fromEntries(
@@ -593,7 +612,7 @@ export default function ReportsPreviewClient() {
 
       const res = await fetch("/api/reports/query", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           selectedFields: effectiveSelectedFields,
           filters: Array.isArray(activeFilters) ? activeFilters : [],
@@ -890,9 +909,13 @@ export default function ReportsPreviewClient() {
     const reportName = prompt("Enter a name for this report:");
     if (!reportName) return;
     try {
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (session?.user?.companyId) {
+        headers["x-company-id"] = session.user.companyId;
+      }
       const res = await fetch("/api/reports/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           name: reportName,
           selectedFields,

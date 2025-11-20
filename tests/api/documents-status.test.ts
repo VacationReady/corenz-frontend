@@ -20,6 +20,7 @@ import { NextRequest } from "next/server";
 const originalLoad = (Module as any)._load;
 let mockSession: any = null;
 let mockPrisma: any = {};
+let mockCache: any = {};
 
 (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
   if (request === "next-auth") {
@@ -30,7 +31,16 @@ let mockPrisma: any = {};
   if (request === "@/lib/prisma") {
     return {
       prisma: mockPrisma,
-      ensurePrismaConnected: async () => {},
+      ensurePrismaConnected: async () => { },
+    };
+  }
+  if (request === "@/lib/cache") {
+    return {
+      documentStatusCache: mockCache,
+      generateDocumentStatusCacheKey: (companyId: string, documentIds: string[]) => {
+        const sortedIds = [...documentIds].sort();
+        return `doc-status:${companyId}:${sortedIds.join(",")}`;
+      },
     };
   }
   return originalLoad(request, parent, isMain);
@@ -64,6 +74,11 @@ function resetMocks() {
   mockPrisma.documentSignatureArtifact = {
     findMany: async () => [],
   };
+  // Reset cache mock to always return null (cache miss)
+  mockCache.get = async () => null;
+  mockCache.set = async () => { };
+  mockCache.delete = async () => { };
+  mockCache.deletePattern = async () => { };
 }
 
 test("Documents Status API - Batching & Authorization", async (t) => {
@@ -377,7 +392,7 @@ test("Documents Status API - Batching & Authorization", async (t) => {
 
     assert.equal(res.status, 200);
     assert.equal(capturedCompanyId, "company1", "Should filter by tenant");
-    
+
     // doc1 should have status
     assert.ok(data.statuses.doc1);
     assert.equal(data.statuses.doc1.requiresAck, true);
@@ -417,8 +432,8 @@ test("Documents Status API - Batching & Authorization", async (t) => {
     const data = await res.json();
 
     assert.equal(res.status, 200);
-    assert.equal(capturedDeletedAtFilter, null, "Should filter out deleted docs");
-    
+    assert.strictEqual(capturedDeletedAtFilter, null, "Should filter out deleted docs");
+
     assert.ok(data.statuses.doc1);
     assert.ok(data.statuses.doc2); // Returns default status
     assert.equal(data.statuses.doc2.requiresAck, false);
@@ -516,7 +531,7 @@ test("Documents Status API - Batching & Authorization", async (t) => {
     const data = await res.json();
 
     assert.equal(res.status, 200);
-    
+
     // Verify only 3 queries total (not 100+ individual queries)
     assert.equal(documentQueryCount, 1, "Should make only 1 document query");
     assert.equal(ackQueryCount, 1, "Should make only 1 acknowledgement query");

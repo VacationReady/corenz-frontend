@@ -1875,12 +1875,39 @@ video {
 
   .bg-aurora {
     background: linear-gradient(-45deg,
-        hsl(var(--sunset-1) / 0.1),
-        hsl(var(--sunset-2) / 0.1),
-        hsl(var(--primary) / 0.05),
-        hsl(var(--sunset-3) / 0.1));
-    background-size: 400% 400%;
-    animation: aurora 15s ease infinite;
+        hsl(var(--sunset-1) / 0.12),
+        hsl(var(--sunset-2) / 0.18),
+        hsl(var(--primary) / 0.08),
+        hsl(var(--sunset-3) / 0.16));
+    background-size: 320% 320%;
+    animation: aurora 22s ease-in-out infinite;
+  }
+
+  @keyframes aurora {
+    0% {
+      background-position: 0% 50%;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    25% {
+      background-position: 50% 60%;
+      transform: translate3d(-1%, -1%, 0) scale(1.02);
+    }
+
+    50% {
+      background-position: 100% 50%;
+      transform: translate3d(1%, 1%, 0) scale(1.04);
+    }
+
+    75% {
+      background-position: 50% 40%;
+      transform: translate3d(-1%, 1%, 0) scale(1.02);
+    }
+
+    100% {
+      background-position: 0% 50%;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
   }
 
   /* Core Glassmorphism System */
@@ -2173,11 +2200,11 @@ video {
 
   .bg-aurora {
     background: linear-gradient(135deg,
-        hsl(var(--primary-300) / 0.5),
-        hsl(var(--primary-500) / 0.4),
-        hsl(var(--primary-400) / 0.5));
-    background-size: 200% 200%;
-    animation: aurora 15s ease infinite;
+        hsl(var(--primary-300) / 0.55),
+        hsl(var(--primary-500) / 0.45),
+        hsl(var(--primary-400) / 0.6));
+    background-size: 260% 260%;
+    animation: aurora 22s ease-in-out infinite;
   }
 
   .glass-premium {

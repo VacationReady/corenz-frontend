@@ -421,18 +421,18 @@ export default function ArchivedWorkingPatternsPage() {
           <div className="relative z-10 flex flex-col gap-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-sm text-white/70">
+                <p className="text-sm text-foreground/70">
                   Explore previously archived working patterns. Use the quick filters to narrow the list by the year the pattern was active and the work week length it represents.
                 </p>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/80 backdrop-blur">
+              <div className="inline-flex items-center gap-2 rounded-full border border-foreground/20 bg-foreground/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-foreground/80 backdrop-blur">
                 <Filter className="h-4 w-4" aria-hidden="true" />
                 Filters
               </div>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="flex flex-col gap-3">
-                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-white/60">
+                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-foreground/60">
                   Active year
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -453,7 +453,7 @@ export default function ArchivedWorkingPatternsPage() {
                 </div>
               </div>
               <div className="flex flex-col gap-3">
-                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-white/60">
+                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-foreground/60">
                   Work week length
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -486,15 +486,15 @@ export default function ArchivedWorkingPatternsPage() {
             <LoadingSpinner showText text="Fetching archived patterns" />
           </div>
         ) : filteredPatterns.length === 0 ? (
-          <div className="relative overflow-hidden rounded-3xl border border-dashed border-white/20 bg-gradient-to-br from-slate-900/10 via-sky-500/10 to-indigo-500/10 px-10 py-16 text-center shadow-[0_20px_60px_-24px_rgba(15,23,42,0.55)]">
+          <div className="relative overflow-hidden rounded-3xl border border-dashed border-foreground/20 bg-gradient-to-br from-slate-900/10 via-sky-500/10 to-indigo-500/10 px-10 py-16 text-center shadow-[0_20px_60px_-24px_rgba(15,23,42,0.55)]">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.35),_transparent_55%)]" />
             <div className="relative z-10 flex flex-col items-center gap-8">
-              <div className="grid h-24 w-24 place-items-center rounded-full border border-white/20 bg-white/10 text-white">
+              <div className="grid h-24 w-24 place-items-center rounded-full border border-foreground/20 bg-foreground/10 text-foreground">
                 <ArchiveRestore className="h-10 w-10" aria-hidden="true" />
               </div>
               <div className="max-w-lg space-y-3">
-                <h2 className="text-2xl font-semibold text-white">Nothing archived just yet</h2>
-                <p className="text-sm leading-relaxed text-white/70">
+                <h2 className="text-2xl font-semibold text-foreground">Nothing archived just yet</h2>
+                <p className="text-sm leading-relaxed text-foreground/70">
                   When a working pattern is archived it will appear here with all of its historical details. Return to your active working patterns to restore an existing schedule or create something new.
                 </p>
               </div>
@@ -532,27 +532,27 @@ export default function ArchivedWorkingPatternsPage() {
                       <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_45%,rgba(15,23,42,0.15)_100%)]" aria-hidden="true" />
                       <div className="relative z-10 flex flex-col gap-4">
                         <div className="flex flex-wrap items-center gap-3">
-                          <h2 className="text-lg font-semibold text-white md:text-xl">
+                          <h2 className="text-lg font-semibold text-foreground md:text-xl">
                             {pattern.name}
                           </h2>
-                          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-white/60">
-                            <span className="rounded-full bg-white/10 px-3 py-1">
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-foreground/60">
+                            <span className="rounded-full bg-foreground/10 px-3 py-1">
                               {meta.activeYear ? `Active in ${meta.activeYear}` : "Year unknown"}
                             </span>
-                            <span className="rounded-full bg-white/10 px-3 py-1">
+                            <span className="rounded-full bg-foreground/10 px-3 py-1">
                               {weekLengthLabel}
                             </span>
                           </div>
                         </div>
-                        <p className={cn("text-sm leading-relaxed", pattern.description ? "text-white/80" : "italic text-white/60")}
+                        <p className={cn("text-sm leading-relaxed", pattern.description ? "text-foreground/80" : "italic text-foreground/60")}
                         >
                           {pattern.description || "No description provided."}
                         </p>
-                        <div className="text-sm text-white/80">
-                          <span className="font-medium text-white">Days:</span> {meta.daySummary}
+                        <div className="text-sm text-foreground/80">
+                          <span className="font-medium text-foreground">Days:</span> {meta.daySummary}
                         </div>
                       </div>
-                      <div className="pointer-events-none absolute -right-16 top-6 rotate-45 bg-gradient-to-r from-amber-400/90 to-orange-500/90 px-14 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-[0_12px_35px_-18px_rgba(249,115,22,0.75)]">
+                      <div className="pointer-events-none absolute -right-16 top-6 rotate-45 bg-gradient-to-r from-amber-400 to-orange-500 px-14 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-[0_12px_35px_-18px_rgba(249,115,22,0.75)]">
                         Archived
                       </div>
                       <div className="absolute inset-y-4 right-4 flex translate-x-12 items-center gap-3 rounded-2xl bg-background/75 px-4 py-3 text-sm shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100">

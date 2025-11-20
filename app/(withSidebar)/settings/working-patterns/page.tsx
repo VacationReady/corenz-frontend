@@ -1,23 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Archive, Edit, Eye, Trash2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Card } from "@/components/ui/Card";
+import { GlassSurface } from "@/components/ui/GlassSurface";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
-import KebabMenu from "@/components/ui/KebabMenu";
 import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
+import { cn } from "@/lib/utils";
 
 export default function WorkingPatternsPage() {
   const [patterns, setPatterns] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentPattern, setCurrentPattern] = useState<any>(null);
+  const [pendingActions, setPendingActions] = useState<Record<string, string>>({});
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -181,15 +184,32 @@ export default function WorkingPatternsPage() {
     setOpen(true);
   };
 
-  const handleArchive = async (id: string) => {
-    const res = await fetch(`/api/working-patterns/${id}`, {
-      method: "DELETE",
+  const setActionPending = useCallback((id: string, action: string) => {
+    setPendingActions((prev) => ({ ...prev, [id]: action }));
+  }, []);
+
+  const clearActionPending = useCallback((id: string) => {
+    setPendingActions((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
     });
-    if (res.ok) {
-      toast.success("Pattern archived");
-      fetchPatterns();
-    } else {
-      toast.error("Error archiving pattern");
+  }, []);
+
+  const handleArchive = async (id: string) => {
+    setActionPending(id, "archive");
+    try {
+      const res = await fetch(`/api/working-patterns/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        toast.success("Pattern archived");
+        fetchPatterns();
+      } else {
+        toast.error("Error archiving pattern");
+      }
+    } finally {
+      clearActionPending(id);
     }
   };
 
@@ -200,14 +220,19 @@ export default function WorkingPatternsPage() {
       )
     )
       return;
-    const res = await fetch(`/api/working-patterns/${id}?permanent=true`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      toast.success("Pattern permanently deleted");
-      fetchPatterns();
-    } else {
-      toast.error("Error deleting pattern");
+    setActionPending(id, "delete");
+    try {
+      const res = await fetch(`/api/working-patterns/${id}?permanent=true`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        toast.success("Pattern permanently deleted");
+        fetchPatterns();
+      } else {
+        toast.error("Error deleting pattern");
+      }
+    } finally {
+      clearActionPending(id);
     }
   };
 
@@ -413,39 +438,106 @@ export default function WorkingPatternsPage() {
       </Dialog>
 
       <div className="grid gap-4">
-        {patterns.map((pattern) => {
-          const days = pattern.weeks?.flatMap((w: any) => w.days) || [];
-          const preview = days
-            .slice(0, 3)
-            .map((d: any) => `${d.day} (${d.type.replace(/_/g, " ")})`)
-            .join(", ");
-          return (
-            <Card
-              key={pattern.id}
-              className="p-4 flex justify-between items-center"
-            >
-              <div>
-                <h2 className="font-semibold">{pattern.name}</h2>
-                <p className="text-sm text-gray-600">
-                  {pattern.description || "No description"}
-                </p>
-                <p className="text-sm">{pattern.weeks.length} week pattern</p>
-                <p className="text-sm text-gray-600">
-                  Preview: {preview}
-                  {days.length > 3 ? ` (+${days.length - 3} more)` : ""}
-                </p>
-              </div>
-              <KebabMenu
-                options={[
-                  { label: "View", action: () => setViewPattern(pattern) },
-                  { label: "Edit", action: () => handleEdit(pattern) },
-                  { label: "Archive", action: () => handleArchive(pattern.id) },
-                  { label: "Delete", action: () => handleDelete(pattern.id) },
-                ]}
-              />
-            </Card>
-          );
-        })}
+        <AnimatePresence initial={false}>
+          {patterns.map((pattern) => {
+            const days = pattern.weeks?.flatMap((w: any) => w.days) || [];
+            const preview = days
+              .slice(0, 3)
+              .map((d: any) => `${d.day} (${d.type.replace(/_/g, " ")})`)
+              .join(", ");
+            const weekLengthLabel = `${pattern.weeks.length} week${pattern.weeks.length === 1 ? "" : "s"}`;
+            
+            return (
+              <motion.article
+                key={pattern.id}
+                layout
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -24, scale: 0.95 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="relative group"
+              >
+                <GlassSurface
+                  intensity="strong"
+                  variant="panel"
+                  size="lg"
+                  gradient
+                  hoverable
+                  className="relative flex flex-col gap-6 overflow-hidden border border-white/15 bg-white/10 p-6 pr-6 text-foreground backdrop-blur-xl transition-shadow hover:shadow-[0_28px_60px_-30px_rgba(15,23,42,0.65)] md:pr-60"
+                >
+                  <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_45%,rgba(15,23,42,0.15)_100%)]" aria-hidden="true" />
+                  <div className="relative z-10 flex flex-col gap-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-lg font-semibold text-foreground md:text-xl">
+                        {pattern.name}
+                      </h2>
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-foreground/60">
+                        <span className="rounded-full bg-foreground/10 px-3 py-1">
+                          {weekLengthLabel}
+                        </span>
+                        <span className="rounded-full bg-foreground/10 px-3 py-1">
+                          {days.length} day{days.length === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                    </div>
+                    <p className={cn("text-sm leading-relaxed", pattern.description ? "text-foreground/80" : "italic text-foreground/60")}>
+                      {pattern.description || "No description provided."}
+                    </p>
+                    <div className="text-sm text-foreground/80">
+                      <span className="font-medium text-foreground">Preview:</span> {preview}
+                      {days.length > 3 ? ` (+${days.length - 3} more)` : ""}
+                    </div>
+                  </div>
+                  <div className="pointer-events-none absolute -right-16 top-6 rotate-45 bg-gradient-to-r from-emerald-400 to-green-500 px-14 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-white shadow-[0_12px_35px_-18px_rgba(34,197,94,0.75)]">
+                    Active
+                  </div>
+                  <div className="absolute inset-y-4 right-4 flex translate-x-12 flex-col items-stretch gap-2 rounded-2xl bg-background/75 px-3 py-3 text-sm shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<Eye className="h-4 w-4" aria-hidden="true" />}
+                      onClick={() => setViewPattern(pattern)}
+                      className="w-full justify-start"
+                    >
+                      View
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<Edit className="h-4 w-4" aria-hidden="true" />}
+                      onClick={() => handleEdit(pattern)}
+                      className="w-full justify-start"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<Archive className="h-4 w-4" aria-hidden="true" />}
+                      onClick={() => handleArchive(pattern.id)}
+                      loading={pendingActions[pattern.id] === "archive"}
+                      loadingText="Archiving"
+                      className="w-full justify-start"
+                    >
+                      Archive
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      icon={<Trash2 className="h-4 w-4" aria-hidden="true" />}
+                      onClick={() => handleDelete(pattern.id)}
+                      loading={pendingActions[pattern.id] === "delete"}
+                      loadingText="Deleting"
+                      className="w-full justify-start"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </GlassSurface>
+              </motion.article>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </PageShell>
   );

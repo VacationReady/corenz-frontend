@@ -596,7 +596,7 @@ export default function AddEmployeeModal({
         setInitialFormData(formData);
       }
     }
-  }, [open, storageKey, formData]);
+  }, [open, storageKey]);
 
   useEffect(() => {
     if (!open) {

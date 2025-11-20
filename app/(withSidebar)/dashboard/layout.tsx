@@ -26,7 +26,7 @@ export default async function DashboardLayout({
 
   // ✅ Sidebar now shows consistently across all /dashboard/* pages
   return (
-    <div className="flex h-screen bg-app-background">
+    <div className="flex h-screen">
       <div className="flex-shrink-0">
         {Sidebar}
       </div>

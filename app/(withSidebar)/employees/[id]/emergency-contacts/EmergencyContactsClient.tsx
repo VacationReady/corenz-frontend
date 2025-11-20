@@ -139,7 +139,7 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6 pt-6 px-8">
       <HeaderWithHistory title="Emergency contacts" employeeId={employeeId} section="emergency-contacts" />
 
       <div className="flex justify-end">

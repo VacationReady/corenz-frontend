@@ -162,7 +162,7 @@ export default function EmergencyContactsPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6 pt-6 px-8">
       <HeaderWithHistory title="Emergency contacts" employeeId={id} section="emergency-contacts" />
 
       <div className="flex justify-end">

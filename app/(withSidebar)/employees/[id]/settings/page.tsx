@@ -68,7 +68,7 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
   const canAssignWorkingPattern = isAdmin || isManagerOfEmployee;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-6 px-8">
       <h1 className="text-xl font-bold">Employee Settings</h1>
       <p>
         Manage the employee's settings, such as working patterns, documents, or

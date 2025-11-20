@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
@@ -8,9 +6,25 @@ import { authOptions } from "@/lib/auth-options";
 import NotificationsSectionBadge from "@/components/ui/NotificationsSectionBadge";
 import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
 import { canAccessEmployee } from "@/lib/permissions";
-import { usePathname } from "next/navigation";
+import EmployeeNavClient from "./EmployeeNavClient";
 
-async function getEmployeeData(id: string, session: any) {
+export default async function EmployeeLayout({
+  children,
+  params,
+}: {
+  children: ReactNode;
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !session.user.companyId) {
+    return (
+      <UnauthorizedAccess
+        title="Unauthorised access"
+        description="You can only view your own details. If you think this is a mistake, please contact your administrator."
+      />
+    );
+  }
   const employee = await prisma.employee.findFirst({
     where: { id, companyId: session?.user?.companyId || "" },
     include: {
@@ -25,7 +39,25 @@ async function getEmployeeData(id: string, session: any) {
   });
 
   if (!employee) {
-    return null;
+    return <div>Employee not found.</div>;
+  }
+
+  const allowed = await canAccessEmployee(
+    {
+      id: session.user.id,
+      role: session.user.role as any,
+      companyId: session.user.companyId,
+    },
+    employee.id,
+  );
+
+  if (!allowed) {
+    return (
+      <UnauthorizedAccess
+        title="Unauthorised access"
+        description="You can only view your own details. If you think this is a mistake, please contact your administrator."
+      />
+    );
   }
 
   const userRole = employee.User?.role || "EMPLOYEE";
@@ -115,85 +147,6 @@ async function getEmployeeData(id: string, session: any) {
     { href: `/employees/${id}/settings`, label: "Settings" },
   ];
 
-  return { employee, menu };
-}
-
-function EmployeeNotificationsQuickView({ employeeId }: { employeeId: string }) {
-  return (
-    <div className="mb-4 glass-subtle rounded-xl p-3 border-glass">
-      <NotificationsSectionBadge employeeId={employeeId} />
-    </div>
-  );
-}
-
-function EmployeeNav({ menu, employeeId, session }: { menu: any[]; employeeId: string; session: any }) {
-  const pathname = usePathname();
-
-  return (
-    <nav className="space-y-1">
-      {menu.map((item) => {
-        const isActive = pathname === item.href;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition-glass ${isActive
-                ? "glass-strong text-primary shadow-depth-1"
-                : "text-foreground hover:glass-subtle"
-              }`}
-          >
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
-export default async function EmployeeLayout({
-  children,
-  params,
-}: {
-  children: ReactNode;
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id || !session.user.companyId) {
-    return (
-      <UnauthorizedAccess
-        title="Unauthorised access"
-        description="You can only view your own details. If you think this is a mistake, please contact your administrator."
-      />
-    );
-  }
-
-  const data = await getEmployeeData(id, session);
-
-  if (!data) {
-    return <div>Employee not found.</div>;
-  }
-
-  const { employee, menu } = data;
-
-  const allowed = await canAccessEmployee(
-    {
-      id: session.user.id,
-      role: session.user.role as any,
-      companyId: session.user.companyId,
-    },
-    employee.id,
-  );
-
-  if (!allowed) {
-    return (
-      <UnauthorizedAccess
-        title="Unauthorised access"
-        description="You can only view your own details. If you think this is a mistake, please contact your administrator."
-      />
-    );
-  }
-
   return (
     <div className="flex min-h-screen">
       {/* Profile sidebar */}
@@ -203,11 +156,19 @@ export default async function EmployeeLayout({
         {session?.user?.role === "ADMIN" && (
           <EmployeeNotificationsQuickView employeeId={id} />
         )}
-        <EmployeeNav menu={menu} employeeId={id} session={session} />
+        <EmployeeNavClient menu={menu} />
       </aside>
 
       {/* Profile content */}
       <main className="flex-1 p-6">{children}</main>
+    </div>
+  );
+}
+
+function EmployeeNotificationsQuickView({ employeeId }: { employeeId: string }) {
+  return (
+    <div className="mb-4 glass-subtle rounded-xl p-3 border-glass">
+      <NotificationsSectionBadge employeeId={employeeId} />
     </div>
   );
 }

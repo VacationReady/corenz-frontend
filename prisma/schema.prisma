@@ -23,52 +23,52 @@ model TenantSwitchToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
   used      Boolean  @default(false)
-  
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
+
+  User    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   @@index([token, expiresAt])
   @@index([companyId])
 }
 
 model AutomationExecution {
-  id             String                    @id
-  ruleId         String
-  companyId      String
-  triggeredAt    DateTime                  @default(now())
-  startedAt      DateTime                  @default(now())
-  completedAt    DateTime?
-  durationMs     Int?
-  status         AutomationExecutionStatus
-  triggerData    Json
-  executionLog   Json?
-  errorMessage   String?
-  triggerSummary String?
+  id              String                    @id
+  ruleId          String
+  companyId       String
+  triggeredAt     DateTime                  @default(now())
+  startedAt       DateTime                  @default(now())
+  completedAt     DateTime?
+  durationMs      Int?
+  status          AutomationExecutionStatus
+  triggerData     Json
+  executionLog    Json?
+  errorMessage    String?
+  triggerSummary  String?
   contextSnapshot Json?
   lastHeartbeatAt DateTime?
-  Company        Company                   @relation(fields: [companyId], references: [id])
-  AutomationRule AutomationRule            @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-  steps          AutomationExecutionStep[]
+  Company         Company                   @relation(fields: [companyId], references: [id])
+  AutomationRule  AutomationRule            @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  steps           AutomationExecutionStep[]
 
   @@index([companyId, status])
   @@index([ruleId, triggeredAt])
 }
 
 model AutomationExecutionStep {
-  id           String                          @id
+  id           String                        @id
   executionId  String
   ruleId       String
   nodeId       String
   nodeType     String
   status       AutomationExecutionStepStatus
-  startedAt    DateTime                        @default(now())
+  startedAt    DateTime                      @default(now())
   completedAt  DateTime?
   message      String?
   errorMessage String?
   metadata     Json?
 
-  execution    AutomationExecution             @relation(fields: [executionId], references: [id], onDelete: Cascade)
-  rule         AutomationRule                  @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  execution AutomationExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  rule      AutomationRule      @relation(fields: [ruleId], references: [id], onDelete: Cascade)
 
   @@unique([executionId, nodeId])
   @@index([ruleId, nodeId])
@@ -103,35 +103,35 @@ model AutomationJob {
 }
 
 model AutomationRule {
-  id                  String                @id
-  companyId           String
-  name                String
-  description         String?
-  isActive            Boolean               @default(false)
-  triggerType         AutomationTriggerType
-  triggerConfig       Json
-  conditions          Json?
-  actions             Json
+  id                   String                    @id
+  companyId            String
+  name                 String
+  description          String?
+  isActive             Boolean                   @default(false)
+  triggerType          AutomationTriggerType
+  triggerConfig        Json
+  conditions           Json?
+  actions              Json
   // Enhanced workflow builder fields
-  templateId          String?
-  workflowDefinition  Json?
-  lastExecutedAt      DateTime?
-  executionCount      Int                   @default(0)
-  successCount        Int                   @default(0)
-  failureCount        Int                   @default(0)
+  templateId           String?
+  workflowDefinition   Json?
+  lastExecutedAt       DateTime?
+  executionCount       Int                       @default(0)
+  successCount         Int                       @default(0)
+  failureCount         Int                       @default(0)
   averageExecutionTime Int?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime
-  createdBy           String
-  tags                String[]              @default([])
-  version             Int                   @default(1)
-  isTemplate          Boolean               @default(false)
-  category            String?
-  AutomationExecution AutomationExecution[]
-  executionSteps      AutomationExecutionStep[]
-  AutomationJob       AutomationJob[]
-  Company             Company               @relation(fields: [companyId], references: [id])
-  User                User                  @relation(fields: [createdBy], references: [id])
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime
+  createdBy            String
+  tags                 String[]                  @default([])
+  version              Int                       @default(1)
+  isTemplate           Boolean                   @default(false)
+  category             String?
+  AutomationExecution  AutomationExecution[]
+  executionSteps       AutomationExecutionStep[]
+  AutomationJob        AutomationJob[]
+  Company              Company                   @relation(fields: [companyId], references: [id])
+  User                 User                      @relation(fields: [createdBy], references: [id])
 
   @@unique([companyId, name])
   @@index([companyId, isActive])
@@ -224,7 +224,7 @@ model Company {
   TransactionalChangeRequest          TransactionalChangeRequest[]
   User                                User[]
   WorkingPattern                      WorkingPattern[]
-  ActionItems                         ActionItem[]              @relation("Company_ActionItem")
+  ActionItems                         ActionItem[]                          @relation("Company_ActionItem")
   JourneyTemplates                    JourneyTemplate[]
   PersonaProfiles                     PersonaProfile[]
   CompanyObjectives                   CompanyObjective[]
@@ -456,29 +456,29 @@ model Employee {
   overtimeEligible                 Boolean                            @default(true)
   overtimeThreshold                Decimal?                           @db.Decimal(5, 2) // Override company default
   overtimeMultiplier               Decimal?                           @db.Decimal(3, 2) // Override company default
-  overtimeCalculationMode          String?                            // Override company mode
+  overtimeCalculationMode          String? // Override company mode
   maxOvertimeHoursPerWeek          Decimal?                           @db.Decimal(4, 2) // Safety/compliance cap
   // Payroll & Tax Fields (Tax Administration Act 1994)
   dateOfBirth                      DateTime?
   studentLoanBalance               Decimal?                           @db.Decimal(10, 2)
   hasStudentLoan                   Boolean                            @default(false)
-  studentLoanRate                  Decimal?                           @db.Decimal(4, 2) @default(0.12) // 12% standard rate
+  studentLoanRate                  Decimal?                           @default(0.12) @db.Decimal(4, 2) // 12% standard rate
   kiwiSaverEmployeeRate            Decimal?                           @db.Decimal(4, 2) // 0.03, 0.04, 0.06, 0.08, 0.10
-  kiwiSaverEmployerRate            Decimal?                           @db.Decimal(4, 2) @default(0.03)
+  kiwiSaverEmployerRate            Decimal?                           @default(0.03) @db.Decimal(4, 2)
   esctRate                         Decimal?                           @db.Decimal(4, 2) // 0.105, 0.175, 0.28, 0.33
   specialTaxRate                   Decimal?                           @db.Decimal(5, 4) // For non-standard tax situations
-  taxExemptionReason               String?                            // Reason if tax exempt or special rate
+  taxExemptionReason               String? // Reason if tax exempt or special rate
   // Leave Balances (Holidays Act 2003)
   annualLeaveBalance               Decimal                            @default(0) @db.Decimal(8, 2)
   sickLeaveBalance                 Decimal                            @default(80) @db.Decimal(8, 2)
   alternativeDaysBalance           Int                                @default(0)
-  annualLeaveAccrualRate           Decimal?                           @db.Decimal(4, 2) @default(0.08)
-  sickLeaveEntitlement             Decimal?                           @db.Decimal(4, 1) @default(80)
+  annualLeaveAccrualRate           Decimal?                           @default(0.08) @db.Decimal(4, 2)
+  sickLeaveEntitlement             Decimal?                           @default(80) @db.Decimal(4, 1)
   employmentStartDate              DateTime?
   // NZ Leave Compliance Fields (Holidays Act 2003 - Annual Leave, Sick Leave, Alternative Holidays)
-  sickLeaveDaysPerYear             Decimal?                           @db.Decimal(4, 1) @default(10) // NZ minimum: 10 days after 6 months
-  alternativeHolidayBalance        Decimal?                           @db.Decimal(5, 1) @default(0)  // Earned when working public holidays
-  publicHolidaysPerYear            Int?                               @default(11)                   // NZ: 11 national + regional holidays
+  sickLeaveDaysPerYear             Decimal?                           @default(10) @db.Decimal(4, 1) // NZ minimum: 10 days after 6 months
+  alternativeHolidayBalance        Decimal?                           @default(0) @db.Decimal(5, 1) // Earned when working public holidays
+  publicHolidaysPerYear            Int?                               @default(11) // NZ: 11 national + regional holidays
   // Audit Fields
   taxCodeLastUpdated               DateTime?
   kiwiSaverLastUpdated             DateTime?
@@ -520,7 +520,7 @@ model Employee {
   OnboardingInstance               OnboardingInstance[]
   TrainingRecord                   TrainingRecord[]
   TransactionalChangeRequest       TransactionalChangeRequest[]
-  ActionItems                      ActionItem[]                   @relation("Employee_ActionItem_Related")
+  ActionItems                      ActionItem[]                       @relation("Employee_ActionItem_Related")
   JourneyInstances                 JourneyInstance[]
   PushNotificationTokens           PushNotificationToken[]
   Timesheets                       Timesheet[]                        @relation("TimesheetEmployee")
@@ -542,23 +542,23 @@ model Employee {
 }
 
 model EmployeePerformanceReview {
-  id                  String             @id
+  id                  String                @id
   employeeId          String
   companyId           String
   reviewerId          String?
   reviewType          PerformanceReviewType @default(MANAGER_REVIEW)
-  isAnonymous         Boolean            @default(false)
+  isAnonymous         Boolean               @default(false)
   reviewDate          DateTime
   rating              Int?
   summary             String?
   strengths           String?
   areasForImprovement String?
   goals               Json?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  Company             Company  @relation(fields: [companyId], references: [id])
-  Employee            Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  Reviewer            User?    @relation("EmployeePerformanceReviewReviewer", fields: [reviewerId], references: [id])
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  Company             Company               @relation(fields: [companyId], references: [id])
+  Employee            Employee              @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Reviewer            User?                 @relation("EmployeePerformanceReviewReviewer", fields: [reviewerId], references: [id])
 
   @@index([employeeId, reviewDate])
   @@index([companyId])
@@ -834,22 +834,23 @@ model FieldMetadata {
 }
 
 model Form {
-  id                   String           @id
+  id                   String             @id
   companyId            String
   name                 String
   description          String?
   schema               Json
-  version              Int              @default(1)
-  isActive             Boolean          @default(true)
-  createdAt            DateTime         @default(now())
+  version              Int                @default(1)
+  isActive             Boolean            @default(true)
+  createdAt            DateTime           @default(now())
   updatedAt            DateTime
-  visibleToDepartments String[]         @default([])
-  visibleToJobRoles    String[]         @default([])
+  visibleToDepartments String[]           @default([])
+  visibleToJobRoles    String[]           @default([])
   slug                 String
-  formType             FormType         @default(FORM)
-  visibleToRoles       String[]         @default([])
-  transactionalEnabled Boolean          @default(false)
-  Company              Company          @relation(fields: [companyId], references: [id])
+  formType             FormType           @default(FORM)
+  visibleToRoles       String[]           @default([])
+  transactionalEnabled Boolean            @default(false)
+  autoSave             Boolean            @default(false) // Auto-save drafts (replaces DATA_SCREEN distinction)
+  Company              Company            @relation(fields: [companyId], references: [id])
   FormAssignment       FormAssignment[]
   FormDataRecord       FormDataRecord[]
   FormSubmission       FormSubmission[]
@@ -917,13 +918,13 @@ model Survey {
   createdById     String
   createdAt       DateTime     @default(now())
   updatedAt       DateTime
-  
-  Company         Company      @relation(fields: [companyId], references: [id])
-  Form            Form         @relation(fields: [formId], references: [id])
-  CreatedBy       User         @relation(fields: [createdById], references: [id])
-  SurveyRecipients SurveyRecipient[]
-  SurveyResponses SurveyResponse[]
-  SurveyAutomations SurveyAutomation[]
+
+  Company              Company               @relation(fields: [companyId], references: [id])
+  Form                 Form                  @relation(fields: [formId], references: [id])
+  CreatedBy            User                  @relation(fields: [createdById], references: [id])
+  SurveyRecipients     SurveyRecipient[]
+  SurveyResponses      SurveyResponse[]
+  SurveyAutomations    SurveyAutomation[]
   SurveyAutomationRuns SurveyAutomationRun[]
 
   @@index([companyId, status])
@@ -932,19 +933,19 @@ model Survey {
 }
 
 model SurveyRecipient {
-  id                String   @id
-  surveyId          String
-  employeeId        String
-  actionItemId      String?
-  sentAt            DateTime @default(now())
-  respondedAt       DateTime?
-  reminderSentAt    DateTime?
-  reminderCount     Int      @default(0)
-  status            String   @default("PENDING") // PENDING, RESPONDED, EXPIRED
-  
-  Survey            Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  Employee          Employee @relation(fields: [employeeId], references: [id])
-  ActionItem        ActionItem? @relation(fields: [actionItemId], references: [id])
+  id             String    @id
+  surveyId       String
+  employeeId     String
+  actionItemId   String?
+  sentAt         DateTime  @default(now())
+  respondedAt    DateTime?
+  reminderSentAt DateTime?
+  reminderCount  Int       @default(0)
+  status         String    @default("PENDING") // PENDING, RESPONDED, EXPIRED
+
+  Survey     Survey      @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  Employee   Employee    @relation(fields: [employeeId], references: [id])
+  ActionItem ActionItem? @relation(fields: [actionItemId], references: [id])
 
   @@unique([surveyId, employeeId])
   @@index([surveyId, status])
@@ -952,45 +953,45 @@ model SurveyRecipient {
 }
 
 model SurveyResponse {
-  id           String   @id
-  surveyId     String
-  employeeId   String
-  responseData Json
-  submittedAt  DateTime @default(now())
+  id             String   @id
+  surveyId       String
+  employeeId     String
+  responseData   Json
+  submittedAt    DateTime @default(now())
   sentimentScore Float?
-  keyThemes    String[]
-  
-  Survey       Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  Employee     Employee @relation(fields: [employeeId], references: [id])
+  keyThemes      String[]
+
+  Survey   Survey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  Employee Employee @relation(fields: [employeeId], references: [id])
 
   @@unique([surveyId, employeeId])
   @@index([surveyId, submittedAt])
 }
 
 model SurveyAutomation {
-  id                String                    @id
-  companyId         String
-  name              String
-  description       String?
-  surveyId          String?
-  formId            String
-  trigger           SurveyAutomationTrigger
-  frequency         SurveyAutomationFrequency?
-  scheduleConfig    Json? // Cron expression or custom schedule
-  targetAudience    Json // Audience criteria
-  isActive          Boolean                   @default(true)
-  lastRunAt         DateTime?
-  nextRunAt         DateTime?
-  totalRuns         Int                       @default(0)
-  metadata          Json?
-  createdById       String
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime
-  
-  Company           Company                   @relation(fields: [companyId], references: [id])
-  Survey            Survey?                   @relation(fields: [surveyId], references: [id])
-  Form              Form                      @relation(fields: [formId], references: [id])
-  CreatedBy         User                      @relation(fields: [createdById], references: [id])
+  id             String                     @id
+  companyId      String
+  name           String
+  description    String?
+  surveyId       String?
+  formId         String
+  trigger        SurveyAutomationTrigger
+  frequency      SurveyAutomationFrequency?
+  scheduleConfig Json? // Cron expression or custom schedule
+  targetAudience Json // Audience criteria
+  isActive       Boolean                    @default(true)
+  lastRunAt      DateTime?
+  nextRunAt      DateTime?
+  totalRuns      Int                        @default(0)
+  metadata       Json?
+  createdById    String
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime
+
+  Company              Company               @relation(fields: [companyId], references: [id])
+  Survey               Survey?               @relation(fields: [surveyId], references: [id])
+  Form                 Form                  @relation(fields: [formId], references: [id])
+  CreatedBy            User                  @relation(fields: [createdById], references: [id])
   SurveyAutomationRuns SurveyAutomationRun[]
 
   @@index([companyId, isActive])
@@ -998,18 +999,18 @@ model SurveyAutomation {
 }
 
 model SurveyAutomationRun {
-  id                String            @id
-  automationId      String
-  surveyId          String?
-  status            String            @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
-  startedAt         DateTime          @default(now())
-  completedAt       DateTime?
-  recipientsCount   Int               @default(0)
-  errorMessage      String?
-  metadata          Json?
-  
-  SurveyAutomation  SurveyAutomation  @relation(fields: [automationId], references: [id], onDelete: Cascade)
-  Survey            Survey?           @relation(fields: [surveyId], references: [id])
+  id              String    @id
+  automationId    String
+  surveyId        String?
+  status          String    @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  recipientsCount Int       @default(0)
+  errorMessage    String?
+  metadata        Json?
+
+  SurveyAutomation SurveyAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  Survey           Survey?          @relation(fields: [surveyId], references: [id])
 
   @@index([automationId, startedAt])
   @@index([status])
@@ -1232,25 +1233,25 @@ model NewsBookmark {
 
 /// Action items shown on the dashboard and created by workflows
 model ActionItem {
-  id                 String    @id
-  companyId          String
-  title              String
-  description        String?
-  type               String    // TASK | FORM | DOCUMENT | WEBHOOK | etc
-  status             String    @default("PENDING")
-  priority           String?
-  dueDate            DateTime?
-  completedAt        DateTime?
-  assignedToId       String?
-  relatedEmployeeId  String?
-  metadata           Json?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime
+  id                String    @id
+  companyId         String
+  title             String
+  description       String?
+  type              String // TASK | FORM | DOCUMENT | WEBHOOK | etc
+  status            String    @default("PENDING")
+  priority          String?
+  dueDate           DateTime?
+  completedAt       DateTime?
+  assignedToId      String?
+  relatedEmployeeId String?
+  metadata          Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime
 
-  Company            Company   @relation("Company_ActionItem", fields: [companyId], references: [id])
-  assignedTo         User?     @relation("User_ActionItem_AssignedTo", fields: [assignedToId], references: [id])
-  RelatedEmployee    Employee? @relation("Employee_ActionItem_Related", fields: [relatedEmployeeId], references: [id])
-  SurveyRecipients   SurveyRecipient[]
+  Company          Company           @relation("Company_ActionItem", fields: [companyId], references: [id])
+  assignedTo       User?             @relation("User_ActionItem_AssignedTo", fields: [assignedToId], references: [id])
+  RelatedEmployee  Employee?         @relation("Employee_ActionItem_Related", fields: [relatedEmployeeId], references: [id])
+  SurveyRecipients SurveyRecipient[]
 
   @@index([companyId, status])
   @@index([assignedToId, status])
@@ -1335,46 +1336,46 @@ model OnboardingInstance {
 }
 
 model OnboardingStep {
-  id                          String                   @id
-  type                        OnboardingStepType
-  label                       String
-  order                       Int
-  templateId                  String
-  documentId                  String?
-  uploadType                  OnboardingUploadType?
-  instruction                 String?
-  formId                      String?
-  dependencies                String[]                 @default([])
-  metadata                    Json?
-  slaDays                     Int?
-  taskOwnerId                 String?
-  trainingId                  String?
+  id                        String                   @id
+  type                      OnboardingStepType
+  label                     String
+  order                     Int
+  templateId                String
+  documentId                String?
+  uploadType                OnboardingUploadType?
+  instruction               String?
+  formId                    String?
+  dependencies              String[]                 @default([])
+  metadata                  Json?
+  slaDays                   Int?
+  taskOwnerId               String?
+  trainingId                String?
   // Reminder configuration
-  reminderEnabled             Boolean                  @default(false)
-  reminderDaysBefore          Int?
-  reminderTime                String?                  // HH:MM in tenant timezone
-  reminderEscalationEnabled   Boolean                  @default(false)
-  reminderEscalationDays      Int?
-  reminderEscalationRole      String?                  // 'manager' | 'hr_admin' | 'custom'
-  reminderEscalationUserId    String?
+  reminderEnabled           Boolean                  @default(false)
+  reminderDaysBefore        Int?
+  reminderTime              String? // HH:MM in tenant timezone
+  reminderEscalationEnabled Boolean                  @default(false)
+  reminderEscalationDays    Int?
+  reminderEscalationRole    String? // 'manager' | 'hr_admin' | 'custom'
+  reminderEscalationUserId  String?
   // SLA configuration
-  slaEnabled                  Boolean                  @default(false)
-  slaCompletionDays           Int?
-  slaWarningDays              Int?
-  excludePublicHolidays       Boolean                  @default(true)
-  excludeWeekends             Boolean                  @default(false)
+  slaEnabled                Boolean                  @default(false)
+  slaCompletionDays         Int?
+  slaWarningDays            Int?
+  excludePublicHolidays     Boolean                  @default(true)
+  excludeWeekends           Boolean                  @default(false)
   // Versioning & collaboration
-  version                     Int                      @default(1)
-  updatedAt                   DateTime                 @updatedAt
-  updatedBy                   String?
-  Document                    Document?                @relation(fields: [documentId], references: [id])
-  Form                        Form?                    @relation(fields: [formId], references: [id])
-  OnboardingTemplate          OnboardingTemplate       @relation(fields: [templateId], references: [id])
-  UpdatedByUser               User?                    @relation("OnboardingStepUpdatedBy", fields: [updatedBy], references: [id])
-  OnboardingStepInstance      OnboardingStepInstance[]
-  OnboardingReminders         OnboardingReminder[]
-  AuditLogs                   OnboardingStepAuditLog[]
-  VersionHistory              TemplateStepVersion[]
+  version                   Int                      @default(1)
+  updatedAt                 DateTime                 @updatedAt
+  updatedBy                 String?
+  Document                  Document?                @relation(fields: [documentId], references: [id])
+  Form                      Form?                    @relation(fields: [formId], references: [id])
+  OnboardingTemplate        OnboardingTemplate       @relation(fields: [templateId], references: [id])
+  UpdatedByUser             User?                    @relation("OnboardingStepUpdatedBy", fields: [updatedBy], references: [id])
+  OnboardingStepInstance    OnboardingStepInstance[]
+  OnboardingReminders       OnboardingReminder[]
+  AuditLogs                 OnboardingStepAuditLog[]
+  VersionHistory            TemplateStepVersion[]
 
   @@unique([templateId, label])
   @@index([templateId, version])
@@ -1402,17 +1403,17 @@ model OnboardingStepResponse {
 }
 
 model OnboardingTemplate {
-  id                   String                       @id
+  id                   String                   @id
   name                 String
   description          String?
-  isDefault            Boolean                      @default(false)
+  isDefault            Boolean                  @default(false)
   companyId            String
-  createdAt            DateTime                     @default(now())
-  updatedAt            DateTime                     @updatedAt
-  isActive             Boolean                      @default(false)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  isActive             Boolean                  @default(false)
   updatedById          String?
   // Versioning & collaboration
-  version              Int                          @default(1)
+  version              Int                      @default(1)
   publishedAt          DateTime?
   publishedBy          String?
   Employee             Employee[]
@@ -1420,11 +1421,11 @@ model OnboardingTemplate {
   OnboardingInstance   OnboardingInstance[]
   OnboardingStep       OnboardingStep[]
   AuditLogs            OnboardingStepAuditLog[]
-  Company              Company                      @relation(fields: [companyId], references: [id])
-  User                 User?                        @relation(fields: [updatedById], references: [id])
-  PublishedByUser      User?                        @relation("OnboardingTemplatePublishedBy", fields: [publishedBy], references: [id])
-  Department           Department[]                 @relation("OnboardingTemplateDepartments")
-  JobRole              JobRole[]                    @relation("OnboardingTemplateJobRoles")
+  Company              Company                  @relation(fields: [companyId], references: [id])
+  User                 User?                    @relation(fields: [updatedById], references: [id])
+  PublishedByUser      User?                    @relation("OnboardingTemplatePublishedBy", fields: [publishedBy], references: [id])
+  Department           Department[]             @relation("OnboardingTemplateDepartments")
+  JobRole              JobRole[]                @relation("OnboardingTemplateJobRoles")
   VersionHistory       TemplateVersion[]
 
   @@unique([companyId, name])
@@ -1453,23 +1454,23 @@ model OnboardingTemplateTelemetryEvent {
 }
 
 model OnboardingStepAuditLog {
-  id          String              @id @default(cuid())
+  id          String             @id @default(cuid())
   companyId   String
   templateId  String
   stepId      String?
   stepLabel   String
-  changeType  String              // 'label_change' | 'reminder_config' | 'sla_config' | 'metadata_change'
+  changeType  String // 'label_change' | 'reminder_config' | 'sla_config' | 'metadata_change'
   fieldName   String?
   oldValue    Json?
   newValue    Json?
   changedById String
-  changedAt   DateTime            @default(now())
+  changedAt   DateTime           @default(now())
   reason      String?
   ipAddress   String?
-  Company     Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  Template    OnboardingTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  Step        OnboardingStep?     @relation(fields: [stepId], references: [id], onDelete: SetNull)
-  ChangedBy   User                @relation("OnboardingStepAuditChangedBy", fields: [changedById], references: [id])
+  Company     Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  Template    OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  Step        OnboardingStep?    @relation(fields: [stepId], references: [id], onDelete: SetNull)
+  ChangedBy   User               @relation("OnboardingStepAuditChangedBy", fields: [changedById], references: [id])
 
   @@index([companyId, changedAt])
   @@index([templateId, stepLabel])
@@ -1477,27 +1478,27 @@ model OnboardingStepAuditLog {
 }
 
 model OnboardingReminder {
-  id                    String                 @id @default(cuid())
-  companyId             String
-  onboardingInstanceId  String
-  stepInstanceId        String
-  stepId                String
-  employeeId            String
-  reminderType          String                 // 'initial' | 'escalation'
-  scheduledFor          DateTime
-  sentAt                DateTime?
-  status                String                 @default("pending") // 'pending' | 'sent' | 'failed' | 'cancelled'
-  recipientEmail        String
-  recipientName         String?
-  escalatedTo           String?                // User ID if escalated
-  failureReason         String?
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  Company               Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  OnboardingInstance    OnboardingInstance     @relation(fields: [onboardingInstanceId], references: [id], onDelete: Cascade)
-  StepInstance          OnboardingStepInstance @relation(fields: [stepInstanceId], references: [id], onDelete: Cascade)
-  Step                  OnboardingStep         @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  Employee              Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  id                   String                 @id @default(cuid())
+  companyId            String
+  onboardingInstanceId String
+  stepInstanceId       String
+  stepId               String
+  employeeId           String
+  reminderType         String // 'initial' | 'escalation'
+  scheduledFor         DateTime
+  sentAt               DateTime?
+  status               String                 @default("pending") // 'pending' | 'sent' | 'failed' | 'cancelled'
+  recipientEmail       String
+  recipientName        String?
+  escalatedTo          String? // User ID if escalated
+  failureReason        String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  Company              Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  OnboardingInstance   OnboardingInstance     @relation(fields: [onboardingInstanceId], references: [id], onDelete: Cascade)
+  StepInstance         OnboardingStepInstance @relation(fields: [stepInstanceId], references: [id], onDelete: Cascade)
+  Step                 OnboardingStep         @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  Employee             Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([status, scheduledFor])
   @@index([companyId, employeeId])
@@ -1506,26 +1507,26 @@ model OnboardingReminder {
 
 /// Template version history for collaborative editing and rollback
 model TemplateVersion {
-  id                String             @id @default(cuid())
-  templateId        String
-  companyId         String
-  version           Int
-  status            TemplateVersionStatus @default(DRAFT)
-  name              String
-  description       String?
-  isActive          Boolean
-  departmentIds     String[]           @default([])
-  jobRoleIds        String[]           @default([])
-  stepsSnapshot     Json               // Full snapshot of steps at this version
-  createdAt         DateTime           @default(now())
-  createdBy         String
-  publishedAt       DateTime?
-  publishedBy       String?
-  changesSummary    String?            // Human-readable summary of changes
-  OnboardingTemplate OnboardingTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  CreatedByUser     User               @relation("TemplateVersionCreatedBy", fields: [createdBy], references: [id])
-  PublishedByUser   User?              @relation("TemplateVersionPublishedBy", fields: [publishedBy], references: [id])
-  StepVersions      TemplateStepVersion[]
+  id                 String                @id @default(cuid())
+  templateId         String
+  companyId          String
+  version            Int
+  status             TemplateVersionStatus @default(DRAFT)
+  name               String
+  description        String?
+  isActive           Boolean
+  departmentIds      String[]              @default([])
+  jobRoleIds         String[]              @default([])
+  stepsSnapshot      Json // Full snapshot of steps at this version
+  createdAt          DateTime              @default(now())
+  createdBy          String
+  publishedAt        DateTime?
+  publishedBy        String?
+  changesSummary     String? // Human-readable summary of changes
+  OnboardingTemplate OnboardingTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  CreatedByUser      User                  @relation("TemplateVersionCreatedBy", fields: [createdBy], references: [id])
+  PublishedByUser    User?                 @relation("TemplateVersionPublishedBy", fields: [publishedBy], references: [id])
+  StepVersions       TemplateStepVersion[]
 
   @@unique([templateId, version])
   @@index([templateId, status])
@@ -1535,41 +1536,41 @@ model TemplateVersion {
 
 /// Step-level version history for granular autosave and undo/redo
 model TemplateStepVersion {
-  id                String             @id @default(cuid())
-  templateVersionId String
-  stepId            String
-  companyId         String
-  version           Int
-  type              OnboardingStepType
-  label             String
-  order             Int
-  documentId        String?
-  uploadType        OnboardingUploadType?
-  instruction       String?
-  formId            String?
-  dependencies      String[]           @default([])
-  metadata          Json?
-  slaDays           Int?
-  taskOwnerId       String?
-  trainingId        String?
-  reminderEnabled   Boolean            @default(false)
-  reminderDaysBefore Int?
-  reminderTime      String?
-  reminderEscalationEnabled Boolean    @default(false)
-  reminderEscalationDays Int?
-  reminderEscalationRole String?
-  reminderEscalationUserId String?
-  slaEnabled        Boolean            @default(false)
-  slaCompletionDays Int?
-  slaWarningDays    Int?
-  excludePublicHolidays Boolean        @default(true)
-  excludeWeekends   Boolean            @default(false)
-  createdAt         DateTime           @default(now())
-  createdBy         String
-  changeType        String?            // 'created' | 'updated' | 'deleted' | 'reordered'
-  TemplateVersion   TemplateVersion    @relation(fields: [templateVersionId], references: [id], onDelete: Cascade)
-  OnboardingStep    OnboardingStep     @relation(fields: [stepId], references: [id], onDelete: Cascade)
-  CreatedByUser     User               @relation("TemplateStepVersionCreatedBy", fields: [createdBy], references: [id])
+  id                        String                @id @default(cuid())
+  templateVersionId         String
+  stepId                    String
+  companyId                 String
+  version                   Int
+  type                      OnboardingStepType
+  label                     String
+  order                     Int
+  documentId                String?
+  uploadType                OnboardingUploadType?
+  instruction               String?
+  formId                    String?
+  dependencies              String[]              @default([])
+  metadata                  Json?
+  slaDays                   Int?
+  taskOwnerId               String?
+  trainingId                String?
+  reminderEnabled           Boolean               @default(false)
+  reminderDaysBefore        Int?
+  reminderTime              String?
+  reminderEscalationEnabled Boolean               @default(false)
+  reminderEscalationDays    Int?
+  reminderEscalationRole    String?
+  reminderEscalationUserId  String?
+  slaEnabled                Boolean               @default(false)
+  slaCompletionDays         Int?
+  slaWarningDays            Int?
+  excludePublicHolidays     Boolean               @default(true)
+  excludeWeekends           Boolean               @default(false)
+  createdAt                 DateTime              @default(now())
+  createdBy                 String
+  changeType                String? // 'created' | 'updated' | 'deleted' | 'reordered'
+  TemplateVersion           TemplateVersion       @relation(fields: [templateVersionId], references: [id], onDelete: Cascade)
+  OnboardingStep            OnboardingStep        @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  CreatedByUser             User                  @relation("TemplateStepVersionCreatedBy", fields: [createdBy], references: [id])
 
   @@unique([templateVersionId, stepId, version])
   @@index([stepId, version])
@@ -1751,23 +1752,23 @@ model SavedReport {
 }
 
 model ReportSendHistory {
-  id               String   @id @default(uuid())
-  reportId         Int
-  reportName       String
-  sentBy           String
-  sentAt           DateTime @default(now())
-  recipientType    String // "DEPARTMENT", "JOB_ROLE", "MIXED"
-  departments      Json? // Array of department IDs and names
-  jobRoles         Json? // Array of job role IDs and names
-  recipientCount   Int
-  recipientEmails  Json // Array of email addresses
-  format           String // "PDF" or "EXCEL"
-  subject          String
-  messageBody      String?
-  companyId        String
-  SavedReport      SavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  Company          Company     @relation(fields: [companyId], references: [id])
-  User             User        @relation(fields: [sentBy], references: [id])
+  id              String      @id @default(uuid())
+  reportId        Int
+  reportName      String
+  sentBy          String
+  sentAt          DateTime    @default(now())
+  recipientType   String // "DEPARTMENT", "JOB_ROLE", "MIXED"
+  departments     Json? // Array of department IDs and names
+  jobRoles        Json? // Array of job role IDs and names
+  recipientCount  Int
+  recipientEmails Json // Array of email addresses
+  format          String // "PDF" or "EXCEL"
+  subject         String
+  messageBody     String?
+  companyId       String
+  SavedReport     SavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  Company         Company     @relation(fields: [companyId], references: [id])
+  User            User        @relation(fields: [sentBy], references: [id])
 
   @@index([reportId])
   @@index([companyId, sentAt])
@@ -1816,7 +1817,7 @@ model User {
   phone                                                                    String?
   companyId                                                                String
   homeCompanyId                                                            String?
-  canManageTenants                                                         Boolean                        @default(false)
+  canManageTenants                                                         Boolean                         @default(false)
   emailPreferences                                                         Json?
   profileImageUrl                                                          String?
   permissionProfileId                                                      String?
@@ -1876,35 +1877,35 @@ model User {
   PermissionProfile                                                        PermissionProfile?              @relation(fields: [permissionProfileId], references: [id])
   TransactionalChangeRequest_Requester                                     TransactionalChangeRequest[]    @relation("TransactionalChangeRequest_requesterIdToUser")
   TransactionalChangeRequest_DecidedBy                                     TransactionalChangeRequest[]    @relation("TransactionalChangeRequest_decidedByIdToUser")
-  ActionItems                                                              ActionItem[]                   @relation("User_ActionItem_AssignedTo")
-  CreatedJourneyTemplates                                                  JourneyTemplate[]              @relation("JourneyTemplateCreator")
-  ModifiedJourneyTemplates                                                 JourneyTemplate[]              @relation("JourneyTemplateModifier")
-  LockedGovernanceItems                                                    GovernanceLock[]               @relation("GovernanceLockLockedBy")
-  UnlockedGovernanceItems                                                  GovernanceLock[]               @relation("GovernanceLockUnlockedBy")
+  ActionItems                                                              ActionItem[]                    @relation("User_ActionItem_AssignedTo")
+  CreatedJourneyTemplates                                                  JourneyTemplate[]               @relation("JourneyTemplateCreator")
+  ModifiedJourneyTemplates                                                 JourneyTemplate[]               @relation("JourneyTemplateModifier")
+  LockedGovernanceItems                                                    GovernanceLock[]                @relation("GovernanceLockLockedBy")
+  UnlockedGovernanceItems                                                  GovernanceLock[]                @relation("GovernanceLockUnlockedBy")
   JourneyCollaborations                                                    JourneyCollaborator[]
-  AddedJourneyCollaborators                                                JourneyCollaborator[]          @relation("JourneyCollaboratorAddedBy")
-  AuthoredJourneyComments                                                  JourneyComment[]               @relation("JourneyCommentAuthor")
-  ResolvedJourneyComments                                                  JourneyComment[]               @relation("JourneyCommentResolver")
+  AddedJourneyCollaborators                                                JourneyCollaborator[]           @relation("JourneyCollaboratorAddedBy")
+  AuthoredJourneyComments                                                  JourneyComment[]                @relation("JourneyCommentAuthor")
+  ResolvedJourneyComments                                                  JourneyComment[]                @relation("JourneyCommentResolver")
   CreatedJourneyVersions                                                   JourneyVersion[]
   // Performance Management Relations
-  OwnedCompanyObjectives                                                   CompanyObjective[]             @relation("CompanyObjectiveOwner")
-  CreatedCompanyObjectives                                                 CompanyObjective[]             @relation("CompanyObjectiveCreator")
-  OwnedTeamObjectives                                                      TeamObjective[]                @relation("TeamObjectiveOwner")
-  CreatedTeamObjectives                                                    TeamObjective[]                @relation("TeamObjectiveCreator")
+  OwnedCompanyObjectives                                                   CompanyObjective[]              @relation("CompanyObjectiveOwner")
+  CreatedCompanyObjectives                                                 CompanyObjective[]              @relation("CompanyObjectiveCreator")
+  OwnedTeamObjectives                                                      TeamObjective[]                 @relation("TeamObjectiveOwner")
+  CreatedTeamObjectives                                                    TeamObjective[]                 @relation("TeamObjectiveCreator")
   ObjectiveUpdates                                                         ObjectiveUpdate[]
   CreatedPerformanceTemplates                                              PerformanceTemplate[]
-  OrganizedMeetings                                                        PerformanceMeeting[]           @relation("MeetingOrganizer")
+  OrganizedMeetings                                                        PerformanceMeeting[]            @relation("MeetingOrganizer")
   MeetingNotes                                                             MeetingNote[]
-  AssignedMeetingActionItems                                               MeetingActionItem[]            @relation("MeetingActionItemAssignee")
+  AssignedMeetingActionItems                                               MeetingActionItem[]             @relation("MeetingActionItemAssignee")
   CreatedReviewCycles                                                      PerformanceReviewCycle[]
-  ReviewSubmissionsAuthored                                                ReviewSubmission[]             @relation("ReviewSubmissionReviewer")
+  ReviewSubmissionsAuthored                                                ReviewSubmission[]              @relation("ReviewSubmissionReviewer")
   TenantSwitchTokens                                                       TenantSwitchToken[]
-  OnboardingStepAuditLogs                                                  OnboardingStepAuditLog[]       @relation("OnboardingStepAuditChangedBy")
-  OnboardingStepsUpdated                                                   OnboardingStep[]               @relation("OnboardingStepUpdatedBy")
-  OnboardingTemplatesPublished                                             OnboardingTemplate[]           @relation("OnboardingTemplatePublishedBy")
-  TemplateVersionsCreated                                                  TemplateVersion[]              @relation("TemplateVersionCreatedBy")
-  TemplateVersionsPublished                                                TemplateVersion[]              @relation("TemplateVersionPublishedBy")
-  TemplateStepVersionsCreated                                              TemplateStepVersion[]          @relation("TemplateStepVersionCreatedBy")
+  OnboardingStepAuditLogs                                                  OnboardingStepAuditLog[]        @relation("OnboardingStepAuditChangedBy")
+  OnboardingStepsUpdated                                                   OnboardingStep[]                @relation("OnboardingStepUpdatedBy")
+  OnboardingTemplatesPublished                                             OnboardingTemplate[]            @relation("OnboardingTemplatePublishedBy")
+  TemplateVersionsCreated                                                  TemplateVersion[]               @relation("TemplateVersionCreatedBy")
+  TemplateVersionsPublished                                                TemplateVersion[]               @relation("TemplateVersionPublishedBy")
+  TemplateStepVersionsCreated                                              TemplateStepVersion[]           @relation("TemplateStepVersionCreatedBy")
 
   @@unique([email, companyId])
 }
@@ -1928,8 +1929,8 @@ model WorkingPatternDay {
   day                  String
   type                 DayType
   hoursPerDay          Decimal?           @db.Decimal(4, 2) // e.g., 7.5, 8.0, 10.0
-  startTime            String?            // e.g., "09:00" (24-hour format)
-  endTime              String?            // e.g., "17:00" (24-hour format)
+  startTime            String? // e.g., "09:00" (24-hour format)
+  endTime              String? // e.g., "17:00" (24-hour format)
   workingPatternWeekId String
   WorkingPatternWeek   WorkingPatternWeek @relation(fields: [workingPatternWeekId], references: [id], onDelete: Cascade)
 
@@ -1939,7 +1940,7 @@ model WorkingPatternDay {
 model WorkingPatternWeek {
   id                String              @id
   weekNumber        Int
-  totalHours        Decimal             @db.Decimal(5, 2) @default(0.00) // Auto-calculated sum of day hours
+  totalHours        Decimal             @default(0.00) @db.Decimal(5, 2) // Auto-calculated sum of day hours
   workingPatternId  String
   WorkingPatternDay WorkingPatternDay[]
   WorkingPattern    WorkingPattern      @relation(fields: [workingPatternId], references: [id], onDelete: Cascade)
@@ -2175,7 +2176,7 @@ enum ExitInterviewFormTiming {
 }
 
 enum FormType {
-  SUBMISSION  // Deprecated: Use SURVEY instead (kept for backward compatibility)
+  SUBMISSION // Deprecated: Use SURVEY instead (kept for backward compatibility)
   SURVEY
   FORM
   TABLE
@@ -2354,38 +2355,38 @@ enum PublicHolidayTemplate {
 
 // Journey Designer Models
 model JourneyTemplate {
-  id                   String                @id
-  companyId            String
-  name                 String
-  description          String?
-  persona              String?               // Target persona (e.g., "New Hire", "Manager", "Senior Engineer")
-  duration             Int?                  // Duration in days
-  businessGoals        Json?                 // Array of business objectives
-  status               JourneyStatus         @default(DRAFT)
-  version              Int                   @default(1)
-  isTemplate           Boolean               @default(false)
-  category             String?
-  tags                 String[]              @default([])
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  createdBy            String
-  lastModifiedBy       String?
-  publishedAt          DateTime?
-  archivedAt           DateTime?
-  
+  id             String        @id
+  companyId      String
+  name           String
+  description    String?
+  persona        String? // Target persona (e.g., "New Hire", "Manager", "Senior Engineer")
+  duration       Int? // Duration in days
+  businessGoals  Json? // Array of business objectives
+  status         JourneyStatus @default(DRAFT)
+  version        Int           @default(1)
+  isTemplate     Boolean       @default(false)
+  category       String?
+  tags           String[]      @default([])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  createdBy      String
+  lastModifiedBy String?
+  publishedAt    DateTime?
+  archivedAt     DateTime?
+
   // Relationships
-  Company              Company               @relation(fields: [companyId], references: [id])
-  Creator              User                  @relation("JourneyTemplateCreator", fields: [createdBy], references: [id])
-  LastModifier         User?                 @relation("JourneyTemplateModifier", fields: [lastModifiedBy], references: [id])
-  
-  phases               JourneyPhase[]
-  metricBindings       MetricBinding[]
-  experiments          ExperimentVariant[]
-  governanceLocks      GovernanceLock[]
-  instances            JourneyInstance[]
-  collaborators        JourneyCollaborator[]
-  comments             JourneyComment[]
-  versions             JourneyVersion[]
+  Company      Company @relation(fields: [companyId], references: [id])
+  Creator      User    @relation("JourneyTemplateCreator", fields: [createdBy], references: [id])
+  LastModifier User?   @relation("JourneyTemplateModifier", fields: [lastModifiedBy], references: [id])
+
+  phases          JourneyPhase[]
+  metricBindings  MetricBinding[]
+  experiments     ExperimentVariant[]
+  governanceLocks GovernanceLock[]
+  instances       JourneyInstance[]
+  collaborators   JourneyCollaborator[]
+  comments        JourneyComment[]
+  versions        JourneyVersion[]
 
   @@unique([companyId, name])
   @@index([companyId, status])
@@ -2394,126 +2395,126 @@ model JourneyTemplate {
 }
 
 model JourneyPhase {
-  id                   String                @id
-  journeyTemplateId    String
-  name                 String
-  description          String?
-  order                Int
-  duration             Int?                  // Duration in days
-  phaseType            JourneyPhaseType      @default(SEQUENTIAL)
-  isRequired           Boolean               @default(true)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  
+  id                String           @id
+  journeyTemplateId String
+  name              String
+  description       String?
+  order             Int
+  duration          Int? // Duration in days
+  phaseType         JourneyPhaseType @default(SEQUENTIAL)
+  isRequired        Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
   // Relationships
-  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
-  experienceBlocks     ExperienceBlock[]
-  decisionGateways     DecisionGateway[]
+  journeyTemplate  JourneyTemplate   @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  experienceBlocks ExperienceBlock[]
+  decisionGateways DecisionGateway[]
 
   @@index([journeyTemplateId, order])
 }
 
 model ExperienceBlock {
-  id                   String                @id
-  journeyPhaseId       String
-  name                 String
-  description          String?
-  blockType            ExperienceBlockType
-  order                Int
-  estimatedDuration    Int?                  // Duration in hours
-  isRequired           Boolean               @default(true)
-  slaHours             Int?                  // SLA in hours
-  responsibleRole      String?               // Role responsible for this block
-  automationConfig     Json?                 // Configuration for automation
-  assets               Json?                 // Linked assets (forms, documents, etc.)
-  successCriteria      Json?                 // Success criteria definition
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  
+  id                String              @id
+  journeyPhaseId    String
+  name              String
+  description       String?
+  blockType         ExperienceBlockType
+  order             Int
+  estimatedDuration Int? // Duration in hours
+  isRequired        Boolean             @default(true)
+  slaHours          Int? // SLA in hours
+  responsibleRole   String? // Role responsible for this block
+  automationConfig  Json? // Configuration for automation
+  assets            Json? // Linked assets (forms, documents, etc.)
+  successCriteria   Json? // Success criteria definition
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
   // Relationships
-  journeyPhase         JourneyPhase          @relation(fields: [journeyPhaseId], references: [id], onDelete: Cascade)
-  feedbackSignals      FeedbackSignal[]
-  governanceLocks      GovernanceLock[]
+  journeyPhase    JourneyPhase     @relation(fields: [journeyPhaseId], references: [id], onDelete: Cascade)
+  feedbackSignals FeedbackSignal[]
+  governanceLocks GovernanceLock[]
 
   @@index([journeyPhaseId, order])
 }
 
 model DecisionGateway {
-  id                   String                @id
-  journeyPhaseId       String
-  name                 String
-  description          String?
-  condition            Json                  // Conditional logic definition
-  order                Int
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  
+  id             String   @id
+  journeyPhaseId String
+  name           String
+  description    String?
+  condition      Json // Conditional logic definition
+  order          Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
   // Relationships
-  journeyPhase         JourneyPhase          @relation(fields: [journeyPhaseId], references: [id], onDelete: Cascade)
+  journeyPhase JourneyPhase @relation(fields: [journeyPhaseId], references: [id], onDelete: Cascade)
 
   @@index([journeyPhaseId, order])
 }
 
 model MetricBinding {
-  id                   String                @id
-  journeyTemplateId    String
-  metricName           String
-  metricType           MetricType
-  targetValue          Float?
-  currentValue         Float?
-  dataSource           String?               // Where the metric data comes from
-  updateFrequency      String?               // How often to update (daily, weekly, etc.)
-  isKPI                Boolean               @default(false)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  
+  id                String     @id
+  journeyTemplateId String
+  metricName        String
+  metricType        MetricType
+  targetValue       Float?
+  currentValue      Float?
+  dataSource        String? // Where the metric data comes from
+  updateFrequency   String? // How often to update (daily, weekly, etc.)
+  isKPI             Boolean    @default(false)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
   // Relationships
-  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  journeyTemplate JourneyTemplate @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
 
   @@index([journeyTemplateId])
   @@index([metricType])
 }
 
 model ExperimentVariant {
-  id                   String                @id
-  journeyTemplateId    String
-  name                 String
-  description          String?
-  trafficAllocation    Float                 @default(50.0) // Percentage of traffic
-  isControl            Boolean               @default(false)
-  status               ExperimentStatus      @default(DRAFT)
-  startDate            DateTime?
-  endDate              DateTime?
-  confidenceLevel      Float?                // Statistical confidence
-  variantConfig        Json                  // Configuration differences from control
-  results              Json?                 // Experiment results
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  
+  id                String           @id
+  journeyTemplateId String
+  name              String
+  description       String?
+  trafficAllocation Float            @default(50.0) // Percentage of traffic
+  isControl         Boolean          @default(false)
+  status            ExperimentStatus @default(DRAFT)
+  startDate         DateTime?
+  endDate           DateTime?
+  confidenceLevel   Float? // Statistical confidence
+  variantConfig     Json // Configuration differences from control
+  results           Json? // Experiment results
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
   // Relationships
-  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  journeyTemplate JourneyTemplate @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
 
   @@index([journeyTemplateId, status])
 }
 
 model GovernanceLock {
-  id                   String                @id
-  journeyTemplateId    String?
-  experienceBlockId    String?
-  lockType             GovernanceLockType
-  reason               String
-  lockedBy             String
-  lockedAt             DateTime              @default(now())
-  unlockedAt           DateTime?
-  unlockedBy           String?
-  approvalRequired     Boolean               @default(true)
-  approvalWorkflowId   String?
-  
+  id                 String             @id
+  journeyTemplateId  String?
+  experienceBlockId  String?
+  lockType           GovernanceLockType
+  reason             String
+  lockedBy           String
+  lockedAt           DateTime           @default(now())
+  unlockedAt         DateTime?
+  unlockedBy         String?
+  approvalRequired   Boolean            @default(true)
+  approvalWorkflowId String?
+
   // Relationships
-  journeyTemplate      JourneyTemplate?      @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
-  experienceBlock      ExperienceBlock?      @relation(fields: [experienceBlockId], references: [id], onDelete: Cascade)
-  LockedByUser         User                  @relation("GovernanceLockLockedBy", fields: [lockedBy], references: [id])
-  UnlockedByUser       User?                 @relation("GovernanceLockUnlockedBy", fields: [unlockedBy], references: [id])
+  journeyTemplate JourneyTemplate? @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  experienceBlock ExperienceBlock? @relation(fields: [experienceBlockId], references: [id], onDelete: Cascade)
+  LockedByUser    User             @relation("GovernanceLockLockedBy", fields: [lockedBy], references: [id])
+  UnlockedByUser  User?            @relation("GovernanceLockUnlockedBy", fields: [unlockedBy], references: [id])
 
   @@index([journeyTemplateId])
   @@index([experienceBlockId])
@@ -2521,17 +2522,17 @@ model GovernanceLock {
 }
 
 model FeedbackSignal {
-  id                   String                @id
-  experienceBlockId    String
-  signalType           FeedbackSignalType
-  content              String
-  sentiment            SentimentType?
-  metadata             Json?                 // Additional context
-  participantId        String?               // Anonymous participant identifier
-  collectedAt          DateTime              @default(now())
-  
+  id                String             @id
+  experienceBlockId String
+  signalType        FeedbackSignalType
+  content           String
+  sentiment         SentimentType?
+  metadata          Json? // Additional context
+  participantId     String? // Anonymous participant identifier
+  collectedAt       DateTime           @default(now())
+
   // Relationships
-  experienceBlock      ExperienceBlock       @relation(fields: [experienceBlockId], references: [id], onDelete: Cascade)
+  experienceBlock ExperienceBlock @relation(fields: [experienceBlockId], references: [id], onDelete: Cascade)
 
   @@index([experienceBlockId, signalType])
   @@index([sentiment])
@@ -2539,40 +2540,40 @@ model FeedbackSignal {
 }
 
 model PersonaProfile {
-  id                   String                @id
-  companyId            String
-  name                 String
-  description          String?
-  characteristics      Json                  // Persona characteristics
-  geography            String?
-  lifecycleStage       String?
-  goalMetrics          Json?                 // Associated goal metrics
-  isActive             Boolean               @default(true)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  
+  id              String   @id
+  companyId       String
+  name            String
+  description     String?
+  characteristics Json // Persona characteristics
+  geography       String?
+  lifecycleStage  String?
+  goalMetrics     Json? // Associated goal metrics
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
   // Relationships
-  Company              Company               @relation(fields: [companyId], references: [id])
+  Company Company @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, name])
   @@index([companyId, isActive])
 }
 
 model JourneyInstance {
-  id                   String                @id
-  journeyTemplateId    String
-  participantId        String                // Employee or user going through journey
-  status               JourneyInstanceStatus @default(IN_PROGRESS)
-  startedAt            DateTime              @default(now())
-  completedAt          DateTime?
-  currentPhaseId       String?
-  currentBlockId       String?
-  progress             Float                 @default(0.0) // Percentage complete
-  metadata             Json?                 // Instance-specific data
-  
+  id                String                @id
+  journeyTemplateId String
+  participantId     String // Employee or user going through journey
+  status            JourneyInstanceStatus @default(IN_PROGRESS)
+  startedAt         DateTime              @default(now())
+  completedAt       DateTime?
+  currentPhaseId    String?
+  currentBlockId    String?
+  progress          Float                 @default(0.0) // Percentage complete
+  metadata          Json? // Instance-specific data
+
   // Relationships
-  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id])
-  participant          Employee              @relation(fields: [participantId], references: [id])
+  journeyTemplate JourneyTemplate @relation(fields: [journeyTemplateId], references: [id])
+  participant     Employee        @relation(fields: [participantId], references: [id])
 
   @@index([journeyTemplateId, status])
   @@index([participantId])
@@ -2580,41 +2581,41 @@ model JourneyInstance {
 }
 
 model JourneyCollaborator {
-  id                   String                @id
-  journeyTemplateId    String
-  userId               String
-  role                 CollaboratorRole      @default(VIEWER)
-  addedAt              DateTime              @default(now())
-  addedBy              String
-  
+  id                String           @id
+  journeyTemplateId String
+  userId            String
+  role              CollaboratorRole @default(VIEWER)
+  addedAt           DateTime         @default(now())
+  addedBy           String
+
   // Relationships
-  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
-  user                 User                  @relation(fields: [userId], references: [id])
-  addedByUser          User                  @relation("JourneyCollaboratorAddedBy", fields: [addedBy], references: [id])
+  journeyTemplate JourneyTemplate @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id])
+  addedByUser     User            @relation("JourneyCollaboratorAddedBy", fields: [addedBy], references: [id])
 
   @@unique([journeyTemplateId, userId])
   @@index([journeyTemplateId])
 }
 
 model JourneyComment {
-  id                   String                @id
-  journeyTemplateId    String
-  blockId              String?               // Optional: comment on specific block
-  content              String
-  authorId             String
-  parentId             String?               // For threaded comments
-  isResolved           Boolean               @default(false)
-  resolvedBy           String?
-  resolvedAt           DateTime?
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  
+  id                String    @id
+  journeyTemplateId String
+  blockId           String? // Optional: comment on specific block
+  content           String
+  authorId          String
+  parentId          String? // For threaded comments
+  isResolved        Boolean   @default(false)
+  resolvedBy        String?
+  resolvedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
   // Relationships
-  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
-  author               User                  @relation("JourneyCommentAuthor", fields: [authorId], references: [id])
-  resolver             User?                 @relation("JourneyCommentResolver", fields: [resolvedBy], references: [id])
-  parent               JourneyComment?       @relation("JourneyCommentThread", fields: [parentId], references: [id])
-  replies              JourneyComment[]      @relation("JourneyCommentThread")
+  journeyTemplate JourneyTemplate  @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  author          User             @relation("JourneyCommentAuthor", fields: [authorId], references: [id])
+  resolver        User?            @relation("JourneyCommentResolver", fields: [resolvedBy], references: [id])
+  parent          JourneyComment?  @relation("JourneyCommentThread", fields: [parentId], references: [id])
+  replies         JourneyComment[] @relation("JourneyCommentThread")
 
   @@index([journeyTemplateId])
   @@index([authorId])
@@ -2622,17 +2623,17 @@ model JourneyComment {
 }
 
 model JourneyVersion {
-  id                   String                @id
-  journeyTemplateId    String
-  version              Int
-  changes              Json                  // Description of changes made
-  createdBy            String
-  createdAt            DateTime              @default(now())
-  snapshot             Json                  // Full journey snapshot
-  
+  id                String   @id
+  journeyTemplateId String
+  version           Int
+  changes           Json // Description of changes made
+  createdBy         String
+  createdAt         DateTime @default(now())
+  snapshot          Json // Full journey snapshot
+
   // Relationships
-  journeyTemplate      JourneyTemplate       @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
-  creator              User                  @relation(fields: [createdBy], references: [id])
+  journeyTemplate JourneyTemplate @relation(fields: [journeyTemplateId], references: [id], onDelete: Cascade)
+  creator         User            @relation(fields: [createdBy], references: [id])
 
   @@unique([journeyTemplateId, version])
   @@index([journeyTemplateId])
@@ -2726,30 +2727,30 @@ enum CollaboratorRole {
 
 // Cascading Objectives - Company level objectives
 model CompanyObjective {
-  id                  String                @id
-  companyId           String
-  title               String
-  description         String?
-  owner               String?               // User who owns this objective
-  status              ObjectiveStatus       @default(NOT_STARTED)
-  progress            Int                   @default(0)
-  dueDate             DateTime?
-  startDate           DateTime?
-  priority            ObjectivePriority     @default(MEDIUM)
-  tags                String[]              @default([])
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  createdBy           String
-  
+  id          String            @id
+  companyId   String
+  title       String
+  description String?
+  owner       String? // User who owns this objective
+  status      ObjectiveStatus   @default(NOT_STARTED)
+  progress    Int               @default(0)
+  dueDate     DateTime?
+  startDate   DateTime?
+  priority    ObjectivePriority @default(MEDIUM)
+  tags        String[]          @default([])
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  createdBy   String
+
   // Relationships
-  Company             Company               @relation(fields: [companyId], references: [id])
-  Owner               User?                 @relation("CompanyObjectiveOwner", fields: [owner], references: [id])
-  Creator             User                  @relation("CompanyObjectiveCreator", fields: [createdBy], references: [id])
-  
-  keyResults          ObjectiveKeyResult[]
-  teamObjectives      TeamObjective[]       @relation("CompanyObjectiveAlignment")
-  updates             ObjectiveUpdate[]
-  
+  Company Company @relation(fields: [companyId], references: [id])
+  Owner   User?   @relation("CompanyObjectiveOwner", fields: [owner], references: [id])
+  Creator User    @relation("CompanyObjectiveCreator", fields: [createdBy], references: [id])
+
+  keyResults     ObjectiveKeyResult[]
+  teamObjectives TeamObjective[]      @relation("CompanyObjectiveAlignment")
+  updates        ObjectiveUpdate[]
+
   @@index([companyId, status])
   @@index([owner])
   @@index([dueDate])
@@ -2757,32 +2758,32 @@ model CompanyObjective {
 
 // Team/Department level objectives
 model TeamObjective {
-  id                  String                @id
-  companyId           String
-  teamId              String?               // Department/Team ID
-  title               String
-  description         String?
-  owner               String?               // User who owns this objective
-  parentObjectiveId   String?               // Links to CompanyObjective
-  status              ObjectiveStatus       @default(NOT_STARTED)
-  progress            Int                   @default(0)
-  dueDate             DateTime?
-  startDate           DateTime?
-  priority            ObjectivePriority     @default(MEDIUM)
-  tags                String[]              @default([])
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  createdBy           String
-  
+  id                String            @id
+  companyId         String
+  teamId            String? // Department/Team ID
+  title             String
+  description       String?
+  owner             String? // User who owns this objective
+  parentObjectiveId String? // Links to CompanyObjective
+  status            ObjectiveStatus   @default(NOT_STARTED)
+  progress          Int               @default(0)
+  dueDate           DateTime?
+  startDate         DateTime?
+  priority          ObjectivePriority @default(MEDIUM)
+  tags              String[]          @default([])
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  createdBy         String
+
   // Relationships
-  Owner               User?                 @relation("TeamObjectiveOwner", fields: [owner], references: [id])
-  ParentObjective     CompanyObjective?     @relation("CompanyObjectiveAlignment", fields: [parentObjectiveId], references: [id])
-  Creator             User                  @relation("TeamObjectiveCreator", fields: [createdBy], references: [id])
-  
-  keyResults          ObjectiveKeyResult[]
-  personalObjectives  PersonalObjective[]   @relation("TeamObjectiveAlignment")
-  updates             ObjectiveUpdate[]
-  
+  Owner           User?             @relation("TeamObjectiveOwner", fields: [owner], references: [id])
+  ParentObjective CompanyObjective? @relation("CompanyObjectiveAlignment", fields: [parentObjectiveId], references: [id])
+  Creator         User              @relation("TeamObjectiveCreator", fields: [createdBy], references: [id])
+
+  keyResults         ObjectiveKeyResult[]
+  personalObjectives PersonalObjective[]  @relation("TeamObjectiveAlignment")
+  updates            ObjectiveUpdate[]
+
   @@index([teamId])
   @@index([parentObjectiveId])
   @@index([owner])
@@ -2790,28 +2791,28 @@ model TeamObjective {
 
 // Individual/Personal objectives
 model PersonalObjective {
-  id                  String                @id
-  employeeId          String
-  companyId           String
-  title               String
-  description         String?
-  parentObjectiveId   String?               // Links to TeamObjective
-  status              ObjectiveStatus       @default(NOT_STARTED)
-  progress            Int                   @default(0)
-  dueDate             DateTime?
-  startDate           DateTime?
-  priority            ObjectivePriority     @default(MEDIUM)
-  tags                String[]              @default([])
-  visibility          ObjectiveVisibility   @default(TEAM)
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  
+  id                String              @id
+  employeeId        String
+  companyId         String
+  title             String
+  description       String?
+  parentObjectiveId String? // Links to TeamObjective
+  status            ObjectiveStatus     @default(NOT_STARTED)
+  progress          Int                 @default(0)
+  dueDate           DateTime?
+  startDate         DateTime?
+  priority          ObjectivePriority   @default(MEDIUM)
+  tags              String[]            @default([])
+  visibility        ObjectiveVisibility @default(TEAM)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
   // Relationships
-  ParentObjective     TeamObjective?        @relation("TeamObjectiveAlignment", fields: [parentObjectiveId], references: [id])
-  
-  keyResults          ObjectiveKeyResult[]
-  updates             ObjectiveUpdate[]
-  
+  ParentObjective TeamObjective? @relation("TeamObjectiveAlignment", fields: [parentObjectiveId], references: [id])
+
+  keyResults ObjectiveKeyResult[]
+  updates    ObjectiveUpdate[]
+
   @@index([employeeId])
   @@index([parentObjectiveId])
   @@index([companyId])
@@ -2819,27 +2820,27 @@ model PersonalObjective {
 
 // Key Results for objectives (OKR style)
 model ObjectiveKeyResult {
-  id                  String                @id
-  title               String
-  description         String?
-  targetValue         Float
-  currentValue        Float                 @default(0)
-  unit                String?               // e.g., "%", "users", "revenue"
-  status              ObjectiveStatus       @default(NOT_STARTED)
-  dueDate             DateTime?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  
+  id           String          @id
+  title        String
+  description  String?
+  targetValue  Float
+  currentValue Float           @default(0)
+  unit         String? // e.g., "%", "users", "revenue"
+  status       ObjectiveStatus @default(NOT_STARTED)
+  dueDate      DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
   // Polymorphic relationship to objectives
   companyObjectiveId  String?
   teamObjectiveId     String?
   personalObjectiveId String?
-  
+
   // Relationships
-  CompanyObjective    CompanyObjective?     @relation(fields: [companyObjectiveId], references: [id], onDelete: Cascade)
-  TeamObjective       TeamObjective?        @relation(fields: [teamObjectiveId], references: [id], onDelete: Cascade)
-  PersonalObjective   PersonalObjective?    @relation(fields: [personalObjectiveId], references: [id], onDelete: Cascade)
-  
+  CompanyObjective  CompanyObjective?  @relation(fields: [companyObjectiveId], references: [id], onDelete: Cascade)
+  TeamObjective     TeamObjective?     @relation(fields: [teamObjectiveId], references: [id], onDelete: Cascade)
+  PersonalObjective PersonalObjective? @relation(fields: [personalObjectiveId], references: [id], onDelete: Cascade)
+
   @@index([companyObjectiveId])
   @@index([teamObjectiveId])
   @@index([personalObjectiveId])
@@ -2847,23 +2848,23 @@ model ObjectiveKeyResult {
 
 // Progress updates and comments on objectives
 model ObjectiveUpdate {
-  id                  String                @id
-  content             String
-  progress            Int?                  // Progress percentage at time of update
-  authorId            String
-  createdAt           DateTime              @default(now())
-  
+  id        String   @id
+  content   String
+  progress  Int? // Progress percentage at time of update
+  authorId  String
+  createdAt DateTime @default(now())
+
   // Polymorphic relationship to objectives
   companyObjectiveId  String?
   teamObjectiveId     String?
   personalObjectiveId String?
-  
+
   // Relationships
-  Author              User                  @relation(fields: [authorId], references: [id])
-  CompanyObjective    CompanyObjective?     @relation(fields: [companyObjectiveId], references: [id], onDelete: Cascade)
-  TeamObjective       TeamObjective?        @relation(fields: [teamObjectiveId], references: [id], onDelete: Cascade)
-  PersonalObjective   PersonalObjective?    @relation(fields: [personalObjectiveId], references: [id], onDelete: Cascade)
-  
+  Author            User               @relation(fields: [authorId], references: [id])
+  CompanyObjective  CompanyObjective?  @relation(fields: [companyObjectiveId], references: [id], onDelete: Cascade)
+  TeamObjective     TeamObjective?     @relation(fields: [teamObjectiveId], references: [id], onDelete: Cascade)
+  PersonalObjective PersonalObjective? @relation(fields: [personalObjectiveId], references: [id], onDelete: Cascade)
+
   @@index([companyObjectiveId])
   @@index([teamObjectiveId])
   @@index([personalObjectiveId])
@@ -2872,106 +2873,106 @@ model ObjectiveUpdate {
 
 // Performance meeting templates (1-2-1, review templates)
 model PerformanceTemplate {
-  id                  String                @id
-  companyId           String
-  name                String
-  description         String?
-  type                TemplateType
-  icon                String?
-  isDefault           Boolean               @default(false)
-  isActive            Boolean               @default(true)
-  version             Int                   @default(1)
-  tags                String[]              @default([])
-  visibility          TemplateVisibility    @default(COMPANY)
-  
+  id          String             @id
+  companyId   String
+  name        String
+  description String?
+  type        TemplateType
+  icon        String?
+  isDefault   Boolean            @default(false)
+  isActive    Boolean            @default(true)
+  version     Int                @default(1)
+  tags        String[]           @default([])
+  visibility  TemplateVisibility @default(COMPANY)
+
   // New fields for advanced template configuration
-  audienceFilters     Json?                 // { locations: string[], departments: string[], jobRoles: string[] }
-  reviewerAssignments Json?                 // [{ role: ReviewerRole; dueOffsetDays?: number }]
-  bestPracticePackIds String[]              @default([])
-  
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  createdBy           String
-  
+  audienceFilters     Json? // { locations: string[], departments: string[], jobRoles: string[] }
+  reviewerAssignments Json? // [{ role: ReviewerRole; dueOffsetDays?: number }]
+  bestPracticePackIds String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+
   // Relationships
-  Creator             User                  @relation(fields: [createdBy], references: [id])
-  
-  sections            TemplateSection[]
-  meetings            PerformanceMeeting[]
-  reviewCycles        PerformanceReviewCycle[]
-  
+  Creator User @relation(fields: [createdBy], references: [id])
+
+  sections     TemplateSection[]
+  meetings     PerformanceMeeting[]
+  reviewCycles PerformanceReviewCycle[]
+
   @@index([companyId, type])
   @@index([isActive])
 }
 
 // Template sections/questions
 model TemplateSection {
-  id                  String                @id
-  templateId          String
-  title               String
-  description         String?
-  order               Int
-  isRequired          Boolean               @default(false)
-  
+  id          String  @id
+  templateId  String
+  title       String
+  description String?
+  order       Int
+  isRequired  Boolean @default(false)
+
   // Relationships
-  Template            PerformanceTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  
-  questions           TemplateQuestion[]
-  
+  Template PerformanceTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  questions TemplateQuestion[]
+
   @@index([templateId, order])
 }
 
 // Individual questions within sections
 model TemplateQuestion {
-  id                  String                @id
-  sectionId           String
-  question            String
-  description         String?
-  type                QuestionType          @default(TEXT)
-  order               Int
-  isRequired          Boolean               @default(false)
-  options             Json?                 // For multiple choice/rating questions
-  
+  id          String       @id
+  sectionId   String
+  question    String
+  description String?
+  type        QuestionType @default(TEXT)
+  order       Int
+  isRequired  Boolean      @default(false)
+  options     Json? // For multiple choice/rating questions
+
   // Question-level permissions for who can see/answer
-  visibleToRoles      String[]              @default([])  // Roles that can see this question
-  requiredFromRoles   String[]              @default([])  // Roles that must answer this question
-  hideFromEmployee    Boolean               @default(false)  // Hide from employee even if in their role
-  
+  visibleToRoles    String[] @default([]) // Roles that can see this question
+  requiredFromRoles String[] @default([]) // Roles that must answer this question
+  hideFromEmployee  Boolean  @default(false) // Hide from employee even if in their role
+
   // Relationships
-  Section             TemplateSection       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  
+  Section TemplateSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
   @@index([sectionId, order])
 }
 
 // 1-2-1 and performance meetings
 model PerformanceMeeting {
-  id                  String                @id
-  companyId           String
-  title               String
-  description         String?
-  templateId          String?
-  organizerId         String
-  participantIds      String[]              // Array of user IDs
-  scheduledAt         DateTime
-  duration            Int                   @default(60)  // Minutes
-  location            String?
-  meetingUrl          String?
-  status              MeetingStatus         @default(SCHEDULED)
-  agenda              Json?                 // Pre-filled from template
-  isRecurring         Boolean               @default(false)
-  recurrence          Json?                 // Recurrence rules
-  seriesId            String?               // For recurring meetings
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  completedAt         DateTime?
-  
+  id             String        @id
+  companyId      String
+  title          String
+  description    String?
+  templateId     String?
+  organizerId    String
+  participantIds String[] // Array of user IDs
+  scheduledAt    DateTime
+  duration       Int           @default(60) // Minutes
+  location       String?
+  meetingUrl     String?
+  status         MeetingStatus @default(SCHEDULED)
+  agenda         Json? // Pre-filled from template
+  isRecurring    Boolean       @default(false)
+  recurrence     Json? // Recurrence rules
+  seriesId       String? // For recurring meetings
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  completedAt    DateTime?
+
   // Relationships
-  Template            PerformanceTemplate?  @relation(fields: [templateId], references: [id])
-  Organizer           User                  @relation("MeetingOrganizer", fields: [organizerId], references: [id])
-  
-  notes               MeetingNote[]
-  actionItems         MeetingActionItem[]
-  
+  Template  PerformanceTemplate? @relation(fields: [templateId], references: [id])
+  Organizer User                 @relation("MeetingOrganizer", fields: [organizerId], references: [id])
+
+  notes       MeetingNote[]
+  actionItems MeetingActionItem[]
+
   @@index([companyId, scheduledAt])
   @@index([organizerId])
   @@index([status])
@@ -2980,41 +2981,41 @@ model PerformanceMeeting {
 
 // Meeting notes captured during 1-2-1s
 model MeetingNote {
-  id                  String                @id
-  meetingId           String
-  content             String
-  authorId            String
-  sectionTitle        String?               // From template section
-  isPrivate           Boolean               @default(false)
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  
+  id           String   @id
+  meetingId    String
+  content      String
+  authorId     String
+  sectionTitle String? // From template section
+  isPrivate    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   // Relationships
-  Meeting             PerformanceMeeting    @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  Author              User                  @relation(fields: [authorId], references: [id])
-  
+  Meeting PerformanceMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  Author  User               @relation(fields: [authorId], references: [id])
+
   @@index([meetingId])
   @@index([authorId])
 }
 
 // Action items from meetings
 model MeetingActionItem {
-  id                  String                @id
-  meetingId           String
-  title               String
-  description         String?
-  assigneeId          String
-  dueDate             DateTime?
-  status              ActionItemStatus      @default(TODO)
-  priority            ActionItemPriority    @default(MEDIUM)
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  completedAt         DateTime?
-  
+  id          String             @id
+  meetingId   String
+  title       String
+  description String?
+  assigneeId  String
+  dueDate     DateTime?
+  status      ActionItemStatus   @default(TODO)
+  priority    ActionItemPriority @default(MEDIUM)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  completedAt DateTime?
+
   // Relationships
-  Meeting             PerformanceMeeting    @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  Assignee            User                  @relation("MeetingActionItemAssignee", fields: [assigneeId], references: [id])
-  
+  Meeting  PerformanceMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  Assignee User               @relation("MeetingActionItemAssignee", fields: [assigneeId], references: [id])
+
   @@index([meetingId])
   @@index([assigneeId, status])
   @@index([dueDate])
@@ -3022,57 +3023,57 @@ model MeetingActionItem {
 
 // 360 Review Cycles
 model PerformanceReviewCycle {
-  id                  String                @id
-  companyId           String
-  name                String
-  description         String?
-  templateId          String?
-  type                ReviewCycleType       @default(ANNUAL)
-  status              CycleStatus           @default(DRAFT)
-  startDate           DateTime
-  endDate             DateTime
-  selfReviewDeadline  DateTime?
+  id                    String          @id
+  companyId             String
+  name                  String
+  description           String?
+  templateId            String?
+  type                  ReviewCycleType @default(ANNUAL)
+  status                CycleStatus     @default(DRAFT)
+  startDate             DateTime
+  endDate               DateTime
+  selfReviewDeadline    DateTime?
   managerReviewDeadline DateTime?
-  peerReviewDeadline  DateTime?
-  isAnonymousPeer     Boolean               @default(true)
-  participantIds      String[]              // Employees in this cycle
-  settings            Json?                 // Cycle-specific settings
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  createdBy           String
-  
+  peerReviewDeadline    DateTime?
+  isAnonymousPeer       Boolean         @default(true)
+  participantIds        String[] // Employees in this cycle
+  settings              Json? // Cycle-specific settings
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  createdBy             String
+
   // Relationships
-  Template            PerformanceTemplate?  @relation(fields: [templateId], references: [id])
-  Creator             User                  @relation(fields: [createdBy], references: [id])
-  
-  participants        CycleParticipant[]
-  insights            CycleInsight[]
-  
+  Template PerformanceTemplate? @relation(fields: [templateId], references: [id])
+  Creator  User                 @relation(fields: [createdBy], references: [id])
+
+  participants CycleParticipant[]
+  insights     CycleInsight[]
+
   @@index([companyId, status])
   @@index([startDate, endDate])
 }
 
 // Participants in review cycles (employees being reviewed)
 model CycleParticipant {
-  id                  String                @id
-  cycleId             String
-  employeeId          String
-  status              ParticipantStatus     @default(NOT_STARTED)
-  selfReviewCompleted Boolean               @default(false)
-  selfReviewCompletedAt DateTime?
-  managerReviewCompleted Boolean            @default(false)
+  id                       String            @id
+  cycleId                  String
+  employeeId               String
+  status                   ParticipantStatus @default(NOT_STARTED)
+  selfReviewCompleted      Boolean           @default(false)
+  selfReviewCompletedAt    DateTime?
+  managerReviewCompleted   Boolean           @default(false)
   managerReviewCompletedAt DateTime?
-  peerReviewsRequested Int                  @default(0)
-  peerReviewsCompleted Int                  @default(0)
-  overallScore        Float?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  
+  peerReviewsRequested     Int               @default(0)
+  peerReviewsCompleted     Int               @default(0)
+  overallScore             Float?
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
   // Relationships
-  Cycle               PerformanceReviewCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  
-  reviews             ReviewSubmission[]
-  
+  Cycle PerformanceReviewCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  reviews ReviewSubmission[]
+
   @@unique([cycleId, employeeId])
   @@index([cycleId, status])
   @@index([employeeId])
@@ -3080,27 +3081,27 @@ model CycleParticipant {
 
 // Individual review submissions (self, manager, peer, direct report)
 model ReviewSubmission {
-  id                  String                @id
-  participantId       String
-  cycleId             String
-  reviewerId          String
-  reviewerRole        ReviewerRole
-  revieweeId          String                // Person being reviewed
-  responses           Json                  // Answers to template questions
-  overallRating       Float?
-  strengths           String?
-  developmentAreas    String?
-  comments            String?
-  status              SubmissionStatus      @default(DRAFT)
-  isAnonymous         Boolean               @default(false)
-  submittedAt         DateTime?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  
+  id               String           @id
+  participantId    String
+  cycleId          String
+  reviewerId       String
+  reviewerRole     ReviewerRole
+  revieweeId       String // Person being reviewed
+  responses        Json // Answers to template questions
+  overallRating    Float?
+  strengths        String?
+  developmentAreas String?
+  comments         String?
+  status           SubmissionStatus @default(DRAFT)
+  isAnonymous      Boolean          @default(false)
+  submittedAt      DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
   // Relationships
-  Participant         CycleParticipant      @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  Reviewer            User                  @relation("ReviewSubmissionReviewer", fields: [reviewerId], references: [id])
-  
+  Participant CycleParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  Reviewer    User             @relation("ReviewSubmissionReviewer", fields: [reviewerId], references: [id])
+
   @@index([participantId])
   @@index([cycleId])
   @@index([reviewerId])
@@ -3109,35 +3110,35 @@ model ReviewSubmission {
 
 // Analytics and insights from review cycles
 model CycleInsight {
-  id                  String                @id
-  cycleId             String
-  insightType         InsightType
-  title               String
-  description         String?
-  data                Json                  // Aggregated data/metrics
-  generatedAt         DateTime              @default(now())
-  
+  id          String      @id
+  cycleId     String
+  insightType InsightType
+  title       String
+  description String?
+  data        Json // Aggregated data/metrics
+  generatedAt DateTime    @default(now())
+
   // Relationships
-  Cycle               PerformanceReviewCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  
+  Cycle PerformanceReviewCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
   @@index([cycleId, insightType])
 }
 
 // Notification rules for performance events
 model PerformanceNotificationRule {
-  id                  String                @id
-  companyId           String
-  name                String
-  description         String?
-  eventType           NotificationEventType
-  recipientRoles      String[]              // EMPLOYEE, MANAGER, HR, ADMIN
-  offsetDays          Int?                  // Days before/after event
-  channels            PerformanceNotificationChannel[] // EMAIL, IN_APP, SLACK
-  templateContent     Json?                 // Email template
-  isActive            Boolean               @default(true)
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  
+  id              String                           @id
+  companyId       String
+  name            String
+  description     String?
+  eventType       NotificationEventType
+  recipientRoles  String[] // EMPLOYEE, MANAGER, HR, ADMIN
+  offsetDays      Int? // Days before/after event
+  channels        PerformanceNotificationChannel[] // EMAIL, IN_APP, SLACK
+  templateContent Json? // Email template
+  isActive        Boolean                          @default(true)
+  createdAt       DateTime                         @default(now())
+  updatedAt       DateTime                         @updatedAt
+
   @@index([companyId, eventType])
   @@index([isActive])
 }
@@ -3173,29 +3174,29 @@ enum ObjectivePriority {
 // ============================================
 
 model ClockEntry {
-  id              String         @id @default(cuid())
-  employeeId      String
-  companyId       String
-  clockInTime     DateTime
-  clockOutTime    DateTime?
-  clockInLocation Json?          // {lat, lng, accuracy}
-  clockOutLocation Json?         // {lat, lng, accuracy}
-  clockInPhotoUrl String?
+  id               String           @id @default(cuid())
+  employeeId       String
+  companyId        String
+  clockInTime      DateTime
+  clockOutTime     DateTime?
+  clockInLocation  Json? // {lat, lng, accuracy}
+  clockOutLocation Json? // {lat, lng, accuracy}
+  clockInPhotoUrl  String?
   clockOutPhotoUrl String?
-  ipAddress       String?
-  deviceInfo      Json?          // {device, os, browser}
-  status          ClockEntryStatus @default(ACTIVE)
-  notes           String?
-  timesheetId     String?
-  localId         String?        // Client-generated ID for offline entries
-  syncedAt        DateTime?      // When offline entry was synced to server
-  offlineCreated  Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  
-  Employee        Employee       @relation("ClockEntryEmployee", fields: [employeeId], references: [id])
-  Timesheet       Timesheet?     @relation(fields: [timesheetId], references: [id])
-  
+  ipAddress        String?
+  deviceInfo       Json? // {device, os, browser}
+  status           ClockEntryStatus @default(ACTIVE)
+  notes            String?
+  timesheetId      String?
+  localId          String? // Client-generated ID for offline entries
+  syncedAt         DateTime? // When offline entry was synced to server
+  offlineCreated   Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  Employee  Employee   @relation("ClockEntryEmployee", fields: [employeeId], references: [id])
+  Timesheet Timesheet? @relation(fields: [timesheetId], references: [id])
+
   @@index([employeeId, clockInTime])
   @@index([companyId, status])
   @@index([timesheetId])
@@ -3203,133 +3204,133 @@ model ClockEntry {
 }
 
 model Timesheet {
-  id                  String                 @id @default(cuid())
-  employeeId          String
-  companyId           String
-  periodStart         DateTime
-  periodEnd           DateTime
-  totalHours          Decimal                @db.Decimal(10, 2)
-  regularHours        Decimal                @db.Decimal(10, 2)
-  overtimeHours       Decimal                @db.Decimal(10, 2)
-  breakHours          Decimal                @db.Decimal(10, 2)
-  approvalStatus      ApprovalStatus         @default(PENDING)
-  submittedAt         DateTime?
-  approvedAt          DateTime?
-  approvedBy          String?
-  rejectedReason      String?
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
-  
-  Employee            Employee               @relation("TimesheetEmployee", fields: [employeeId], references: [id])
-  Approver            Employee?              @relation("TimesheetApprovedByEmployee", fields: [approvedBy], references: [id])
+  id             String         @id @default(cuid())
+  employeeId     String
+  companyId      String
+  periodStart    DateTime
+  periodEnd      DateTime
+  totalHours     Decimal        @db.Decimal(10, 2)
+  regularHours   Decimal        @db.Decimal(10, 2)
+  overtimeHours  Decimal        @db.Decimal(10, 2)
+  breakHours     Decimal        @db.Decimal(10, 2)
+  approvalStatus ApprovalStatus @default(PENDING)
+  submittedAt    DateTime?
+  approvedAt     DateTime?
+  approvedBy     String?
+  rejectedReason String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  Employee            Employee                 @relation("TimesheetEmployee", fields: [employeeId], references: [id])
+  Approver            Employee?                @relation("TimesheetApprovedByEmployee", fields: [approvedBy], references: [id])
   ClockEntries        ClockEntry[]
   TimesheetEntries    TimesheetEntry[]
   ApprovalStages      TimesheetApprovalStage[]
   BreakRecords        BreakRecord[]
   PayrollCalculations PayrollCalculation[]
-  
+
+  @@unique([employeeId, periodStart, periodEnd])
   @@index([employeeId, periodStart])
   @@index([companyId, approvalStatus])
-  @@unique([employeeId, periodStart, periodEnd])
 }
 
 model TimesheetEntry {
-  id                    String    @id @default(cuid())
-  timesheetId           String
-  date                  DateTime
-  startTime             DateTime
-  endTime               DateTime
-  breakMinutes          Int       @default(0)
-  hours                 Decimal   @db.Decimal(10, 2)
-  isOvertime            Boolean   @default(false)
+  id                      String             @id @default(cuid())
+  timesheetId             String
+  date                    DateTime
+  startTime               DateTime
+  endTime                 DateTime
+  breakMinutes            Int                @default(0)
+  hours                   Decimal            @db.Decimal(10, 2)
+  isOvertime              Boolean            @default(false)
   // Enhanced overtime tracking (NZ Employment Relations Act 2000 compliance)
-  overtimeType          String?   // MANUAL, AUTO_DAILY, AUTO_WEEKLY, AUTO_MONTHLY, AUTO_PATTERN, MANAGER_ADJUSTED
-  overtimeHours         Decimal?  @db.Decimal(5, 2) // Actual OT hours for this entry
-  regularHours          Decimal?  @db.Decimal(5, 2) // Regular hours for this entry
-  overtimeMultiplier    Decimal?  @db.Decimal(3, 2) // Rate applied (1.5x, 2.0x)
-  overtimeReason        String?   // Explanation of why it's OT
-  managerAdjusted       Boolean   @default(false)
-  managerAdjustedBy     String?   // User ID of manager who adjusted
-  managerAdjustedAt     DateTime? // When the adjustment was made
-  managerAdjustmentNote String?   // Reason for manager adjustment
-  notes                 String?
-  entryType             TimesheetEntryType @default(MANUAL)
+  overtimeType            String? // MANUAL, AUTO_DAILY, AUTO_WEEKLY, AUTO_MONTHLY, AUTO_PATTERN, MANAGER_ADJUSTED
+  overtimeHours           Decimal?           @db.Decimal(5, 2) // Actual OT hours for this entry
+  regularHours            Decimal?           @db.Decimal(5, 2) // Regular hours for this entry
+  overtimeMultiplier      Decimal?           @db.Decimal(3, 2) // Rate applied (1.5x, 2.0x)
+  overtimeReason          String? // Explanation of why it's OT
+  managerAdjusted         Boolean            @default(false)
+  managerAdjustedBy       String? // User ID of manager who adjusted
+  managerAdjustedAt       DateTime? // When the adjustment was made
+  managerAdjustmentNote   String? // Reason for manager adjustment
+  notes                   String?
+  entryType               TimesheetEntryType @default(MANUAL)
   // Public Holiday Tracking (Holidays Act 2003 compliance)
-  isPublicHoliday       Boolean   @default(false)
-  publicHolidayName     String?   // "Waitangi Day", "Christmas", "ANZAC Day"
-  publicHolidayHours    Decimal   @default(0) @db.Decimal(5, 2)
-  publicHolidayMultiplier Decimal @default(2.0) @db.Decimal(3, 2)
-  alternativeDayGranted Boolean   @default(false)
-  publicHolidayType     String?   // NATIONAL, REGIONAL, MONDAYISED
-  publicHolidayRegion   String?   // AUCKLAND, WELLINGTON, etc.
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  
-  Timesheet             Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-  AuditLogs             TimesheetEntryAudit[]
-  OvertimeAuditLogs     OvertimeAuditLog[]
-  
+  isPublicHoliday         Boolean            @default(false)
+  publicHolidayName       String? // "Waitangi Day", "Christmas", "ANZAC Day"
+  publicHolidayHours      Decimal            @default(0) @db.Decimal(5, 2)
+  publicHolidayMultiplier Decimal            @default(2.0) @db.Decimal(3, 2)
+  alternativeDayGranted   Boolean            @default(false)
+  publicHolidayType       String? // NATIONAL, REGIONAL, MONDAYISED
+  publicHolidayRegion     String? // AUCKLAND, WELLINGTON, etc.
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+
+  Timesheet         Timesheet             @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  AuditLogs         TimesheetEntryAudit[]
+  OvertimeAuditLogs OvertimeAuditLog[]
+
   @@index([timesheetId, date])
   @@index([date, isOvertime])
   @@index([date, isPublicHoliday])
 }
 
 model TimesheetApprovalStage {
-  id              String                     @id @default(cuid())
+  id              String            @id @default(cuid())
   timesheetId     String
   workflowStageId String?
   name            String?
   order           Int
   mode            ApprovalStageMode
-  status          ApprovalStatus             @default(PENDING)
-  isActive        Boolean                    @default(false)
+  status          ApprovalStatus    @default(PENDING)
+  isActive        Boolean           @default(false)
   completedAt     DateTime?
-  createdAt       DateTime                   @default(now())
-  updatedAt       DateTime                   @updatedAt
-  
-  Timesheet       Timesheet                  @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-  Decisions       TimesheetApprovalDecision[]
-  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  Timesheet Timesheet                   @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  Decisions TimesheetApprovalDecision[]
+
   @@index([timesheetId, order])
 }
 
 model TimesheetApprovalDecision {
-  id          String                   @id @default(cuid())
+  id          String         @id @default(cuid())
   stageId     String
   approverId  String
   order       Int
-  status      ApprovalStatus           @default(PENDING)
-  isActive    Boolean                  @default(false)
+  status      ApprovalStatus @default(PENDING)
+  isActive    Boolean        @default(false)
   comments    String?
   respondedAt DateTime?
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
-  
-  Stage       TimesheetApprovalStage   @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  Stage TimesheetApprovalStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
   @@unique([stageId, approverId])
   @@unique([stageId, order])
   @@index([approverId, status, isActive])
 }
 
 model TimesheetEntryAudit {
-  id              String   @id @default(cuid())
-  entryId         String
-  timesheetId     String
-  employeeId      String
-  changedById     String   // Manager/Admin who made the change
-  changeReason    String?  // Reason for the change
-  field           String   // Field that was changed (startTime, endTime, hours, etc.)
-  oldValue        String?  // JSON stringified old value
-  newValue        String?  // JSON stringified new value
-  changeType      String   // CREATED, UPDATED, DELETED
-  changedAt       DateTime @default(now())
-  companyId       String
-  
-  Entry           TimesheetEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  Employee        Employee       @relation("TimesheetEntryAuditEmployee", fields: [employeeId], references: [id])
-  ChangedBy       Employee       @relation("TimesheetEntryAuditChangedBy", fields: [changedById], references: [id])
-  
+  id           String   @id @default(cuid())
+  entryId      String
+  timesheetId  String
+  employeeId   String
+  changedById  String // Manager/Admin who made the change
+  changeReason String? // Reason for the change
+  field        String // Field that was changed (startTime, endTime, hours, etc.)
+  oldValue     String? // JSON stringified old value
+  newValue     String? // JSON stringified new value
+  changeType   String // CREATED, UPDATED, DELETED
+  changedAt    DateTime @default(now())
+  companyId    String
+
+  Entry     TimesheetEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  Employee  Employee       @relation("TimesheetEntryAuditEmployee", fields: [employeeId], references: [id])
+  ChangedBy Employee       @relation("TimesheetEntryAuditChangedBy", fields: [changedById], references: [id])
+
   @@index([entryId, changedAt])
   @@index([timesheetId, changedAt])
   @@index([employeeId])
@@ -3337,56 +3338,56 @@ model TimesheetEntryAudit {
 }
 
 model ShiftTemplate {
-  id            String      @id @default(cuid())
-  companyId     String
-  name          String
-  startTime     String      // HH:MM format
-  endTime       String      // HH:MM format
-  breakDuration Int         @default(30) // minutes
-  role          String?
-  requiredSkills String[]   @default([])
-  departmentId  String?
-  locationId    String?
-  rotaGroupId   String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  
-  Shifts        Shift[]
-  RotaGroup     RotaGroup?  @relation(fields: [rotaGroupId], references: [id], onDelete: SetNull)
-  
+  id             String   @id @default(cuid())
+  companyId      String
+  name           String
+  startTime      String // HH:MM format
+  endTime        String // HH:MM format
+  breakDuration  Int      @default(30) // minutes
+  role           String?
+  requiredSkills String[] @default([])
+  departmentId   String?
+  locationId     String?
+  rotaGroupId    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  Shifts    Shift[]
+  RotaGroup RotaGroup? @relation(fields: [rotaGroupId], references: [id], onDelete: SetNull)
+
   @@unique([companyId, name])
   @@index([rotaGroupId])
 }
 
 model Shift {
-  id                  String              @id @default(cuid())
-  companyId           String
-  employeeId          String?
-  templateId          String?
-  departmentId        String?
-  locationId          String?
-  rotaGroupId         String?
-  startTime           DateTime
-  endTime             DateTime
-  breakDuration       Int                 @default(0) // minutes
-  notes               String?
-  role                String?
-  requiredSkills      String[]            @default([])
-  isPublished         Boolean             @default(false)
-  requiresConfirmation Boolean            @default(false)
-  confirmedAt         DateTime?
-  attendanceStatus    ShiftAttendanceStatus @default(SCHEDULED)
-  cost                Decimal?            @db.Decimal(10, 2)
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  createdBy           String
-  
-  Employee            Employee?           @relation("ShiftEmployee", fields: [employeeId], references: [id])
-  Location            Location?           @relation("ShiftLocation", fields: [locationId], references: [id])
-  Template            ShiftTemplate?      @relation(fields: [templateId], references: [id])
-  RotaGroup           RotaGroup?          @relation(fields: [rotaGroupId], references: [id], onDelete: SetNull)
-  ShiftSwapRequests   ShiftSwapRequest[]
-  
+  id                   String                @id @default(cuid())
+  companyId            String
+  employeeId           String?
+  templateId           String?
+  departmentId         String?
+  locationId           String?
+  rotaGroupId          String?
+  startTime            DateTime
+  endTime              DateTime
+  breakDuration        Int                   @default(0) // minutes
+  notes                String?
+  role                 String?
+  requiredSkills       String[]              @default([])
+  isPublished          Boolean               @default(false)
+  requiresConfirmation Boolean               @default(false)
+  confirmedAt          DateTime?
+  attendanceStatus     ShiftAttendanceStatus @default(SCHEDULED)
+  cost                 Decimal?              @db.Decimal(10, 2)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  createdBy            String
+
+  Employee          Employee?          @relation("ShiftEmployee", fields: [employeeId], references: [id])
+  Location          Location?          @relation("ShiftLocation", fields: [locationId], references: [id])
+  Template          ShiftTemplate?     @relation(fields: [templateId], references: [id])
+  RotaGroup         RotaGroup?         @relation(fields: [rotaGroupId], references: [id], onDelete: SetNull)
+  ShiftSwapRequests ShiftSwapRequest[]
+
   @@index([companyId, startTime])
   @@index([employeeId, startTime])
   @@index([departmentId, startTime])
@@ -3395,23 +3396,23 @@ model Shift {
 }
 
 model ShiftSwapRequest {
-  id                  String              @id @default(cuid())
-  shiftId             String
-  requesterId         String
-  targetEmployeeId    String?
-  status              ShiftSwapStatus     @default(PENDING)
-  requestMessage      String?
-  responseMessage     String?
+  id                      String          @id @default(cuid())
+  shiftId                 String
+  requesterId             String
+  targetEmployeeId        String?
+  status                  ShiftSwapStatus @default(PENDING)
+  requestMessage          String?
+  responseMessage         String?
   managerApprovalRequired Boolean         @default(true)
-  managerApprovedBy   String?
-  managerApprovedAt   DateTime?
-  acceptedAt          DateTime?
-  rejectedAt          DateTime?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  
-  Shift               Shift               @relation(fields: [shiftId], references: [id], onDelete: Cascade)
-  
+  managerApprovedBy       String?
+  managerApprovedAt       DateTime?
+  acceptedAt              DateTime?
+  rejectedAt              DateTime?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  Shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
   @@index([requesterId, status])
   @@index([targetEmployeeId, status])
   @@index([shiftId])
@@ -3421,15 +3422,15 @@ model AvailabilityPattern {
   id          String   @id @default(cuid())
   employeeId  String
   companyId   String
-  dayOfWeek   Int      // 0=Sunday, 6=Saturday
-  startTime   String   // HH:MM format
-  endTime     String   // HH:MM format
+  dayOfWeek   Int // 0=Sunday, 6=Saturday
+  startTime   String // HH:MM format
+  endTime     String // HH:MM format
   isAvailable Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  @@index([employeeId, dayOfWeek])
+
   @@unique([employeeId, dayOfWeek, startTime, endTime])
+  @@index([employeeId, dayOfWeek])
 }
 
 model AvailabilityException {
@@ -3437,29 +3438,29 @@ model AvailabilityException {
   employeeId  String
   companyId   String
   date        DateTime
-  startTime   String?  // HH:MM format (null = all day)
-  endTime     String?  // HH:MM format (null = all day)
+  startTime   String? // HH:MM format (null = all day)
+  endTime     String? // HH:MM format (null = all day)
   isAvailable Boolean  @default(false)
   reason      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@index([employeeId, date])
 }
 
 model ScheduleConflict {
-  id             String             @id @default(cuid())
-  companyId      String
-  employeeId     String
-  conflictType   ConflictType
-  description    String
-  shift1Id       String?
-  shift2Id       String?
-  detectedAt     DateTime           @default(now())
-  resolvedAt     DateTime?
-  resolvedBy     String?
-  severity       ConflictSeverity   @default(MEDIUM)
-  
+  id           String           @id @default(cuid())
+  companyId    String
+  employeeId   String
+  conflictType ConflictType
+  description  String
+  shift1Id     String?
+  shift2Id     String?
+  detectedAt   DateTime         @default(now())
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  severity     ConflictSeverity @default(MEDIUM)
+
   @@index([companyId, resolvedAt])
   @@index([employeeId, resolvedAt])
 }
@@ -3469,30 +3470,30 @@ model ScheduleConflict {
 // ============================================
 
 model RotaGroup {
-  id              String   @id @default(cuid())
-  companyId       String
-  name            String   // "Distribution Center - Night Shift"
-  description     String?
-  locationId      String?
-  departmentId    String?
-  roles           String[] @default([]) // ["Picker", "Packer", "Forklift Operator"]
-  requiredSkills  String[] @default([]) // ["RF Scanner", "Inventory System"]
-  optionalTags    String[] @default([]) // ["Forklift License", "Hazmat Cert"]
-  color           String?  // "#8B5CF6" for calendar display
-  icon            String?  // "🏭" visual identifier
-  isActive        Boolean  @default(true)
-  displayOrder    Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  Company           Company           @relation(fields: [companyId], references: [id])
-  Location          Location?         @relation(fields: [locationId], references: [id])
-  Department        Department?       @relation(fields: [departmentId], references: [id])
+  id             String   @id @default(cuid())
+  companyId      String
+  name           String // "Distribution Center - Night Shift"
+  description    String?
+  locationId     String?
+  departmentId   String?
+  roles          String[] @default([]) // ["Picker", "Packer", "Forklift Operator"]
+  requiredSkills String[] @default([]) // ["RF Scanner", "Inventory System"]
+  optionalTags   String[] @default([]) // ["Forklift License", "Hazmat Cert"]
+  color          String? // "#8B5CF6" for calendar display
+  icon           String? // "🏭" visual identifier
+  isActive       Boolean  @default(true)
+  displayOrder   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  Company           Company            @relation(fields: [companyId], references: [id])
+  Location          Location?          @relation(fields: [locationId], references: [id])
+  Department        Department?        @relation(fields: [departmentId], references: [id])
   Members           RotaGroupMember[]
   ShiftTemplates    ShiftTemplate[]
   ShiftRequirements ShiftRequirement[]
   Shifts            Shift[]
-  
+
   @@unique([companyId, name])
   @@index([companyId, isActive])
   @@index([locationId])
@@ -3507,10 +3508,10 @@ model RotaGroupMember {
   isActive      Boolean  @default(true)
   addedAt       DateTime @default(now())
   addedBy       String?
-  
-  RotaGroup     RotaGroup @relation(fields: [rotaGroupId], references: [id], onDelete: Cascade)
-  Employee      Employee  @relation("RotaGroupMembers", fields: [employeeId], references: [id], onDelete: Cascade)
-  
+
+  RotaGroup RotaGroup @relation(fields: [rotaGroupId], references: [id], onDelete: Cascade)
+  Employee  Employee  @relation("RotaGroupMembers", fields: [employeeId], references: [id], onDelete: Cascade)
+
   @@unique([rotaGroupId, employeeId])
   @@index([rotaGroupId])
   @@index([employeeId])
@@ -3521,173 +3522,173 @@ model ShiftRequirement {
   id            String        @id @default(cuid())
   companyId     String
   rotaGroupId   String
-  dayOfWeek     Int           // 0=Sunday, 6=Saturday
-  startTime     String        // "07:00"
-  endTime       String        // "15:00"
-  role          String        // "Barista"
+  dayOfWeek     Int // 0=Sunday, 6=Saturday
+  startTime     String // "07:00"
+  endTime       String // "15:00"
+  role          String // "Barista"
   quantity      Int           @default(1) // Number needed
   priority      ShiftPriority @default(NORMAL)
   breakDuration Int           @default(30)
   isActive      Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  
-  RotaGroup     RotaGroup @relation(fields: [rotaGroupId], references: [id], onDelete: Cascade)
-  
+
+  RotaGroup RotaGroup @relation(fields: [rotaGroupId], references: [id], onDelete: Cascade)
+
   @@index([rotaGroupId])
   @@index([companyId, isActive])
   @@index([dayOfWeek])
 }
 
 model PayrollExport {
-  id          String   @id @default(cuid())
-  companyId   String
-  periodStart DateTime
-  periodEnd   DateTime
-  exportedBy  String
-  exportedAt  DateTime @default(now())
-  format      String   // CSV, EXCEL, JSON
-  fileUrl     String?
+  id            String   @id @default(cuid())
+  companyId     String
+  periodStart   DateTime
+  periodEnd     DateTime
+  exportedBy    String
+  exportedAt    DateTime @default(now())
+  format        String // CSV, EXCEL, JSON
+  fileUrl       String?
   employeeCount Int
-  totalHours  Decimal  @db.Decimal(10, 2)
-  totalCost   Decimal? @db.Decimal(10, 2)
-  metadata    Json?    // Additional export settings
-  
+  totalHours    Decimal  @db.Decimal(10, 2)
+  totalCost     Decimal? @db.Decimal(10, 2)
+  metadata      Json? // Additional export settings
+
   @@index([companyId, exportedAt])
 }
 
 model BreakRecord {
-  id          String     @id @default(cuid())
+  id          String    @id @default(cuid())
   timesheetId String?
   employeeId  String
   companyId   String
   breakType   BreakType
   startTime   DateTime
   endTime     DateTime?
-  duration    Int?       // minutes
-  isPaid      Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  
-  Timesheet   Timesheet? @relation(fields: [timesheetId], references: [id])
-  
+  duration    Int? // minutes
+  isPaid      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  Timesheet Timesheet? @relation(fields: [timesheetId], references: [id])
+
   @@index([employeeId, startTime])
   @@index([companyId, breakType])
 }
 
 model ComplianceViolation {
-  id             String             @id @default(cuid())
+  id             String            @id @default(cuid())
   companyId      String
   employeeId     String
   violationType  ViolationType
   description    String
-  detectedAt     DateTime           @default(now())
+  detectedAt     DateTime          @default(now())
   acknowledgedAt DateTime?
   acknowledgedBy String?
   resolution     String?
-  severity       ViolationSeverity  @default(MEDIUM)
-  metadata       Json?              // Additional context
-  
+  severity       ViolationSeverity @default(MEDIUM)
+  metadata       Json? // Additional context
+
   @@index([companyId, violationType])
   @@index([employeeId, detectedAt])
 }
 
 model TimeTrackingSettings {
-  id                       String                   @id @default(cuid())
-  companyId                String                   @unique
+  id                       String                  @id @default(cuid())
+  companyId                String                  @unique
   // Canonical field names - GPS and Photo tracking
-  requireGpsLocation       Boolean                  @default(false)
-  photoRequirement         PhotoRequirement         @default(NONE)
-  allowMobileClock         Boolean                  @default(true)
+  requireGpsLocation       Boolean                 @default(false)
+  photoRequirement         PhotoRequirement        @default(NONE)
+  allowMobileClock         Boolean                 @default(true)
   // Canonical field name - Manual time entry
-  allowManualTimeEntry     Boolean                  @default(true)
+  allowManualTimeEntry     Boolean                 @default(true)
   // Legacy compatibility fields for UI/API alignment
-  allowManualEntry         Boolean                  @default(true)
-  requirePhotos            Boolean                  @default(false)
+  allowManualEntry         Boolean                 @default(true)
+  requirePhotos            Boolean                 @default(false)
   // Geofencing and clock settings
-  geofenceLocations        Json?                    // [{lat, lng, radius, name}]
-  enableGeofencing         Boolean                  @default(false)
-  geofenceRadius           Int                      @default(100) // meters
-  roundClockTimes          String                   @default("NONE") // NONE, 15MIN, 30MIN
+  geofenceLocations        Json? // [{lat, lng, radius, name}]
+  enableGeofencing         Boolean                 @default(false)
+  geofenceRadius           Int                     @default(100) // meters
+  roundClockTimes          String                  @default("NONE") // NONE, 15MIN, 30MIN
   autoClockOutHours        Int?
   // Break settings
-  requireBreaks            Boolean                  @default(true)
-  minBreakDuration         Int                      @default(30) // minutes
+  requireBreaks            Boolean                 @default(true)
+  minBreakDuration         Int                     @default(30) // minutes
   // Timesheet period settings
-  timesheetPeriod          String                   @default("WEEKLY") // WEEKLY, BIWEEKLY, MONTHLY
-  periodStartDay           String                   @default("MONDAY") // MONDAY, SUNDAY, 1ST
-  autoSubmit               Boolean                  @default(false)
+  timesheetPeriod          String                  @default("WEEKLY") // WEEKLY, BIWEEKLY, MONTHLY
+  periodStartDay           String                  @default("MONDAY") // MONDAY, SUNDAY, 1ST
+  autoSubmit               Boolean                 @default(false)
   defaultWorkflowId        String?
-  allowEditAfterSubmit     Boolean                  @default(false)
+  allowEditAfterSubmit     Boolean                 @default(false)
   // Shift settings
-  autoSchedulingEnabled    Boolean                  @default(false)
-  publishDaysAdvance       Int                      @default(7)
-  requireShiftConfirmation Boolean                  @default(false)
-  allowShiftSwaps          Boolean                  @default(true)
-  managerApprovalSwaps     Boolean                  @default(true)
-  minimumRestHours         Int                      @default(11)
+  autoSchedulingEnabled    Boolean                 @default(false)
+  publishDaysAdvance       Int                     @default(7)
+  requireShiftConfirmation Boolean                 @default(false)
+  allowShiftSwaps          Boolean                 @default(true)
+  managerApprovalSwaps     Boolean                 @default(true)
+  minimumRestHours         Int                     @default(11)
   // Overtime configuration (NZ Employment Relations Act 2000 compliance)
-  includeOvertimeExport    Boolean                  @default(true)
-  overtimeThreshold        Decimal                  @db.Decimal(5, 2) @default(40.00)
-  overtimeMultiplier       Decimal                  @db.Decimal(3, 2) @default(1.50)
-  overtimeCalculationMode  OvertimeCalculationMode  @default(WEEKLY)
-  autoApplyOvertime        Boolean                  @default(true)    // Auto-calculate OT from clock entries
-  allowManualOvertimeEntry Boolean                  @default(true)    // Can employees mark manual entries as OT
-  blockOvertimeDuringHours Boolean                  @default(true)    // Block manual OT during regular working hours
-  requireOvertimeApproval  Boolean                  @default(false)   // Extra approval step for OT
-  dailyOvertimeThreshold   Decimal?                 @db.Decimal(4, 2) // e.g., 8.0 hours
-  weeklyOvertimeThreshold  Decimal?                 @db.Decimal(5, 2) // e.g., 40.0 hours
-  monthlyOvertimeThreshold Decimal?                 @db.Decimal(6, 2) // e.g., 173.33 hours
-  overtimeMultiplierTier2  Decimal?                 @db.Decimal(3, 2) // e.g., 2.0x for double time
-  overtimeThresholdTier2   Decimal?                 @db.Decimal(5, 2) // Hours to trigger tier 2 rate
-  publicHolidayMultiplier  Decimal                  @db.Decimal(3, 2) @default(1.50) // NZ public holiday rate
-  sundayMultiplier         Decimal?                 @db.Decimal(3, 2) // Optional Sunday premium
-  enableOvertimeBreakdown  Boolean                  @default(true)    // Show detailed OT breakdown in UI
+  includeOvertimeExport    Boolean                 @default(true)
+  overtimeThreshold        Decimal                 @default(40.00) @db.Decimal(5, 2)
+  overtimeMultiplier       Decimal                 @default(1.50) @db.Decimal(3, 2)
+  overtimeCalculationMode  OvertimeCalculationMode @default(WEEKLY)
+  autoApplyOvertime        Boolean                 @default(true) // Auto-calculate OT from clock entries
+  allowManualOvertimeEntry Boolean                 @default(true) // Can employees mark manual entries as OT
+  blockOvertimeDuringHours Boolean                 @default(true) // Block manual OT during regular working hours
+  requireOvertimeApproval  Boolean                 @default(false) // Extra approval step for OT
+  dailyOvertimeThreshold   Decimal?                @db.Decimal(4, 2) // e.g., 8.0 hours
+  weeklyOvertimeThreshold  Decimal?                @db.Decimal(5, 2) // e.g., 40.0 hours
+  monthlyOvertimeThreshold Decimal?                @db.Decimal(6, 2) // e.g., 173.33 hours
+  overtimeMultiplierTier2  Decimal?                @db.Decimal(3, 2) // e.g., 2.0x for double time
+  overtimeThresholdTier2   Decimal?                @db.Decimal(5, 2) // Hours to trigger tier 2 rate
+  publicHolidayMultiplier  Decimal                 @default(1.50) @db.Decimal(3, 2) // NZ public holiday rate
+  sundayMultiplier         Decimal?                @db.Decimal(3, 2) // Optional Sunday premium
+  enableOvertimeBreakdown  Boolean                 @default(true) // Show detailed OT breakdown in UI
   // Export settings - canonical field name
-  payrollExportFormat      PayrollExportFormat      @default(CSV)
-  includeBreaks            Boolean                  @default(true)
-  includeNotes             Boolean                  @default(true)
+  payrollExportFormat      PayrollExportFormat     @default(CSV)
+  includeBreaks            Boolean                 @default(true)
+  includeNotes             Boolean                 @default(true)
   // Timestamps
-  createdAt                DateTime                 @default(now())
-  updatedAt                DateTime                 @updatedAt
-  
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+
   @@index([companyId])
 }
 
 model PushNotificationToken {
-  id          String   @id @default(cuid())
-  employeeId  String
-  token       String   // Expo push token
-  deviceId    String
-  platform    String   // "ios" or "android"
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(cuid())
+  employeeId String
+  token      String // Expo push token
+  deviceId   String
+  platform   String // "ios" or "android"
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
   @@unique([employeeId, deviceId])
   @@index([employeeId])
   @@index([token])
 }
 
 model OvertimeAuditLog {
-  id               String   @id @default(cuid())
-  timesheetEntryId String
-  employeeId       String
-  companyId        String
-  action           String   // CALCULATED, MANUAL_ENTRY, MANAGER_OVERRIDE, REJECTED, APPROVED
-  previousValues   Json?    // Snapshot before change
-  newValues        Json     // Snapshot after change
+  id                String   @id @default(cuid())
+  timesheetEntryId  String
+  employeeId        String
+  companyId         String
+  action            String // CALCULATED, MANUAL_ENTRY, MANAGER_OVERRIDE, REJECTED, APPROVED
+  previousValues    Json? // Snapshot before change
+  newValues         Json // Snapshot after change
   calculationMethod String? // DAILY_THRESHOLD, WEEKLY_PATTERN, MONTHLY_THRESHOLD, etc.
-  triggeredBy      String   // User ID who triggered the action
-  triggeredAt      DateTime @default(now())
-  reason           String?  // Explanation for action
-  
-  TimesheetEntry   TimesheetEntry @relation(fields: [timesheetEntryId], references: [id], onDelete: Cascade)
-  Employee         Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  Company          Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  
+  triggeredBy       String // User ID who triggered the action
+  triggeredAt       DateTime @default(now())
+  reason            String? // Explanation for action
+
+  TimesheetEntry TimesheetEntry @relation(fields: [timesheetEntryId], references: [id], onDelete: Cascade)
+  Employee       Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   @@index([timesheetEntryId])
   @@index([employeeId, triggeredAt])
   @@index([companyId, triggeredAt])
@@ -3695,68 +3696,68 @@ model OvertimeAuditLog {
 }
 
 model PayrollCalculation {
-  id                    String   @id @default(cuid())
-  timesheetId           String
-  employeeId            String
-  companyId             String
-  
+  id          String @id @default(cuid())
+  timesheetId String
+  employeeId  String
+  companyId   String
+
   // Earnings
-  regularPay            Decimal  @db.Decimal(10, 2)
-  overtimePay           Decimal  @default(0) @db.Decimal(10, 2)
-  publicHolidayPay      Decimal  @default(0) @db.Decimal(10, 2)
-  allowances            Decimal  @default(0) @db.Decimal(10, 2)
-  bonuses               Decimal  @default(0) @db.Decimal(10, 2)
-  commission            Decimal  @default(0) @db.Decimal(10, 2)
-  reimbursements        Decimal  @default(0) @db.Decimal(10, 2)
-  grossPay              Decimal  @db.Decimal(10, 2)
-  
+  regularPay       Decimal @db.Decimal(10, 2)
+  overtimePay      Decimal @default(0) @db.Decimal(10, 2)
+  publicHolidayPay Decimal @default(0) @db.Decimal(10, 2)
+  allowances       Decimal @default(0) @db.Decimal(10, 2)
+  bonuses          Decimal @default(0) @db.Decimal(10, 2)
+  commission       Decimal @default(0) @db.Decimal(10, 2)
+  reimbursements   Decimal @default(0) @db.Decimal(10, 2)
+  grossPay         Decimal @db.Decimal(10, 2)
+
   // Tax Deductions
-  payeTax               Decimal  @db.Decimal(10, 2)
-  accLevy               Decimal  @db.Decimal(10, 2)
-  studentLoanDeduction  Decimal  @default(0) @db.Decimal(10, 2)
-  
+  payeTax              Decimal @db.Decimal(10, 2)
+  accLevy              Decimal @db.Decimal(10, 2)
+  studentLoanDeduction Decimal @default(0) @db.Decimal(10, 2)
+
   // KiwiSaver
-  kiwiSaverEmployee     Decimal  @default(0) @db.Decimal(10, 2)
-  kiwiSaverEmployeeRate Decimal  @default(0.03) @db.Decimal(4, 2)
-  kiwiSaverEmployer     Decimal  @default(0) @db.Decimal(10, 2)
-  kiwiSaverEmployerRate Decimal  @default(0.03) @db.Decimal(4, 2)
-  esctDeduction         Decimal  @default(0) @db.Decimal(10, 2)
-  
+  kiwiSaverEmployee     Decimal @default(0) @db.Decimal(10, 2)
+  kiwiSaverEmployeeRate Decimal @default(0.03) @db.Decimal(4, 2)
+  kiwiSaverEmployer     Decimal @default(0) @db.Decimal(10, 2)
+  kiwiSaverEmployerRate Decimal @default(0.03) @db.Decimal(4, 2)
+  esctDeduction         Decimal @default(0) @db.Decimal(10, 2)
+
   // Other Deductions
-  unionFees             Decimal  @default(0) @db.Decimal(10, 2)
-  insuranceDeductions   Decimal  @default(0) @db.Decimal(10, 2)
-  childcareLevy         Decimal  @default(0) @db.Decimal(10, 2)
-  otherDeductions       Decimal  @default(0) @db.Decimal(10, 2)
-  
+  unionFees           Decimal @default(0) @db.Decimal(10, 2)
+  insuranceDeductions Decimal @default(0) @db.Decimal(10, 2)
+  childcareLevy       Decimal @default(0) @db.Decimal(10, 2)
+  otherDeductions     Decimal @default(0) @db.Decimal(10, 2)
+
   // Totals
-  totalDeductions       Decimal  @db.Decimal(10, 2)
-  netPay                Decimal  @db.Decimal(10, 2)
-  employerCost          Decimal  @db.Decimal(10, 2)
-  
+  totalDeductions Decimal @db.Decimal(10, 2)
+  netPay          Decimal @db.Decimal(10, 2)
+  employerCost    Decimal @db.Decimal(10, 2)
+
   // Pay Period
-  payPeriodStart        DateTime
-  payPeriodEnd          DateTime
-  paymentDate           DateTime
-  payFrequency          String
-  
+  payPeriodStart DateTime
+  payPeriodEnd   DateTime
+  paymentDate    DateTime
+  payFrequency   String
+
   // Calculation Metadata
-  calculatedAt          DateTime @default(now())
-  calculatedBy          String
-  calculationVersion    String   @default("1.0")
-  taxYear               String
-  
+  calculatedAt       DateTime @default(now())
+  calculatedBy       String
+  calculationVersion String   @default("1.0")
+  taxYear            String
+
   // Status
-  status                PayrollCalculationStatus @default(DRAFT)
-  approvedAt            DateTime?
-  approvedBy            String?
-  exportedAt            DateTime?
-  irdFiledAt            DateTime?
-  
+  status     PayrollCalculationStatus @default(DRAFT)
+  approvedAt DateTime?
+  approvedBy String?
+  exportedAt DateTime?
+  irdFiledAt DateTime?
+
   // Relationships
-  Timesheet             Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-  Employee              Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
-  Company               Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  
+  Timesheet Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  Employee  Employee  @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  Company   Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
   @@unique([timesheetId, employeeId])
   @@index([timesheetId])
   @@index([employeeId, payPeriodStart])
@@ -3912,44 +3913,44 @@ enum PerformanceNotificationChannel {
 // ============================================
 
 enum ClockEntryStatus {
-  ACTIVE       // Currently clocked in
-  COMPLETED    // Clocked out
-  MISSED       // Missed clock out
-  CANCELLED    // Cancelled
+  ACTIVE // Currently clocked in
+  COMPLETED // Clocked out
+  MISSED // Missed clock out
+  CANCELLED // Cancelled
 }
 
 enum TimesheetEntryType {
-  CLOCK        // Generated from clock entry
-  MANUAL       // Manually entered
-  ADJUSTED     // Adjusted by manager
+  CLOCK // Generated from clock entry
+  MANUAL // Manually entered
+  ADJUSTED // Adjusted by manager
 }
 
 enum ShiftAttendanceStatus {
-  SCHEDULED    // Shift scheduled
-  CONFIRMED    // Employee confirmed
-  COMPLETED    // Shift completed
-  NO_SHOW      // Employee didn't show up
-  PARTIAL      // Partially completed
-  CANCELLED    // Shift cancelled
+  SCHEDULED // Shift scheduled
+  CONFIRMED // Employee confirmed
+  COMPLETED // Shift completed
+  NO_SHOW // Employee didn't show up
+  PARTIAL // Partially completed
+  CANCELLED // Shift cancelled
 }
 
 enum ShiftSwapStatus {
-  PENDING              // Awaiting colleague response
-  ACCEPTED             // Colleague accepted
-  REJECTED             // Colleague rejected
-  MANAGER_PENDING      // Awaiting manager approval
-  APPROVED             // Manager approved
-  DECLINED             // Manager declined
-  COMPLETED            // Swap completed
+  PENDING // Awaiting colleague response
+  ACCEPTED // Colleague accepted
+  REJECTED // Colleague rejected
+  MANAGER_PENDING // Awaiting manager approval
+  APPROVED // Manager approved
+  DECLINED // Manager declined
+  COMPLETED // Swap completed
 }
 
 enum ConflictType {
-  DOUBLE_BOOKING      // Two shifts at same time
-  REST_PERIOD         // Insufficient rest between shifts
-  OVERTIME            // Exceeds maximum hours
-  UNAVAILABLE         // Employee marked unavailable
-  SKILL_MISMATCH      // Employee lacks required skills
-  LEAVE_CONFLICT      // Conflicts with approved leave
+  DOUBLE_BOOKING // Two shifts at same time
+  REST_PERIOD // Insufficient rest between shifts
+  OVERTIME // Exceeds maximum hours
+  UNAVAILABLE // Employee marked unavailable
+  SKILL_MISMATCH // Employee lacks required skills
+  LEAVE_CONFLICT // Conflicts with approved leave
 }
 
 enum ConflictSeverity {
@@ -3974,31 +3975,31 @@ enum ViolationSeverity {
 }
 
 enum BreakType {
-  MEAL_BREAK          // 30-60 min meal break
-  REST_BREAK          // 10-15 min rest break
-  UNPAID_BREAK        // Unpaid break
+  MEAL_BREAK // 30-60 min meal break
+  REST_BREAK // 10-15 min rest break
+  UNPAID_BREAK // Unpaid break
 }
 
 enum ViolationType {
-  REST_PERIOD         // NZ: Minimum 11 hours rest
-  MEAL_BREAK          // NZ: 30 min after 5 hours
-  REST_BREAK          // NZ: 10 min after 2 hours
-  MAX_HOURS           // Exceeds maximum hours
-  OVERTIME_EXCESSIVE  // Excessive overtime
-  MISSING_TIMESHEET   // Timesheet not submitted
+  REST_PERIOD // NZ: Minimum 11 hours rest
+  MEAL_BREAK // NZ: 30 min after 5 hours
+  REST_BREAK // NZ: 10 min after 2 hours
+  MAX_HOURS // Exceeds maximum hours
+  OVERTIME_EXCESSIVE // Excessive overtime
+  MISSING_TIMESHEET // Timesheet not submitted
 }
 
 enum PhotoRequirement {
-  NONE              // No photo required
-  CLOCK_IN          // Photo required on clock in only
-  CLOCK_IN_OUT      // Photo required on both clock in and out
+  NONE // No photo required
+  CLOCK_IN // Photo required on clock in only
+  CLOCK_IN_OUT // Photo required on both clock in and out
 }
 
 enum OvertimeCalculationMode {
-  DAILY             // Overtime when any day exceeds threshold
-  WEEKLY            // Week total exceeds threshold
-  MONTHLY           // Month total exceeds threshold
-  PATTERN_BASED     // Compare actual vs contracted hours from working patterns
+  DAILY // Overtime when any day exceeds threshold
+  WEEKLY // Week total exceeds threshold
+  MONTHLY // Month total exceeds threshold
+  PATTERN_BASED // Compare actual vs contracted hours from working patterns
 }
 
 enum PayrollExportFormat {

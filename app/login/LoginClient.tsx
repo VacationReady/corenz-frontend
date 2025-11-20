@@ -140,17 +140,48 @@ export default function LoginClient() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-3xl bg-white/80 backdrop-blur-xl border border-white/40 p-8 shadow-2xl transition-all">
+      <div
+        className="w-full max-w-md rounded-3xl p-8 transition-all duration-700 ease-out"
+        style={{
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.8) 100%)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          border: '1px solid rgba(255, 255, 255, 0.5)',
+          boxShadow: '0 20px 60px -15px rgba(0, 0, 0, 0.15), 0 30px 80px -30px rgba(59, 130, 246, 0.2), inset 0 2px 8px rgba(255, 255, 255, 0.6), inset 0 -2px 8px rgba(0, 0, 0, 0.04)'
+        }}
+      >
         <div className="mb-6 text-center">
           {logoSrc ? (
             <div className="mb-6 flex justify-center">
-              <div className="bg-white rounded-2xl p-3 shadow-sm ring-1 ring-gray-900/5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={logoSrc}
-                  alt={`${brandName} logo`}
-                  className="h-8 w-auto"
+              {/* Premium Logo Container with Gradient Glow */}
+              <div className="group relative">
+                {/* Glow effect behind logo */}
+                <div
+                  className="absolute inset-0 rounded-2xl opacity-50 blur-xl transition-all duration-500 group-hover:opacity-70 group-hover:blur-2xl"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(168, 85, 247, 0.3), rgba(20, 184, 166, 0.3))',
+                    transform: 'scale(1.1)'
+                  }}
                 />
+
+                {/* Logo container with premium glassmorphism */}
+                <div
+                  className="relative rounded-2xl p-4 transition-all duration-300 group-hover:scale-105"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.85) 100%)',
+                    backdropFilter: 'blur(16px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                    border: '1px solid rgba(255, 255, 255, 0.6)',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.8), inset 0 0 0 1px rgba(255, 255, 255, 0.4)'
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={logoSrc}
+                    alt={`${brandName} logo`}
+                    className="h-10 w-auto transition-all duration-300 group-hover:brightness-110"
+                  />
+                </div>
               </div>
             </div>
           ) : (
@@ -207,7 +238,11 @@ export default function LoginClient() {
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button
             type="submit"
-            className="w-full"
+            className="w-full transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+            style={{
+              background: 'linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(37, 99, 235) 100%)',
+              boxShadow: '0 8px 24px rgba(59, 130, 246, 0.3)'
+            }}
             loading={loading}
             loadingText="Signing in"
             icon={<LogIn className="h-4 w-4" />}
@@ -237,7 +272,13 @@ export default function LoginClient() {
         <div className="space-y-2">
           <Button
             variant="outline"
-            className="w-full gap-2 glass-subtle hover:glass-strong border-glass"
+            className="w-full gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+            style={{
+              background: 'rgba(255, 255, 255, 0.6)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+            }}
             onClick={() => {
               if (loading || ssoLoading) return;
               setSsoLoading("azure-ad");
@@ -252,7 +293,13 @@ export default function LoginClient() {
           </Button>
           <Button
             variant="outline"
-            className="w-full gap-2 glass-subtle hover:glass-strong border-glass"
+            className="w-full gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+            style={{
+              background: 'rgba(255, 255, 255, 0.6)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)'
+            }}
             onClick={() => {
               if (loading || ssoLoading) return;
               setSsoLoading("google");

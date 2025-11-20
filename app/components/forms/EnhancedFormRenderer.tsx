@@ -55,6 +55,7 @@ interface FormDataShape {
     name: string;
     formType: "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN";
     schema: AnyFormSchema;
+    autoSave?: boolean; // Auto-save drafts feature
   };
   data: Record<string, any>;
   lastUpdated: string | null;
@@ -81,9 +82,10 @@ export function EnhancedFormRenderer({
   const latestValuesRef = useRef<Record<string, any>>({});
   const unsavedCtxRef = useRef<{ markSaved: () => void } | null>(null);
   const [draftChecked, setDraftChecked] = useState(false);
-  const isDataScreen = formData?.form?.formType === "DATA_SCREEN";
+  // Support both autoSave flag and legacy DATA_SCREEN type for backward compatibility
+  const hasAutoSave = Boolean(formData?.form?.autoSave) || formData?.form?.formType === "DATA_SCREEN";
   const draftStorageKey =
-    session?.user && isDataScreen
+    session?.user && hasAutoSave
       ? `form:draft:${session.user.companyId}:${session.user.id}:${formId}:${employeeId}`
       : null;
   const isReadOnly = Boolean(formData?.readOnly);
@@ -165,19 +167,19 @@ export function EnhancedFormRenderer({
   }, [formId, employeeId, setValue]);
 
   useEffect(() => {
-    if (!isDataScreen) {
+    if (!hasAutoSave) {
       latestValuesRef.current = {};
       return;
     }
     latestValuesRef.current = serialiseDraftValues(watchedValues || {});
-  }, [watchedValues, isDataScreen]);
+  }, [watchedValues, hasAutoSave]);
 
   useEffect(() => {
     setDraftChecked(false);
   }, [draftStorageKey]);
 
   useEffect(() => {
-    if (!draftStorageKey || !isDataScreen || isReadOnly) return;
+    if (!draftStorageKey || !hasAutoSave || isReadOnly) return;
     if (typeof window === "undefined") return;
 
     const interval = window.setInterval(() => {
@@ -207,19 +209,19 @@ export function EnhancedFormRenderer({
     }, 5000);
 
     return () => window.clearInterval(interval);
-  }, [draftStorageKey, isDataScreen, isReadOnly]);
+  }, [draftStorageKey, hasAutoSave, isReadOnly]);
 
   useEffect(() => {
-    if (!draftStorageKey || !isDataScreen) return;
+    if (!draftStorageKey || !hasAutoSave) return;
     const existingData = formData?.data;
     if (existingData && Object.keys(existingData || {}).length > 0) {
       clearFormDraftStorage();
     }
-  }, [draftStorageKey, formData, isDataScreen, clearFormDraftStorage]);
+  }, [draftStorageKey, formData, hasAutoSave, clearFormDraftStorage]);
 
   useEffect(() => {
     if (draftChecked) return;
-    if (!draftStorageKey || !isDataScreen) return;
+    if (!draftStorageKey || !hasAutoSave) return;
     if (loading) return;
     if (!formData) return;
     if (formData.data && Object.keys(formData.data || {}).length > 0) {
@@ -259,7 +261,7 @@ export function EnhancedFormRenderer({
     } finally {
       setDraftChecked(true);
     }
-  }, [draftChecked, draftStorageKey, formData, isDataScreen, loading, reset]);
+  }, [draftChecked, draftStorageKey, formData, hasAutoSave, loading, reset]);
 
   function UnsavedContextBridge() {
     const ctx = useUnsavedChangesContext();
@@ -394,7 +396,7 @@ export function EnhancedFormRenderer({
     }
 
     // Build diffs for reason capture
-    if (formData?.form.formType === "DATA_SCREEN") {
+    if (hasAutoSave) {
       const before = formData?.data || {};
       const changes: ChangeInfo[] = [];
       for (const [k, v] of Object.entries(data)) {
@@ -458,163 +460,163 @@ export function EnhancedFormRenderer({
     <UnsavedChangesGuard>
       <UnsavedContextBridge />
       <div className="space-y-6">
-      <div className="border-b pb-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">{formData.form.name}</h2>
-          <HistoryButton
-            employeeId={employeeId}
-            section={`forms:${formId}`}
-            title={`${formData.form.name} History`}
-          />
-        </div>
-        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-          <span
-            className={`px-2 py-1 rounded text-xs font-medium ${formData.form.formType === "DATA_SCREEN" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
-          >
-            {formData.form.formType === "DATA_SCREEN"
-              ? "Data Screen"
-              : "Submission Form"}
-          </span>
-          {isReadOnly && (
-            <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
-              Read-only
+        <div className="border-b pb-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">{formData.form.name}</h2>
+            <HistoryButton
+              employeeId={employeeId}
+              section={`forms:${formId}`}
+              title={`${formData.form.name} History`}
+            />
+          </div>
+          <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+            <span
+              className={`px-2 py-1 rounded text-xs font-medium ${hasAutoSave ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
+            >
+              {hasAutoSave
+                ? "Editable Data"
+                : "One-time Form"}
             </span>
-          )}
-          {formData.lastUpdated && (
-            <span>
-              Last updated: {new Date(formData.lastUpdated).toLocaleString()}
-            </span>
-          )}
+            {isReadOnly && (
+              <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                Read-only
+              </span>
+            )}
+            {formData.lastUpdated && (
+              <span>
+                Last updated: {new Date(formData.lastUpdated).toLocaleString()}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {pages.map((page) => (
-          <div key={page.id} className="space-y-6">
-            {page.title && (
-              <h3 className="text-lg font-semibold">{page.title}</h3>
-            )}
-            {page.description && (
-              <p className="text-sm text-gray-600">{page.description}</p>
-            )}
-            {(page.sections || []).filter((s) => !s.hidden).map((section) => (
-              <div key={section.id} className="space-y-4">
-                {section.title && (
-                  <div>
-                    <h4 className="font-semibold">{section.title}</h4>
-                    {section.description && (
-                      <p className="text-sm text-gray-600">{section.description}</p>
-                    )}
-                  </div>
-                )}
-                <div className={section.columns ? (section.columns === 2 ? "grid grid-cols-2 gap-4" : section.columns === 3 ? "grid grid-cols-3 gap-4" : "grid grid-cols-1 gap-4") : "grid grid-cols-12 gap-4"}>
-                  {section.fields.map((field) => {
-                    const isVisible = evaluateGroup(field.logic?.visibleWhen);
-                    if (!isVisible) return null;
-                    const widthClass = !section.columns
-                      ? field.width === "half"
-                        ? "col-span-12 md:col-span-6"
-                        : field.width === "third"
-                        ? "col-span-12 md:col-span-4"
-                        : field.width === "auto"
-                        ? "col-span-12 md:col-span-3"
-                        : "col-span-12"
-                      : "";
-                    return (
-                    <div key={field.id} className={widthClass}>
-                      {field.type === "sectionHeader" && (
-                        <h5 className="text-base font-semibold">{field.label}</h5>
-                      )}
-                      {field.type === "description" && (
-                        <p className="text-sm text-gray-600">{field.helpText || field.placeholder || field.label}</p>
-                      )}
-                      {field.type === "divider" && <div className="border-t" />}
-                      {!["sectionHeader","description","divider","pageBreak"].includes(String(field.type)) && (
-                        <>
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="block text-sm font-medium text-gray-700">
-                              {field.label}
-                              {(field.required || field.validation?.required) && <span className="text-red-500 ml-1">*</span>}
-                            </label>
-                            <div className="-mr-2">
-                              <HistoryButton
-                                employeeId={employeeId}
-                                section={`forms:${formId}`}
-                                field={field.id}
-                                title={`${field.label} History`}
-                                variant="ghost"
-                                size="sm"
-                                iconOnly
-                                className="text-gray-600 hover:text-gray-900"
-                              />
-                            </div>
-                          </div>
-                          {renderField(field, register, watch, setValue, isReadOnly, {
-                            uploadContext: {
-                              employeeId,
-                              formName: formData.form.name,
-                            },
-                          })}
-                        </>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {pages.map((page) => (
+            <div key={page.id} className="space-y-6">
+              {page.title && (
+                <h3 className="text-lg font-semibold">{page.title}</h3>
+              )}
+              {page.description && (
+                <p className="text-sm text-gray-600">{page.description}</p>
+              )}
+              {(page.sections || []).filter((s) => !s.hidden).map((section) => (
+                <div key={section.id} className="space-y-4">
+                  {section.title && (
+                    <div>
+                      <h4 className="font-semibold">{section.title}</h4>
+                      {section.description && (
+                        <p className="text-sm text-gray-600">{section.description}</p>
                       )}
                     </div>
-                    );
-                  })}
+                  )}
+                  <div className={section.columns ? (section.columns === 2 ? "grid grid-cols-2 gap-4" : section.columns === 3 ? "grid grid-cols-3 gap-4" : "grid grid-cols-1 gap-4") : "grid grid-cols-12 gap-4"}>
+                    {section.fields.map((field) => {
+                      const isVisible = evaluateGroup(field.logic?.visibleWhen);
+                      if (!isVisible) return null;
+                      const widthClass = !section.columns
+                        ? field.width === "half"
+                          ? "col-span-12 md:col-span-6"
+                          : field.width === "third"
+                            ? "col-span-12 md:col-span-4"
+                            : field.width === "auto"
+                              ? "col-span-12 md:col-span-3"
+                              : "col-span-12"
+                        : "";
+                      return (
+                        <div key={field.id} className={widthClass}>
+                          {field.type === "sectionHeader" && (
+                            <h5 className="text-base font-semibold">{field.label}</h5>
+                          )}
+                          {field.type === "description" && (
+                            <p className="text-sm text-gray-600">{field.helpText || field.placeholder || field.label}</p>
+                          )}
+                          {field.type === "divider" && <div className="border-t" />}
+                          {!["sectionHeader", "description", "divider", "pageBreak"].includes(String(field.type)) && (
+                            <>
+                              <div className="flex items-center justify-between mb-2">
+                                <label className="block text-sm font-medium text-gray-700">
+                                  {field.label}
+                                  {(field.required || field.validation?.required) && <span className="text-red-500 ml-1">*</span>}
+                                </label>
+                                <div className="-mr-2">
+                                  <HistoryButton
+                                    employeeId={employeeId}
+                                    section={`forms:${formId}`}
+                                    field={field.id}
+                                    title={`${field.label} History`}
+                                    variant="ghost"
+                                    size="sm"
+                                    iconOnly
+                                    className="text-gray-600 hover:text-gray-900"
+                                  />
+                                </div>
+                              </div>
+                              {renderField(field, register, watch, setValue, isReadOnly, {
+                                uploadContext: {
+                                  employeeId,
+                                  formName: formData.form.name,
+                                },
+                              })}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          ))}
+
+          <div className="flex items-center justify-end gap-3 pt-4">
+            <Button
+              type="submit"
+              disabled={
+                saving ||
+                isReadOnly ||
+                (hasAutoSave && !formState.isDirty)
+              }
+              className="flex items-center gap-2"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : hasAutoSave ? (
+                <Save className="h-4 w-4" />
+              ) : null}
+              {saving
+                ? "Saving..."
+                : hasAutoSave
+                  ? "Save Data"
+                  : "Submit Form"}
+            </Button>
+            {hasAutoSave && !formState.isDirty && !isReadOnly && (
+              <span className="text-xs text-gray-500">No changes to save</span>
+            )}
           </div>
-        ))}
+        </form>
 
-        <div className="flex items-center justify-end gap-3 pt-4">
-          <Button
-            type="submit"
-            disabled={
-              saving ||
-              isReadOnly ||
-              (formData.form.formType === "DATA_SCREEN" && !formState.isDirty)
+        <ChangeReasonModal
+          isOpen={isReasonOpen}
+          onClose={() => {
+            setIsReasonOpen(false);
+            setPendingChanges([]);
+            setPendingAction(null);
+            setPendingPayload(null);
+          }}
+          changes={pendingChanges}
+          onSubmit={async (reasons) => {
+            if (!pendingPayload) return;
+            if (pendingAction === "data") {
+              await saveData(pendingPayload.data, reasons);
+            } else if (pendingAction === "submit") {
+              await submitForm(pendingPayload.data, reasons);
             }
-            className="flex items-center gap-2"
-          >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : formData.form.formType === "DATA_SCREEN" ? (
-              <Save className="h-4 w-4" />
-            ) : null}
-            {saving
-              ? "Saving..."
-              : formData.form.formType === "DATA_SCREEN"
-                ? "Save Data"
-                : "Submit Form"}
-          </Button>
-          {formData.form.formType === "DATA_SCREEN" && !formState.isDirty && !isReadOnly && (
-            <span className="text-xs text-gray-500">No changes to save</span>
-          )}
-        </div>
-      </form>
-
-      <ChangeReasonModal
-        isOpen={isReasonOpen}
-        onClose={() => {
-          setIsReasonOpen(false);
-          setPendingChanges([]);
-          setPendingAction(null);
-          setPendingPayload(null);
-        }}
-        changes={pendingChanges}
-        onSubmit={async (reasons) => {
-          if (!pendingPayload) return;
-          if (pendingAction === "data") {
-            await saveData(pendingPayload.data, reasons);
-          } else if (pendingAction === "submit") {
-            await submitForm(pendingPayload.data, reasons);
-          }
-          setIsReasonOpen(false);
-          setPendingChanges([]);
-          setPendingAction(null);
-          setPendingPayload(null);
-        }}
-      />
+            setIsReasonOpen(false);
+            setPendingChanges([]);
+            setPendingAction(null);
+            setPendingPayload(null);
+          }}
+        />
       </div>
     </UnsavedChangesGuard>
   );
@@ -710,7 +712,7 @@ export function renderField(
                     window.removeEventListener("mouseup", up);
                     try {
                       setValue(`${field.id}.drawn`, c.toDataURL("image/png"), { shouldDirty: true });
-                    } catch {}
+                    } catch { }
                   };
                   window.addEventListener("mousemove", move);
                   window.addEventListener("mouseup", up);

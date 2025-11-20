@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import {
+  documentStatusCache,
+  generateDocumentStatusCacheKey,
+} from "@/lib/cache";
 
 /**
  * POST /api/documents/status
@@ -30,7 +34,7 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Authentication
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -74,7 +78,38 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Fetch documents with their requirements (tenant-scoped)
+    // 4. Check cache before database queries
+    const cacheKey = generateDocumentStatusCacheKey(
+      session.user.companyId,
+      documentIds
+    );
+
+    try {
+      const cachedData = await documentStatusCache.get<{
+        statuses: Record<string, {
+          acknowledged: boolean;
+          signed: boolean;
+          requiresAck: boolean;
+          requiresSignature: boolean;
+        }>;
+      }>(cacheKey);
+
+      if (cachedData) {
+        // Cache hit - return cached data with headers
+        return NextResponse.json(cachedData, {
+          status: 200,
+          headers: {
+            "Cache-Control": "private, max-age=60",
+            "X-Cache": "HIT",
+          },
+        });
+      }
+    } catch (error) {
+      // Log cache error but continue to database query
+      console.warn("[documents-status] Cache read error:", error);
+    }
+
+    // 5. Fetch documents with their requirements (tenant-scoped)
     const documents = await prisma.document.findMany({
       where: {
         id: { in: documentIds },
@@ -93,7 +128,7 @@ export async function POST(req: NextRequest) {
       documents.map((doc) => [doc.id, doc])
     );
 
-    // 5. Batch fetch acknowledgements for all documents
+    // 6. Batch fetch acknowledgements for all documents
     const acknowledgements = await prisma.documentAcknowledgement.findMany({
       where: {
         documentId: { in: documentIds },
@@ -108,7 +143,7 @@ export async function POST(req: NextRequest) {
       acknowledgements.map((ack) => ack.documentId)
     );
 
-    // 6. Batch fetch signatures for all documents
+    // 7. Batch fetch signatures for all documents
     const signatures = await prisma.documentSignatureArtifact.findMany({
       where: {
         documentId: { in: documentIds },
@@ -123,7 +158,7 @@ export async function POST(req: NextRequest) {
       signatures.map((sig) => sig.documentId)
     );
 
-    // 7. Build response object
+    // 8. Build response object
     const statuses: Record<string, {
       acknowledged: boolean;
       signed: boolean;
@@ -133,7 +168,7 @@ export async function POST(req: NextRequest) {
 
     for (const docId of documentIds) {
       const doc = documentMap.get(docId);
-      
+
       if (!doc) {
         // Document not found or not accessible (wrong tenant, deleted, etc.)
         statuses[docId] = {
@@ -153,7 +188,23 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    return NextResponse.json({ statuses });
+    const responseData = { statuses };
+
+    // 9. Store in cache (60 second TTL)
+    try {
+      await documentStatusCache.set(cacheKey, responseData, 60);
+    } catch (error) {
+      // Log cache error but don't fail the request
+      console.warn("[documents-status] Cache write error:", error);
+    }
+
+    return NextResponse.json(responseData, {
+      status: 200,
+      headers: {
+        "Cache-Control": "private, max-age=60",
+        "X-Cache": "MISS",
+      },
+    });
 
   } catch (error) {
     console.error("[documents-status-post]", error);

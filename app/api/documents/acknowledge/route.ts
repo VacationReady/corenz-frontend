@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { invalidateDocumentStatusCache } from "@/lib/cache";
 
 // ✅ POST: Acknowledge a document
 export async function POST(req: Request) {
@@ -52,6 +53,15 @@ export async function POST(req: Request) {
       },
     });
 
+    // Invalidate document status cache
+    if (session.user.companyId) {
+      try {
+        await invalidateDocumentStatusCache(session.user.companyId, documentId);
+      } catch (error) {
+        console.warn("[acknowledge] Cache invalidation error:", error);
+      }
+    }
+
     return NextResponse.json(
       { message: "Acknowledgement recorded" },
       { status: 200 },
@@ -64,4 +74,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

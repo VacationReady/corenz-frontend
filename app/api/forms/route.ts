@@ -14,9 +14,9 @@ export async function GET(req: Request) {
   // Support filtering by form type (e.g., ?type=SURVEY or ?type=FORM,TABLE)
   const { searchParams } = new URL(req.url);
   const typeParam = searchParams.get("type");
-  
+
   const whereClause: any = { companyId: session.user.companyId };
-  
+
   if (typeParam) {
     const types = typeParam.split(",").map(t => t.trim());
     whereClause.formType = types.length === 1 ? types[0] : { in: types };
@@ -47,6 +47,7 @@ export async function POST(req: Request) {
     visibleToRoles,
     visibleToDepartments,
     visibleToJobRoles,
+    autoSave,
   } = await req.json();
 
   // Validate required fields
@@ -106,6 +107,7 @@ export async function POST(req: Request) {
     visibleToRoles: visibleToRoles || ["ADMIN", "MANAGER", "EMPLOYEE"],
     visibleToDepartments: visibleToDepartments || [],
     visibleToJobRoles: visibleToJobRoles || [],
+    autoSave: autoSave || false,
   });
 
   // Create form
@@ -122,6 +124,7 @@ export async function POST(req: Request) {
       visibleToRoles: visibleToRoles || ["ADMIN", "MANAGER", "EMPLOYEE"],
       visibleToDepartments: visibleToDepartments || [],
       visibleToJobRoles: visibleToJobRoles || [],
+      autoSave: autoSave || false,
     },
   });
 

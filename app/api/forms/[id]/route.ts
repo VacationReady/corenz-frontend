@@ -48,6 +48,7 @@ export async function PUT(
     visibleToDepartments,
     visibleToJobRoles,
     transactionalEnabled,
+    autoSave,
   } = await req.json();
 
   // Validate slug format if provided
@@ -103,6 +104,7 @@ export async function PUT(
   if (visibleToJobRoles !== undefined)
     updateData.visibleToJobRoles = visibleToJobRoles;
   if (typeof transactionalEnabled === 'boolean') updateData.transactionalEnabled = transactionalEnabled;
+  if (typeof autoSave === 'boolean') updateData.autoSave = autoSave;
 
   const updated = await prisma.form.update({
     where: { id, companyId: session.user.companyId },

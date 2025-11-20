@@ -96,7 +96,7 @@ export function useApiMutation<TData, TVariables = unknown>(
     url,
     async (key, { arg }) => {
       let response;
-      
+
       switch (method) {
         case 'POST':
           response = await apiClient.post<TData, TVariables>(key, arg);
@@ -235,53 +235,39 @@ export function useBatchedApi<TResponse, TRequest = unknown>(
   requestData: TRequest,
   options?: UseApiOptions<TResponse>
 ) {
-  const [data, setData] = useState<TResponse | undefined>();
-  const [error, setError] = useState<ApiError | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { enabled = true, ...swrOptions } = options || {};
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const requestDataRef = useRef(requestData);
+  // Create a stable key for SWR that includes the request data
+  const swrKey = enabled ? [url, JSON.stringify(requestData)] : null;
 
-  // Update ref when request data changes
-  useEffect(() => {
-    requestDataRef.current = requestData;
-  }, [requestData]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-
+  const swr = useSWR<TResponse, Error>(
+    swrKey,
+    async ([url, requestDataStr]) => {
+      const parsedRequestData = JSON.parse(requestDataStr) as TRequest;
       const response = await apiClient.post<TResponse, TRequest>(
         url,
-        requestDataRef.current,
-        { signal: controller.signal }
+        parsedRequestData
       );
 
-      if (controller.signal.aborted) return;
-
       if (response.error) {
-        setError(response.error);
-        setData(undefined);
-      } else {
-        setData(response.data as TResponse);
-        setError(null);
+        throw new Error(response.error.message);
       }
 
-      setIsLoading(false);
-    };
+      return response.data as TResponse;
+    },
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000, // Match server cache TTL (60 seconds)
+      ...swrOptions,
+    }
+  );
 
-    fetchData();
-
-    return () => {
-      controller.abort();
-    };
-  }, [url]);
-
-  return { data, error, isLoading };
+  return {
+    data: swr.data,
+    error: swr.error,
+    isLoading: !swr.error && !swr.data && enabled,
+  };
 }
 
 /**

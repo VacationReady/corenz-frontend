@@ -32,6 +32,7 @@ import {
 import { Info } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import Checkbox from "@/components/ui/Checkbox";
 import { RotateCcw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -80,6 +81,7 @@ interface FormBuilderProps {
     visibleToDepartments?: string[];
     visibleToJobRoles?: string[];
     transactionalEnabled?: boolean;
+    autoSave?: boolean;
   }) => void | Promise<void>;
   initialData?: {
     name: string;
@@ -91,6 +93,7 @@ interface FormBuilderProps {
     visibleToDepartments?: string[];
     visibleToJobRoles?: string[];
     transactionalEnabled?: boolean;
+    autoSave?: boolean;
   };
 }
 
@@ -127,8 +130,12 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
   const [formDescription, setFormDescription] = useState(
     initialData?.description || "",
   );
+  // Handle DATA_SCREEN migration: convert to FORM with autoSave
   const [formType, setFormType] = useState<"SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN">(
-    initialData?.formType || "FORM",
+    initialData?.formType === "DATA_SCREEN" ? "FORM" : (initialData?.formType || "FORM"),
+  );
+  const [autoSave, setAutoSave] = useState<boolean>(
+    Boolean(initialData?.autoSave) || initialData?.formType === "DATA_SCREEN" || false,
   );
   const [transactionalEnabled, setTransactionalEnabled] = useState<boolean>(
     Boolean(initialData?.transactionalEnabled) || false,
@@ -258,6 +265,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
       visibleToDepartments: vis.departments,
       visibleToJobRoles: vis.jobRoles,
       transactionalEnabled,
+      autoSave,
     });
 
     toast.success("Form saved successfully");
@@ -352,13 +360,42 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="glass-premium">
-                  <SelectItem value="SURVEY">Survey (One-time)</SelectItem>
-                  <SelectItem value="FORM">Standard Form</SelectItem>
-                  <SelectItem value="DATA_SCREEN">Data Screen</SelectItem>
-                  <SelectItem value="TABLE">Table View</SelectItem>
+                  <SelectItem value="FORM">Form</SelectItem>
+                  <SelectItem value="TABLE">Table</SelectItem>
+                  <SelectItem value="SURVEY">Survey</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {formType === "FORM" && "Single record per employee (editable)"}
+                {formType === "TABLE" && "Multiple records per employee"}
+                {formType === "SURVEY" && "One-time submission (not editable)"}
+              </p>
             </div>
+            {formType === "FORM" && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="autoSave"
+                  checked={autoSave}
+                  onCheckedChange={(checked) => setAutoSave(Boolean(checked))}
+                />
+                <label
+                  htmlFor="autoSave"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Auto-save drafts
+                </label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="glass-premium max-w-xs">
+                      <p>Automatically save user progress every 5 seconds to prevent data loss</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            )}
           </div>
         </div>
 

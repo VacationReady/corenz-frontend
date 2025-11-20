@@ -14,9 +14,11 @@ interface FormData {
   description?: string;
   schema: AnyFormSchema;
   isActive: boolean;
+  formType?: "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN";
   visibleToRoles?: string[];
   visibleToDepartments?: string[];
   visibleToJobRoles?: string[];
+  autoSave?: boolean;
 }
 
 export default function EditFormPage() {
@@ -66,6 +68,7 @@ export default function EditFormPage() {
     visibleToRoles?: string[];
     visibleToDepartments?: string[];
     visibleToJobRoles?: string[];
+    autoSave?: boolean;
   }) => {
     try {
       const res = await fetch(`/api/forms/${formId}`, {
@@ -149,10 +152,12 @@ export default function EditFormPage() {
           name: formData.name,
           slug: formData.slug,
           description: formData.description,
+          formType: formData.formType,
           schema: formData.schema,
           visibleToRoles: formData.visibleToRoles,
           visibleToDepartments: formData.visibleToDepartments,
           visibleToJobRoles: formData.visibleToJobRoles,
+          autoSave: formData.autoSave,
         }}
       />
     </PageShell>

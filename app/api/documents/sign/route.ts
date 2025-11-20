@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { invalidateDocumentStatusCache } from "@/lib/cache";
 
 type SignRequestBody = {
   documentId: string;
@@ -217,6 +218,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Invalidate document status cache
+    try {
+      await invalidateDocumentStatusCache(companyId, documentId);
+    } catch (error) {
+      console.warn("[sign] Cache invalidation error:", error);
+    }
+
     // If a drawn signature and a single field target, stamp the PDF visually and upload a new version
     try {
       if (method === "DRAWN") {
@@ -227,7 +235,7 @@ export async function POST(req: NextRequest) {
           if (origFile) {
             origArrayBuffer = await origFile.arrayBuffer();
           }
-        } catch {}
+        } catch { }
         if (!origArrayBuffer) {
           try {
             const { data: signed } = await supabase.storage
@@ -237,7 +245,7 @@ export async function POST(req: NextRequest) {
               const resp = await fetch(signed.signedUrl);
               origArrayBuffer = await resp.arrayBuffer();
             }
-          } catch {}
+          } catch { }
         }
         if (origArrayBuffer) {
           const origBytes = origArrayBuffer;

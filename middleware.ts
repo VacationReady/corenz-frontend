@@ -26,7 +26,7 @@ const EXCLUDED_PATHS = [
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  
+
   // Skip middleware for excluded paths
   if (EXCLUDED_PATHS.some((excludedPath) => path.startsWith(excludedPath))) {
     return NextResponse.next();
@@ -57,13 +57,32 @@ export async function middleware(request: NextRequest) {
     }
 
     const requestHeaders = new Headers(request.headers);
-    
+
     // Add company ID header if not present
     if (!requestHeaders.has("x-company-id")) {
       try {
-        const tokenForHeader = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+        // Explicitly pass the secret and request
+        const secret = process.env.NEXTAUTH_SECRET;
+        if (!secret) {
+          console.error("middleware: NEXTAUTH_SECRET is missing");
+        }
+
+        const tokenForHeader = await getToken({ req: request, secret });
+
         if (tokenForHeader?.companyId) {
           requestHeaders.set("x-company-id", String(tokenForHeader.companyId));
+        } else {
+          // Debug logging for missing token/companyId on rate-limited paths
+          if (RATE_LIMIT_PATHS.some((p) => path.startsWith(p))) {
+            const cookieNames = request.cookies.getAll().map(c => c.name);
+            console.warn("middleware: failed to hydrate companyId from token", {
+              path,
+              hasToken: !!tokenForHeader,
+              tokenKeys: tokenForHeader ? Object.keys(tokenForHeader) : [],
+              cookieNames,
+              hasSecret: !!secret,
+            });
+          }
         }
       } catch (error) {
         console.warn("Failed to get token:", error);

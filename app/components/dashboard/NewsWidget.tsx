@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { Megaphone } from "lucide-react";
 import Link from "next/link";
@@ -20,11 +21,14 @@ type NewsWidgetProps = {
 };
 
 export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
+  const { status } = useSession();
   const tenantFetch = useTenantFetch();
   const [items, setItems] = useState<NewsPost[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (status === "loading") return;
+
     const fetchLatestNews = async () => {
       try {
         const res = await tenantFetch(`/api/news?limit=${limit}`);
@@ -38,7 +42,7 @@ export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
     };
 
     fetchLatestNews();
-  }, [limit, tenantFetch]);
+  }, [limit, tenantFetch, status]);
 
   return (
     <DashboardWidget title="Latest News" icon={Megaphone} className="h-full">

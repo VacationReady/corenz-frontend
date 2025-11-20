@@ -35,7 +35,9 @@ import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { Input } from "@/components/ui/Input";
 import { useApi, useBatchedApi, usePaginatedApi } from "@/hooks/useApi";
 import { apiClient } from "@/lib/apiClient";
- 
+import { useSession } from "next-auth/react";
+import { useTenantFetch } from "@/hooks/useTenantFetch";
+
 function EntitlementProjection({
   employeeId,
   eventCategoryId,
@@ -47,14 +49,19 @@ function EntitlementProjection({
   startDate: string;
   endDate: string;
 }) {
+  const { status } = useSession();
+  const tenantFetch = useTenantFetch();
   const [text, setText] = useState<string | null>(null);
+
   useEffect(() => {
+    if (status === "loading") return;
+
     let active = true;
     (async () => {
       try {
         const [entsRes, dedRes] = await Promise.all([
-          fetch(`/api/employees/${encodeURIComponent(employeeId)}/entitlement`, { cache: "no-store" }),
-          fetch(`/api/employees/${encodeURIComponent(employeeId)}/leave-requests/preview-deduction?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, { cache: "no-store" }),
+          tenantFetch(`/api/employees/${encodeURIComponent(employeeId)}/entitlement`, { cache: "no-store" }),
+          tenantFetch(`/api/employees/${encodeURIComponent(employeeId)}/leave-requests/preview-deduction?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, { cache: "no-store" }),
         ]);
         const ents = await entsRes.json();
         const ded = await dedRes.json().catch(() => ({ deduction: null }));
@@ -74,7 +81,7 @@ function EntitlementProjection({
     return () => {
       active = false;
     };
-  }, [employeeId, eventCategoryId, startDate, endDate]);
+  }, [employeeId, eventCategoryId, startDate, endDate, status, tenantFetch]);
   return text ? <div className="text-xs text-muted-foreground">{text}</div> : null;
 }
 
@@ -206,7 +213,7 @@ export default function AdminDashboardClient({
       ) : null}
     </Dialog>
   );
-  
+
   // ---------------- Documents Action Items (Ack & Sign) ----------------
   // Fetch documents list
   const { data: companyDocs } = useApi<any[]>('/api/documents/list-company');
@@ -275,7 +282,7 @@ export default function AdminDashboardClient({
       urlMap,
     });
   }, [statusData, candidateDocuments, loadingStatuses]);
-  
+
   // Fetch dashboard metrics with department filter
   const { data: metricsData, isLoading: loadingMetricsData } = useApi<{
     headcount: number;
@@ -340,7 +347,7 @@ export default function AdminDashboardClient({
           if (isMounted)
             setDepartments(items.map((d: any) => ({ id: d.id, name: d.name })));
         }
-      } catch {}
+      } catch { }
     };
     loadDepts();
     return () => {
@@ -384,23 +391,23 @@ export default function AdminDashboardClient({
           const leaveItems = Array.isArray(leaveData?.items) ? leaveData.items : [];
           const txnItems = Array.isArray(txnData?.data)
             ? txnData.data.map((r: any) => {
-                const empUser = r.Employee?.User || {};
-                const reqUser = r.Requester || {};
-                const employeeDisplayName = (empUser.name && empUser.name.trim()) || `${empUser.firstName ?? ""} ${empUser.lastName ?? ""}`.trim() || empUser.email || "Employee";
-                const actorDisplayName = (reqUser.name && reqUser.name.trim()) || `${reqUser.firstName ?? ""} ${reqUser.lastName ?? ""}`.trim() || reqUser.email || "Unknown";
-                return {
-                  id: r.id,
-                  type: `Change: ${r.section}`,
-                  employee: { user: empUser },
-                  employeeDisplayName,
-                  actor: reqUser,
-                  actorDisplayName,
-                  actorAvatarUrl: reqUser.profileImageUrl || null,
-                  diffs: r.diffs,
-                  reasons: r.reasons,
-                  source: "txn",
-                };
-              })
+              const empUser = r.Employee?.User || {};
+              const reqUser = r.Requester || {};
+              const employeeDisplayName = (empUser.name && empUser.name.trim()) || `${empUser.firstName ?? ""} ${empUser.lastName ?? ""}`.trim() || empUser.email || "Employee";
+              const actorDisplayName = (reqUser.name && reqUser.name.trim()) || `${reqUser.firstName ?? ""} ${reqUser.lastName ?? ""}`.trim() || reqUser.email || "Unknown";
+              return {
+                id: r.id,
+                type: `Change: ${r.section}`,
+                employee: { user: empUser },
+                employeeDisplayName,
+                actor: reqUser,
+                actorDisplayName,
+                actorAvatarUrl: reqUser.profileImageUrl || null,
+                diffs: r.diffs,
+                reasons: r.reasons,
+                source: "txn",
+              };
+            })
             : [];
           // Sign profile image URLs for avatars when needed
           const signedCache = new Map<string, string>();
@@ -903,7 +910,7 @@ export default function AdminDashboardClient({
                           const day = String(d.getDate()).padStart(2, "0");
                           const iso = `${y}-${m}-${day}`;
                           router.push(`/calendar?date=${iso}`);
-                        } catch (_err) {}
+                        } catch (_err) { }
                       }}
                     >
                       <Avatar
@@ -935,118 +942,118 @@ export default function AdminDashboardClient({
     return (
       <>
         <DashboardWidget title="People Metrics" icon={Users} className="h-full">
-        <div className="space-y-4">
-          {/* Department Filter */}
-          <div className="mb-4">
-            <Select
-              value={selectedDepartment}
-              onValueChange={setSelectedDepartment}
-            >
-              <SelectTrigger className="h-9 text-sm w-full">
-                <SelectValue placeholder="All departments" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All departments</SelectItem>
-                {departments.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <div className="space-y-4">
+            {/* Department Filter */}
+            <div className="mb-4">
+              <Select
+                value={selectedDepartment}
+                onValueChange={setSelectedDepartment}
+              >
+                <SelectTrigger className="h-9 text-sm w-full">
+                  <SelectValue placeholder="All departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All departments</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {loadingMetrics || !metrics ? (
-            <div className="space-y-3">
-              <Skeleton className="h-6 w-full" />
-              <Skeleton className="h-6 w-3/4" />
-              <Skeleton className="h-6 w-5/6" />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  Active Employees
-                </span>
-                <span className="text-2xl font-bold text-foreground">
-                  {metrics.headcount}
-                </span>
+            {loadingMetrics || !metrics ? (
+              <div className="space-y-3">
+                <Skeleton className="h-6 w-full" />
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-6 w-5/6" />
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Managers</span>
-                <span className="text-2xl font-bold text-foreground">
-                  {metrics.managers}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  New Starters
-                </span>
-                <button
-                  className="text-2xl font-bold text-primary hover:underline"
-                  onClick={async () => {
-                    try {
-                      setNewStartersOpen(true);
-                      setLoadingNewStarters(true);
-                      const qs = new URLSearchParams();
-                      if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
-                      const res = await fetch(`/api/dashboard/new-starters${qs.toString() ? `?${qs.toString()}` : ""}`, { cache: "no-store" });
-                      const data = await res.json();
-                      setNewStarters(Array.isArray(data?.items) ? data.items : []);
-                    } catch {
-                      setNewStarters([]);
-                    } finally {
-                      setLoadingNewStarters(false);
-                    }
-                  }}
-                >
-                  {metrics.newStartersThisMonth}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </DashboardWidget>
-      {newStartersOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="glass rounded-2xl w-full max-w-2xl border border-glass p-4 shadow-depth-2 bg-background">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-base font-semibold">New starters (last 30 days)</div>
-              <button className="text-sm text-muted-foreground" onClick={() => setNewStartersOpen(false)}>Close</button>
-            </div>
-            {loadingNewStarters ? (
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-full" />
-                <Skeleton className="h-5 w-5/6" />
-                <Skeleton className="h-5 w-2/3" />
-              </div>
-            ) : !newStarters || newStarters.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No starters in the last 30 days.</p>
             ) : (
-              <ul className="divide-y">
-                {newStarters.map((ns) => (
-                  <li key={ns.employeeId} className="py-2 flex items-center gap-3">
-                    <Avatar size={32} name={ns.name} src={ns.profileImageUrl || undefined} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{ns.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        Start: {new Date(ns.startDate).toLocaleDateString()} {ns.department ? `â€¢ ${ns.department}` : ""}
-                      </p>
-                    </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-xs text-muted-foreground">Onboarding</div>
-                      <div className="text-sm font-medium">
-                        {ns.onboarding?.status === "completed" ? "Completed" : `${ns.onboarding?.percent ?? 0}%`}
-                      </div>
-                    </div>
-                    <Button size="sm" variant="outline" onClick={() => router.push(`/employees/${ns.employeeId}/onboarding`)}>Open</Button>
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    Active Employees
+                  </span>
+                  <span className="text-2xl font-bold text-foreground">
+                    {metrics.headcount}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Managers</span>
+                  <span className="text-2xl font-bold text-foreground">
+                    {metrics.managers}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    New Starters
+                  </span>
+                  <button
+                    className="text-2xl font-bold text-primary hover:underline"
+                    onClick={async () => {
+                      try {
+                        setNewStartersOpen(true);
+                        setLoadingNewStarters(true);
+                        const qs = new URLSearchParams();
+                        if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
+                        const res = await fetch(`/api/dashboard/new-starters${qs.toString() ? `?${qs.toString()}` : ""}`, { cache: "no-store" });
+                        const data = await res.json();
+                        setNewStarters(Array.isArray(data?.items) ? data.items : []);
+                      } catch {
+                        setNewStarters([]);
+                      } finally {
+                        setLoadingNewStarters(false);
+                      }
+                    }}
+                  >
+                    {metrics.newStartersThisMonth}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-      ) : null}
+        </DashboardWidget>
+        {newStartersOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="glass rounded-2xl w-full max-w-2xl border border-glass p-4 shadow-depth-2 bg-background">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-base font-semibold">New starters (last 30 days)</div>
+                <button className="text-sm text-muted-foreground" onClick={() => setNewStartersOpen(false)}>Close</button>
+              </div>
+              {loadingNewStarters ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-full" />
+                  <Skeleton className="h-5 w-5/6" />
+                  <Skeleton className="h-5 w-2/3" />
+                </div>
+              ) : !newStarters || newStarters.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No starters in the last 30 days.</p>
+              ) : (
+                <ul className="divide-y">
+                  {newStarters.map((ns) => (
+                    <li key={ns.employeeId} className="py-2 flex items-center gap-3">
+                      <Avatar size={32} name={ns.name} src={ns.profileImageUrl || undefined} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{ns.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          Start: {new Date(ns.startDate).toLocaleDateString()} {ns.department ? `â€¢ ${ns.department}` : ""}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="text-xs text-muted-foreground">Onboarding</div>
+                        <div className="text-sm font-medium">
+                          {ns.onboarding?.status === "completed" ? "Completed" : `${ns.onboarding?.percent ?? 0}%`}
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => router.push(`/employees/${ns.employeeId}/onboarding`)}>Open</Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        ) : null}
       </>
     );
   }

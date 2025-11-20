@@ -37,7 +37,7 @@ interface UnifiedActionItemsProps {
 }
 
 export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedActionItemsProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const tenantFetch = useTenantFetch();
   const fetcher = createFetcher(session?.user?.companyId);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
@@ -50,6 +50,8 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
   const [viewAll, setViewAll] = useState(false);
   const [holidayApprovalId, setHolidayApprovalId] = useState<string | null>(null);
 
+  const isLoadingSession = status === "loading";
+
   const toAuditValue = (val: unknown): string | null | undefined => {
     if (val === null || val === undefined) return null;
     return String(val);
@@ -57,37 +59,37 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
 
   // Fetch onboarding tasks
   const { data: onboardingData } = useSWR(
-    employeeId ? `/api/onboarding/instances/employee/${employeeId}` : null,
+    !isLoadingSession && employeeId ? `/api/onboarding/instances/employee/${employeeId}` : null,
     fetcher
   );
 
   // Fetch employee documents
   const { data: employeeDocs, isLoading: loadingEmpDocs } = useSWR(
-    employeeId ? `/api/documents/list-employee?employeeId=${employeeId}` : null,
+    !isLoadingSession && employeeId ? `/api/documents/list-employee?employeeId=${employeeId}` : null,
     fetcher
   );
 
   // Fetch company documents
   const { data: companyDocs, isLoading: loadingCompanyDocs } = useSWR(
-    `/api/documents/list-company`,
+    !isLoadingSession ? `/api/documents/list-company` : null,
     fetcher
   );
 
   // Fetch transactional change requests
   const { data: txnRequests, mutate: mutateTxn } = useSWR(
-    `/api/transactional-change-requests?scope=assigned`,
+    !isLoadingSession ? `/api/transactional-change-requests?scope=assigned` : null,
     fetcher
   );
 
   // Fetch approvals (for managers)
   const { data: approvals, mutate: mutateApprovals } = useSWR(
-    isManager ? `/api/approvals?status=PENDING` : null,
+    !isLoadingSession && isManager ? `/api/approvals?status=PENDING` : null,
     fetcher
   );
 
   // Fetch action items from database (workflow-generated tasks)
   const { data: dbActionItems, mutate: mutateActionItems } = useSWR(
-    employeeId ? `/api/action-items?employeeId=${employeeId}&status=PENDING` : `/api/action-items?status=PENDING`,
+    !isLoadingSession ? (employeeId ? `/api/action-items?employeeId=${employeeId}&status=PENDING` : `/api/action-items?status=PENDING`) : null,
     fetcher
   );
 
@@ -148,7 +150,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
             const metadata = item.metadata || {};
             const label = metadata.label || '';
             const totalHours = metadata.totalHours ? `${metadata.totalHours} hours` : '';
-            
+
             items.push({
               id: `action-${item.id}`,
               type: "approval",
@@ -172,7 +174,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
               id: `action-${item.id}`,
               type: "task",
               title: item.title,
-              subtitle: item.relatedEmployee?.name 
+              subtitle: item.relatedEmployee?.name
                 ? `For ${item.relatedEmployee.name} • ${item.type}`
                 : item.type,
               urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
@@ -204,7 +206,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
         const steps = instances.flatMap((inst: any) =>
           Array.isArray(inst?.OnboardingStepInstance) ? inst.OnboardingStepInstance : []
         );
-        
+
         steps
           .filter((s: any) => s.status !== "completed")
           .forEach((step: any) => {
@@ -229,10 +231,10 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
           ...(Array.isArray(employeeDocs) ? employeeDocs : []),
           ...(Array.isArray(companyDocs) ? companyDocs : [])
         ];
-        
+
         const uniqueDocs = new Map<string, any>();
         allDocs.forEach(d => d?.id && !uniqueDocs.has(d.id) && uniqueDocs.set(d.id, d));
-        
+
         const docsToCheck = Array.from(uniqueDocs.values())
           .filter(d => d?.requiresAck || d?.requiresSignature)
           .slice(0, 20);
@@ -241,7 +243,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
           docsToCheck.map(async (doc) => {
             if (doc.requiresAck) {
               try {
-                const r = await fetch(`/api/documents/acknowledge/${doc.id}/me`, { cache: "no-store" });
+                const r = await tenantFetch(`/api/documents/acknowledge/${doc.id}/me`, { cache: "no-store" });
                 const j = await r.json();
                 if (!j?.acknowledged) {
                   return {
@@ -261,7 +263,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                 return null;
               }
             }
-            
+
             if (doc.requiresSignature) {
               try {
                 const r = await tenantFetch(`/api/documents/signatures/${doc.id}/me`, { cache: "no-store" });
@@ -287,7 +289,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
             return null;
           })
         );
-        
+
         checks.filter(Boolean).forEach(item => items.push(item as ActionItem));
       }
 
@@ -364,10 +366,10 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
   const handleQuickApprove = async () => {
     setProcessing("quick-approve");
     try {
-      const approvableItems = actionItems.filter(item => 
+      const approvableItems = actionItems.filter(item =>
         item.type === "approval" || item.type === "change"
       );
-      
+
       for (const item of approvableItems) {
         if (item.type === "approval") {
           await fetch(`/api/approvals/${item.metadata.id}`, {
@@ -383,7 +385,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
           });
         }
       }
-      
+
       toast.success(`${approvableItems.length} items approved`);
       mutateApprovals?.();
       mutateTxn?.();
@@ -421,7 +423,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
             });
 
             const result = await res.json();
-            
+
             if (result.success) {
               toast.success("Timesheet rejected");
             } else {
@@ -438,7 +440,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
             });
 
             const result = await res.json();
-            
+
             if (result.success) {
               toast.success("Timesheet approved");
             } else {
@@ -464,9 +466,9 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
           });
 
           const result = await res.json();
-          
+
           if (result.success) {
-            toast.success(action === "approve" 
+            toast.success(action === "approve"
               ? `✅ Approved! ${result.data?.changesApplied || 0} employees updated`
               : "Request declined");
             mutateActionItems?.();
@@ -480,13 +482,13 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
             setProcessing(null);
             return;
           }
-          
+
           await fetch(`/api/approvals/${item.metadata.id}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action, comment })
           });
-          
+
           toast.success(action === "approve" ? "Approved" : "Declined");
           mutateApprovals?.();
         }
@@ -496,21 +498,21 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
           setProcessing(null);
           return;
         }
-        
+
         await fetch(`/api/transactional-change-requests`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            id: item.metadata.id, 
+          body: JSON.stringify({
+            id: item.metadata.id,
             action,
             comment: action === "decline" ? comment : undefined
           })
         });
-        
+
         toast.success(action === "approve" ? "Approved" : "Declined");
         mutateTxn?.();
       }
-      
+
       setSelectedItem(null);
       setActionItems(prev => prev.filter(i => i.id !== item.id));
     } catch (error) {
@@ -526,7 +528,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
 
   return (
     <>
-      <DashboardWidget 
+      <DashboardWidget
         title="Action items"
         icon={CheckCircle}
         action={
@@ -591,7 +593,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                     )}
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   {(item.type === "approval" || item.type === "change") && (
                     <Button
@@ -632,7 +634,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                 </div>
               </div>
             ))}
-            
+
             {!viewAll && pendingCount > 3 && (
               <button
                 onClick={() => setViewAll(true)}
@@ -671,7 +673,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
               ) : (
                 <p className="text-sm text-muted-foreground">Preview not available</p>
               )}
-              
+
               {/* Signature Section */}
               {previewDoc.requiresSignature && (
                 <div className="p-6 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200">
@@ -685,7 +687,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                   />
                 </div>
               )}
-              
+
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => {
                   setPreviewDoc(null);
@@ -693,7 +695,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                 }}>
                   Close
                 </Button>
-                
+
                 {previewDoc.requiresSignature ? (
                   <Button
                     disabled={!signatureValue || signSubmitting}
@@ -716,7 +718,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                           toast.success("Document signed successfully!");
                           // Refresh action items to remove completed ones
                           mutateActionItems();
-                          setActionItems(prev => prev.filter(item => 
+                          setActionItems(prev => prev.filter(item =>
                             !item.id.includes(previewDoc.id)
                           ));
                           setPreviewDoc(null);
@@ -746,7 +748,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                         toast.success("Document acknowledged");
                         // Refresh action items to remove completed ones
                         mutateActionItems();
-                        setActionItems(prev => prev.filter(item => 
+                        setActionItems(prev => prev.filter(item =>
                           !item.id.includes(previewDoc.id)
                         ));
                         setPreviewDoc(null);
@@ -792,7 +794,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
           if (!holidayApprovalId) return;
           const comment = prompt("Reason for declining:");
           if (!comment) return;
-          
+
           setProcessing(holidayApprovalId);
           try {
             await fetch(`/api/approvals/${holidayApprovalId}`, {
@@ -811,124 +813,6 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
           }
         }}
       />
-
-      {/* Review Dialog for Approvals/Changes */}
-      {selectedItem && (selectedItem.type === "approval" || selectedItem.type === "change") && (
-        <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Review Request</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium">{selectedItem.title}</p>
-                {selectedItem.subtitle && (
-                  <p className="text-sm text-muted-foreground">{selectedItem.subtitle}</p>
-                )}
-              </div>
-              {/* AI Bulk Update Approval details */}
-              {selectedItem.type === "approval" && selectedItem.metadata?.type === 'BULK_UPDATE_APPROVAL' && (
-                <div className="space-y-3">
-                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-                    <div className="text-xs font-semibold text-blue-900 mb-2">📊 Bulk Update Summary</div>
-                    <div className="space-y-1 text-sm">
-                      {selectedItem.metadata?.metadata?.changes && (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Employees</span>
-                            <span className="font-medium">{selectedItem.metadata.metadata.changes.length}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Total Change</span>
-                            <span className="font-medium text-green-600">
-                              +${Math.round(selectedItem.metadata.metadata.changes.reduce((sum: number, c: any) => sum + (c.change || 0), 0)).toLocaleString()}
-                            </span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="text-xs font-semibold text-muted-foreground mb-2">AFFECTED EMPLOYEES</div>
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                      {selectedItem.metadata?.metadata?.changes?.slice(0, 10).map((change: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center p-2 rounded bg-muted/30 text-xs">
-                          <span className="font-medium">{change.name}</span>
-                          <span className="text-muted-foreground">
-                            ${Math.round(change.currentValue || 0).toLocaleString()} → ${Math.round(change.newValue || 0).toLocaleString()}
-                            <span className="ml-1 text-green-600">(+${Math.round(change.change || 0).toLocaleString()})</span>
-                          </span>
-                        </div>
-                      ))}
-                      {selectedItem.metadata?.metadata?.changes?.length > 10 && (
-                        <div className="text-xs text-muted-foreground text-center py-1">
-                          +{selectedItem.metadata.metadata.changes.length - 10} more employees
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Regular leave approval details */}
-              {selectedItem.type === "approval" && selectedItem.metadata?.type !== 'BULK_UPDATE_APPROVAL' && (
-                <div className="p-3 rounded-lg bg-muted/30 text-sm space-y-1">
-                  {selectedItem.metadata?.typeName && (
-                    <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span className="font-medium">{selectedItem.metadata.typeName}</span></div>
-                  )}
-                  {selectedItem.metadata?.startDate && selectedItem.metadata?.endDate && (
-                    <div className="flex justify-between"><span className="text-muted-foreground">Dates</span><span className="font-medium">{new Date(selectedItem.metadata.startDate).toLocaleDateString()} 
-                      to {new Date(selectedItem.metadata.endDate).toLocaleDateString()}</span></div>
-                  )}
-                </div>
-              )}
-
-              {/* Transactional change request details */}
-              {selectedItem.type === "change" && (
-                <div className="space-y-2">
-                  {Array.isArray(selectedItem.metadata?.diffs) && selectedItem.metadata.diffs.length > 0 ? (
-                    <div className="p-3 rounded-lg bg-muted/30 text-sm">
-                      <div className="font-medium mb-2">Proposed changes</div>
-                      <div className="space-y-1">
-                        {selectedItem.metadata.diffs.map((d: any, idx: number) => (
-                          <div key={idx} className="grid grid-cols-3 gap-2 items-center">
-                            <div className="text-muted-foreground truncate">{labelForField(d.field) || d.field}</div>
-                            <div className="truncate text-xs">{formatAuditValue(toAuditValue(d.oldValue))}</div>
-                            <div className="truncate text-xs font-medium">{formatAuditValue(toAuditValue(d.newValue))}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : selectedItem.metadata?.payload ? (
-                    <div className="p-3 rounded-lg bg-muted/30 text-sm space-y-1">
-                      {Object.entries(selectedItem.metadata.payload).map(([k, v]) => (
-                        <div key={k} className="flex justify-between"><span className="text-muted-foreground">{labelForField(k) || k}</span><span className="font-medium">{formatAuditValue(toAuditValue(v))}</span></div>
-                  ))}
-                    </div>
-                  ) : null}
-                </div>
-              )}
-              
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleItemAction(selectedItem, "decline")}
-                  disabled={processing === selectedItem.id}
-                >
-                  Decline
-                </Button>
-                <Button
-                  onClick={() => handleItemAction(selectedItem, "approve")}
-                  disabled={processing === selectedItem.id}
-                >
-                  Approve
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </>
   );
 }

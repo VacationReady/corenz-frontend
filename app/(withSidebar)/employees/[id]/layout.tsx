@@ -150,7 +150,7 @@ export default async function EmployeeLayout({
   return (
     <div className="flex min-h-screen">
       {/* Profile sidebar */}
-      <aside className="w-64 glass-premium p-4 border-r border-glass rounded-tr-3xl">
+      <aside className="glass-premium p-4 border-r border-glass rounded-tr-3xl">
         <h2 className="text-lg font-bold mb-4 text-foreground">{employee.User?.name}</h2>
         {/* Transactional notifications quick-view for admins */}
         {session?.user?.role === "ADMIN" && (

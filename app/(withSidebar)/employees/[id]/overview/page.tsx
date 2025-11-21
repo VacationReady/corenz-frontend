@@ -9,7 +9,13 @@ import {
   isAdmin as isAdminHelper,
 } from "@/lib/roles";
 import { PageShell } from "@/components/ui/PageShell";
-import { User } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info, User } from "lucide-react";
 import {
   format,
   addYears,
@@ -258,8 +264,24 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
               hoverable
               className="group-focus-visible:ring-2 group-focus-visible:ring-primary/50"
             >
-              <div className="border-b p-4">
+              <div className="border-b p-4 flex items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold">Bank & Payroll</h2>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label="Who can see bank details"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs text-xs">
+                      Bank details are visible to the employee and admins. Managers see an access restricted view for extra privacy.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <div className="p-4 space-y-2 text-sm">
                 {canSeeBankPayrollOverview ? (

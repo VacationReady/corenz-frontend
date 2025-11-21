@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
@@ -126,6 +127,14 @@ export default function EditTraining() {
 
   return (
     <div className="max-w-md mx-auto p-6 space-y-4">
+      <Button
+        onClick={() => router.push(`/employees/${employeeId}/training`)}
+        variant="outline"
+        size="sm"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Training
+      </Button>
       <h1 className="text-xl font-semibold">Edit Training Record</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

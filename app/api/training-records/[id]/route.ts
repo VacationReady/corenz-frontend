@@ -192,7 +192,32 @@ export async function GET(
         { status: 404 },
       );
     }
-    return NextResponse.json(record);
+    const { Document, Course, TrainingProvider, ...rest } = record;
+
+    const normalized = {
+      ...rest,
+      document: Document
+        ? {
+            id: Document.id,
+            name: Document.name,
+            url: Document.url,
+          }
+        : null,
+      course: Course
+        ? {
+            id: Course.id,
+            name: Course.name,
+          }
+        : null,
+      provider: TrainingProvider
+        ? {
+            id: TrainingProvider.id,
+            name: TrainingProvider.name,
+          }
+        : null,
+    };
+
+    return NextResponse.json(normalized);
   } catch (error) {
     console.error(error);
     return NextResponse.json(

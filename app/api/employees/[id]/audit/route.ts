@@ -76,6 +76,61 @@ export async function GET(
       prisma.employeeAuditLog.count({ where }),
     ]);
 
+    const normalizeAuditValue = (value: string | null | undefined): string =>
+      value === null || value === undefined ? "" : value;
+
+    const sections = Array.from(
+      new Set(auditLogs.map((log: any) => log.section).filter(Boolean)),
+    );
+
+    const approvalMap = new Map<
+      string,
+      { approvedAt: Date | null; approvedBy: any | null }
+    >();
+
+    if (sections.length > 0) {
+      const changeRequests = await (prisma as any).transactionalChangeRequest.findMany({
+        where: {
+          companyId: session.user.companyId,
+          employeeId: id,
+          section: { in: sections },
+          status: "APPROVED",
+        },
+        include: {
+          DecidedBy: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      for (const req of changeRequests) {
+        const diffs = (req.diffs as any[]) || [];
+        for (const diff of diffs) {
+          const key = `${req.section}:${diff.field}:${normalizeAuditValue(
+            diff.oldValue,
+          )}:${normalizeAuditValue(diff.newValue)}`;
+
+          const existing = approvalMap.get(key);
+          const approvedAt: Date | null = req.decidedAt ?? null;
+
+          if (
+            !existing ||
+            (approvedAt && (!existing.approvedAt || approvedAt > existing.approvedAt))
+          ) {
+            approvalMap.set(key, {
+              approvedAt,
+              approvedBy: req.DecidedBy || null,
+            });
+          }
+        }
+      }
+    }
+
     // Collect IDs for relational fields so we can return human-friendly names
     const managerUserIds = new Set<string>();
     const departmentIds = new Set<string>();
@@ -263,16 +318,25 @@ export async function GET(
       }
     };
 
-    const serialized = auditLogs.map((log: any) => ({
-      id: log.id,
-      section: log.section,
-      field: log.field,
-      oldValue: resolveDisplayValue(log.field, log.oldValue),
-      newValue: resolveDisplayValue(log.field, log.newValue),
-      reason: log.reason,
-      changedAt: log.changedAt,
-      changedBy: log.User,
-    }));
+    const serialized = auditLogs.map((log: any) => {
+      const key = `${log.section}:${log.field}:${normalizeAuditValue(
+        log.oldValue,
+      )}:${normalizeAuditValue(log.newValue)}`;
+      const approval = approvalMap.get(key);
+
+      return {
+        id: log.id,
+        section: log.section,
+        field: log.field,
+        oldValue: resolveDisplayValue(log.field, log.oldValue),
+        newValue: resolveDisplayValue(log.field, log.newValue),
+        reason: log.reason,
+        changedAt: log.changedAt,
+        changedBy: log.User,
+        approvedAt: approval?.approvedAt || null,
+        approvedBy: approval?.approvedBy || null,
+      };
+    });
 
     return NextResponse.json({
       auditLogs: serialized,

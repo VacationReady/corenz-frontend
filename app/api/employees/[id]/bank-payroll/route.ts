@@ -265,11 +265,22 @@ export async function PATCH(
         const toEmails = recipients.map((r) => r.email).filter(Boolean) as string[];
         if (toEmails.length) {
           const baseUrl = getAppBaseUrl();
+          const employeeName = employee.User
+            ? `${employee.User.firstName || ""} ${employee.User.lastName || ""}`.trim() || employee.User.email
+            : "Employee";
           const { html, text } = renderPeopleCoreEmail({
             preheader: "Approval needed: Bank & Payroll",
             title: "Approval requested: Bank & Payroll",
             ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
-            sections: [ { title: "Summary", description: [ `Fields changed: ${diffs.length}` ] } ],
+            sections: [
+              {
+                title: "Summary",
+                description: [
+                  `Employee Name: ${employeeName}`,
+                  `Fields changed: ${diffs.length}`,
+                ],
+              },
+            ],
             outro: ["PeopleCore HRIS System"],
           });
           await resend.emails.send({ from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz", to: toEmails, subject: "Approval needed: Bank & Payroll", html, text });

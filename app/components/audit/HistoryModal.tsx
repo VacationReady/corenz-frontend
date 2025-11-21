@@ -21,6 +21,13 @@ interface AuditLog {
     lastName: string | null;
     email: string;
   };
+  approvedAt?: string | null;
+  approvedBy?: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+  } | null;
 }
 
 interface AuditResponse {
@@ -257,6 +264,18 @@ export default function HistoryModal({
                           {getUserDisplayName(log.changedBy)}
                         </div>
                       </div>
+
+                      {log.approvedBy && log.approvedAt && (
+                        <div className="mb-3 flex items-center justify-between text-xs text-gray-600">
+                          <div className="flex items-center gap-2">
+                            <User className="h-3 w-3" />
+                            <span>
+                              Approved by {getUserDisplayName(log.approvedBy)}
+                            </span>
+                          </div>
+                          <span>{formatDateTime(log.approvedAt)}</span>
+                        </div>
+                      )}
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                         <div>

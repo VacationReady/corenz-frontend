@@ -573,9 +573,8 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             />
           </div>
         )}
+      </Card>
       </UnsavedChangesGuard>
     </div>
   );
 }
-
-

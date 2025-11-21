@@ -87,18 +87,26 @@ export default function LeaveBalancePanel({
           employeeId={employeeId}
           isAdminOrManager={isAdminOrManager}
         />
-        <Button size="sm" variant="outline" onClick={() => setModalOpen(true)}>
-          Edit Entitlements
-        </Button>
+        {isAdminOrManager && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setModalOpen(true)}
+          >
+            Edit Entitlements
+          </Button>
+        )}
       </div>
 
-      <EditEntitlementModal
-        open={modalOpen}
-        setOpen={setModalOpen}
-        employeeId={employeeId}
-        currentEntitlements={entitlements}
-        refresh={refreshEntitlements}
-      />
+      {isAdminOrManager && (
+        <EditEntitlementModal
+          open={modalOpen}
+          setOpen={setModalOpen}
+          employeeId={employeeId}
+          currentEntitlements={entitlements}
+          refresh={refreshEntitlements}
+        />
+      )}
     </div>
   );
 }

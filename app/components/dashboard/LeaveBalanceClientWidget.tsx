@@ -26,6 +26,7 @@ export default function LeaveBalanceClientWidget({
         <LeaveBalancePanel
           employeeId={employeeId}
           leaveEntitlements={leaveEntitlements}
+          isAdminOrManager={Boolean(isAdminOrManager)}
         />
         <AddLeaveRequestDialog
           employeeId={employeeId}

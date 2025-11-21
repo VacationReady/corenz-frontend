@@ -41,7 +41,7 @@ function resetMocks() {
   mockCanAccessEmployee.mock.resetCalls();
 }
 
-test("GET /api/employees/[id]/bank-payroll rejects non-admin/manager roles", async () => {
+test("GET /api/employees/[id]/bank-payroll rejects employees viewing other records", async () => {
   resetMocks();
   mockGetServerSession.mock.mockImplementationOnce(() =>
     Promise.resolve({
@@ -62,12 +62,12 @@ test("GET /api/employees/[id]/bank-payroll rejects non-admin/manager roles", asy
   const payload = await res.json();
   assert.equal(
     payload.error,
-    "Forbidden: Payroll details restricted to admins, managers, or the employee themselves",
+    "Forbidden: Payroll details restricted to admins or the employee themselves",
   );
   assert.equal(mockCanAccessEmployee.mock.calls.length, 0);
 });
 
-test("GET /api/employees/[id]/bank-payroll enforces canAccessEmployee for managers", async () => {
+test("GET /api/employees/[id]/bank-payroll blocks managers from accessing bank payroll", async () => {
   resetMocks();
   mockGetServerSession.mock.mockImplementationOnce(() =>
     Promise.resolve({
@@ -87,8 +87,12 @@ test("GET /api/employees/[id]/bank-payroll enforces canAccessEmployee for manage
 
   assert.equal(res.status, 403);
   const payload = await res.json();
-  assert.equal(payload.error, "Forbidden");
-  assert.equal(mockCanAccessEmployee.mock.calls.length, 1);
+  assert.equal(
+    payload.error,
+    "Forbidden: Payroll details restricted to admins or the employee themselves",
+  );
+  // Managers are now blocked before canAccessEmployee is called.
+  assert.equal(mockCanAccessEmployee.mock.calls.length, 0);
 });
 
 test("GET /api/employees/[id]/bank-payroll succeeds for employees viewing own data", async () => {

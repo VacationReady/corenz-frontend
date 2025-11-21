@@ -12,6 +12,7 @@ import ModernSignatureCapture, { SignatureCaptureValue } from "@/components/docu
 import { toast } from "sonner";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { HolidayApprovalModal } from "@/components/approvals/HolidayApprovalModal";
+import { TransactionalChangeReviewModal } from "@/components/approvals/TransactionalChangeReviewModal";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { getTenantHeadersSync } from "@/lib/tenant-fetch";
 
@@ -49,6 +50,8 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
   const [signSubmitting, setSignSubmitting] = useState(false);
   const [viewAll, setViewAll] = useState(false);
   const [holidayApprovalId, setHolidayApprovalId] = useState<string | null>(null);
+  const [selectedChangeRequest, setSelectedChangeRequest] = useState<any | null>(null);
+  const [changeProcessing, setChangeProcessing] = useState(false);
 
   const isLoadingSession = status === "loading";
 
@@ -367,28 +370,19 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
     setProcessing("quick-approve");
     try {
       const approvableItems = actionItems.filter(item =>
-        item.type === "approval" || item.type === "change"
+        item.type === "approval"
       );
 
       for (const item of approvableItems) {
-        if (item.type === "approval") {
-          await fetch(`/api/approvals/${item.metadata.id}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "approve" })
-          });
-        } else if (item.type === "change") {
-          await fetch(`/api/transactional-change-requests`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: item.metadata.id, action: "approve" })
-          });
-        }
+        await fetch(`/api/approvals/${item.metadata.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "approve" })
+        });
       }
 
       toast.success(`${approvableItems.length} items approved`);
       mutateApprovals?.();
-      mutateTxn?.();
     } catch (error) {
       toast.error("Failed to approve items");
     } finally {
@@ -524,7 +518,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
 
   const displayItems = viewAll ? actionItems : actionItems.slice(0, 3);
   const pendingCount = actionItems.length;
-  const hasQuickApprovable = actionItems.some(item => item.type === "approval" || item.type === "change");
+  const hasQuickApprovable = actionItems.some(item => item.type === "approval");
 
   return (
     <>
@@ -575,8 +569,10 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                   if (item.type === "approval" && (item.metadata.type === 'LEAVE' || item.metadata.source === 'leave')) {
                     // Open holiday approval modal for leave requests
                     setHolidayApprovalId(item.metadata.id);
-                  } else if (item.type === "approval" || item.type === "change") {
+                  } else if (item.type === "approval") {
                     setSelectedItem(item);
+                  } else if (item.type === "change") {
+                    setSelectedChangeRequest(item.metadata);
                   } else if (item.onAction) {
                     item.onAction();
                   }
@@ -595,7 +591,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {(item.type === "approval" || item.type === "change") && (
+                  {item.type === "approval" && (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -616,8 +612,10 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                       if (item.type === "approval" && (item.metadata.type === 'LEAVE' || item.metadata.source === 'leave')) {
                         // Open holiday approval modal for leave requests
                         setHolidayApprovalId(item.metadata.id);
-                      } else if (item.type === "approval" || item.type === "change") {
+                      } else if (item.type === "approval") {
                         await handleItemAction(item, "approve");
+                      } else if (item.type === "change") {
+                        setSelectedChangeRequest(item.metadata);
                       } else if (item.onAction) {
                         await item.onAction();
                       }
@@ -628,7 +626,11 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                     {processing === item.id ? (
                       <Clock className="w-3 h-3 animate-spin" />
                     ) : (
-                      item.type === "approval" || item.type === "change" ? "Approve" : (item.actionLabel || "Open")
+                      item.type === "approval"
+                        ? "Approve"
+                        : item.type === "change"
+                          ? (item.actionLabel || "Review")
+                          : (item.actionLabel || "Open")
                     )}
                   </Button>
                 </div>
@@ -765,6 +767,67 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
           )}
         </DialogContent>
       </Dialog>
+
+      <TransactionalChangeReviewModal
+        open={!!selectedChangeRequest}
+        item={selectedChangeRequest}
+        processing={changeProcessing}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedChangeRequest(null);
+          }
+        }}
+        onApprove={async () => {
+          if (!selectedChangeRequest) return;
+          setChangeProcessing(true);
+          try {
+            const res = await fetch(`/api/transactional-change-requests`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: selectedChangeRequest.id, action: "approve" })
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              toast.error(data?.error || "Failed to approve change");
+              return;
+            }
+            toast.success("Change approved");
+            mutateTxn?.();
+            setActionItems(prev => prev.filter(i => i.metadata?.id !== selectedChangeRequest.id));
+            setSelectedChangeRequest(null);
+          } catch {
+            toast.error("Failed to approve change");
+          } finally {
+            setChangeProcessing(false);
+          }
+        }}
+        onDecline={async () => {
+          if (!selectedChangeRequest) return;
+          const comment = prompt("Reason for declining:");
+          if (!comment) return;
+          setChangeProcessing(true);
+          try {
+            const res = await fetch(`/api/transactional-change-requests`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: selectedChangeRequest.id, action: "decline", comment })
+            });
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              toast.error(data?.error || "Failed to decline change");
+              return;
+            }
+            toast.success("Change declined");
+            mutateTxn?.();
+            setActionItems(prev => prev.filter(i => i.metadata?.id !== selectedChangeRequest.id));
+            setSelectedChangeRequest(null);
+          } catch {
+            toast.error("Failed to decline change");
+          } finally {
+            setChangeProcessing(false);
+          }
+        }}
+      />
 
       {/* Holiday Approval Modal */}
       <HolidayApprovalModal

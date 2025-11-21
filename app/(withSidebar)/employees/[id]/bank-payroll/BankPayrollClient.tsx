@@ -8,6 +8,7 @@ import Link from "next/link";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 import EmployeeSaveButton from "@/components/employees/EmployeeSaveButton";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
 import {
   Select,
   SelectContent,
@@ -100,6 +101,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
   const [touched, setTouched] = useState<{ bankAccountNumber: boolean; irdNumber: boolean }>(
     { bankAccountNumber: false, irdNumber: false },
   );
+  const [forbidden, setForbidden] = useState(false);
 
   const validateBankAccount = (value: string) => {
     const normalized = normalizeBankAccountNumber(value);
@@ -129,6 +131,10 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     (async () => {
       try {
         const res = await tenantFetch(`/api/employees/${employeeId}/bank-payroll`);
+        if (res.status === 403) {
+          setForbidden(true);
+          return;
+        }
         if (!res.ok) return;
         const data = await res.json();
 
@@ -299,6 +305,15 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     const currentValues = getCurrentValues();
     setInitialValues(currentValues);
   };
+
+  if (forbidden) {
+    return (
+      <UnauthorizedAccess
+        title="Access restricted"
+        description="Bank & payroll details can only be viewed by administrators or the employee themselves."
+      />
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pt-6 px-8">

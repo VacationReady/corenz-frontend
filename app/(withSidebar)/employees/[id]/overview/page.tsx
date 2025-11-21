@@ -4,7 +4,10 @@ import Link from "next/link";
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { isAdminOrManager as isAdminOrManagerHelper } from "@/lib/roles";
+import {
+  isAdminOrManager as isAdminOrManagerHelper,
+  isAdmin as isAdminHelper,
+} from "@/lib/roles";
 import { PageShell } from "@/components/ui/PageShell";
 import { User } from "lucide-react";
 import {
@@ -124,6 +127,10 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
     return <div className="p-6">Employee not found.</div>;
   }
   const isAdminOrManager = isAdminOrManagerHelper(session);
+  const isAdmin = isAdminHelper(session);
+  const userRole = session?.user?.role ?? null;
+  const isEmployee = userRole === "EMPLOYEE";
+  const canSeeBankPayrollOverview = Boolean(isAdmin || isEmployee);
 
   const employeeName = `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim();
 
@@ -209,7 +216,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Summary cards */}
           <Link
-            href={`/employees/${employee.id}/contact-info`}
+            href={`/employees/${employee.id}/personal-information`}
             className="group block focus:outline-none"
             aria-label="Manage contact info"
           >
@@ -255,20 +262,33 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
                 <h2 className="text-lg font-semibold">Bank & Payroll</h2>
               </div>
               <div className="p-4 space-y-2 text-sm">
-                {isAdminOrManager ? (
+                {canSeeBankPayrollOverview ? (
                   <div className="space-y-1">
                     <p>
                       <strong>Bank account:</strong> {employee.bankAccountNumber || "Not provided"}
                     </p>
                     <p>
-                      <strong>Salary:</strong> {salaryAmount !== null ? currencyFormatter.format(salaryAmount) : "Not provided"}
+                      <strong>IRD number:</strong> {employee.irdNumber || "Not provided"}
                     </p>
                     <p>
-                      <strong>Hourly rate:</strong> {hourlyRate !== null ? currencyFormatter.format(hourlyRate) : "Not provided"}
+                      <strong>KiwiSaver contribution:</strong>{" "}
+                      {employee.kiwiSaverContribution !== null && employee.kiwiSaverContribution !== undefined
+                        ? `${employee.kiwiSaverContribution}%`
+                        : "Not provided"}
                     </p>
-                    <p>
-                      <strong>KiwiSaver:</strong> {kiwiSaverStatus}
-                    </p>
+                    {isAdmin && (
+                      <>
+                        <p>
+                          <strong>Salary:</strong> {salaryAmount !== null ? currencyFormatter.format(salaryAmount) : "Not provided"}
+                        </p>
+                        <p>
+                          <strong>Hourly rate:</strong> {hourlyRate !== null ? currencyFormatter.format(hourlyRate) : "Not provided"}
+                        </p>
+                        <p>
+                          <strong>KiwiSaver:</strong> {kiwiSaverStatus}
+                        </p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <p>

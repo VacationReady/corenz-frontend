@@ -121,6 +121,34 @@ export async function GET(req: NextRequest) {
       objectives.push(...teamObjectives.map(obj => ({ ...obj, type: "team" })));
     }
 
+    if (!type && !employeeId && isManagerOrAdmin(session.user.role)) {
+      const personalObjectives = await prisma.personalObjective.findMany({
+        where: {
+          companyId: session.user.companyId,
+          ...(status && { status: status as any }),
+        },
+        include: {
+          ParentObjective: {
+            select: { id: true, title: true },
+          },
+          ...(includeKeyResults && {
+            keyResults: true,
+            updates: {
+              take: 3,
+              orderBy: { createdAt: "desc" },
+              include: {
+                Author: {
+                  select: { id: true, firstName: true, lastName: true },
+                },
+              },
+            },
+          }),
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      objectives.push(...personalObjectives.map(obj => ({ ...obj, type: "personal" })));
+    }
+
     if (type === "personal" || employeeId) {
       const canViewAll = isManagerOrAdmin(session.user.role);
       const targetEmployeeId = employeeId || employee?.id;

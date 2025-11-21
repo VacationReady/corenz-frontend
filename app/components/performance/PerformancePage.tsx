@@ -1132,7 +1132,22 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => router.push(`/performance/objectives/${objective.id}`)}
+                            onClick={() => {
+                              const params = new URLSearchParams();
+                              const currentSearch = searchParams?.toString();
+                              const fromPath = `${pathname}${
+                                currentSearch ? `?${currentSearch}` : ""
+                              }`;
+                              params.set("from", fromPath);
+                              if (employeeId) {
+                                params.set("employeeId", employeeId);
+                              }
+                              const queryString = params.toString();
+                              const url = `/performance/objectives/${objective.id}${
+                                queryString ? `?${queryString}` : ""
+                              }`;
+                              router.push(url);
+                            }}
                           >
                             View Details
                           </Button>

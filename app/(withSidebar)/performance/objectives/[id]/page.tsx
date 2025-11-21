@@ -65,6 +65,7 @@ export default function ObjectiveDetailPage({ params }: ObjectiveDetailPageProps
   }, [type, session?.user, canManageObjectives]);
 
   const fromParam = searchParams.get("from");
+  const employeeIdParam = searchParams.get("employeeId");
 
   useEffect(() => {
     params.then((resolved) => {
@@ -128,6 +129,10 @@ export default function ObjectiveDetailPage({ params }: ObjectiveDetailPageProps
       } catch {
         // fall through
       }
+    }
+    if (employeeIdParam) {
+      router.push(`/employees/${employeeIdParam}/performance?tab=objectives`);
+      return;
     }
     router.push("/performance?tab=objectives");
   };

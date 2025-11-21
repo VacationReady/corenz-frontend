@@ -52,13 +52,21 @@ export function PageShell({
 
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div className="space-y-2">
-                <div className="flex items-center text-primary">
-                  {icon && <div className="mr-3 h-6 w-6">{icon}</div>}
-                  <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+                <div className="flex items-start text-primary">
+                  {icon && (
+                    <div className="mr-3 flex shrink-0 items-center justify-center">
+                      {icon}
+                    </div>
+                  )}
+                  <div>
+                    <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+                    {description && (
+                      <p className="mt-1 text-base leading-relaxed text-muted-foreground">
+                        {description}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                {description && (
-                  <p className="text-base leading-relaxed text-muted-foreground">{description}</p>
-                )}
               </div>
               {action && (
                 <div className="md:self-end">

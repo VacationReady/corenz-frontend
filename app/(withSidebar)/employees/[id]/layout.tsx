@@ -3,7 +3,6 @@ import { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import NotificationsSectionBadge from "@/components/ui/NotificationsSectionBadge";
 import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
 import { canAccessEmployee } from "@/lib/permissions";
 import EmployeeNavClient from "./EmployeeNavClient";
@@ -151,24 +150,16 @@ export default async function EmployeeLayout({
     <div className="flex min-h-screen">
       {/* Profile sidebar */}
       <aside className="glass-premium p-4 border-r border-glass rounded-tr-3xl">
-        <h2 className="text-lg font-bold mb-4 text-foreground">{employee.User?.name}</h2>
-        {/* Transactional notifications quick-view for admins */}
-        {session?.user?.role === "ADMIN" && (
-          <EmployeeNotificationsQuickView employeeId={id} />
-        )}
-        <EmployeeNavClient menu={menu} />
+        <EmployeeNavClient
+          menu={menu}
+          employeeName={employee.User?.name ?? ""}
+          employeeId={id}
+          showNotificationsQuickView={session?.user?.role === "ADMIN"}
+        />
       </aside>
 
       {/* Profile content */}
       <main className="flex-1">{children}</main>
-    </div>
-  );
-}
-
-function EmployeeNotificationsQuickView({ employeeId }: { employeeId: string }) {
-  return (
-    <div className="mb-4 glass-subtle rounded-xl p-3 border-glass">
-      <NotificationsSectionBadge employeeId={employeeId} />
     </div>
   );
 }

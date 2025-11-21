@@ -129,7 +129,7 @@ export async function POST(
         const { html, text } = renderPeopleCoreEmail({
           preheader: "Approval needed: Emergency Contacts",
           title: "Approval requested: Emergency Contacts",
-          ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+          ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard` },
           sections: [ { title: "Summary", description: [ `New contact: ${contactData.name}` ] } ],
           outro: ["PeopleCore HRIS System"],
         });
@@ -262,7 +262,7 @@ export async function PATCH(
           const { html, text } = renderPeopleCoreEmail({
             preheader: "Approval needed: Emergency Contacts",
             title: "Approval requested: Emergency Contacts",
-            ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+            ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard` },
             sections: [
               {
                 title: "Summary",
@@ -388,7 +388,7 @@ export async function DELETE(
         const { html, text } = renderPeopleCoreEmail({
           preheader: "Approval needed: Emergency Contacts",
           title: "Approval requested: Emergency Contacts",
-          ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+          ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard` },
           sections: [ { title: "Summary", description: [ `Delete contact: ${contactToDelete.name}` ] } ],
           outro: ["PeopleCore HRIS System"],
         });

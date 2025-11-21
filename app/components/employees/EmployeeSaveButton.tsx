@@ -5,6 +5,7 @@ import Button from "@/components/ui/Button";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "../audit/ChangeReasonModal";
+import { useUnsavedChangesContext } from "@/components/ui/UnsavedChangesGuard";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 interface EmployeeSaveButtonProps {
@@ -65,6 +66,7 @@ export default function EmployeeSaveButton({
   const [loading, setLoading] = useState(false);
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
+  const unsavedChanges = useUnsavedChangesContext();
 
   const handleSave = async () => {
     try {
@@ -77,6 +79,7 @@ export default function EmployeeSaveButton({
       
       if (changes.length === 0) {
         toast.success("No changes to save");
+        unsavedChanges?.markSaved();
         return;
       }
 
@@ -120,6 +123,7 @@ export default function EmployeeSaveButton({
       
       toast.success("Changes saved successfully");
       onSaveSuccess?.();
+      unsavedChanges?.markSaved();
     } catch (error: any) {
       throw error;
     }

@@ -107,7 +107,7 @@ export async function POST(
         preheader: "Approval needed: Form Submission",
         title: "Approval requested: Form Submission",
         sections: [ { title: "Summary", description: [ `Form: ${form?.name ?? id}`, `Fields: ${diffs.length}` ] } ],
-        ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+        ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard` },
         outro: ["PeopleCore HRIS System"],
       });
       await resend.emails.send({ from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz", to: toEmails, subject: "Approval needed: Form Submission", html, text });

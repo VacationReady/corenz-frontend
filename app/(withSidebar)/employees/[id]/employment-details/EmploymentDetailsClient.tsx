@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 import EmployeeSaveButton from "@/components/employees/EmployeeSaveButton";
+import UnsavedChangesGuard from "@/components/ui/UnsavedChangesGuard";
 import { useSession } from "next-auth/react";
 import { Badge } from "@/components/ui/Badge";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
@@ -277,7 +278,8 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
         section="employment-details"
       />
 
-      <Card>
+      <UnsavedChangesGuard>
+        <Card>
         <div className="border-b p-4">
           <h2 className="text-lg font-semibold">Position & status</h2>
         </div>
@@ -535,43 +537,43 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
             )}
           </div>
         </div>
-      </Card>
 
-      {canEdit && initialValues && (
-        <div className="flex justify-end">
-          <EmployeeSaveButton
-            employeeId={employeeId}
-            endpoint="employment-details"
-            initialValues={initialValues}
-            currentValues={form}
-            valueFormatter={(field, value) => {
-              if (field === "managerId") {
-                // Display friendly names for manager changes
-                if (!value) return "(none)";
-                const match = employees.find((e) => e.id === value);
-                if (!match) return String(value);
-                const name = `${match.firstName ?? ""} ${match.lastName ?? ""}`.trim();
-                return name || match.email || String(value);
-              }
-              return String(value ?? "");
-            }}
-            onSaveSuccess={async () => {
-              try {
-                setLoading(true);
-                const res = await tenantFetch(`/api/employees/${employeeId}/employment-details`);
-                if (res.ok) {
-                  const latest = await res.json();
-                  setForm(latest);
-                  setInitialValues(latest);
+        {canEdit && initialValues && (
+          <div className="flex justify-end">
+            <EmployeeSaveButton
+              employeeId={employeeId}
+              endpoint="employment-details"
+              initialValues={initialValues}
+              currentValues={form}
+              valueFormatter={(field, value) => {
+                if (field === "managerId") {
+                  // Display friendly names for manager changes
+                  if (!value) return "(none)";
+                  const match = employees.find((e) => e.id === value);
+                  if (!match) return String(value);
+                  const name = `${match.firstName ?? ""} ${match.lastName ?? ""}`.trim();
+                  return name || match.email || String(value);
                 }
-              } finally {
-                setLoading(false);
-              }
-            }}
-            disabled={loading}
-          />
-        </div>
-      )}
+                return String(value ?? "");
+              }}
+              onSaveSuccess={async () => {
+                try {
+                  setLoading(true);
+                  const res = await tenantFetch(`/api/employees/${employeeId}/employment-details`);
+                  if (res.ok) {
+                    const latest = await res.json();
+                    setForm(latest);
+                    setInitialValues(latest);
+                  }
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+            />
+          </div>
+        )}
+      </UnsavedChangesGuard>
     </div>
   );
 }

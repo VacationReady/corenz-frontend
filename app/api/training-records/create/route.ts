@@ -154,7 +154,7 @@ export async function POST(req: Request) {
             expiryDate ? `Expiry: ${expiryDate.toISOString().slice(0,10)}` : undefined,
           ].filter(Boolean) as string[] },
         ],
-        ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+        ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard` },
         outro: ["PeopleCore HRIS System"],
       });
       await resend.emails.send({ from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz", to: toEmails, subject: "Approval needed: Training Record", html, text });

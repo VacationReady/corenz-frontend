@@ -169,7 +169,7 @@ export async function PATCH(
           const { html, text } = renderPeopleCoreEmail({
             preheader: "Approval needed: Personal Information",
             title: "Approval requested: Personal Information",
-            ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+            ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard` },
             sections: [
               {
                 title: "Summary",

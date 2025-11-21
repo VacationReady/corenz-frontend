@@ -270,7 +270,7 @@ export async function POST(req: NextRequest) {
         `Your ${request.section} change for ${employeeName} was ${result.applied ? "approved" : "declined"}.`,
         request.decisionComment ? `Comment: ${request.decisionComment}` : undefined,
       ].filter(Boolean) as string[],
-      ctas: { label: "View Action Items", href: `${baseUrl}/dashboard/approvals` },
+      ctas: { label: "View Action Items", href: `${baseUrl}/dashboard` },
       outro: ["PeopleCore HRIS System"],
     });
     if (requester?.email) {

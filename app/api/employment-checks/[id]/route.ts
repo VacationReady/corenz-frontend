@@ -179,7 +179,7 @@ export async function PATCH(
               `Expiry: ${expiryDate}`,
             ] },
           ],
-          ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard/approvals` },
+          ctas: { label: "Open Action Items", href: `${baseUrl}/dashboard` },
           outro: ["PeopleCore HRIS System"],
         });
         await resend.emails.send({

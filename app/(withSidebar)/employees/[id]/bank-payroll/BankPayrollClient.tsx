@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import Link from "next/link";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 import EmployeeSaveButton from "@/components/employees/EmployeeSaveButton";
+import UnsavedChangesGuard from "@/components/ui/UnsavedChangesGuard";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
 import {
@@ -323,8 +324,9 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
         section="bank-payroll"
       />
 
-      <TooltipProvider>
-        <Card>
+      <UnsavedChangesGuard>
+        <TooltipProvider>
+          <Card>
           <div className="border-b p-4">
             <h2 className="text-lg font-semibold">Payroll details</h2>
           </div>
@@ -670,24 +672,25 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
             </div>
           </div>
         </Card>
-      </TooltipProvider>
+        </TooltipProvider>
 
-      <div className="flex items-center justify-between">
-        <Link
-          href={`/employees/${employeeId}/documents`}
-          className="text-sm underline"
-        >
-          View payslip history
-        </Link>
-        <EmployeeSaveButton
-          employeeId={employeeId}
-          endpoint="bank-payroll"
-          initialValues={initialValues}
-          currentValues={getCurrentValues()}
-          onSaveSuccess={handleSaveSuccess}
-          disabled={disableSave}
-        />
-      </div>
+        <div className="flex items-center justify-between">
+          <Link
+            href={`/employees/${employeeId}/documents`}
+            className="text-sm underline"
+          >
+            View payslip history
+          </Link>
+          <EmployeeSaveButton
+            employeeId={employeeId}
+            endpoint="bank-payroll"
+            initialValues={initialValues}
+            currentValues={getCurrentValues()}
+            onSaveSuccess={handleSaveSuccess}
+            disabled={disableSave}
+          />
+        </div>
+      </UnsavedChangesGuard>
     </div>
   );
 }

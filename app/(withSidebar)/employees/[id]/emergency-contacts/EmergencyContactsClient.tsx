@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
+import UnsavedChangesGuard, { useUnsavedChangesContext } from "@/components/ui/UnsavedChangesGuard";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 
 type Contact = {
@@ -18,6 +19,20 @@ type Contact = {
 };
 
 export default function EmergencyContactsClient({ employeeId }: { employeeId: string }) {
+  const unsavedCtxRef = useRef<{ markSaved: () => void } | null>(null);
+
+  function UnsavedContextBridge() {
+    const ctx = useUnsavedChangesContext();
+    useEffect(() => {
+      if (ctx) {
+        unsavedCtxRef.current = { markSaved: ctx.markSaved };
+      } else {
+        unsavedCtxRef.current = null;
+      }
+    }, [ctx]);
+    return null;
+  }
+
   const tenantFetch = useTenantFetch();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [originalContacts, setOriginalContacts] = useState<Contact[]>([]);
@@ -33,6 +48,7 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
     const data: Contact[] = await res.json();
     setContacts(data);
     setOriginalContacts(data);
+    unsavedCtxRef.current?.markSaved();
   };
 
   useEffect(() => {
@@ -79,6 +95,7 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
     }
     if (changes.length === 0) {
       toast.success("No changes to save");
+      unsavedCtxRef.current?.markSaved();
       return;
     }
     if (!changes.some(changeRequiresReason)) {
@@ -139,128 +156,131 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pt-6 px-8">
-      <HeaderWithHistory title="Emergency contacts" employeeId={employeeId} section="emergency-contacts" />
+    <UnsavedChangesGuard>
+      <UnsavedContextBridge />
+      <div className="max-w-3xl mx-auto space-y-6 pt-6 px-8">
+        <HeaderWithHistory title="Emergency contacts" employeeId={employeeId} section="emergency-contacts" />
 
-      <div className="flex justify-end">
-        <Button onClick={addEmpty}>Add contact</Button>
-      </div>
+        <div className="flex justify-end">
+          <Button onClick={addEmpty}>Add contact</Button>
+        </div>
 
-      <div className="space-y-4">
-        {contacts.map((c) => (
-          <Card key={c.id}>
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Name</label>
-                <Input
-                  value={c.name || ""}
-                  onChange={(e) =>
-                    setContacts((all) =>
-                      all.map((x) => (x.id === c.id ? { ...x, name: e.target.value } : x)),
-                    )
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Relationship</label>
-                <Input
-                  value={c.relationship || ""}
-                  onChange={(e) =>
-                    setContacts((all) =>
-                      all.map((x) =>
-                        x.id === c.id ? { ...x, relationship: e.target.value } : x,
-                      ),
-                    )
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Phone</label>
-                <Input
-                  value={c.phone || ""}
-                  onChange={(e) =>
-                    setContacts((all) =>
-                      all.map((x) => (x.id === c.id ? { ...x, phone: e.target.value } : x)),
-                    )
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <Input
-                  type="email"
-                  value={c.email || ""}
-                  onChange={(e) =>
-                    setContacts((all) =>
-                      all.map((x) => (x.id === c.id ? { ...x, email: e.target.value } : x)),
-                    )
-                  }
-                />
-              </div>
+        <div className="space-y-4">
+          {contacts.map((c) => (
+            <Card key={c.id}>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <Input
+                    value={c.name || ""}
+                    onChange={(e) =>
+                      setContacts((all) =>
+                        all.map((x) => (x.id === c.id ? { ...x, name: e.target.value } : x)),
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Relationship</label>
+                  <Input
+                    value={c.relationship || ""}
+                    onChange={(e) =>
+                      setContacts((all) =>
+                        all.map((x) =>
+                          x.id === c.id ? { ...x, relationship: e.target.value } : x,
+                        ),
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <Input
+                    value={c.phone || ""}
+                    onChange={(e) =>
+                      setContacts((all) =>
+                        all.map((x) => (x.id === c.id ? { ...x, phone: e.target.value } : x)),
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <Input
+                    type="email"
+                    value={c.email || ""}
+                    onChange={(e) =>
+                      setContacts((all) =>
+                        all.map((x) => (x.id === c.id ? { ...x, email: e.target.value } : x)),
+                      )
+                    }
+                  />
+                </div>
 
-              <div className="md:col-span-2 flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => save(c)} disabled={loading}>
-                  Save
-                </Button>
-                {!c.id.startsWith("__new__") && (
-                  <Button variant="danger" onClick={() => remove(c.id)} disabled={loading}>
-                    Remove
+                <div className="md:col-span-2 flex justify-end gap-2">
+                  <Button variant="secondary" onClick={() => save(c)} disabled={loading}>
+                    Save
                   </Button>
-                )}
+                  {!c.id.startsWith("__new__") && (
+                    <Button variant="danger" onClick={() => remove(c.id)} disabled={loading}>
+                      Remove
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
 
-      <ChangeReasonModal
-        isOpen={isReasonOpen}
-        onClose={() => {
-          setIsReasonOpen(false);
-          setPendingChanges([]);
-          setPendingAction(null);
-          setPendingPayload(null);
-        }}
-        changes={pendingChanges}
-        onSubmit={async (reasons) => {
-          try {
-            setLoading(true);
-            if (pendingAction === "create") {
-              const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...pendingPayload, reason: reasons["__create__"] }),
-              });
-              if (!res.ok) throw new Error("Failed to create");
-            } else if (pendingAction === "update") {
-              const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...pendingPayload, reasons }),
-              });
-              if (!res.ok) throw new Error("Failed to update");
-            } else if (pendingAction === "delete") {
-              const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`, {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: pendingPayload.id, reason: reasons["__delete__"] }),
-              });
-              if (!res.ok) throw new Error("Failed to delete");
-            }
-            toast.success("Saved");
+        <ChangeReasonModal
+          isOpen={isReasonOpen}
+          onClose={() => {
             setIsReasonOpen(false);
             setPendingChanges([]);
             setPendingAction(null);
             setPendingPayload(null);
-            await load();
-          } catch (e: any) {
-            toast.error(e?.message || "Action failed");
-          } finally {
-            setLoading(false);
-          }
-        }}
-      />
-    </div>
+          }}
+          changes={pendingChanges}
+          onSubmit={async (reasons) => {
+            try {
+              setLoading(true);
+              if (pendingAction === "create") {
+                const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ ...pendingPayload, reason: reasons["__create__"] }),
+                });
+                if (!res.ok) throw new Error("Failed to create");
+              } else if (pendingAction === "update") {
+                const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ ...pendingPayload, reasons }),
+                });
+                if (!res.ok) throw new Error("Failed to update");
+              } else if (pendingAction === "delete") {
+                const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`, {
+                  method: "DELETE",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ id: pendingPayload.id, reason: reasons["__delete__"] }),
+                });
+                if (!res.ok) throw new Error("Failed to delete");
+              }
+              toast.success("Saved");
+              setIsReasonOpen(false);
+              setPendingChanges([]);
+              setPendingAction(null);
+              setPendingPayload(null);
+              await load();
+            } catch (e: any) {
+              toast.error(e?.message || "Action failed");
+            } finally {
+              setLoading(false);
+            }
+          }}
+        />
+      </div>
+    </UnsavedChangesGuard>
   );
 }
 

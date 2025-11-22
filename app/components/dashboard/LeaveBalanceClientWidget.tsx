@@ -16,7 +16,9 @@ export default function LeaveBalanceClientWidget({
   leaveEntitlements,
 }: LeaveBalanceClientWidgetProps) {
   const { data: session } = useSession();
-  const isAdminOrManager = isAdminOrManagerHelper(session);
+  const role = session?.user?.role ?? null;
+  const isAdminOrManager =
+    role === "ADMIN" || role === "MANAGER" || role === "SUPER_ADMIN";
   return (
     <Card>
       <div className="border-b p-4">

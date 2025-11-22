@@ -136,6 +136,8 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
   const isAdmin = isAdminHelper(session);
   const userRole = session?.user?.role ?? null;
   const isEmployee = userRole === "EMPLOYEE";
+  const canEditEntitlements =
+    userRole === "ADMIN" || userRole === "MANAGER" || userRole === "SUPER_ADMIN";
   const canSeeBankPayrollOverview = Boolean(isAdmin || isEmployee);
 
   const employeeName = `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim();
@@ -405,7 +407,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
                   <LeaveBalancePanel
                     leaveEntitlements={leaveEntitlementsForPanel}
                     employeeId={employee.id}
-                    isAdminOrManager={Boolean(isAdminOrManager)}
+                    isAdminOrManager={canEditEntitlements}
                   />
                 );
               })()}

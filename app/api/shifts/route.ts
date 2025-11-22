@@ -158,14 +158,17 @@ async function generateVirtualShiftsFromPattern(
       (d: any) => d.day.toUpperCase() === dayName.toUpperCase()
     );
 
-    if (!workingDay || workingDay.type === 'NON_WORKING_DAY') continue;
+    if (!workingDay) continue;
 
     // Determine times based on day type
-    let startTime = workingDay.startTime || '09:00';
-    let endTime = workingDay.endTime || '17:00';
+    let startTime: string | undefined;
+    let endTime: string | undefined;
 
-    // Override with defaults if not set
-    if (!workingDay.startTime || !workingDay.endTime) {
+    // Use custom times if set, otherwise use defaults based on day type
+    if (workingDay.startTime && workingDay.endTime) {
+      startTime = workingDay.startTime;
+      endTime = workingDay.endTime;
+    } else {
       switch (workingDay.type) {
         case 'FULL_DAY':
           startTime = '09:00';
@@ -180,9 +183,13 @@ async function generateVirtualShiftsFromPattern(
           endTime = '17:00';
           break;
         default:
-          continue;
+          // Non-working day or unknown type - skip
+          break;
       }
     }
+
+    // Skip if no valid times were determined
+    if (!startTime || !endTime) continue;
 
     // Parse times and create date objects
     const [startHour, startMinute] = startTime.split(':').map(Number);

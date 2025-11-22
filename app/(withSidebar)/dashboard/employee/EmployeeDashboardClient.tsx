@@ -39,17 +39,33 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
       ) : items.length === 0 ? (
         <p className="text-sm text-muted-foreground">No upcoming leave.</p>
       ) : (
-        <ul className="space-y-2">
-          {items.map((lr: any) => (
-            <li key={lr.id} className="text-sm">
-              <span className="font-medium">{lr.eventCategory?.name}</span>
-              <span className="text-muted-foreground">
-                {" "}
-                — {new Date(lr.startDate).toLocaleDateString()} to{" "}
-                {new Date(lr.endDate).toLocaleDateString()}
-              </span>
-            </li>
-          ))}
+        <ul className="space-y-3">
+          {items.map((lr: any) => {
+            const start = new Date(lr.startDate);
+            const end = new Date(lr.endDate);
+            const isSingleDay = start.toDateString() === end.toDateString();
+
+            return (
+              <li
+                key={lr.id}
+                className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-3 py-2.5"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">
+                    {lr.eventCategory?.name ?? "Leave"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {isSingleDay
+                      ? start.toLocaleDateString()
+                      : `${start.toLocaleDateString()} — ${end.toLocaleDateString()}`}
+                  </p>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </DashboardWidget>

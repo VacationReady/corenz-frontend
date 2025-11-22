@@ -8,7 +8,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { User, Mail, Bot } from "lucide-react";
+import { User } from "lucide-react";
 
 export default async function EmployeeDashboard() {
   const session = await getServerSession(authOptions);
@@ -36,9 +36,6 @@ export default async function EmployeeDashboard() {
           <div className="flex items-center gap-2">
             <Link href={`/employees/${employeeId}/overview`}>
               <Button size="sm" icon={<User className="h-4 w-4" />}>View profile</Button>
-            </Link>
-            <Link href="/bulk-actions?action=messaging">
-              <Button size="sm" variant="outline" icon={<Mail className="h-4 w-4" />}>Email Employee</Button>
             </Link>
           </div>
         ) : null

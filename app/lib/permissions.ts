@@ -42,7 +42,6 @@ export const DEFAULT_PERMISSIONS: Record<string, ScreenPermissions> = {
     reports: ["read"],
     "org-chart": ["read"],
     news: ["read"],
-    "bulk-actions": ["read"],
     "leave-requests": ["read", "edit"],
     "working-patterns": ["read"],
     onboarding: ["read"],

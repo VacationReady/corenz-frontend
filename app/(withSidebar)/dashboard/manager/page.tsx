@@ -17,8 +17,6 @@ import {
   BarChart3,
   Search,
   UserPlus,
-  Mail,
-  Bot,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
@@ -315,11 +313,6 @@ export default function ManagerDashboardPage() {
           {employeeId && (
             <Link href={`/employees/${employeeId}/overview`}>
               <Button size="sm" variant="outline" icon={<User className="h-4 w-4" />}>View profile</Button>
-            </Link>
-          )}
-          {employeeId && (
-            <Link href="/bulk-actions?action=messaging">
-              <Button size="sm" variant="outline" icon={<Mail className="h-4 w-4" />}>Email Employee</Button>
             </Link>
           )}
           <div className="relative">

@@ -18,6 +18,13 @@ test("MANAGER defaults include employees edit and reports read", () => {
   assert.equal(hasPermission(user, "reports", "read"), true);
 });
 
+test("MANAGER defaults do not include bulk-actions access", () => {
+  const user = { role: "MANAGER", permissionProfile: null } as any;
+  const perms = resolvePermissions(user);
+  assert.equal(perms["bulk-actions"], undefined);
+  assert.equal(hasPermission(user, "bulk-actions", "read"), false);
+});
+
 test("ADMIN without custom profile has admin override (all screens)", () => {
   const user = { role: "ADMIN", permissionProfile: null } as any;
   // A screen not in defaults should still pass due to admin override

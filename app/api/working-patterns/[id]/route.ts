@@ -10,6 +10,8 @@ import { z } from "zod";
 const WorkingPatternUpdateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  patternType: z.enum(["STANDARD", "SHIFT_BASED", "FLEXIBLE", "COMPRESSED"]).optional(),
+  contractedHoursPerWeek: z.number().positive().optional().nullable(),
   weeks: z.array(
     z.object({
       weekNumber: z.number().int().min(1),
@@ -32,8 +34,8 @@ export async function PATCH(
     if (!session?.user?.companyId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    const { name, description, weeks } = await req.json();
-    await WorkingPatternUpdateSchema.parseAsync({ name, description, weeks });
+    const { name, description, patternType, contractedHoursPerWeek, weeks } = await req.json();
+    await WorkingPatternUpdateSchema.parseAsync({ name, description, patternType, contractedHoursPerWeek, weeks });
 
     // Ensure pattern belongs to the same company
     const { id } = await context.params;
@@ -49,7 +51,9 @@ export async function PATCH(
       where: { id: id },
       data: {
         name,
-        description, // ← now supported in schema
+        description,
+        patternType: patternType ?? undefined,
+        contractedHoursPerWeek: contractedHoursPerWeek ?? undefined,
         WorkingPatternWeek: {
           deleteMany: {}, // clear out existing weeks & days
           create: weeks.map((week: any) => ({

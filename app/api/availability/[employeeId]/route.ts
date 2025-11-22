@@ -142,6 +142,9 @@ export async function GET(
       id: activeWorkingPattern.id,
       name: activeWorkingPattern.name,
       description: activeWorkingPattern.description,
+      patternType: activeWorkingPattern.patternType,
+      contractedHoursPerWeek: activeWorkingPattern.contractedHoursPerWeek ? 
+        parseFloat(activeWorkingPattern.contractedHoursPerWeek.toString()) : null,
       days: activeWorkingPattern.WorkingPatternWeek?.[0]?.WorkingPatternDay?.map((day: any) => ({
         day: day.day,
         type: day.type,

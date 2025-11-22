@@ -8,6 +8,8 @@ import { authOptions } from "@/lib/auth-options";
 const WorkingPatternCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  patternType: z.enum(["STANDARD", "SHIFT_BASED", "FLEXIBLE", "COMPRESSED"]).default("STANDARD"),
+  contractedHoursPerWeek: z.number().positive().optional(),
   weeks: z
     .array(
       z.object({
@@ -19,7 +21,7 @@ const WorkingPatternCreateSchema = z.object({
               type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
             }),
           )
-          .min(1, "At least one day is required"),
+          .min(0, "Days can be empty for shift-based patterns"), // Allow empty for SHIFT_BASED
       }),
     )
     .min(1, "At least one week is required"),
@@ -48,6 +50,8 @@ export async function GET() {
       id: pattern.id,
       name: pattern.name,
       description: pattern.description,
+      patternType: pattern.patternType,
+      contractedHoursPerWeek: pattern.contractedHoursPerWeek ? parseFloat(pattern.contractedHoursPerWeek.toString()) : null,
       weeks: pattern.WorkingPatternWeek.map((week) => ({
         id: week.id,
         weekNumber: week.weekNumber,
@@ -80,12 +84,14 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, description, weeks } = WorkingPatternCreateSchema.parse(body);
+    const { name, description, patternType, contractedHoursPerWeek, weeks } = WorkingPatternCreateSchema.parse(body);
 
     const pattern = await prisma.workingPattern.create({
       data: {
         name,
         description,
+        patternType,
+        contractedHoursPerWeek: contractedHoursPerWeek ?? null,
         companyId: session.user.companyId,
         WorkingPatternWeek: {
           create: weeks.map((week) => ({

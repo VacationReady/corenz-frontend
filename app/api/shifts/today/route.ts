@@ -111,12 +111,17 @@ export async function GET(req: NextRequest) {
     // Get working pattern for today if no shift
     let workingPattern = null;
     if (!shift && activeWorkingPattern) {
-      const dayOfWeek = getDay(today); // 0 = Sunday, 6 = Saturday
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const dayName = dayNames[dayOfWeek];
+      // SHIFT_BASED patterns don't show as working patterns - they're flexible
+      if (activeWorkingPattern.patternType === 'SHIFT_BASED') {
+        // Don't show working pattern for shift-based workers
+        // They're only "working" when a shift is explicitly created
+      } else {
+        const dayOfWeek = getDay(today); // 0 = Sunday, 6 = Saturday
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayName = dayNames[dayOfWeek];
 
-      // Check if working pattern has weeks configured
-      const hasWeeks = activeWorkingPattern.WorkingPatternWeek && activeWorkingPattern.WorkingPatternWeek.length > 0;
+        // Check if working pattern has weeks configured
+        const hasWeeks = activeWorkingPattern.WorkingPatternWeek && activeWorkingPattern.WorkingPatternWeek.length > 0;
       
       // Find working pattern for today
       console.log('[Today API] Looking for day:', dayName);
@@ -168,6 +173,7 @@ export async function GET(req: NextRequest) {
             name: activeWorkingPattern.name,
           };
         }
+      }
       }
     }
 

@@ -37,6 +37,8 @@ export async function seedTenantReferenceData(
       id: randomUUID(),
       name: "Standard (Mon-Fri, 9am-5pm)",
       description: "Standard Monday to Friday working pattern from 9am to 5pm",
+      patternType: "STANDARD",
+      contractedHoursPerWeek: 40.00,
       companyId,
       active: true,
       updatedAt: now,
@@ -48,11 +50,11 @@ export async function seedTenantReferenceData(
             totalHours: 40.00,
             WorkingPatternDay: {
               create: [
-                { id: randomUUID(), day: "Mon", type: "FULL_DAY", hours: 8.00 },
-                { id: randomUUID(), day: "Tue", type: "FULL_DAY", hours: 8.00 },
-                { id: randomUUID(), day: "Wed", type: "FULL_DAY", hours: 8.00 },
-                { id: randomUUID(), day: "Thu", type: "FULL_DAY", hours: 8.00 },
-                { id: randomUUID(), day: "Fri", type: "FULL_DAY", hours: 8.00 },
+                { id: randomUUID(), day: "Mon", type: "FULL_DAY", hoursPerDay: 8.00 },
+                { id: randomUUID(), day: "Tue", type: "FULL_DAY", hoursPerDay: 8.00 },
+                { id: randomUUID(), day: "Wed", type: "FULL_DAY", hoursPerDay: 8.00 },
+                { id: randomUUID(), day: "Thu", type: "FULL_DAY", hoursPerDay: 8.00 },
+                { id: randomUUID(), day: "Fri", type: "FULL_DAY", hoursPerDay: 8.00 },
               ],
             },
           },
@@ -67,6 +69,8 @@ export async function seedTenantReferenceData(
       id: randomUUID(),
       name: "Part-time (Mon/Wed/Fri)",
       description: "Part-time schedule working Monday, Wednesday, Friday",
+      patternType: "STANDARD",
+      contractedHoursPerWeek: 24.00,
       companyId,
       active: true,
       updatedAt: now,
@@ -78,11 +82,35 @@ export async function seedTenantReferenceData(
             totalHours: 24.00,
             WorkingPatternDay: {
               create: [
-                { id: randomUUID(), day: "Mon", type: "FULL_DAY", hours: 8.00 },
-                { id: randomUUID(), day: "Wed", type: "FULL_DAY", hours: 8.00 },
-                { id: randomUUID(), day: "Fri", type: "FULL_DAY", hours: 8.00 },
+                { id: randomUUID(), day: "Mon", type: "FULL_DAY", hoursPerDay: 8.00 },
+                { id: randomUUID(), day: "Wed", type: "FULL_DAY", hoursPerDay: 8.00 },
+                { id: randomUUID(), day: "Fri", type: "FULL_DAY", hoursPerDay: 8.00 },
               ],
             },
+          },
+        ],
+      },
+    },
+  });
+
+  // Shift-based pattern for gig workers/zero-hour contracts
+  await prisma.workingPattern.create({
+    data: {
+      id: randomUUID(),
+      name: "Shift-Based (20h/week guaranteed)",
+      description: "Flexible shift-based contract with 20 hours per week guaranteed. Shifts scheduled as needed.",
+      patternType: "SHIFT_BASED",
+      contractedHoursPerWeek: 20.00,
+      companyId,
+      active: true,
+      updatedAt: now,
+      WorkingPatternWeek: {
+        create: [
+          {
+            id: randomUUID(),
+            weekNumber: 1,
+            totalHours: 0.00,
+            // No WorkingPatternDay - shifts are created manually
           },
         ],
       },

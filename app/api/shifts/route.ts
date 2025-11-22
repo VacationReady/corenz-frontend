@@ -119,6 +119,12 @@ async function generateVirtualShiftsFromPattern(
     return [];
   }
 
+  // SHIFT_BASED patterns don't generate virtual shifts
+  // These are for gig workers, zero-hour contracts, casual workers where shifts are created manually
+  if (activeWorkingPattern.patternType === 'SHIFT_BASED') {
+    return [];
+  }
+
   // Get all actual shifts for this employee in the date range
   const actualShifts = await prisma.shift.findMany({
     where: {

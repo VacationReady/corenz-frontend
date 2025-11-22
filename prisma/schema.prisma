@@ -1914,6 +1914,8 @@ model User {
 model WorkingPattern {
   id                               String                             @id
   name                             String
+  patternType                      WorkingPatternType                 @default(STANDARD)
+  contractedHoursPerWeek           Decimal?                           @db.Decimal(5, 2) // For shift-based/flexible contracts
   active                           Boolean                            @default(true)
   createdAt                        DateTime                           @default(now())
   updatedAt                        DateTime
@@ -1923,6 +1925,8 @@ model WorkingPattern {
   EmployeeWorkingPatternAssignment EmployeeWorkingPatternAssignment[]
   Company                          Company                            @relation(fields: [companyId], references: [id])
   WorkingPatternWeek               WorkingPatternWeek[]
+
+  @@index([companyId, patternType])
 }
 
 model WorkingPatternDay {
@@ -2153,6 +2157,13 @@ enum DayType {
   FULL_DAY
   HALF_DAY_AM
   HALF_DAY_PM
+}
+
+enum WorkingPatternType {
+  STANDARD // Fixed schedule (Mon-Fri 9-5)
+  SHIFT_BASED // No fixed schedule, shifts created as needed (gig workers, zero-hour)
+  FLEXIBLE // Hybrid - some fixed days, some flexible
+  COMPRESSED // Full-time hours in fewer days (e.g., 4x10 hours)
 }
 
 enum EnforcementMode {

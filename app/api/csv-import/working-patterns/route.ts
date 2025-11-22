@@ -9,7 +9,8 @@ import { auditLog } from "@/lib/audit";
 const workingPatternImportSchema = z.object({
   name: z.string().min(1, "Working pattern name is required"),
   description: z.string().optional(),
-  patternType: z.enum(["STANDARD", "SHIFT", "FLEXIBLE", "PART_TIME"]).optional(),
+  patternType: z.enum(["STANDARD", "SHIFT_BASED", "FLEXIBLE", "COMPRESSED"]).optional(),
+  contractedHoursPerWeek: z.string().transform(val => val ? parseFloat(val) : undefined).optional(),
   mondayHours: z.string().transform(val => val ? parseFloat(val) : undefined).optional(),
   tuesdayHours: z.string().transform(val => val ? parseFloat(val) : undefined).optional(),
   wednesdayHours: z.string().transform(val => val ? parseFloat(val) : undefined).optional(),
@@ -115,6 +116,8 @@ export async function POST(request: NextRequest) {
             where: { id: existingPattern.id },
             data: {
               description: validatedData.description || existingPattern.description,
+              patternType: validatedData.patternType || existingPattern.patternType,
+              contractedHoursPerWeek: validatedData.contractedHoursPerWeek !== undefined ? validatedData.contractedHoursPerWeek : existingPattern.contractedHoursPerWeek,
               active: validatedData.active !== undefined ? validatedData.active : existingPattern.active,
               updatedAt: new Date(),
             },
@@ -148,6 +151,8 @@ export async function POST(request: NextRequest) {
               id: crypto.randomUUID(),
               name: validatedData.name,
               description: validatedData.description || null,
+              patternType: validatedData.patternType || 'STANDARD',
+              contractedHoursPerWeek: validatedData.contractedHoursPerWeek || null,
               active: validatedData.active !== undefined ? validatedData.active : true,
               companyId: session.user.companyId,
               updatedAt: new Date(),

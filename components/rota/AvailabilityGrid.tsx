@@ -43,6 +43,8 @@ interface WorkingPattern {
   id: string;
   name: string;
   description?: string | null;
+  patternType?: string;
+  contractedHoursPerWeek?: number | null;
   days: WorkingPatternDay[];
 }
 
@@ -185,9 +187,12 @@ export default function AvailabilityGrid({
   const getDayStatus = (dayOfWeek: number) => {
     const availPattern = localPatterns.find((p) => p.dayOfWeek === dayOfWeek);
     const workPattern = getWorkingPatternForDay(dayOfWeek);
+    const isShiftBased = workingPattern?.patternType === 'SHIFT_BASED';
 
-    // Priority 1: Working Pattern (shows as unavailable - already working)
-    if (workPattern && workPattern.type !== 'NON_WORKING_DAY') {
+    // For SHIFT_BASED patterns, don't show working pattern as "unavailable"
+    // These workers are available until shifts are explicitly scheduled
+    if (!isShiftBased && workPattern && workPattern.type !== 'NON_WORKING_DAY') {
+      // Priority 1: Working Pattern (shows as unavailable - already working)
       const startTime = workPattern.startTime || '09:00';
       const endTime = workPattern.endTime || '17:00';
       let label = '';
@@ -237,7 +242,7 @@ export default function AvailabilityGrid({
     // Priority 3: Default (available, no constraints)
     return { 
       available: true, 
-      label: 'Available (no restrictions)', 
+      label: isShiftBased ? 'Available (flexible schedule)' : 'Available (no restrictions)', 
       color: 'gray',
       isWorkingPattern: false,
     };
@@ -254,7 +259,9 @@ export default function AvailabilityGrid({
           <div>
             <h3 className="text-xl font-bold text-white">Weekly Availability</h3>
             <p className="text-sm text-gray-400">
-              {workingPattern 
+              {workingPattern && workingPattern.patternType === 'SHIFT_BASED'
+                ? `${workingPattern.name}${workingPattern.contractedHoursPerWeek ? ` (${workingPattern.contractedHoursPerWeek}h/week)` : ''} - Shifts scheduled as needed`
+                : workingPattern 
                 ? `Your working pattern: ${workingPattern.name}` 
                 : 'Manage your availability preferences and constraints'}
             </p>
@@ -436,25 +443,43 @@ export default function AvailabilityGrid({
         <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
         <div className="space-y-2">
           <p className="text-blue-300 text-sm font-semibold">How Availability Works</p>
-          <ul className="text-gray-200 text-xs space-y-1.5">
-            <li className="flex items-start gap-2">
-              <span className="text-blue-400 font-bold">🔵</span>
-              <span><strong className="text-blue-300">Working Days (Blue):</strong> Your standard work schedule from your working pattern. You're already working these hours, so you're unavailable for additional shifts.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-red-400 font-bold">🔴</span>
-              <span><strong className="text-red-300">Unavailable (Red):</strong> Times you cannot work due to personal constraints (e.g., "Can't work evenings" or "Doctor appointment").</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-400 font-bold">🟢</span>
-              <span><strong className="text-green-300">Available (Green):</strong> Times outside your standard schedule when you're available for additional work or overtime.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-gray-400 font-bold">⚪</span>
-              <span><strong className="text-gray-300">Default Available:</strong> Days with no working pattern or constraints - available for scheduling.</span>
-            </li>
-            <li className="mt-2 text-gray-300 italic">💡 Tip: Use "Exceptions" below for one-time changes like vacations or appointments.</li>
-          </ul>
+          {workingPattern?.patternType === 'SHIFT_BASED' ? (
+            <ul className="text-gray-200 text-xs space-y-1.5">
+              <li className="flex items-start gap-2">
+                <span className="text-purple-400 font-bold">🟣</span>
+                <span><strong className="text-purple-300">Flexible Schedule:</strong> You have a shift-based contract{workingPattern.contractedHoursPerWeek ? ` with ${workingPattern.contractedHoursPerWeek} hours per week guaranteed` : ''}. Your manager will create shifts based on business needs and your availability preferences.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-400 font-bold">🔴</span>
+                <span><strong className="text-red-300">Mark Unavailable:</strong> Set times you cannot work (e.g., "Not available weekends" or "School drop-off 8-9am").</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-400 font-bold">🟢</span>
+                <span><strong className="text-green-300">Mark Preferences:</strong> Indicate your preferred working times to help with scheduling (e.g., "Prefer morning shifts").</span>
+              </li>
+              <li className="mt-2 text-gray-300 italic">💡 Tip: Shifts will be scheduled based on your availability and business needs. You'll be notified when new shifts are assigned.</li>
+            </ul>
+          ) : (
+            <ul className="text-gray-200 text-xs space-y-1.5">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 font-bold">🔵</span>
+                <span><strong className="text-blue-300">Working Days (Blue):</strong> Your standard work schedule from your working pattern. You're already working these hours, so you're unavailable for additional shifts.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-400 font-bold">🔴</span>
+                <span><strong className="text-red-300">Unavailable (Red):</strong> Times you cannot work due to personal constraints (e.g., "Can't work evenings" or "Doctor appointment").</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-400 font-bold">🟢</span>
+                <span><strong className="text-green-300">Available (Green):</strong> Times outside your standard schedule when you're available for additional work or overtime.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-gray-400 font-bold">⚪</span>
+                <span><strong className="text-gray-300">Default Available:</strong> Days with no working pattern or constraints - available for scheduling.</span>
+              </li>
+              <li className="mt-2 text-gray-300 italic">💡 Tip: Use "Exceptions" below for one-time changes like vacations or appointments.</li>
+            </ul>
+          )}
         </div>
       </div>
 

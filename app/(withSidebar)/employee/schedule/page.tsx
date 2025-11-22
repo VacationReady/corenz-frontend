@@ -91,6 +91,7 @@ export default function EmployeeSchedulePage() {
   const [outgoingSwaps, setOutgoingSwaps] = useState<SwapRequest[]>([]);
   const [patterns, setPatterns] = useState<AvailabilityPattern[]>([]);
   const [exceptions, setExceptions] = useState<AvailabilityException[]>([]);
+  const [workingPattern, setWorkingPattern] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
@@ -151,6 +152,7 @@ export default function EmployeeSchedulePage() {
           const availData = await availRes.json();
           setPatterns(availData.patterns || []);
           setExceptions(availData.exceptions || []);
+          setWorkingPattern(availData.workingPattern || null);
         }
       }
 
@@ -602,6 +604,7 @@ export default function EmployeeSchedulePage() {
               employeeId={currentEmployeeId}
               patterns={patterns}
               exceptions={exceptions}
+              workingPattern={workingPattern}
               onUpdate={handleUpdateAvailability}
             />
           </div>

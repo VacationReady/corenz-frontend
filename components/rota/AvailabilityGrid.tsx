@@ -31,12 +31,28 @@ interface AvailabilityException {
   reason?: string | null;
 }
 
+interface WorkingPatternDay {
+  day: string;
+  type: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  hoursPerDay?: number | null;
+}
+
+interface WorkingPattern {
+  id: string;
+  name: string;
+  description?: string | null;
+  days: WorkingPatternDay[];
+}
+
 interface AvailabilityGridProps {
   employeeId: string;
   patterns: AvailabilityPattern[];
   exceptions: AvailabilityException[];
   onUpdate: (patterns: AvailabilityPattern[]) => Promise<void>;
   readOnly?: boolean;
+  workingPattern?: WorkingPattern | null;
 }
 
 const DAYS_OF_WEEK = [
@@ -60,6 +76,7 @@ export default function AvailabilityGrid({
   exceptions,
   onUpdate,
   readOnly = false,
+  workingPattern,
 }: AvailabilityGridProps) {
   const [editMode, setEditMode] = useState(false);
   const [localPatterns, setLocalPatterns] = useState<AvailabilityPattern[]>(patterns);
@@ -71,6 +88,32 @@ export default function AvailabilityGrid({
   useEffect(() => {
     setLocalPatterns(patterns);
   }, [patterns]);
+
+  // Helper function to map day names to day of week numbers
+  const getDayOfWeekFromName = (dayName: string): number => {
+    const dayMap: Record<string, number> = {
+      'Sunday': 0,
+      'Monday': 1,
+      'Tuesday': 2,
+      'Wednesday': 3,
+      'Thursday': 4,
+      'Friday': 5,
+      'Saturday': 6,
+    };
+    return dayMap[dayName] ?? -1;
+  };
+
+  // Helper function to get working pattern for a specific day
+  const getWorkingPatternForDay = (dayOfWeek: number): WorkingPatternDay | null => {
+    if (!workingPattern?.days) return null;
+    
+    const dayName = DAYS_OF_WEEK.find(d => d.value === dayOfWeek)?.label;
+    if (!dayName) return null;
+
+    return workingPattern.days.find(
+      d => d.day.toUpperCase() === dayName.toUpperCase()
+    ) || null;
+  };
 
   const handleDayToggle = (dayOfWeek: number) => {
     if (readOnly || !editMode) return;
@@ -140,22 +183,64 @@ export default function AvailabilityGrid({
   };
 
   const getDayStatus = (dayOfWeek: number) => {
-    const pattern = localPatterns.find((p) => p.dayOfWeek === dayOfWeek);
-    if (!pattern) return { available: true, label: 'Available (default)', color: 'gray' };
+    const availPattern = localPatterns.find((p) => p.dayOfWeek === dayOfWeek);
+    const workPattern = getWorkingPatternForDay(dayOfWeek);
 
-    if (pattern.isAvailable) {
-      return {
-        available: true,
-        label: `Available ${pattern.startTime}-${pattern.endTime}`,
-        color: 'green',
-      };
-    } else {
+    // Priority 1: Working Pattern (shows as unavailable - already working)
+    if (workPattern && workPattern.type !== 'NON_WORKING_DAY') {
+      const startTime = workPattern.startTime || '09:00';
+      const endTime = workPattern.endTime || '17:00';
+      let label = '';
+      
+      switch (workPattern.type) {
+        case 'FULL_DAY':
+          label = `Working ${startTime}-${endTime}`;
+          break;
+        case 'HALF_DAY_AM':
+          label = `Working ${startTime}-${endTime} (Morning)`;
+          break;
+        case 'HALF_DAY_PM':
+          label = `Working ${startTime}-${endTime} (Afternoon)`;
+          break;
+        default:
+          label = `Working ${startTime}-${endTime}`;
+      }
+
       return {
         available: false,
-        label: 'Unavailable',
-        color: 'red',
+        label,
+        color: 'blue',
+        isWorkingPattern: true,
+        workingHours: { startTime, endTime },
       };
     }
+
+    // Priority 2: Availability Pattern (employee-set preferences/constraints)
+    if (availPattern) {
+      if (availPattern.isAvailable) {
+        return {
+          available: true,
+          label: `Available ${availPattern.startTime}-${availPattern.endTime}`,
+          color: 'green',
+          isWorkingPattern: false,
+        };
+      } else {
+        return {
+          available: false,
+          label: `Unavailable ${availPattern.startTime}-${availPattern.endTime}`,
+          color: 'red',
+          isWorkingPattern: false,
+        };
+      }
+    }
+
+    // Priority 3: Default (available, no constraints)
+    return { 
+      available: true, 
+      label: 'Available (no restrictions)', 
+      color: 'gray',
+      isWorkingPattern: false,
+    };
   };
 
   return (
@@ -168,7 +253,11 @@ export default function AvailabilityGrid({
           </div>
           <div>
             <h3 className="text-xl font-bold text-white">Weekly Availability</h3>
-            <p className="text-sm text-gray-400">Set your regular weekly schedule</p>
+            <p className="text-sm text-gray-400">
+              {workingPattern 
+                ? `Your working pattern: ${workingPattern.name}` 
+                : 'Manage your availability preferences and constraints'}
+            </p>
           </div>
         </div>
 
@@ -248,25 +337,41 @@ export default function AvailabilityGrid({
                   <div className="flex items-center gap-4 min-w-[200px]">
                     <button
                       onClick={() => handleDayToggle(day.value)}
-                      disabled={!editMode || readOnly}
+                      disabled={!editMode || readOnly || status.isWorkingPattern}
                       className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-sm transition-all ${
-                        status.available
+                        status.isWorkingPattern
+                          ? 'bg-blue-700 text-white border-2 border-blue-400'
+                          : status.available
                           ? 'bg-green-700 text-white border border-green-500'
                           : 'bg-red-700 text-white border border-red-500'
-                      } ${editMode && !readOnly ? 'cursor-pointer hover:scale-105' : 'cursor-default'}`}
+                      } ${editMode && !readOnly && !status.isWorkingPattern ? 'cursor-pointer hover:scale-105' : 'cursor-default opacity-90'}`}
+                      title={status.isWorkingPattern ? 'Working pattern - cannot be edited here' : ''}
                     >
                       {day.short}
                     </button>
                     <div>
-                      <p className="text-white font-semibold">{day.label}</p>
-                      <p className={`text-xs font-medium ${status.available ? 'text-green-400' : 'text-red-400'}`}>
+                      <div className="flex items-center gap-2">
+                        <p className="text-white font-semibold">{day.label}</p>
+                        {status.isWorkingPattern && (
+                          <span className="px-2 py-0.5 bg-blue-500/30 text-blue-300 text-xs font-medium rounded-full border border-blue-500/50">
+                            Work Day
+                          </span>
+                        )}
+                      </div>
+                      <p className={`text-xs font-medium ${
+                        status.isWorkingPattern 
+                          ? 'text-blue-400' 
+                          : status.available 
+                          ? 'text-green-400' 
+                          : 'text-red-400'
+                      }`}>
                         {status.label}
                       </p>
                     </div>
                   </div>
 
-                  {/* Time Selection */}
-                  {pattern && pattern.isAvailable && (
+                  {/* Time Selection - Only show for availability patterns, not working patterns */}
+                  {!status.isWorkingPattern && pattern && pattern.isAvailable && (
                     <div className="flex items-center gap-3">
                       <select
                         value={pattern.startTime}
@@ -308,6 +413,17 @@ export default function AvailabilityGrid({
                       )}
                     </div>
                   )}
+                  
+                  {/* Show working pattern info (read-only) */}
+                  {status.isWorkingPattern && status.workingHours && (
+                    <div className="flex items-center gap-3 text-blue-300 text-sm">
+                      <Clock className="w-4 h-4" />
+                      <span>{status.workingHours.startTime} - {status.workingHours.endTime}</span>
+                      <span className="text-blue-400/70 text-xs italic">
+                        (Standard work schedule)
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -319,13 +435,25 @@ export default function AvailabilityGrid({
       <div className="bg-blue-900/40 border border-blue-600 rounded-xl p-4 flex gap-3 shadow-md">
         <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
         <div className="space-y-2">
-          <p className="text-blue-300 text-sm font-semibold">How it works</p>
-          <ul className="text-gray-200 text-xs space-y-1">
-            <li>• Click a day to toggle between available and unavailable</li>
-            <li>• Set specific time ranges when you're available</li>
-            <li>• Gray days default to available unless specified</li>
-            <li>• These patterns repeat every week</li>
-            <li>• Use exceptions below for one-time unavailability (vacations, appointments, etc.)</li>
+          <p className="text-blue-300 text-sm font-semibold">How Availability Works</p>
+          <ul className="text-gray-200 text-xs space-y-1.5">
+            <li className="flex items-start gap-2">
+              <span className="text-blue-400 font-bold">🔵</span>
+              <span><strong className="text-blue-300">Working Days (Blue):</strong> Your standard work schedule from your working pattern. You're already working these hours, so you're unavailable for additional shifts.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-red-400 font-bold">🔴</span>
+              <span><strong className="text-red-300">Unavailable (Red):</strong> Times you cannot work due to personal constraints (e.g., "Can't work evenings" or "Doctor appointment").</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-400 font-bold">🟢</span>
+              <span><strong className="text-green-300">Available (Green):</strong> Times outside your standard schedule when you're available for additional work or overtime.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-gray-400 font-bold">⚪</span>
+              <span><strong className="text-gray-300">Default Available:</strong> Days with no working pattern or constraints - available for scheduling.</span>
+            </li>
+            <li className="mt-2 text-gray-300 italic">💡 Tip: Use "Exceptions" below for one-time changes like vacations or appointments.</li>
           </ul>
         </div>
       </div>

@@ -72,8 +72,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized to view this availability' }, { status: 403 });
     }
 
-    // Fetch patterns and exceptions
-    const [patterns, exceptions] = await Promise.all([
+    // Fetch patterns, exceptions, and working pattern
+    const [patterns, exceptions, employee] = await Promise.all([
       prisma.availabilityPattern.findMany({
         where: {
           employeeId: employeeId,
@@ -94,12 +94,68 @@ export async function GET(
           date: 'asc',
         },
       }),
+      prisma.employee.findUnique({
+        where: { id: employeeId },
+        include: {
+          WorkingPattern: {
+            include: {
+              WorkingPatternWeek: {
+                include: {
+                  WorkingPatternDay: true,
+                },
+              },
+            },
+          },
+          EmployeeWorkingPatternAssignment: {
+            where: {
+              effectiveDate: {
+                lte: new Date(),
+              },
+            },
+            orderBy: {
+              effectiveDate: 'desc',
+            },
+            take: 1,
+            include: {
+              WorkingPattern: {
+                include: {
+                  WorkingPatternWeek: {
+                    include: {
+                      WorkingPatternDay: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
     ]);
+
+    // Determine which working pattern to use (prioritize assignment with effective date)
+    const activeWorkingPattern = 
+      employee?.EmployeeWorkingPatternAssignment?.[0]?.WorkingPattern || 
+      employee?.WorkingPattern;
+
+    // Transform working pattern into a format compatible with availability display
+    const workingPatternInfo = activeWorkingPattern ? {
+      id: activeWorkingPattern.id,
+      name: activeWorkingPattern.name,
+      description: activeWorkingPattern.description,
+      days: activeWorkingPattern.WorkingPatternWeek?.[0]?.WorkingPatternDay?.map((day: any) => ({
+        day: day.day,
+        type: day.type,
+        startTime: day.startTime,
+        endTime: day.endTime,
+        hoursPerDay: day.hoursPerDay,
+      })) || [],
+    } : null;
 
     return NextResponse.json({
       patterns,
       exceptions,
       upcomingExceptions: exceptions,
+      workingPattern: workingPatternInfo,
     });
   } catch (error) {
     console.error('Availability fetch error:', error);

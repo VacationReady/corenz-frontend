@@ -17,6 +17,7 @@ import {
   Thermometer,
   Pill,
   Syringe,
+  Smile,
   LucideIcon,
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ export const EVENT_CATEGORY_ICONS: Record<string, LucideIcon> = {
   thermometer: Thermometer,
   pill: Pill,
   syringe: Syringe,
+  smile: Smile,
 };
 
 export const DEFAULT_ICON_KEY = "calendar";

@@ -22,3 +22,5 @@ npx tsx scripts/backfill-event-category-icons.ts
 
 This script is safe to run multiple times; it only updates categories where `iconKey` is currently `null`.
 
+
+

@@ -12,6 +12,14 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import { getEventCategoryIcon } from "@/lib/event-category-icons";
 
 interface AddLeaveRequestDialogProps {
   employeeId: string;
@@ -25,6 +33,7 @@ type EventCategory = {
   id: string;
   name: string;
   subcategories: { id: string; name: string }[];
+  iconKey?: string | null;
 };
 
 export default function AddLeaveRequestDialog({
@@ -217,19 +226,25 @@ export default function AddLeaveRequestDialog({
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium">Leave Type</label>
-              <select
-                className="w-full border rounded p-2 mt-1"
-                value={type}
-                onChange={(e) => setType(e.target.value)}
-              >
-                <option value="">Select Leave Type</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium mb-1">Leave Type</label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Leave Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => {
+                    const Icon = getEventCategoryIcon(category.iconKey);
+                    return (
+                      <SelectItem key={category.id} value={category.id}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4 text-muted-foreground" />
+                          <span>{category.name}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
 
                 {selectedCategory && (selectedCategory.subcategories?.length ?? 0) > 0 && (

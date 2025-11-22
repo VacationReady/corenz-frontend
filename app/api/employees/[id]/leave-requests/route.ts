@@ -124,7 +124,7 @@ export async function GET(
     const upcoming = searchParams.get("upcoming") === "true";
     const limitParam = searchParams.get("limit");
     const take = limitParam
-      ? Math.max(1, Math.min(10, parseInt(limitParam, 10) || 0))
+      ? Math.max(1, Math.min(1000, parseInt(limitParam, 10) || 0))
       : 3;
 
     const now = new Date();
@@ -154,7 +154,7 @@ export async function GET(
         startDate: true,
         endDate: true,
         dayType: true,
-        EventCategory: { select: { id: true, name: true } },
+        EventCategory: { select: { id: true, name: true, iconKey: true } },
         approvalStatus: true,
       },
     });

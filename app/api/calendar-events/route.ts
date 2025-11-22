@@ -124,6 +124,7 @@ export async function GET(req: Request) {
           select: {
             name: true,
             id: true,
+            iconKey: true,
           },
         },
       },
@@ -159,6 +160,7 @@ export async function GET(req: Request) {
           type: "leave",
           reason: req.reason ?? null,
           categoryName: req.EventCategory?.name ?? null,
+          categoryIconKey: req.EventCategory?.iconKey ?? null,
           eventCategoryId: req.EventCategory?.id ?? null,
           // Provide both employee (camelCase) for UI and Employee (PascalCase) for compatibility
           employee: {

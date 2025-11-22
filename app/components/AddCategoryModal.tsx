@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/switch";
+import { IconPicker } from "@/components/IconPicker";
 
 interface AddCategoryModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export default function AddCategoryModal({
   const [color, setColor] = useState("#3b82f6");
   const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [iconKey, setIconKey] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!categoryType || !name) {
@@ -51,6 +53,7 @@ export default function AddCategoryModal({
           defaultPaidStatus,
           color,
           isActive,
+          iconKey,
         }),
       });
 
@@ -65,6 +68,7 @@ export default function AddCategoryModal({
         setDefaultPaidStatus("PAID");
         setColor("#3b82f6");
         setIsActive(true);
+        setIconKey(null);
       } else {
         alert(data.error || "Failed to add category.");
       }
@@ -103,11 +107,18 @@ export default function AddCategoryModal({
           </button>
         </div>
 
-        <Input
-          placeholder="Category Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <Input
+              placeholder="Category Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="w-40">
+            <IconPicker value={iconKey} onChange={setIconKey} />
+          </div>
+        </div>
 
         <div className="flex items-center gap-3">
           <span className="text-sm">Color</span>

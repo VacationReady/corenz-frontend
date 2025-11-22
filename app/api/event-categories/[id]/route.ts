@@ -12,6 +12,7 @@ const UpdateEventCategorySchema = z.object({
   requiresApproval: z.boolean().optional(),
   adminOnly: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  iconKey: z.string().optional(),
 });
 
 // GET single event category
@@ -86,13 +87,6 @@ export async function PATCH(
       );
     }
 
-    if (category.systemDefined) {
-      return NextResponse.json(
-        { success: false, error: "Cannot edit system-defined categories." },
-        { status: 400 },
-      );
-    }
-
     const json = await req.json();
     const parse = UpdateEventCategorySchema.safeParse(json);
 
@@ -101,6 +95,20 @@ export async function PATCH(
         { success: false, error: parse.error.flatten().fieldErrors },
         { status: 400 },
       );
+    }
+
+    if (category.systemDefined) {
+      // Allow editing iconKey for system-defined categories, but prevent other changes
+      const { iconKey, ...rest } = parse.data;
+      // Check if any other fields are being updated
+      const hasRestUpdates = Object.values(rest).some((val) => val !== undefined);
+
+      if (hasRestUpdates) {
+        return NextResponse.json(
+          { success: false, error: "Cannot edit system-defined categories properties except icon." },
+          { status: 400 },
+        );
+      }
     }
 
     const updateResult = await prisma.eventCategory.updateMany({

@@ -690,6 +690,7 @@ model EventCategory {
   updatedAt         DateTime
   categoryType      String
   color             String?
+  iconKey           String?
   systemDefined     Boolean             @default(false)
   companyId         String
   ApprovalWorkflow  ApprovalWorkflow[]

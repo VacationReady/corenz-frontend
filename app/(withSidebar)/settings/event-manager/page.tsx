@@ -15,6 +15,8 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
+import { IconPicker } from "@/components/IconPicker";
+import { getEventCategoryIcon } from "@/lib/event-category-icons";
 
 interface EventCategory {
   id: string;
@@ -25,6 +27,7 @@ interface EventCategory {
   isActive: boolean;
   systemDefined: boolean;
   subcategories?: Array<{ id: string; name: string }>;
+  iconKey?: string | null;
 }
 
 export default function EventManagerPage() {
@@ -143,6 +146,29 @@ export default function EventManagerPage() {
       toast.error(e?.message || "Failed to update");
     } finally {
       setSavingKey(null);
+    }
+  };
+
+  const handleUpdateIcon = async (categoryId: string, iconKey: string) => {
+    const prev = categories;
+    const optimistic = categories.map((c) =>
+      c.id === categoryId ? { ...c, iconKey } : c
+    );
+    setCategories(optimistic);
+    try {
+      const res = await fetch(`/api/event-categories/${categoryId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ iconKey }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || "Failed to update icon");
+      }
+      toast.success("Icon updated");
+    } catch (e: any) {
+      setCategories(prev);
+      toast.error(e.message || "Failed to update icon");
     }
   };
 
@@ -265,11 +291,20 @@ export default function EventManagerPage() {
             {!isLoading && filteredCategories.map((category) => (
               <div key={category.id} className="glass-card rounded-2xl p-4 shadow-depth-1">
                 <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">{category.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {category.categoryType ?? ""}
-                    </p>
+                  <div className="flex items-center gap-4">
+                    <div className="w-40">
+                      <IconPicker
+                        value={category.iconKey}
+                        onChange={(key) => handleUpdateIcon(category.id, key)}
+                        disabled={false}
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium">{category.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {category.categoryType ?? ""}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4">
                     {(["requiresApproval", "adminOnly", "isActive"] as const).map((key) => (

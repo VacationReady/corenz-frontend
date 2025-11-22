@@ -7,6 +7,7 @@ import Modal from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { toast } from "sonner";
+import { getEventCategoryIcon } from "@/lib/event-category-icons";
 
 type EmployeeOption = {
   id: string;
@@ -18,6 +19,8 @@ type EmployeeOption = {
 type EventCategory = {
   id: string;
   name: string;
+  categoryType?: string;
+  iconKey?: string | null;
 };
 
 const DropdownSearchInput = ({
@@ -228,18 +231,24 @@ export default function AddHolidayModal({
 
         <div>
           <label className="block text-sm font-medium mb-1">Leave type</label>
-          <select
-            className="w-full border rounded p-2"
-            value={categoryId}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => setCategoryId(e.target.value)}
-          >
-            <option value="">Select leave type</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <Select value={categoryId} onValueChange={setCategoryId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select leave type" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((c) => {
+                const Icon = getEventCategoryIcon(c.iconKey);
+                return (
+                  <SelectItem key={c.id} value={c.id}>
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                      <span>{c.name}</span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>

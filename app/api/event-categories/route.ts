@@ -14,6 +14,7 @@ const EventCategorySchema = z.object({
   }),
   requiresApproval: z.boolean().optional().default(true),
   adminOnly: z.boolean().optional().default(false),
+  iconKey: z.string().optional(),
 });
 
 export async function GET() {
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, categoryType, requiresApproval, adminOnly } = parse.data;
+    const { name, categoryType, requiresApproval, adminOnly, iconKey } = parse.data;
 
     const existing = await prisma.eventCategory.findFirst({
       where: { name, companyId: session.user.companyId },
@@ -107,6 +108,7 @@ export async function POST(req: Request) {
         categoryType,
         requiresApproval,
         adminOnly,
+        iconKey,
         companyId: session.user.companyId,
         updatedAt: new Date(),
       },

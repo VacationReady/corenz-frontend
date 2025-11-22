@@ -12,10 +12,12 @@ import Button from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { toast } from "sonner";
 import { CalendarX2 } from "lucide-react";
+import { getEventCategoryIcon } from "@/lib/event-category-icons";
 
 interface EventCategory {
   id: string;
   name: string;
+  iconKey?: string | null;
 }
 
 export default function BlockDayModal({
@@ -118,6 +120,7 @@ export default function BlockDayModal({
             <div className="space-y-1 max-h-40 overflow-y-auto border border-glass p-2 rounded-2xl">
               {categories.map((cat) => {
                 const isChecked = selected.includes(cat.id);
+                const Icon = getEventCategoryIcon(cat.iconKey);
                 return (
                   <button
                     key={cat.id}
@@ -127,6 +130,7 @@ export default function BlockDayModal({
                   >
                     <div className="flex items-center gap-2 rounded-xl px-2 py-1 hover:bg-muted/50 focus:bg-muted/50 focus:outline-none">
                       <Checkbox id={cat.id} checked={isChecked} onCheckedChange={() => handleToggleCategory(cat.id)} />
+                      <Icon className="h-4 w-4 text-muted-foreground" />
                       <span>{cat.name}</span>
                     </div>
                   </button>

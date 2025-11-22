@@ -6,13 +6,18 @@ import "react-calendar/dist/Calendar.css";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { format } from "date-fns";
+import { getEventCategoryIcon } from "@/lib/event-category-icons";
 
 type LeaveRequest = {
   id: string;
   startDate: string;
   endDate: string;
-  type: "ANNUAL" | "SICK" | "BEREAVEMENT";
-  status: "PENDING" | "APPROVED" | "DECLINED";
+  EventCategory: {
+    id: string;
+    name: string;
+    iconKey?: string | null;
+  };
+  approvalStatus: "PENDING" | "APPROVED" | "DECLINED";
   reason?: string;
 };
 
@@ -23,9 +28,10 @@ export default function LeaveCalendar({ employeeId }: { employeeId: string }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/employees/${employeeId}/leave-requests`);
+        // Increase limit to show full history/future in calendar
+        const res = await fetch(`/api/employees/${employeeId}/leave-requests?limit=1000`);
         const data = await res.json();
-        setLeaveRequests(data);
+        setLeaveRequests(Array.isArray(data) ? data : []);
       } catch (err) {
         setError("Failed to load leave data.");
       }
@@ -42,17 +48,14 @@ export default function LeaveCalendar({ employeeId }: { employeeId: string }) {
     );
 
     if (leave) {
+      const Icon = getEventCategoryIcon(leave.EventCategory.iconKey);
       return (
         <div
-          className={`rounded-full w-2 h-2 mx-auto mt-1 ${
-            leave.type === "ANNUAL"
-              ? "bg-green-500"
-              : leave.type === "SICK"
-                ? "bg-yellow-500"
-                : "bg-purple-500"
-          }`}
-          title={`${leave.type} (${leave.status})`}
-        ></div>
+          className="flex justify-center mt-1"
+          title={`${leave.EventCategory.name} (${leave.approvalStatus})`}
+        >
+          <Icon className="w-3 h-3 text-primary" />
+        </div>
       );
     }
     return null;
@@ -67,14 +70,6 @@ export default function LeaveCalendar({ employeeId }: { employeeId: string }) {
       </div>
       {error && <p className="text-red-500">{error}</p>}
       <Calendar tileContent={tileContent} className="mx-auto border-none" />
-      <p className="text-xs mt-2 text-center">
-        <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span>{" "}
-        Annual Leave
-        <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full ml-4 mr-1"></span>{" "}
-        Sick Leave
-        <span className="inline-block w-3 h-3 bg-purple-500 rounded-full ml-4 mr-1"></span>{" "}
-        Bereavement Leave
-      </p>
     </Card>
   );
 }

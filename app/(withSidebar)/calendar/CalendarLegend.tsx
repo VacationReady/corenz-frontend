@@ -1,10 +1,12 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { LucideIcon } from "lucide-react";
 
 interface LegendItem {
   label: string;
   swatchClassName?: string;
   swatchStyle?: React.CSSProperties;
+  icon?: LucideIcon;
 }
 
 interface CalendarLegendProps {
@@ -51,18 +53,31 @@ export function CalendarLegend({
   return (
     <div className="px-4 pb-2">
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-        {items.map((item) => (
-          <div key={item.label} className="inline-flex items-center gap-2">
-            <span
-              className={cn(
-                "inline-flex h-3 w-3 shrink-0 rounded-sm border border-border",
-                item.swatchClassName,
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="inline-flex items-center gap-2">
+              <div className="relative flex items-center justify-center">
+                 <span
+                  className={cn(
+                    "inline-flex h-3 w-3 shrink-0 rounded-sm border border-border",
+                    item.swatchClassName,
+                  )}
+                  style={item.swatchStyle}
+                />
+                {Icon && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                     <Icon className="h-2 w-2 text-white drop-shadow-md" />
+                  </div>
+                )}
+              </div>
+              {Icon && !item.swatchClassName && !item.swatchStyle && (
+                 <Icon className="h-3 w-3" />
               )}
-              style={item.swatchStyle}
-            />
-            <span className="font-medium text-foreground/80">{item.label}</span>
-          </div>
-        ))}
+              <span className="font-medium text-foreground/80">{item.label}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

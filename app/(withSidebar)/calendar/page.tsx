@@ -41,6 +41,7 @@ import {
   type TenantTimeSettings,
 } from "@/lib/calendar/timezone";
 import AddHolidayModal from "./AddHolidayModal";
+import { getEventCategoryIcon } from "@/lib/event-category-icons";
 
 interface Department {
   id: string;
@@ -88,7 +89,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [dailyCounts, setDailyCounts] = useState<Record<string, number>>({});
   const [dailyCategoryCounts, setDailyCategoryCounts] = useState<Record<string, Record<string, number>>>({});
   const [thresholds, setThresholds] = useState<{ defaultMaxConcurrent?: number } | null>(null);
-  const [presentCategories, setPresentCategories] = useState<string[]>([]);
+  const [presentCategories, setPresentCategories] = useState<{ name: string; iconKey?: string | null }[]>([]);
   const [leaveEventsInRange, setLeaveEventsInRange] = useState<any[]>([]);
   const [inspectorDate, setInspectorDate] = useState<Date | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
@@ -334,14 +335,16 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         );
       }
       setLeaveEventsInRange(data);
-      const cats = Array.from(
-        new Set(
-          (data as any[])
-            .map((e) => (e.categoryName as string) || "Uncategorized")
-            .filter(Boolean),
-        ),
+      const catsMap = new Map<string, string | null>();
+      (data as any[]).forEach((e) => {
+        const name = (e.categoryName as string) || "Uncategorized";
+        if (!catsMap.has(name)) {
+          catsMap.set(name, e.categoryIconKey ?? null);
+        }
+      });
+      setPresentCategories(
+        Array.from(catsMap.entries()).map(([name, iconKey]) => ({ name, iconKey }))
       );
-      setPresentCategories(cats);
       const counts: Record<string, number> = {};
       const categoryCounts: Record<string, Record<string, number>> = {};
       const rangeStart = new Date(fetchInfo.startStr);
@@ -540,17 +543,21 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         <div className="cz-daycell__date">{arg.dayNumberText}</div>
         {count > 0 ? (
           <div className="mt-5 space-y-1">
-            {entries.map(([label, n]) => (
-              <div key={label} className="w-full text-[11px]">
-                <span className={`cz-chip-modern ${getCategoryColor(label)}`}>
-                  <span className="flex items-center gap-1.5">
-                    {getCategoryIcon(label)}
-                    <span className="font-semibold">{label}</span>
+            {entries.map(([label, n]) => {
+              const catObj = presentCategories.find((c) => c.name === label);
+              const Icon = getEventCategoryIcon(catObj?.iconKey);
+              return (
+                <div key={label} className="w-full text-[11px]">
+                  <span className={`cz-chip-modern ${getCategoryColor(label)}`}>
+                    <span className="flex items-center gap-1.5">
+                      <Icon className="h-3 w-3" />
+                      <span className="font-semibold">{label}</span>
+                    </span>
+                    <span className="cz-chip-modern__count">{n}</span>
                   </span>
-                  <span className="cz-chip-modern__count">{n}</span>
-                </span>
-              </div>
-            ))}
+                </div>
+              );
+            })}
             {more > 0 ? (
               <div className="text-[10px] text-muted-foreground font-medium">+{more} more</div>
             ) : null}
@@ -565,6 +572,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     const isBankHoliday = Boolean(content.event.extendedProps?.isBankHoliday);
     const isShift = (content.event.extendedProps as any)?.type === 'shift';
     const categoryName = (content.event.extendedProps as any)?.categoryName as string | null;
+    const categoryIconKey = (content.event.extendedProps as any)?.categoryIconKey as string | null;
+    const Icon = getEventCategoryIcon(categoryIconKey);
     const employee = (content.event.extendedProps as any)?.employee as any | undefined;
     
     if (isBankHoliday) {
@@ -647,7 +656,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
             <span className="text-[11px] font-medium truncate max-w-[110px]">
               {employee?.name || content.event.title}
             </span>
-            {categoryName ? <Badge className="!text-[10px] !px-1.5 !py-0">{categoryName}</Badge> : null}
+            {categoryName ? <Badge className="!text-[10px] !px-1.5 !py-0 flex items-center gap-1"><Icon className="h-3 w-3" />{categoryName}</Badge> : null}
           </div>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-72">
@@ -661,7 +670,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
             </div>
           </div>
           <div className="mt-3 space-y-1">
-            {categoryName ? <Badge className="!text-[10px] !px-1.5 !py-0">{categoryName}</Badge> : null}
+            {categoryName ? <Badge className="!text-[10px] !px-1.5 !py-0 flex items-center gap-1"><Icon className="h-3 w-3" />{categoryName}</Badge> : null}
             <div className="text-xs text-gray-600">
               {formatTenantDate(content.event.start!, tenantTimeSettings, "d MMM yyyy")} –{" "}
               {formatTenantDate(
@@ -701,20 +710,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     if (key.includes("unpaid")) return "cz-chip-modern--unpaid";
     if (key.includes("toil") || key.includes("lieu")) return "cz-chip-modern--toil";
     return "cz-chip-modern--default";
-  };
-
-  const getCategoryIcon = (name: string) => {
-    const key = (name || "").toLowerCase();
-    if (key.includes("annual") || key.includes("holiday")) return <Umbrella className="h-3.5 w-3.5" />;
-    if (key.includes("sick")) return <Stethoscope className="h-3.5 w-3.5" />;
-    if (key.includes("training")) return <GraduationCap className="h-3.5 w-3.5" />;
-    if (key.includes("maternity") || key.includes("parent")) return <Baby className="h-3.5 w-3.5" />;
-    if (key.includes("compassion") || key.includes("bereave")) return <Heart className="h-3.5 w-3.5" />;
-    if (key.includes("doctor")) return <Stethoscope className="h-3.5 w-3.5" />;
-    if (key.includes("dentist")) return <Smile className="h-3.5 w-3.5" />;
-    if (key.includes("unpaid")) return <Briefcase className="h-3.5 w-3.5" />;
-    if (key.includes("toil") || key.includes("lieu")) return <Coffee className="h-3.5 w-3.5" />;
-    return <CalendarDays className="h-3.5 w-3.5" />;
   };
 
   const formatEventRange = (start: string, end?: string) => {

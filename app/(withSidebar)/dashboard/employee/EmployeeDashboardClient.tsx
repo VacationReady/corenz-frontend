@@ -9,6 +9,7 @@ import { Calendar, User } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
+import { getEventCategoryIcon } from "@/lib/event-category-icons";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -44,6 +45,10 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
             const start = new Date(lr.startDate);
             const end = new Date(lr.endDate);
             const isSingleDay = start.toDateString() === end.toDateString();
+            
+            // Handle both casing to be safe
+            const category = lr.EventCategory || lr.eventCategory;
+            const Icon = getEventCategoryIcon(category?.iconKey);
 
             return (
               <li
@@ -51,11 +56,11 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
                 className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-3 py-2.5"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Calendar className="h-4 w-4" />
+                  <Icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">
-                    {lr.eventCategory?.name ?? "Leave"}
+                    {category?.name ?? "Leave"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {isSingleDay

@@ -280,33 +280,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
       <div className="mb-6">
         <div className="glass-premium rounded-2xl p-6 mb-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
-            <div className="flex-1 space-y-3">
-              <TooltipProvider>
-                <div className="glass-subtle rounded-xl border border-gray-200 p-3 flex items-start gap-3">
-                  <div className="rounded-full bg-primary/10 p-2">
-                    <Info className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    <p className="font-medium text-foreground">Quick tips</p>
-                    <p>Drag elements from the left, drop them onto the canvas, then fine-tune on the right.</p>
-                  </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="ml-auto text-xs font-medium text-primary underline-offset-4 hover:underline"
-                      >
-                        More
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left" className="max-w-xs">
-                      Use sections to organise long forms. Pick "Data Screen" for data that evolves over time.
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </TooltipProvider>
-            </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-auto">
               <Button variant="outline" onClick={goToForms}>
                 Cancel
               </Button>
@@ -331,25 +305,6 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                 placeholder="Enter form name"
                 className="glass-subtle border-white/20 focus:border-primary/50 transition-colors"
               />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-muted-foreground">
-                URL
-              </Label>
-              <Input
-                value={formSlug}
-                onChange={(event) => setFormSlug(event.target.value)}
-                placeholder="form-url-slug"
-                className={cn(
-                  "glass-subtle border-white/20 transition-colors",
-                  slugIsValid ? "focus:border-primary/50" : "border-destructive/50",
-                )}
-              />
-              {!slugIsValid ? (
-                <p className="text-xs text-destructive">
-                  URL must be unique and contain only lowercase letters, numbers, or hyphens.
-                </p>
-              ) : null}
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">

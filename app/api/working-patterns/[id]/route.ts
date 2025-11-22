@@ -22,8 +22,21 @@ const WorkingPatternUpdateSchema = z.object({
         }),
       ),
     }),
-  ),
-});
+  ).min(0), // Allow empty weeks for SHIFT_BASED
+}).refine(
+  (data) => {
+    // For SHIFT_BASED patterns, weeks can be empty but contractedHoursPerWeek is required
+    if (data.patternType === "SHIFT_BASED") {
+      return data.contractedHoursPerWeek !== undefined && data.contractedHoursPerWeek !== null && data.contractedHoursPerWeek > 0;
+    }
+    // For other patterns, if weeks is provided it should have at least one week
+    return data.weeks.length >= 1;
+  },
+  {
+    message: "SHIFT_BASED patterns require contractedHoursPerWeek, other patterns require at least one week",
+    path: ["weeks"],
+  }
+);
 
 export async function PATCH(
   req: NextRequest,

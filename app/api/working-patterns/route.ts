@@ -24,8 +24,21 @@ const WorkingPatternCreateSchema = z.object({
           .min(0, "Days can be empty for shift-based patterns"), // Allow empty for SHIFT_BASED
       }),
     )
-    .min(1, "At least one week is required"),
-});
+    .min(0, "Weeks array is required"), // Allow empty weeks for SHIFT_BASED
+}).refine(
+  (data) => {
+    // For SHIFT_BASED patterns, weeks can be empty but contractedHoursPerWeek is required
+    if (data.patternType === "SHIFT_BASED") {
+      return data.contractedHoursPerWeek !== undefined && data.contractedHoursPerWeek > 0;
+    }
+    // For other patterns, at least one week is required
+    return data.weeks.length >= 1;
+  },
+  {
+    message: "SHIFT_BASED patterns require contractedHoursPerWeek, other patterns require at least one week",
+    path: ["weeks"],
+  }
+);
 
 export async function GET() {
   try {

@@ -24,6 +24,8 @@ export default function WorkingPatternsPage() {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [patternType, setPatternType] = useState<string>("STANDARD");
+  const [contractedHoursPerWeek, setContractedHoursPerWeek] = useState<string>("");
   const [weeks, setWeeks] = useState<any[]>([{ weekNumber: 1, days: {} }]);
 
   const [viewPattern, setViewPattern] = useState<any>(null);
@@ -111,12 +113,25 @@ export default function WorkingPatternsPage() {
   };
 
   const handleSubmit = async () => {
-    if (!name || weeks.every((w) => Object.keys(w.days).length === 0)) {
-      toast.error("Name and at least one working day in any week are required");
+    // Validation based on pattern type
+    if (!name) {
+      toast.error("Name is required");
       return;
     }
+    
+    if (patternType === "SHIFT_BASED") {
+      if (!contractedHoursPerWeek || parseFloat(contractedHoursPerWeek) <= 0) {
+        toast.error("Contracted hours per week is required for shift-based patterns");
+        return;
+      }
+    } else {
+      if (weeks.every((w) => Object.keys(w.days).length === 0)) {
+        toast.error("At least one working day in any week is required");
+        return;
+      }
+    }
 
-    const weeksPayload = weeks.map((week) => ({
+    const weeksPayload = patternType === "SHIFT_BASED" ? [] : weeks.map((week) => ({
       weekNumber: week.weekNumber,
       days: Object.entries(week.days).map(([day, type]) => ({ day, type })),
     }));
@@ -128,16 +143,29 @@ export default function WorkingPatternsPage() {
 
     const method = editMode ? "PATCH" : "POST";
 
+    const payload: any = { 
+      name, 
+      description, 
+      weeks: weeksPayload,
+      patternType,
+    };
+    
+    if (patternType === "SHIFT_BASED" && contractedHoursPerWeek) {
+      payload.contractedHoursPerWeek = parseFloat(contractedHoursPerWeek);
+    }
+
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description, weeks: weeksPayload }),
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
       toast.success(`Working pattern ${editMode ? "updated" : "created"}`);
       setName("");
       setDescription("");
+      setPatternType("STANDARD");
+      setContractedHoursPerWeek("");
       setWeeks([{ weekNumber: 1, days: {} }]);
       setOpen(false);
       setEditMode(false);
@@ -157,6 +185,9 @@ export default function WorkingPatternsPage() {
     setCurrentPattern(pattern);
     setName(pattern.name);
     setDescription(pattern.description || "");
+    setPatternType(pattern.patternType || "STANDARD");
+    setContractedHoursPerWeek(pattern.contractedHoursPerWeek ? pattern.contractedHoursPerWeek.toString() : "");
+    
     const toShortDay = (name: string) => {
       const map: Record<string, string> = {
         Monday: "Mon",
@@ -172,14 +203,14 @@ export default function WorkingPatternsPage() {
       return map[name] || name;
     };
 
-    const loadedWeeks = pattern.weeks.map((week: any) => {
+    const loadedWeeks = pattern.weeks?.length > 0 ? pattern.weeks.map((week: any) => {
       const daysObj: Record<string, string> = {};
       week.days.forEach((d: any) => {
         const key = toShortDay(d.day);
         daysObj[key] = d.type;
       });
       return { weekNumber: week.weekNumber, days: daysObj };
-    });
+    }) : [{ weekNumber: 1, days: {} }];
     setWeeks(loadedWeeks);
     setOpen(true);
   };
@@ -255,6 +286,10 @@ export default function WorkingPatternsPage() {
               if (!val) {
                 setEditMode(false);
                 setCurrentPattern(null);
+                setName("");
+                setDescription("");
+                setPatternType("STANDARD");
+                setContractedHoursPerWeek("");
                 setWeeks([{ weekNumber: 1, days: {} }]);
               }
             }}
@@ -281,7 +316,72 @@ export default function WorkingPatternsPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
-                {weeks.map((week, weekIndex) => (
+                
+                {/* Pattern Type Selector */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Pattern Type</label>
+                  <Select
+                    value={patternType}
+                    onValueChange={(value) => {
+                      setPatternType(value);
+                      // Reset weeks when switching to SHIFT_BASED
+                      if (value === "SHIFT_BASED") {
+                        setWeeks([{ weekNumber: 1, days: {} }]);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select pattern type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="STANDARD">
+                        Standard - Fixed recurring schedule
+                      </SelectItem>
+                      <SelectItem value="SHIFT_BASED">
+                        Shift-Based - Flexible hours, manual scheduling
+                      </SelectItem>
+                      <SelectItem value="FLEXIBLE">
+                        Flexible - Variable schedule
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {patternType === "STANDARD" && (
+                    <p className="text-xs text-muted-foreground">
+                      For employees with fixed, recurring work schedules (e.g., Mon-Fri, 9am-5pm)
+                    </p>
+                  )}
+                  {patternType === "SHIFT_BASED" && (
+                    <p className="text-xs text-muted-foreground">
+                      For gig workers, zero-hour contracts, or employees with flexible schedules. Define total contracted hours, then create shifts manually.
+                    </p>
+                  )}
+                  {patternType === "FLEXIBLE" && (
+                    <p className="text-xs text-muted-foreground">
+                      For employees with variable schedules that change frequently
+                    </p>
+                  )}
+                </div>
+
+                {/* Contracted Hours (only for SHIFT_BASED) */}
+                {patternType === "SHIFT_BASED" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Contracted Hours per Week</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      placeholder="e.g., 20"
+                      value={contractedHoursPerWeek}
+                      onChange={(e) => setContractedHoursPerWeek(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Total contracted hours per week. Shifts will be created manually to meet this requirement.
+                    </p>
+                  </div>
+                )}
+
+                {/* Only show weeks configuration for non-SHIFT_BASED patterns */}
+                {patternType !== "SHIFT_BASED" && weeks.map((week, weekIndex) => (
                   <div
                     key={weekIndex}
                     className="border p-2 rounded bg-gray-50"
@@ -364,48 +464,52 @@ export default function WorkingPatternsPage() {
                     </div>
                   </div>
                 ))}
-                <Button variant="ghost" onClick={addWeek} className="w-full">
-                  + Add Week
-                </Button>
+                {patternType !== "SHIFT_BASED" && (
+                  <Button variant="ghost" onClick={addWeek} className="w-full">
+                    + Add Week
+                  </Button>
+                )}
                 <Button onClick={handleSubmit} className="w-full mt-2">
                   {editMode ? "Save Changes" : "Create"}
                 </Button>
-                {/* Read-only calendar preview */}
-                <div className="mt-4">
-                  <h4 className="font-medium mb-2">Calendar Preview</h4>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-xs border">
-                      <thead>
-                        <tr>
-                          <th className="border px-2 py-1 text-left">Week</th>
-                          {days.map((d) => (
-                            <th
-                              key={d}
-                              className="border px-2 py-1 text-center"
-                            >
-                              {d}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {calendarPreview.map((weekRow, idx) => (
-                          <tr key={idx}>
-                            <td className="border px-2 py-1">{idx + 1}</td>
-                            {weekRow.map((val, j) => (
-                              <td
-                                key={j}
+                {/* Read-only calendar preview - only for non-SHIFT_BASED patterns */}
+                {patternType !== "SHIFT_BASED" && (
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Calendar Preview</h4>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-xs border">
+                        <thead>
+                          <tr>
+                            <th className="border px-2 py-1 text-left">Week</th>
+                            {days.map((d) => (
+                              <th
+                                key={d}
                                 className="border px-2 py-1 text-center"
                               >
-                                {val ? val.replace(/_/g, " ") : ""}
-                              </td>
+                                {d}
+                              </th>
                             ))}
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {calendarPreview.map((weekRow, idx) => (
+                            <tr key={idx}>
+                              <td className="border px-2 py-1">{idx + 1}</td>
+                              {weekRow.map((val, j) => (
+                                <td
+                                  key={j}
+                                  className="border px-2 py-1 text-center"
+                                >
+                                  {val ? val.replace(/_/g, " ") : ""}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -417,21 +521,46 @@ export default function WorkingPatternsPage() {
           {viewPattern && (
             <div className="space-y-2">
               <h2 className="text-lg font-semibold">{viewPattern.name}</h2>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <span className={cn(
+                  "text-xs font-semibold uppercase tracking-wider rounded-full px-3 py-1",
+                  viewPattern.patternType === "SHIFT_BASED" 
+                    ? "bg-purple-500/20 text-purple-700 dark:text-purple-300" 
+                    : viewPattern.patternType === "FLEXIBLE"
+                    ? "bg-orange-500/20 text-orange-700 dark:text-orange-300"
+                    : "bg-foreground/10"
+                )}>
+                  {viewPattern.patternType === "SHIFT_BASED" ? "Shift-Based" : viewPattern.patternType === "FLEXIBLE" ? "Flexible" : "Standard"}
+                </span>
+                {viewPattern.patternType === "SHIFT_BASED" && viewPattern.contractedHoursPerWeek && (
+                  <span className="text-xs font-semibold uppercase tracking-wider rounded-full bg-foreground/10 px-3 py-1">
+                    {viewPattern.contractedHoursPerWeek}h/week
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-600">
                 {viewPattern.description || "No description"}
               </p>
-              {viewPattern.weeks.map((week: any) => (
-                <div key={week.id} className="border rounded p-2">
-                  <h3 className="font-medium mb-1">Week {week.weekNumber}</h3>
-                  <ul className="text-sm list-disc list-inside">
-                    {week.days.map((d: any) => (
-                      <li key={d.id}>
-                        {d.day} ({d.type.replace(/_/g, " ")})
-                      </li>
-                    ))}
-                  </ul>
+              {viewPattern.patternType === "SHIFT_BASED" ? (
+                <div className="border rounded p-4 bg-purple-50 dark:bg-purple-950/20">
+                  <p className="text-sm text-foreground/80">
+                    This is a flexible shift-based pattern with {viewPattern.contractedHoursPerWeek || 0} contracted hours per week. Shifts must be created manually for this pattern.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                viewPattern.weeks.map((week: any) => (
+                  <div key={week.id} className="border rounded p-2">
+                    <h3 className="font-medium mb-1">Week {week.weekNumber}</h3>
+                    <ul className="text-sm list-disc list-inside">
+                      {week.days.map((d: any) => (
+                        <li key={d.id}>
+                          {d.day} ({d.type.replace(/_/g, " ")})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </DialogContent>
@@ -472,21 +601,46 @@ export default function WorkingPatternsPage() {
                         {pattern.name}
                       </h2>
                       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-foreground/60">
-                        <span className="rounded-full bg-foreground/10 px-3 py-1">
-                          {weekLengthLabel}
+                        <span className={cn(
+                          "rounded-full px-3 py-1",
+                          pattern.patternType === "SHIFT_BASED" 
+                            ? "bg-purple-500/20 text-purple-700 dark:text-purple-300" 
+                            : pattern.patternType === "FLEXIBLE"
+                            ? "bg-orange-500/20 text-orange-700 dark:text-orange-300"
+                            : "bg-foreground/10"
+                        )}>
+                          {pattern.patternType === "SHIFT_BASED" ? "Shift-Based" : pattern.patternType === "FLEXIBLE" ? "Flexible" : "Standard"}
                         </span>
-                        <span className="rounded-full bg-foreground/10 px-3 py-1">
-                          {days.length} day{days.length === 1 ? "" : "s"}
-                        </span>
+                        {pattern.patternType === "SHIFT_BASED" && pattern.contractedHoursPerWeek && (
+                          <span className="rounded-full bg-foreground/10 px-3 py-1">
+                            {pattern.contractedHoursPerWeek}h/week
+                          </span>
+                        )}
+                        {pattern.patternType !== "SHIFT_BASED" && (
+                          <>
+                            <span className="rounded-full bg-foreground/10 px-3 py-1">
+                              {weekLengthLabel}
+                            </span>
+                            <span className="rounded-full bg-foreground/10 px-3 py-1">
+                              {days.length} day{days.length === 1 ? "" : "s"}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <p className={cn("text-sm leading-relaxed", pattern.description ? "text-foreground/80" : "italic text-foreground/60")}>
                       {pattern.description || "No description provided."}
                     </p>
-                    <div className="text-sm text-foreground/80">
-                      <span className="font-medium text-foreground">Preview:</span> {preview}
-                      {days.length > 3 ? ` (+${days.length - 3} more)` : ""}
-                    </div>
+                    {pattern.patternType === "SHIFT_BASED" ? (
+                      <div className="text-sm text-foreground/80">
+                        <span className="font-medium text-foreground">Type:</span> Flexible scheduling with {pattern.contractedHoursPerWeek || 0}h contracted per week
+                      </div>
+                    ) : (
+                      <div className="text-sm text-foreground/80">
+                        <span className="font-medium text-foreground">Preview:</span> {preview}
+                        {days.length > 3 ? ` (+${days.length - 3} more)` : ""}
+                      </div>
+                    )}
                   </div>
                   <div className="absolute inset-y-4 right-4 flex translate-x-12 flex-col items-stretch gap-2 rounded-2xl bg-background/75 px-3 py-3 text-sm shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100">
                     <Button
@@ -539,3 +693,4 @@ export default function WorkingPatternsPage() {
     </PageShell>
   );
 }
+

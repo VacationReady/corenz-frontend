@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { calculateShiftCost } from '@/lib/timesheet-calculations';
+import { startOfDay, endOfDay, getDay, eachDayOfInterval, format as formatDate } from 'date-fns';
 
 const shiftInclude = {
   Template: true,
@@ -48,6 +49,189 @@ const createShiftSchema = z.object({
   requiredSkills: z.array(z.string()).default([]),
   requiresConfirmation: z.boolean().default(false),
 });
+
+// Helper function to generate virtual shifts from working patterns
+async function generateVirtualShiftsFromPattern(
+  employeeId: string,
+  startDate: Date,
+  endDate: Date,
+  companyId: string
+) {
+  // Get employee with working pattern
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    include: {
+      WorkingPattern: {
+        include: {
+          WorkingPatternWeek: {
+            include: {
+              WorkingPatternDay: true,
+            },
+          },
+        },
+      },
+      EmployeeWorkingPatternAssignment: {
+        where: {
+          effectiveDate: {
+            lte: endDate,
+          },
+        },
+        orderBy: {
+          effectiveDate: 'desc',
+        },
+        take: 1,
+        include: {
+          WorkingPattern: {
+            include: {
+              WorkingPatternWeek: {
+                include: {
+                  WorkingPatternDay: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      Department: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      User: {
+        select: {
+          name: true,
+          email: true,
+          profileImageUrl: true,
+        },
+      },
+    },
+  });
+
+  if (!employee) return [];
+
+  // Determine which working pattern to use
+  const activeWorkingPattern = 
+    employee.EmployeeWorkingPatternAssignment?.[0]?.WorkingPattern || 
+    employee.WorkingPattern;
+
+  if (!activeWorkingPattern || !activeWorkingPattern.WorkingPatternWeek?.length) {
+    return [];
+  }
+
+  // Get all actual shifts for this employee in the date range
+  const actualShifts = await prisma.shift.findMany({
+    where: {
+      employeeId,
+      isPublished: true,
+      startTime: {
+        gte: startDate,
+        lte: endDate,
+      },
+    },
+    select: {
+      startTime: true,
+    },
+  });
+
+  // Create a set of dates that have actual shifts
+  const datesWithShifts = new Set(
+    actualShifts.map(shift => formatDate(startOfDay(shift.startTime), 'yyyy-MM-dd'))
+  );
+
+  // Generate virtual shifts for each day in range
+  const virtualShifts = [];
+  const daysInRange = eachDayOfInterval({ start: startDate, end: endDate });
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  for (const date of daysInRange) {
+    const dateKey = formatDate(startOfDay(date), 'yyyy-MM-dd');
+    
+    // Skip if there's already an actual shift
+    if (datesWithShifts.has(dateKey)) continue;
+
+    const dayOfWeek = getDay(date);
+    const dayName = dayNames[dayOfWeek];
+
+    // Find working pattern for this day (using first week for now, could be enhanced for rotating patterns)
+    const workingDay = activeWorkingPattern.WorkingPatternWeek[0].WorkingPatternDay?.find(
+      (d: any) => d.day.toUpperCase() === dayName.toUpperCase()
+    );
+
+    if (!workingDay || workingDay.type === 'NON_WORKING_DAY') continue;
+
+    // Determine times based on day type
+    let startTime = workingDay.startTime || '09:00';
+    let endTime = workingDay.endTime || '17:00';
+
+    // Override with defaults if not set
+    if (!workingDay.startTime || !workingDay.endTime) {
+      switch (workingDay.type) {
+        case 'FULL_DAY':
+          startTime = '09:00';
+          endTime = '17:00';
+          break;
+        case 'HALF_DAY_AM':
+          startTime = '09:00';
+          endTime = '13:00';
+          break;
+        case 'HALF_DAY_PM':
+          startTime = '13:00';
+          endTime = '17:00';
+          break;
+        default:
+          continue;
+      }
+    }
+
+    // Parse times and create date objects
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    const shiftStart = new Date(date);
+    shiftStart.setHours(startHour, startMinute, 0, 0);
+    
+    const shiftEnd = new Date(date);
+    shiftEnd.setHours(endHour, endMinute, 0, 0);
+
+    // Create virtual shift object
+    virtualShifts.push({
+      id: `virtual-${employeeId}-${dateKey}`,
+      companyId,
+      employeeId,
+      departmentId: employee.departmentId,
+      locationId: null,
+      templateId: null,
+      startTime: shiftStart,
+      endTime: shiftEnd,
+      breakDuration: 0,
+      notes: `Working Pattern: ${activeWorkingPattern.name}`,
+      role: null,
+      attendanceStatus: 'PENDING',
+      cost: null,
+      requiredSkills: [],
+      requiresConfirmation: false,
+      isPublished: true,
+      createdBy: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isVirtualShift: true, // Flag to indicate this is a virtual shift
+      employee: {
+        id: employee.id,
+        User: employee.User,
+        Department: employee.Department,
+      },
+      department: employee.Department ? {
+        id: employee.departmentId!,
+        name: employee.Department.name,
+      } : null,
+      location: null,
+      Template: null,
+    });
+  }
+
+  return virtualShifts;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -138,6 +322,22 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    // Generate virtual shifts from working patterns if filtering by employee and date range
+    let virtualShifts: any[] = [];
+    if (employeeId && startDate && endDate) {
+      virtualShifts = await generateVirtualShiftsFromPattern(
+        employeeId,
+        new Date(startDate),
+        new Date(endDate),
+        requestingEmployee.companyId
+      );
+    }
+
+    // Combine actual and virtual shifts
+    const allShifts = [...shifts, ...virtualShifts].sort((a, b) => 
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+
     const overtimeThreshold = companySettings?.overtimeThreshold
       ? Number(companySettings.overtimeThreshold)
       : 40;
@@ -224,7 +424,7 @@ export async function GET(req: NextRequest) {
       `
     );
 
-    const rawShifts = shifts as ShiftWithRelations[];
+    const rawShifts = allShifts as (ShiftWithRelations | any)[];
     const shiftDepartmentIds = rawShifts
       .map(shift => shift.departmentId)
       .filter((id): id is string => Boolean(id));
@@ -246,27 +446,40 @@ export async function GET(req: NextRequest) {
 
     const departmentMap = new Map(departments.map(dept => [dept.id, dept.name]));
 
-    const normalizedShifts = rawShifts.map(({
-      Employee,
-      Location,
-      ...rest
-    }) => ({
-      ...rest,
-      employee: Employee
-        ? {
-            id: Employee.id,
-            User: Employee.User,
-            Department: Employee.Department,
-          }
-        : null,
-      department: rest.departmentId
-        ? {
-            id: rest.departmentId,
-            name: departmentMap.get(rest.departmentId) ?? 'Unknown Department',
-          }
-        : null,
-      location: Location,
-    }));
+    const normalizedShifts = rawShifts.map((shift) => {
+      // Handle virtual shifts (already have employee/location populated)
+      if (shift.isVirtualShift) {
+        return {
+          ...shift,
+          department: shift.departmentId
+            ? {
+                id: shift.departmentId,
+                name: departmentMap.get(shift.departmentId) ?? 'Unknown Department',
+              }
+            : null,
+        };
+      }
+      
+      // Handle actual shifts with relations
+      const { Employee, Location, ...rest } = shift;
+      return {
+        ...rest,
+        employee: Employee
+          ? {
+              id: Employee.id,
+              User: Employee.User,
+              Department: Employee.Department,
+            }
+          : null,
+        department: rest.departmentId
+          ? {
+              id: rest.departmentId,
+              name: departmentMap.get(rest.departmentId) ?? 'Unknown Department',
+            }
+          : null,
+        location: Location,
+      };
+    });
 
     const departmentBreakdown = departmentBreakdownRaw.map(entry => ({
       departmentId: entry.departmentid ?? 'unassigned',
@@ -279,14 +492,17 @@ export async function GET(req: NextRequest) {
       shiftCount: Number(entry.shiftcount ?? 0),
     }));
 
+    // Update total count to include virtual shifts
+    const actualTotalCount = totalCount + virtualShifts.length;
+    
     return NextResponse.json({
       shifts: normalizedShifts,
       pagination: {
         page,
         pageSize,
-        totalItems: totalCount,
-        totalPages: Math.ceil(totalCount / pageSize),
-        hasMore: page * pageSize < totalCount,
+        totalItems: actualTotalCount,
+        totalPages: Math.ceil(actualTotalCount / pageSize),
+        hasMore: page * pageSize < actualTotalCount,
       },
       summary: {
         totalCost: Number(summaryRow?.totalcost ?? 0),

@@ -781,8 +781,9 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const legendCategories = useMemo(
     () =>
       presentCategories.map((cat) => ({
-        label: cat,
-        swatchClassName: getCategoryColor(cat),
+        label: cat.name,
+        swatchClassName: getCategoryColor(cat.name),
+        icon: getEventCategoryIcon(cat.iconKey),
       })),
     [presentCategories],
   );

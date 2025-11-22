@@ -29,6 +29,7 @@ interface Shift {
   role?: string | null;
   attendanceStatus: string;
   isPublished: boolean;
+  isVirtualShift?: boolean;
   location?: {
     id: string;
     name: string;
@@ -396,13 +397,20 @@ export default function EmployeeSchedulePage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1 space-y-3">
                       <div className="flex items-center gap-4">
-                        <div className="bg-blue-500/20 p-3 rounded-lg">
-                          <Calendar className="w-6 h-6 text-blue-400" />
+                        <div className={`${shift.isVirtualShift ? 'bg-purple-500/20' : 'bg-blue-500/20'} p-3 rounded-lg`}>
+                          <Clock className="w-6 h-6 text-blue-400" />
                         </div>
                         <div>
-                          <h3 className="text-white font-semibold text-lg">
-                            {format(new Date(shift.startTime), 'EEEE, MMMM d')}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-white font-semibold text-lg">
+                              {format(new Date(shift.startTime), 'EEEE, MMMM d')}
+                            </h3>
+                            {shift.isVirtualShift && (
+                              <span className="px-2 py-0.5 bg-purple-500/30 text-purple-300 text-xs font-medium rounded-full border border-purple-500/50">
+                                Working Pattern
+                              </span>
+                            )}
+                          </div>
                           <p className="text-gray-300">
                             {format(new Date(shift.startTime), 'h:mm a')} -{' '}
                             {format(new Date(shift.endTime), 'h:mm a')}
@@ -432,13 +440,15 @@ export default function EmployeeSchedulePage() {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => setSelectedShift(shift)}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-semibold transition-all flex items-center gap-2"
-                    >
-                      <ArrowRightLeft className="w-4 h-4" />
-                      Request Swap
-                    </button>
+                    {!shift.isVirtualShift && (
+                      <button
+                        onClick={() => setSelectedShift(shift)}
+                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-semibold transition-all flex items-center gap-2"
+                      >
+                        <ArrowRightLeft className="w-4 h-4" />
+                        Request Swap
+                      </button>
+                    )}
                   </div>
                 </div>
               ))

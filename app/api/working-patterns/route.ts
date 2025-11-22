@@ -99,25 +99,32 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { name, description, patternType, contractedHoursPerWeek, weeks } = WorkingPatternCreateSchema.parse(body);
 
+    // Build the data object conditionally based on whether there are weeks
+    const createData: any = {
+      name,
+      description,
+      patternType,
+      contractedHoursPerWeek: contractedHoursPerWeek ?? null,
+      companyId: session.user.companyId,
+    };
+
+    // Only include WorkingPatternWeek if there are weeks to create
+    if (weeks.length > 0) {
+      createData.WorkingPatternWeek = {
+        create: weeks.map((week) => ({
+          weekNumber: week.weekNumber,
+          WorkingPatternDay: {
+            create: week.days.map((day) => ({
+              day: day.day,
+              type: day.type,
+            })),
+          },
+        })),
+      };
+    }
+
     const pattern = await prisma.workingPattern.create({
-      data: {
-        name,
-        description,
-        patternType,
-        contractedHoursPerWeek: contractedHoursPerWeek ?? null,
-        companyId: session.user.companyId,
-        WorkingPatternWeek: {
-          create: weeks.map((week) => ({
-            weekNumber: week.weekNumber,
-            WorkingPatternDay: {
-              create: week.days.map((day) => ({
-                day: day.day,
-                type: day.type,
-              })),
-            },
-          })),
-        },
-      } as any,
+      data: createData,
       include: {
         WorkingPatternWeek: {
           include: { WorkingPatternDay: true },

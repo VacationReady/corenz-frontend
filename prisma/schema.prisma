@@ -1912,7 +1912,7 @@ model User {
 }
 
 model WorkingPattern {
-  id                               String                             @id
+  id                               String                             @id @default(uuid())
   name                             String
   patternType                      WorkingPatternType                 @default(STANDARD)
   contractedHoursPerWeek           Decimal?                           @db.Decimal(5, 2) // For shift-based/flexible contracts
@@ -1930,7 +1930,7 @@ model WorkingPattern {
 }
 
 model WorkingPatternDay {
-  id                   String             @id
+  id                   String             @id @default(uuid())
   day                  String
   type                 DayType
   hoursPerDay          Decimal?           @db.Decimal(4, 2) // e.g., 7.5, 8.0, 10.0
@@ -1943,7 +1943,7 @@ model WorkingPatternDay {
 }
 
 model WorkingPatternWeek {
-  id                String              @id
+  id                String              @id @default(uuid())
   weekNumber        Int
   totalHours        Decimal             @default(0.00) @db.Decimal(5, 2) // Auto-calculated sum of day hours
   workingPatternId  String

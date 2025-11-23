@@ -151,7 +151,7 @@ export default function ReportsPreviewClient() {
 
   const [selectedFields, setSelectedFields] = useState<string[]>(() => {
     if (reportIdParam) return [];
-    if (templateIdParam && engineParam === "dynamic") {
+    if (templateIdParam) {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
         // Don't force User fields for timesheet or other non-User primary model reports
@@ -165,7 +165,7 @@ export default function ReportsPreviewClient() {
   useEffect(() => {
     if (reportIdParam) return;
 
-    if (templateIdParam && engineParam === "dynamic") {
+    if (templateIdParam) {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
         setLibraryTemplate(template);
@@ -201,7 +201,7 @@ export default function ReportsPreviewClient() {
       }
       return next;
     });
-  }, [initialFields, reportIdParam, templateIdParam, engineParam]);
+  }, [initialFields, reportIdParam, templateIdParam]);
   const [reportConfig, setReportConfig] = useState<any>(null);
   const [, setLibraryTemplate] = useState<ReportLibraryEntry | null>(null);
 
@@ -444,30 +444,6 @@ export default function ReportsPreviewClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportIdParam, session?.user?.companyId]);
 
-  useEffect(() => {
-    if (templateIdParam && engineParam === "custom" && reportTypeParam) {
-      const template = reportLibrary.find((entry) => entry.id === templateIdParam);
-      if (template) {
-        setLibraryTemplate(template);
-        const hasTimesheetFields = template.defaultFields.some((field: string) => field.startsWith("Timesheet."));
-        const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
-        setSelectedFields(Array.from(new Set([...requiredFields, ...template.defaultFields])));
-        setActiveFilters(
-          template.suggestedFilters?.map((filter, index) => ({
-            id: `filter_${index}`,
-            field: filter.field,
-            operator: filter.operator,
-            value: filter.value,
-            value2: filter.value2,
-          })) || [],
-        );
-        if (template.defaultSort) {
-          setActiveSort(template.defaultSort);
-        }
-        setLoadingReport(false);
-      }
-    }
-  }, [reportIdParam, templateIdParam, engineParam, reportTypeParam]);
 
   // ensure sort remains valid when fields change
   useEffect(() => {
@@ -584,19 +560,29 @@ export default function ReportsPreviewClient() {
       }
 
       if (engineParam === "custom" && reportTypeParam) {
+        // Transform filters for custom reports: extract the last part of nested field names
+        // e.g., "Employee.isActive" -> "isActive", "Employee.departmentId" -> "departmentId"
+        const transformedFilters = Object.fromEntries(
+          (Array.isArray(activeFilters) ? activeFilters : []).map((filter: any) => {
+            // Extract the simple key from nested paths (e.g., Employee.isActive -> isActive)
+            const filterKey = filter.field.includes('.') 
+              ? filter.field.split('.').pop() 
+              : filter.field;
+            
+            const filterValue = filter.operator === "between" || filter.operator === "date_between"
+              ? { value: filter.value, value2: filter.value2 }
+              : filter.value;
+            
+            return [filterKey, filterValue];
+          }),
+        );
+
         const res = await fetch("/api/reports/generate", {
           method: "POST",
           headers,
           body: JSON.stringify({
             reportType: reportTypeParam,
-            filters: Object.fromEntries(
-              (Array.isArray(activeFilters) ? activeFilters : []).map((filter: any) => [
-                filter.field,
-                filter.operator === "between" || filter.operator === "date_between"
-                  ? { value: filter.value, value2: filter.value2 }
-                  : filter.value,
-              ]),
-            ),
+            filters: transformedFilters,
             pagination: { page: pageToFetch, limit: limitToFetch, sortBy: activeSort?.field, sortOrder: activeSort?.direction },
           }),
         });

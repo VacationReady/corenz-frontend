@@ -635,8 +635,8 @@ export default function AnalyticsDashboard() {
                     Active employees by department with total records alongside live HR data.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4">
-                  <ScrollArea className="h-full pr-4">
+                <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4 overflow-hidden">
+                  <ScrollArea className="flex-1 min-h-0 pr-4">
                     <div className="space-y-3">
                       {(data.breakdowns.byDepartment ?? []).map((dept) => (
                         <div
@@ -785,8 +785,8 @@ export default function AnalyticsDashboard() {
                     Understand which job families hold the majority of active talent.
                   </p>
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4">
-                  <ScrollArea className="h-full pr-4">
+                <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4 overflow-hidden">
+                  <ScrollArea className="flex-1 min-h-0 pr-4">
                     <div className="space-y-3">
                       {(data.breakdowns.byJobRole ?? []).length === 0 ? (
                         <div className="flex h-full items-center justify-center text-sm text-muted-foreground">

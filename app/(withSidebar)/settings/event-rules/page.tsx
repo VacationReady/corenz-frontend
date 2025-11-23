@@ -510,17 +510,8 @@ export default function EventRulesPage() {
     }
   };
 
-  const openCreateOverrideDialog = (enableStaffingDensity = false) => {
-    if (enableStaffingDensity) {
-      setCurrentOverride({
-        eventCategoryId: "",
-        staffingDensityEnabled: true,
-        staffingDensityBehavior: "DENY",
-        staffingDensityThreshold: 0.3, // Default 30%
-      });
-    } else {
-      resetOverrideForm();
-    }
+  const openCreateOverrideDialog = () => {
+    resetOverrideForm();
     setOverrideDialogOpen(true);
   };
 
@@ -535,10 +526,6 @@ export default function EventRulesPage() {
       staffingDensityEnabled: false,
       staffingDensityBehavior: "DENY",
     });
-  };
-
-  const getOverridesForCategory = (categoryId: string) => {
-    return overrides.filter((o) => o.eventCategoryId === categoryId);
   };
 
   const getDepartmentName = (departmentId?: string) => {
@@ -881,10 +868,9 @@ export default function EventRulesPage() {
         </div>
 
       <Tabs defaultValue="rules" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="rules">Event Rules</TabsTrigger>
           <TabsTrigger value="overrides">Overrides</TabsTrigger>
-          <TabsTrigger value="density">Staffing Density</TabsTrigger>
         </TabsList>
 
         <TabsContent value="rules" className="space-y-4">
@@ -1330,162 +1316,6 @@ export default function EventRulesPage() {
               })}
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="density" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold">
-                Staffing Density Constraints
-              </h3>
-              <p className="text-muted-foreground">
-                Configure staffing density thresholds to prevent too many
-                employees from being absent simultaneously
-              </p>
-            </div>
-            <Button onClick={() => openCreateOverrideDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Density Rule
-            </Button>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                How Staffing Density Works
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-semibold mb-2">
-                      Hierarchical Resolution
-                    </h4>
-                    <ul className="text-sm space-y-1 text-muted-foreground">
-                      <li>• Company-wide rules apply to all employees</li>
-                      <li>
-                        • Department overrides apply to department members
-                      </li>
-                      <li>
-                        • Team overrides apply to team members (highest
-                        priority)
-                      </li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Density vs. Concurrent Rules</h4>
-                    <ul className="text-sm space-y-1 text-muted-foreground">
-                      <li>• <strong>Concurrent:</strong> Fixed number limit (e.g., max 5 people)</li>
-                      <li>• <strong>Density:</strong> Percentage limit (e.g., max 30%)</li>
-                      <li>• Both can be applied together for maximum control</li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-                  <div className="text-sm text-blue-800">
-                    <strong>Example:</strong> If your development team has 10
-                    people and you set a 30% density threshold, no more than 3
-                    developers can be on leave simultaneously. The 4th request
-                    would be denied or require approval.
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4">
-            {categories.map((category) => {
-              const categoryOverrides = getOverridesForCategory(category.id);
-              const hasStaffingDensity = categoryOverrides.some(
-                (o) => o.staffingDensityEnabled,
-              );
-
-              return (
-                <Card key={category.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-4 h-4 rounded-full"
-                          style={{
-                            backgroundColor: category.color || "#6b7280",
-                          }}
-                        />
-                        <div>
-                          <CardTitle>{category.name}</CardTitle>
-                          <CardDescription>
-                            {hasStaffingDensity
-                              ? "Has staffing density constraints"
-                              : "No density constraints"}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      <Badge
-                        variant={hasStaffingDensity ? "default" : "secondary"}
-                      >
-                        {hasStaffingDensity ? "Configured" : "Not Configured"}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  {hasStaffingDensity && (
-                    <CardContent>
-                      <div className="space-y-2">
-                        {categoryOverrides
-                          .filter((o) => o.staffingDensityEnabled)
-                          .map((override) => (
-                            <div
-                              key={override.id}
-                              className="flex items-center justify-between p-3 border rounded"
-                            >
-                              <div>
-                                <span className="font-medium">
-                                  {getDepartmentName(override.departmentId)}
-                                </span>
-                                <span className="text-muted-foreground ml-2">
-                                  {(
-                                    override.staffingDensityThreshold! * 100
-                                  ).toFixed(0)}
-                                  % threshold
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge
-                                  variant={
-                                    override.staffingDensityBehavior === "DENY"
-                                      ? "destructive"
-                                      : "secondary"
-                                  }
-                                >
-                                  {override.staffingDensityBehavior === "DENY"
-                                    ? "Hard Block"
-                                    : "Require Approval"}
-                                </Badge>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => openEditOverrideDialog(override)}
-                                >
-                                  <Edit className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => deleteOverride(override.id!)}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </CardContent>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
         </TabsContent>
       </Tabs>
 

@@ -231,53 +231,54 @@ function SettingSection({
         </div>
       </AccordionTrigger>
       <AccordionContent className="px-6 pb-6 data-[state=open]:animate-in data-[state=open]:fade-in-80 data-[state=open]:slide-in-from-top-2">
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 [@media(min-width:1920px)]:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] auto-rows-fr pt-2">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 [@media(min-width:1920px)]:grid-cols-4 items-stretch pt-2">
           {items.map(({ title, href, icon, helpPreset, description }) => (
-            <Card
-              key={title}
-              className="group relative overflow-hidden border-transparent bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 shadow-sm ring-1 ring-transparent transition duration-300 hover:ring-primary/40 hover:shadow-2xl hover:shadow-primary/20 motion-safe:duration-300 before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_top,var(--tw-gradient-stops))] before:from-primary/20 before:to-transparent before:opacity-0 before:transition-opacity before:duration-300 before:pointer-events-none hover:before:opacity-100 flex flex-col h-full"
-            >
-              <CardHeader
-                transparent
-                className="relative z-10 border-none bg-transparent p-5 pb-0 flex-1"
+            <div key={title} className="flex">
+              <Card
+                className="group relative overflow-hidden border-transparent bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 shadow-sm ring-1 ring-transparent transition duration-300 hover:ring-primary/40 hover:shadow-2xl hover:shadow-primary/20 motion-safe:duration-300 before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_top,var(--tw-gradient-stops))] before:from-primary/20 before:to-transparent before:opacity-0 before:transition-opacity before:duration-300 before:pointer-events-none hover:before:opacity-100 flex flex-col w-full"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-primary/10 p-2 text-primary transition-colors group-hover:bg-primary/20 group-hover:text-primary-foreground">
-                      {icon}
-                    </div>
-                    <div className="space-y-1">
-                      <CardTitle className="text-base">{title}</CardTitle>
-                      {description && (
-                        <CardDescription className="text-xs sm:text-sm">
-                          {description}
-                        </CardDescription>
-                      )}
-                    </div>
-                  </div>
-                  {helpPreset && <QuickHelp preset={helpPreset as any} />}
-                </div>
-              </CardHeader>
-              <CardContent
-                noPadding
-                className="relative z-10 flex flex-col gap-4 p-5 pt-4"
-              >
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  className="bg-gradient-to-r from-primary via-indigo-500 to-sky-500 text-white shadow-lg shadow-primary/20 hover:bg-transparent hover:shadow-primary/40 focus-visible:ring-primary/40"
+                <CardHeader
+                  transparent
+                  className="relative z-10 border-none bg-transparent p-5 pb-0 flex-grow"
                 >
-                  <Link
-                    href={href}
-                    className="flex items-center justify-center gap-2"
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-lg bg-primary/10 p-2 text-primary transition-colors group-hover:bg-primary/20 group-hover:text-primary-foreground">
+                        {icon}
+                      </div>
+                      <div className="space-y-1">
+                        <CardTitle className="text-base">{title}</CardTitle>
+                        {description && (
+                          <CardDescription className="text-xs sm:text-sm">
+                            {description}
+                          </CardDescription>
+                        )}
+                      </div>
+                    </div>
+                    {helpPreset && <QuickHelp preset={helpPreset as any} />}
+                  </div>
+                </CardHeader>
+                <CardContent
+                  noPadding
+                  className="relative z-10 flex flex-col gap-4 p-5 pt-4 flex-shrink-0"
+                >
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="bg-gradient-to-r from-primary via-indigo-500 to-sky-500 text-white shadow-lg shadow-primary/20 hover:bg-transparent hover:shadow-primary/40 focus-visible:ring-primary/40"
                   >
-                    <Settings className="w-4 h-4" />
-                    Manage
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+                    <Link
+                      href={href}
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Manage
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           ))}
         </div>
       </AccordionContent>

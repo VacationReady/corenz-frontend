@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/switch";
 import { IconPicker } from "@/components/IconPicker";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AddCategoryModalProps {
   isOpen: boolean;
@@ -81,81 +82,133 @@ export default function AddCategoryModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent title={<DialogTitle>Add Event Category</DialogTitle>}>
-        {/* Category Type Selection */}
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setCategoryType("TIME_OFF")}
-            className={`flex items-center justify-center gap-2 h-12 rounded-2xl transition-premium ${
-              categoryType === "TIME_OFF" ? "bg-primary text-primary-foreground" : "glass-subtle"
-            }`}
-          >
-            <UmbrellaIcon className="w-5 h-5" />
-            <span>Time Off</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setCategoryType("WORKING_EVENT")}
-            className={`flex items-center justify-center gap-2 h-12 rounded-2xl transition-premium ${
-              categoryType === "WORKING_EVENT" ? "bg-primary text-primary-foreground" : "glass-subtle"
-            }`}
-          >
-            <BriefcaseIcon className="w-5 h-5" />
-            <span>Working Event</span>
-          </button>
-        </div>
+    <TooltipProvider>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent title={<DialogTitle>Add Event Category</DialogTitle>}>
+          <div className="space-y-6">
+            {/* Category Type Selection */}
+            <div>
+              <label className="text-sm font-medium mb-3 block">Category Type</label>
+              <div className="grid grid-cols-2 gap-4">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryType("TIME_OFF")}
+                      className={`flex items-center justify-center gap-3 h-16 rounded-2xl transition-all duration-200 ${
+                        categoryType === "TIME_OFF" 
+                          ? "bg-primary text-primary-foreground shadow-lg scale-[1.02]" 
+                          : "glass-subtle hover:shadow-md"
+                      }`}
+                    >
+                      <UmbrellaIcon className="w-5 h-5" />
+                      <span className="font-medium">Time Off</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>For leave, vacation, sick days, and absences</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryType("WORKING_EVENT")}
+                      className={`flex items-center justify-center gap-3 h-16 rounded-2xl transition-all duration-200 ${
+                        categoryType === "WORKING_EVENT" 
+                          ? "bg-primary text-primary-foreground shadow-lg scale-[1.02]" 
+                          : "glass-subtle hover:shadow-md"
+                      }`}
+                    >
+                      <BriefcaseIcon className="w-5 h-5" />
+                      <span className="font-medium">Working Event</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>For training, meetings, and work-related activities</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
 
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <Input
-              placeholder="Category Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="w-40">
-            <IconPicker value={iconKey} onChange={setIconKey} />
-          </div>
-        </div>
+            {/* Category Name & Icon */}
+            <div>
+              <label className="text-sm font-medium mb-3 block">Category Details</label>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Category Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-11"
+                  />
+                </div>
+                <div className="w-12">
+                  <IconPicker value={iconKey} onChange={setIconKey} />
+                </div>
+              </div>
+            </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-sm">Color</span>
-          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-9 w-14 rounded-md overflow-hidden bg-transparent" />
-        </div>
+            {/* Color Picker */}
+            <div>
+              <label className="text-sm font-medium mb-3 block">Color</label>
+              <div className="flex items-center gap-3">
+                <input 
+                  type="color" 
+                  value={color} 
+                  onChange={(e) => setColor(e.target.value)} 
+                  className="h-11 w-20 rounded-xl overflow-hidden cursor-pointer border-2 border-border"
+                />
+                <span className="text-sm text-muted-foreground">{color}</span>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-1 gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Requires Approval</span>
-            <Switch checked={requiresApproval} onChange={setRequiresApproval} />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Admin Only</span>
-            <Switch checked={adminOnly} onChange={setAdminOnly} />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Active</span>
-            <Switch checked={isActive} onChange={setIsActive} />
-          </div>
-        </div>
+            {/* Options */}
+            <div>
+              <label className="text-sm font-medium mb-3 block">Options</label>
+              <div className="space-y-4 glass-subtle rounded-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Requires Approval</span>
+                  <Switch checked={requiresApproval} onChange={setRequiresApproval} />
+                </div>
+                <div className="h-px bg-border/50" />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Admin Only</span>
+                  <Switch checked={adminOnly} onChange={setAdminOnly} />
+                </div>
+                <div className="h-px bg-border/50" />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Active</span>
+                  <Switch checked={isActive} onChange={setIsActive} />
+                </div>
+              </div>
+            </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-sm">Default Paid Status</span>
-          <select
-            value={defaultPaidStatus}
-            onChange={(e) => setDefaultPaidStatus(e.target.value as "PAID" | "UNPAID")}
-            className="glass-subtle rounded-xl px-3 py-2 text-sm"
-          >
-            <option value="PAID">Paid</option>
-            <option value="UNPAID">Unpaid</option>
-          </select>
-        </div>
+            {/* Default Paid Status */}
+            <div>
+              <label className="text-sm font-medium mb-3 block">Default Paid Status</label>
+              <select
+                value={defaultPaidStatus}
+                onChange={(e) => setDefaultPaidStatus(e.target.value as "PAID" | "UNPAID")}
+                className="w-full glass-subtle rounded-xl px-4 py-3 text-sm font-medium border-2 border-transparent focus:border-primary focus:outline-none transition-colors"
+              >
+                <option value="PAID">Paid</option>
+                <option value="UNPAID">Unpaid</option>
+              </select>
+            </div>
 
-        <Button onClick={handleSubmit} disabled={loading} className="w-full" icon={<PlusIcon className="w-4 h-4" />}>
-          {loading ? "Adding..." : "Add Category"}
-        </Button>
-      </DialogContent>
-    </Dialog>
+            {/* Submit Button */}
+            <Button 
+              onClick={handleSubmit} 
+              disabled={loading} 
+              className="w-full h-12 text-base font-medium" 
+              icon={<PlusIcon className="w-5 h-5" />}
+            >
+              {loading ? "Adding..." : "Add Category"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </TooltipProvider>
   );
 }

@@ -292,7 +292,7 @@ export default function EventManagerPage() {
               <div key={category.id} className="glass-card rounded-2xl p-4 shadow-depth-1">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
-                    <div className="w-40">
+                    <div className="w-12">
                       <IconPicker
                         value={category.iconKey}
                         onChange={(key) => handleUpdateIcon(category.id, key)}
@@ -302,7 +302,10 @@ export default function EventManagerPage() {
                     <div>
                       <p className="font-medium">{category.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {category.categoryType ?? ""}
+                        {category.categoryType === 'TIME_OFF' ? 'Time Off' : category.categoryType === 'WORKING_EVENT' ? 'Working Event' : ''}
+                        {category.systemDefined && (
+                          <span className="ml-2 text-xs opacity-70">• System</span>
+                        )}
                       </p>
                     </div>
                   </div>

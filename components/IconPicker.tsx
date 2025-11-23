@@ -31,14 +31,10 @@ export function IconPicker({ value, onChange, disabled }: IconPickerProps) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-full justify-center"
           disabled={disabled}
         >
-          <span className="flex items-center gap-2">
-            <SelectedIcon className="h-4 w-4" />
-            {value ? ICON_OPTIONS.find(o => o.key === value)?.label || "Custom Icon" : "Select Icon"}
-          </span>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <SelectedIcon className="h-5 w-5" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[240px] p-0" align="start">

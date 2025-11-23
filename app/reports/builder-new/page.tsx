@@ -191,6 +191,8 @@ export default function NewReportBuilderPage() {
     if (template.engine === "custom" && template.reportType) {
       params.set("reportType", template.reportType);
       params.set("engine", "custom");
+      // Custom reports still need fields for column display
+      params.set("fields", JSON.stringify(template.defaultFields));
     } else {
       params.set("fields", JSON.stringify(template.defaultFields));
       params.set("engine", "dynamic");

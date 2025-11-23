@@ -210,7 +210,7 @@ const allowedOperators: FilterOperator[] = [
         <CardContent className="flex min-h-0 flex-1 flex-col space-y-0 p-0">
           <div className="border-b border-glass bg-muted/40 px-6 py-4">
             <nav aria-label="Progress">
-              <ol className="flex flex-wrap gap-4">
+              <ol className="grid grid-cols-2 gap-4">
                 {steps.map((step, index) => {
                   const isActive = step.id === currentStep;
                   const isCompleted = index < currentStepIndex;

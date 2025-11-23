@@ -49,11 +49,13 @@ function appendUnique(list: string[], value: string | undefined) {
 }
 
 const COLUMN_FALLBACKS: Record<string, string[]> = {
-  "Employee.User.firstName": ["firstName", "User.firstName"],
-  "Employee.User.lastName": ["lastName", "User.lastName"],
-  "Employee.User.email": ["email", "User.email"],
-  "Employee.User.phone": ["phone", "User.phone"],
+  "Employee.User.firstName": ["Employee.User.firstName", "firstName", "User.firstName"],
+  "Employee.User.lastName": ["Employee.User.lastName", "lastName", "User.lastName"],
+  "Employee.User.email": ["Employee.User.email", "email", "User.email"],
+  "Employee.User.phone": ["Employee.User.phone", "phone", "User.phone"],
   "Employee.Department.name": [
+    "Employee.Department.name",
+    "Department.name",
     "User.Department_User_departmentIdToDepartment.name",
     "User.Employee.Department.name",
     "department",
@@ -63,20 +65,21 @@ const COLUMN_FALLBACKS: Record<string, string[]> = {
     "Employee.Department.name",
     "department",
   ],
-  "Employee.JobRole.name": ["_computed.jobRoleName", "jobRole", "User.JobRole.name"],
-  "Employee.startDate": ["User.Employee.startDate", "_computed.effectiveStartDate"],
+  "Employee.JobRole.name": ["Employee.JobRole.name", "JobRole.name", "_computed.jobRoleName", "jobRole", "User.JobRole.name"],
+  "Employee.startDate": ["Employee.startDate", "User.Employee.startDate", "_computed.effectiveStartDate"],
   "User.Employee.startDate": ["Employee.startDate", "_computed.effectiveStartDate"],
   "Employee.WorkingPattern.name": [
+    "Employee.WorkingPattern.name",
     "WorkingPattern.name",
     "LeaveRequest.Employee.WorkingPattern.name",
     "_computed.workingPatternName",
   ],
   "WorkingPattern.name": ["Employee.WorkingPattern.name", "_computed.workingPatternName"],
-  "_computed.remainingEntitlement": ["remainingEntitlement"],
-  "LeaveEntitlement.EventCategory.name": ["EventCategory.name"],
-  "LeaveEntitlement.totalDays": ["totalDays"],
-  "LeaveEntitlement.usedDays": ["usedDays"],
-  "LeaveEntitlement.carryoverDays": ["carryoverDays"],
+  "_computed.remainingEntitlement": ["_computed.remainingEntitlement", "remainingEntitlement"],
+  "LeaveEntitlement.EventCategory.name": ["EventCategory.name", "LeaveEntitlement.EventCategory.name"],
+  "LeaveEntitlement.totalDays": ["LeaveEntitlement.totalDays", "totalDays"],
+  "LeaveEntitlement.usedDays": ["LeaveEntitlement.usedDays", "usedDays"],
+  "LeaveEntitlement.carryoverDays": ["LeaveEntitlement.carryoverDays", "carryoverDays"],
 };
 
 function parseFieldsParam(value: string | null | undefined): string[] {
@@ -142,19 +145,28 @@ export default function ReportsPreviewClient() {
 
   const initialFields = useMemo(() => {
     const parsed = parseFieldsParam(fieldsParam);
+    // Don't add required fields for custom engine reports - they already have correct structure
+    if (engineParam === "custom") {
+      return parsed;
+    }
     // Only enforce User required fields if we're not in a Timesheet context
     const hasTimesheetFields = parsed.some((field: string) => field.startsWith("Timesheet."));
     const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
     const withRequired = Array.from(new Set([...requiredFields, ...parsed]));
     return withRequired;
-  }, [fieldsParam]);
+  }, [fieldsParam, engineParam]);
 
   const [selectedFields, setSelectedFields] = useState<string[]>(() => {
     if (reportIdParam) return [];
     if (templateIdParam) {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
-        // Don't force User fields for timesheet or other non-User primary model reports
+        // Custom engine reports already have the correct field structure in their templates
+        // Don't add REQUIRED_FIELDS_USER as it will create duplicates
+        if (template.engine === "custom") {
+          return [...template.defaultFields];
+        }
+        // For dynamic reports, don't force User fields for timesheet or other non-User primary model reports
         const hasTimesheetFields = template.defaultFields.some((field: string) => field.startsWith("Timesheet."));
         const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
         return Array.from(new Set([...requiredFields, ...template.defaultFields]));
@@ -169,9 +181,17 @@ export default function ReportsPreviewClient() {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
         setLibraryTemplate(template);
-        const hasTimesheetFields = template.defaultFields.some((field: string) => field.startsWith("Timesheet."));
-        const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
-        setSelectedFields(Array.from(new Set([...requiredFields, ...template.defaultFields])));
+        
+        // Custom engine reports already have the correct field structure
+        if (template.engine === "custom") {
+          setSelectedFields([...template.defaultFields]);
+        } else {
+          // For dynamic reports, add required fields if not timesheet
+          const hasTimesheetFields = template.defaultFields.some((field: string) => field.startsWith("Timesheet."));
+          const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
+          setSelectedFields(Array.from(new Set([...requiredFields, ...template.defaultFields])));
+        }
+        
         setActiveFilters(
           template.suggestedFilters?.map((filter, index) => ({
             id: `filter_${index}`,
@@ -189,6 +209,11 @@ export default function ReportsPreviewClient() {
     }
 
     setSelectedFields((current) => {
+      // For custom engine reports, don't add required fields
+      if (engineParam === "custom") {
+        return initialFields.length > 0 ? initialFields : current;
+      }
+      
       const hasTimesheetFields = current.some((field: string) => field.startsWith("Timesheet."));
       const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
       const ensured = Array.from(new Set([...requiredFields, ...current]));
@@ -201,7 +226,7 @@ export default function ReportsPreviewClient() {
       }
       return next;
     });
-  }, [initialFields, reportIdParam, templateIdParam]);
+  }, [initialFields, reportIdParam, templateIdParam, engineParam]);
   const [reportConfig, setReportConfig] = useState<any>(null);
   const [, setLibraryTemplate] = useState<ReportLibraryEntry | null>(null);
 
@@ -741,6 +766,18 @@ export default function ReportsPreviewClient() {
         const asUser = field.slice("Employee.".length);
         appendUnique(candidates, asUser);
         appendUnique(candidates, asUser.slice("User.".length));
+      }
+
+      // Handle Employee.Department.*, Employee.JobRole.*, etc.
+      if (field.startsWith("Employee.") && !field.startsWith("Employee.User.")) {
+        const withoutEmployee = field.slice("Employee.".length);
+        appendUnique(candidates, withoutEmployee);
+      }
+
+      // Handle LeaveEntitlement.* fields
+      if (field.startsWith("LeaveEntitlement.")) {
+        const withoutPrefix = field.slice("LeaveEntitlement.".length);
+        appendUnique(candidates, withoutPrefix);
       }
 
       const contextPrefixes = [

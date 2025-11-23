@@ -40,7 +40,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Employment Details",
 		description: "Job roles, departments, working patterns, and employment status",
 		icon: "💼",
-		color: "bg-green-50 text-green-700 border-green-200",
+		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 2,
 	},
 	{
@@ -48,7 +48,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Compensation & Payroll",
 		description: "Salary, hourly rate, tax and benefits",
 		icon: "💰",
-		color: "bg-yellow-50 text-yellow-700 border-yellow-200",
+		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 3,
 	},
 	{
@@ -56,7 +56,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Time Off & Leave",
 		description: "Leave requests, entitlements, and time off balances",
 		icon: "📅",
-		color: "bg-purple-50 text-purple-700 border-purple-200",
+		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 4,
 	},
 	{
@@ -64,7 +64,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Documents & Compliance",
 		description: "Employment checks, training records, and document management",
 		icon: "📋",
-		color: "bg-orange-50 text-orange-700 border-orange-200",
+		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 5,
 	},
 	{
@@ -72,7 +72,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Offboarding",
 		description: "Exit status, dates, tasks, and interviews",
 		icon: "🚪",
-		color: "bg-red-50 text-red-700 border-red-200",
+		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 6,
 	},
 	{
@@ -80,7 +80,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Time Tracking & Timesheets",
 		description: "Timesheets, time entries, approvals, and worked hours",
 		icon: "⏰",
-		color: "bg-cyan-50 text-cyan-700 border-cyan-200",
+		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 7,
 	},
 	{
@@ -88,7 +88,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Performance & Training",
 		description: "Training records, performance data, and development tracking",
 		icon: "📈",
-		color: "bg-indigo-50 text-indigo-700 border-indigo-200",
+		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 8,
 	},
 	{
@@ -96,7 +96,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Forms",
 		description: "Custom forms and survey responses",
 		icon: "📝",
-		color: "bg-teal-50 text-teal-700 border-teal-200",
+		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 9,
 	},
 ];

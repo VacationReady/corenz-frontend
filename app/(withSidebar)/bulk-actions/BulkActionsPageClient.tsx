@@ -438,7 +438,7 @@ export default function BulkActionsPageClient() {
       title="Bulk actions"
       description="Build precise cohorts and run high-trust updates without leaving the admin workspace."
       icon={<ListChecks className="h-7 w-7" />}
-      breadcrumbs={breadcrumbs}
+      breadcrumbs={breadcrumbs || undefined}
     >
       <div className="space-y-6">
         {metadataError && (

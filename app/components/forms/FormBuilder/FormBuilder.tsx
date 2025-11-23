@@ -278,9 +278,9 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
   return (
     <div className="relative">
       <div className="mb-4">
-        <div className="glass-premium rounded-2xl p-4 mb-4 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
+        <div className="glass-premium rounded-2xl p-3 mb-4 shadow-sm">
+          <div className={`grid grid-cols-1 md:grid-cols-2 ${formType === "FORM" ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-3 items-end`}>
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium text-muted-foreground">
                 Form Name
               </Label>
@@ -291,7 +291,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                 className="glass-subtle border-white/20 focus:border-primary/50 transition-colors"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-sm font-medium text-muted-foreground">
                 Form Type
               </Label>
@@ -305,12 +305,37 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                   <SelectItem value="SURVEY">Survey</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {formType === "FORM" && "Single record per employee (editable)"}
                 {formType === "TABLE" && "Multiple records per employee"}
                 {formType === "SURVEY" && "One-time submission (not editable)"}
               </p>
             </div>
+            {formType === "FORM" && (
+              <div className="flex items-end space-x-2 pb-0.5">
+                <Checkbox
+                  id="autoSave"
+                  checked={autoSave}
+                  onCheckedChange={(checked) => setAutoSave(Boolean(checked))}
+                />
+                <label
+                  htmlFor="autoSave"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Auto-save drafts
+                </label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="glass-premium max-w-xs">
+                      <p>Automatically save user progress every 5 seconds to prevent data loss</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            )}
             <div className="flex items-end gap-2">
               <Button variant="outline" onClick={goToForms}>
                 Cancel
@@ -324,31 +349,6 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               </Button>
             </div>
           </div>
-          {formType === "FORM" && (
-            <div className="flex items-center space-x-2 mt-4">
-              <Checkbox
-                id="autoSave"
-                checked={autoSave}
-                onCheckedChange={(checked) => setAutoSave(Boolean(checked))}
-              />
-              <label
-                htmlFor="autoSave"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-              >
-                Auto-save drafts
-              </label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="glass-premium max-w-xs">
-                    <p>Automatically save user progress every 5 seconds to prevent data loss</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          )}
         </div>
 
         <DndContext

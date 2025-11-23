@@ -80,7 +80,8 @@ export function ExpiryRuleWizard({
     [fields, selectedFieldId],
   );
 
-  const canCreateAutomation = selectedField?.id === "EmploymentCheck.expiryDate";
+  // All date fields now support automation creation
+  const canCreateAutomation = !!selectedField;
 
   const runPreview = async () => {
     if (!selectedField) return;
@@ -107,8 +108,8 @@ export function ExpiryRuleWizard({
   };
 
   const createAsAutomation = async () => {
-    if (!canCreateAutomation) {
-      toast("Create as Automation is currently available for Employment Checks only");
+    if (!canCreateAutomation || !selectedField) {
+      toast("Please select a date field");
       return;
     }
     if (!thresholds.length) {
@@ -120,15 +121,25 @@ export function ExpiryRuleWizard({
     try {
       const created: string[] = [];
       for (const t of thresholds) {
+        // Build triggerConfig with entity and field metadata for dynamic processing
+        const triggerConfig: any = {
+          daysBefore: t,
+          entity: selectedField.entity,
+          field: selectedField.field,
+          fieldId: selectedField.id,
+        };
+
+        // Add field-specific filters
+        if (selectedField.id === "EmploymentCheck.expiryDate" && typeOfCheck.length > 0) {
+          triggerConfig.documentTypes = typeOfCheck;
+        }
+
         const body = {
           name: `${selectedField?.label || "Expiry"} – ${t} days`,
           description: "Auto-generated from Expiry Alerts wizard",
           isActive: true,
           triggerType: "DOCUMENT_EXPIRING",
-          triggerConfig: {
-            daysBefore: t,
-            documentTypes: typeOfCheck,
-          },
+          triggerConfig,
           conditions: [
             ...(selectedDepartments.length
               ? [{ type: "department", config: { operator: "in", value: selectedDepartments } }]
@@ -270,7 +281,7 @@ export function ExpiryRuleWizard({
                 <Button variant="outline" onClick={runPreview} disabled={loadingPreview}>Preview matches</Button>
                 {previewCount !== null && <span className="text-sm text-muted-foreground">Estimated matches: {previewCount}</span>}
               </div>
-              <div className="text-xs text-muted-foreground">Create as Automation is available for Employment Checks now; other fields will use upcoming triggers.</div>
+              <div className="text-xs text-muted-foreground">Review your settings and create automation rules for the selected date field.</div>
             </div>
           )}
 

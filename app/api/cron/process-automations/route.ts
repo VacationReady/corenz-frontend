@@ -167,38 +167,54 @@ async function processEventTriggers(results: any) {
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + daysBefore);
       
-      // Find documents expiring within the target date
-      const driverLicences = await prisma.driverLicence.findMany({
-        where: {
-          expiryDate: { lte: targetDate, gte: new Date() },
-          Employee: { companyId: workflow.companyId },
-        },
-        include: { Employee: true },
-      });
+      // Get entity and field from config, or default to all entities
+      const entity = cfg.entity;
+      const field = cfg.field;
+      const fieldId = cfg.fieldId;
 
-      const trainingRecords = await prisma.trainingRecord.findMany({
-        where: {
-          expiryDate: { lte: targetDate, gte: new Date() },
-          Employee: { companyId: workflow.companyId },
-        },
-        include: { Employee: true, Course: true },
-      });
+      let expiringItems: any[] = [];
 
-      const employmentChecks = await prisma.employmentCheck.findMany({
-        where: {
-          expiryDate: { lte: targetDate, gte: new Date() },
-          Employee: { companyId: workflow.companyId },
-        },
-        include: { Employee: true },
-      });
+      // If entity and field are specified, query dynamically
+      if (entity && field && fieldId) {
+        expiringItems = await queryExpiringEntities(entity, field, fieldId, targetDate, workflow.companyId, cfg);
+      } else {
+        // Backward compatibility: check all known entity types
+        const driverLicences = await prisma.driverLicence.findMany({
+          where: {
+            expiryDate: { lte: targetDate, gte: new Date() },
+            Employee: { companyId: workflow.companyId },
+          },
+          include: { Employee: true },
+        });
 
-      for (const doc of [...driverLicences, ...trainingRecords, ...employmentChecks]) {
+        const trainingRecords = await prisma.trainingRecord.findMany({
+          where: {
+            expiryDate: { lte: targetDate, gte: new Date() },
+            Employee: { companyId: workflow.companyId },
+          },
+          include: { Employee: true, Course: true },
+        });
+
+        const employmentChecks = await prisma.employmentCheck.findMany({
+          where: {
+            expiryDate: { lte: targetDate, gte: new Date() },
+            Employee: { companyId: workflow.companyId },
+          },
+          include: { Employee: true },
+        });
+
+        expiringItems = [...driverLicences, ...trainingRecords, ...employmentChecks];
+      }
+
+      for (const doc of expiringItems) {
         try {
           await workflowEngine.executeWorkflow(workflow.id, {
             triggerType: "DOCUMENT_EXPIRING",
             documentId: doc.id,
             employeeId: doc.employeeId,
-            expiryDate: doc.expiryDate,
+            expiryDate: doc.expiryDate || doc[field],
+            entity,
+            field,
           });
           
           // Record that we processed this document
@@ -410,6 +426,88 @@ function shouldRunCron(cronExpression: string, now: Date): boolean {
   if (dayOfWeek !== "*" && parseInt(dayOfWeek) !== currentDayOfWeek) return false;
   
   return true;
+}
+
+/**
+ * Query expiring entities dynamically based on entity type and field
+ */
+async function queryExpiringEntities(
+  entity: string,
+  field: string,
+  fieldId: string,
+  targetDate: Date,
+  companyId: string,
+  config: any
+): Promise<any[]> {
+  const today = new Date();
+  
+  switch (fieldId) {
+    case "DriverLicence.expiryDate":
+      return await prisma.driverLicence.findMany({
+        where: {
+          expiryDate: { lte: targetDate, gte: today },
+          Employee: { companyId },
+        },
+        include: { Employee: true },
+      });
+
+    case "TrainingRecord.expiryDate":
+      return await prisma.trainingRecord.findMany({
+        where: {
+          expiryDate: { lte: targetDate, gte: today },
+          Employee: { companyId },
+        },
+        include: { Employee: true, Course: true },
+      });
+
+    case "EmploymentCheck.expiryDate":
+      const whereClause: any = {
+        expiryDate: { lte: targetDate, gte: today },
+        Employee: { companyId },
+      };
+      // Add documentTypes filter if specified
+      if (config.documentTypes && Array.isArray(config.documentTypes) && config.documentTypes.length > 0) {
+        whereClause.typeOfCheck = { in: config.documentTypes };
+      }
+      return await prisma.employmentCheck.findMany({
+        where: whereClause,
+        include: { Employee: true },
+      });
+
+    case "Document.signatureDueAt":
+      return await prisma.documentSignatureEmployee.findMany({
+        where: {
+          dueAt: { lte: targetDate, gte: today },
+          Document: { Company: { id: companyId } },
+        },
+        include: { 
+          Document: true,
+          Employee: true,
+        },
+      });
+
+    case "LeaveEntitlement.carryoverExpiry":
+      return await prisma.leaveEntitlement.findMany({
+        where: {
+          carryoverExpiry: { lte: targetDate, gte: today },
+          Company: { id: companyId },
+        },
+        include: { Employee: true },
+      });
+
+    case "EmployeeOffboarding.lastWorkingDate":
+      return await prisma.employeeOffboarding.findMany({
+        where: {
+          lastWorkingDate: { lte: targetDate, gte: today },
+          Employee: { companyId },
+        },
+        include: { Employee: true },
+      });
+
+    default:
+      console.warn(`Unsupported fieldId in automation trigger: ${fieldId}`);
+      return [];
+  }
 }
 
 /**

@@ -588,7 +588,7 @@ export function EnhancedFormRenderer({
               {saving
                 ? "Saving..."
                 : hasAutoSave
-                  ? "Save Data"
+                  ? "Save Changes"
                   : "Submit Form"}
             </Button>
             {hasAutoSave && !formState.isDirty && !isReadOnly && (

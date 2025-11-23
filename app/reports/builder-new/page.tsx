@@ -244,7 +244,7 @@ export default function NewReportBuilderPage() {
       }
     >
       <div className="grid gap-6">
-        <Card>
+        <Card className="overflow-visible">
           <CardContent className="p-6 overflow-visible">
             <TemplateGallery
               onSelectTemplate={handleTemplateExecute}

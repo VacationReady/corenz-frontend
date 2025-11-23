@@ -66,17 +66,17 @@ export default function TemplateGallery({
       </div>
 
       {/* Horizontal Scrolling Template Carousel */}
-      <div className="relative -mx-6 px-6">
+      <div className="relative -mx-6 px-6 overflow-visible">
         {/* Gradient fade on edges */}
         <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-12 bg-gradient-to-r from-background to-transparent" />
         <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-12 bg-gradient-to-l from-background to-transparent" />
         
-        <div className="flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-border/80">
+        <div className="flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible pb-4 scroll-smooth w-full [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-border/80 [&::-webkit-scrollbar]:block">
           {filteredTemplates.map((template) => (
             <button
               key={template.id}
               onClick={() => onSelectTemplate(template)}
-              className="group relative flex min-w-[280px] flex-col gap-3 rounded-lg border border-border bg-card p-4 text-left transition-all hover:border-primary hover:shadow-lg hover:scale-[1.02]"
+              className="group relative flex min-w-[280px] flex-shrink-0 flex-col gap-3 rounded-lg border border-border bg-card p-4 text-left transition-all hover:border-primary hover:shadow-lg hover:scale-[1.02]"
             >
               <div className="flex items-start gap-3">
                 <div className="rounded-md bg-primary/10 p-2.5 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -103,7 +103,7 @@ export default function TemplateGallery({
           {showCustomOptions && (
             <button
               onClick={() => onStartCustom && onStartCustom()}
-              className="group relative flex min-w-[280px] flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-card p-6 text-center transition-all hover:border-primary hover:bg-accent hover:scale-[1.02]"
+              className="group relative flex min-w-[280px] flex-shrink-0 flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-card p-6 text-center transition-all hover:border-primary hover:bg-accent hover:scale-[1.02]"
             >
               <div className="rounded-full bg-primary/10 p-3 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                 <Plus className="h-6 w-6" />

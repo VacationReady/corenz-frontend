@@ -18,6 +18,8 @@ import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import Button from "@/components/ui/Button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { ExpiryRuleWizard } from "./ExpiryRuleWizard";
+import Link from "next/link";
+import { Badge } from "@/components/ui/Badge";
 
 type ExpiryRule = {
   id: string;
@@ -26,6 +28,9 @@ type ExpiryRule = {
   notifyAdmin: boolean;
   notifyManager: boolean;
   notifyEmployee: boolean;
+  isAutomationRule?: boolean;
+  automationRuleId?: string;
+  isActive?: boolean;
 };
 
 export default function ExpirySettingsPage() {
@@ -34,25 +39,37 @@ export default function ExpirySettingsPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchRules = async () => {
-      try {
-        const res = await fetch("/api/expiry-rules/list");
-        if (!res.ok) {
-          throw new Error(`Failed to load rules: ${res.status}`);
-        }
-        const data = await res.json();
-        setRules(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to fetch expiry rules", err);
-        toast("Failed to load expiry rules");
-        setRules([]);
-      } finally {
-        setLoading(false);
+  const fetchRules = async () => {
+    try {
+      const res = await fetch("/api/expiry-rules/list");
+      if (!res.ok) {
+        throw new Error(`Failed to load rules: ${res.status}`);
       }
-    };
+      const data = await res.json();
+      setRules(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch expiry rules", err);
+      toast("Failed to load expiry rules");
+      setRules([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRules();
   }, []);
+
+  // Refresh rules when wizard closes (after creating a new rule)
+  const handleWizardClose = (open: boolean) => {
+    setWizardOpen(open);
+    if (!open) {
+      // Refresh rules after wizard closes
+      setTimeout(() => {
+        fetchRules();
+      }, 500); // Small delay to ensure backend has processed the creation
+    }
+  };
 
   const handleUpdate = async (
     id: string,
@@ -96,11 +113,11 @@ export default function ExpirySettingsPage() {
           {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <div className="mr-auto">
-              <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+              <Dialog open={wizardOpen} onOpenChange={handleWizardClose}>
                 <DialogTrigger asChild>
                   <Button size="sm">Build Custom Expiry Workflow</Button>
                 </DialogTrigger>
-                <ExpiryRuleWizard open={wizardOpen} onOpenChange={setWizardOpen} />
+                <ExpiryRuleWizard open={wizardOpen} onOpenChange={handleWizardClose} />
               </Dialog>
             </div>
           </div>
@@ -118,46 +135,78 @@ export default function ExpirySettingsPage() {
             <TableBody>
               {rules.map((rule) => (
                 <TableRow key={rule.id}>
-                  <TableCell>{rule.category}</TableCell>
                   <TableCell>
-                    <Input
-                      type="number"
-                      value={rule.daysBefore}
-                      onChange={(event) =>
-                        handleUpdate(rule.id, {
-                          daysBefore: parseInt(event.target.value, 10),
-                        })
-                      }
-                      disabled={updatingId === rule.id}
-                      className="max-w-[100px]"
-                    />
+                    <div className="flex items-center gap-2">
+                      {rule.category}
+                      {rule.isAutomationRule && (
+                        <Badge variant="secondary" className="text-xs">
+                          Automation
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Switch
-                      checked={rule.notifyAdmin}
-                      onChange={(checked) =>
-                        handleUpdate(rule.id, { notifyAdmin: checked })
-                      }
-                      disabled={updatingId === rule.id}
-                    />
+                    {rule.isAutomationRule ? (
+                      <span className="text-sm text-muted-foreground">{rule.daysBefore} days</span>
+                    ) : (
+                      <Input
+                        type="number"
+                        value={rule.daysBefore}
+                        onChange={(event) =>
+                          handleUpdate(rule.id, {
+                            daysBefore: parseInt(event.target.value, 10),
+                          })
+                        }
+                        disabled={updatingId === rule.id}
+                        className="max-w-[100px]"
+                      />
+                    )}
                   </TableCell>
                   <TableCell>
-                    <Switch
-                      checked={rule.notifyManager}
-                      onChange={(checked) =>
-                        handleUpdate(rule.id, { notifyManager: checked })
-                      }
-                      disabled={updatingId === rule.id}
-                    />
+                    {rule.isAutomationRule ? (
+                      <span className="text-sm text-muted-foreground">
+                        {rule.isActive ? "Active" : "Inactive"}
+                      </span>
+                    ) : (
+                      <Switch
+                        checked={rule.notifyAdmin}
+                        onChange={(checked) =>
+                          handleUpdate(rule.id, { notifyAdmin: checked })
+                        }
+                        disabled={updatingId === rule.id}
+                      />
+                    )}
                   </TableCell>
                   <TableCell>
-                    <Switch
-                      checked={rule.notifyEmployee}
-                      onChange={(checked) =>
-                        handleUpdate(rule.id, { notifyEmployee: checked })
-                      }
-                      disabled={updatingId === rule.id}
-                    />
+                    {rule.isAutomationRule ? (
+                      <Link 
+                        href="/settings/automation-rules" 
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Manage
+                      </Link>
+                    ) : (
+                      <Switch
+                        checked={rule.notifyManager}
+                        onChange={(checked) =>
+                          handleUpdate(rule.id, { notifyManager: checked })
+                        }
+                        disabled={updatingId === rule.id}
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {rule.isAutomationRule ? (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    ) : (
+                      <Switch
+                        checked={rule.notifyEmployee}
+                        onChange={(checked) =>
+                          handleUpdate(rule.id, { notifyEmployee: checked })
+                        }
+                        disabled={updatingId === rule.id}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

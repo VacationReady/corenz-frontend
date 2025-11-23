@@ -177,7 +177,9 @@ export function ExpiryRuleWizard({
       }
 
       if (created.length === thresholds.length) {
-        toast("Automation rules created");
+        toast.success(`Successfully created ${created.length} automation rule${created.length > 1 ? 's' : ''}`, {
+          description: "They will appear in the expiry alerts list below.",
+        });
         onOpenChange(false);
       }
     } finally {

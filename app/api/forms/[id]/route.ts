@@ -126,9 +126,32 @@ export async function DELETE(
   if (!session?.user?.companyId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await prisma.form.delete({
-    where: { id, companyId: session.user.companyId },
-  });
+  try {
+    // Delete all related records first to avoid foreign key constraint violations
+    // This is done in a transaction to ensure data consistency
+    await prisma.$transaction(async (tx) => {
+      // Delete form submissions
+      await tx.formSubmission.deleteMany({
+        where: { formId: id },
+      });
 
-  return NextResponse.json({ message: "Form deleted" });
+      // Delete form data records
+      await tx.formDataRecord.deleteMany({
+        where: { formId: id },
+      });
+
+      // Finally delete the form itself
+      await tx.form.delete({
+        where: { id, companyId: session.user.companyId },
+      });
+    });
+
+    return NextResponse.json({ message: "Form deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting form:", error);
+    return NextResponse.json(
+      { error: "Failed to delete form. Please try again." },
+      { status: 500 },
+    );
+  }
 }

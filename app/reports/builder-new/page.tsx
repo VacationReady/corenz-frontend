@@ -17,8 +17,6 @@ import { formatLondon } from "@/lib/time";
 import { useSearchParams } from "next/navigation";
 import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import type { BreadcrumbConfig } from "@/types/breadcrumb";
-import { createRootFilterGroup, createFilterRule } from "@/lib/reportFilters";
-import type { FilterOperator } from "@/lib/reportFilters";
 
 interface RecentReport {
   id: number;
@@ -185,61 +183,23 @@ export default function NewReportBuilderPage() {
   };
 
   /**
-   * Execute a template report immediately - auto-saves and navigates to preview
+   * Execute a template report immediately - navigates directly to preview without saving
    */
-  const handleTemplateExecute = useCallback(async (template: ReportLibraryEntry) => {
-    const REQUIRED_FIELDS = ["User.firstName", "User.lastName"];
-    const allowedOperators: FilterOperator[] = [
-      "equals",
-      "not_equals",
-      "contains",
-      "not_contains",
-      "greater_than",
-      "less_than",
-      "between",
-      "in",
-    ];
-
-    // Build complete field list
-    const allFields = [...REQUIRED_FIELDS, ...template.defaultFields];
-    const uniqueFields = Array.from(new Set(allFields));
-
-    // Build filter group from template
-    const filterGroup = createRootFilterGroup();
-    if (template.suggestedFilters && template.suggestedFilters.length > 0) {
-      filterGroup.children = template.suggestedFilters.map((filter, index) =>
-        createFilterRule({
-          id: `filter_${index}`,
-          field: filter.field,
-          operator: allowedOperators.includes(filter.operator as FilterOperator)
-            ? (filter.operator as FilterOperator)
-            : "equals",
-          value: filter.value,
-          value2: filter.value2,
-        })
-      );
+  const handleTemplateExecute = useCallback((template: ReportLibraryEntry) => {
+    const params = new URLSearchParams();
+    
+    if (template.engine === "custom" && template.reportType) {
+      params.set("reportType", template.reportType);
+      params.set("engine", "custom");
+    } else {
+      params.set("fields", JSON.stringify(template.defaultFields));
+      params.set("engine", "dynamic");
     }
-
-    // Auto-save report with template name
-    const reportConfig: ReportConfig = {
-      name: template.name,
-      selectedFields: uniqueFields,
-      filterGroup,
-      sorts: template.defaultSort ? [template.defaultSort] : [],
-      template: {
-        id: template.id,
-        name: template.name,
-        description: template.description,
-        category: template.category,
-        defaultFields: template.defaultFields,
-        suggestedFilters: template.suggestedFilters,
-        defaultSort: template.defaultSort,
-        icon: template.icon,
-      },
-    };
-
-    await handleCreateReport(reportConfig);
-  }, [handleCreateReport]);
+    
+    params.set("templateId", template.id);
+    params.set("returnTo", "/reports/builder-new");
+    router.push(`/reports/preview?${params.toString()}`);
+  }, [router]);
 
   /**
    * Open wizard for custom report building

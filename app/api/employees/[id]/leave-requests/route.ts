@@ -8,6 +8,7 @@ import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
 import { notifyApproversForStage } from "@/lib/approvalNotifications";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
+import { createLeaveApprovalActionItem } from "@/lib/action-items-helper";
 import {
   canAccessLeaveRequests,
   canCreateLeaveRequest,
@@ -384,15 +385,41 @@ export async function POST(
         }
       }
 
-      // Notify active approvers on first stage
+      // Notify active approvers on first stage and create action items
       const first = stages.find((s: any) => s.isActive);
       if (first) {
         const lrFull = await prisma.leaveRequest.findUnique({
           where: { id: newLeaveRequest.id },
           include: { Employee: { include: { User: true } } },
         });
+        
+        // Create action items for all active approvers in the first stage
+        const decisions = await prisma.leaveApprovalDecision.findMany({ 
+          where: { stageId: first.id, isActive: true }, 
+          include: { approver: true } 
+        });
+        
+        for (const decision of decisions) {
+          try {
+            await createLeaveApprovalActionItem(
+              newLeaveRequest.id,
+              employeeId,
+              decision.approverId,
+              session.user.companyId,
+              {
+                startDate,
+                endDate,
+                typeName: EventCategoryName,
+              }
+            );
+          } catch (actionItemError) {
+            console.error("Failed to create leave approval action item:", actionItemError);
+            // Don't fail the whole request if action item creation fails
+          }
+        }
+        
         await notifyApproversForStage({
-          stage: { ...first, decisions: await prisma.leaveApprovalDecision.findMany({ where: { stageId: first.id }, include: { approver: true } }) } as any,
+          stage: { ...first, decisions } as any,
           leaveRequest: lrFull as any,
           eventCategoryName: EventCategoryName,
         });
@@ -432,6 +459,24 @@ export async function POST(
             isActive: true,
           },
         });
+
+        // Create action item for the approver
+        try {
+          await createLeaveApprovalActionItem(
+            newLeaveRequest.id,
+            employeeId,
+            approverUserId,
+            session.user.companyId,
+            {
+              startDate,
+              endDate,
+              typeName: EventCategoryName,
+            }
+          );
+        } catch (actionItemError) {
+          console.error("Failed to create leave approval action item:", actionItemError);
+          // Don't fail the whole request if action item creation fails
+        }
 
         // Notify the approver
         const lrFull = await prisma.leaveRequest.findUnique({

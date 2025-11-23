@@ -9,6 +9,7 @@ import { resolveApprovalWorkflow } from "@/lib/resolveApprovalWorkflow";
 import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
 import { notifyApproversForStage } from "@/lib/approvalNotifications";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
+import { createLeaveApprovalActionItem } from "@/lib/action-items-helper";
 
 const payloadSchema = z.object({
   employeeIds: z.array(z.string().uuid()).min(1),
@@ -184,6 +185,26 @@ export async function POST(request: Request) {
               include: { Employee: { include: { User: true } } },
             });
             if (lrFull) {
+              // Create action items for active approvers
+              const activeDecisions = firstStage.decisions.filter((d: any) => d.isActive);
+              for (const decision of activeDecisions) {
+                try {
+                  await createLeaveApprovalActionItem(
+                    leaveRequest.id,
+                    employee.id,
+                    decision.approverId,
+                    session.user.companyId,
+                    {
+                      startDate: start,
+                      endDate: end,
+                      typeName: eventCategory.name,
+                    }
+                  );
+                } catch (actionItemError) {
+                  console.error("Failed to create leave approval action item:", actionItemError);
+                }
+              }
+              
               await notifyApproversForStage({
                 stage: firstStage as any,
                 leaveRequest: lrFull as any,
@@ -222,6 +243,23 @@ export async function POST(request: Request) {
                 isActive: true,
               },
             });
+
+            // Create action item for the approver
+            try {
+              await createLeaveApprovalActionItem(
+                leaveRequest.id,
+                employee.id,
+                approverUserId,
+                session.user.companyId,
+                {
+                  startDate: start,
+                  endDate: end,
+                  typeName: eventCategory.name,
+                }
+              );
+            } catch (actionItemError) {
+              console.error("Failed to create leave approval action item:", actionItemError);
+            }
 
             const lrFull = await prisma.leaveRequest.findUnique({
               where: { id: leaveRequest.id },

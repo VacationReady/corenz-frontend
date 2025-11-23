@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { ActionItemCategoryModal } from "@/components/admin/ActionItemCategoryModal";
 import {
   CheckCircle,
   Clock,
@@ -97,6 +98,7 @@ export default function AdminActionItemsPage() {
   const [filterStatus, setFilterStatus] = useState<string>("PENDING");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [categoryModal, setCategoryModal] = useState<"pending" | "overdue" | "dueToday" | "dueThisWeek" | null>(null);
 
   // Fetch stats
   const { data: statsData, error: statsError } = useSWR(
@@ -290,7 +292,10 @@ export default function AdminActionItemsPage() {
       <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card 
+          className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02]"
+          onClick={() => setCategoryModal("pending")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -303,7 +308,10 @@ export default function AdminActionItemsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-red-200 bg-red-50">
+        <Card 
+          className="border-red-200 bg-red-50 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02]"
+          onClick={() => setCategoryModal("overdue")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-red-900">Overdue</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-600" />
@@ -316,7 +324,10 @@ export default function AdminActionItemsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-orange-200 bg-orange-50">
+        <Card 
+          className="border-orange-200 bg-orange-50 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02]"
+          onClick={() => setCategoryModal("dueToday")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-orange-900">Due Today</CardTitle>
             <Calendar className="h-4 w-4 text-orange-600" />
@@ -329,7 +340,10 @@ export default function AdminActionItemsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-blue-200 bg-blue-50">
+        <Card 
+          className="border-blue-200 bg-blue-50 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02]"
+          onClick={() => setCategoryModal("dueThisWeek")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-blue-900">This Week</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-600" />
@@ -342,6 +356,16 @@ export default function AdminActionItemsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Category Modal */}
+      <ActionItemCategoryModal
+        open={categoryModal !== null}
+        onOpenChange={(open) => !open && setCategoryModal(null)}
+        category={categoryModal}
+        onRefresh={() => {
+          mutate();
+        }}
+      />
 
       {/* Filters */}
       <Card>

@@ -207,6 +207,26 @@ export async function PATCH(
         });
       });
 
+      // Complete associated action items
+      try {
+        await prisma.actionItem.updateMany({
+          where: {
+            type: "LEAVE_APPROVAL",
+            metadata: {
+              path: ["leaveRequestId"],
+              equals: leaveId,
+            },
+            status: "PENDING",
+          },
+          data: {
+            status: "COMPLETED",
+            completedAt: new Date(),
+          },
+        });
+      } catch (actionItemError) {
+        console.error("Failed to complete leave approval action items:", actionItemError);
+      }
+
       return NextResponse.json({ success: true, data: updatedLeaveRequest });
     }
 
@@ -215,6 +235,26 @@ export async function PATCH(
       where: { id: leaveId },
       data: { approvalStatus: "DECLINED", approvedById: session.user.id },
     });
+
+    // Complete associated action items
+    try {
+      await prisma.actionItem.updateMany({
+        where: {
+          type: "LEAVE_APPROVAL",
+          metadata: {
+            path: ["leaveRequestId"],
+            equals: leaveId,
+          },
+          status: "PENDING",
+        },
+        data: {
+          status: "CANCELLED",
+          completedAt: new Date(),
+        },
+      });
+    } catch (actionItemError) {
+      console.error("Failed to complete leave approval action items:", actionItemError);
+    }
 
     await sendLeaveStatusUpdate({
       to: leave.Employee.User.email ?? "",

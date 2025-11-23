@@ -288,16 +288,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     } catch (_err) {}
   }, [filters.departments.join(","), filters.search, currentView, router]);
 
-  useEffect(() => {
-    if (!calendarRef.current) return;
-    calendarRef.current.getApi().refetchEvents();
-  }, [
-    filters.departments.join(","),
-    filters.categories.join(","),
-    filters.locations.join(","),
-    filters.search,
-  ]);
-
   const fetchLeaveEvents = async (
     fetchInfo: EventSourceFuncArg,
     successCallback: (events: EventInput[]) => void,

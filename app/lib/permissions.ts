@@ -1,4 +1,4 @@
-import { User, PermissionProfile } from "@prisma/client";
+﻿import { User, PermissionProfile } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type PermissionAction = "read" | "edit" | "delete";
@@ -89,11 +89,9 @@ export function hasPermission(
   screen: string,
   action: PermissionAction,
 ): boolean {
-  // Admin override: ADMIN role always has all permissions
-  if (
-    ["ADMIN", "SUPER_ADMIN"].includes(user.role) &&
-    !user.permissionProfile
-  ) {
+  // Admin override: ADMIN and SUPER_ADMIN roles always have all permissions
+  // This applies even if they have a custom permission profile
+  if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
     return true;
   }
 

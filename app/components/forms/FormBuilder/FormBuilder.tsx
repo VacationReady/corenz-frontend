@@ -279,7 +279,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
     <div className="relative">
       <div className="mb-4">
         <div className="glass-premium rounded-2xl p-3 mb-4 shadow-sm">
-          <div className={`grid grid-cols-1 md:grid-cols-2 ${formType === "FORM" ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-3 items-end`}>
+          <div className={`grid grid-cols-1 md:grid-cols-2 ${formType === "FORM" ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-3 items-center`}>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-muted-foreground">
                 Form Name
@@ -292,8 +292,22 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-muted-foreground">
+              <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 Form Type
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="glass-premium max-w-xs">
+                      <p>
+                        <strong>Form:</strong> Single record per employee (editable)<br/>
+                        <strong>Table:</strong> Multiple records per employee<br/>
+                        <strong>Survey:</strong> One-time submission (not editable)
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </Label>
               <Select value={formType} onValueChange={(value) => setFormType(value as "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN")}>
                 <SelectTrigger className="glass-subtle border-white/20 focus:border-primary/50">
@@ -305,14 +319,9 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                   <SelectItem value="SURVEY">Survey</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {formType === "FORM" && "Single record per employee (editable)"}
-                {formType === "TABLE" && "Multiple records per employee"}
-                {formType === "SURVEY" && "One-time submission (not editable)"}
-              </p>
             </div>
             {formType === "FORM" && (
-              <div className="flex items-end space-x-2 pb-0.5">
+              <div className="flex items-center space-x-2">
                 <Checkbox
                   id="autoSave"
                   checked={autoSave}
@@ -336,7 +345,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                 </TooltipProvider>
               </div>
             )}
-            <div className="flex items-end gap-2">
+            <div className="flex items-center gap-2">
               <Button variant="outline" onClick={goToForms}>
                 Cancel
               </Button>

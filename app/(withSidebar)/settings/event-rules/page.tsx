@@ -128,7 +128,7 @@ export default function EventRulesPage() {
   const [blackoutDialogOpen, setBlackoutDialogOpen] = useState(false);
   const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [testEmployee, setTestEmployee] = useState<string>("");
+  const [testEmployee, setTestEmployee] = useState<string>("ALL_EMPLOYEES");
   const [testDate, setTestDate] = useState<Date>(new Date());
   const [newBlackoutDate, setNewBlackoutDate] = useState<Date>(new Date());
   const [newBlackoutCategories, setNewBlackoutCategories] = useState<string[]>(
@@ -266,7 +266,7 @@ export default function EventRulesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventCategoryId: selectedCategory,
-          employeeId: testEmployee || undefined,
+          employeeId: testEmployee && testEmployee !== "ALL_EMPLOYEES" ? testEmployee : undefined,
           testDate: testDate.toISOString(),
         }),
       });
@@ -447,8 +447,16 @@ export default function EventRulesPage() {
     }
   };
 
-  const openCreateOverrideDialog = () => {
+  const openCreateOverrideDialog = (enableStaffingDensity = false) => {
     resetOverrideForm();
+    if (enableStaffingDensity) {
+      setCurrentOverride({
+        eventCategoryId: "",
+        staffingDensityEnabled: true,
+        staffingDensityBehavior: "DENY",
+        staffingDensityThreshold: 0.3, // Default 30%
+      });
+    }
     setOverrideDialogOpen(true);
   };
 
@@ -525,7 +533,7 @@ export default function EventRulesPage() {
                       <SelectValue placeholder="Select employee" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All employees</SelectItem>
+                      <SelectItem value="ALL_EMPLOYEES">All employees</SelectItem>
                       {employees.map((emp) => (
                         <SelectItem key={emp.id} value={emp.id}>
                           {emp.user?.firstName} {emp.user?.lastName}
@@ -1232,14 +1240,20 @@ export default function EventRulesPage() {
         </TabsContent>
 
         <TabsContent value="density" className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold">
-              Staffing Density Constraints
-            </h3>
-            <p className="text-muted-foreground">
-              Configure staffing density thresholds to prevent too many
-              employees from being absent simultaneously
-            </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">
+                Staffing Density Constraints
+              </h3>
+              <p className="text-muted-foreground">
+                Configure staffing density thresholds to prevent too many
+                employees from being absent simultaneously
+              </p>
+            </div>
+            <Button onClick={() => openCreateOverrideDialog(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Density Rule
+            </Button>
           </div>
 
           <Card>
@@ -1268,11 +1282,11 @@ export default function EventRulesPage() {
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-2">Density Calculation</h4>
+                    <h4 className="font-semibold mb-2">Density vs. Concurrent Rules</h4>
                     <ul className="text-sm space-y-1 text-muted-foreground">
-                      <li>• Percentage of employees absent on the same day</li>
-                      <li>• Includes approved leave requests</li>
-                      <li>• Configurable threshold per event category</li>
+                      <li>• <strong>Concurrent:</strong> Fixed number limit (e.g., max 5 people)</li>
+                      <li>• <strong>Density:</strong> Percentage limit (e.g., max 30%)</li>
+                      <li>• Both can be applied together for maximum control</li>
                     </ul>
                   </div>
                 </div>
@@ -1343,17 +1357,33 @@ export default function EventRulesPage() {
                                   % threshold
                                 </span>
                               </div>
-                              <Badge
-                                variant={
-                                  override.staffingDensityBehavior === "DENY"
-                                    ? "destructive"
-                                    : "secondary"
-                                }
-                              >
-                                {override.staffingDensityBehavior === "DENY"
-                                  ? "Hard Block"
-                                  : "Require Approval"}
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge
+                                  variant={
+                                    override.staffingDensityBehavior === "DENY"
+                                      ? "destructive"
+                                      : "secondary"
+                                  }
+                                >
+                                  {override.staffingDensityBehavior === "DENY"
+                                    ? "Hard Block"
+                                    : "Require Approval"}
+                                </Badge>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openEditOverrideDialog(override)}
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => deleteOverride(override.id!)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </div>
                           ))}
                       </div>
@@ -1407,11 +1437,11 @@ export default function EventRulesPage() {
               <div>
                 <Label>Department</Label>
                 <Select
-                  value={currentOverride.departmentId || ""}
+                  value={currentOverride.departmentId || "COMPANY_WIDE"}
                   onValueChange={(value) =>
                     setCurrentOverride({
                       ...currentOverride,
-                      departmentId: value || undefined,
+                      departmentId: value === "COMPANY_WIDE" ? undefined : value,
                     })
                   }
                 >
@@ -1419,7 +1449,7 @@ export default function EventRulesPage() {
                     <SelectValue placeholder="Company-wide (no department)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Company-wide</SelectItem>
+                    <SelectItem value="COMPANY_WIDE">Company-wide</SelectItem>
                     {departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}

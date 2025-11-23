@@ -37,9 +37,9 @@ export default function WorkingPatternAssignment({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [salaryAmount, setSalaryAmount] = useState<number | null>(null);
-  const [currentHourlyRate, setCurrentHourlyRate] = useState<number | null>(null);
-  const [newHourlyRate, setNewHourlyRate] = useState<number | null>(null);
+  const [hourlyRate, setHourlyRate] = useState<number | null>(null);
+  const [currentSalary, setCurrentSalary] = useState<number | null>(null);
+  const [newSalary, setNewSalary] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/working-patterns")
@@ -47,7 +47,7 @@ export default function WorkingPatternAssignment({
       .then(setPatterns);
   }, []);
 
-  // Fetch employee salary and hourly rate
+  // Fetch employee hourly rate and current salary
   useEffect(() => {
     if (open) {
       fetch(`/api/employees/${employeeId}/bank-payroll`)
@@ -58,24 +58,24 @@ export default function WorkingPatternAssignment({
         .then((data) => {
           if (data) {
             // Ensure values are proper numbers
-            setSalaryAmount(data.salaryAmount ? Number(data.salaryAmount) : null);
-            setCurrentHourlyRate(data.hourlyRate ? Number(data.hourlyRate) : null);
+            setHourlyRate(data.hourlyRate ? Number(data.hourlyRate) : null);
+            setCurrentSalary(data.salaryAmount ? Number(data.salaryAmount) : null);
           }
         })
         .catch((err) => console.error("Failed to fetch salary data", err));
     }
   }, [open, employeeId]);
 
-  // Calculate new hourly rate when pattern is selected
+  // Calculate new annual salary when pattern is selected
   useEffect(() => {
-    if (!selected || !salaryAmount) {
-      setNewHourlyRate(null);
+    if (!selected || !hourlyRate) {
+      setNewSalary(null);
       return;
     }
 
     const selectedPattern = patterns.find((p) => p.id === selected);
     if (!selectedPattern || !selectedPattern.weeks || selectedPattern.weeks.length === 0) {
-      setNewHourlyRate(null);
+      setNewSalary(null);
       return;
     }
 
@@ -97,19 +97,19 @@ export default function WorkingPatternAssignment({
     }
 
     if (weekCount === 0 || totalHours === 0) {
-      setNewHourlyRate(null);
+      setNewSalary(null);
       return;
     }
 
     // Average hours per week
     const avgHoursPerWeek = totalHours / weekCount;
     
-    // Calculate hourly rate: annual salary / (weeks per year * hours per week)
+    // Calculate annual salary: hourly rate × hours per week × weeks per year
     const weeksPerYear = 52;
-    const calculatedRate = salaryAmount / (weeksPerYear * avgHoursPerWeek);
+    const calculatedSalary = hourlyRate * avgHoursPerWeek * weeksPerYear;
     
-    setNewHourlyRate(calculatedRate);
-  }, [selected, salaryAmount, patterns]);
+    setNewSalary(calculatedSalary);
+  }, [selected, hourlyRate, patterns]);
 
   const handleProceedToConfirm = () => {
     if (!selected || !date) {
@@ -117,16 +117,16 @@ export default function WorkingPatternAssignment({
       return;
     }
 
-    // Check if we need to show confirmation for hourly rate change
-    if (salaryAmount && newHourlyRate && currentHourlyRate !== newHourlyRate) {
+    // Check if we need to show confirmation for salary change
+    if (hourlyRate && newSalary && currentSalary !== newSalary) {
       setConfirmOpen(true);
     } else {
-      // No hourly rate change needed, proceed directly
+      // No salary change needed, proceed directly
       handleAssign(false);
     }
   };
 
-  const handleAssign = async (shouldUpdateHourlyRate: boolean) => {
+  const handleAssign = async (shouldUpdateSalary: boolean) => {
     setLoading(true);
     setConfirmOpen(false);
     
@@ -149,24 +149,28 @@ export default function WorkingPatternAssignment({
         throw new Error(data?.error || "Failed to assign working pattern.");
       }
 
-      // If confirmed to update hourly rate, update it
-      if (shouldUpdateHourlyRate && newHourlyRate) {
+      // If confirmed to update salary, update it
+      if (shouldUpdateSalary && newSalary) {
         const updateRes = await fetch(
           `/api/employees/${employeeId}/bank-payroll`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              hourlyRate: newHourlyRate,
+              salaryAmount: newSalary,
+              reasons: {
+                salaryAmount: "Working pattern change - auto-calculated from hourly rate"
+              }
             }),
           },
         );
 
         if (!updateRes.ok) {
-          console.error("Failed to update hourly rate, but pattern was assigned");
-          toast.warning("Working pattern assigned, but hourly rate update failed.");
+          const errorData = await updateRes.json();
+          console.error("Failed to update salary:", errorData);
+          toast.warning("Working pattern assigned, but salary update failed.");
         } else {
-          toast.success("Working pattern and hourly rate updated successfully.");
+          toast.success("Working pattern and annual salary updated successfully.");
         }
       } else {
         toast.success("Working pattern assigned successfully.");
@@ -228,22 +232,27 @@ export default function WorkingPatternAssignment({
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog for Hourly Rate Change */}
+      {/* Confirmation Dialog for Salary Change */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirm Pattern Change</DialogTitle>
             <DialogDescription>
-              This employee&apos;s hourly rate will change from ${
-                currentHourlyRate != null ? Number(currentHourlyRate).toFixed(2) : "0.00"
+              This employee&apos;s annual salary will change from ${
+                currentSalary != null ? Number(currentSalary).toFixed(2) : "0.00"
               } to ${
-                newHourlyRate != null ? Number(newHourlyRate).toFixed(2) : "0.00"
+                newSalary != null ? Number(newSalary).toFixed(2) : "0.00"
               } based on this pattern change.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <p className="text-sm font-medium">
-              Do you want to update the hourly rate?
+              Do you want to update the annual salary?
+            </p>
+            <p className="text-xs text-muted-foreground">
+              This recalculates the annual salary based on the hourly rate (${
+                hourlyRate != null ? Number(hourlyRate).toFixed(2) : "0.00"
+              }/hr) and the new working pattern hours.
             </p>
           </div>
           <div className="flex gap-2 justify-end">
@@ -252,13 +261,13 @@ export default function WorkingPatternAssignment({
               onClick={() => handleAssign(false)}
               disabled={loading}
             >
-              {loading ? "Saving..." : "No, keep current rate"}
+              {loading ? "Saving..." : "No, keep current salary"}
             </Button>
             <Button
               onClick={() => handleAssign(true)}
               disabled={loading}
             >
-              {loading ? "Saving..." : "Yes, update rate"}
+              {loading ? "Saving..." : "Yes, update salary"}
             </Button>
           </div>
         </DialogContent>

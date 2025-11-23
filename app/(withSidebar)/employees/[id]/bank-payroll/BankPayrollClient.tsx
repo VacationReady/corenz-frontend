@@ -112,9 +112,9 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
   );
   const [forbidden, setForbidden] = useState(false);
   const [workingPattern, setWorkingPattern] = useState<any>(null);
-  const [calculatedHourlyRate, setCalculatedHourlyRate] = useState<number | null>(null);
-  const [hourlyRateMessage, setHourlyRateMessage] = useState<string>("");
-  const [hasManuallyEditedHourlyRate, setHasManuallyEditedHourlyRate] = useState(false);
+  const [calculatedSalary, setCalculatedSalary] = useState<number | null>(null);
+  const [salaryMessage, setSalaryMessage] = useState<string>("");
+  const [hasManuallyEditedSalary, setHasManuallyEditedSalary] = useState(false);
 
   const validateBankAccount = (value: string) => {
     const normalized = normalizeBankAccountNumber(value);
@@ -262,19 +262,19 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     setErrors((prev) => ({ ...prev, irdNumber: validateIrd(form.irdNumber) }));
   };
 
-  // Auto-calculate hourly rate based on annual salary and working pattern
+  // Auto-calculate annual salary based on hourly rate and working pattern
   useEffect(() => {
-    const salaryNum = parseFloat(form.salaryAmount);
+    const hourlyRateNum = parseFloat(form.hourlyRate);
     
-    if (!salaryNum || isNaN(salaryNum)) {
-      setCalculatedHourlyRate(null);
-      setHourlyRateMessage("");
+    if (!hourlyRateNum || isNaN(hourlyRateNum)) {
+      setCalculatedSalary(null);
+      setSalaryMessage("");
       return;
     }
 
     if (!workingPattern || !workingPattern.WorkingPatternWeek || workingPattern.WorkingPatternWeek.length === 0) {
-      setCalculatedHourlyRate(null);
-      setHourlyRateMessage("Can't calculate hourly rate due to no working pattern");
+      setCalculatedSalary(null);
+      setSalaryMessage("Can't calculate annual salary due to no working pattern");
       return;
     }
 
@@ -298,26 +298,26 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     }
 
     if (weekCount === 0 || totalHours === 0) {
-      setCalculatedHourlyRate(null);
-      setHourlyRateMessage("Can't calculate hourly rate due to no working pattern");
+      setCalculatedSalary(null);
+      setSalaryMessage("Can't calculate annual salary due to no working pattern");
       return;
     }
 
     // Average hours per week
     const avgHoursPerWeek = totalHours / weekCount;
     
-    // Calculate hourly rate: annual salary / (weeks per year * hours per week)
+    // Calculate annual salary: hourly rate × hours per week × weeks per year
     const weeksPerYear = 52;
-    const hourlyRate = salaryNum / (weeksPerYear * avgHoursPerWeek);
+    const annualSalary = hourlyRateNum * avgHoursPerWeek * weeksPerYear;
     
-    setCalculatedHourlyRate(hourlyRate);
-    setHourlyRateMessage("");
+    setCalculatedSalary(annualSalary);
+    setSalaryMessage("");
     
-    // Only auto-populate if the user hasn't manually edited the hourly rate
-    if (isPrivileged && !hasManuallyEditedHourlyRate) {
-      setForm((prev) => ({ ...prev, hourlyRate: hourlyRate.toFixed(2) }));
+    // Only auto-populate if the user hasn't manually edited the salary
+    if (isPrivileged && !hasManuallyEditedSalary) {
+      setForm((prev) => ({ ...prev, salaryAmount: annualSalary.toFixed(2) }));
     }
-  }, [form.salaryAmount, workingPattern, isPrivileged, hasManuallyEditedHourlyRate]);
+  }, [form.hourlyRate, workingPattern, isPrivileged, hasManuallyEditedSalary]);
 
   const normalizedBankAccount = normalizeBankAccountNumber(form.bankAccountNumber);
   const normalizedIrd = normalizeIrdNumber(form.irdNumber);
@@ -402,7 +402,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
   // Reset manual edit flag when working pattern changes, allowing recalculation
   useEffect(() => {
     if (workingPattern) {
-      setHasManuallyEditedHourlyRate(false);
+      setHasManuallyEditedSalary(false);
     }
   }, [workingPattern]);
 
@@ -780,28 +780,6 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
             </div>
             <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1" htmlFor="salaryAmount">
-                  Annual salary
-                </label>
-                <Input
-                  id="salaryAmount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.salaryAmount}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, salaryAmount: e.target.value }))
-                  }
-                  disabled={isEmployee && !isPrivileged}
-                  placeholder="0.00"
-                />
-                {workingPattern && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Working pattern: {workingPattern.name}
-                  </p>
-                )}
-              </div>
-              <div>
                 <div className="flex items-center gap-2">
                   <label className="block text-sm font-medium" htmlFor="hourlyRate">
                     Hourly rate
@@ -817,7 +795,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      This will auto-calculate from annual salary based on working pattern.
+                      Enter the hourly rate. Annual salary will auto-calculate based on working pattern.
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -829,28 +807,50 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                   value={form.hourlyRate}
                   onChange={(e) => {
                     setForm((f) => ({ ...f, hourlyRate: e.target.value }));
-                    setHasManuallyEditedHourlyRate(true);
                   }}
                   disabled={isEmployee && !isPrivileged}
                   placeholder="0.00"
                 />
-                {hourlyRateMessage && (
-                  <p className="mt-1 text-xs text-muted-foreground">{hourlyRateMessage}</p>
-                )}
-                {calculatedHourlyRate && !hourlyRateMessage && (
+                {workingPattern && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {hasManuallyEditedHourlyRate ? "Auto-calculated: " : "Calculated: "}
-                    ${calculatedHourlyRate.toFixed(2)}/hr
-                    {hasManuallyEditedHourlyRate && (
+                    Working pattern: {workingPattern.name}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1" htmlFor="salaryAmount">
+                  Annual salary
+                </label>
+                <Input
+                  id="salaryAmount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.salaryAmount}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, salaryAmount: e.target.value }));
+                    setHasManuallyEditedSalary(true);
+                  }}
+                  disabled={isEmployee && !isPrivileged}
+                  placeholder="0.00"
+                />
+                {salaryMessage && (
+                  <p className="mt-1 text-xs text-muted-foreground">{salaryMessage}</p>
+                )}
+                {calculatedSalary && !salaryMessage && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {hasManuallyEditedSalary ? "Auto-calculated: " : "Calculated: "}
+                    ${calculatedSalary.toFixed(2)}/year
+                    {hasManuallyEditedSalary && (
                       <button
                         type="button"
                         onClick={() => {
-                          setForm((f) => ({ ...f, hourlyRate: calculatedHourlyRate.toFixed(2) }));
-                          setHasManuallyEditedHourlyRate(false);
+                          setForm((f) => ({ ...f, salaryAmount: calculatedSalary.toFixed(2) }));
+                          setHasManuallyEditedSalary(false);
                         }}
                         className="ml-2 text-primary underline"
                       >
-                        Use calculated rate
+                        Use calculated salary
                       </button>
                     )}
                   </p>

@@ -316,10 +316,12 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         return;
       }
       let data = await res.json();
-      if (filters.categories.length > 0) {
-        const selectedSet = new Set(filters.categories);
+      const hasCategoryFilter =
+        filters.categories.length > 0 && !filters.categories.includes("all");
+      if (hasCategoryFilter) {
+        const selectedSet = new Set(filters.categories.filter((c) => c !== "all"));
         data = (data as any[]).filter((e) =>
-          e.eventCategoryId ? selectedSet.has(e.eventCategoryId) : true,
+          e.eventCategoryId ? selectedSet.has(e.eventCategoryId) : false,
         );
       }
       if (filters.locations.length > 0) {

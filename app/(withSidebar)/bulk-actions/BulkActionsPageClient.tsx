@@ -93,11 +93,14 @@ export default function BulkActionsPageClient() {
       throw new Error("Failed to load employees");
     }
     const payload = await response.json();
-    if (!Array.isArray(payload)) {
+    
+    // Handle both old array format and new pagination format
+    const employeeData = Array.isArray(payload) ? payload : payload.data;
+    if (!Array.isArray(employeeData)) {
       throw new Error("Unexpected employee response");
     }
 
-    const mapped: EmployeeRow[] = payload.map((item: any) => {
+    const mapped: EmployeeRow[] = employeeData.map((item: any) => {
       const name = `${item.firstName ?? ""} ${item.lastName ?? ""}`
         .trim()
         .replace(/\s+/g, " ");

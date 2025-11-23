@@ -107,6 +107,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [blackoutDateKeys, setBlackoutDateKeys] = useState<Set<string>>(new Set());
   const [blackoutIdsByDay, setBlackoutIdsByDay] = useState<Record<string, string[]>>({});
   const calendarRef = useRef<FullCalendar | null>(null);
+  const eventsCacheRef = useRef<{ key: string; data: any[] } | null>(null);
   const blackoutKeyHashRef = useRef<string>("");
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
   const [holidayDefaultDate, setHolidayDefaultDate] = useState<Date | null>(null);
@@ -304,18 +305,29 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   ) => {
     try {
       const departmentFilter = filters.departments[0] || "";
-      const params = new URLSearchParams({
-        from: fetchInfo.startStr,
-        to: fetchInfo.endStr,
-      });
-      if (departmentFilter) params.set("department", departmentFilter);
-      const res = await fetch(`/api/calendar-events?${params.toString()}`);
-      if (!res.ok) {
-        console.warn("Leave events fetch non-OK status", res.status);
-        successCallback([]);
-        return;
+      const cacheKey = `${fetchInfo.startStr}|${fetchInfo.endStr}|${departmentFilter || "all"}`;
+
+      let baseData: any[];
+      if (eventsCacheRef.current && eventsCacheRef.current.key === cacheKey) {
+        baseData = eventsCacheRef.current.data;
+      } else {
+        const params = new URLSearchParams({
+          from: fetchInfo.startStr,
+          to: fetchInfo.endStr,
+        });
+        if (departmentFilter) params.set("department", departmentFilter);
+        const res = await fetch(`/api/calendar-events?${params.toString()}`);
+        if (!res.ok) {
+          console.warn("Leave events fetch non-OK status", res.status);
+          successCallback([]);
+          return;
+        }
+        baseData = await res.json();
+        eventsCacheRef.current = { key: cacheKey, data: baseData };
       }
-      let data = await res.json();
+
+      let data = baseData;
+
       const hasCategoryFilter =
         filters.categories.length > 0 && !filters.categories.includes("all");
       if (hasCategoryFilter) {
@@ -324,12 +336,19 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           e.eventCategoryId ? selectedSet.has(e.eventCategoryId) : false,
         );
       }
-      if (filters.locations.length > 0) {
-        const locSet = new Set(filters.locations);
-        data = (data as any[]).filter((e) =>
-          e.employee?.locationId ? locSet.has(e.employee.locationId) : true,
-        );
+
+      const hasLocationFilter =
+        filters.locations.length > 0 && !filters.locations.includes("all");
+      if (hasLocationFilter) {
+        const locSet = new Set(filters.locations.filter((l) => l !== "all"));
+        data = (data as any[]).filter((e) => {
+          const employeeLoc = e.employee?.locationId as string | undefined;
+          const topLevelLoc = (e as any).locationId as string | undefined;
+          const effectiveLoc = employeeLoc ?? topLevelLoc ?? null;
+          return effectiveLoc ? locSet.has(effectiveLoc) : false;
+        });
       }
+
       if (filters.search.trim().length > 0) {
         const q = filters.search.trim().toLowerCase();
         data = (data as any[]).filter((e) =>
@@ -753,6 +772,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const refreshCalendar = () => {
     console.log("Refreshing calendar events...");
+    eventsCacheRef.current = null;
     calendarRef.current?.getApi().refetchEvents();
     setRefreshTrigger((prev) => !prev);
   };

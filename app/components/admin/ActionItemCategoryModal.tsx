@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/Dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
+import { Textarea } from "@/components/ui/textarea";
 import {
   CheckCircle,
   XCircle,
@@ -517,7 +517,7 @@ export function ActionItemCategoryModal({
       {selectedItem && declineReason !== undefined && (
         <Dialog
           open={!!selectedItem}
-          onOpenChange={(open) => {
+          onOpenChange={(open: boolean) => {
             if (!open) {
               setSelectedItem(null);
               setDeclineReason("");
@@ -545,7 +545,7 @@ export function ActionItemCategoryModal({
               <Textarea
                 placeholder="Enter reason for declining..."
                 value={declineReason}
-                onChange={(e) => setDeclineReason(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDeclineReason(e.target.value)}
                 rows={4}
                 className="resize-none"
               />

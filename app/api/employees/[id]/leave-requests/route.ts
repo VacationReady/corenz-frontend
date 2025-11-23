@@ -407,8 +407,8 @@ export async function POST(
               decision.approverId,
               session.user.companyId,
               {
-                startDate,
-                endDate,
+                startDate: new Date(startDate),
+                endDate: new Date(endDate),
                 typeName: EventCategoryName,
               }
             );
@@ -468,8 +468,8 @@ export async function POST(
             approverUserId,
             session.user.companyId,
             {
-              startDate,
-              endDate,
+              startDate: new Date(startDate),
+              endDate: new Date(endDate),
               typeName: EventCategoryName,
             }
           );

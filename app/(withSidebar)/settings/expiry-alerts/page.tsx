@@ -178,13 +178,15 @@ export default function ExpirySettingsPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {rule.isAutomationRule ? (
+                    {rule.isAutomationRule && rule.automationRuleId ? (
                       <Link 
-                        href="/settings/automation-rules" 
+                        href={`/settings/automation-rules?ruleId=${rule.automationRuleId}`}
                         className="text-sm text-primary hover:underline"
                       >
                         Manage
                       </Link>
+                    ) : rule.isAutomationRule ? (
+                      <span className="text-sm text-muted-foreground">-</span>
                     ) : (
                       <Switch
                         checked={rule.notifyManager}

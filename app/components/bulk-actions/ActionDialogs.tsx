@@ -22,7 +22,8 @@ import {
 import { Checkbox } from "@/components/ui/Checkbox";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { toast } from "sonner";
-import { ArrowDownToLine } from "lucide-react";
+import { ArrowDownToLine, ChevronDown, ChevronRight } from "lucide-react";
+import * as Collapsible from "@radix-ui/react-collapsible";
 
 export interface Option {
   value: string;
@@ -434,19 +435,11 @@ export function CompensationBulkActionDialog({
 }) {
   const [mode, setMode] = useState<"percent" | "flat">("percent");
   const [amount, setAmount] = useState<string>("");
-  const [targets, setTargets] = useState<string[]>(["salary"]);
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [compensationData, setCompensationData] = useState<Map<string, EmployeeCompensation>>(new Map());
   const [loadingCompensation, setLoadingCompensation] = useState(false);
-
-  const toggleTarget = (value: string) => {
-    setTargets((prev) =>
-      prev.includes(value)
-        ? prev.filter((item) => item !== value)
-        : [...prev, value],
-    );
-  };
+  const [employeeListExpanded, setEmployeeListExpanded] = useState(true);
 
   const parsedAmount = Number(amount);
   const amountIsValid = !Number.isNaN(parsedAmount) && amount.trim() !== "";
@@ -577,122 +570,131 @@ export function CompensationBulkActionDialog({
     }
   }, [open, employeeIds, fetchCompensationData]);
 
-  // Calculate new salary/hourly rate
-  const calculateNewValue = useCallback((current: number | null): number | null => {
-    if (current === null || !amountIsValid) return null;
-    
-    if (mode === "percent") {
-      return current * (1 + parsedAmount / 100);
-    } else {
-      return current + parsedAmount;
+  // Calculate new salary and hourly rate together
+  // Returns { newSalary, newHourly } where hourly is calculated from salary
+  const calculateNewCompensation = useCallback((comp: EmployeeCompensation | undefined): { newSalary: number | null; newHourly: number | null } => {
+    if (!comp || !amountIsValid) {
+      return { newSalary: null, newHourly: null };
     }
+    
+    let newSalary: number | null = null;
+    let newHourly: number | null = null;
+
+    // If employee has a salary, adjust it and calculate hourly from it
+    if (comp.salaryAmount !== null) {
+      if (mode === "percent") {
+        newSalary = comp.salaryAmount * (1 + parsedAmount / 100);
+      } else {
+        newSalary = comp.salaryAmount + parsedAmount;
+      }
+      // Calculate hourly from annual salary (2080 working hours per year)
+      newHourly = newSalary / 2080;
+    } 
+    // If employee only has hourly rate, adjust it and calculate salary from it
+    else if (comp.hourlyRate !== null) {
+      if (mode === "percent") {
+        newHourly = comp.hourlyRate * (1 + parsedAmount / 100);
+      } else {
+        newHourly = comp.hourlyRate + parsedAmount;
+      }
+      // Calculate annual salary from hourly (2080 working hours per year)
+      newSalary = newHourly * 2080;
+    }
+
+    return { newSalary, newHourly };
   }, [mode, parsedAmount, amountIsValid]);
 
-  // Calculate total cost impact
+  // Calculate total cost impact (unified - no double counting)
   const totalCostImpact = useMemo(() => {
-    let salaryImpact = 0;
-    let hourlyImpact = 0;
+    let totalImpact = 0;
     let affectedEmployees = 0;
 
     employeeIds.forEach((id) => {
       const comp = compensationData.get(id);
       if (!comp) return;
 
-      let hasChange = false;
-
-      if (targets.includes("salary") && comp.salaryAmount !== null) {
-        const newValue = calculateNewValue(comp.salaryAmount);
-        if (newValue !== null) {
-          salaryImpact += newValue - comp.salaryAmount;
-          hasChange = true;
-        }
+      const { newSalary, newHourly } = calculateNewCompensation(comp);
+      
+      // Use salary-based calculation if available, otherwise hourly
+      if (newSalary !== null && comp.salaryAmount !== null) {
+        const impact = newSalary - comp.salaryAmount;
+        totalImpact += impact;
+        if (impact !== 0) affectedEmployees++;
+      } else if (newHourly !== null && comp.hourlyRate !== null) {
+        // Convert hourly impact to annual
+        const impact = (newHourly - comp.hourlyRate) * 2080;
+        totalImpact += impact;
+        if (impact !== 0) affectedEmployees++;
       }
-
-      if (targets.includes("hourly") && comp.hourlyRate !== null) {
-        const newValue = calculateNewValue(comp.hourlyRate);
-        if (newValue !== null) {
-          hourlyImpact += newValue - comp.hourlyRate;
-          hasChange = true;
-        }
-      }
-
-      if (hasChange) affectedEmployees++;
     });
 
-    return { salaryImpact, hourlyImpact, total: salaryImpact + (hourlyImpact * 2080), affectedEmployees };
-  }, [employeeIds, compensationData, targets, calculateNewValue]);
+    return { totalImpact, affectedEmployees };
+  }, [employeeIds, compensationData, calculateNewCompensation]);
 
-  // Calculate total payroll (old and new)
+  // Calculate total payroll (old and new) - unified calculation
   const payrollTotals = useMemo(() => {
-    let oldSalaryTotal = 0;
-    let newSalaryTotal = 0;
-    let oldHourlyTotal = 0;
-    let newHourlyTotal = 0;
+    let oldTotal = 0;
+    let newTotal = 0;
+    let employeesWithSalary = 0;
+    let employeesWithHourly = 0;
 
     employeeIds.forEach((id) => {
       const comp = compensationData.get(id);
       if (!comp) return;
 
-      // Salary totals
-      if (comp.salaryAmount !== null) {
-        oldSalaryTotal += comp.salaryAmount;
-        if (targets.includes("salary")) {
-          const newValue = calculateNewValue(comp.salaryAmount);
-          newSalaryTotal += newValue ?? comp.salaryAmount;
-        } else {
-          newSalaryTotal += comp.salaryAmount;
-        }
-      }
+      const { newSalary, newHourly } = calculateNewCompensation(comp);
 
-      // Hourly totals
-      if (comp.hourlyRate !== null) {
-        oldHourlyTotal += comp.hourlyRate;
-        if (targets.includes("hourly")) {
-          const newValue = calculateNewValue(comp.hourlyRate);
-          newHourlyTotal += newValue ?? comp.hourlyRate;
-        } else {
-          newHourlyTotal += comp.hourlyRate;
-        }
+      // If employee has salary, use that for calculations
+      if (comp.salaryAmount !== null) {
+        oldTotal += comp.salaryAmount;
+        newTotal += newSalary ?? comp.salaryAmount;
+        employeesWithSalary++;
+      } 
+      // Otherwise use hourly converted to annual
+      else if (comp.hourlyRate !== null) {
+        const oldAnnual = comp.hourlyRate * 2080;
+        const newAnnual = newHourly ? newHourly * 2080 : oldAnnual;
+        oldTotal += oldAnnual;
+        newTotal += newAnnual;
+        employeesWithHourly++;
       }
     });
 
     return {
-      oldSalaryTotal,
-      newSalaryTotal,
-      salaryDifference: newSalaryTotal - oldSalaryTotal,
-      oldHourlyTotal,
-      newHourlyTotal,
-      hourlyDifference: newHourlyTotal - oldHourlyTotal,
-      oldAnnualHourlyTotal: oldHourlyTotal * 2080,
-      newAnnualHourlyTotal: newHourlyTotal * 2080,
-      annualHourlyDifference: (newHourlyTotal - oldHourlyTotal) * 2080,
+      oldTotal,
+      newTotal,
+      difference: newTotal - oldTotal,
+      employeesWithSalary,
+      employeesWithHourly,
+      totalEmployees: employeesWithSalary + employeesWithHourly,
     };
-  }, [employeeIds, compensationData, targets, calculateNewValue]);
+  }, [employeeIds, compensationData, calculateNewCompensation]);
 
   // Export to CSV
   const exportToCSV = useCallback(() => {
     const rows = [
-      ["Name", "Email", "Current Salary", "New Salary", "Current Hourly Rate", "New Hourly Rate", "Salary Change", "Hourly Change"],
+      ["Name", "Email", "Current Annual Salary", "New Annual Salary", "Current Hourly Rate", "New Hourly Rate", "Annual Change"],
     ];
 
     employeeIds.forEach((id) => {
       const comp = compensationData.get(id);
       if (!comp) return;
 
+      const { newSalary, newHourly } = calculateNewCompensation(comp);
+      
       const currentSalary = comp.salaryAmount ?? 0;
-      const newSalary = targets.includes("salary") ? calculateNewValue(currentSalary) ?? 0 : currentSalary;
       const currentHourly = comp.hourlyRate ?? 0;
-      const newHourly = targets.includes("hourly") ? calculateNewValue(currentHourly) ?? 0 : currentHourly;
+      const finalNewSalary = newSalary ?? currentSalary;
+      const finalNewHourly = newHourly ?? currentHourly;
 
       rows.push([
         comp.name,
         comp.email,
         currentSalary.toFixed(2),
-        newSalary.toFixed(2),
+        finalNewSalary.toFixed(2),
         currentHourly.toFixed(2),
-        newHourly.toFixed(2),
-        (newSalary - currentSalary).toFixed(2),
-        (newHourly - currentHourly).toFixed(2),
+        finalNewHourly.toFixed(2),
+        (finalNewSalary - currentSalary).toFixed(2),
       ]);
     });
 
@@ -705,11 +707,10 @@ export function CompensationBulkActionDialog({
     link.click();
     URL.revokeObjectURL(url);
     toast.success("CSV exported successfully");
-  }, [employeeIds, compensationData, targets, calculateNewValue]);
+  }, [employeeIds, compensationData, calculateNewCompensation]);
 
   const canSubmit =
     employeeIds.length > 0 &&
-    targets.length > 0 &&
     amountIsValid &&
     reason.trim().length > 3 &&
     !submitting;
@@ -736,7 +737,6 @@ export function CompensationBulkActionDialog({
           employeeIds,
           mode,
           amount: parsedAmount,
-          targets,
           reason,
         }),
       });
@@ -754,7 +754,6 @@ export function CompensationBulkActionDialog({
       });
       onCompleted?.(payload);
       setAmount("");
-      setTargets(["salary"]);
       setReason("");
       setSelectedIds(new Set());
       setCompensationData(new Map());
@@ -837,118 +836,137 @@ export function CompensationBulkActionDialog({
               </div>
             </div>
 
-            {/* Employee Selection Table */}
-            <div className="overflow-hidden rounded-xl border border-glass shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-border">
-                  <thead className="bg-gradient-to-r from-muted/60 to-muted/40">
-                    <tr>
-                      <th className="px-4 py-3 text-left">
-                        <Checkbox
-                          checked={selectionState}
-                          onCheckedChange={() => toggleSelectAllFiltered()}
-                          aria-label="Select all filtered employees"
-                        />
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Employee
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Current Salary
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        New Salary
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Current Hourly
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        New Hourly
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60 bg-background">
-                    {filteredEmployees.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                          No employees match your filters yet.
-                        </td>
-                      </tr>
+            {/* Employee Selection Table - Collapsible */}
+            <Collapsible.Root open={employeeListExpanded} onOpenChange={setEmployeeListExpanded}>
+              <div className="flex items-center justify-between mb-3">
+                <Collapsible.Trigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="flex items-center gap-2 text-base font-semibold hover:text-primary"
+                  >
+                    {employeeListExpanded ? (
+                      <ChevronDown className="h-5 w-5" />
                     ) : (
-                      filteredEmployees.map((employee) => {
-                        const isSelected = selectedIds.has(employee.id);
-                        const comp = compensationData.get(employee.id);
-                        const newSalary: number | null = comp
-                          ? (targets.includes("salary")
-                              ? calculateNewValue(comp.salaryAmount)
-                              : comp.salaryAmount)
-                          : null;
-                        const newHourly: number | null = comp
-                          ? (targets.includes("hourly")
-                              ? calculateNewValue(comp.hourlyRate)
-                              : comp.hourlyRate)
-                          : null;
+                      <ChevronRight className="h-5 w-5" />
+                    )}
+                    <span>
+                      Employee Selection
+                      {selectedIds.size > 0 && (
+                        <span className="ml-2 text-sm font-normal text-muted-foreground">
+                          ({selectedIds.size} selected)
+                        </span>
+                      )}
+                    </span>
+                  </Button>
+                </Collapsible.Trigger>
+              </div>
 
-                        return (
-                          <tr 
-                            key={employee.id} 
-                            className={`${isSelected ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/20"} transition-colors`}
-                          >
-                            <td className="px-4 py-3">
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={() => toggleEmployeeSelection(employee.id)}
-                                aria-label={`Select ${employee.name}`}
-                              />
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="font-medium text-foreground">{employee.name}</div>
-                              <div className="text-xs text-muted-foreground">{employee.email}</div>
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              {loadingCompensation ? (
-                                <span className="text-muted-foreground">Loading...</span>
-                              ) : (
-                                <span className="font-medium">{formatCurrency(comp?.salaryAmount ?? null)}</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              {loadingCompensation ? (
-                                <span className="text-muted-foreground">—</span>
-                              ) : comp && newSalary !== null && comp.salaryAmount !== null && newSalary !== comp.salaryAmount ? (
-                                <span className={`font-semibold ${newSalary > comp.salaryAmount ? "text-green-600" : "text-red-600"}`}>
-                                  {formatCurrency(newSalary)}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              {loadingCompensation ? (
-                                <span className="text-muted-foreground">Loading...</span>
-                              ) : (
-                                <span className="font-medium">{formatCurrency(comp?.hourlyRate ?? null)}</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              {loadingCompensation ? (
-                                <span className="text-muted-foreground">—</span>
-                              ) : comp && newHourly !== null && comp.hourlyRate !== null && newHourly !== comp.hourlyRate ? (
-                                <span className={`font-semibold ${newHourly > comp.hourlyRate ? "text-green-600" : "text-red-600"}`}>
-                                  {formatCurrency(newHourly)}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
+              <Collapsible.Content>
+                <div className="overflow-hidden rounded-xl border border-glass shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-border">
+                      <thead className="bg-gradient-to-r from-muted/60 to-muted/40">
+                        <tr>
+                          <th className="px-4 py-3 text-left">
+                            <Checkbox
+                              checked={selectionState}
+                              onCheckedChange={() => toggleSelectAllFiltered()}
+                              aria-label="Select all filtered employees"
+                            />
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Employee
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Current Annual
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            New Annual
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Current Hourly
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            New Hourly
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60 bg-background">
+                        {filteredEmployees.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                              No employees match your filters yet.
                             </td>
                           </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                        ) : (
+                          filteredEmployees.map((employee) => {
+                            const isSelected = selectedIds.has(employee.id);
+                            const comp = compensationData.get(employee.id);
+                            const { newSalary, newHourly } = calculateNewCompensation(comp);
+
+                            return (
+                              <tr 
+                                key={employee.id} 
+                                className={`${isSelected ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/20"} transition-colors`}
+                              >
+                                <td className="px-4 py-3">
+                                  <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleEmployeeSelection(employee.id)}
+                                    aria-label={`Select ${employee.name}`}
+                                  />
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="font-medium text-foreground">{employee.name}</div>
+                                  <div className="text-xs text-muted-foreground">{employee.email}</div>
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  {loadingCompensation ? (
+                                    <span className="text-muted-foreground">Loading...</span>
+                                  ) : (
+                                    <span className="font-medium">{formatCurrency(comp?.salaryAmount ?? null)}</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  {loadingCompensation ? (
+                                    <span className="text-muted-foreground">—</span>
+                                  ) : comp && newSalary !== null && comp.salaryAmount !== null && newSalary !== comp.salaryAmount ? (
+                                    <span className={`font-semibold ${newSalary > comp.salaryAmount ? "text-green-600" : "text-red-600"}`}>
+                                      {formatCurrency(newSalary)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  {loadingCompensation ? (
+                                    <span className="text-muted-foreground">Loading...</span>
+                                  ) : (
+                                    <span className="font-medium">{formatCurrency(comp?.hourlyRate ?? null)}</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                  {loadingCompensation ? (
+                                    <span className="text-muted-foreground">—</span>
+                                  ) : comp && newHourly !== null && comp.hourlyRate !== null && newHourly !== comp.hourlyRate ? (
+                                    <span className={`font-semibold ${newHourly > comp.hourlyRate ? "text-green-600" : "text-red-600"}`}>
+                                      {formatCurrency(newHourly)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </Collapsible.Content>
+            </Collapsible.Root>
           </div>
 
           {/* Adjustment Configuration */}
@@ -986,117 +1004,46 @@ export function CompensationBulkActionDialog({
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Apply to</label>
-              <div className="flex flex-wrap gap-4">
-                <label className="inline-flex items-center gap-3 text-sm">
-                  <Checkbox
-                    checked={targets.includes("salary")}
-                    onCheckedChange={() => toggleTarget("salary")}
-                  />
-                  <span className="font-medium">Salary amount</span>
-                </label>
-                <label className="inline-flex items-center gap-3 text-sm">
-                  <Checkbox
-                    checked={targets.includes("hourly")}
-                    onCheckedChange={() => toggleTarget("hourly")}
-                  />
-                  <span className="font-medium">Hourly rate</span>
-                </label>
-              </div>
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+              <p className="text-sm text-blue-900">
+                <strong>Note:</strong> Adjustments will be applied to both annual salary and hourly rate. 
+                Hourly rates are automatically calculated from annual salaries (annual ÷ 2,080 hours).
+              </p>
             </div>
           </div>
 
-          {/* Payroll Summary */}
-          {employeeIds.length > 0 && (
-            <div className="space-y-4">
-              {/* Salary Payroll */}
-              {(payrollTotals.oldSalaryTotal > 0 || targets.includes("salary")) && (
-                <div className="rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100/50 p-6 shadow-sm">
-                  <h3 className="mb-4 text-lg font-semibold text-foreground">Annual Salary Payroll Summary</h3>
-                  <div className="grid gap-6 sm:grid-cols-3">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">Current Total</p>
-                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.oldSalaryTotal)}</p>
-                      <p className="text-xs text-muted-foreground">{employeeIds.length} selected employee{employeeIds.length !== 1 ? "s" : ""}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">New Total</p>
-                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.newSalaryTotal)}</p>
-                      <p className="text-xs text-muted-foreground">After adjustment</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">Total Cost of Increase</p>
-                      <p className={`text-3xl font-bold ${payrollTotals.salaryDifference >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        {payrollTotals.salaryDifference >= 0 ? "+" : ""}{formatCurrency(payrollTotals.salaryDifference)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {payrollTotals.salaryDifference !== 0 && payrollTotals.oldSalaryTotal > 0
-                          ? `${((payrollTotals.salaryDifference / payrollTotals.oldSalaryTotal) * 100).toFixed(2)}% change`
-                          : "No change"}
-                      </p>
-                    </div>
-                  </div>
+          {/* Unified Payroll Summary */}
+          {employeeIds.length > 0 && payrollTotals.totalEmployees > 0 && (
+            <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-primary/20 p-6 shadow-md">
+              <h3 className="mb-4 text-lg font-semibold text-foreground">Annual Payroll Impact</h3>
+              <div className="grid gap-6 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Current Total Payroll</p>
+                  <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.oldTotal)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {payrollTotals.employeesWithSalary > 0 && `${payrollTotals.employeesWithSalary} salaried`}
+                    {payrollTotals.employeesWithSalary > 0 && payrollTotals.employeesWithHourly > 0 && ", "}
+                    {payrollTotals.employeesWithHourly > 0 && `${payrollTotals.employeesWithHourly} hourly`}
+                  </p>
                 </div>
-              )}
-
-              {/* Hourly Payroll */}
-              {(payrollTotals.oldHourlyTotal > 0 || targets.includes("hourly")) && (
-                <div className="rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100/50 p-6 shadow-sm">
-                  <h3 className="mb-4 text-lg font-semibold text-foreground">Hourly Rate Payroll Summary</h3>
-                  <div className="grid gap-6 sm:grid-cols-3">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">Current Total (Annual)</p>
-                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.oldAnnualHourlyTotal)}</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(payrollTotals.oldHourlyTotal)}/hour × 2,080 hrs</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">New Total (Annual)</p>
-                      <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.newAnnualHourlyTotal)}</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(payrollTotals.newHourlyTotal)}/hour × 2,080 hrs</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">Total Cost of Increase</p>
-                      <p className={`text-3xl font-bold ${payrollTotals.annualHourlyDifference >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        {payrollTotals.annualHourlyDifference >= 0 ? "+" : ""}{formatCurrency(payrollTotals.annualHourlyDifference)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {payrollTotals.annualHourlyDifference !== 0 && payrollTotals.oldAnnualHourlyTotal > 0
-                          ? `${((payrollTotals.annualHourlyDifference / payrollTotals.oldAnnualHourlyTotal) * 100).toFixed(2)}% change`
-                          : "No change"}
-                      </p>
-                    </div>
-                  </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">New Total Payroll</p>
+                  <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.newTotal)}</p>
+                  <p className="text-xs text-muted-foreground">After adjustment</p>
                 </div>
-              )}
-
-              {/* Combined Total */}
-              {payrollTotals.oldSalaryTotal > 0 && payrollTotals.oldAnnualHourlyTotal > 0 && (
-                <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-primary/20 p-6 shadow-md">
-                  <h3 className="mb-4 text-lg font-semibold text-foreground">Combined Payroll Impact</h3>
-                  <div className="grid gap-6 sm:grid-cols-3">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">Total Current Payroll</p>
-                      <p className="text-3xl font-bold text-foreground">
-                        {formatCurrency(payrollTotals.oldSalaryTotal + payrollTotals.oldAnnualHourlyTotal)}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">Total New Payroll</p>
-                      <p className="text-3xl font-bold text-foreground">
-                        {formatCurrency(payrollTotals.newSalaryTotal + payrollTotals.newAnnualHourlyTotal)}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-muted-foreground">Total Cost of Increase</p>
-                      <p className={`text-3xl font-bold ${(payrollTotals.salaryDifference + payrollTotals.annualHourlyDifference) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        {(payrollTotals.salaryDifference + payrollTotals.annualHourlyDifference) >= 0 ? "+" : ""}
-                        {formatCurrency(payrollTotals.salaryDifference + payrollTotals.annualHourlyDifference)}
-                      </p>
-                    </div>
-                  </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Total Cost Impact</p>
+                  <p className={`text-3xl font-bold ${payrollTotals.difference >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {payrollTotals.difference >= 0 ? "+" : ""}
+                    {formatCurrency(payrollTotals.difference)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {payrollTotals.difference !== 0 && payrollTotals.oldTotal > 0
+                      ? `${((payrollTotals.difference / payrollTotals.oldTotal) * 100).toFixed(2)}% change`
+                      : "No change"}
+                  </p>
                 </div>
-              )}
+              </div>
             </div>
           )}
 

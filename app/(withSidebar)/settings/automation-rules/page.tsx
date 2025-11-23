@@ -377,12 +377,46 @@ export default function AutomationRulesPage() {
   useEffect(() => {
     fetchRules();
     loadOptions();
+    
+    // Support opening a specific rule via URL parameter
+    const handleRuleIdParam = async () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const ruleId = params.get("ruleId");
+        if (ruleId) {
+          try {
+            const res = await fetch(`/api/automation-rules/${ruleId}`);
+            if (res.ok) {
+              const rule = await res.json();
+              // Fetch full rule including workflowDefinition for the canvas
+              setFormData(rule as any);
+              setSelectedRule(rule as any);
+              setBuilderMode("edit");
+              setPreviewMode(false);
+              // Clean up URL parameter
+              const newUrl = window.location.pathname;
+              window.history.replaceState({}, "", newUrl);
+            }
+          } catch (error) {
+            console.error("Failed to load rule:", error);
+          }
+          return true; // Indicate we handled the ruleId
+        }
+      } catch (error) {
+        console.error("Error parsing URL parameters:", error);
+      }
+      return false;
+    };
+    
     // Support previewing a template in the builder (editable, not installed)
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const previewId = params.get("preview");
-      if (previewId) {
-        (async () => {
+    (async () => {
+      const handledRuleId = await handleRuleIdParam();
+      if (handledRuleId) return; // Don't process preview if we handled ruleId
+      
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const previewId = params.get("preview");
+        if (previewId) {
           const res = await fetch("/api/automation-rules/templates");
           if (res.ok) {
             const data = await res.json();
@@ -408,9 +442,11 @@ export default function AutomationRulesPage() {
               });
             }
           }
-        })();
+        }
+      } catch (error) {
+        console.error("Error loading template preview:", error);
       }
-    } catch {}
+    })();
   }, []);
 
   const loadOptions = async () => {

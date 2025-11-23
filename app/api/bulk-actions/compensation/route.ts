@@ -10,7 +10,6 @@ const payloadSchema = z.object({
   employeeIds: z.array(z.string().uuid()).min(1),
   mode: z.enum(["percent", "flat"]),
   amount: z.number(),
-  targets: z.array(z.enum(["salary", "hourly"])).min(1),
   reason: z.string().trim().min(3),
 });
 
@@ -28,7 +27,7 @@ export async function POST(request: Request) {
     }
 
     const body = payloadSchema.parse(await request.json());
-    const { employeeIds, mode, amount, targets, reason } = body;
+    const { employeeIds, mode, amount, reason } = body;
 
     const employees = await prisma.employee.findMany({
       where: { id: { in: employeeIds }, companyId: session.user.companyId },
@@ -67,6 +66,9 @@ export async function POST(request: Request) {
       return value;
     };
 
+    // 2080 working hours per year (40 hours/week × 52 weeks)
+    const HOURS_PER_YEAR = new Prisma.Decimal(2080);
+
     for (const employee of employees) {
       try {
         const before = {
@@ -76,26 +78,33 @@ export async function POST(request: Request) {
 
         const after = { ...before };
 
-        if (targets.includes("salary")) {
-          if (!employee.salaryAmount) {
-            failures.push({
-              employeeId: employee.id,
-              error: "Salary amount is not set",
-            });
-            continue;
-          }
+        // Always update both salary and hourly together
+        // If employee has a salary, adjust it and calculate hourly from it
+        if (employee.salaryAmount !== null) {
           after.salaryAmount = adjustValue(employee.salaryAmount);
-        }
-
-        if (targets.includes("hourly")) {
-          if (!employee.hourlyRate) {
-            failures.push({
-              employeeId: employee.id,
-              error: "Hourly rate is not set",
-            });
-            continue;
+          if (after.salaryAmount !== null) {
+            // Calculate hourly rate from annual salary
+            after.hourlyRate = new Prisma.Decimal(
+              after.salaryAmount.div(HOURS_PER_YEAR).toFixed(2)
+            );
           }
+        } 
+        // If employee only has hourly rate, adjust it and calculate salary from it
+        else if (employee.hourlyRate !== null) {
           after.hourlyRate = adjustValue(employee.hourlyRate);
+          if (after.hourlyRate !== null) {
+            // Calculate annual salary from hourly rate
+            after.salaryAmount = new Prisma.Decimal(
+              after.hourlyRate.mul(HOURS_PER_YEAR).toFixed(2)
+            );
+          }
+        } else {
+          // Employee has neither salary nor hourly rate set
+          failures.push({
+            employeeId: employee.id,
+            error: "Neither salary nor hourly rate is set",
+          });
+          continue;
         }
 
         const diffs = computeDiffs(before, after, [

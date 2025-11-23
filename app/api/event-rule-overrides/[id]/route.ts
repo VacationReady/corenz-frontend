@@ -17,6 +17,8 @@ const EventRuleOverrideUpdateSchema = z.object({
   staffingDensityEnabled: z.boolean().optional(),
   staffingDensityThreshold: z.number().min(0).max(1).optional(),
   staffingDensityBehavior: z.enum(["DENY", "REQUIRE_APPROVAL"]).optional(),
+  escalationApproverId: z.string().uuid("Invalid escalation approver ID").optional(),
+  escalationApproverType: z.enum(["USER", "MANAGER_OF_MANAGER", "HR_ADMIN"]).optional(),
 });
 
 // GET: Fetch a specific event rule override

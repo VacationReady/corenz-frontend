@@ -9,8 +9,18 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { MultiSelect } from "@/components/ui/MultiSelect";
+import { WorkflowStages } from "./WorkflowStages";
+import { 
+  Calendar, 
+  Users, 
+  GitMerge, 
+  AlertCircle, 
+  Edit, 
+  Trash2, 
+  ShieldCheck,
+  Layers
+} from "lucide-react";
 
 type Workflow = any;
 
@@ -114,7 +124,7 @@ export default function MultiStageApprovalsSettingsPage() {
     setIsActive(true);
     setWorkflowMode("SEQUENTIAL");
     // Default one stage with Manager approver
-    setStages([{ order: 0, approvers: [{ type: "MANAGER", userId: undefined, order: 0 }] }]);
+    setStages([{ id: `stage-${Date.now()}`, order: 0, approvers: [{ type: "MANAGER", userId: undefined, order: 0 }] }]);
     setOpen(true);
   }
 
@@ -130,12 +140,16 @@ export default function MultiStageApprovalsSettingsPage() {
     setIsActive(Boolean(w.isActive));
     // Use first stage's mode as workflow-level rule (all stages will save with the same mode)
     setWorkflowMode(((w.stages || [])[0]?.mode) || "SEQUENTIAL");
-    setStages((w.stages || []).map((s: any) => ({ order: s.order, approvers: [
-      (() => {
-        const a = (s.approvers || [])[0];
-        return { type: a?.type || (a?.userId ? "USER" : "MANAGER"), userId: a?.userId || undefined, order: 0 };
-      })(),
-    ] })));
+    setStages((w.stages || []).map((s: any, idx: number) => ({
+      id: s.id || `stage-${idx}`,
+      order: s.order,
+      approvers: [
+        (() => {
+          const a = (s.approvers || [])[0];
+          return { type: a?.type || (a?.userId ? "USER" : "MANAGER"), userId: a?.userId || undefined, order: 0 };
+        })(),
+      ] 
+    })));
     setOpen(true);
   }
 
@@ -225,53 +239,124 @@ export default function MultiStageApprovalsSettingsPage() {
         ) : (
           <>
             {/* Always show the Default fallback workflow card */}
-            <Card key={defaultWorkflowCard.id} className="border-enhanced">
-              <CardHeader>
+            <Card key={defaultWorkflowCard.id} className="border-enhanced bg-muted/30">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{defaultWorkflowCard.name}</CardTitle>
-                  <Badge variant="secondary">System default</Badge>
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-muted-foreground" />
+                    <CardTitle className="text-base">{defaultWorkflowCard.name}</CardTitle>
+                  </div>
+                  <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-muted">System default</Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Event</span><span className="font-medium">{defaultWorkflowCard.eventCategory?.name}</span></div>
-                <div className="flex justify-between"><span>Scope</span><span className="font-medium">{defaultWorkflowCard.scope?.type}</span></div>
-                <div className="flex justify-between"><span>Stages</span><span className="font-medium">1</span></div>
-                <div className="flex justify-between"><span>Approver</span><span className="font-medium">Manager</span></div>
-                <p className="text-xs text-muted-foreground pt-1">Used automatically when no matching workflow exists.</p>
+              <CardContent className="space-y-4 text-sm">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
+                      <Calendar className="h-3 w-3" /> Event
+                    </div>
+                    <div className="font-medium">{defaultWorkflowCard.eventCategory?.name}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
+                      <Users className="h-3 w-3" /> Scope
+                    </div>
+                    <div className="font-medium">{defaultWorkflowCard.scope?.type}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
+                      <Layers className="h-3 w-3" /> Stages
+                    </div>
+                    <div className="font-medium">1 Stage</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
+                      <GitMerge className="h-3 w-3" /> Mode
+                    </div>
+                    <div className="font-medium">Sequential</div>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground border-t pt-3 mt-2">
+                  Used automatically when no custom workflow matches the request.
+                </p>
               </CardContent>
             </Card>
 
             {workflows.length === 0 ? (
-              <Card>
+              <Card className="border-dashed">
                 <CardHeader>
-                  <CardTitle>No custom workflows yet</CardTitle>
+                  <CardTitle className="text-muted-foreground">No custom workflows</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">Default manager approval is active. Create a workflow to override for specific cases.</p>
+                  <p className="text-muted-foreground text-sm">
+                    The default manager approval rule is currently active for all requests. 
+                    Create a custom workflow to override this behavior for specific departments or leave types.
+                  </p>
+                  <Button variant="outline" className="mt-4" onClick={openCreate}>
+                    Create first workflow
+                  </Button>
                 </CardContent>
               </Card>
             ) : (
               workflows.map((w: any) => (
-                <Card key={w.id} className="border-enhanced">
-                  <CardHeader>
+                <Card key={w.id} className="border-enhanced hover:shadow-md transition-shadow group">
+                  <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{w.name}</CardTitle>
-                      <Badge variant={w.isActive ? "default" : "secondary"}>{w.isActive ? "Active" : "Inactive"}</Badge>
+                      <CardTitle className="text-base truncate pr-2" title={w.name}>{w.name}</CardTitle>
+                      <Badge 
+                        variant={w.isActive ? "default" : "secondary"}
+                        className={w.isActive ? "bg-green-500/15 text-green-700 hover:bg-green-500/25 border-green-200" : ""}
+                      >
+                        {w.isActive ? "Active" : "Inactive"}
+                      </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span>Event</span><span className="font-medium">{w.eventCategory?.name}</span></div>
-                    <div className="flex justify-between"><span>Scope</span><span className="font-medium">{w.scope?.type}</span></div>
-                    <div className="flex justify-between"><span>Stages</span><span className="font-medium">{w.stages?.length ?? 0}</span></div>
-                    <div className="flex justify-between"><span>Priority</span><span className="font-medium">{w.priority ?? 0}</span></div>
-                    <div className="pt-2 flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEdit(w)}>Edit</Button>
-                      <Button size="sm" variant="danger" onClick={async () => {
+                  <CardContent className="space-y-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
+                          <Calendar className="h-3 w-3" /> Event
+                        </div>
+                        <div className="font-medium truncate" title={w.eventCategory?.name}>
+                          {w.eventCategory?.name}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
+                          <Users className="h-3 w-3" /> Scope
+                        </div>
+                        <div className="font-medium truncate">
+                          {w.scope?.type === "COMPANY" ? "Company Wide" : 
+                           w.scope?.type === "DEPARTMENT" ? `${w.scope?.departmentIds?.length || 0} Depts` :
+                           w.scope?.type}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
+                          <Layers className="h-3 w-3" /> Stages
+                        </div>
+                        <div className="font-medium">{w.stages?.length ?? 0} Stages</div>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
+                          <AlertCircle className="h-3 w-3" /> Priority
+                        </div>
+                        <div className="font-medium">{w.priority ?? 0}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-3 border-t flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(w)}>
+                        <Edit className="h-4 w-4 mr-1" /> Edit
+                      </Button>
+                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={async () => {
                         const ok = confirm("Delete this workflow?");
                         if (!ok) return;
                         const res = await fetch(`/api/approval-workflows/${w.id}`, { method: "DELETE" });
                         if (res.ok) { toast.success("Workflow deleted"); load(); } else { toast.error("Failed to delete"); }
-                      }}>Delete</Button>
+                      }}>
+                        <Trash2 className="h-4 w-4 mr-1" /> Delete
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -346,35 +431,12 @@ export default function MultiStageApprovalsSettingsPage() {
                 </div>
               )}
             </div>
-            {/* Stage builder: one approver per stage */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">Stages</div>
-                <Button size="sm" variant="outline" onClick={() => setStages((prev) => [...prev, { order: prev.length, approvers: [{ type: "MANAGER", userId: undefined, order: 0 }] }])}>Add stage</Button>
-              </div>
-              <div className="space-y-2">
-                {stages.map((s, idx) => (
-                  <div key={idx} className="rounded border p-2">
-                    <div className="flex gap-2 items-start">
-                      <div className="flex-1">
-                        <label className="text-xs text-muted-foreground">Approver</label>
-                        <Select value={(s.approvers?.[0]?.type === "MANAGER") ? "MANAGER" : (s.approvers?.[0]?.userId || "")} onValueChange={(v) => setStages((prev) => prev.map((x, i) => i === idx ? { ...x, approvers: [{ type: v === "MANAGER" ? "MANAGER" : "USER", userId: v === "MANAGER" ? undefined : v, order: 0 }] } : x))}>
-                          <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select approver" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="MANAGER">Manager</SelectItem>
-                            {employees.map((e) => (
-                              <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Stage builder */}
+            <WorkflowStages
+              stages={stages}
+              onChange={setStages}
+              employees={employees}
+            />
             {/* Global approval rule */}
             <div>
               <label className="text-xs text-muted-foreground">Rule</label>
@@ -400,5 +462,3 @@ export default function MultiStageApprovalsSettingsPage() {
     </PageShell>
   );
 }
-
-

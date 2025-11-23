@@ -117,6 +117,8 @@ interface EventRuleOverride {
   staffingDensityEnabled: boolean;
   staffingDensityThreshold?: number;
   staffingDensityBehavior: "DENY" | "REQUIRE_APPROVAL";
+  escalationApproverId?: string; // Who provides additional approval
+  escalationApproverType?: "USER" | "MANAGER_OF_MANAGER" | "HR_ADMIN";
 }
 
 interface Department {
@@ -150,6 +152,7 @@ export default function EventRulesPage() {
     eventCategoryId: "",
     staffingDensityEnabled: false,
     staffingDensityBehavior: "DENY",
+    escalationApproverType: "MANAGER_OF_MANAGER",
   });
 
   useEffect(() => {
@@ -175,6 +178,9 @@ export default function EventRulesPage() {
       const deptData = await deptRes.json();
       const overrideData: EventRuleOverride[] = await overrideRes.json();
 
+      console.log("Employee API Response:", empData);
+      console.log("Employees array:", empData.employees || empData);
+
       const merged: Record<string, EventRule> = {};
       const openState: Record<string, boolean> = {};
 
@@ -196,10 +202,14 @@ export default function EventRulesPage() {
         openState[cat.id] = false;
       });
 
+      // Handle both response formats: { employees: [...] } or direct array
+      const employeeList = Array.isArray(empData) ? empData : (empData.employees || []);
+      console.log("Setting employees:", employeeList);
+
       setCategories(catData);
       setRules(merged);
       setBlackoutDays(blackoutData);
-      setEmployees(empData.employees || []);
+      setEmployees(employeeList);
       setDepartments(deptData);
       setOverrides(overrideData);
       setOpenCards(openState);
@@ -419,6 +429,18 @@ export default function EventRulesPage() {
         });
         return;
       }
+
+      // If require approval with specific user, must select a user
+      if (currentOverride.staffingDensityBehavior === "REQUIRE_APPROVAL" && 
+          currentOverride.escalationApproverType === "USER" && 
+          !currentOverride.escalationApproverId) {
+        toast({
+          title: "Validation Error",
+          description: "Please select a specific approver or choose a different escalation type",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setLoading(true);
@@ -440,6 +462,12 @@ export default function EventRulesPage() {
         ...(currentOverride.teamId && { teamId: currentOverride.teamId }),
         ...(currentOverride.staffingDensityThreshold !== undefined && {
           staffingDensityThreshold: currentOverride.staffingDensityThreshold,
+        }),
+        ...(currentOverride.escalationApproverType && {
+          escalationApproverType: currentOverride.escalationApproverType,
+        }),
+        ...(currentOverride.escalationApproverId && {
+          escalationApproverId: currentOverride.escalationApproverId,
         }),
         ...(currentOverride.enforceEntitlement !== undefined && {
           enforceEntitlement: currentOverride.enforceEntitlement,
@@ -536,6 +564,7 @@ export default function EventRulesPage() {
       eventCategoryId: "",
       staffingDensityEnabled: false,
       staffingDensityBehavior: "DENY",
+      escalationApproverType: "MANAGER_OF_MANAGER",
     });
   };
 
@@ -589,7 +618,7 @@ export default function EventRulesPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Employee (Optional)</Label>
+                  <Label>Employee (Optional) {employees.length > 0 && <span className="text-xs text-muted-foreground">({employees.length} available)</span>}</Label>
                   <Popover open={employeeComboboxOpen} onOpenChange={setEmployeeComboboxOpen}>
                     <PopoverTrigger asChild>
                       <button
@@ -597,11 +626,15 @@ export default function EventRulesPage() {
                         className="flex w-full items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-left text-sm font-medium text-foreground shadow-sm transition-colors hover:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/40"
                       >
                         <span className="truncate">
-                          {testEmployee === "ALL_EMPLOYEES" 
-                            ? "All employees"
-                            : employees.find(emp => emp.id === testEmployee)
-                              ? `${employees.find(emp => emp.id === testEmployee)?.user?.firstName} ${employees.find(emp => emp.id === testEmployee)?.user?.lastName}`
-                              : "Select employee"}
+                          {(() => {
+                            if (testEmployee === "ALL_EMPLOYEES") return "All employees";
+                            const selectedEmp = employees.find(emp => emp.id === testEmployee);
+                            if (!selectedEmp) return "Select employee";
+                            const firstName = selectedEmp.user?.firstName || selectedEmp.User?.firstName || '';
+                            const lastName = selectedEmp.user?.lastName || selectedEmp.User?.lastName || '';
+                            const fullName = `${firstName} ${lastName}`.trim();
+                            return fullName || `Employee ${selectedEmp.id}`;
+                          })()}
                         </span>
                         <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
                       </button>
@@ -610,10 +643,15 @@ export default function EventRulesPage() {
                       <Command>
                         <CommandInput placeholder="Search employees..." />
                         <CommandList>
-                          <CommandEmpty>No employees found.</CommandEmpty>
+                          <CommandEmpty>
+                            {employees.length === 0 
+                              ? "No employees loaded. Check console for errors."
+                              : "No employees found matching your search."}
+                          </CommandEmpty>
                           <CommandGroup>
                             <CommandItem
                               key="all-employees"
+                              value="All employees"
                               onSelect={() => {
                                 setTestEmployee("ALL_EMPLOYEES");
                                 setEmployeeComboboxOpen(false);
@@ -622,19 +660,25 @@ export default function EventRulesPage() {
                               <span>All employees</span>
                               {testEmployee === "ALL_EMPLOYEES" && <Check className="ml-auto h-4 w-4" />}
                             </CommandItem>
-                            {employees.map((emp) => (
-                              <CommandItem
-                                key={emp.id}
-                                value={`${emp.user?.firstName} ${emp.user?.lastName}`}
-                                onSelect={() => {
-                                  setTestEmployee(emp.id);
-                                  setEmployeeComboboxOpen(false);
-                                }}
-                              >
-                                <span>{emp.user?.firstName} {emp.user?.lastName}</span>
-                                {testEmployee === emp.id && <Check className="ml-auto h-4 w-4" />}
-                              </CommandItem>
-                            ))}
+                            {employees.map((emp) => {
+                              // Handle both lowercase 'user' and uppercase 'User' from API
+                              const firstName = emp.user?.firstName || emp.User?.firstName || '';
+                              const lastName = emp.user?.lastName || emp.User?.lastName || '';
+                              const fullName = `${firstName} ${lastName}`.trim();
+                              return (
+                                <CommandItem
+                                  key={emp.id}
+                                  value={fullName}
+                                  onSelect={() => {
+                                    setTestEmployee(emp.id);
+                                    setEmployeeComboboxOpen(false);
+                                  }}
+                                >
+                                  <span>{fullName || `Employee ${emp.id}`}</span>
+                                  {testEmployee === emp.id && <Check className="ml-auto h-4 w-4" />}
+                                </CommandItem>
+                              );
+                            })}
                           </CommandGroup>
                         </CommandList>
                       </Command>
@@ -1270,13 +1314,24 @@ export default function EventRulesPage() {
                             </CardTitle>
                             <CardDescription>
                               {override.staffingDensityEnabled && (
-                                <span className="text-orange-600">
-                                  Staffing density:{" "}
-                                  {(
-                                    override.staffingDensityThreshold! * 100
-                                  ).toFixed(0)}
-                                  % - {override.staffingDensityBehavior}
-                                </span>
+                                <div className="space-y-1">
+                                  <span className="text-orange-600">
+                                    Staffing density:{" "}
+                                    {(
+                                      override.staffingDensityThreshold! * 100
+                                    ).toFixed(0)}
+                                    % - {override.staffingDensityBehavior === "DENY" ? "Hard Block" : "Require Approval"}
+                                  </span>
+                                  {override.staffingDensityBehavior === "REQUIRE_APPROVAL" && override.escalationApproverType && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Escalates to: {
+                                        override.escalationApproverType === "MANAGER_OF_MANAGER" ? "Manager's Manager" :
+                                        override.escalationApproverType === "HR_ADMIN" ? "HR/Admin" :
+                                        "Specific User"
+                                      }
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </CardDescription>
                           </div>
@@ -1672,6 +1727,93 @@ export default function EventRulesPage() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {currentOverride.staffingDensityBehavior === "REQUIRE_APPROVAL" && (
+                      <div className="space-y-4 border-l-4 border-orange-300 pl-4 bg-orange-50 p-4 rounded">
+                        <div className="flex items-center gap-2 text-orange-800">
+                          <AlertTriangle className="w-4 h-4" />
+                          <span className="font-semibold">Who approves when density threshold is exceeded?</span>
+                        </div>
+                        
+                        <div>
+                          <Label>Escalation Approver Type</Label>
+                          <Select
+                            value={currentOverride.escalationApproverType || "MANAGER_OF_MANAGER"}
+                            onValueChange={(value: "USER" | "MANAGER_OF_MANAGER" | "HR_ADMIN") =>
+                              setCurrentOverride({
+                                ...currentOverride,
+                                escalationApproverType: value,
+                                // Clear user selection if switching away from USER type
+                                escalationApproverId: value === "USER" ? currentOverride.escalationApproverId : undefined,
+                              })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="MANAGER_OF_MANAGER">
+                                Manager's Manager (auto-escalate)
+                              </SelectItem>
+                              <SelectItem value="HR_ADMIN">
+                                HR/Admin (any admin user)
+                              </SelectItem>
+                              <SelectItem value="USER">
+                                Specific User
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {currentOverride.escalationApproverType === "MANAGER_OF_MANAGER" && 
+                              "Automatically routes to the employee's manager's manager"}
+                            {currentOverride.escalationApproverType === "HR_ADMIN" && 
+                              "Routes to any user with Admin role"}
+                            {currentOverride.escalationApproverType === "USER" && 
+                              "Routes to a specific user you select below"}
+                          </p>
+                        </div>
+
+                        {currentOverride.escalationApproverType === "USER" && (
+                          <div>
+                            <Label className="text-red-600">Select Specific Approver *</Label>
+                            <Select
+                              value={currentOverride.escalationApproverId || undefined}
+                              onValueChange={(value) =>
+                                setCurrentOverride({
+                                  ...currentOverride,
+                                  escalationApproverId: value,
+                                })
+                              }
+                            >
+                              <SelectTrigger className={!currentOverride.escalationApproverId ? "border-red-300" : ""}>
+                                <SelectValue placeholder="Select an approver" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {employees
+                                  .filter(emp => emp.user?.role === "ADMIN" || emp.user?.role === "MANAGER")
+                                  .map((emp) => (
+                                    <SelectItem key={emp.id} value={emp.user?.id || ""}>
+                                      {emp.user?.firstName} {emp.user?.lastName} ({emp.user?.role})
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                            {!currentOverride.escalationApproverId && (
+                              <p className="text-xs text-red-600 mt-1">
+                                You must select a specific approver
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <div className="text-sm text-blue-800">
+                            <strong>How it works:</strong> Normal leave requests follow the standard approval flow (employee → manager). 
+                            When density threshold is exceeded, an additional approval stage is added with your selected escalation approver.
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </TabsContent>

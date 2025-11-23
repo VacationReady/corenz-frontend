@@ -18,6 +18,7 @@ import { Copy, ShieldBan as ShieldBanIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import BlackoutManagementModal from "./BlackoutManagementModal";
+import DayActionSheet from "./DayActionSheet";
 import { EventInput, EventSourceFuncArg } from "@fullcalendar/core";
 import type { EventContentArg } from "@fullcalendar/core";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -80,6 +81,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
   const [blackoutModalOpen, setBlackoutModalOpen] = useState(false);
+  const [dayActionSheetOpen, setDayActionSheetOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(false);
   const [currentView, setCurrentView] = useState<"dayGridMonth" | "listMonth">(initialView);
@@ -748,8 +750,12 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   };
 
   const handleDateClick = (arg: any) => {
+    if (isEmployeeRole) {
+      // Employees can't perform admin actions on dates
+      return;
+    }
     setSelectedDate(arg.date);
-    setBlackoutModalOpen(true);
+    setDayActionSheetOpen(true);
   };
 
   const handleEventClick = async (clickInfo: any) => {
@@ -1100,6 +1106,18 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         </SheetContent>
       </Sheet>
 
+      <DayActionSheet
+        open={dayActionSheetOpen}
+        setOpen={setDayActionSheetOpen}
+        selectedDate={selectedDate}
+        onBlockDay={() => {
+          setBlackoutModalOpen(true);
+        }}
+        onBookLeave={() => {
+          // Called after leave is successfully booked
+        }}
+        refreshCalendar={refreshCalendar}
+      />
       <BlackoutManagementModal
         open={blackoutModalOpen}
         setOpen={setBlackoutModalOpen}

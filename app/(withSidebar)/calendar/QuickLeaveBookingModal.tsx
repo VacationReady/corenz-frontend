@@ -68,7 +68,6 @@ export default function QuickLeaveBookingModal({
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -91,12 +90,19 @@ export default function QuickLeaveBookingModal({
 
       if (empRes.ok) {
         const empData = await empRes.json();
-        setEmployees(empData.employees || []);
+        const employeeList = empData.employees || [];
+        console.log("Loaded employees:", employeeList.length);
+        setEmployees(employeeList);
+      } else {
+        console.error("Failed to fetch employees:", empRes.status);
+        toast.error("Failed to load employees");
       }
 
       if (catRes.ok) {
         const catData = await catRes.json();
         setCategories(catData);
+      } else {
+        console.error("Failed to fetch categories:", catRes.status);
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -156,7 +162,6 @@ export default function QuickLeaveBookingModal({
     setStartDate("");
     setEndDate("");
     setReason("");
-    setSearchQuery("");
   };
 
   const selectedEmp = employees.find((e) => e.id === selectedEmployee);
@@ -164,12 +169,8 @@ export default function QuickLeaveBookingModal({
     return emp.user?.name || `${emp.user?.firstName || ""} ${emp.user?.lastName || ""}`.trim() || "Unknown";
   };
 
-  const filteredEmployees = employees.filter((emp) => {
-    const name = getEmployeeName(emp).toLowerCase();
-    const dept = emp.department?.name?.toLowerCase() || "";
-    const query = searchQuery.toLowerCase();
-    return name.includes(query) || dept.includes(query);
-  });
+  // Command component handles filtering internally, we just need all employees
+  const filteredEmployees = employees;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -214,19 +215,20 @@ export default function QuickLeaveBookingModal({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[400px] p-0" align="start">
-                <Command>
+                <Command shouldFilter={true}>
                   <CommandInput
                     placeholder="Search employees..."
-                    value={searchQuery}
-                    onValueChange={setSearchQuery}
                   />
                   <CommandList>
                     <CommandEmpty>No employee found.</CommandEmpty>
                     <CommandGroup>
-                      {filteredEmployees.slice(0, 50).map((emp) => (
+                      {filteredEmployees.slice(0, 100).map((emp) => {
+                        const empName = getEmployeeName(emp);
+                        const searchValue = `${empName} ${emp.department?.name || ""}`.toLowerCase();
+                        return (
                         <CommandItem
                           key={emp.id}
-                          value={emp.id}
+                          value={searchValue}
                           onSelect={() => {
                             setSelectedEmployee(emp.id);
                             setSearchOpen(false);
@@ -250,7 +252,8 @@ export default function QuickLeaveBookingModal({
                             </div>
                           </div>
                         </CommandItem>
-                      ))}
+                        );
+                      })}
                     </CommandGroup>
                   </CommandList>
                 </Command>

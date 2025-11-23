@@ -179,7 +179,7 @@ export default function EventRulesPage() {
       const overrideData: EventRuleOverride[] = await overrideRes.json();
 
       console.log("Employee API Response:", empData);
-      console.log("Employees array:", empData.employees || empData);
+      console.log("Employees array:", empData.data || empData.employees || empData);
 
       const merged: Record<string, EventRule> = {};
       const openState: Record<string, boolean> = {};
@@ -202,8 +202,13 @@ export default function EventRulesPage() {
         openState[cat.id] = false;
       });
 
-      // Handle both response formats: { employees: [...] } or direct array
-      const employeeList = Array.isArray(empData) ? empData : (empData.employees || []);
+      // Handle multiple response formats:
+      // 1. { data: [...] } - paginated response
+      // 2. { employees: [...] } - legacy format
+      // 3. [...] - direct array
+      const employeeList = Array.isArray(empData) 
+        ? empData 
+        : (empData.data || empData.employees || []);
       console.log("Setting employees:", employeeList);
 
       setCategories(catData);

@@ -302,7 +302,7 @@ export default function MultiStageApprovalsSettingsPage() {
                 <Card key={w.id} className="border-enhanced hover:shadow-md transition-shadow group">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-base truncate pr-2" title={w.name}>{w.name}</CardTitle>
+                      <CardTitle className="text-base truncate pr-2">{w.name}</CardTitle>
                       <Badge 
                         variant={w.isActive ? "default" : "secondary"}
                         className={w.isActive ? "bg-green-500/15 text-green-700 hover:bg-green-500/25 border-green-200" : ""}
@@ -317,7 +317,7 @@ export default function MultiStageApprovalsSettingsPage() {
                         <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wider">
                           <Calendar className="h-3 w-3" /> Event
                         </div>
-                        <div className="font-medium truncate" title={w.eventCategory?.name}>
+                        <div className="font-medium truncate" title={w.eventCategory?.name || ""}>
                           {w.eventCategory?.name}
                         </div>
                       </div>

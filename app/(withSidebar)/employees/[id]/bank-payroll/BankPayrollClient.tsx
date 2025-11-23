@@ -195,19 +195,22 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
         setErrors({});
         setTouched({ bankAccountNumber: false, irdNumber: false });
 
-        // Fetch working pattern
+        // Fetch working pattern with full details
         try {
           const patternRes = await tenantFetch(`/api/employees/${employeeId}/working-pattern-assignment`);
           if (patternRes.ok) {
             const patterns = await patternRes.json();
-            if (patterns && patterns.length > 0) {
-              setWorkingPattern(patterns[0].WorkingPattern);
+            if (patterns && patterns.length > 0 && patterns[0].WorkingPattern) {
+              const pattern = patterns[0].WorkingPattern;
+              console.log("Fetched working pattern:", pattern);
+              setWorkingPattern(pattern);
             } else {
               setWorkingPattern(null);
             }
           }
         } catch (err) {
           console.error("Failed to fetch working pattern", err);
+          setWorkingPattern(null);
         }
       } catch {}
     })();
@@ -272,9 +275,37 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
       return;
     }
 
-    if (!workingPattern || !workingPattern.WorkingPatternWeek || workingPattern.WorkingPatternWeek.length === 0) {
+    // Check if working pattern exists and has the necessary data
+    if (!workingPattern) {
       setCalculatedSalary(null);
       setSalaryMessage("Can't calculate annual salary due to no working pattern");
+      return;
+    }
+
+    console.log("Working pattern for calculation:", workingPattern);
+
+    // Try to use contractedHoursPerWeek if available (for SHIFT_BASED patterns)
+    if (workingPattern.contractedHoursPerWeek) {
+      const avgHoursPerWeek = parseFloat(workingPattern.contractedHoursPerWeek.toString());
+      console.log("Using contractedHoursPerWeek:", avgHoursPerWeek);
+      const weeksPerYear = 52;
+      const annualSalary = hourlyRateNum * avgHoursPerWeek * weeksPerYear;
+      
+      setCalculatedSalary(annualSalary);
+      setSalaryMessage("");
+      
+      // Only auto-populate if the user hasn't manually edited the salary
+      if (isPrivileged && !hasManuallyEditedSalary) {
+        setForm((prev) => ({ ...prev, salaryAmount: annualSalary.toFixed(2) }));
+      }
+      return;
+    }
+
+    // Otherwise calculate from WorkingPatternWeek structure
+    if (!workingPattern.WorkingPatternWeek || workingPattern.WorkingPatternWeek.length === 0) {
+      console.warn("Working pattern has no WorkingPatternWeek data:", workingPattern);
+      setCalculatedSalary(null);
+      setSalaryMessage("Can't calculate annual salary - working pattern has no week details");
       return;
     }
 
@@ -297,18 +328,22 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
       }
     }
 
+    console.log("Calculated from pattern - weeks:", weekCount, "total hours:", totalHours);
+
     if (weekCount === 0 || totalHours === 0) {
       setCalculatedSalary(null);
-      setSalaryMessage("Can't calculate annual salary due to no working pattern");
+      setSalaryMessage("Can't calculate annual salary - working pattern has no hours");
       return;
     }
 
     // Average hours per week
     const avgHoursPerWeek = totalHours / weekCount;
+    console.log("Average hours per week:", avgHoursPerWeek);
     
     // Calculate annual salary: hourly rate × hours per week × weeks per year
     const weeksPerYear = 52;
     const annualSalary = hourlyRateNum * avgHoursPerWeek * weeksPerYear;
+    console.log("Calculated annual salary:", annualSalary);
     
     setCalculatedSalary(annualSalary);
     setSalaryMessage("");
@@ -367,8 +402,8 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
         ? Number(form.specialTaxRate) / 100
         : null,
       taxExemptionReason: form.taxExemptionReason || null,
-      salaryAmount: form.salaryAmount ? Number(form.salaryAmount) : null,
-      hourlyRate: form.hourlyRate ? Number(form.hourlyRate) : null,
+      salaryAmount: form.salaryAmount && form.salaryAmount.trim() !== "" ? Number(form.salaryAmount) : null,
+      hourlyRate: form.hourlyRate && form.hourlyRate.trim() !== "" ? Number(form.hourlyRate) : null,
     };
 
     // For employees, only include bankAccountNumber (other fields match initialValues to prevent changes)

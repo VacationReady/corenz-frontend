@@ -144,6 +144,67 @@ Type '(enableStaffingDensity?: boolean) => void' is not assignable to type 'Mous
 
 This ensures the function receives a boolean parameter instead of the MouseEvent, resolving the TypeScript error.
 
+## Validation Error Fix (Create Override Issue)
+
+**Error:** Zod validation error when creating override
+```
+Error [ZodError]: Invalid event category ID - validation: "cuid"
+```
+
+**Root Cause:** Empty string `""` being sent to API instead of a valid CUID
+
+**Solutions Implemented:**
+
+1. **Enhanced Client-Side Validation**
+   - Added validation check before API call
+   - Checks if `eventCategoryId` is empty
+   - Shows toast error if validation fails
+   - Validates staffing density threshold when enabled
+
+2. **Visual Feedback Improvements**
+   - Event Category label highlighted in red to indicate required field
+   - Select border turns red when no category selected
+   - Helper text shows "Event category is required" when empty
+   - Button shows "Please select an event category to continue" message
+   - Button properly disabled when category not selected
+
+3. **Data Sanitization**
+   - `eventCategoryId` uses `|| undefined` to prevent empty strings
+   - `departmentId` properly converted from "COMPANY_WIDE" to undefined
+   - Loading state prevents double submissions
+
+4. **Better Error Messages**
+   - Shows specific Zod validation errors from API
+   - Console logs errors for debugging
+   - User-friendly toast notifications
+
+**Code Changes:**
+
+```typescript
+// Validation before save
+if (!currentOverride.eventCategoryId) {
+  toast({
+    title: "Validation Error",
+    description: "Please select an event category",
+    variant: "destructive",
+  });
+  return;
+}
+
+// Visual indicators
+<Label className="text-red-600">Event Category *</Label>
+<SelectTrigger className={!currentOverride.eventCategoryId ? "border-red-300" : ""}>
+  <SelectValue placeholder="Select category" />
+</SelectTrigger>
+
+// Data preparation
+const dataToSend = {
+  ...currentOverride,
+  departmentId: currentOverride.departmentId || undefined,
+  teamId: currentOverride.teamId || undefined,
+};
+```
+
 ## Status
 
 ✅ All React errors fixed  
@@ -152,5 +213,7 @@ This ensures the function receives a boolean parameter instead of the MouseEvent
 ✅ Enhanced UX with direct action buttons  
 ✅ Clear documentation of differences between rule types  
 ✅ No linter errors  
-✅ TypeScript compilation errors resolved
+✅ TypeScript compilation errors resolved  
+✅ Validation errors fixed with proper client-side checks  
+✅ User-friendly error messages and visual feedback
 

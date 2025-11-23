@@ -386,16 +386,47 @@ export default function EventRulesPage() {
   };
 
   const saveOverride = async () => {
+    // Validate required fields
+    if (!currentOverride.eventCategoryId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select an event category",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate staffing density fields if enabled
+    if (currentOverride.staffingDensityEnabled) {
+      if (!currentOverride.staffingDensityThreshold || currentOverride.staffingDensityThreshold <= 0) {
+        toast({
+          title: "Validation Error",
+          description: "Please enter a valid density threshold (1-100%)",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    setLoading(true);
     try {
       const method = currentOverride.id ? "PUT" : "POST";
       const url = currentOverride.id
         ? `/api/event-rule-overrides/${currentOverride.id}`
         : "/api/event-rule-overrides";
 
+      // Prepare the data - remove undefined departmentId if it's the sentinel value
+      const dataToSend = {
+        ...currentOverride,
+        // Don't send undefined values, send null or omit them
+        departmentId: currentOverride.departmentId || undefined,
+        teamId: currentOverride.teamId || undefined,
+      };
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(currentOverride),
+        body: JSON.stringify(dataToSend),
       });
 
       if (response.ok) {
@@ -410,16 +441,19 @@ export default function EventRulesPage() {
         const error = await response.json();
         toast({
           title: "Error",
-          description: error.error || "Failed to save override",
+          description: error.error || error.details?.fieldErrors?.eventCategoryId?.[0] || "Failed to save override",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error("Save override error:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1412,9 +1446,9 @@ export default function EventRulesPage() {
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Event Category *</Label>
+                <Label className="text-red-600">Event Category *</Label>
                 <Select
-                  value={currentOverride.eventCategoryId}
+                  value={currentOverride.eventCategoryId || undefined}
                   onValueChange={(value) =>
                     setCurrentOverride({
                       ...currentOverride,
@@ -1422,17 +1456,28 @@ export default function EventRulesPage() {
                     })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={!currentOverride.eventCategoryId ? "border-red-300" : ""}>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
+                    {categories.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No categories available
+                      </div>
+                    ) : (
+                      categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
+                {!currentOverride.eventCategoryId && (
+                  <p className="text-xs text-red-600 mt-1">
+                    Event category is required
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Department</Label>
@@ -1534,11 +1579,17 @@ export default function EventRulesPage() {
               </Button>
               <Button
                 onClick={saveOverride}
-                disabled={!currentOverride.eventCategoryId}
+                disabled={!currentOverride.eventCategoryId || loading}
+                className={!currentOverride.eventCategoryId ? "opacity-50 cursor-not-allowed" : ""}
               >
-                {currentOverride.id ? "Update" : "Create"} Override
+                {loading ? "Saving..." : currentOverride.id ? "Update Override" : "Create Override"}
               </Button>
             </div>
+            {!currentOverride.eventCategoryId && (
+              <p className="text-xs text-muted-foreground text-center -mt-2">
+                Please select an event category to continue
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -32,7 +32,18 @@ export async function GET(
       employeeId: employee.id,
       Employee: { companyId: session.user.companyId },
     },
-    include: { WorkingPattern: true },
+    include: {
+      WorkingPattern: {
+        include: {
+          WorkingPatternWeek: {
+            include: {
+              WorkingPatternDay: true,
+            },
+            orderBy: { weekNumber: "asc" },
+          },
+        },
+      },
+    },
     orderBy: { effectiveDate: "desc" },
   });
 

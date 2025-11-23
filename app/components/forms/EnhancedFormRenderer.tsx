@@ -84,8 +84,8 @@ export function EnhancedFormRenderer({
   const unsavedCtxRef = useRef<{ markSaved: () => void } | null>(null);
   const [draftChecked, setDraftChecked] = useState(false);
   const tenantFetch = useTenantFetch();
-  // Support both autoSave flag and legacy DATA_SCREEN type for backward compatibility
-  const hasAutoSave = Boolean(formData?.form?.autoSave) || formData?.form?.formType === "DATA_SCREEN";
+  // FORM type always has save functionality (data screens), plus support legacy DATA_SCREEN
+  const hasAutoSave = formData?.form?.formType === "FORM" || Boolean(formData?.form?.autoSave) || formData?.form?.formType === "DATA_SCREEN";
   const draftStorageKey =
     session?.user && hasAutoSave
       ? `form:draft:${session.user.companyId}:${session.user.id}:${formId}:${employeeId}`

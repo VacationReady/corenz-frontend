@@ -134,9 +134,8 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
   const [formType, setFormType] = useState<"SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN">(
     initialData?.formType === "DATA_SCREEN" ? "FORM" : (initialData?.formType || "FORM"),
   );
-  const [autoSave, setAutoSave] = useState<boolean>(
-    Boolean(initialData?.autoSave) || initialData?.formType === "DATA_SCREEN" || false,
-  );
+  // FORM type always has autoSave enabled (data screens with save functionality)
+  const autoSave = formType === "FORM" ? true : Boolean(initialData?.autoSave);
   const [transactionalEnabled, setTransactionalEnabled] = useState<boolean>(
     Boolean(initialData?.transactionalEnabled) || false,
   );
@@ -279,7 +278,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
     <div className="relative">
       <div className="mb-4">
         <div className="glass-premium rounded-2xl p-3 mb-4 shadow-sm">
-          <div className={`grid grid-cols-1 md:grid-cols-2 ${formType === "FORM" ? "lg:grid-cols-4" : "lg:grid-cols-3"} gap-3 items-center`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-center">
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-muted-foreground">
                 Form Name
@@ -301,7 +300,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                     </TooltipTrigger>
                     <TooltipContent className="glass-premium max-w-xs">
                       <p>
-                        <strong>Form:</strong> Single record per employee (editable)<br/>
+                        <strong>Form:</strong> Data screen with save functionality (editable, multiple updates)<br/>
                         <strong>Table:</strong> Multiple records per employee<br/>
                         <strong>Survey:</strong> One-time submission (not editable)
                       </p>
@@ -320,31 +319,6 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                 </SelectContent>
               </Select>
             </div>
-            {formType === "FORM" && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="autoSave"
-                  checked={autoSave}
-                  onCheckedChange={(checked) => setAutoSave(Boolean(checked))}
-                />
-                <label
-                  htmlFor="autoSave"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  Auto-save drafts
-                </label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="glass-premium max-w-xs">
-                      <p>Automatically save user progress every 5 seconds to prevent data loss</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            )}
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={goToForms}>
                 Cancel

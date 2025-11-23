@@ -155,6 +155,9 @@ export function useBreadcrumbs(
       case "org-chart":
         return breadcrumbConfigs.orgChart;
 
+      case "assistant":
+        return breadcrumbConfigs.assistant;
+
       default:
         return null;
     }

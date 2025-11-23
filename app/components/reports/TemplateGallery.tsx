@@ -66,12 +66,12 @@ export default function TemplateGallery({
       </div>
 
       {/* Horizontal Scrolling Template Carousel */}
-      <div className="relative">
+      <div className="relative -mx-6 px-6">
         {/* Gradient fade on edges */}
         <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-12 bg-gradient-to-r from-background to-transparent" />
         <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-12 bg-gradient-to-l from-background to-transparent" />
         
-        <div className="flex gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-border/80">
+        <div className="flex flex-nowrap gap-4 overflow-x-auto overflow-y-visible pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-border/80">
           {filteredTemplates.map((template) => (
             <button
               key={template.id}

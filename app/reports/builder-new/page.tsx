@@ -8,7 +8,7 @@ import ReportWizard, { ReportConfig } from "@/components/reports/ReportWizard";
 import TemplateGallery from "../../components/reports/TemplateGallery";
 import Button from "@/components/ui/button";
 import { PageShell } from "@/components/ui/PageShell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -245,7 +245,7 @@ export default function NewReportBuilderPage() {
     >
       <div className="grid gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-6 overflow-visible">
             <TemplateGallery
               onSelectTemplate={handleTemplateExecute}
               onStartCustom={handleCustomReportStart}

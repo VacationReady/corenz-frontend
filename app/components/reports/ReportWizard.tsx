@@ -433,7 +433,11 @@ function AreaOrTemplateSelection({
           >
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white/70">
-                <span className="text-2xl">{area.icon}</span>
+                {area.iconComponent ? (
+                  <area.iconComponent className="h-6 w-6 text-foreground" />
+                ) : (
+                  <span className="text-2xl">{area.icon}</span>
+                )}
               </div>
               <div className="flex-1 space-y-1">
                 <h4 className="text-sm font-semibold text-foreground">{area.name}</h4>

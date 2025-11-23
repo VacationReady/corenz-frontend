@@ -43,20 +43,24 @@ export default function LeaveSummaryCard({
         <CalendarCheck2 className="w-5 h-5 text-indigo-600" />
         <h2 className="text-lg font-semibold">Annual Leave Balance</h2>
       </div>
-      <div className="p-4 space-y-2 text-sm">
-        <p>
-          Total Allowance: <strong>{totalAllowance} days</strong>
-        </p>
-        <p>
-          Taken: <strong>{totalTaken} days</strong>
-        </p>
-        <p>
-          Remaining: <strong>{totalRemaining} days</strong>
-        </p>
+      <div className="p-4 flex flex-col text-sm">
+        <div className="space-y-2">
+          <p>
+            Total Allowance: <strong>{totalAllowance} days</strong>
+          </p>
+          <p>
+            Taken: <strong>{totalTaken} days</strong>
+          </p>
+          <p>
+            Remaining: <strong>{totalRemaining} days</strong>
+          </p>
+        </div>
 
-        <Button className="mt-2 w-full" onClick={() => setModalOpen(true)}>
-          Book Leave
-        </Button>
+        <div className="flex-1 flex items-end pt-6">
+          <Button className="w-full" onClick={() => setModalOpen(true)}>
+            Book Leave
+          </Button>
+        </div>
 
         <AddLeaveRequestDialog
           employeeId={employeeId}

@@ -257,4 +257,11 @@ export const breadcrumbConfigs = {
       ...(section ? [{ label: section, isCurrentPage: true }] : []),
     ],
   }),
+  // AI Assistant section
+  assistant: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "AI Assistant", isCurrentPage: true },
+    ],
+  },
 };

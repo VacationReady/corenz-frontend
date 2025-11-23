@@ -28,6 +28,10 @@ export default function WorkingPatternsPage() {
   const [contractedHoursPerWeek, setContractedHoursPerWeek] = useState<string>("");
   const [weeks, setWeeks] = useState<any[]>([{ weekNumber: 1, days: {} }]);
 
+  const [typeFilter, setTypeFilter] = useState<
+    "all" | "STANDARD" | "SHIFT_BASED" | "FLEXIBLE"
+  >("all");
+
   const [viewPattern, setViewPattern] = useState<any>(null);
   // Copy/Paste week clipboard (in-memory only)
   const clipboardRef = useRef<Record<string, string> | null>(null);
@@ -39,6 +43,24 @@ export default function WorkingPatternsPage() {
     { label: "Half Day PM", value: "HALF_DAY_PM" },
   ];
 
+  const formatDayLabel = (raw: string) => {
+    if (!raw) return "";
+    const lower = raw.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  };
+
+  const formatTypeLabel = (raw: string) => {
+    if (!raw) return "";
+    return raw
+      .toLowerCase()
+      .split("_")
+      .map((part) => {
+        if (part === "am" || part === "pm") return part.toUpperCase();
+        return part.charAt(0).toUpperCase() + part.slice(1);
+      })
+      .join(" ");
+  };
+
   const fetchPatterns = async () => {
     const res = await fetch("/api/working-patterns");
     const data = await res.json();
@@ -48,6 +70,16 @@ export default function WorkingPatternsPage() {
   useEffect(() => {
     fetchPatterns();
   }, []);
+
+  const filteredPatterns = useMemo(
+    () =>
+      typeFilter === "all"
+        ? patterns
+        : patterns.filter(
+            (pattern) => pattern.patternType === typeFilter,
+          ),
+    [patterns, typeFilter],
+  );
 
   const handleCheckboxChange = (
     weekIndex: number,
@@ -270,11 +302,31 @@ export default function WorkingPatternsPage() {
   return (
     <PageShell
       title="Working Patterns"
-      breadcrumbs={breadcrumbConfigs.settingsSection('Working Patterns')}
+      breadcrumbs={breadcrumbConfigs.settingsSection("Working Patterns")}
       showHomeIcon={false}
     >
       <div className="flex justify-between items-center mb-4">
-        <div />
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-foreground/60">
+            Type
+          </span>
+          <Select
+            value={typeFilter}
+            onValueChange={(
+              value: "all" | "STANDARD" | "SHIFT_BASED" | "FLEXIBLE",
+            ) => setTypeFilter(value)}
+          >
+            <SelectTrigger className="w-[180px] bg-background/60 border-white/20">
+              <SelectValue placeholder="All types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              <SelectItem value="STANDARD">Standard</SelectItem>
+              <SelectItem value="SHIFT_BASED">Shift-based</SelectItem>
+              <SelectItem value="FLEXIBLE">Flexible</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex space-x-2">
           <Link href="/settings/working-patterns/archived">
             <Button variant="ghost">View Archived</Button>
@@ -568,11 +620,15 @@ export default function WorkingPatternsPage() {
 
       <div className="grid gap-4">
         <AnimatePresence initial={false}>
-          {patterns.map((pattern) => {
+          {filteredPatterns.map((pattern) => {
             const days = pattern.weeks?.flatMap((w: any) => w.days) || [];
             const preview = days
               .slice(0, 3)
-              .map((d: any) => `${d.day} (${d.type.replace(/_/g, " ")})`)
+              .map((d: any) => {
+                const dayLabel = formatDayLabel(d.day);
+                const typeLabel = formatTypeLabel(d.type);
+                return typeLabel ? `${dayLabel} (${typeLabel})` : dayLabel;
+              })
               .join(", ");
             const weekLengthLabel = `${pattern.weeks.length} week${pattern.weeks.length === 1 ? "" : "s"}`;
             
@@ -637,7 +693,7 @@ export default function WorkingPatternsPage() {
                       </div>
                     ) : (
                       <div className="text-sm text-foreground/80">
-                        <span className="font-medium text-foreground">Preview:</span> {preview}
+                        {preview}
                         {days.length > 3 ? ` (+${days.length - 3} more)` : ""}
                       </div>
                     )}

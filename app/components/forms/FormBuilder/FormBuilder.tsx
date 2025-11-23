@@ -277,23 +277,8 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
   return (
     <div className="relative">
-      <div className="mb-6">
-        <div className="glass-premium rounded-2xl p-6 mb-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
-            <div className="flex items-center gap-2 ml-auto">
-              <Button variant="outline" onClick={goToForms}>
-                Cancel
-              </Button>
-              <Button
-                onClick={saveForm}
-                disabled={false || !slugIsValid}
-                className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-sm px-6"
-              >
-                {false ? "Saving..." : "Save Form"}
-              </Button>
-            </div>
-          </div>
-
+      <div className="mb-4">
+        <div className="glass-premium rounded-2xl p-4 mb-4 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium text-muted-foreground">
@@ -326,32 +311,44 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                 {formType === "SURVEY" && "One-time submission (not editable)"}
               </p>
             </div>
-            {formType === "FORM" && (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="autoSave"
-                  checked={autoSave}
-                  onCheckedChange={(checked) => setAutoSave(Boolean(checked))}
-                />
-                <label
-                  htmlFor="autoSave"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  Auto-save drafts
-                </label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="glass-premium max-w-xs">
-                      <p>Automatically save user progress every 5 seconds to prevent data loss</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            )}
+            <div className="flex items-end gap-2">
+              <Button variant="outline" onClick={goToForms}>
+                Cancel
+              </Button>
+              <Button
+                onClick={saveForm}
+                disabled={false || !slugIsValid}
+                className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-sm px-6"
+              >
+                {false ? "Saving..." : "Save Form"}
+              </Button>
+            </div>
           </div>
+          {formType === "FORM" && (
+            <div className="flex items-center space-x-2 mt-4">
+              <Checkbox
+                id="autoSave"
+                checked={autoSave}
+                onCheckedChange={(checked) => setAutoSave(Boolean(checked))}
+              />
+              <label
+                htmlFor="autoSave"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
+                Auto-save drafts
+              </label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="glass-premium max-w-xs">
+                    <p>Automatically save user progress every 5 seconds to prevent data loss</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
         </div>
 
         <DndContext

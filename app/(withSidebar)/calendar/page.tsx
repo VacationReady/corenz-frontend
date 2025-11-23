@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useRef, useRef as useMutableRef, useMemo } from "react";
+import { useEffect, useState, useRef, useRef as useMutableRef, useMemo, useCallback } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -288,110 +288,119 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     } catch (_err) {}
   }, [filters.departments.join(","), filters.search, currentView, router]);
 
-  const fetchLeaveEvents = async (
-    fetchInfo: EventSourceFuncArg,
-    successCallback: (events: EventInput[]) => void,
-    _failureCallback: (error: any) => void,
-  ) => {
-    try {
-      const departmentFilter = filters.departments[0] || "";
-      const cacheKey = `${fetchInfo.startStr}|${fetchInfo.endStr}|${departmentFilter || "all"}`;
+  const fetchLeaveEvents = useCallback(
+    async (
+      fetchInfo: EventSourceFuncArg,
+      successCallback: (events: EventInput[]) => void,
+      _failureCallback: (error: any) => void,
+    ) => {
+      try {
+        const departmentFilter = filters.departments[0] || "";
+        const cacheKey = `${fetchInfo.startStr}|${fetchInfo.endStr}|${departmentFilter || "all"}`;
 
-      let baseData: any[];
-      if (eventsCacheRef.current && eventsCacheRef.current.key === cacheKey) {
-        baseData = eventsCacheRef.current.data;
-      } else {
-        const params = new URLSearchParams({
-          from: fetchInfo.startStr,
-          to: fetchInfo.endStr,
+        let baseData: any[];
+        if (eventsCacheRef.current && eventsCacheRef.current.key === cacheKey) {
+          baseData = eventsCacheRef.current.data;
+        } else {
+          const params = new URLSearchParams({
+            from: fetchInfo.startStr,
+            to: fetchInfo.endStr,
+          });
+          if (departmentFilter) params.set("department", departmentFilter);
+          const res = await fetch(`/api/calendar-events?${params.toString()}`);
+          if (!res.ok) {
+            console.warn("Leave events fetch non-OK status", res.status);
+            successCallback([]);
+            return;
+          }
+          baseData = await res.json();
+          eventsCacheRef.current = { key: cacheKey, data: baseData };
+        }
+
+        let data = baseData;
+
+        const hasCategoryFilter =
+          filters.categories.length > 0 && !filters.categories.includes("all");
+        if (hasCategoryFilter) {
+          const selectedSet = new Set(filters.categories.filter((c) => c !== "all"));
+          data = (data as any[]).filter((e) =>
+            e.eventCategoryId ? selectedSet.has(e.eventCategoryId) : false,
+          );
+        }
+
+        const hasLocationFilter =
+          filters.locations.length > 0 && !filters.locations.includes("all");
+        if (hasLocationFilter) {
+          const locSet = new Set(filters.locations.filter((l) => l !== "all"));
+          data = (data as any[]).filter((e) => {
+            const employeeLoc = e.employee?.locationId as string | undefined;
+            const topLevelLoc = (e as any).locationId as string | undefined;
+            const effectiveLoc = employeeLoc ?? topLevelLoc ?? null;
+            return effectiveLoc ? locSet.has(effectiveLoc) : false;
+          });
+        }
+
+        if (filters.search.trim().length > 0) {
+          const q = filters.search.trim().toLowerCase();
+          data = (data as any[]).filter((e) =>
+            (e.employee?.name || e.title || "").toLowerCase().includes(q),
+          );
+        }
+        setLeaveEventsInRange(data);
+        const catsMap = new Map<string, string | null>();
+        (data as any[]).forEach((e) => {
+          const name = (e.categoryName as string) || "Uncategorized";
+          if (!catsMap.has(name)) {
+            catsMap.set(name, e.categoryIconKey ?? null);
+          }
         });
-        if (departmentFilter) params.set("department", departmentFilter);
-        const res = await fetch(`/api/calendar-events?${params.toString()}`);
-        if (!res.ok) {
-          console.warn("Leave events fetch non-OK status", res.status);
-          successCallback([]);
-          return;
-        }
-        baseData = await res.json();
-        eventsCacheRef.current = { key: cacheKey, data: baseData };
-      }
-
-      let data = baseData;
-
-      const hasCategoryFilter =
-        filters.categories.length > 0 && !filters.categories.includes("all");
-      if (hasCategoryFilter) {
-        const selectedSet = new Set(filters.categories.filter((c) => c !== "all"));
-        data = (data as any[]).filter((e) =>
-          e.eventCategoryId ? selectedSet.has(e.eventCategoryId) : false,
+        setPresentCategories(
+          Array.from(catsMap.entries()).map(([name, iconKey]) => ({ name, iconKey })),
         );
-      }
-
-      const hasLocationFilter =
-        filters.locations.length > 0 && !filters.locations.includes("all");
-      if (hasLocationFilter) {
-        const locSet = new Set(filters.locations.filter((l) => l !== "all"));
-        data = (data as any[]).filter((e) => {
-          const employeeLoc = e.employee?.locationId as string | undefined;
-          const topLevelLoc = (e as any).locationId as string | undefined;
-          const effectiveLoc = employeeLoc ?? topLevelLoc ?? null;
-          return effectiveLoc ? locSet.has(effectiveLoc) : false;
-        });
-      }
-
-      if (filters.search.trim().length > 0) {
-        const q = filters.search.trim().toLowerCase();
-        data = (data as any[]).filter((e) =>
-          (e.employee?.name || e.title || "").toLowerCase().includes(q),
-        );
-      }
-      setLeaveEventsInRange(data);
-      const catsMap = new Map<string, string | null>();
-      (data as any[]).forEach((e) => {
-        const name = (e.categoryName as string) || "Uncategorized";
-        if (!catsMap.has(name)) {
-          catsMap.set(name, e.categoryIconKey ?? null);
+        const counts: Record<string, number> = {};
+        const categoryCounts: Record<string, Record<string, number>> = {};
+        const rangeStart = new Date(fetchInfo.startStr);
+        const rangeEnd = new Date(fetchInfo.endStr);
+        for (const ev of data as any[]) {
+          const start = new Date(ev.start);
+          const end = new Date(ev.end || ev.start);
+          const cur = new Date(Math.max(start.getTime(), rangeStart.getTime()));
+          const last = new Date(Math.min(end.getTime(), rangeEnd.getTime()));
+          cur.setHours(0, 0, 0, 0);
+          last.setHours(0, 0, 0, 0);
+          const label = (ev.categoryName as string) || "Other";
+          for (let d = new Date(cur); d <= last; d.setDate(d.getDate() + 1)) {
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+              d.getDate(),
+            ).padStart(2, "0")}`;
+            counts[key] = (counts[key] || 0) + 1;
+            if (!categoryCounts[key]) categoryCounts[key] = {};
+            categoryCounts[key][label] = (categoryCounts[key][label] || 0) + 1;
+          }
         }
-      });
-      setPresentCategories(
-        Array.from(catsMap.entries()).map(([name, iconKey]) => ({ name, iconKey }))
-      );
-      const counts: Record<string, number> = {};
-      const categoryCounts: Record<string, Record<string, number>> = {};
-      const rangeStart = new Date(fetchInfo.startStr);
-      const rangeEnd = new Date(fetchInfo.endStr);
-      for (const ev of data as any[]) {
-        const start = new Date(ev.start);
-        const end = new Date(ev.end || ev.start);
-        const cur = new Date(Math.max(start.getTime(), rangeStart.getTime()));
-        const last = new Date(Math.min(end.getTime(), rangeEnd.getTime()));
-        cur.setHours(0, 0, 0, 0);
-        last.setHours(0, 0, 0, 0);
-        const label = (ev.categoryName as string) || "Other";
-        for (let d = new Date(cur); d <= last; d.setDate(d.getDate() + 1)) {
-          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-            d.getDate(),
-          ).padStart(2, "0")}`;
-          counts[key] = (counts[key] || 0) + 1;
-          if (!categoryCounts[key]) categoryCounts[key] = {};
-          categoryCounts[key][label] = (categoryCounts[key][label] || 0) + 1;
-        }
+        setDailyCounts(counts);
+        setDailyCategoryCounts(categoryCounts);
+        successCallback(data);
+      } catch (error) {
+        console.warn("Leave events fetch error", error);
+        successCallback([]);
       }
-      setDailyCounts(counts);
-      setDailyCategoryCounts(categoryCounts);
-      successCallback(data);
-    } catch (error) {
-      console.warn("Leave events fetch error", error);
-      successCallback([]);
-    }
-  };
+    },
+    [
+      filters.departments.join(","),
+      filters.categories.join(","),
+      filters.locations.join(","),
+      filters.search,
+    ],
+  );
 
-  const fetchBlackoutEvents = async (
-    fetchInfo: EventSourceFuncArg,
-    successCallback: (events: EventInput[]) => void,
-    _failureCallback: (error: any) => void,
-  ) => {
-    try {
+  const fetchBlackoutEvents = useCallback(
+    async (
+      fetchInfo: EventSourceFuncArg,
+      successCallback: (events: EventInput[]) => void,
+      _failureCallback: (error: any) => void,
+    ) => {
+      try {
       const params = new URLSearchParams({
         from: fetchInfo.startStr,
         to: fetchInfo.endStr,
@@ -439,18 +448,20 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       console.error("Blackout fetch error", error);
       successCallback([]);
     }
-  };
+  },
+  []);
 
-  const fetchBankHolidayEvents = async (
-    fetchInfo: EventSourceFuncArg,
-    successCallback: (events: EventInput[]) => void,
-    failureCallback: (error: any) => void,
-  ) => {
-    try {
-      if (!bankHolidaysOn || !bankHolidaysAvailable) {
-        successCallback([]);
-        return;
-      }
+  const fetchBankHolidayEvents = useCallback(
+    async (
+      fetchInfo: EventSourceFuncArg,
+      successCallback: (events: EventInput[]) => void,
+      failureCallback: (error: any) => void,
+    ) => {
+      try {
+        if (!bankHolidaysOn || !bankHolidaysAvailable) {
+          successCallback([]);
+          return;
+        }
       const params = new URLSearchParams({ from: fetchInfo.startStr, to: fetchInfo.endStr });
       const res = await fetch(`/api/public-holidays?${params.toString()}`);
       if (!res.ok) {
@@ -472,7 +483,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       console.error(error);
       failureCallback(error);
     }
-  };
+  },
+  [bankHolidaysOn, bankHolidaysAvailable]);
 
   useEffect(() => {
     (async () => {
@@ -800,6 +812,15 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     [presentCategories],
   );
 
+  const eventSources = useMemo(
+    () => [
+      { id: "leave", events: fetchLeaveEvents },
+      { id: "blackout", events: fetchBlackoutEvents },
+      { id: "bankholidays", events: fetchBankHolidayEvents },
+    ],
+    [fetchLeaveEvents, fetchBlackoutEvents, fetchBankHolidayEvents],
+  );
+
   return (
     <PageShell title="Calendar">
       <Card title="Company Calendar">
@@ -928,15 +949,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
               datesSet={(arg: any) => {
                 setCurrentTitle(arg.view?.title || "");
               }}
-              eventSources={[
-                { id: "leave", events: fetchLeaveEvents },
-                { id: "blackout", events: fetchBlackoutEvents },
-                { id: "bankholidays", events: fetchBankHolidayEvents },
-              ]}
-              dateClick={(arg) => {
-                setInspectorDate(arg.date);
-                setSelectedDay(arg.date);
-              }}
+              eventSources={eventSources}
+              dateClick={handleDateClick}
               eventClick={handleEventClick}
               eventContent={renderEventContent}
               dayCellClassNames={dayCellClassNames}

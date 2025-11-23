@@ -774,7 +774,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
         </TooltipProvider>
 
         <TooltipProvider>
-          <Card>
+          <Card className="mt-6">
             <div className="border-b p-4">
               <h2 className="text-lg font-semibold">Compensation</h2>
             </div>

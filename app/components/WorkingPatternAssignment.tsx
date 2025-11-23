@@ -57,8 +57,9 @@ export default function WorkingPatternAssignment({
         })
         .then((data) => {
           if (data) {
-            setSalaryAmount(data.salaryAmount);
-            setCurrentHourlyRate(data.hourlyRate);
+            // Ensure values are proper numbers
+            setSalaryAmount(data.salaryAmount ? Number(data.salaryAmount) : null);
+            setCurrentHourlyRate(data.hourlyRate ? Number(data.hourlyRate) : null);
           }
         })
         .catch((err) => console.error("Failed to fetch salary data", err));
@@ -233,7 +234,11 @@ export default function WorkingPatternAssignment({
           <DialogHeader>
             <DialogTitle>Confirm Pattern Change</DialogTitle>
             <DialogDescription>
-              This employee&apos;s hourly rate will change from ${currentHourlyRate?.toFixed(2) || "0.00"} to ${newHourlyRate?.toFixed(2) || "0.00"} based on this pattern change.
+              This employee&apos;s hourly rate will change from ${
+                currentHourlyRate != null ? Number(currentHourlyRate).toFixed(2) : "0.00"
+              } to ${
+                newHourlyRate != null ? Number(newHourlyRate).toFixed(2) : "0.00"
+              } based on this pattern change.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

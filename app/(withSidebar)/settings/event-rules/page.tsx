@@ -1124,7 +1124,7 @@ export default function EventRulesPage() {
                 base rules
               </p>
             </div>
-            <Button onClick={openCreateOverrideDialog}>
+            <Button onClick={() => openCreateOverrideDialog()}>
               <Plus className="w-4 h-4 mr-2" />
               Create Override
             </Button>
@@ -1142,7 +1142,7 @@ export default function EventRulesPage() {
                     Create department-specific rule overrides to customize
                     behavior
                   </p>
-                  <Button onClick={openCreateOverrideDialog}>
+                  <Button onClick={() => openCreateOverrideDialog()}>
                     <Plus className="w-4 h-4 mr-2" />
                     Create Override
                   </Button>

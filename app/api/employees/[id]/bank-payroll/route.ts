@@ -73,6 +73,8 @@ export async function PATCH(
       "studentLoanRate",
       "specialTaxRate",
       "taxExemptionReason",
+      "salaryAmount",
+      "hourlyRate",
     ] as const;
 
     const updates: Record<string, any> = {};
@@ -261,6 +263,8 @@ export async function PATCH(
               studentLoanRate: employee.studentLoanRate,
               specialTaxRate: employee.specialTaxRate,
               taxExemptionReason: employee.taxExemptionReason,
+              salaryAmount: employee.salaryAmount,
+              hourlyRate: employee.hourlyRate,
             },
             diffs,
             reasons: (reasons as Record<string, string>) || {},
@@ -375,6 +379,8 @@ export async function GET(
       studentLoanRate: employee.studentLoanRate,
       specialTaxRate: employee.specialTaxRate,
       taxExemptionReason: employee.taxExemptionReason,
+      salaryAmount: employee.salaryAmount,
+      hourlyRate: employee.hourlyRate,
     });
   } catch (e: any) {
     console.error("[bank-payroll-get]", e);

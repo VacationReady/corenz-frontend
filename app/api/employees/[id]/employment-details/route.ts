@@ -43,8 +43,6 @@ export async function GET(
       startDate: employee.startDate,
       department: employee.Department,
       manager: employee.User?.User,
-      salaryAmount: employee.salaryAmount,
-      hourlyRate: employee.hourlyRate,
       isActive: employee.isActive,
     });
   } catch (e: any) {
@@ -90,8 +88,6 @@ export async function PATCH(
       "startDate",
       "departmentId",
       "managerId",
-      "salaryAmount",
-      "hourlyRate",
       "isActive",
     ] as const;
     for (const key of keys) {

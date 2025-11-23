@@ -8,7 +8,6 @@ import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 import EmployeeSaveButton from "@/components/employees/EmployeeSaveButton";
 import UnsavedChangesGuard from "@/components/ui/UnsavedChangesGuard";
 import { useSession } from "next-auth/react";
-import { Badge } from "@/components/ui/Badge";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import {
   Select,
@@ -92,10 +91,6 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
 
   const canEdit =
     session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
-  const canViewComp =
-    session?.user?.role === "ADMIN" ||
-    session?.user?.role === "SUPER_ADMIN" ||
-    session?.user?.role === "MANAGER";
 
   // Helper function to get employee display name
   const getEmployeeDisplayName = (emp: { firstName?: string | null; lastName?: string | null; email: string }) =>
@@ -501,79 +496,41 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
         </Dialog>
       )}
 
-      <Card>
-        <div className="border-b p-4">
-          <h2 className="text-lg font-semibold">Compensation</h2>
+      {canEdit && initialValues && (
+        <div className="flex justify-end">
+          <EmployeeSaveButton
+            employeeId={employeeId}
+            endpoint="employment-details"
+            initialValues={initialValues}
+            currentValues={form}
+            valueFormatter={(field, value) => {
+              if (field === "managerId") {
+                // Display friendly names for manager changes
+                if (!value) return "(none)";
+                const match = employees.find((e) => e.id === value);
+                if (!match) return String(value);
+                const name = `${match.firstName ?? ""} ${match.lastName ?? ""}`.trim();
+                return name || match.email || String(value);
+              }
+              return String(value ?? "");
+            }}
+            onSaveSuccess={async () => {
+              try {
+                setLoading(true);
+                const res = await tenantFetch(`/api/employees/${employeeId}/employment-details`);
+                if (res.ok) {
+                  const latest = await res.json();
+                  setForm(latest);
+                  setInitialValues(latest);
+                }
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+          />
         </div>
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Salary amount</label>
-            {canViewComp ? (
-              <Input
-                readOnly={!canEdit}
-                type="number"
-                value={form.salaryAmount ?? ""}
-                onChange={(e) =>
-                  setForm((f: any) => ({ ...f, salaryAmount: e.target.value ? Number(e.target.value) : null }))
-                }
-              />
-            ) : (
-              <Badge variant="outline">Restricted</Badge>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Hourly rate</label>
-            {canViewComp ? (
-              <Input
-                readOnly={!canEdit}
-                type="number"
-                value={form.hourlyRate ?? ""}
-                onChange={(e) =>
-                  setForm((f: any) => ({ ...f, hourlyRate: e.target.value ? Number(e.target.value) : null }))
-                }
-              />
-            ) : (
-              <Badge variant="outline">Restricted</Badge>
-            )}
-          </div>
-        </div>
-
-        {canEdit && initialValues && (
-          <div className="flex justify-end">
-            <EmployeeSaveButton
-              employeeId={employeeId}
-              endpoint="employment-details"
-              initialValues={initialValues}
-              currentValues={form}
-              valueFormatter={(field, value) => {
-                if (field === "managerId") {
-                  // Display friendly names for manager changes
-                  if (!value) return "(none)";
-                  const match = employees.find((e) => e.id === value);
-                  if (!match) return String(value);
-                  const name = `${match.firstName ?? ""} ${match.lastName ?? ""}`.trim();
-                  return name || match.email || String(value);
-                }
-                return String(value ?? "");
-              }}
-              onSaveSuccess={async () => {
-                try {
-                  setLoading(true);
-                  const res = await tenantFetch(`/api/employees/${employeeId}/employment-details`);
-                  if (res.ok) {
-                    const latest = await res.json();
-                    setForm(latest);
-                    setInitialValues(latest);
-                  }
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              disabled={loading}
-            />
-          </div>
-        )}
-      </Card>
+      )}
       </UnsavedChangesGuard>
     </div>
   );

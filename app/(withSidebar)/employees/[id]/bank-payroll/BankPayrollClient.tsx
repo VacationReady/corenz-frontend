@@ -50,6 +50,8 @@ interface FormState {
   studentLoanRate: string;
   specialTaxRate: string;
   taxExemptionReason: string;
+  salaryAmount: string;
+  hourlyRate: string;
 }
 
 interface InitialValuesState {
@@ -64,6 +66,8 @@ interface InitialValuesState {
   studentLoanRate: number | null;
   specialTaxRate: number | null;
   taxExemptionReason: string | null;
+  salaryAmount: number | null;
+  hourlyRate: number | null;
 }
 
 export default function BankPayrollClient({ employeeId }: { employeeId: string }) {
@@ -84,6 +88,8 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     studentLoanRate: "",
     specialTaxRate: "",
     taxExemptionReason: "",
+    salaryAmount: "",
+    hourlyRate: "",
   });
   const [initialValues, setInitialValues] = useState<InitialValuesState>({
     bankAccountNumber: null,
@@ -97,12 +103,18 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     studentLoanRate: null,
     specialTaxRate: null,
     taxExemptionReason: null,
+    salaryAmount: null,
+    hourlyRate: null,
   });
   const [errors, setErrors] = useState<{ bankAccountNumber?: string; irdNumber?: string }>({});
   const [touched, setTouched] = useState<{ bankAccountNumber: boolean; irdNumber: boolean }>(
     { bankAccountNumber: false, irdNumber: false },
   );
   const [forbidden, setForbidden] = useState(false);
+  const [workingPattern, setWorkingPattern] = useState<any>(null);
+  const [calculatedHourlyRate, setCalculatedHourlyRate] = useState<number | null>(null);
+  const [hourlyRateMessage, setHourlyRateMessage] = useState<string>("");
+  const [hasManuallyEditedHourlyRate, setHasManuallyEditedHourlyRate] = useState(false);
 
   const validateBankAccount = (value: string) => {
     const normalized = normalizeBankAccountNumber(value);
@@ -151,6 +163,8 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
           studentLoanRate: data.studentLoanRate,
           specialTaxRate: data.specialTaxRate,
           taxExemptionReason: data.taxExemptionReason,
+          salaryAmount: data.salaryAmount,
+          hourlyRate: data.hourlyRate,
         });
 
         setForm({
@@ -175,9 +189,26 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
           studentLoanRate: data.studentLoanRate ? (data.studentLoanRate * 100).toString() : "",
           specialTaxRate: data.specialTaxRate ? (data.specialTaxRate * 100).toString() : "",
           taxExemptionReason: data.taxExemptionReason ?? "",
+          salaryAmount: data.salaryAmount?.toString() ?? "",
+          hourlyRate: data.hourlyRate?.toString() ?? "",
         });
         setErrors({});
         setTouched({ bankAccountNumber: false, irdNumber: false });
+
+        // Fetch working pattern
+        try {
+          const patternRes = await tenantFetch(`/api/employees/${employeeId}/working-pattern-assignment`);
+          if (patternRes.ok) {
+            const patterns = await patternRes.json();
+            if (patterns && patterns.length > 0) {
+              setWorkingPattern(patterns[0].WorkingPattern);
+            } else {
+              setWorkingPattern(null);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch working pattern", err);
+        }
       } catch {}
     })();
   }, [employeeId, tenantFetch]);
@@ -231,6 +262,63 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     setErrors((prev) => ({ ...prev, irdNumber: validateIrd(form.irdNumber) }));
   };
 
+  // Auto-calculate hourly rate based on annual salary and working pattern
+  useEffect(() => {
+    const salaryNum = parseFloat(form.salaryAmount);
+    
+    if (!salaryNum || isNaN(salaryNum)) {
+      setCalculatedHourlyRate(null);
+      setHourlyRateMessage("");
+      return;
+    }
+
+    if (!workingPattern || !workingPattern.WorkingPatternWeek || workingPattern.WorkingPatternWeek.length === 0) {
+      setCalculatedHourlyRate(null);
+      setHourlyRateMessage("Can't calculate hourly rate due to no working pattern");
+      return;
+    }
+
+    // Calculate total hours per week from working pattern
+    let totalHours = 0;
+    let weekCount = 0;
+
+    for (const week of workingPattern.WorkingPatternWeek) {
+      if (!week.WorkingPatternDay || week.WorkingPatternDay.length === 0) continue;
+      weekCount++;
+      
+      for (const day of week.WorkingPatternDay) {
+        if (day.type === 'FULL_DAY') {
+          // Use hoursPerDay if available, otherwise default to 8
+          totalHours += day.hoursPerDay ? parseFloat(day.hoursPerDay.toString()) : 8;
+        } else if (day.type.includes('HALF_DAY')) {
+          totalHours += day.hoursPerDay ? parseFloat(day.hoursPerDay.toString()) / 2 : 4;
+        }
+        // OFF days contribute 0
+      }
+    }
+
+    if (weekCount === 0 || totalHours === 0) {
+      setCalculatedHourlyRate(null);
+      setHourlyRateMessage("Can't calculate hourly rate due to no working pattern");
+      return;
+    }
+
+    // Average hours per week
+    const avgHoursPerWeek = totalHours / weekCount;
+    
+    // Calculate hourly rate: annual salary / (weeks per year * hours per week)
+    const weeksPerYear = 52;
+    const hourlyRate = salaryNum / (weeksPerYear * avgHoursPerWeek);
+    
+    setCalculatedHourlyRate(hourlyRate);
+    setHourlyRateMessage("");
+    
+    // Only auto-populate if the user hasn't manually edited the hourly rate
+    if (isPrivileged && !hasManuallyEditedHourlyRate) {
+      setForm((prev) => ({ ...prev, hourlyRate: hourlyRate.toFixed(2) }));
+    }
+  }, [form.salaryAmount, workingPattern, isPrivileged, hasManuallyEditedHourlyRate]);
+
   const normalizedBankAccount = normalizeBankAccountNumber(form.bankAccountNumber);
   const normalizedIrd = normalizeIrdNumber(form.irdNumber);
   const isBankInvalid =
@@ -279,6 +367,8 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
         ? Number(form.specialTaxRate) / 100
         : null,
       taxExemptionReason: form.taxExemptionReason || null,
+      salaryAmount: form.salaryAmount ? Number(form.salaryAmount) : null,
+      hourlyRate: form.hourlyRate ? Number(form.hourlyRate) : null,
     };
 
     // For employees, only include bankAccountNumber (other fields match initialValues to prevent changes)
@@ -296,6 +386,8 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
         studentLoanRate: initialValues.studentLoanRate,
         specialTaxRate: initialValues.specialTaxRate,
         taxExemptionReason: initialValues.taxExemptionReason,
+        salaryAmount: initialValues.salaryAmount,
+        hourlyRate: initialValues.hourlyRate,
       };
     }
 
@@ -306,6 +398,13 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     const currentValues = getCurrentValues();
     setInitialValues(currentValues);
   };
+
+  // Reset manual edit flag when working pattern changes, allowing recalculation
+  useEffect(() => {
+    if (workingPattern) {
+      setHasManuallyEditedHourlyRate(false);
+    }
+  }, [workingPattern]);
 
   if (forbidden) {
     return (
@@ -672,6 +771,93 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
             </div>
           </div>
         </Card>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Card>
+            <div className="border-b p-4">
+              <h2 className="text-lg font-semibold">Compensation</h2>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1" htmlFor="salaryAmount">
+                  Annual salary
+                </label>
+                <Input
+                  id="salaryAmount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.salaryAmount}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, salaryAmount: e.target.value }))
+                  }
+                  disabled={isEmployee && !isPrivileged}
+                  placeholder="0.00"
+                />
+                {workingPattern && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Working pattern: {workingPattern.name}
+                  </p>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <label className="block text-sm font-medium" htmlFor="hourlyRate">
+                    Hourly rate
+                  </label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground"
+                        aria-label="Hourly rate guidance"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      This will auto-calculate from annual salary based on working pattern.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Input
+                  id="hourlyRate"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.hourlyRate}
+                  onChange={(e) => {
+                    setForm((f) => ({ ...f, hourlyRate: e.target.value }));
+                    setHasManuallyEditedHourlyRate(true);
+                  }}
+                  disabled={isEmployee && !isPrivileged}
+                  placeholder="0.00"
+                />
+                {hourlyRateMessage && (
+                  <p className="mt-1 text-xs text-muted-foreground">{hourlyRateMessage}</p>
+                )}
+                {calculatedHourlyRate && !hourlyRateMessage && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {hasManuallyEditedHourlyRate ? "Auto-calculated: " : "Calculated: "}
+                    ${calculatedHourlyRate.toFixed(2)}/hr
+                    {hasManuallyEditedHourlyRate && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm((f) => ({ ...f, hourlyRate: calculatedHourlyRate.toFixed(2) }));
+                          setHasManuallyEditedHourlyRate(false);
+                        }}
+                        className="ml-2 text-primary underline"
+                      >
+                        Use calculated rate
+                      </button>
+                    )}
+                  </p>
+                )}
+              </div>
+            </div>
+          </Card>
         </TooltipProvider>
 
         <div className="flex items-center justify-between">

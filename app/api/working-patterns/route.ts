@@ -72,6 +72,7 @@ export async function GET() {
           id: day.id,
           day: day.day,
           type: day.type,
+          hoursPerDay: day.hoursPerDay ? parseFloat(day.hoursPerDay.toString()) : null,
         })),
       })),
     }));

@@ -207,7 +207,11 @@ export default function FieldSelection({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <span className="text-xl">{category.icon}</span>
+                    {category.iconComponent ? (
+                      <category.iconComponent className="h-5 w-5" />
+                    ) : (
+                      <span className="text-xl">{category.icon}</span>
+                    )}
                     <div>
                       <h4 className="font-medium">{category.name}</h4>
                       <p className="text-sm opacity-75">{category.description}</p>
@@ -310,9 +314,6 @@ export default function FieldSelection({
                               {field.description && (
                                 <p className="text-sm text-gray-600 mt-1">{field.description}</p>
                               )}
-                              <div className="text-xs text-gray-500 mt-1">
-                                {field.model}.{field.field.split('.').pop()}
-                              </div>
                             </div>
                           </div>
                         );

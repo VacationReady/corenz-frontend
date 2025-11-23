@@ -106,6 +106,7 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
       let rows = entitlements.map((record) => {
         const total = (record.totalDays || 0) + (record.carryoverDays || 0) + (record.daysAllocated || 0);
         const remainingEntitlement = total - (record.usedDays || 0);
+        const jobRoleName = record.Employee?.JobRole?.name ?? null;
         return {
           id: record.id,
           employeeId: record.employeeId,
@@ -137,7 +138,7 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
           EventCategory: record.EventCategory
             ? { id: record.EventCategory.id, name: record.EventCategory.name }
             : null,
-          _computed: { remainingEntitlement },
+          _computed: { remainingEntitlement, jobRoleName },
         };
       });
 

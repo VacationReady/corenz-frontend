@@ -79,8 +79,12 @@ export default function TemplateGallery({
               className="group relative flex min-w-[280px] flex-col gap-3 rounded-lg border border-border bg-card p-4 text-left transition-all hover:border-primary hover:shadow-lg hover:scale-[1.02]"
             >
               <div className="flex items-start gap-3">
-                <div className="rounded-md bg-primary/10 p-2.5 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors text-2xl">
-                  {template.icon}
+                <div className="rounded-md bg-primary/10 p-2.5 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  {template.iconComponent ? (
+                    <template.iconComponent className="h-6 w-6" />
+                  ) : (
+                    <span className="text-2xl">{template.icon}</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">

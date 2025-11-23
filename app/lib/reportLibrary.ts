@@ -1,4 +1,29 @@
 import type { ReportFilter, SortConfig } from "@/lib/reportFilters";
+import type { LucideIcon } from "lucide-react";
+import {
+  Palmtree,
+  CalendarDays,
+  CalendarClock,
+  Settings,
+  AlertTriangle,
+  Thermometer,
+  Sparkles,
+  CreditCard,
+  Globe2,
+  Shield,
+  Car,
+  GraduationCap,
+  Building2,
+  BarChart3,
+  DoorOpen,
+  CheckCircle2,
+  Hourglass,
+  Clock,
+  Clock3,
+  ClipboardList,
+  XCircle,
+  DollarSign,
+} from "lucide-react";
 
 type ReportFilterTemplate = Omit<ReportFilter, "id">;
 
@@ -7,7 +32,8 @@ export interface ReportLibraryEntry {
   name: string;
   description: string;
   category: string;
-  icon: string;
+  icon: string; // Legacy emoji support
+  iconComponent?: LucideIcon; // Modern Lucide icon
   engine: "dynamic" | "custom" | "external";
   defaultFields: string[];
   suggestedFilters?: ReportFilterTemplate[];
@@ -24,6 +50,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
       "Current balances by employee, including carryover and remaining entitlement.",
     category: "time-off",
     icon: "🌴",
+    iconComponent: Palmtree,
     engine: "custom",
     defaultFields: [
       "Employee.User.firstName",
@@ -49,6 +76,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
       "Approved leave requests that cover today, with employee and department context.",
     category: "time-off",
     icon: "📆",
+    iconComponent: CalendarDays,
     engine: "dynamic",
     defaultFields: [
       "LeaveRequest.Employee.User.firstName",
@@ -81,6 +109,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Future approved leave in the next 30 days for roster planning.",
     category: "time-off",
     icon: "🗓️",
+    iconComponent: CalendarClock,
     engine: "dynamic",
     defaultFields: [
       "LeaveRequest.Employee.User.firstName",
@@ -109,6 +138,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
       "Leave requests waiting on approval, including requester and approver details.",
     category: "time-off",
     icon: "🛠️",
+    iconComponent: Settings,
     engine: "dynamic",
     defaultFields: [
       "LeaveRequest.Employee.User.firstName",
@@ -132,6 +162,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Employees with 2 days or fewer remaining leave entitlement.",
     category: "time-off",
     icon: "⚠️",
+    iconComponent: AlertTriangle,
     engine: "custom",
     defaultFields: [
       "Employee.User.firstName",
@@ -157,6 +188,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
       "Total sick leave days taken per employee in the current calendar year.",
     category: "time-off",
     icon: "🤒",
+    iconComponent: Thermometer,
     engine: "custom",
     defaultFields: [
       "Employee.User.firstName",
@@ -177,6 +209,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Employees starting soon to support onboarding planning.",
     category: "employment",
     icon: "✨",
+    iconComponent: Sparkles,
     engine: "dynamic",
     defaultFields: [
       "Employee.User.firstName",
@@ -202,6 +235,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Employees missing IRD or bank details for payroll readiness.",
     category: "compensation",
     icon: "💳",
+    iconComponent: CreditCard,
     engine: "dynamic",
     defaultFields: [
       "Employee.User.firstName",
@@ -224,6 +258,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Shows who is enrolled in KiwiSaver and their contribution rates.",
     category: "compensation",
     icon: "🥝",
+    iconComponent: Globe2,
     engine: "dynamic",
     defaultFields: [
       "Employee.User.firstName",
@@ -245,6 +280,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Employment check expiries in the next 90 days for visa compliance.",
     category: "documents",
     icon: "🛂",
+    iconComponent: Shield,
     engine: "dynamic",
     defaultFields: [
       "EmploymentCheck.Employee.User.firstName",
@@ -270,6 +306,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Upcoming driver licence expiries for safety-critical roles.",
     category: "documents",
     icon: "🚗",
+    iconComponent: Car,
     engine: "dynamic",
     defaultFields: [
       "DriverLicence.Employee.User.firstName",
@@ -294,6 +331,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Training records expiring soon to keep compliance on track.",
     category: "performance",
     icon: "🎓",
+    iconComponent: GraduationCap,
     engine: "dynamic",
     defaultFields: [
       "TrainingRecord.Employee.User.firstName",
@@ -319,6 +357,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Active employees with department, job role, contact, and pattern.",
     category: "employment",
     icon: "🏢",
+    iconComponent: Building2,
     engine: "dynamic",
     defaultFields: [
       "Employee.User.firstName",
@@ -342,6 +381,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Active headcount totals by department for snapshot reporting.",
     category: "employment",
     icon: "📊",
+    iconComponent: BarChart3,
     engine: "custom",
     defaultFields: [
       "departmentName",
@@ -357,6 +397,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Employees in offboarding with key steps and dates.",
     category: "offboarding",
     icon: "🚪",
+    iconComponent: DoorOpen,
     engine: "dynamic",
     defaultFields: [
       "EmployeeOffboarding.Employee.User.firstName",
@@ -379,6 +420,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "All approved timesheets with hours breakdown for payroll processing.",
     category: "time-tracking",
     icon: "✅",
+    iconComponent: CheckCircle2,
     engine: "dynamic",
     defaultFields: [
       "Timesheet.Employee.User.firstName",
@@ -403,6 +445,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Timesheets awaiting approval with submission details.",
     category: "time-tracking",
     icon: "⏳",
+    iconComponent: Hourglass,
     engine: "dynamic",
     defaultFields: [
       "Timesheet.Employee.User.firstName",
@@ -425,6 +468,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Timesheets with overtime hours for cost analysis.",
     category: "time-tracking",
     icon: "⏰",
+    iconComponent: Clock,
     engine: "dynamic",
     defaultFields: [
       "Timesheet.Employee.User.firstName",
@@ -448,6 +492,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Individual time entries with clock in/out times and notes.",
     category: "time-tracking",
     icon: "🕐",
+    iconComponent: Clock3,
     engine: "dynamic",
     defaultFields: [
       "TimesheetEntry.Timesheet.Employee.User.firstName",
@@ -470,6 +515,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Complete audit trail of timesheet approvals with approver comments.",
     category: "time-tracking",
     icon: "📋",
+    iconComponent: ClipboardList,
     engine: "dynamic",
     defaultFields: [
       "TimesheetApprovalDecision.Stage.Timesheet.Employee.User.firstName",
@@ -488,6 +534,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Timesheets that were rejected with reasons for follow-up.",
     category: "time-tracking",
     icon: "❌",
+    iconComponent: XCircle,
     engine: "dynamic",
     defaultFields: [
       "Timesheet.Employee.User.firstName",
@@ -510,6 +557,7 @@ export const reportLibrary: ReportLibraryEntry[] = [
     description: "Export approved timesheets for payroll processing in CSV, Excel, or JSON format with comprehensive employee and time tracking data.",
     category: "time-tracking",
     icon: "💰",
+    iconComponent: DollarSign,
     engine: "external",
     defaultFields: [],
     externalUrl: "/admin/payroll",

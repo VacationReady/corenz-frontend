@@ -1,4 +1,17 @@
 
+import type { LucideIcon } from "lucide-react";
+import {
+  Users,
+  Briefcase,
+  DollarSign,
+  Calendar,
+  ClipboardList,
+  DoorOpen,
+  Clock,
+  TrendingUp,
+  FileText,
+} from "lucide-react";
+
 // Enhanced HR-focused report fields with categories and metadata
 export type HRReportField = {
 	model: string;
@@ -21,7 +34,8 @@ export type HRCategory = {
 	id: string;
 	name: string;
 	description: string;
-	icon: string;
+	icon: string; // Legacy emoji support
+	iconComponent?: LucideIcon; // Modern Lucide icon
 	color: string;
 	order: number;
 };
@@ -32,6 +46,7 @@ export const hrCategories: HRCategory[] = [
 		name: "People & Demographics",
 		description: "Personal information, contact details, and demographics",
 		icon: "👥",
+		iconComponent: Users,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 1,
 	},
@@ -40,6 +55,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Employment Details",
 		description: "Job roles, departments, working patterns, and employment status",
 		icon: "💼",
+		iconComponent: Briefcase,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 2,
 	},
@@ -48,6 +64,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Compensation & Payroll",
 		description: "Salary, hourly rate, tax and benefits",
 		icon: "💰",
+		iconComponent: DollarSign,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 3,
 	},
@@ -56,6 +73,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Time Off & Leave",
 		description: "Leave requests, entitlements, and time off balances",
 		icon: "📅",
+		iconComponent: Calendar,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 4,
 	},
@@ -64,6 +82,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Documents & Compliance",
 		description: "Employment checks, training records, and document management",
 		icon: "📋",
+		iconComponent: ClipboardList,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 5,
 	},
@@ -72,6 +91,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Offboarding",
 		description: "Exit status, dates, tasks, and interviews",
 		icon: "🚪",
+		iconComponent: DoorOpen,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 6,
 	},
@@ -80,6 +100,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Time Tracking & Timesheets",
 		description: "Timesheets, time entries, approvals, and worked hours",
 		icon: "⏰",
+		iconComponent: Clock,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 7,
 	},
@@ -88,6 +109,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Performance & Training",
 		description: "Training records, performance data, and development tracking",
 		icon: "📈",
+		iconComponent: TrendingUp,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 8,
 	},
@@ -96,6 +118,7 @@ export const hrCategories: HRCategory[] = [
 		name: "Forms",
 		description: "Custom forms and survey responses",
 		icon: "📝",
+		iconComponent: FileText,
 		color: "bg-blue-50 text-blue-700 border-blue-200",
 		order: 9,
 	},

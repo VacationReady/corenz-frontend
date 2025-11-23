@@ -1184,8 +1184,7 @@ export default function EventRulesPage() {
             <div>
               <h3 className="text-lg font-semibold">Rule Overrides</h3>
               <p className="text-muted-foreground">
-                Create department-specific overrides that inherit and modify
-                base rules
+                Create department-specific overrides for notice periods, booking limits, enforcement modes, and staffing density
               </p>
             </div>
             <Button onClick={() => openCreateOverrideDialog()}>
@@ -1203,8 +1202,8 @@ export default function EventRulesPage() {
                     No overrides configured
                   </h4>
                   <p className="text-muted-foreground mb-4">
-                    Create department-specific rule overrides to customize
-                    behavior
+                    Create department-specific overrides to customize notice periods, 
+                    booking limits, enforcement modes, and staffing density
                   </p>
                   <Button onClick={() => openCreateOverrideDialog()}>
                     <Plus className="w-4 h-4 mr-2" />
@@ -1267,33 +1266,63 @@ export default function EventRulesPage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium">Notice Period:</span>{" "}
-                          {override.noticePeriodDays !== undefined
-                            ? `${override.noticePeriodDays} days`
-                            : "Inherited"}
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium text-muted-foreground">Notice Period:</span>{" "}
+                            <span className={override.noticePeriodDays !== undefined ? "text-blue-600 font-semibold" : ""}>
+                              {override.noticePeriodDays !== undefined
+                                ? `${override.noticePeriodDays} days`
+                                : "Inherited"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-muted-foreground">Max Concurrent:</span>{" "}
+                            <span className={override.maxConcurrent !== undefined ? "text-blue-600 font-semibold" : ""}>
+                              {override.maxConcurrent !== undefined
+                                ? override.maxConcurrent
+                                : "Inherited"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-muted-foreground">Max Length:</span>{" "}
+                            <span className={override.maxBookingLength !== undefined ? "text-blue-600 font-semibold" : ""}>
+                              {override.maxBookingLength !== undefined
+                                ? `${override.maxBookingLength} days`
+                                : "Inherited"}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-muted-foreground">Enforcement:</span>{" "}
+                            <span className={override.enforceEntitlement !== undefined ? "text-blue-600 font-semibold" : ""}>
+                              {override.enforceEntitlement !== undefined
+                                ? override.enforceEntitlement
+                                  ? "Yes"
+                                  : "No"
+                                : "Inherited"}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Max Concurrent:</span>{" "}
-                          {override.maxConcurrent !== undefined
-                            ? override.maxConcurrent
-                            : "Inherited"}
-                        </div>
-                        <div>
-                          <span className="font-medium">Max Length:</span>{" "}
-                          {override.maxBookingLength !== undefined
-                            ? `${override.maxBookingLength} days`
-                            : "Inherited"}
-                        </div>
-                        <div>
-                          <span className="font-medium">Enforcement:</span>{" "}
-                          {override.enforceEntitlement !== undefined
-                            ? override.enforceEntitlement
-                              ? "Yes"
-                              : "No"
-                            : "Inherited"}
-                        </div>
+                        {(override.maxConcurrentMode || override.maxBookingLengthMode) && (
+                          <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t">
+                            {override.maxConcurrentMode && (
+                              <div>
+                                <span className="font-medium text-muted-foreground">Concurrent Mode:</span>{" "}
+                                <Badge variant={override.maxConcurrentMode === "HARD_BLOCK" ? "destructive" : "secondary"}>
+                                  {override.maxConcurrentMode === "HARD_BLOCK" ? "Hard Block" : "Soft Gate"}
+                                </Badge>
+                              </div>
+                            )}
+                            {override.maxBookingLengthMode && (
+                              <div>
+                                <span className="font-medium text-muted-foreground">Length Mode:</span>{" "}
+                                <Badge variant={override.maxBookingLengthMode === "HARD_BLOCK" ? "destructive" : "secondary"}>
+                                  {override.maxBookingLengthMode === "HARD_BLOCK" ? "Hard Block" : "Soft Gate"}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -1468,8 +1497,8 @@ export default function EventRulesPage() {
               {currentOverride.id ? "Edit" : "Create"} Rule Override
             </DialogTitle>
             <DialogDescription>
-              Create department-specific overrides that inherit and modify base
-              event rules
+              Override base event rules for specific departments. Leave fields blank to inherit from the base rule, 
+              or set values to customize for this department.
             </DialogDescription>
           </DialogHeader>
 
@@ -1536,73 +1565,239 @@ export default function EventRulesPage() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={currentOverride.staffingDensityEnabled}
-                onChange={(checked) =>
-                  setCurrentOverride({
-                    ...currentOverride,
-                    staffingDensityEnabled: checked,
-                  })
-                }
-              />
-              <Label>Enable staffing density constraints</Label>
-            </div>
-
-            {currentOverride.staffingDensityEnabled && (
-              <div className="space-y-4">
-                <div>
-                  <Label>Density Threshold (%)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={
-                      currentOverride.staffingDensityThreshold !== undefined
-                        ? currentOverride.staffingDensityThreshold * 100
-                        : ""
-                    }
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setCurrentOverride({
-                        ...currentOverride,
-                        staffingDensityThreshold:
-                          value === "" ? undefined : parseInt(value) / 100,
-                      });
-                    }}
-                    placeholder="30"
-                  />
-                  <div className="text-sm text-muted-foreground mt-1">
-                    Maximum percentage of employees that can be absent
-                    simultaneously
-                  </div>
-                </div>
-                <div>
-                  <Label>Behavior when threshold exceeded</Label>
-                  <Select
-                    value={currentOverride.staffingDensityBehavior}
-                    onValueChange={(value: "DENY" | "REQUIRE_APPROVAL") =>
-                      setCurrentOverride({
-                        ...currentOverride,
-                        staffingDensityBehavior: value,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DENY">
-                        Deny request (Hard Block)
-                      </SelectItem>
-                      <SelectItem value="REQUIRE_APPROVAL">
-                        Require additional approval
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+            {currentOverride.eventCategoryId && rules[currentOverride.eventCategoryId] && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="text-sm text-blue-800">
+                  <strong>Base Rule:</strong> Notice: {rules[currentOverride.eventCategoryId].noticePeriodDays} days • 
+                  Max Concurrent: {rules[currentOverride.eventCategoryId].maxConcurrent || "Unlimited"} • 
+                  Max Length: {rules[currentOverride.eventCategoryId].maxBookingLength || "Unlimited"} days
+                  <br />
+                  <span className="text-xs">Override values below to customize for this department</span>
                 </div>
               </div>
             )}
+
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basic">Basic Overrides</TabsTrigger>
+                <TabsTrigger value="enforcement">Enforcement</TabsTrigger>
+                <TabsTrigger value="density">Staffing Density</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="basic" className="space-y-4 mt-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Notice Period (days)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={currentOverride.noticePeriodDays ?? ""}
+                      onChange={(e) =>
+                        setCurrentOverride({
+                          ...currentOverride,
+                          noticePeriodDays: e.target.value ? parseInt(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="Inherited"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Leave blank to inherit from base rule
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Max Concurrent Bookings</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={currentOverride.maxConcurrent ?? ""}
+                      onChange={(e) =>
+                        setCurrentOverride({
+                          ...currentOverride,
+                          maxConcurrent: e.target.value ? parseInt(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="Inherited"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Leave blank to inherit from base rule
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Max Booking Length (days)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={currentOverride.maxBookingLength ?? ""}
+                      onChange={(e) =>
+                        setCurrentOverride({
+                          ...currentOverride,
+                          maxBookingLength: e.target.value ? parseInt(e.target.value) : undefined,
+                        })
+                      }
+                      placeholder="Inherited"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Leave blank to inherit from base rule
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="override-enforcement"
+                    checked={currentOverride.enforceEntitlement !== undefined}
+                    onChange={(e) =>
+                      setCurrentOverride({
+                        ...currentOverride,
+                        enforceEntitlement: e.target.checked ? true : undefined,
+                      })
+                    }
+                  />
+                  <Label htmlFor="override-enforcement" className="cursor-pointer">
+                    Override entitlement enforcement
+                  </Label>
+                </div>
+                {currentOverride.enforceEntitlement !== undefined && (
+                  <div className="ml-6">
+                    <Switch
+                      checked={currentOverride.enforceEntitlement}
+                      onChange={(checked) =>
+                        setCurrentOverride({
+                          ...currentOverride,
+                          enforceEntitlement: checked,
+                        })
+                      }
+                    />
+                    <Label className="ml-2">Enforce Entitlement</Label>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="enforcement" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Max Concurrent Mode</Label>
+                    <Select
+                      value={currentOverride.maxConcurrentMode || "INHERIT"}
+                      onValueChange={(value) =>
+                        setCurrentOverride({
+                          ...currentOverride,
+                          maxConcurrentMode: value === "INHERIT" ? undefined : value as "HARD_BLOCK" | "SOFT_GATE",
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="INHERIT">Inherit from base rule</SelectItem>
+                        <SelectItem value="HARD_BLOCK">Hard Block (Deny)</SelectItem>
+                        <SelectItem value="SOFT_GATE">Soft Gate (Require Approval)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Max Booking Length Mode</Label>
+                    <Select
+                      value={currentOverride.maxBookingLengthMode || "INHERIT"}
+                      onValueChange={(value) =>
+                        setCurrentOverride({
+                          ...currentOverride,
+                          maxBookingLengthMode: value === "INHERIT" ? undefined : value as "HARD_BLOCK" | "SOFT_GATE",
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="INHERIT">Inherit from base rule</SelectItem>
+                        <SelectItem value="HARD_BLOCK">Hard Block (Deny)</SelectItem>
+                        <SelectItem value="SOFT_GATE">Soft Gate (Require Approval)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="text-sm text-blue-800">
+                    <strong>Hard Block:</strong> Completely prevents the action
+                    <br />
+                    <strong>Soft Gate:</strong> Allows the action but requires additional approval
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="density" className="space-y-4 mt-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={currentOverride.staffingDensityEnabled}
+                    onChange={(checked) =>
+                      setCurrentOverride({
+                        ...currentOverride,
+                        staffingDensityEnabled: checked,
+                      })
+                    }
+                  />
+                  <Label>Enable staffing density constraints</Label>
+                </div>
+
+                {currentOverride.staffingDensityEnabled && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Density Threshold (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={
+                          currentOverride.staffingDensityThreshold !== undefined
+                            ? currentOverride.staffingDensityThreshold * 100
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setCurrentOverride({
+                            ...currentOverride,
+                            staffingDensityThreshold:
+                              value === "" ? undefined : parseInt(value) / 100,
+                          });
+                        }}
+                        placeholder="30"
+                      />
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Maximum percentage of employees that can be absent
+                        simultaneously
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Behavior when threshold exceeded</Label>
+                      <Select
+                        value={currentOverride.staffingDensityBehavior}
+                        onValueChange={(value: "DENY" | "REQUIRE_APPROVAL") =>
+                          setCurrentOverride({
+                            ...currentOverride,
+                            staffingDensityBehavior: value,
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DENY">
+                            Deny request (Hard Block)
+                          </SelectItem>
+                          <SelectItem value="REQUIRE_APPROVAL">
+                            Require additional approval
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
 
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button

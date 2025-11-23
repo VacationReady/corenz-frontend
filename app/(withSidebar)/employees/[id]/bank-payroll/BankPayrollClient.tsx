@@ -375,17 +375,19 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
   const normalizedIrd = normalizeIrdNumber(form.irdNumber);
   const isBankInvalid =
     normalizedBankAccount.length > 0 && !isValidNzBankAccountNumber(normalizedBankAccount);
-  const isIrdInvalid = normalizedIrd.length > 0 && !isValidIrdNumber(normalizedIrd);
+  
+  // Only consider IRD invalid if it has been CHANGED from the initial value and is invalid
+  // This allows saving other fields even if the existing IRD has validation issues
+  const irdHasChanged = normalizedIrd !== normalizeIrdNumber(formatIrdNumber(initialValues.irdNumber ?? ""));
+  const isIrdInvalid = normalizedIrd.length > 0 && irdHasChanged && !isValidIrdNumber(normalizedIrd);
   
   // For employees, only validate bank account since they can only edit that field.
-  // IRD number validation should not block saves for employees as they can't edit it.
-  // For admins/managers, validate both bank account and IRD number since they can edit both.
-  // Note: We don't block on "no changes" because EmployeeSaveButton handles that
+  // For admins, only block on validation errors for fields that have been changed
   const disableSave = isEmployee && !isPrivileged 
     ? isBankInvalid 
     : (isBankInvalid || isIrdInvalid);
   
-  console.log("Save button state:", { disableSave, isBankInvalid, isIrdInvalid, isEmployee, isPrivileged });
+  console.log("Save button state:", { disableSave, isBankInvalid, isIrdInvalid, irdHasChanged, normalizedIrd, isEmployee, isPrivileged });
 
   const getCurrentValues = () => {
     const values: any = {

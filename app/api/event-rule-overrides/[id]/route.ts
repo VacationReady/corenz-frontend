@@ -5,9 +5,9 @@ import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 
 const EventRuleOverrideUpdateSchema = z.object({
-  eventCategoryId: z.string().cuid("Invalid event category ID").optional(),
-  departmentId: z.string().cuid("Invalid Department ID").optional(),
-  teamId: z.string().cuid("Invalid team ID").optional(),
+  eventCategoryId: z.string().uuid("Invalid event category ID").optional(),
+  departmentId: z.string().uuid("Invalid Department ID").optional(),
+  teamId: z.string().uuid("Invalid team ID").optional(),
   enforceEntitlement: z.boolean().optional(),
   noticePeriodDays: z.number().int().min(0).optional(),
   maxConcurrent: z.number().int().min(1).optional(),

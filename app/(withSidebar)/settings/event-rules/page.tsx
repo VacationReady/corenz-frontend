@@ -36,6 +36,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { toast } from "@/hooks/use-toast";
 import {
   Settings,
@@ -51,6 +59,8 @@ import {
   Plus,
   Trash2,
   Edit,
+  Check,
+  ChevronDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { PageShell } from "@/components/ui/PageShell";
@@ -130,6 +140,7 @@ export default function EventRulesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [testEmployee, setTestEmployee] = useState<string>("ALL_EMPLOYEES");
   const [testDate, setTestDate] = useState<Date>(new Date());
+  const [employeeComboboxOpen, setEmployeeComboboxOpen] = useState(false);
   const [newBlackoutDate, setNewBlackoutDate] = useState<Date>(new Date());
   const [newBlackoutCategories, setNewBlackoutCategories] = useState<string[]>(
     [],
@@ -579,19 +590,56 @@ export default function EventRulesPage() {
                 </div>
                 <div>
                   <Label>Employee (Optional)</Label>
-                  <Select value={testEmployee} onValueChange={setTestEmployee}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select employee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL_EMPLOYEES">All employees</SelectItem>
-                      {employees.map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          {emp.user?.firstName} {emp.user?.lastName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={employeeComboboxOpen} onOpenChange={setEmployeeComboboxOpen}>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-left text-sm font-medium text-foreground shadow-sm transition-colors hover:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                      >
+                        <span className="truncate">
+                          {testEmployee === "ALL_EMPLOYEES" 
+                            ? "All employees"
+                            : employees.find(emp => emp.id === testEmployee)
+                              ? `${employees.find(emp => emp.id === testEmployee)?.user?.firstName} ${employees.find(emp => emp.id === testEmployee)?.user?.lastName}`
+                              : "Select employee"}
+                        </span>
+                        <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[280px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search employees..." />
+                        <CommandList>
+                          <CommandEmpty>No employees found.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              key="all-employees"
+                              onSelect={() => {
+                                setTestEmployee("ALL_EMPLOYEES");
+                                setEmployeeComboboxOpen(false);
+                              }}
+                            >
+                              <span>All employees</span>
+                              {testEmployee === "ALL_EMPLOYEES" && <Check className="ml-auto h-4 w-4" />}
+                            </CommandItem>
+                            {employees.map((emp) => (
+                              <CommandItem
+                                key={emp.id}
+                                value={`${emp.user?.firstName} ${emp.user?.lastName}`}
+                                onSelect={() => {
+                                  setTestEmployee(emp.id);
+                                  setEmployeeComboboxOpen(false);
+                                }}
+                              >
+                                <span>{emp.user?.firstName} {emp.user?.lastName}</span>
+                                {testEmployee === emp.id && <Check className="ml-auto h-4 w-4" />}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
                   <Label>Test Date</Label>

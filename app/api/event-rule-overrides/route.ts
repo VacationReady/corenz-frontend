@@ -6,9 +6,9 @@ import { z } from "zod";
 
 // Validation schema for event rule overrides
 const EventRuleOverrideSchema = z.object({
-  eventCategoryId: z.string().cuid("Invalid event category ID"),
-  departmentId: z.string().cuid("Invalid department ID").optional(),
-  teamId: z.string().cuid("Invalid team ID").optional(),
+  eventCategoryId: z.string().uuid("Invalid event category ID"),
+  departmentId: z.string().uuid("Invalid department ID").optional(),
+  teamId: z.string().uuid("Invalid team ID").optional(),
   enforceEntitlement: z.boolean().optional(),
   noticePeriodDays: z.number().int().min(0).optional(),
   maxConcurrent: z.number().int().min(1).optional(),

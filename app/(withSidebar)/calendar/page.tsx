@@ -14,10 +14,10 @@ import Button from "@/components/ui/Button";
 import { List, CalendarDays, Trash2, GraduationCap, Heart, Stethoscope, Smile, Palmtree, ShieldBan, Umbrella, Briefcase, Baby, Users, Coffee } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Copy } from "lucide-react";
+import { Copy, ShieldBan as ShieldBanIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
-import BlockDayModal from "./BlockDayModal";
+import BlackoutManagementModal from "./BlackoutManagementModal";
 import { EventInput, EventSourceFuncArg } from "@fullcalendar/core";
 import type { EventContentArg } from "@fullcalendar/core";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -79,7 +79,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(true);
-  const [blockModalOpen, setBlockModalOpen] = useState(false);
+  const [blackoutModalOpen, setBlackoutModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(false);
   const [currentView, setCurrentView] = useState<"dayGridMonth" | "listMonth">(initialView);
@@ -749,7 +749,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const handleDateClick = (arg: any) => {
     setSelectedDate(arg.date);
-    setBlockModalOpen(true);
+    setBlackoutModalOpen(true);
   };
 
   const handleEventClick = async (clickInfo: any) => {
@@ -896,6 +896,20 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
               <span className="text-sm font-medium text-muted-foreground">{currentTitle}</span>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              {!isEmployeeRole && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedDate(null);
+                    setBlackoutModalOpen(true);
+                  }}
+                  className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700 hover:text-red-800"
+                >
+                  <ShieldBanIcon className="mr-2 h-4 w-4" />
+                  Manage Blackout Days
+                </Button>
+              )}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Show public holidays</span>
                 <Switch
@@ -985,18 +999,20 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           </SheetHeader>
 
           <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                if (inspectorDate) {
-                  setSelectedDate(inspectorDate);
-                  setBlockModalOpen(true);
-                }
-              }}
-            >
-              Block day
-            </Button>
+            {!isEmployeeRole && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  if (inspectorDate) {
+                    setSelectedDate(inspectorDate);
+                    setBlackoutModalOpen(true);
+                  }
+                }}
+              >
+                Block day
+              </Button>
+            )}
             <Button
               size="sm"
               onClick={() => {
@@ -1084,14 +1100,12 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         </SheetContent>
       </Sheet>
 
-      {selectedDate && (
-        <BlockDayModal
-          open={blockModalOpen}
-          setOpen={setBlockModalOpen}
-          selectedDate={selectedDate}
-          refreshEvents={refreshCalendar}
-        />
-      )}
+      <BlackoutManagementModal
+        open={blackoutModalOpen}
+        setOpen={setBlackoutModalOpen}
+        defaultDate={selectedDate}
+        refreshEvents={refreshCalendar}
+      />
       <AddHolidayModal
         open={holidayModalOpen}
         setOpen={setHolidayModalOpen}

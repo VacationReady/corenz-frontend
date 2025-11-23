@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
@@ -31,7 +30,6 @@ import {
   SidebarSection,
   SidebarItem,
   SidebarAction,
-  SidebarProfile,
   SidebarFooter,
 } from "@/components/navigation/SidebarPrimitives";
 
@@ -46,7 +44,6 @@ export default function AdminSidebar({
   onMobileNavigate,
   onMobileClose,
 }: SidebarProps) {
-  const { data: session } = useSession();
   const { branding } = useTenantBranding();
   const [collapsed, setCollapsed] = useState(false);
   const toggleSidebar = () => setCollapsed(!collapsed);
@@ -128,12 +125,6 @@ export default function AdminSidebar({
         </div>
 
         {/* User Profile */}
-        {session?.user && (
-          <SidebarProfile
-            user={session.user}
-            collapsed={collapsed}
-          />
-        )}
 
         {/* Logout */}
         <div className="p-3">

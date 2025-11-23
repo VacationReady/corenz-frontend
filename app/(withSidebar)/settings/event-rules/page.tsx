@@ -386,6 +386,8 @@ export default function EventRulesPage() {
   };
 
   const saveOverride = async () => {
+    console.log("Current override state:", currentOverride);
+    
     // Validate required fields
     if (!currentOverride.eventCategoryId) {
       toast({
@@ -417,11 +419,38 @@ export default function EventRulesPage() {
 
       // Prepare the data - remove undefined departmentId if it's the sentinel value
       const dataToSend = {
-        ...currentOverride,
-        // Don't send undefined values, send null or omit them
-        departmentId: currentOverride.departmentId || undefined,
-        teamId: currentOverride.teamId || undefined,
+        eventCategoryId: currentOverride.eventCategoryId,
+        staffingDensityEnabled: currentOverride.staffingDensityEnabled,
+        staffingDensityBehavior: currentOverride.staffingDensityBehavior,
+        // Optional fields - only include if defined
+        ...(currentOverride.departmentId && currentOverride.departmentId !== "COMPANY_WIDE" && {
+          departmentId: currentOverride.departmentId,
+        }),
+        ...(currentOverride.teamId && { teamId: currentOverride.teamId }),
+        ...(currentOverride.staffingDensityThreshold !== undefined && {
+          staffingDensityThreshold: currentOverride.staffingDensityThreshold,
+        }),
+        ...(currentOverride.enforceEntitlement !== undefined && {
+          enforceEntitlement: currentOverride.enforceEntitlement,
+        }),
+        ...(currentOverride.noticePeriodDays !== undefined && {
+          noticePeriodDays: currentOverride.noticePeriodDays,
+        }),
+        ...(currentOverride.maxConcurrent !== undefined && {
+          maxConcurrent: currentOverride.maxConcurrent,
+        }),
+        ...(currentOverride.maxBookingLength !== undefined && {
+          maxBookingLength: currentOverride.maxBookingLength,
+        }),
+        ...(currentOverride.maxConcurrentMode && {
+          maxConcurrentMode: currentOverride.maxConcurrentMode,
+        }),
+        ...(currentOverride.maxBookingLengthMode && {
+          maxBookingLengthMode: currentOverride.maxBookingLengthMode,
+        }),
       };
+
+      console.log("Sending override data:", dataToSend);
 
       const response = await fetch(url, {
         method,
@@ -482,7 +511,6 @@ export default function EventRulesPage() {
   };
 
   const openCreateOverrideDialog = (enableStaffingDensity = false) => {
-    resetOverrideForm();
     if (enableStaffingDensity) {
       setCurrentOverride({
         eventCategoryId: "",
@@ -490,6 +518,8 @@ export default function EventRulesPage() {
         staffingDensityBehavior: "DENY",
         staffingDensityThreshold: 0.3, // Default 30%
       });
+    } else {
+      resetOverrideForm();
     }
     setOverrideDialogOpen(true);
   };
@@ -1449,12 +1479,13 @@ export default function EventRulesPage() {
                 <Label className="text-red-600">Event Category *</Label>
                 <Select
                   value={currentOverride.eventCategoryId || undefined}
-                  onValueChange={(value) =>
+                  onValueChange={(value) => {
+                    console.log("Selected category ID:", value);
                     setCurrentOverride({
                       ...currentOverride,
                       eventCategoryId: value,
-                    })
-                  }
+                    });
+                  }}
                 >
                   <SelectTrigger className={!currentOverride.eventCategoryId ? "border-red-300" : ""}>
                     <SelectValue placeholder="Select category" />
@@ -1524,18 +1555,21 @@ export default function EventRulesPage() {
                   <Label>Density Threshold (%)</Label>
                   <Input
                     type="number"
-                    min="1"
+                    min="0"
                     max="100"
                     value={
-                      (currentOverride.staffingDensityThreshold || 0) * 100
+                      currentOverride.staffingDensityThreshold !== undefined
+                        ? currentOverride.staffingDensityThreshold * 100
+                        : ""
                     }
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const value = e.target.value;
                       setCurrentOverride({
                         ...currentOverride,
                         staffingDensityThreshold:
-                          parseInt(e.target.value) / 100,
-                      })
-                    }
+                          value === "" ? undefined : parseInt(value) / 100,
+                      });
+                    }}
                     placeholder="30"
                   />
                   <div className="text-sm text-muted-foreground mt-1">

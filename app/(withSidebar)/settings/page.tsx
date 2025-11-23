@@ -231,15 +231,15 @@ function SettingSection({
         </div>
       </AccordionTrigger>
       <AccordionContent className="px-6 pb-6 data-[state=open]:animate-in data-[state=open]:fade-in-80 data-[state=open]:slide-in-from-top-2">
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 [@media(min-width:1920px)]:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] pt-2">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 [@media(min-width:1920px)]:grid-cols-[repeat(auto-fit,minmax(240px,1fr))] auto-rows-fr pt-2">
           {items.map(({ title, href, icon, helpPreset, description }) => (
             <Card
               key={title}
-              className="group relative overflow-hidden border-transparent bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 shadow-sm ring-1 ring-transparent transition duration-300 hover:ring-primary/40 hover:shadow-2xl hover:shadow-primary/20 motion-safe:duration-300 before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_top,var(--tw-gradient-stops))] before:from-primary/20 before:to-transparent before:opacity-0 before:transition-opacity before:duration-300 before:pointer-events-none hover:before:opacity-100"
+              className="group relative overflow-hidden border-transparent bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 shadow-sm ring-1 ring-transparent transition duration-300 hover:ring-primary/40 hover:shadow-2xl hover:shadow-primary/20 motion-safe:duration-300 before:absolute before:inset-0 before:content-[''] before:bg-[radial-gradient(circle_at_top,var(--tw-gradient-stops))] before:from-primary/20 before:to-transparent before:opacity-0 before:transition-opacity before:duration-300 before:pointer-events-none hover:before:opacity-100 flex flex-col"
             >
               <CardHeader
                 transparent
-                className="relative z-10 border-none bg-transparent p-5 pb-0"
+                className="relative z-10 border-none bg-transparent p-5 pb-0 flex-1"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3">
@@ -266,7 +266,7 @@ function SettingSection({
                   asChild
                   variant="ghost"
                   size="sm"
-                  className="mt-auto bg-gradient-to-r from-primary via-indigo-500 to-sky-500 text-white shadow-lg shadow-primary/20 hover:bg-transparent hover:shadow-primary/40 focus-visible:ring-primary/40"
+                  className="bg-gradient-to-r from-primary via-indigo-500 to-sky-500 text-white shadow-lg shadow-primary/20 hover:bg-transparent hover:shadow-primary/40 focus-visible:ring-primary/40"
                 >
                   <Link
                     href={href}

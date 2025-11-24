@@ -8,11 +8,14 @@ import { CheckCircle, Clock, ArrowRight } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { WidgetLoading } from "@/components/ui/WidgetStates";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
 import ModernSignatureCapture, { SignatureCaptureValue } from "@/components/documents/ModernSignatureCapture";
 import { toast } from "sonner";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { HolidayApprovalModal } from "@/components/approvals/HolidayApprovalModal";
 import { TransactionalChangeReviewModal } from "@/components/approvals/TransactionalChangeReviewModal";
+import { DocumentAcknowledgmentModal } from "@/components/documents/DocumentAcknowledgmentModal";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { getTenantHeadersSync } from "@/lib/tenant-fetch";
 
@@ -47,6 +50,8 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
   const [processing, setProcessing] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<null | { id: string; name: string; url?: string; requiresSignature?: boolean; requiresAck?: boolean }>(null);
   const [signatureValue, setSignatureValue] = useState<SignatureCaptureValue | null>(null);
+  const [signerName, setSignerName] = useState("");
+  const [signerRole, setSignerRole] = useState("");
   const [signSubmitting, setSignSubmitting] = useState(false);
   const [viewAll, setViewAll] = useState(false);
   const [holidayApprovalId, setHolidayApprovalId] = useState<string | null>(null);
@@ -258,7 +263,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                     metadata: doc,
                     actionLabel: "Review",
                     onAction: async () => {
-                      setPreviewDoc({ id: doc.id, name: doc.name, url: doc.url, requiresAck: true, requiresSignature: doc.requiresSignature });
+                      setPreviewDoc({ id: doc.id, name: doc.name, url: doc.url, requiresAck: true, requiresSignature: false });
                     }
                   };
                 }
@@ -650,11 +655,30 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
         )}
       </DashboardWidget>
 
-      {/* Document Preview Dialog */}
-      <Dialog open={!!previewDoc} onOpenChange={(open) => {
+      {/* Document Acknowledgment Modal (New Sleek Version) */}
+      <DocumentAcknowledgmentModal
+        open={!!previewDoc && !!previewDoc.requiresAck && !previewDoc.requiresSignature}
+        onOpenChange={(open) => !open && setPreviewDoc(null)}
+        doc={previewDoc}
+        onAcknowledge={async (docId) => {
+          await tenantFetch("/api/documents/acknowledge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ documentId: docId })
+          });
+          // Update local state and trigger re-fetch
+          mutateActionItems();
+          setActionItems(prev => prev.filter(item => !item.id.includes(docId)));
+        }}
+      />
+
+      {/* Document Preview Dialog (Signature Only) */}
+      <Dialog open={!!previewDoc && (!!previewDoc.requiresSignature || !previewDoc.requiresAck)} onOpenChange={(open) => {
         if (!open) {
           setPreviewDoc(null);
           setSignatureValue(null);
+          setSignerName("");
+          setSignerRole("");
           setSignSubmitting(false);
         }
       }}>
@@ -665,11 +689,13 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
           {previewDoc && (
             <div className="space-y-4">
               {previewDoc.url ? (
-                <div className="rounded-lg border overflow-hidden">
+                <div className="rounded-lg border overflow-hidden bg-gray-100">
                   <embed
-                    src={`${previewDoc.url}#toolbar=0&navpanes=0&scrollbar=1`}
+                    src={`${previewDoc.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
                     type="application/pdf"
-                    className="w-full h-[60vh]"
+                    width="100%"
+                    height="100%"
+                    className="w-full h-[60vh] min-h-[500px]"
                   />
                 </div>
               ) : (
@@ -683,6 +709,28 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                     <CheckCircle className="w-5 h-5 text-indigo-600" />
                     Sign Document
                   </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="space-y-2">
+                      <Label>Full Name</Label>
+                      <Input 
+                        placeholder="Your full legal name" 
+                        value={signerName} 
+                        onChange={(e) => setSignerName(e.target.value)}
+                        className="bg-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Job Role</Label>
+                      <Input 
+                        placeholder="e.g. Software Engineer" 
+                        value={signerRole} 
+                        onChange={(e) => setSignerRole(e.target.value)}
+                        className="bg-white"
+                      />
+                    </div>
+                  </div>
+
                   <ModernSignatureCapture
                     value={signatureValue}
                     onChange={setSignatureValue}
@@ -694,13 +742,15 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                 <Button variant="outline" onClick={() => {
                   setPreviewDoc(null);
                   setSignatureValue(null);
+                  setSignerName("");
+                  setSignerRole("");
                 }}>
                   Close
                 </Button>
 
                 {previewDoc.requiresSignature ? (
                   <Button
-                    disabled={!signatureValue || signSubmitting}
+                    disabled={!signatureValue || signSubmitting || !signerName.trim() || !signerRole.trim()}
                     loading={signSubmitting}
                     onClick={async () => {
                       if (!previewDoc || !signatureValue) return;
@@ -712,8 +762,10 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                           body: JSON.stringify({
                             documentId: previewDoc.id,
                             method: signatureValue.method,
-                            typedText: signatureValue.typedText,
+                            typedText: signatureValue.typedText || signerName, // Use signerName as fallback or primary if typed
                             drawnDataUrl: signatureValue.dataUrl,
+                            // We might want to send name/role if API supports it, 
+                            // but currently we just enforce them in UI.
                           })
                         });
                         if (res.ok) {
@@ -725,6 +777,8 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                           ));
                           setPreviewDoc(null);
                           setSignatureValue(null);
+                          setSignerName("");
+                          setSignerRole("");
                         } else {
                           toast.error("Failed to sign document");
                         }

@@ -31,6 +31,22 @@ export default function ModernSignatureCapture({
   const [typedText, setTypedText] = useState<string>(value?.typedText || "");
   const [isValid, setIsValid] = useState(false);
   const sigRef = useRef<SignatureCanvas | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canvasWidth, setCanvasWidth] = useState(600);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setCanvasWidth(entry.contentRect.width);
+      }
+    });
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (value?.method) setMethod(value.method);
@@ -141,15 +157,18 @@ export default function ModernSignatureCapture({
                 </motion.span>
               )}
             </Label>
-            <div className="relative border-2 border-dashed border-gray-300 rounded-xl overflow-hidden hover:border-indigo-400 transition-colors bg-gradient-to-br from-white to-gray-50">
+            <div 
+              ref={containerRef}
+              className="relative border-2 border-dashed border-gray-300 rounded-xl overflow-hidden hover:border-indigo-400 transition-colors bg-gradient-to-br from-white to-gray-50"
+            >
               <SignatureCanvas
                 ref={sigRef as any}
                 penColor="#4F46E5"
                 backgroundColor="#FAFAFA"
                 canvasProps={{
-                  width: 600,
+                  width: canvasWidth,
                   height: 200,
-                  className: "w-full cursor-crosshair",
+                  className: "cursor-crosshair",
                   "aria-label": "Signature input canvas",
                 }}
                 onEnd={emitChange}

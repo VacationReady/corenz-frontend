@@ -10,6 +10,8 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MapPin, Plus, Edit, Trash2, Save, X, Search, Globe } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { PageShell } from "@/components/ui/PageShell";
+import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import dynamic from "next/dynamic";
 
 // Dynamic import of the Map component to avoid SSR issues with Leaflet
@@ -312,16 +314,12 @@ export default function LocationsManagementPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            Location Management
-          </h1>
-          <p className="text-muted-foreground">
-            Manage work locations and geofence boundaries
-          </p>
-        </div>
+    <PageShell
+      title="Location Management"
+      description="Manage work locations and geofence boundaries"
+      breadcrumbs={breadcrumbConfigs.settingsSection("Locations")}
+      showHomeIcon={false}
+      action={
         <Button 
           onClick={handleOpenCreateDialog} 
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
@@ -329,17 +327,18 @@ export default function LocationsManagementPage() {
           <Plus className="w-4 h-4 mr-2" />
           Add Location
         </Button>
-      </div>
-
-      <div className="relative max-w-md mb-8">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search locations..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 bg-white/50 backdrop-blur-sm border-white/20"
-        />
-      </div>
+      }
+    >
+      <div className="container mx-auto p-6 max-w-7xl">
+        <div className="relative max-w-md mb-8">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search locations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-white/50 backdrop-blur-sm border-white/20"
+          />
+        </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredLocations.length === 0 ? (
@@ -596,6 +595,7 @@ export default function LocationsManagementPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </PageShell>
   );
 }

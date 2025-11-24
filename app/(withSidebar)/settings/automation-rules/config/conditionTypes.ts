@@ -1,6 +1,24 @@
 // Condition types for filtering who/what the workflow applies to
 // Creates visual branching logic in the workflow builder
 
+import React from "react";
+import { 
+  Building2, 
+  Briefcase, 
+  MapPin, 
+  User, 
+  FileText, 
+  Calendar, 
+  Clock, 
+  Search, 
+  Hash, 
+  Users, 
+  ClipboardList, 
+  Umbrella, 
+  Settings, 
+  Watch 
+} from "lucide-react";
+
 export const conditionTypes = [
   // WHO - Employee filters
   {
@@ -8,7 +26,7 @@ export const conditionTypes = [
     name: "Filter by Department",
     description: "Only apply to employees in specific departments",
     category: "Employee Filters",
-    icon: "🏢",
+    icon: <Building2 className="w-4 h-4" />,
     fields: [
       { key: "operator", label: "Operator", type: "select", required: true, options: [
         { value: "is", label: "Is" },
@@ -24,7 +42,7 @@ export const conditionTypes = [
     name: "Filter by Job Role",
     description: "Only apply to employees with specific job roles",
     category: "Employee Filters",
-    icon: "💼",
+    icon: <Briefcase className="w-4 h-4" />,
     fields: [
       { key: "operator", label: "Operator", type: "select", required: true, options: [
         { value: "is", label: "Is" },
@@ -40,7 +58,7 @@ export const conditionTypes = [
     name: "Filter by Location",
     description: "Only apply to employees at specific locations",
     category: "Employee Filters",
-    icon: "📍",
+    icon: <MapPin className="w-4 h-4" />,
     fields: [
       { key: "operator", label: "Operator", type: "select", required: true, options: [
         { value: "is", label: "Is" },
@@ -55,7 +73,7 @@ export const conditionTypes = [
     name: "Filter by Manager",
     description: "Only apply to employees who report to specific managers",
     category: "Employee Filters",
-    icon: "👤",
+    icon: <User className="w-4 h-4" />,
     fields: [
       { key: "operator", label: "Operator", type: "select", required: true, options: [
         { value: "reports_to", label: "Reports To" },
@@ -69,7 +87,7 @@ export const conditionTypes = [
     name: "Filter by Contract Type",
     description: "Only apply to employees on specific contract types",
     category: "Employee Filters",
-    icon: "📄",
+    icon: <FileText className="w-4 h-4" />,
     fields: [
       { key: "operator", label: "Operator", type: "select", required: true, options: [
         { value: "is", label: "Is" },
@@ -90,7 +108,7 @@ export const conditionTypes = [
     name: "Filter by Time of Year",
     description: "Only run during specific months or date ranges",
     category: "Time Filters",
-    icon: "📅",
+    icon: <Calendar className="w-4 h-4" />,
     fields: [
       { key: "months", label: "Months", type: "multiselect", options: [
         { value: "1", label: "January" },
@@ -113,7 +131,7 @@ export const conditionTypes = [
     name: "Filter by Days Since Start",
     description: "Only apply if employee started X days ago",
     category: "Time Filters",
-    icon: "⏱️",
+    icon: <Clock className="w-4 h-4" />,
     fields: [
       { key: "operator", label: "Operator", type: "select", required: true, options: [
         { value: "greater_than", label: "More Than" },
@@ -130,7 +148,7 @@ export const conditionTypes = [
     name: "Filter by Probation Status",
     description: "Check if employee is in probation period",
     category: "Time Filters",
-    icon: "🔍",
+    icon: <Search className="w-4 h-4" />,
     fields: [
       { key: "status", label: "Status", type: "select", required: true, options: [
         { value: "in_probation", label: "Currently in Probation" },
@@ -146,7 +164,7 @@ export const conditionTypes = [
     name: "Check Field Value",
     description: "Compare an employee field to a specific value",
     category: "Data Conditions",
-    icon: "🔢",
+    icon: <Hash className="w-4 h-4" />,
     fields: [
       { key: "field", label: "Field", type: "select", required: true, options: [
         { value: "employmentType", label: "Employment Type" },
@@ -169,7 +187,7 @@ export const conditionTypes = [
     name: "Has Manager Assigned",
     description: "Check if employee has a reporting manager",
     category: "Data Conditions",
-    icon: "👥",
+    icon: <Users className="w-4 h-4" />,
     fields: [
       { key: "hasManager", label: "Condition", type: "select", required: true, options: [
         { value: "yes", label: "Has a Manager" },
@@ -182,7 +200,7 @@ export const conditionTypes = [
     name: "Document Status Check",
     description: "Check if specific documents are uploaded/expiring",
     category: "Document Conditions",
-    icon: "📋",
+    icon: <ClipboardList className="w-4 h-4" />,
     fields: [
       { key: "documentType", label: "Document Type", type: "select", required: true, options: [
         { value: "Passport", label: "Passport" },
@@ -203,7 +221,7 @@ export const conditionTypes = [
     name: "Leave Balance Check",
     description: "Check if employee's leave balance meets criteria",
     category: "Leave Conditions",
-    icon: "🏖️",
+    icon: <Umbrella className="w-4 h-4" />,
     fields: [
       { key: "leaveType", label: "Leave Type", type: "select", required: true },
       { key: "operator", label: "Operator", type: "select", required: true, options: [
@@ -219,7 +237,7 @@ export const conditionTypes = [
     name: "Form Submission Check",
     description: "Check if employee has submitted a specific form",
     category: "Form Conditions",
-    icon: "📝",
+    icon: <FileText className="w-4 h-4" />,
     fields: [
       { key: "formId", label: "Form", type: "select", required: true },
       { key: "condition", label: "Condition", type: "select", required: true, options: [
@@ -236,7 +254,7 @@ export const conditionTypes = [
     name: "Working Hours Check",
     description: "Only run during business hours (NZ timezone)",
     category: "Advanced",
-    icon: "🕐",
+    icon: <Watch className="w-4 h-4" />,
     fields: [
       { key: "startHour", label: "Start Hour (24h)", type: "number", placeholder: "9", min: 0, max: 23 },
       { key: "endHour", label: "End Hour (24h)", type: "number", placeholder: "17", min: 0, max: 23 },
@@ -251,7 +269,7 @@ export const conditionTypes = [
     name: "Custom Field Check",
     description: "Advanced: check any employee field with custom logic",
     category: "Advanced",
-    icon: "⚙️",
+    icon: <Settings className="w-4 h-4" />,
     fields: [
       { key: "fieldPath", label: "Field Path", type: "text", required: true, placeholder: "employee.User.email", helpText: "Use dot notation" },
       { key: "operator", label: "Operator", type: "select", required: true, options: [

@@ -780,6 +780,23 @@ export default function EmployeeDocumentsPage() {
           isOpen={isPlacementBeforeSendOpen}
           onClose={() => {
             setIsPlacementBeforeSendOpen(false);
+            // Don't close the upload modal or refresh if just closing placement
+            // This keeps the upload modal open so they can try again or cancel properly
+          }}
+          onDiscard={async () => {
+            // If they explicitly discard, delete the document if it was already created
+            if (selectedDoc?.id) {
+              try {
+                await tenantFetch("/api/documents/delete", {
+                  method: "DELETE",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ documentId: selectedDoc.id }),
+                });
+              } catch (e) {
+                console.error("Failed to cleanup discarded document", e);
+              }
+            }
+            setIsPlacementBeforeSendOpen(false);
             setIsUploadModalOpen(false);
             fetchDocuments();
           }}
@@ -796,6 +813,7 @@ export default function EmployeeDocumentsPage() {
           documentId={selectedDoc?.id || ""}
           url={selectedDoc?.url || ""}
           defaultAssigneeId={employeeId}
+          isInitialUpload
         />
         </div>
       </TooltipProvider>

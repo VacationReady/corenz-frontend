@@ -5,7 +5,7 @@ import Button from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { UploadCloud, FileText } from "lucide-react";
+import { UploadCloud, FileText, Eye } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { apiClient } from "@/lib/apiClient";
 import { usePostMutation, useDeleteMutation } from "@/hooks/useMutationWithRefresh";
@@ -105,6 +105,18 @@ function DocumentsContent() {
   const [newCategory, setNewCategory] = useState("");
   const [categoriesList, setCategoriesList] = useState<string[]>([]);
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
+  const [uploadPreviewOpen, setUploadPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [file]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -980,6 +992,20 @@ function DocumentsContent() {
                   <Label>Requires Acknowledgement</Label>
                   <Switch checked={requiresAck} onChange={setRequiresAck} />
                 </div>
+                {requiresAck && file && (
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUploadPreviewOpen(true)}
+                      className="gap-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Preview Document
+                    </Button>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <Label>Require Acknowledgement from New Starters</Label>
                   <Switch
@@ -1171,6 +1197,27 @@ function DocumentsContent() {
           documentId={sigDocId || ""}
           url={selectedDoc?.url || ""}
         />
+
+        {/* Upload Preview Modal */}
+        <Dialog open={uploadPreviewOpen} onOpenChange={setUploadPreviewOpen}>
+          <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Preview: {file?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 bg-gray-100 rounded-md overflow-hidden border relative">
+              {previewUrl && (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full"
+                  title="Preview"
+                />
+              )}
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setUploadPreviewOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </TooltipProvider>
     </PageShell>
   );

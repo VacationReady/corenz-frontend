@@ -1,6 +1,7 @@
 import React from "react";
 import { Handle, Position, NodeProps } from "reactflow";
 import { Badge } from "@/components/ui/Badge";
+import { PlayCircle, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const ActionNode: React.FC<NodeProps> = ({ data, selected }) => {
@@ -16,8 +17,8 @@ export const ActionNode: React.FC<NodeProps> = ({ data, selected }) => {
     >
       <div className="px-2.5 py-2 space-y-1">
         <div className="flex items-center gap-1.5">
-          <div className="flex-shrink-0 w-5 h-5 rounded border border-green-400 bg-green-50 flex items-center justify-center text-green-600 text-xs">
-            {data?.icon || "▶"}
+          <div className="flex-shrink-0 w-5 h-5 rounded border border-green-400 bg-green-50 flex items-center justify-center text-green-600">
+            {data?.icon || <PlayCircle className="w-3 h-3" />}
           </div>
           <span className="font-semibold text-[10px] text-green-900 truncate">
             {data?.label ?? "Action"}
@@ -38,8 +39,8 @@ export const ActionNode: React.FC<NodeProps> = ({ data, selected }) => {
         )}
         {data?.config?.subject && (
           <div className="space-y-0.5">
-            <p className="text-[9px] leading-tight text-green-700/70 line-clamp-1 pl-6 italic">
-              📧 {data.config.subject}
+            <p className="text-[9px] leading-tight text-green-700/70 line-clamp-1 pl-6 italic flex items-center gap-1">
+              <Mail className="w-2.5 h-2.5 inline" /> {data.config.subject}
             </p>
             {data.config.body && (
               <p className="text-[8px] leading-tight text-green-600/60 line-clamp-2 pl-6">

@@ -69,33 +69,33 @@ export function NodePropertiesPanel({
                 onChange={(e) => onUpdate({ actionType: e.target.value })}
               >
                 <optgroup label="Communication">
-                  <option value="send_email">📧 Send Email</option>
-                  <option value="send_manager_reminder">👤 Remind Manager</option>
+                  <option value="send_email">Send Email</option>
+                  <option value="send_manager_reminder">Remind Manager</option>
                 </optgroup>
                 <optgroup label="Action Items">
-                  <option value="create_action_item">✅ Create Action Item</option>
+                  <option value="create_action_item">Create Action Item</option>
                 </optgroup>
                 <optgroup label="Forms & Documents">
-                  <option value="assign_form">📝 Assign Form</option>
-                  <option value="request_document_upload">📎 Request Document Upload</option>
-                  <option value="request_document_acknowledgement">✍️ Request Doc Acknowledgement</option>
+                  <option value="assign_form">Assign Form</option>
+                  <option value="request_document_upload">Request Document Upload</option>
+                  <option value="request_document_acknowledgement">Request Doc Acknowledgement</option>
                 </optgroup>
                 <optgroup label="Offboarding">
-                  <option value="create_offboarding_task">🚪 Add Offboarding Task</option>
+                  <option value="create_offboarding_task">Add Offboarding Task</option>
                 </optgroup>
                 <optgroup label="Employee Updates">
-                  <option value="update_employee_field">✏️ Update Field</option>
-                  <option value="adjust_leave_balance">🏝️ Adjust Leave Balance</option>
+                  <option value="update_employee_field">Update Field</option>
+                  <option value="adjust_leave_balance">Adjust Leave Balance</option>
                 </optgroup>
                 <optgroup label="Training & Performance">
-                  <option value="assign_training">🎓 Assign Training</option>
-                  <option value="schedule_review">⭐ Schedule Review</option>
+                  <option value="assign_training">Assign Training</option>
+                  <option value="schedule_review">Schedule Review</option>
                 </optgroup>
                 <optgroup label="Security">
-                  <option value="update_permissions">🔒 Update Permissions</option>
+                  <option value="update_permissions">Update Permissions</option>
                 </optgroup>
                 <optgroup label="Integrations">
-                  <option value="webhook">🔗 Call Webhook</option>
+                  <option value="webhook">Call Webhook</option>
                 </optgroup>
               </select>
             </div>
@@ -326,29 +326,29 @@ function ConditionNodeFields({ node, onUpdate }: { node: any; onUpdate: (updates
           onChange={(e) => onUpdate({ conditionType: e.target.value, conditionData: {} })}
         >
           <optgroup label="Employee Filters">
-            <option value="employee_department">🏢 Filter by Department</option>
-            <option value="employee_job_role">💼 Filter by Job Role</option>
-            <option value="employee_location">📍 Filter by Location</option>
-            <option value="employee_manager">👤 Filter by Manager</option>
-            <option value="employee_contract_type">📄 Filter by Contract Type</option>
+            <option value="employee_department">Filter by Department</option>
+            <option value="employee_job_role">Filter by Job Role</option>
+            <option value="employee_location">Filter by Location</option>
+            <option value="employee_manager">Filter by Manager</option>
+            <option value="employee_contract_type">Filter by Contract Type</option>
           </optgroup>
           <optgroup label="Time Filters">
-            <option value="time_of_year">📅 Filter by Time of Year</option>
-            <option value="days_since_start">⏱️ Days Since Start</option>
-            <option value="probation_status">🔍 Probation Status</option>
+            <option value="time_of_year">Filter by Time of Year</option>
+            <option value="days_since_start">Days Since Start</option>
+            <option value="probation_status">Probation Status</option>
           </optgroup>
           <optgroup label="Data Conditions">
-            <option value="field_value">🔢 Check Field Value</option>
-            <option value="has_manager">👥 Has Manager Assigned</option>
+            <option value="field_value">Check Field Value</option>
+            <option value="has_manager">Has Manager Assigned</option>
           </optgroup>
           <optgroup label="Documents & Forms">
-            <option value="document_status">📋 Document Status</option>
-            <option value="form_submitted">📝 Form Submission</option>
-            <option value="leave_balance">🏖️ Leave Balance</option>
+            <option value="document_status">Document Status</option>
+            <option value="form_submitted">Form Submission</option>
+            <option value="leave_balance">Leave Balance</option>
           </optgroup>
           <optgroup label="Advanced">
-            <option value="working_hours">🕐 Working Hours</option>
-            <option value="custom_field">⚙️ Custom Field Check</option>
+            <option value="working_hours">Working Hours</option>
+            <option value="custom_field">Custom Field Check</option>
           </optgroup>
         </select>
       </div>

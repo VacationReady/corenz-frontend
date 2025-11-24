@@ -1,5 +1,6 @@
 import React from "react";
 import { Handle, Position, NodeProps } from "reactflow";
+import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const DelayNode: React.FC<NodeProps> = ({ data, selected }) => {
@@ -15,8 +16,8 @@ export const DelayNode: React.FC<NodeProps> = ({ data, selected }) => {
     >
       <div className="px-2.5 py-2 space-y-1">
         <div className="flex items-center gap-1.5">
-          <div className="flex-shrink-0 w-5 h-5 rounded border border-purple-400 bg-purple-50 flex items-center justify-center text-purple-600 text-xs">
-            {data?.icon || "⏱"}
+          <div className="flex-shrink-0 w-5 h-5 rounded border border-purple-400 bg-purple-50 flex items-center justify-center text-purple-600">
+            {data?.icon || <Clock className="w-3 h-3" />}
           </div>
           <span className="font-semibold text-[10px] text-purple-900 truncate">
             {data?.label ?? "Delay"}

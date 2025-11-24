@@ -1,6 +1,23 @@
 // Action types that create tasks in the Action Items widget on employee dashboards
 // Designed to AVOID duplicating existing auto-notifications and system behaviours
 
+import React from "react";
+import { 
+  Mail, 
+  User, 
+  CheckCircle2, 
+  FileText, 
+  Paperclip, 
+  PenSquare, 
+  DoorOpen, 
+  Edit, 
+  Umbrella, 
+  GraduationCap, 
+  Star, 
+  Lock, 
+  Link as LinkIcon 
+} from "lucide-react";
+
 export const actionTypes = [
   // COMMUNICATION - send messages
   {
@@ -8,7 +25,7 @@ export const actionTypes = [
     name: "Send Email",
     description: "Send a custom email to employee, manager, or HR",
     category: "Communication",
-    icon: "📧",
+    icon: <Mail className="w-4 h-4" />,
     fields: [
       { key: "recipientType", label: "Send To", type: "select", required: true, options: [
         { value: "employee", label: "Employee (trigger subject)" },
@@ -26,7 +43,7 @@ export const actionTypes = [
     name: "Remind Manager",
     description: "Send a reminder to the employee's manager",
     category: "Communication",
-    icon: "👤",
+    icon: <User className="w-4 h-4" />,
     fields: [
       { key: "subject", label: "Subject", type: "text", required: true, placeholder: "Action needed for {{employeeName}}" },
       { key: "message", label: "Message", type: "textarea", required: true },
@@ -40,7 +57,7 @@ export const actionTypes = [
     name: "Create Action Item",
     description: "Add a to-do in the employee's Action Items dashboard",
     category: "Action Items",
-    icon: "✅",
+    icon: <CheckCircle2 className="w-4 h-4" />,
     fields: [
       { key: "title", label: "Task Title", type: "text", required: true, placeholder: "Complete probation review" },
       { key: "description", label: "Description", type: "textarea", placeholder: "Review performance and confirm continuation" },
@@ -62,7 +79,7 @@ export const actionTypes = [
     name: "Assign Form",
     description: "Assign a form → appears in Action Items until completed",
     category: "Forms & Documents",
-    icon: "📝",
+    icon: <FileText className="w-4 h-4" />,
     fields: [
       { key: "formId", label: "Form", type: "select", required: true },
       { key: "dueDays", label: "Due in (days)", type: "number", placeholder: "7" },
@@ -74,7 +91,7 @@ export const actionTypes = [
     name: "Request Document Upload",
     description: "Ask employee to upload a document → appears in Action Items",
     category: "Forms & Documents",
-    icon: "📎",
+    icon: <Paperclip className="w-4 h-4" />,
     fields: [
       { key: "documentType", label: "Document Type", type: "select", required: true, options: [
         { value: "Passport", label: "Passport" },
@@ -96,7 +113,7 @@ export const actionTypes = [
     name: "Request Document Acknowledgement",
     description: "Ask employee to acknowledge/sign a document",
     category: "Forms & Documents",
-    icon: "✍️",
+    icon: <PenSquare className="w-4 h-4" />,
     fields: [
       { key: "documentId", label: "Document", type: "select", required: true },
       { key: "requireSignature", label: "Require Signature", type: "boolean", default: false },
@@ -110,7 +127,7 @@ export const actionTypes = [
     name: "Add Offboarding Task",
     description: "Add a task to employee's offboarding checklist",
     category: "Offboarding",
-    icon: "🚪",
+    icon: <DoorOpen className="w-4 h-4" />,
     fields: [
       { key: "title", label: "Task Title", type: "text", required: true, placeholder: "Remove Slack access" },
       { key: "description", label: "Description", type: "textarea" },
@@ -141,7 +158,7 @@ export const actionTypes = [
     name: "Update Employee Field",
     description: "Change employee details (department, role, etc.)",
     category: "Employee Updates",
-    icon: "✏️",
+    icon: <Edit className="w-4 h-4" />,
     fields: [
       { key: "field", label: "Field", type: "select", required: true, options: [
         { value: "department", label: "Department" },
@@ -158,7 +175,7 @@ export const actionTypes = [
     name: "Adjust Leave Balance",
     description: "Add or subtract leave days (manual adjustment)",
     category: "Leave & Time Off",
-    icon: "🏝️",
+    icon: <Umbrella className="w-4 h-4" />,
     fields: [
       { key: "leaveType", label: "Leave Type", type: "select", required: true },
       { key: "adjustmentDays", label: "Days to Add/Subtract", type: "number", required: true, helpText: "Use negative for deductions, e.g. -2" },
@@ -173,7 +190,7 @@ export const actionTypes = [
     name: "Assign Training Course",
     description: "Enroll employee in training → creates action item",
     category: "Training",
-    icon: "🎓",
+    icon: <GraduationCap className="w-4 h-4" />,
     fields: [
       { key: "courseId", label: "Course", type: "select", required: true },
       { key: "providerId", label: "Training Provider", type: "select" },
@@ -186,7 +203,7 @@ export const actionTypes = [
     name: "Schedule Performance Review",
     description: "Create a review task for manager → appears in Action Items",
     category: "Performance",
-    icon: "⭐",
+    icon: <Star className="w-4 h-4" />,
     fields: [
       { key: "reviewType", label: "Review Type", type: "select", options: [
         { value: "probation", label: "Probation Review" },
@@ -207,7 +224,7 @@ export const actionTypes = [
     name: "Update Permissions",
     description: "Change employee's permission profile or system access",
     category: "Security",
-    icon: "🔒",
+    icon: <Lock className="w-4 h-4" />,
     fields: [
       { key: "action", label: "Action", type: "select", required: true, options: [
         { value: "assign_profile", label: "Assign Permission Profile" },
@@ -224,7 +241,7 @@ export const actionTypes = [
     name: "Call Webhook",
     description: "Trigger external system (Slack bot, Zapier, custom API)",
     category: "Integrations",
-    icon: "🔗",
+    icon: <LinkIcon className="w-4 h-4" />,
     fields: [
       { key: "webhookUrl", label: "Webhook URL", type: "text", required: true, placeholder: "https://hooks.slack.com/services/..." },
       { key: "method", label: "HTTP Method", type: "select", options: [

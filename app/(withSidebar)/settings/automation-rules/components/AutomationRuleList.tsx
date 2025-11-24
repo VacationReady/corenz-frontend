@@ -303,41 +303,41 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
                 </CardContent>
 
                 <div
-                  className="absolute top-2 right-2 flex translate-x-10 flex-col items-stretch gap-2 rounded-2xl bg-background/80 px-3 py-2 text-xs shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100"
+                  className="absolute top-1/2 -translate-y-1/2 right-2 flex translate-x-10 flex-col items-stretch gap-1 rounded-xl bg-background/90 px-2 py-1.5 shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="justify-start h-7"
+                    className="justify-start h-6 text-xs px-2"
                     onClick={() => onEditRule(rule)}
                   >
-                    <Edit className="w-3.5 h-3.5 mr-2" />
+                    <Edit className="w-3 h-3 mr-1.5" />
                     Edit
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="justify-start h-7"
+                    className="justify-start h-6 text-xs px-2"
                     onClick={() => onRunTest(rule)}
                   >
-                    <TestTube className="w-3.5 h-3.5 mr-2" />
+                    <TestTube className="w-3 h-3 mr-1.5" />
                     Test
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="justify-start h-7"
+                    className="justify-start h-6 text-xs px-2"
                     onClick={() => onToggleStatus(rule.id!, !rule.isActive)}
                   >
                     {rule.isActive ? (
                       <>
-                        <Pause className="w-3.5 h-3.5 mr-2" />
+                        <Pause className="w-3 h-3 mr-1.5" />
                         Deactivate
                       </>
                     ) : (
                       <>
-                        <Play className="w-3.5 h-3.5 mr-2" />
+                        <Play className="w-3 h-3 mr-1.5" />
                         Activate
                       </>
                     )}
@@ -345,14 +345,14 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
                   <Button
                     size="sm"
                     variant="danger"
-                    className="justify-start h-7 text-red-600"
+                    className="justify-start h-6 text-xs px-2 text-red-600"
                     onClick={() => {
                       if (confirm("Are you sure you want to delete this rule?")) {
                         onDeleteRule(rule.id!);
                       }
                     }}
                   >
-                    <Trash2 className="w-3.5 h-3.5 mr-2" />
+                    <Trash2 className="w-3 h-3 mr-1.5" />
                     Delete
                   </Button>
                 </div>

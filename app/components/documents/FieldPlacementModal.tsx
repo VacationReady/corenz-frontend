@@ -561,7 +561,7 @@ export default function FieldPlacementModal({
                 </div>
               </div>
             </div>
-            <div className="col-span-3 space-y-4 h-full flex flex-col">
+            <div className="col-span-3 space-y-4 h-full overflow-y-auto pb-2">
             <div className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm flex-shrink-0">
               <div className="font-semibold text-sm text-slate-900 mb-3">Palette</div>
               <div className="space-y-2">
@@ -617,9 +617,9 @@ export default function FieldPlacementModal({
               </Select>
               <div className="text-xs text-muted-foreground mt-1">New fields will be assigned to the selected signer.</div>
             </div>
-            <div className="flex-1 min-h-0 flex flex-col border border-slate-200 rounded-2xl bg-white shadow-sm overflow-hidden">
+            <div className="border border-slate-200 rounded-2xl bg-white shadow-sm">
                <div className="p-3 border-b bg-slate-50 font-medium text-sm">Placed Fields</div>
-               <div className="overflow-y-auto p-2 space-y-2 flex-1">
+               <div className="p-2 space-y-2">
                 {fields.map((f, idx) => (
                   <div key={idx} className="border rounded p-2 space-y-1 bg-white">
                   <Label className="text-xs">Label</Label>

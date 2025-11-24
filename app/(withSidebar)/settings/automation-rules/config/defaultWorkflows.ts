@@ -1,3 +1,16 @@
+import React from "react";
+import { 
+  Scale, 
+  FileText, 
+  Hand, 
+  Umbrella, 
+  Calendar, 
+  Star, 
+  Clock, 
+  DoorOpen, 
+  PartyPopper 
+} from "lucide-react";
+
 export const defaultWorkflows = [
   {
     id: "90-day-trial",
@@ -5,7 +18,7 @@ export const defaultWorkflows = [
     description:
       "Automated reminders for New Zealand employment trial periods with manager notifications",
     category: "compliance",
-    icon: "⚖️",
+    icon: <Scale className="w-5 h-5" />,
     tags: ["new-starter", "compliance", "nz-law"],
     nodes: [
       { id: "t1", type: "trigger", position: { x: 120, y: 80 }, data: { label: "Employee Start Date", config: { triggerType: "EMPLOYEE_START_DATE" } } },
@@ -25,7 +38,7 @@ export const defaultWorkflows = [
     name: "Expiring Documents Reminder",
     description: "Remind employees to update expiring documents 30 days prior",
     category: "compliance",
-    icon: "📄",
+    icon: <FileText className="w-5 h-5" />,
     tags: ["documents", "compliance"],
     nodes: [
       { id: "t1", type: "trigger", position: { x: 120, y: 80 }, data: { label: "Document Expiring", config: { triggerType: "DOCUMENT_EXPIRING", daysBefore: 30 } } },
@@ -45,7 +58,7 @@ export const defaultWorkflows = [
     name: "Welcome New Starter",
     description: "Send welcome email and create manager task",
     category: "hr",
-    icon: "👋",
+    icon: <Hand className="w-5 h-5" />,
     tags: ["onboarding", "communication"],
     nodes: [
       { id: "t1", type: "trigger", position: { x: 120, y: 80 }, data: { label: "Employee Created", config: { triggerType: "EMPLOYEE_CREATED" } } },
@@ -63,7 +76,7 @@ export const defaultWorkflows = [
     name: "Form Submission Follow-up",
     description: "Create task after key form submission",
     category: "operations",
-    icon: "📝",
+    icon: <FileText className="w-5 h-5" />,
     tags: ["forms"],
     nodes: [
       { id: "t1", type: "trigger", position: { x: 120, y: 80 }, data: { label: "Form Submitted", config: { triggerType: "FORM_SUBMITTED", formId: "TEMPLATE" } } },
@@ -77,7 +90,7 @@ export const defaultWorkflows = [
     name: "Leave Request Approval",
     description: "Notify approver when a leave request is created",
     category: "hr",
-    icon: "🏝️",
+    icon: <Umbrella className="w-5 h-5" />,
     tags: ["leave"],
     nodes: [
       { id: "t1", type: "trigger", position: { x: 120, y: 80 }, data: { label: "Leave Request", config: { triggerType: "LEAVE_REQUEST" } } },
@@ -91,7 +104,7 @@ export const defaultWorkflows = [
     name: "Fixed-term Contract Expiry",
     description: "Notify HR and manager 60 days before contract end",
     category: "compliance",
-    icon: "📅",
+    icon: <Calendar className="w-5 h-5" />,
     tags: ["contracts"],
     nodes: [
       { id: "t1", type: "trigger", position: { x: 120, y: 80 }, data: { label: "Contract Expiring", config: { triggerType: "CONTRACT_EXPIRING", daysBefore: 60 } } },
@@ -109,7 +122,7 @@ export const defaultWorkflows = [
     name: "Performance Review Completed",
     description: "Trigger follow-up actions after review",
     category: "engagement",
-    icon: "⭐",
+    icon: <Star className="w-5 h-5" />,
     tags: ["performance"],
     nodes: [
       { id: "t1", type: "trigger", position: { x: 120, y: 80 }, data: { label: "Review Completed", config: { triggerType: "PERFORMANCE_REVIEW_COMPLETED" } } },
@@ -123,7 +136,7 @@ export const defaultWorkflows = [
     name: "Probation Check-ins",
     description: "Schedule 30/60/90 day manager check-ins",
     category: "hr",
-    icon: "⏱️",
+    icon: <Clock className="w-5 h-5" />,
     tags: ["probation"],
     nodes: [
       { id: "t1", type: "trigger", position: { x: 120, y: 80 }, data: { label: "Employee Start Date", config: { triggerType: "EMPLOYEE_START_DATE" } } },
@@ -149,7 +162,7 @@ export const defaultWorkflows = [
     name: "Offboarding Sequence",
     description: "Coordinate offboarding tasks and access removal",
     category: "operations",
-    icon: "🚪",
+    icon: <DoorOpen className="w-5 h-5" />,
     tags: ["offboarding"],
     nodes: [
       { id: "t1", type: "trigger", position: { x: 120, y: 80 }, data: { label: "Employee Updated", config: { triggerType: "EMPLOYEE_UPDATED", field: "offboardingDate" } } },
@@ -164,7 +177,7 @@ export const defaultWorkflows = [
     name: "Work Anniversary",
     description: "Send celebration message and badge",
     category: "engagement",
-    icon: "🎉",
+    icon: <PartyPopper className="w-5 h-5" />,
     tags: ["engagement"],
     nodes: [
       { id: "t1", type: "trigger", position: { x: 120, y: 80 }, data: { label: "Scheduled", config: { triggerType: "SCHEDULED", cron: "0 9 * * *" } } },

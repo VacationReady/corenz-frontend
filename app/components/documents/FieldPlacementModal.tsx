@@ -437,24 +437,23 @@ export default function FieldPlacementModal({
                 {paletteOptions.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <Button
+                    <button
                       key={item.type}
                       type="button"
-                      variant="ghost"
-                      className="w-full justify-between border border-slate-200 hover:border-slate-300 bg-white text-left h-auto py-3 px-3 rounded-xl"
+                      className="w-full flex items-center justify-between border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-left py-3 px-3 rounded-xl transition-all group outline-none focus:ring-2 focus:ring-primary/20"
                       onClick={() => addField(item.type)}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <span className={`flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 shadow-sm ${item.iconBg}`}>
                           <Icon className="w-5 h-5" />
                         </span>
-                        <div>
+                        <div className="min-w-0">
                           <div className="text-sm font-semibold text-slate-900 leading-tight">{item.label}</div>
-                          <p className="text-xs text-muted-foreground leading-tight">{item.description}</p>
+                          <p className="text-xs text-muted-foreground leading-tight truncate">{item.description}</p>
                         </div>
                       </div>
-                      <span className={`text-xs font-medium ${item.accent}`}>Add</span>
-                    </Button>
+                      <span className={`text-xs font-medium ${item.accent} px-3 whitespace-nowrap`}>Add</span>
+                    </button>
                   );
                 })}
               </div>

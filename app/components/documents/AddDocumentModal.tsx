@@ -745,6 +745,13 @@ export default function AddDocumentModal({
         url={objectUrl}
         saveMode="local"
         onSaveFields={(f) => setPendingFields(f)}
+        isInitialUpload
+        onDiscard={() => {
+          setIsPlacementBeforeSendOpen(false);
+          setPendingFields(null);
+          setFile(null);
+          onClose(); // Close the main upload modal too if they completely discard
+        }}
       />
     </Dialog>
   );

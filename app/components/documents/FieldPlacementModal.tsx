@@ -148,6 +148,8 @@ export default function FieldPlacementModal({
   onSaveComplete?: () => Promise<void>;
   sendingNotifications?: boolean;
   defaultAssigneeId?: string;
+  isInitialUpload?: boolean;
+  onDiscard?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
@@ -248,7 +250,7 @@ export default function FieldPlacementModal({
   };
 
   const handleClose = () => {
-    if (isDirty && !sendingNotifications) {
+    if ((isDirty || isInitialUpload) && !sendingNotifications) {
       setShowConfirmClose(true);
     } else {
       onClose();
@@ -258,7 +260,11 @@ export default function FieldPlacementModal({
   const confirmClose = () => {
     setShowConfirmClose(false);
     setIsDirty(false);
-    onClose();
+    if (isInitialUpload && onDiscard) {
+      onDiscard();
+    } else {
+      onClose();
+    }
   };
 
   const cancelClose = () => {
@@ -532,6 +538,7 @@ export default function FieldPlacementModal({
               ))}
             </div>
           </div>
+          </div>
         </div>
         <DialogFooter className="px-6 py-4 border-t mt-0">
           <Button 
@@ -560,10 +567,13 @@ export default function FieldPlacementModal({
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100">
               <AlertTriangle className="w-6 h-6 text-amber-600" />
             </div>
-            <DialogTitle>Discard Unsaved Changes?</DialogTitle>
+            <DialogTitle>{isInitialUpload ? "Cancel Upload?" : "Discard Unsaved Changes?"}</DialogTitle>
           </div>
           <DialogDescription className="text-base">
-            You have unsaved signature field changes. If you close now, these fields will be lost and notifications will not be sent.
+            {isInitialUpload 
+              ? "You have unsaved changes, if you close this window you will have to start the process again. Continue?"
+              : "You have unsaved signature field changes. If you close now, these fields will be lost and notifications will not be sent."
+            }
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2 sm:gap-2">
@@ -577,7 +587,7 @@ export default function FieldPlacementModal({
             variant="danger"
             onClick={confirmClose}
           >
-            Discard Changes
+            {isInitialUpload ? "Yes, discard document" : "Discard Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>

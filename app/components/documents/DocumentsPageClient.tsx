@@ -560,6 +560,17 @@ function DocumentsContent() {
     refetchDocuments();
   };
 
+  const handlePlacementDiscard = async () => {
+    if (placementPendingDocId) {
+      await deleteDocument({ documentId: placementPendingDocId });
+      toast.success("Upload cancelled and document discarded.");
+    }
+    setIsPlacementBeforeSendOpen(false);
+    resetUploadForm();
+    setIsUploadModalOpen(false);
+    refetchDocuments();
+  };
+
   const handleSign = async (signature: SignatureCaptureValue) => {
     if (!selectedDoc) return;
     setSignSubmitting(true);
@@ -1097,6 +1108,8 @@ function DocumentsContent() {
           url={selectedDoc?.url || ""}
           onSaveComplete={handlePlacementComplete}
           sendingNotifications={sendingNotifications}
+          isInitialUpload={true}
+          onDiscard={handlePlacementDiscard}
         />
 
         {/* Modern Document Preview Panel */}

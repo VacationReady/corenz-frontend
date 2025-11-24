@@ -1,6 +1,16 @@
 'use client';
 
 import ClockWidget from "@/components/time-tracking/ClockWidget";
+import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
+import { toast } from 'sonner';
+import { DashboardWidget } from '@/components/ui/DashboardWidget';
+import { Clock, MapPin } from 'lucide-react';
+import { WidgetLoading, WidgetError } from '@/components/ui/WidgetStates';
+import { format } from 'date-fns';
+import Button from '@/components/ui/Button';
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
   const router = useRouter();

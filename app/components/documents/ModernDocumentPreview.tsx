@@ -79,7 +79,7 @@ export default function ModernDocumentPreview({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-4xl bg-white shadow-2xl flex flex-col"
+            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-5xl bg-white shadow-2xl flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -180,21 +180,14 @@ export default function ModernDocumentPreview({
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl overflow-hidden border-2 border-gray-200 shadow-inner bg-white"
+                  className="rounded-xl overflow-hidden border-2 border-gray-200 shadow-inner bg-white flex-1"
                 >
-                  <object
-                    data={`${doc.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                    type="application/pdf"
-                    className="w-full"
-                    style={{ height: "80vh", minHeight: "600px" }}
-                  >
-                    <iframe
-                      src={`${doc.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                      className="w-full"
-                      style={{ height: "80vh", minHeight: "600px" }}
-                      title="Document Preview"
-                    />
-                  </object>
+                  <iframe
+                    src={`${doc.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                    className="w-full h-full"
+                    style={{ minHeight: "calc(100vh - 350px)" }}
+                    title="Document Preview"
+                  />
                 </motion.div>
 
                 {/* Download Button */}

@@ -31,20 +31,37 @@ export async function DELETE(req: Request) {
         { status: 404 },
       );
 
-    // Delete file from Supabase using `path`
+    // Fetch signature artifacts to delete their files
+    const signatureArtifacts = await prisma.documentSignatureArtifact.findMany({
+      where: { documentId: doc.id },
+      select: { artifactPath: true },
+    });
+
+    // Collect all file paths to delete (document + signature artifacts)
+    const filesToDelete = [doc.path];
+    for (const artifact of signatureArtifacts) {
+      if (artifact.artifactPath) {
+        filesToDelete.push(artifact.artifactPath);
+      }
+    }
+
+    // Delete files from Supabase
     const { error: storageError } = await supabase.storage
       .from("documents")
-      .remove([doc.path]);
+      .remove(filesToDelete);
     if (storageError) {
       console.error("Supabase remove error:", storageError);
       return NextResponse.json(
-        { error: "Failed to delete document file" },
+        { error: "Failed to delete document files" },
         { status: 500 },
       );
     }
 
-    // Delete related acknowledgements first, then delete the document
+    // Delete related records first, then delete the document
     await prisma.$transaction([
+      prisma.documentSignatureArtifact.deleteMany({
+        where: { documentId: doc.id },
+      }),
       prisma.documentAcknowledgement.deleteMany({
         where: { documentId: doc.id },
       }),

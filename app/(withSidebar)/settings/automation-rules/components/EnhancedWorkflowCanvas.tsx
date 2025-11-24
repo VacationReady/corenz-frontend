@@ -111,7 +111,7 @@ function EnhancedWorkflowCanvasInner({
   onRequestEdit,
 }: EnhancedWorkflowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { fitView, setViewport } = useReactFlow();
+  const { fitView, setViewport, screenToFlowPosition } = useReactFlow();
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(workflow?.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
@@ -413,14 +413,13 @@ function EnhancedWorkflowCanvasInner({
     if (readOnly) return;
     event.preventDefault();
 
-    const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
     const type = event.dataTransfer.getData('application/reactflow');
+    if (!type) return;
 
-    if (!type || !reactFlowInstance || !reactFlowBounds) return;
-
-    const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left,
-      y: event.clientY - reactFlowBounds.top,
+    // Use screenToFlowPosition for accurate coordinate conversion
+    const position = screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
     });
 
     const nodeConfig = getNodeConfig(type);
@@ -439,7 +438,12 @@ function EnhancedWorkflowCanvasInner({
       icon: nodeConfig.icon,
       duration: 2000,
     });
-  }, [reactFlowInstance, setNodes, readOnly]);
+
+    // Fit view to show the new node after a short delay
+    setTimeout(() => {
+      fitView({ padding: 0.2, duration: 200 });
+    }, 50);
+  }, [screenToFlowPosition, setNodes, readOnly, fitView]);
 
   // Get node configuration
   const getNodeConfig = (type: string) => {

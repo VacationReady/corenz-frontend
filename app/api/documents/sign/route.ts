@@ -13,6 +13,7 @@ type SignRequestBody = {
   typedText?: string;
   drawnDataUrl?: string; // base64 data URL (image/png)
   fieldId?: string; // optional: specific field being signed
+  fieldValues?: Record<string, string>; // values for name/job role fields
 };
 
 export async function POST(req: NextRequest) {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as SignRequestBody;
-    const { documentId, method, typedText, drawnDataUrl, fieldId } = body;
+    const { documentId, method, typedText, drawnDataUrl, fieldId, fieldValues } = body;
 
     if (!documentId || !method) {
       return NextResponse.json(
@@ -32,13 +33,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (method === "TYPED" && (!typedText || !typedText.trim())) {
+    // Allow signing with just fieldValues (name/job fields) without actual signature data
+    const hasFieldValues = fieldValues && Object.keys(fieldValues).length > 0;
+    
+    if (method === "TYPED" && (!typedText || !typedText.trim()) && !hasFieldValues) {
       return NextResponse.json(
         { error: "typedText is required for typed signature" },
         { status: 400 },
       );
     }
-    if (method === "DRAWN" && (!drawnDataUrl || !drawnDataUrl.startsWith("data:image"))) {
+    if (method === "DRAWN" && (!drawnDataUrl || !drawnDataUrl.startsWith("data:image")) && !hasFieldValues) {
       return NextResponse.json(
         { error: "drawnDataUrl must be a base64 image data URL" },
         { status: 400 },
@@ -225,9 +229,10 @@ export async function POST(req: NextRequest) {
       console.warn("[sign] Cache invalidation error:", error);
     }
 
-    // If a drawn signature and a single field target, stamp the PDF visually and upload a new version
+    // Stamp the PDF visually with signatures and field values and upload a new version
     try {
-      if (method === "DRAWN") {
+      const shouldStampPdf = method === "DRAWN" || (fieldValues && Object.keys(fieldValues).length > 0);
+      if (shouldStampPdf) {
         let origArrayBuffer: ArrayBuffer | null = null;
         try {
           const download = await supabase.storage.from("documents").download(document.path);
@@ -300,20 +305,66 @@ export async function POST(req: NextRequest) {
             // Determine field purpose based on label
             const fieldLabel = (f.label || "").toLowerCase();
             const isSignatureField = !fieldLabel.includes("name") && !fieldLabel.includes("job");
+            const isNameField = fieldLabel.includes("name");
+            const isJobField = fieldLabel.includes("job");
             
-            // Only draw signature image on actual signature fields, not on name/job role fields
-            if (pngImage && isSignatureField) {
-              page.drawImage(pngImage, { x: x - w / 2, y: y - h / 2, width: w, height: h });
+            // Draw signature on actual signature fields
+            if (isSignatureField) {
+              if (pngImage) {
+                // Drawn signature - embed as image
+                page.drawImage(pngImage, { x: x - w / 2, y: y - h / 2, width: w, height: h });
+              } else if (typedText) {
+                // Typed signature - render as stylized text
+                const fontSize = Math.min(18, h * 0.7);
+                page.drawText(typedText, { 
+                  x: x - w / 2 + 4, 
+                  y: y - fontSize / 2, 
+                  size: fontSize, 
+                  font, 
+                  color: rgb(0.1, 0.1, 0.3) 
+                });
+              }
+              // Add timestamp below the signature
+              page.drawText(new Date().toLocaleString(), { 
+                x: x - w / 2 + 4, 
+                y: y - h / 2 + 4, 
+                size: 8, 
+                font, 
+                color: rgb(0.4, 0.4, 0.4) 
+              });
             }
             
-            // Add timestamp below the signature
-            page.drawText(new Date().toLocaleString(), { 
-              x: x - w / 2 + 4, 
-              y: y - h / 2 + 4, 
-              size: 8, 
-              font, 
-              color: rgb(0.4, 0.4, 0.4) 
-            });
+            // Draw name value on name fields
+            if (isNameField) {
+              const nameValue = fieldValues?.[f.id] || typedText || "";
+              if (nameValue) {
+                // Calculate font size to fit within field
+                const fontSize = Math.min(14, h * 0.6);
+                page.drawText(nameValue, { 
+                  x: x - w / 2 + 4, 
+                  y: y - fontSize / 2, 
+                  size: fontSize, 
+                  font, 
+                  color: rgb(0.1, 0.1, 0.1) 
+                });
+              }
+            }
+            
+            // Draw job role value on job role fields
+            if (isJobField) {
+              const jobValue = fieldValues?.[f.id] || "";
+              if (jobValue) {
+                // Calculate font size to fit within field
+                const fontSize = Math.min(14, h * 0.6);
+                page.drawText(jobValue, { 
+                  x: x - w / 2 + 4, 
+                  y: y - fontSize / 2, 
+                  size: fontSize, 
+                  font, 
+                  color: rgb(0.1, 0.1, 0.1) 
+                });
+              }
+            }
           }
 
           const stampedBytes = await pdfDoc.save();

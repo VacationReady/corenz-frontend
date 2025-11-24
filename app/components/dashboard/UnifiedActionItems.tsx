@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
-import { CheckCircle, Clock, ArrowRight } from "lucide-react";
+import { CheckCircle, Clock, ArrowRight, PenLine, UserRound, Briefcase } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { WidgetLoading } from "@/components/ui/WidgetStates";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +18,54 @@ import { TransactionalChangeReviewModal } from "@/components/approvals/Transacti
 import { DocumentAcknowledgmentModal } from "@/components/documents/DocumentAcknowledgmentModal";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { getTenantHeadersSync } from "@/lib/tenant-fetch";
+
+// Signature field interface
+interface SignatureField {
+  id: string;
+  pageNumber: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label?: string;
+  assignedEmployeeId?: string;
+}
+
+// Field themes for visual styling
+const fieldThemes = {
+  signature: {
+    icon: PenLine,
+    border: "border-sky-400",
+    bg: "bg-sky-50",
+    iconBg: "bg-sky-100 text-sky-700",
+  },
+  name: {
+    icon: UserRound,
+    border: "border-purple-400",
+    bg: "bg-purple-50",
+    iconBg: "bg-purple-100 text-purple-700",
+  },
+  job: {
+    icon: Briefcase,
+    border: "border-emerald-400",
+    bg: "bg-emerald-50",
+    iconBg: "bg-emerald-100 text-emerald-700",
+  },
+};
+
+const getFieldTheme = (label?: string) => {
+  const normalized = (label || "").toLowerCase();
+  if (normalized.includes("job")) return fieldThemes.job;
+  if (normalized.includes("name")) return fieldThemes.name;
+  return fieldThemes.signature;
+};
+
+const getFieldType = (label?: string): "signature" | "name" | "job" => {
+  const normalized = (label || "").toLowerCase();
+  if (normalized.includes("job")) return "job";
+  if (normalized.includes("name")) return "name";
+  return "signature";
+};
 
 const createFetcher = (companyId?: string | null) => (url: string) => {
   const headers = getTenantHeadersSync(url, companyId);
@@ -50,13 +98,73 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
   const [processing, setProcessing] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<null | { id: string; name: string; url?: string; requiresSignature?: boolean; requiresAck?: boolean }>(null);
   const [signatureValue, setSignatureValue] = useState<SignatureCaptureValue | null>(null);
-  const [signerName, setSignerName] = useState("");
-  const [signerRole, setSignerRole] = useState("");
   const [signSubmitting, setSignSubmitting] = useState(false);
   const [viewAll, setViewAll] = useState(false);
   const [holidayApprovalId, setHolidayApprovalId] = useState<string | null>(null);
   const [selectedChangeRequest, setSelectedChangeRequest] = useState<any | null>(null);
   const [changeProcessing, setChangeProcessing] = useState(false);
+  
+  // Document signature fields state
+  const [documentFields, setDocumentFields] = useState<SignatureField[]>([]);
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [loadingFields, setLoadingFields] = useState(false);
+  
+  // Fetch signature fields when a document is selected for signing
+  useEffect(() => {
+    if (previewDoc?.id && previewDoc?.requiresSignature) {
+      setLoadingFields(true);
+      tenantFetch(`/api/documents/signature-fields/${previewDoc.id}`)
+        .then((r) => r.json())
+        .then((data) => {
+          const fields = Array.isArray(data) ? data : [];
+          setDocumentFields(fields);
+          // Initialize field values
+          const initialValues: Record<string, string> = {};
+          fields.forEach((f: SignatureField) => {
+            const fieldType = getFieldType(f.label);
+            if (fieldType !== "signature") {
+              initialValues[f.id] = "";
+            }
+          });
+          setFieldValues(initialValues);
+        })
+        .catch(() => setDocumentFields([]))
+        .finally(() => setLoadingFields(false));
+    } else {
+      setDocumentFields([]);
+      setFieldValues({});
+    }
+  }, [previewDoc?.id, previewDoc?.requiresSignature, tenantFetch]);
+  
+  // Determine which field types are present
+  const hasNameField = useMemo(() => 
+    documentFields.some(f => getFieldType(f.label) === "name"), 
+    [documentFields]
+  );
+  const hasJobField = useMemo(() => 
+    documentFields.some(f => getFieldType(f.label) === "job"), 
+    [documentFields]
+  );
+  const hasSignatureField = useMemo(() => 
+    documentFields.some(f => getFieldType(f.label) === "signature"), 
+    [documentFields]
+  );
+  
+  // Check if all required fields are filled
+  const allFieldsFilled = useMemo(() => {
+    // Check text fields
+    for (const field of documentFields) {
+      const fieldType = getFieldType(field.label);
+      if (fieldType !== "signature" && (!fieldValues[field.id] || !fieldValues[field.id].trim())) {
+        return false;
+      }
+    }
+    // Check signature if there's a signature field
+    if (hasSignatureField && !signatureValue) {
+      return false;
+    }
+    return documentFields.length > 0;
+  }, [documentFields, fieldValues, hasSignatureField, signatureValue]);
 
   const isLoadingSession = status === "loading";
 
@@ -677,121 +785,210 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
         if (!open) {
           setPreviewDoc(null);
           setSignatureValue(null);
-          setSignerName("");
-          setSignerRole("");
+          setDocumentFields([]);
+          setFieldValues({});
           setSignSubmitting(false);
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-[95vw] w-full h-[95vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
             <DialogTitle>{previewDoc?.name || "Document"}</DialogTitle>
           </DialogHeader>
           {previewDoc && (
-            <div className="space-y-4">
-              {previewDoc.url ? (
-                <div className="rounded-lg border overflow-hidden bg-gray-100">
-                  <embed
-                    src={`${previewDoc.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-                    type="application/pdf"
-                    width="100%"
-                    height="100%"
-                    className="w-full h-[60vh] min-h-[500px]"
-                  />
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Preview not available</p>
-              )}
-
-              {/* Signature Section */}
-              {previewDoc.requiresSignature && (
-                <div className="p-6 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200">
-                  <h3 className="font-semibold text-gray-900 mb-4 text-lg flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-indigo-600" />
-                    Sign Document
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="space-y-2">
-                      <Label>Full Name</Label>
-                      <Input 
-                        placeholder="Your full legal name" 
-                        value={signerName} 
-                        onChange={(e) => setSignerName(e.target.value)}
-                        className="bg-white"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Job Role</Label>
-                      <Input 
-                        placeholder="e.g. Software Engineer" 
-                        value={signerRole} 
-                        onChange={(e) => setSignerRole(e.target.value)}
-                        className="bg-white"
-                      />
-                    </div>
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+              {/* PDF Preview with Field Overlays */}
+              <div className="flex-1 relative bg-slate-100 overflow-auto p-4">
+                {previewDoc.url ? (
+                  <div className="relative w-full h-full min-h-[70vh]">
+                    <iframe
+                      src={`${previewDoc.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                      className="absolute inset-0 w-full h-full rounded-lg border shadow-sm bg-white"
+                      title="Document Preview"
+                      style={{ minHeight: "100%" }}
+                    />
+                    {/* Field Overlays - Visual indicators where fields are placed */}
+                    {documentFields.map((field) => {
+                      const theme = getFieldTheme(field.label);
+                      const fieldType = getFieldType(field.label);
+                      const Icon = theme.icon;
+                      const isFilled = fieldType === "signature" 
+                        ? !!signatureValue 
+                        : !!fieldValues[field.id]?.trim();
+                      
+                      return (
+                        <div
+                          key={field.id}
+                          className={`absolute pointer-events-none ${theme.border} ${theme.bg} border-2 rounded-lg flex items-center justify-center transition-all ${isFilled ? 'opacity-60' : 'opacity-90 animate-pulse'}`}
+                          style={{
+                            left: `${field.x * 100}%`,
+                            top: `${field.y * 100}%`,
+                            width: `${field.width * 100}%`,
+                            height: `${field.height * 100}%`,
+                            transform: "translate(-50%, -50%)",
+                          }}
+                        >
+                          <div className="flex items-center gap-2 px-2">
+                            <span className={`flex items-center justify-center w-6 h-6 rounded-full ${theme.iconBg}`}>
+                              <Icon className="w-3 h-3" />
+                            </span>
+                            <span className="text-xs font-medium text-gray-700 truncate">
+                              {isFilled ? (
+                                fieldType === "signature" ? "✓ Signed" : fieldValues[field.id]
+                              ) : (
+                                field.label || "Field"
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Preview not available</p>
+                )}
+              </div>
 
-                  <ModernSignatureCapture
-                    value={signatureValue}
-                    onChange={setSignatureValue}
-                  />
-                </div>
-              )}
+              {/* Signature Section - Right Panel */}
+              {previewDoc.requiresSignature && (
+                <div className="w-full lg:w-[400px] flex-shrink-0 border-t lg:border-t-0 lg:border-l overflow-y-auto bg-white">
+                  <div className="p-6 space-y-6">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-indigo-600" />
+                        Complete Document
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {loadingFields ? "Loading fields..." : 
+                          documentFields.length === 0 ? "No fields placed on this document" :
+                          "Please fill in all required fields below"
+                        }
+                      </p>
+                    </div>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => {
-                  setPreviewDoc(null);
-                  setSignatureValue(null);
-                  setSignerName("");
-                  setSignerRole("");
-                }}>
-                  Close
-                </Button>
+                    {/* Dynamic Field Inputs based on what was placed */}
+                    {documentFields.length > 0 && (
+                      <div className="space-y-4">
+                        {/* Name Fields */}
+                        {documentFields.filter(f => getFieldType(f.label) === "name").map((field) => (
+                          <div key={field.id} className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                              <span className={`flex items-center justify-center w-5 h-5 rounded-full ${fieldThemes.name.iconBg}`}>
+                                <UserRound className="w-3 h-3" />
+                              </span>
+                              {field.label || "Full Name"}
+                            </Label>
+                            <Input 
+                              placeholder="Enter your full legal name" 
+                              value={fieldValues[field.id] || ""} 
+                              onChange={(e) => setFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                              className="bg-white"
+                            />
+                          </div>
+                        ))}
 
-                {previewDoc.requiresSignature ? (
-                  <Button
-                    disabled={!signatureValue || signSubmitting || !signerName.trim() || !signerRole.trim()}
-                    loading={signSubmitting}
-                    onClick={async () => {
-                      if (!previewDoc || !signatureValue) return;
-                      setSignSubmitting(true);
-                      try {
-                        const res = await tenantFetch("/api/documents/sign", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            documentId: previewDoc.id,
-                            method: signatureValue.method,
-                            typedText: signatureValue.typedText || signerName, // Use signerName as fallback or primary if typed
-                            drawnDataUrl: signatureValue.dataUrl,
-                            // We might want to send name/role if API supports it, 
-                            // but currently we just enforce them in UI.
-                          })
-                        });
-                        if (res.ok) {
-                          toast.success("Document signed successfully!");
-                          // Refresh action items to remove completed ones
-                          mutateActionItems();
-                          setActionItems(prev => prev.filter(item =>
-                            !item.id.includes(previewDoc.id)
-                          ));
+                        {/* Job Role Fields */}
+                        {documentFields.filter(f => getFieldType(f.label) === "job").map((field) => (
+                          <div key={field.id} className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                              <span className={`flex items-center justify-center w-5 h-5 rounded-full ${fieldThemes.job.iconBg}`}>
+                                <Briefcase className="w-3 h-3" />
+                              </span>
+                              {field.label || "Job Role"}
+                            </Label>
+                            <Input 
+                              placeholder="Enter your job title/role" 
+                              value={fieldValues[field.id] || ""} 
+                              onChange={(e) => setFieldValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                              className="bg-white"
+                            />
+                          </div>
+                        ))}
+
+                        {/* Signature Fields */}
+                        {hasSignatureField && (
+                          <div className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                              <span className={`flex items-center justify-center w-5 h-5 rounded-full ${fieldThemes.signature.iconBg}`}>
+                                <PenLine className="w-3 h-3" />
+                              </span>
+                              Signature
+                            </Label>
+                            <ModernSignatureCapture
+                              value={signatureValue}
+                              onChange={setSignatureValue}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-2 pt-4 border-t">
+                      <Button
+                        disabled={!allFieldsFilled || signSubmitting}
+                        loading={signSubmitting}
+                        onClick={async () => {
+                          if (!previewDoc) return;
+                          setSignSubmitting(true);
+                          try {
+                            // Get the name value to use for typed signature
+                            const nameField = documentFields.find(f => getFieldType(f.label) === "name");
+                            const nameValue = nameField ? fieldValues[nameField.id] : "";
+                            
+                            const res = await tenantFetch("/api/documents/sign", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                documentId: previewDoc.id,
+                                method: signatureValue?.method || "TYPED",
+                                typedText: signatureValue?.typedText || nameValue,
+                                drawnDataUrl: signatureValue?.dataUrl,
+                                fieldValues: fieldValues, // Send all field values
+                              })
+                            });
+                            if (res.ok) {
+                              toast.success("Document signed successfully!");
+                              mutateActionItems();
+                              setActionItems(prev => prev.filter(item =>
+                                !item.id.includes(previewDoc.id)
+                              ));
+                              setPreviewDoc(null);
+                              setSignatureValue(null);
+                              setDocumentFields([]);
+                              setFieldValues({});
+                            } else {
+                              toast.error("Failed to sign document");
+                            }
+                          } catch {
+                            toast.error("Failed to sign document");
+                          } finally {
+                            setSignSubmitting(false);
+                          }
+                        }}
+                        className="w-full"
+                      >
+                        {signSubmitting ? "Signing..." : "Sign Document"}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
                           setPreviewDoc(null);
                           setSignatureValue(null);
-                          setSignerName("");
-                          setSignerRole("");
-                        } else {
-                          toast.error("Failed to sign document");
-                        }
-                      } catch {
-                        toast.error("Failed to sign document");
-                      } finally {
-                        setSignSubmitting(false);
-                      }
-                    }}
-                  >
-                    {signSubmitting ? "Signing..." : "Sign Document"}
-                  </Button>
-                ) : previewDoc.requiresAck ? (
+                          setDocumentFields([]);
+                          setFieldValues({});
+                        }}
+                        className="w-full"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Acknowledgement Only (no signature) */}
+              {!previewDoc.requiresSignature && previewDoc.requiresAck && (
+                <div className="w-full lg:w-[300px] flex-shrink-0 border-t lg:border-t-0 lg:border-l p-6 bg-white">
                   <Button
                     onClick={async () => {
                       if (!previewDoc) return;
@@ -802,7 +999,6 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                           body: JSON.stringify({ documentId: previewDoc.id })
                         });
                         toast.success("Document acknowledged");
-                        // Refresh action items to remove completed ones
                         mutateActionItems();
                         setActionItems(prev => prev.filter(item =>
                           !item.id.includes(previewDoc.id)
@@ -812,11 +1008,12 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
                         toast.error("Failed to acknowledge document");
                       }
                     }}
+                    className="w-full"
                   >
                     Acknowledge & Close
                   </Button>
-                ) : null}
-              </div>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

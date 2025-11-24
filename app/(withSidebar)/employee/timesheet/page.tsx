@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Plus, PlusCircle } from 'lucide-react';
+import { Calendar, Plus, PlusCircle, ClipboardList } from 'lucide-react';
 import ClockWidget from '@/components/time-tracking/ClockWidget';
 import TimesheetCard from '@/components/time-tracking/TimesheetCard';
 import TimesheetDetailView from '@/components/time-tracking/TimesheetDetailView';
@@ -11,6 +11,7 @@ import AddManualEntryDialog from '@/components/time-tracking/AddManualEntryDialo
 import CurrentPeriodEntries from '@/components/time-tracking/CurrentPeriodEntries';
 import { useToast } from '@/hooks/use-toast';
 import TimesheetSubmissionSuccess from '@/components/time-tracking/TimesheetSubmissionSuccess';
+import { PageShell } from '@/components/ui/PageShell';
 
 export default function EmployeeTimesheetPage() {
   const { data: session, status } = useSession();
@@ -196,16 +197,22 @@ export default function EmployeeTimesheetPage() {
           open={showSuccess}
           onClose={() => setShowSuccess(false)}
         />
-        <div className="p-6 max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-white/10 rounded w-1/4"></div>
-            <div className="h-64 bg-white/10 rounded"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="h-48 bg-white/10 rounded"></div>
-              <div className="h-48 bg-white/10 rounded"></div>
+        <PageShell
+          title="My Timesheets"
+          description="Track your hours and submit timesheets for approval"
+          icon={<ClipboardList className="w-6 h-6" />}
+        >
+          <div className="max-w-7xl mx-auto">
+            <div className="animate-pulse space-y-6">
+              <div className="h-8 bg-white/10 rounded w-1/4"></div>
+              <div className="h-64 bg-white/10 rounded"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="h-48 bg-white/10 rounded"></div>
+                <div className="h-48 bg-white/10 rounded"></div>
+              </div>
             </div>
           </div>
-        </div>
+        </PageShell>
       </>
     );
   }
@@ -218,27 +225,33 @@ export default function EmployeeTimesheetPage() {
           open={showSuccess}
           onClose={() => setShowSuccess(false)}
         />
-        <div className="p-6 max-w-7xl mx-auto">
-          {error && (
-            <div className="mb-6 bg-red-500/20 border border-red-500/30 rounded-xl p-4">
-              <p className="text-red-400">{error}</p>
-            </div>
-          )}
-          
-          <TimesheetDetailView
-            timesheet={selectedTimesheet}
-            onBack={handleBack}
-            onSubmit={
-              selectedTimesheet.approvalStatus === 'PENDING' && !selectedTimesheet.submittedAt
-                ? handleSubmitTimesheet
-                : undefined
-            }
-            canSubmit={
-              selectedTimesheet.approvalStatus === 'PENDING' && !selectedTimesheet.submittedAt
-            }
-            isLoading={actionLoading}
-          />
-        </div>
+        <PageShell
+          title="Timesheet Details"
+          description="View and manage your timesheet"
+          icon={<ClipboardList className="w-6 h-6" />}
+        >
+          <div className="max-w-7xl mx-auto">
+            {error && (
+              <div className="mb-6 bg-red-500/20 border border-red-500/30 rounded-xl p-4">
+                <p className="text-red-400">{error}</p>
+              </div>
+            )}
+            
+            <TimesheetDetailView
+              timesheet={selectedTimesheet}
+              onBack={handleBack}
+              onSubmit={
+                selectedTimesheet.approvalStatus === 'PENDING' && !selectedTimesheet.submittedAt
+                  ? handleSubmitTimesheet
+                  : undefined
+              }
+              canSubmit={
+                selectedTimesheet.approvalStatus === 'PENDING' && !selectedTimesheet.submittedAt
+              }
+              isLoading={actionLoading}
+            />
+          </div>
+        </PageShell>
       </>
     );
   }
@@ -250,14 +263,11 @@ export default function EmployeeTimesheetPage() {
         open={showSuccess}
         onClose={() => setShowSuccess(false)}
       />
-      <div className="p-6 max-w-7xl mx-auto space-y-6 text-slate-900">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">My Timesheets</h1>
-            <p className="text-slate-600">Track your hours and submit timesheets for approval</p>
-          </div>
-          
+      <PageShell
+        title="My Timesheets"
+        description="Track your hours and submit timesheets for approval"
+        icon={<ClipboardList className="w-6 h-6" />}
+        action={
           <div className="flex gap-3">
             <button
               onClick={() => setShowManualEntryDialog(true)}
@@ -275,88 +285,90 @@ export default function EmployeeTimesheetPage() {
               Generate Timesheet
             </button>
           </div>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4">
-            <p className="text-red-400">{error}</p>
-          </div>
-        )}
-
-        {/* Clock Widget */}
-        <ClockWidget />
-
-        {/* Current Period Entries */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Calendar className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-semibold text-slate-900">Current Period</h2>
+        }
+      >
+        <div className="max-w-7xl mx-auto space-y-6 text-slate-900">
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-4">
+              <p className="text-red-400">{error}</p>
             </div>
-            <p className="text-slate-600 mb-4">
-              Your hours for the current pay period will appear below. Generate a timesheet when you're ready to submit for approval.
-            </p>
-            <button
-              onClick={handleGenerateTimesheet}
-              disabled={actionLoading}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium text-sm"
-            >
-              {actionLoading ? 'Generating...' : 'Generate Current Timesheet'}
-            </button>
-          </div>
-          
-          <CurrentPeriodEntries onRefresh={fetchTimesheets} />
-        </div>
+          )}
 
-        {/* Past Timesheets */}
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-4">Past Timesheets</h2>
-          
-          {timesheets.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-              <Calendar className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">No Timesheets Yet</h3>
-              <p className="text-slate-600 mb-6">
-                Start by clocking in/out, then generate your first timesheet.
+          {/* Clock Widget */}
+          <ClockWidget />
+
+          {/* Current Period Entries */}
+          <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-2">
+                <Calendar className="w-6 h-6 text-blue-600" />
+                <h2 className="text-xl font-semibold text-slate-900">Current Period</h2>
+              </div>
+              <p className="text-slate-600 mb-4">
+                Your hours for the current pay period will appear below. Generate a timesheet when you're ready to submit for approval.
               </p>
               <button
                 onClick={handleGenerateTimesheet}
                 disabled={actionLoading}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium text-sm"
               >
-                {actionLoading ? 'Generating...' : 'Generate First Timesheet'}
+                {actionLoading ? 'Generating...' : 'Generate Current Timesheet'}
               </button>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {timesheets.map((timesheet) => (
-                <TimesheetCard
-                  key={timesheet.id}
-                  timesheet={timesheet}
-                  onView={() => handleViewTimesheet(timesheet)}
-                  onSubmit={
-                    timesheet.approvalStatus === 'PENDING' && !timesheet.submittedAt
-                      ? () => {
-                          setSelectedTimesheet(timesheet);
-                          handleSubmitTimesheet();
-                        }
-                      : undefined
-                  }
-                  isLoading={actionLoading}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+            
+            <CurrentPeriodEntries onRefresh={fetchTimesheets} />
+          </div>
 
-        {/* Manual Entry Dialog */}
-        <AddManualEntryDialog
-          open={showManualEntryDialog}
-          onClose={() => setShowManualEntryDialog(false)}
-          onSuccess={fetchTimesheets}
-        />
-      </div>
+          {/* Past Timesheets */}
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">Past Timesheets</h2>
+            
+            {timesheets.length === 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+                <Calendar className="w-16 h-16 text-slate-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-slate-900 mb-2">No Timesheets Yet</h3>
+                <p className="text-slate-600 mb-6">
+                  Start by clocking in/out, then generate your first timesheet.
+                </p>
+                <button
+                  onClick={handleGenerateTimesheet}
+                  disabled={actionLoading}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+                >
+                  {actionLoading ? 'Generating...' : 'Generate First Timesheet'}
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {timesheets.map((timesheet) => (
+                  <TimesheetCard
+                    key={timesheet.id}
+                    timesheet={timesheet}
+                    onView={() => handleViewTimesheet(timesheet)}
+                    onSubmit={
+                      timesheet.approvalStatus === 'PENDING' && !timesheet.submittedAt
+                        ? () => {
+                            setSelectedTimesheet(timesheet);
+                            handleSubmitTimesheet();
+                          }
+                        : undefined
+                    }
+                    isLoading={actionLoading}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Manual Entry Dialog */}
+          <AddManualEntryDialog
+            open={showManualEntryDialog}
+            onClose={() => setShowManualEntryDialog(false)}
+            onSuccess={fetchTimesheets}
+          />
+        </div>
+      </PageShell>
     </>
   );
 }

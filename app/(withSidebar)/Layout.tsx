@@ -2,7 +2,12 @@
 
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
+import { useSession } from "next-auth/react";
 import AdminSidebar from "@/components/sidebars/AdminSidebar";
+import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
+import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
+
+type UserRole = "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN";
 
 export default function WithSidebarLayout({
   children,
@@ -10,6 +15,22 @@ export default function WithSidebarLayout({
   children: React.ReactNode;
 }) {
   const _pathname = usePathname();
+  const { data: session } = useSession();
+
+  const resolvedRole =
+    (session?.user?.role as UserRole | undefined) ?? "EMPLOYEE";
+
+  const getSidebar = () => {
+    if (resolvedRole === "ADMIN" || resolvedRole === "SUPER_ADMIN") {
+      return <AdminSidebar variant="desktop" />;
+    }
+
+    if (resolvedRole === "MANAGER") {
+      return <ManagerSidebar variant="desktop" />;
+    }
+
+    return <EmployeeSidebar variant="desktop" />;
+  };
 
   const _navItems = useMemo(
     () => [
@@ -82,7 +103,7 @@ export default function WithSidebarLayout({
   return (
     <div className="flex h-screen">
       <div className="w-80 flex-shrink-0 hidden lg:block">
-        <AdminSidebar />
+        {getSidebar()}
       </div>
       <main className="flex-1 overflow-y-auto bg-background/80 backdrop-blur-sm">{children}</main>
     </div>

@@ -416,14 +416,11 @@ function EnhancedWorkflowCanvasInner({
     const type = event.dataTransfer.getData('application/reactflow');
     if (!type || !reactFlowInstance) return;
 
-    // Get the bounding rect of the React Flow wrapper
-    const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
-    if (!reactFlowBounds) return;
-
-    // Convert screen coordinates to flow coordinates
-    const position = reactFlowInstance.project({
-      x: event.clientX - reactFlowBounds.left,
-      y: event.clientY - reactFlowBounds.top,
+    // Use screenToFlowPosition (no need to subtract bounds)
+    // Type assertion needed as TypeScript types may be outdated
+    const position = (reactFlowInstance as any).screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
     });
 
     const nodeConfig = getNodeConfig(type);

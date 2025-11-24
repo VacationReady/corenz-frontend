@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import Button from "@/components/ui/Button";
 import { PageShell } from "@/components/ui/PageShell";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
-import { FileText, AlertCircle, CheckCircle2, FileSignature } from "lucide-react";
+import { FileText, AlertCircle, CheckCircle2, FileSignature, Upload, X, Shield, Eye, PenLine, Clock, FileUp } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import {
@@ -636,108 +637,276 @@ export default function EmployeeDocumentsPage() {
           </Table>
           )}
 
-          {/* Upload Modal */}
+          {/* Upload Modal - Modern Glassmorphic Design */}
         {isAdminUser && (
           <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Upload Document</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleUpload} className="space-y-4">
-                <div>
-                  <Label>Document Name</Label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>Category</Label>
-                  <Select value={category} onValueChange={setCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Employment Checks">
-                        Employment Checks
-                      </SelectItem>
-                      <SelectItem value="Driver Licence">
-                        Driver Licence
-                      </SelectItem>
-                      <SelectItem value="Training">Training</SelectItem>
-                      <SelectItem value="Visa Documents">
-                        Visa Documents
-                      </SelectItem>
-                      <SelectItem value="General HR">General HR</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Requires Acknowledgement</Label>
-                    <Switch
-                      checked={requiresAck}
-                      onChange={(checked) => setRequiresAck(checked)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label>Requires Signature</Label>
-                    <Switch
-                      checked={requiresSignature}
-                      onChange={setRequiresSignature}
-                    />
-                  </div>
-                  {requiresSignature && (
-                    <div>
-                      <Label>Signature Due (optional)</Label>
-                      <Input
-                        type="datetime-local"
-                        value={signatureDueAt}
-                        onChange={(e) => setSignatureDueAt(e.target.value)}
-                      />
+            <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+              >
+                {/* Header with gradient accent */}
+                <div className="relative px-8 pt-8 pb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-emerald-500/10 to-violet-500/5" />
+                  <div className="relative flex items-center gap-3">
+                    <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
+                      <FileUp className="w-5 h-5" />
                     </div>
-                  )}
-                </div>
-                <div>
-                  <Label>File</Label>
-                  <Input
-                    type="file"
-                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>Admin Access</Label>
-                    <Switch
-                      checked={canViewAdmin}
-                      onChange={(checked) => setCanViewAdmin(checked)}
-                    />
-                  </div>
-                  <div>
-                    <Label>Manager Access</Label>
-                    <Switch
-                      checked={canViewManager}
-                      onChange={(checked) => setCanViewManager(checked)}
-                    />
-                  </div>
-                  <div>
-                    <Label>Employee Access</Label>
-                    <Switch
-                      checked={canViewEmployee}
-                      onChange={(checked) => setCanViewEmployee(checked)}
-                    />
+                    <div>
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                        Upload Document
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Add a document for {employeeName}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <DialogFooter>
-                  <Button type="submit" disabled={uploading}>
-                    {uploading ? "Uploading..." : "Upload Document"}
-                  </Button>
-                </DialogFooter>
-              </form>
+                {/* Content Area */}
+                <form onSubmit={handleUpload} className="px-8 pb-8 space-y-5">
+                  {/* Document Details */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="p-5 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30 space-y-4"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="w-4 h-4 text-primary" />
+                      <span className="font-medium text-sm">Document Details</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground/80">
+                          Document Name <span className="text-primary">*</span>
+                        </Label>
+                        <Input
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Enter document name"
+                          className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground/80">
+                          Category <span className="text-primary">*</span>
+                        </Label>
+                        <Select value={category} onValueChange={setCategory}>
+                          <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Employment Checks">Employment Checks</SelectItem>
+                            <SelectItem value="Driver Licence">Driver Licence</SelectItem>
+                            <SelectItem value="Training">Training</SelectItem>
+                            <SelectItem value="Visa Documents">Visa Documents</SelectItem>
+                            <SelectItem value="General HR">General HR</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Compliance Section */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20"
+                  >
+                    <div className="flex items-center gap-2 mb-4">
+                      <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span className="font-medium text-sm">Compliance Requirements</span>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <Label className="text-sm cursor-pointer">Requires Acknowledgement</Label>
+                            <p className="text-xs text-muted-foreground">Employee must confirm reading</p>
+                          </div>
+                        </div>
+                        <Switch checked={requiresAck} onChange={setRequiresAck} />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                        <div className="flex items-center gap-2">
+                          <PenLine className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <Label className="text-sm cursor-pointer">Requires Signature</Label>
+                            <p className="text-xs text-muted-foreground">Document needs to be signed</p>
+                          </div>
+                        </div>
+                        <Switch checked={requiresSignature} onChange={setRequiresSignature} />
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {requiresSignature && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="mt-4 pt-4 border-t border-amber-500/20"
+                        >
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-foreground/80 flex items-center gap-2">
+                              <Clock className="w-4 h-4" />
+                              Signature Due Date
+                            </Label>
+                            <Input
+                              type="datetime-local"
+                              value={signatureDueAt}
+                              onChange={(e) => setSignatureDueAt(e.target.value)}
+                              className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+
+                  {/* Visibility Settings */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 to-primary/5 border border-blue-500/20"
+                  >
+                    <div className="flex items-center gap-2 mb-4">
+                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-sm">Visibility Settings</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-3 rounded-xl bg-white/30 dark:bg-white/5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-medium">Admin</Label>
+                          <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-white/30 dark:bg-white/5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-medium">Manager</Label>
+                          <Switch checked={canViewManager} onChange={setCanViewManager} />
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl bg-white/30 dark:bg-white/5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-medium">Employee</Label>
+                          <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* File Upload */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="space-y-2"
+                  >
+                    <Label className="text-sm font-medium text-foreground/80">
+                      Upload File <span className="text-primary">*</span>
+                    </Label>
+                    <div
+                      className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                        file 
+                          ? "border-emerald-500 bg-emerald-500/10" 
+                          : "border-muted/50 bg-white/30 dark:bg-white/5 hover:border-primary/50 hover:bg-primary/5"
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        required
+                      />
+                      
+                      {file ? (
+                        <div className="space-y-2">
+                          <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                            <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                          </div>
+                          <p className="font-medium text-emerald-600 dark:text-emerald-400">{file.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="w-4 h-4 mr-1" /> Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="w-12 h-12 mx-auto rounded-2xl bg-muted/50 flex items-center justify-center">
+                            <Upload className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">
+                              Drag & drop or click to upload
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              PDF, Word, Excel, or image files
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+
+                  {/* Action Buttons */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex items-center justify-end gap-3 pt-4"
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setIsUploadModalOpen(false)}
+                      className="h-11 rounded-xl"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={uploading || !file || !name || !category}
+                      className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+                    >
+                      {uploading ? (
+                        <>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
+                          />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Document
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+                </form>
+              </motion.div>
             </DialogContent>
           </Dialog>
         )}

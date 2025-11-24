@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { UploadCloud, FileText, Eye } from "lucide-react";
+import { UploadCloud, FileText, Eye, Upload, X, Shield, PenLine, CheckCircle2, Clock, FileUp, Building2 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { apiClient } from "@/lib/apiClient";
 import { usePostMutation, useDeleteMutation } from "@/hooks/useMutationWithRefresh";
@@ -843,231 +844,405 @@ function DocumentsContent() {
         )}
 
         <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Upload Document</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleUpload} className="space-y-4">
-              <div>
-                <Label htmlFor="file">File</Label>
-                <Input
-                  id="file"
-                  type="file"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="name">Document Name</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={(v) => {
-                  if (v === "__new__") {
-                    setManageCategoriesOpen(true);
-                  } else {
-                    setCategory(v);
-                    setNewCategory("");
-                  }
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="__new__">+ Add new category</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Departments</Label>
-                <MultiSelect
-                  options={departmentsList}
-                  selected={uploadDepartments}
-                  onChange={(values) =>
-                    values.includes("all")
-                      ? setUploadDepartments(["all"])
-                      : setUploadDepartments(values)
-                  }
-                  placeholder="Select department(s)"
-                  searchable
-                  searchPlaceholder="Search departments..."
-                />
-              </div>
-              <div>
-                <Label>Job Roles</Label>
-                <MultiSelect
-                  options={jobRolesList}
-                  selected={uploadJobRoles}
-                  onChange={(values) =>
-                    values.includes("all")
-                      ? setUploadJobRoles(["all"])
-                      : setUploadJobRoles(values)
-                  }
-                  placeholder="Select job role(s)"
-                  searchable
-                  searchPlaceholder="Search job roles..."
-                />
-              </div>
-              <div className="mt-2 space-y-3">
-                <div className="border-t pt-3">
-                  <Label className="text-sm font-semibold mb-2 block">Access Permissions</Label>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="canViewAdmin" className="text-sm font-normal">Admins can view</Label>
-                      <Switch
-                        id="canViewAdmin"
-                        checked={canViewAdmin}
-                        onChange={setCanViewAdmin}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="canViewManager" className="text-sm font-normal">Managers can view</Label>
-                      <Switch
-                        id="canViewManager"
-                        checked={canViewManager}
-                        onChange={setCanViewManager}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="canViewEmployee" className="text-sm font-normal">Employees can view</Label>
-                      <Switch
-                        id="canViewEmployee"
-                        checked={canViewEmployee}
-                        onChange={setCanViewEmployee}
-                      />
-                    </div>
+          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+            >
+              {/* Header with gradient accent */}
+              <div className="relative px-8 pt-8 pb-6">
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-primary/10 to-emerald-500/5" />
+                <div className="relative flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                    <FileUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                      Upload Company Document
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Share documents with your organization
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <Label>Requires Acknowledgement</Label>
-                  <Switch checked={requiresAck} onChange={setRequiresAck} />
-                </div>
-                {requiresAck && file && (
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setUploadPreviewOpen(true)}
-                      className="gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Preview Document
-                    </Button>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <Label>Require Acknowledgement from New Starters</Label>
-                  <Switch
-                    checked={requireAckFromNewStarters}
-                    onChange={setRequireAckFromNewStarters}
-                  />
-                </div>
+              </div>
 
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsUploadModalOpen(false)}
+              {/* Content Area */}
+              <form onSubmit={handleUpload} className="px-8 pb-8 max-h-[60vh] overflow-y-auto space-y-5">
+                {/* Document Details */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="p-5 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30 space-y-4"
                 >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  loading={uploading}
-                  loadingText="Uploading document"
-                  icon={<UploadCloud className="h-4 w-4" />}
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-4 h-4 text-primary" />
+                    <span className="font-medium text-sm">Document Details</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground/80">
+                        Document Name <span className="text-primary">*</span>
+                      </Label>
+                      <Input
+                        id="name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Enter document name"
+                        className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground/80">
+                        Category <span className="text-primary">*</span>
+                      </Label>
+                      <Select value={category} onValueChange={(v) => {
+                        if (v === "__new__") {
+                          setManageCategoriesOpen(true);
+                        } else {
+                          setCategory(v);
+                          setNewCategory("");
+                        }
+                      }}>
+                        <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categoryOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                          <div className="border-t border-muted/30 mt-1 pt-1">
+                            <SelectItem value="__new__">
+                              <span className="text-primary">+ Add new category</span>
+                            </SelectItem>
+                          </div>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Target Audience */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                  className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 space-y-4"
                 >
-                  Upload
-                </Button>
-              </DialogFooter>
-            </form>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="font-medium text-sm">Target Audience</span>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground/80">Departments</Label>
+                      <MultiSelect
+                        options={departmentsList}
+                        selected={uploadDepartments}
+                        onChange={(values) =>
+                          values.includes("all")
+                            ? setUploadDepartments(["all"])
+                            : setUploadDepartments(values)
+                        }
+                        placeholder="Select department(s)"
+                        searchable
+                        searchPlaceholder="Search departments..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground/80">Job Roles</Label>
+                      <MultiSelect
+                        options={jobRolesList}
+                        selected={uploadJobRoles}
+                        onChange={(values) =>
+                          values.includes("all")
+                            ? setUploadJobRoles(["all"])
+                            : setUploadJobRoles(values)
+                        }
+                        placeholder="Select job role(s)"
+                        searchable
+                        searchPlaceholder="Search job roles..."
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Visibility Settings */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 to-primary/5 border border-blue-500/20"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="font-medium text-sm">Access Permissions</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3 rounded-xl bg-white/30 dark:bg-white/5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="canViewAdmin" className="text-xs font-medium">Admins</Label>
+                        <Switch id="canViewAdmin" checked={canViewAdmin} onChange={setCanViewAdmin} />
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white/30 dark:bg-white/5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="canViewManager" className="text-xs font-medium">Managers</Label>
+                        <Switch id="canViewManager" checked={canViewManager} onChange={setCanViewManager} />
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white/30 dark:bg-white/5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="canViewEmployee" className="text-xs font-medium">Employees</Label>
+                        <Switch id="canViewEmployee" checked={canViewEmployee} onChange={setCanViewEmployee} />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Compliance Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                  className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <span className="font-medium text-sm">Compliance Requirements</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-sm cursor-pointer">Requires Acknowledgement</Label>
+                          <p className="text-xs text-muted-foreground">Employees must confirm reading</p>
+                        </div>
+                      </div>
+                      <Switch checked={requiresAck} onChange={setRequiresAck} />
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                      <div className="flex items-center gap-2">
+                        <PenLine className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-sm cursor-pointer">Auto-assign to New Starters</Label>
+                          <p className="text-xs text-muted-foreground">Include in onboarding</p>
+                        </div>
+                      </div>
+                      <Switch checked={requireAckFromNewStarters} onChange={setRequireAckFromNewStarters} />
+                    </div>
+                  </div>
+                  
+                  {requiresAck && file && (
+                    <div className="mt-4 pt-4 border-t border-amber-500/20 flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setUploadPreviewOpen(true)}
+                        className="gap-2 rounded-xl"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Preview Document
+                      </Button>
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* File Upload */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="space-y-2"
+                >
+                  <Label className="text-sm font-medium text-foreground/80">
+                    Upload File <span className="text-primary">*</span>
+                  </Label>
+                  <div
+                    className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                      file 
+                        ? "border-emerald-500 bg-emerald-500/10" 
+                        : "border-muted/50 bg-white/30 dark:bg-white/5 hover:border-primary/50 hover:bg-primary/5"
+                    }`}
+                  >
+                    <input
+                      id="file"
+                      type="file"
+                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      required
+                    />
+                    
+                    {file ? (
+                      <div className="space-y-2">
+                        <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                          <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <p className="font-medium text-emerald-600 dark:text-emerald-400">{file.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="w-4 h-4 mr-1" /> Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="w-12 h-12 mx-auto rounded-2xl bg-muted/50 flex items-center justify-center">
+                          <Upload className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">
+                            Drag & drop or click to upload
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            PDF, Word, Excel, or image files
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+
+                {/* Action Buttons */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 }}
+                  className="flex items-center justify-end gap-3 pt-4"
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsUploadModalOpen(false)}
+                    className="h-11 rounded-xl"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    loading={uploading}
+                    loadingText="Uploading..."
+                    disabled={!file || !name || !category}
+                    className="h-11 px-6 rounded-xl bg-gradient-to-r from-violet-500 to-primary hover:from-violet-500/90 hover:to-primary/90 text-white font-semibold shadow-lg shadow-primary/25"
+                    icon={<UploadCloud className="h-4 w-4" />}
+                  >
+                    Upload Document
+                  </Button>
+                </motion.div>
+              </form>
+            </motion.div>
           </DialogContent>
         </Dialog>
 
-        {/* Manage Categories Modal */}
+        {/* Manage Categories Modal - Modern Design */}
         <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Manage Categories</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div className="space-y-2 max-h-60 overflow-auto border rounded p-2">
-                {categoryOptions
-                  .filter((o) => o.value !== "all")
-                  .map((opt) => (
-                    <div key={opt.value} className="flex items-center justify-between gap-2">
-                      <span className="text-sm">{opt.label}</span>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={async () => {
-                          try {
-                            const res = await fetch("/api/document-categories", {
-                              method: "DELETE",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ name: opt.value }),
-                            });
-                            if (!res.ok) throw new Error("Failed to delete category");
-                            setCategoriesList((prev) => prev.filter((x) => x !== opt.value));
-                            if (category === opt.value) setCategory("");
-                          } catch (e: any) {
-                            toast.error(e.message);
-                          }
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  ))}
-                {categoryOptions.filter((o) => o.value !== "all").length === 0 && (
-                  <p className="text-sm text-muted-foreground">No categories yet.</p>
-                )}
+          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="glass-ultra rounded-2xl overflow-hidden shadow-depth-4"
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <FileText className="w-5 h-5 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold">Manage Categories</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2 max-h-60 overflow-auto rounded-xl border border-muted/30 bg-white/30 dark:bg-white/5">
+                    {categoryOptions
+                      .filter((o) => o.value !== "all")
+                      .map((opt) => (
+                        <div key={opt.value} className="flex items-center justify-between gap-2 p-3 hover:bg-muted/30 transition-colors">
+                          <span className="text-sm font-medium">{opt.label}</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch("/api/document-categories", {
+                                  method: "DELETE",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ name: opt.value }),
+                                });
+                                if (!res.ok) throw new Error("Failed to delete category");
+                                setCategoriesList((prev) => prev.filter((x) => x !== opt.value));
+                                if (category === opt.value) setCategory("");
+                              } catch (e: any) {
+                                toast.error(e.message);
+                              }
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    {categoryOptions.filter((o) => o.value !== "all").length === 0 && (
+                      <p className="text-sm text-muted-foreground p-4 text-center">No categories yet.</p>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="New category name"
+                      className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5"
+                    />
+                    <Button
+                      className="h-11 px-5 rounded-xl"
+                      onClick={async () => {
+                        const name = newCategoryName.trim();
+                        if (!name) return;
+                        try {
+                          const res = await fetch("/api/document-categories", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ name }),
+                          });
+                          if (!res.ok) throw new Error("Failed to add category");
+                          setCategoriesList((prev) => (prev.includes(name) ? prev : [...prev, name]));
+                          setCategory(name);
+                          setNewCategoryName("");
+                        } catch (e: any) {
+                          toast.error(e.message);
+                        }
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-muted/30 flex justify-end">
+                  <Button variant="ghost" onClick={() => setManageCategoriesOpen(false)} className="rounded-xl">
+                    Done
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="New category name"
-                />
-                <Button
-                  onClick={async () => {
-                    const name = newCategoryName.trim();
-                    if (!name) return;
-                    try {
-                      const res = await fetch("/api/document-categories", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name }),
-                      });
-                      if (!res.ok) throw new Error("Failed to add category");
-                      setCategoriesList((prev) => (prev.includes(name) ? prev : [...prev, name]));
-                      setCategory(name);
-                      setNewCategoryName("");
-                    } catch (e: any) {
-                      toast.error(e.message);
-                    }
-                  }}
-                >
-                  Add
-                </Button>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setManageCategoriesOpen(false)}>Close</Button>
-            </DialogFooter>
+            </motion.div>
           </DialogContent>
         </Dialog>
 

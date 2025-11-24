@@ -33,7 +33,7 @@ import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { Input } from "@/components/ui/Input";
-import { useApi, useBatchedApi, usePaginatedApi } from "@/hooks/useApi";
+import { useApi, useBatchedApi } from "@/hooks/useApi";
 import { apiClient } from "@/lib/apiClient";
 import { useSession } from "next-auth/react";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
@@ -611,44 +611,64 @@ export default function AdminDashboardClient({
     };
   };
 
-  const {
-    data: minimalEmployees,
-    isLoading: loadingMinimalEmployees,
-    loadMore: loadMoreMinimalEmployees,
-    hasMore: hasMoreMinimalEmployees,
-    reset: resetMinimalEmployees,
-  } = usePaginatedApi<MinimalEmployeeForEdit[]>(
-    "/api/employees/minimal",
-    {
-      params: {
-        status: "all",
-        limit: 50,
-      },
-      enabled: editEmployeeOpen,
-    },
-  );
-
-  useEffect(() => {
-    if (!editEmployeeOpen) return;
-    if (!hasMoreMinimalEmployees || loadingMinimalEmployees) return;
-    // Automatically prefetch additional pages while the dialog is open
-    loadMoreMinimalEmployees();
-  }, [editEmployeeOpen, hasMoreMinimalEmployees, loadingMinimalEmployees, loadMoreMinimalEmployees]);
-
+  // Load all employees when dialog opens - use simple fetch to avoid pagination complexity
   useEffect(() => {
     if (!editEmployeeOpen) {
       setEmployeesForEdit(null);
       setLoadingEmployees(false);
-      resetMinimalEmployees();
       return;
     }
-    if (minimalEmployees) {
-      setEmployeesForEdit(minimalEmployees);
-      setLoadingEmployees(loadingMinimalEmployees);
-    } else {
-      setLoadingEmployees(loadingMinimalEmployees);
-    }
-  }, [editEmployeeOpen, minimalEmployees, loadingMinimalEmployees, resetMinimalEmployees]);
+
+    let active = true;
+    const loadAllEmployees = async () => {
+      setLoadingEmployees(true);
+      const allEmployees: MinimalEmployeeForEdit[] = [];
+      let cursor: string | null = null;
+      let hasMore = true;
+
+      try {
+        // Fetch all pages sequentially to get all employees
+        while (hasMore) {
+          const params = new URLSearchParams({ status: "all", limit: "100" });
+          if (cursor) params.set("cursor", cursor);
+          
+          const res = await fetch(`/api/employees/minimal?${params.toString()}`, {
+            cache: "no-store",
+          });
+          
+          if (!res.ok) break;
+          
+          const data = await res.json();
+          if (!active) return;
+          
+          if (Array.isArray(data?.data)) {
+            allEmployees.push(...data.data);
+          }
+          
+          cursor = data?.pagination?.cursor || null;
+          hasMore = data?.pagination?.hasMore ?? false;
+        }
+
+        if (active) {
+          setEmployeesForEdit(allEmployees);
+        }
+      } catch (err) {
+        console.error("Failed to load employees:", err);
+        if (active) {
+          setEmployeesForEdit([]);
+        }
+      } finally {
+        if (active) {
+          setLoadingEmployees(false);
+        }
+      }
+    };
+
+    loadAllEmployees();
+    return () => {
+      active = false;
+    };
+  }, [editEmployeeOpen]);
 
   const employeeOptions = useMemo(() => {
     if (!employeesForEdit) return [] as { id: string; label: string }[];

@@ -6,26 +6,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { workflowEngine } from "@/lib/workflows/WorkflowExecutionEngine";
-import { headers as nextHeaders } from "next/headers";
+import { verifyCronSecret, getUnauthorizedResponse } from "@/lib/cron/auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes
 
-// Verify cron secret to prevent unauthorized execution
-function verifyCronSecret(req: NextRequest): boolean {
-  const headersList = nextHeaders();
-  const cronSecret = (headersList as any)?.get?.("x-cron-secret") || 
-                     req.headers.get("x-cron-secret") ||
-                     req.nextUrl.searchParams.get("secret");
-  
-  return cronSecret === process.env.CRON_SECRET;
-}
-
 export async function GET(req: NextRequest) {
   try {
     // Verify this is a legitimate cron call
-    if (process.env.NODE_ENV === "production" && !verifyCronSecret(req)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!verifyCronSecret(req)) {
+      return getUnauthorizedResponse();
     }
 
     const now = new Date();

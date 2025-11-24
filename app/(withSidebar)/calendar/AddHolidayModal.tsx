@@ -1,13 +1,21 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState, KeyboardEvent } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import Button from "@/components/ui/Button";
-import Modal from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
+import { CalendarDays, User, Calendar, Sparkles, CheckCircle2 } from "lucide-react";
 
 type EmployeeOption = {
   id: string;
@@ -179,101 +187,195 @@ export default function AddHolidayModal({
   };
 
   return (
-    <Modal isOpen={open} onClose={() => setOpen(false)} title="Add holiday">
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Employee</label>
-          <Select
-            value={employeeId || undefined}
-            onValueChange={(value: string) => {
-              if (value === "__clear__") {
-                setEmployeeId("");
-                return;
-              }
-              setEmployeeId(value);
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select employee" />
-            </SelectTrigger>
-            <SelectContent className="max-h-72 p-0">
-              <DropdownSearchInput
-                value={employeeSearch}
-                onChange={setEmployeeSearch}
-                placeholder="Search employees..."
-              />
-              {employeeId ? (
-                <SelectItem value="__clear__" className="text-muted-foreground">
-                  Clear selection
-                </SelectItem>
-              ) : null}
-              {filteredEmployees.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-muted-foreground">
-                  No employees match your search
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) setOpen(false); }}>
+      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+        >
+          {/* Header with gradient accent */}
+          <div className="relative px-8 pt-8 pb-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-primary/10 to-blue-500/5" />
+            <div className="relative flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                <CalendarDays className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  Add Holiday
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Book leave for an employee
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Content Area */}
+          <div className="px-8 pb-8 max-h-[65vh] overflow-y-auto space-y-6">
+            {/* Employee Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground/80">
+                Employee <span className="text-primary">*</span>
+              </Label>
+              <Select
+                value={employeeId || undefined}
+                onValueChange={(value: string) => {
+                  if (value === "__clear__") {
+                    setEmployeeId("");
+                    return;
+                  }
+                  setEmployeeId(value);
+                }}
+              >
+                <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all">
+                  <SelectValue placeholder="Select employee" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72 p-0">
+                  <DropdownSearchInput
+                    value={employeeSearch}
+                    onChange={setEmployeeSearch}
+                    placeholder="Search employees..."
+                  />
+                  {employeeId ? (
+                    <SelectItem value="__clear__" className="text-muted-foreground">
+                      Clear selection
+                    </SelectItem>
+                  ) : null}
+                  {filteredEmployees.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      No employees match your search
+                    </div>
+                  ) : (
+                    filteredEmployees.map((employee) => (
+                      <SelectItem key={employee.id} value={employee.id}>
+                        <div className="flex flex-col text-left">
+                          <span className="font-medium">{employee.name}</span>
+                          {employee.departmentName ? (
+                            <span className="text-xs text-muted-foreground">
+                              {employee.departmentName}
+                            </span>
+                          ) : null}
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Leave Type */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground/80">
+                Leave Type <span className="text-primary">*</span>
+              </Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all">
+                  <SelectValue placeholder="Select leave type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => {
+                    const Icon = getEventCategoryIcon(c.iconKey);
+                    return (
+                      <SelectItem key={c.id} value={c.id}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4 text-muted-foreground" />
+                          <span>{c.name}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date Selection Section */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="w-4 h-4 text-primary" />
+                <span className="font-medium text-sm">Date Range</span>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground/80">
+                    Start Date <span className="text-primary">*</span>
+                  </Label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value)}
+                    className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                  />
                 </div>
-              ) : (
-                filteredEmployees.map((employee) => (
-                  <SelectItem key={employee.id} value={employee.id}>
-                    <div className="flex flex-col text-left">
-                      <span className="font-medium">{employee.name}</span>
-                      {employee.departmentName ? (
-                        <span className="text-xs text-muted-foreground">
-                          {employee.departmentName}
-                        </span>
-                      ) : null}
-                    </div>
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Leave type</label>
-          <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select leave type" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => {
-                const Icon = getEventCategoryIcon(c.iconKey);
-                return (
-                  <SelectItem key={c.id} value={c.id}>
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <span>{c.name}</span>
-                    </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground/80">
+                    End Date <span className="text-primary">*</span>
+                  </Label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value)}
+                    className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                  />
+                </div>
+              </div>
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium">Start date</label>
-          <Input type="date" value={startDate} onChange={(e: ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value)} />
-        </div>
+            {/* Reason */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground/80">
+                Reason (optional)
+              </Label>
+              <Input
+                value={reason}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setReason(e.target.value)}
+                placeholder="Optional note"
+                className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+              />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium">End date</label>
-          <Input type="date" value={endDate} onChange={(e: ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value)} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Reason (optional)</label>
-          <Input value={reason} onChange={(e: ChangeEvent<HTMLInputElement>) => setReason(e.target.value)} placeholder="Optional note" />
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={loading || !employeeId || !categoryId || !startDate || !endDate}>
-            {loading ? "Submitting..." : "Book"}
-          </Button>
-        </div>
-      </div>
-    </Modal>
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                className="h-11 rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={loading || !employeeId || !categoryId || !startDate || !endDate}
+                className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+              >
+                {loading ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
+                    />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Book Holiday
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

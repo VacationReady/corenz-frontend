@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-import { Card } from "@/components/ui/Card";
+import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
 import { mutate } from "swr";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
+import { MapPin, Sparkles, Trash2, AlertCircle } from "lucide-react";
 
 export default function NewLocationModal({
   onClose,
@@ -79,38 +85,134 @@ export default function NewLocationModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md p-4 space-y-4">
-        <h3 className="text-lg font-semibold">Add Location</h3>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <Input
-            placeholder="Location name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
-              Close
-            </Button>
-            <Button type="submit" loading={loading}>
-              Save
-            </Button>
-          </div>
-        </form>
-
-        <div className="space-y-2 max-h-56 overflow-auto">
-          {locations.map((l) => (
-            <div key={l.id} className="flex items-center justify-between gap-2">
-              <span className="text-sm">{l.name}</span>
-              <Button variant="danger" onClick={() => remove(l.id)}>
-                Delete
-              </Button>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-lg">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+        >
+          {/* Header with gradient accent */}
+          <div className="relative px-8 pt-8 pb-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-primary/10 to-blue-500/5" />
+            <div className="relative flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  Manage Locations
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Add or remove locations across your company
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
-      </Card>
-    </div>
+          </div>
+
+          {/* Content Area */}
+          <div className="px-8 pb-8 max-h-[65vh] overflow-y-auto space-y-6">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center gap-2"
+              >
+                <AlertCircle className="w-4 h-4 text-destructive" />
+                <p className="text-sm text-destructive">{error}</p>
+              </motion.div>
+            )}
+
+            {/* Existing Locations */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30">
+              <div className="flex items-center gap-2 mb-4">
+                <MapPin className="w-4 h-4 text-primary" />
+                <span className="font-medium text-sm">Existing Locations</span>
+              </div>
+              
+              <div className="space-y-2 max-h-56 overflow-auto">
+                <AnimatePresence>
+                  {locations.map((l) => (
+                    <motion.div
+                      key={l.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      className="flex items-center justify-between gap-2 p-3 rounded-xl bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+                    >
+                      <span className="text-sm font-medium">{l.name}</span>
+                      <Button
+                        variant="ghost"
+                        onClick={() => remove(l.id)}
+                        className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                
+                {locations.length === 0 && (
+                  <p className="text-sm text-muted-foreground p-4 text-center">No locations yet.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Add New Location */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground/80">
+                  Location Name <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  placeholder="Enter location name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={loading}
+                  className="h-11 rounded-xl"
+                >
+                  Close
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading || !name.trim()}
+                  className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+                >
+                  {loading ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
+                      />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Add Location
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </motion.div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

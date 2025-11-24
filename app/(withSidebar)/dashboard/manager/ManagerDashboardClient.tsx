@@ -144,32 +144,6 @@ function TeamAbsenceOverview() {
   );
 }
 
-function QuickLinks() {
-  return (
-    <DashboardWidget title="Quick Links" icon={UserPlus}>
-      <div className="flex flex-wrap gap-2">
-        <Link href="/employees">
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<UserPlus className="h-4 w-4" />}
-          >
-            View Team
-          </Button>
-        </Link>
-        <Link href="/calendar">
-          <Button
-            variant="outline"
-            size="sm"
-            icon={<CalendarCheck2 className="h-4 w-4" />}
-          >
-            Team Calendar
-          </Button>
-        </Link>
-      </div>
-    </DashboardWidget>
-  );
-}
 
 function TeamInsights() {
   const { data, error, isLoading } = useSWR(
@@ -344,8 +318,7 @@ export default function ManagerDashboardClient({ firstName }: ManagerDashboardCl
         <MetricsSummary />
         <TeamAbsenceOverview />
         <TeamInsights />
-        <QuickLinks />
-        <UnifiedActionItems employeeId={employeeId} isManager={true} />
+        <UnifiedActionItems employeeId={employeeId} isManager={true} className="md:col-span-2" />
         <NewsWidget limit={3} />
       </DashboardGrid>
     </PageShell>

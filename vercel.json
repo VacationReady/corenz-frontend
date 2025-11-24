@@ -10,8 +10,29 @@
     },
     "pages/api/**/*.js": {
       "maxDuration": 30
+    },
+    "app/api/cron/process-automations/route.js": {
+      "maxDuration": 300
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/process-automations",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/send-expiry-alerts",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/shift-reminders",
+      "schedule": "0,15,30,45 * * * *"
+    },
+    {
+      "path": "/api/cron/automation-triggers",
+      "schedule": "*/10 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

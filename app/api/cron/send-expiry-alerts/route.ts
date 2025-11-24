@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { resend } from "@/lib/resend"; // assumes Resend configured
+import { resend } from "@/lib/resend";
 import { renderPeopleCoreEmail } from "@/lib/email/template";
 import { sendExitInterviewFormInvite } from "@/lib/email/send";
 import { isTodayInLondon } from "@/lib/time";
+import { verifyCronSecret, getUnauthorizedResponse } from "@/lib/cron/auth";
 
 async function processCompany(companyId: string) {
   const expiryRules = await prisma.expiryRule.findMany({
@@ -224,31 +225,11 @@ async function processCompany(companyId: string) {
   }
 }
 
-export async function POST(req: Request) {
+// Shared processing logic for both GET and POST
+async function processExpiryAlerts() {
   try {
-    // Protect with CRON_SECRET if set
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret) {
-      const authHeader = req.headers.get("authorization");
-      if (authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-    }
-
-    let companyIds: string[] = [];
-    try {
-      const body = await req.json();
-      if (body?.companyId) {
-        companyIds = [body.companyId];
-      }
-    } catch {
-      /* no body */
-    }
-
-    if (companyIds.length === 0) {
-      const companies = await prisma.company.findMany({ select: { id: true } });
-      companyIds = companies.map((c: any) => c.id);
-    }
+    const companies = await prisma.company.findMany({ select: { id: true } });
+    const companyIds = companies.map((c: any) => c.id);
 
     for (const id of companyIds) {
       await processCompany(id);
@@ -256,7 +237,24 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       message: "Expiry alerts and form invitations sent successfully.",
+      companiesProcessed: companyIds.length,
+      timestamp: new Date().toISOString(),
     });
+  } catch (error) {
+    console.error("Error in processExpiryAlerts:", error);
+    throw error; // Re-throw to be caught by GET/POST handlers
+  }
+}
+
+// GET handler for Vercel Cron (Vercel only calls GET)
+export async function GET(req: NextRequest) {
+  try {
+    // Verify this is a legitimate cron call
+    if (!verifyCronSecret(req)) {
+      return getUnauthorizedResponse();
+    }
+
+    return await processExpiryAlerts();
   } catch (error) {
     console.error("Error sending expiry alerts:", error);
     return NextResponse.json(
@@ -266,3 +264,20 @@ export async function POST(req: Request) {
   }
 }
 
+// POST handler for manual/managed cron services
+export async function POST(req: NextRequest) {
+  try {
+    // Verify this is a legitimate cron call
+    if (!verifyCronSecret(req)) {
+      return getUnauthorizedResponse();
+    }
+
+    return await processExpiryAlerts();
+  } catch (error) {
+    console.error("Error sending expiry alerts:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
+  }
+}

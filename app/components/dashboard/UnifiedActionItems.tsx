@@ -86,9 +86,10 @@ interface ActionItem {
 interface UnifiedActionItemsProps {
   employeeId?: string;
   isManager?: boolean;
+  className?: string;
 }
 
-export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedActionItemsProps) {
+export function UnifiedActionItems({ employeeId, isManager = false, className }: UnifiedActionItemsProps) {
   const { data: session, status } = useSession();
   const tenantFetch = useTenantFetch();
   const fetcher = createFetcher(session?.user?.companyId);
@@ -638,6 +639,7 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
       <DashboardWidget
         title="Action items"
         icon={CheckCircle}
+        className={className}
         action={
           <div className="flex items-center gap-2">
             {pendingCount > 0 && (

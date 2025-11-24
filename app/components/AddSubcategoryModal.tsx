@@ -1,12 +1,20 @@
 "use client";
 
 import { useState, ChangeEvent } from "react";
+import { motion } from "framer-motion";
 import Button from "@/components/ui/Button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Sparkles, Tag } from "lucide-react";
 import { Input } from "@/components/ui/Input";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import { toast } from "react-hot-toast";
-import { cn } from "@/lib/utils";
 
 interface AddSubcategoryModalProps {
   isOpen: boolean;
@@ -68,41 +76,97 @@ export default function AddSubcategoryModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent title={<DialogTitle>Add Subcategory under {parentCategoryName}</DialogTitle>}>
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="subcategoryName" className="block text-sm font-medium mb-1">
-              Subcategory Name
-            </label>
-            <Input
-              id="subcategoryName"
-              placeholder="e.g., Doctor's Appointment"
-              value={name}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-            />
+      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-lg">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+        >
+          {/* Header with gradient accent */}
+          <div className="relative px-8 pt-8 pb-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-primary/10 to-blue-500/5" />
+            <div className="relative flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                <Tag className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  Add Subcategory
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Under {parentCategoryName}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Default Paid Status</label>
-            <select
-              value={defaultPaidStatus}
-              onChange={(e) => setDefaultPaidStatus(e.target.value as "PAID" | "UNPAID")}
-              className="glass-subtle rounded-xl px-3 py-2 text-sm w-full"
-            >
-              <option value="PAID">Paid</option>
-              <option value="UNPAID">Unpaid</option>
-            </select>
-          </div>
-        </div>
+          {/* Content Area */}
+          <div className="px-8 pb-8 space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="subcategoryName" className="text-sm font-medium text-foreground/80">
+                Subcategory Name <span className="text-primary">*</span>
+              </Label>
+              <Input
+                id="subcategoryName"
+                placeholder="e.g., Doctor's Appointment"
+                value={name}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+              />
+            </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button onClick={onClose} variant="ghost" disabled={loading}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} loading={loading} loadingText="Adding subcategory" icon={<PlusCircle className="h-4 w-4" />}>
-            Add Subcategory
-          </Button>
-        </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-foreground/80">Default Paid Status</Label>
+              <Select
+                value={defaultPaidStatus}
+                onValueChange={(v) => setDefaultPaidStatus(v as "PAID" | "UNPAID")}
+              >
+                <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PAID">Paid</SelectItem>
+                  <SelectItem value="UNPAID">Unpaid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                onClick={onClose}
+                variant="outline"
+                disabled={loading}
+                className="h-11 rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={loading || !name.trim()}
+                className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+              >
+                {loading ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
+                    />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Add Subcategory
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </motion.div>
       </DialogContent>
     </Dialog>
   );

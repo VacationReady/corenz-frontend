@@ -1,16 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAutomationScheduler } from "@/lib/automation";
+import { verifyCronSecret, getUnauthorizedResponse } from "@/lib/cron/auth";
 
 // GET: Cron endpoint for scheduled trigger evaluation
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     // Verify this is a legitimate cron request
-    const authHeader = req.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
-
-    // If CRON_SECRET is set, verify the request
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!verifyCronSecret(req)) {
+      return getUnauthorizedResponse();
     }
 
     const scheduler = getAutomationScheduler();
@@ -28,11 +25,12 @@ export async function GET(req: Request) {
       message: "Automation triggers evaluated",
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Cron automation triggers error:", error);
     return NextResponse.json(
       {
         error: "Failed to evaluate automation triggers",
+        message: error?.message,
         timestamp: new Date().toISOString(),
       },
       { status: 500 },
@@ -41,15 +39,11 @@ export async function GET(req: Request) {
 }
 
 // POST: Manual trigger for testing
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    // For manual testing, we can be more lenient with auth
-    const body = await req.json();
-    const { secret } = body;
-
-    const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && secret !== cronSecret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Verify this is a legitimate request
+    if (!verifyCronSecret(req)) {
+      return getUnauthorizedResponse();
     }
 
     const scheduler = getAutomationScheduler();
@@ -65,11 +59,12 @@ export async function POST(req: Request) {
       timestamp: new Date().toISOString(),
       trigger: "manual",
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Manual automation triggers error:", error);
     return NextResponse.json(
       {
         error: "Failed to evaluate automation triggers",
+        message: error?.message,
         timestamp: new Date().toISOString(),
       },
       { status: 500 },

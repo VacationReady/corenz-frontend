@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-import { Card } from "@/components/ui/Card";
+import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
 import { mutate } from "swr";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Briefcase, Sparkles, Trash2, AlertCircle } from "lucide-react";
 
 export default function NewJobRoleModal({
   onClose,
@@ -92,41 +94,133 @@ export default function NewJobRoleModal({
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Manage Job Roles</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          {error && <p className="text-red-600 text-sm">{error}</p>}
-          <div className="space-y-2 max-h-64 overflow-auto border rounded p-2">
-            {roles.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-2">
-                <span className="text-sm">{r.name}</span>
-                <Button size="sm" variant="danger" onClick={() => remove(r.id)} disabled={loading}>
-                  Delete
-                </Button>
+      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-lg">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+        >
+          {/* Header with gradient accent */}
+          <div className="relative px-8 pt-8 pb-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-primary/10 to-blue-500/5" />
+            <div className="relative flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                <Briefcase className="w-5 h-5" />
               </div>
-            ))}
-            {roles.length === 0 && (
-              <p className="text-sm text-muted-foreground">No job roles yet.</p>
-            )}
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  Manage Job Roles
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Add or remove job roles across your company
+                </p>
+              </div>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Job Role Name"
-              required
-            />
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button type="button" variant="ghost" onClick={onClose} disabled={loading}>
-                Close
-              </Button>
-              <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Add"}</Button>
-            </DialogFooter>
-          </form>
-        </div>
+          {/* Content Area */}
+          <div className="px-8 pb-8 max-h-[65vh] overflow-y-auto space-y-6">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 flex items-center gap-2"
+              >
+                <AlertCircle className="w-4 h-4 text-destructive" />
+                <p className="text-sm text-destructive">{error}</p>
+              </motion.div>
+            )}
+
+            {/* Existing Job Roles */}
+            <div className="p-5 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30">
+              <div className="flex items-center gap-2 mb-4">
+                <Briefcase className="w-4 h-4 text-primary" />
+                <span className="font-medium text-sm">Existing Job Roles</span>
+              </div>
+              
+              <div className="space-y-2 max-h-64 overflow-auto">
+                <AnimatePresence>
+                  {roles.map((r) => (
+                    <motion.div
+                      key={r.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      className="flex items-center justify-between gap-2 p-3 rounded-xl bg-white/30 dark:bg-white/5 hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+                    >
+                      <span className="text-sm font-medium">{r.name}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => remove(r.id)}
+                        disabled={loading}
+                        className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                
+                {roles.length === 0 && (
+                  <p className="text-sm text-muted-foreground p-4 text-center">No job roles yet.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Add New Job Role */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground/80">
+                  Job Role Name <span className="text-primary">*</span>
+                </Label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter job role name"
+                  required
+                  className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={loading}
+                  className="h-11 rounded-xl"
+                >
+                  Close
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading || !name.trim()}
+                  className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+                >
+                  {loading ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
+                      />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Add Job Role
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </motion.div>
       </DialogContent>
     </Dialog>
   );

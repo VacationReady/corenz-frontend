@@ -19,48 +19,48 @@ const items: PaletteItem[] = [
     id: "trigger", 
     label: "Trigger", 
     help: "Starts the workflow", 
-    icon: <Zap className="w-4 h-4" />, 
-    color: "text-blue-500", 
+    icon: <Zap className="w-5 h-5" strokeWidth={2} />, 
+    color: "text-blue-600", 
     bgColor: "bg-blue-50 group-hover:bg-blue-100" 
   },
   { 
     id: "condition", 
     label: "Condition", 
     help: "Filter or branch by logic", 
-    icon: <Filter className="w-4 h-4" />, 
-    color: "text-amber-500", 
+    icon: <Filter className="w-5 h-5" strokeWidth={2} />, 
+    color: "text-amber-600", 
     bgColor: "bg-amber-50 group-hover:bg-amber-100" 
   },
   { 
     id: "action", 
     label: "Action", 
     help: "Sends messages, creates tasks, etc.", 
-    icon: <PlayCircle className="w-4 h-4" />, 
-    color: "text-green-500", 
+    icon: <PlayCircle className="w-5 h-5" strokeWidth={2} />, 
+    color: "text-green-600", 
     bgColor: "bg-green-50 group-hover:bg-green-100" 
   },
   { 
     id: "delay", 
     label: "Delay", 
     help: "Pause before continuing", 
-    icon: <Clock className="w-4 h-4" />, 
-    color: "text-purple-500", 
+    icon: <Clock className="w-5 h-5" strokeWidth={2} />, 
+    color: "text-purple-600", 
     bgColor: "bg-purple-50 group-hover:bg-purple-100" 
   },
   { 
     id: "branch", 
     label: "Branch", 
     help: "Split into parallel paths", 
-    icon: <GitBranch className="w-4 h-4" />, 
-    color: "text-pink-500", 
+    icon: <GitBranch className="w-5 h-5" strokeWidth={2} />, 
+    color: "text-pink-600", 
     bgColor: "bg-pink-50 group-hover:bg-pink-100" 
   },
   { 
     id: "loop", 
     label: "Loop", 
     help: "Repeat over a list", 
-    icon: <Repeat className="w-4 h-4" />, 
-    color: "text-sky-500", 
+    icon: <Repeat className="w-5 h-5" strokeWidth={2} />, 
+    color: "text-sky-600", 
     bgColor: "bg-sky-50 group-hover:bg-sky-100" 
   },
 ];
@@ -85,10 +85,12 @@ function DraggablePaletteItem({ item }: { item: PaletteItem }) {
       )}
     >
       <div className="flex items-center gap-2.5">
-        <div className={cn("p-1.5 rounded-lg transition-colors", item.bgColor, item.color)}>
-          {item.icon}
+        <div className={cn("p-2 rounded-lg transition-colors flex-shrink-0", item.bgColor)}>
+          <div className={item.color}>
+            {item.icon}
+          </div>
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="font-medium text-foreground/90 group-hover:text-foreground">
             {item.label}
           </div>

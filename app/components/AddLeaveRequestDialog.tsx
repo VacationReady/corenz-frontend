@@ -1,11 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Modal from "@/components/ui/Modal";
+import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Info } from "lucide-react";
+import { 
+  Info, 
+  Calendar, 
+  Clock, 
+  CheckCircle2, 
+  CalendarDays,
+  AlertCircle,
+  Sparkles
+} from "lucide-react";
 import {
   Tooltip,
   TooltipTrigger,
@@ -19,6 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { LeaveRequestSuccessAnimation } from "@/components/animations";
 
@@ -257,143 +272,270 @@ export default function AddLeaveRequestDialog({
           />
         )}
 
-        <Modal
-          isOpen={modalOpen}
-          onClose={() => handleSetOpen(false)}
-          title="Book Leave"
+        <Dialog
+          open={modalOpen}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) handleSetOpen(false);
+          }}
         >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Leave Type</label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Leave Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => {
-                    const Icon = getEventCategoryIcon(category.iconKey);
-                    return (
-                      <SelectItem key={category.id} value={category.id}>
-                        <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                          <span>{category.name}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-                {selectedCategory && (selectedCategory.subcategories?.length ?? 0) > 0 && (
-              <div>
-                <label className="block text-sm font-medium">
-                  Subcategory (optional)
-                </label>
-                <select
-                  className="w-full border rounded p-2 mt-1"
-                  value={subcategory}
-                  onChange={(e) => setSubcategory(e.target.value)}
-                >
-                  <option value="">Select Subcategory</option>
-                  {selectedCategory.subcategories.map((sub) => (
-                    <option key={sub.id} value={sub.id}>
-                      {sub.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium">Start Date</label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <label className="block text-sm font-medium">End Date</label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-gray-500 hover:text-gray-700 cursor-pointer" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs max-w-[200px]">
-                      If returning to work on Monday, select Sunday as your end
-                      date.
+          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+            >
+              {/* Header with gradient accent */}
+              <div className="relative px-8 pt-8 pb-6">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-primary/10 to-violet-500/5" />
+                <div className="relative flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <CalendarDays className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                      Book Leave
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Request time off from work
                     </p>
-                  </TooltipContent>
-                </Tooltip>
+                  </div>
+                </div>
               </div>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Select the last day you will be <em>away</em>. Do not include
-                your return-to-work day.
-              </p>
-            </div>
 
-            <p className="text-sm text-gray-700">
-              Total Days Requested: {totalDays}
-            </p>
-            {deduction !== null && (
-              <p className="text-sm font-medium text-green-700">
-                ✅ Total Days Deducted (per working pattern): {totalDeducted}
-              </p>
-            )}
+              {/* Content Area */}
+              <div className="px-8 pb-8 max-h-[65vh] overflow-y-auto space-y-6">
+                {/* Leave Type Selection */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground/80">
+                    Leave Type <span className="text-primary">*</span>
+                  </Label>
+                  <Select value={type} onValueChange={setType}>
+                    <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all">
+                      <SelectValue placeholder="Select Leave Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => {
+                        const Icon = getEventCategoryIcon(category.iconKey);
+                        return (
+                          <SelectItem key={category.id} value={category.id}>
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4 text-muted-foreground" />
+                              <span>{category.name}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {selectedCategory &&
-              selectedCategory.name.toLowerCase().includes("sick") && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium">
-                      Reason for Sickness
-                    </label>
-                    <Input
-                      value={sickReason}
-                      onChange={(e) => setSickReason(e.target.value)}
-                      placeholder="E.g. Flu, injury, etc."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium">
-                      Paid or Unpaid
-                    </label>
-                    <select
-                      className="w-full border rounded p-2 mt-1"
-                      value={paidStatus}
-                      onChange={(e) => setPaidStatus(e.target.value)}
+                {/* Subcategory */}
+                <AnimatePresence>
+                  {selectedCategory && (selectedCategory.subcategories?.length ?? 0) > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-2"
                     >
-                      <option value="PAID">Paid</option>
-                      <option value="UNPAID">Unpaid</option>
-                    </select>
+                      <Label className="text-sm font-medium text-foreground/80">
+                        Subcategory (optional)
+                      </Label>
+                      <Select value={subcategory} onValueChange={setSubcategory}>
+                        <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                          <SelectValue placeholder="Select Subcategory" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {selectedCategory.subcategories.map((sub) => (
+                            <SelectItem key={sub.id} value={sub.id}>
+                              {sub.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Date Selection Section */}
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Calendar className="w-4 h-4 text-primary" />
+                    <span className="font-medium text-sm">Date Range</span>
                   </div>
-                </>
-              )}
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground/80">
+                        Start Date <span className="text-primary">*</span>
+                      </Label>
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                      />
+                    </div>
 
-            <div>
-              <label className="block text-sm font-medium">
-                General Reason (optional)
-              </label>
-              <Input
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Optional reason for this leave"
-              />
-            </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium text-foreground/80">
+                          End Date <span className="text-primary">*</span>
+                        </Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs max-w-[200px]">
+                              If returning to work on Monday, select Sunday as your end date.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Select the last day you will be <em>away</em>. Do not include your return-to-work day.
+                  </p>
+                </div>
 
-            <Button variant="ghost" onClick={handleSubmit} disabled={loading}>
-              {loading ? "Submitting..." : "Submit Request"}
-            </Button>
-          </div>
-        </Modal>
+                {/* Summary Cards */}
+                {(totalDays > 0 || deduction > 0) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                  >
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm font-medium text-foreground/80">Total Days</span>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalDays}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Calendar days requested</p>
+                    </div>
+                    
+                    {deduction !== null && deduction > 0 && (
+                      <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-sm font-medium text-foreground/80">Days Deducted</span>
+                        </div>
+                        <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{totalDeducted}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Per working pattern</p>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* Sick Leave Fields */}
+                <AnimatePresence>
+                  {selectedCategory && selectedCategory.name.toLowerCase().includes("sick") && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20"
+                    >
+                      <div className="flex items-center gap-2 mb-4">
+                        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        <span className="font-medium text-sm">Sick Leave Details</span>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-foreground/80">
+                            Reason for Sickness <span className="text-primary">*</span>
+                          </Label>
+                          <Input
+                            value={sickReason}
+                            onChange={(e) => setSickReason(e.target.value)}
+                            placeholder="E.g. Flu, injury, etc."
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-foreground/80">Paid Status</Label>
+                          <Select value={paidStatus} onValueChange={(v) => setPaidStatus(v)}>
+                            <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="PAID">Paid</SelectItem>
+                              <SelectItem value="UNPAID">Unpaid</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* General Reason */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground/80">
+                    General Reason (optional)
+                  </Label>
+                  <Input
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Optional reason for this leave"
+                    className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSetOpen(false)}
+                    className="h-11 rounded-xl"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={loading || !type || !startDate || !endDate}
+                    className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+                  >
+                    {loading ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
+                        />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Submit Request
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </DialogContent>
+        </Dialog>
       </>
     </TooltipProvider>
   );

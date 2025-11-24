@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendShiftReminder } from '@/lib/push-notifications';
+import { verifyCronSecret, getUnauthorizedResponse } from '@/lib/cron/auth';
 
 /**
  * Cron job to send shift reminder notifications
@@ -17,9 +18,8 @@ import { sendShiftReminder } from '@/lib/push-notifications';
 export async function GET(req: NextRequest) {
   try {
     // Verify cron secret to prevent unauthorized access
-    const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!verifyCronSecret(req)) {
+      return getUnauthorizedResponse();
     }
 
     const now = new Date();

@@ -5,11 +5,10 @@ import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { TodaysShiftWidget } from "@/components/dashboard/TodaysShiftWidget";
-import { Calendar, User } from "lucide-react";
-import Link from "next/link";
-import Button from "@/components/ui/Button";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
+import { Calendar } from "lucide-react";
+import Link from "next/link";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -79,34 +78,6 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
 
 // Removed old ActionItems component - now using UnifiedActionItems
 
-
-function QuickActions({ employeeId }: { employeeId?: string }) {
-  return (
-    <DashboardWidget title="Quick Actions" icon={User}>
-      <div className="flex flex-wrap gap-2">
-        {employeeId && (
-          <Link
-            href={`/employees/${employeeId}/leave`}
-            aria-label="Book Leave"
-          >
-            <Button variant="outline" size="sm">
-              <Calendar className="w-4 h-4 mr-2" />
-              Book Leave
-            </Button>
-          </Link>
-        )}
-        <Link href="/profile" aria-label="View Profile">
-          <Button variant="outline" size="sm">
-            <User className="w-4 h-4 mr-2" />
-            View Profile
-          </Button>
-        </Link>
-      </div>
-    </DashboardWidget>
-  );
-}
-
-
 export default function EmployeeDashboardClient({
   employeeId,
 }: {
@@ -116,8 +87,7 @@ export default function EmployeeDashboardClient({
     <>
       {employeeId && <TodaysShiftWidget employeeId={employeeId} />}
       {employeeId && <UpcomingLeave employeeId={employeeId} />}
-      {employeeId && <UnifiedActionItems employeeId={employeeId} />}
-      <QuickActions employeeId={employeeId} />
+      {employeeId && <UnifiedActionItems employeeId={employeeId} className="md:col-span-2" />}
     </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,24 @@ import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import SignatureCapture from "@/components/documents/SignatureCapture";
 import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
+import { 
+  FileText, 
+  Building2, 
+  User, 
+  Upload, 
+  CheckCircle2, 
+  Eye, 
+  EyeOff,
+  Shield,
+  PenLine,
+  FolderOpen,
+  X,
+  Sparkles,
+  ChevronRight,
+  AlertCircle,
+  Clock,
+  FileUp
+} from "lucide-react";
 
 // Helper functions for searchable dropdowns
 const normalizeSearch = (value: string) => value.trim().toLowerCase();
@@ -408,6 +427,28 @@ export default function AddDocumentModal({
     }
   };
 
+  // Drag and drop handlers
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+  
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+  
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) {
+      setFile(droppedFile);
+    }
+  }, []);
+
   return (
     <Dialog
       open={open}
@@ -415,309 +456,599 @@ export default function AddDocumentModal({
         if (!isOpen) onClose();
       }}
     >
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Upload New Document</DialogTitle>
-        </DialogHeader>
-
-        {/* Step 1: Type Selector */}
-        <div className="flex gap-4">
-          <div
-            onClick={() => setType("employee")}
-            className={`flex-1 border p-4 rounded-xl cursor-pointer ${type === "employee" ? "ring-2 ring-blue-500" : ""}`}
-          >
-            <h4 className="font-semibold mb-1">Employee Document</h4>
-            <p className="text-sm text-muted-foreground">
-              Tied to one specific employee
-            </p>
-          </div>
-          <div
-            onClick={() => setType("company")}
-            className={`flex-1 border p-4 rounded-xl cursor-pointer ${type === "company" ? "ring-2 ring-blue-500" : ""}`}
-          >
-            <h4 className="font-semibold mb-1">Company Document</h4>
-            <p className="text-sm text-muted-foreground">
-              Visible to all or specific departments/job roles
-            </p>
-          </div>
-        </div>
-
-        {/* Employee Document Fields */}
-        {type === "employee" && (
-          <div>
-            <Label>Select Employee</Label>
-            <Select 
-              open={isEmployeeSelectOpen}
-              onOpenChange={handleEmployeeOpenChange}
-              onValueChange={setEmployeeId}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose an employee" />
-              </SelectTrigger>
-              <SelectContent>
-                {shouldShowEmployeeSearch && (
-                  <SelectSearchInput
-                    value={employeeSearch}
-                    onChange={setEmployeeSearch}
-                    placeholder="Search employees..."
-                  />
-                )}
-                {employeeOptions.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.id}>
-                    {emp.firstName} {emp.lastName} ({emp.email})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {/* Company Document Fields */}
-        {type === "company" && (
-          <>
-            <div>
-              <Label>Restrict by Department</Label>
-              <MultiSelect
-                options={departmentsList}
-                selected={selectedDepartments}
-                onChange={(values) =>
-                  values.includes("all")
-                    ? setSelectedDepartments(["all"])
-                    : setSelectedDepartments(values)
-                }
-                placeholder="Select department(s)"
-                searchable
-                searchPlaceholder="Search departments..."
-              />
-            </div>
-            <div>
-              <Label>Restrict by Job Role</Label>
-              <MultiSelect
-                options={jobRolesList}
-                selected={selectedJobRoles}
-                onChange={(values) =>
-                  values.includes("all")
-                    ? setSelectedJobRoles(["all"])
-                    : setSelectedJobRoles(values)
-                }
-                placeholder="Select job role(s)"
-                searchable
-                searchPlaceholder="Search job roles..."
-              />
-            </div>
-          </>
-        )}
-
-        {/* Shared Fields */}
-        <div>
-          <Label>Title</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-        </div>
-
-        <div>
-          <Label>Category</Label>
-          <Select
-            value={category || undefined}
-            onValueChange={(v) => {
-              if (v === "__new__") {
-                setManageCategoriesOpen(true);
-              } else {
-                setCategory(v);
-              }
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categoriesList.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
-                </SelectItem>
-              ))}
-              <SelectItem value="__new__">+ Add new category</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label>Description (optional)</Label>
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-
-        {/* UX: Grouped and aligned toggles for clarity */}
-        <div className="grid gap-4">
-          {/* Visibility (Employee only) */}
-          {type === "employee" && (
-            <div className="rounded-lg border p-4">
-              <h4 className="font-semibold mb-3">Visibility</h4>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm">Admin Access</Label>
-                  <Switch
-                    checked={canViewAdmin}
-                    onChange={(checked) => setCanViewAdmin(checked)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm">Manager Access</Label>
-                  <Switch
-                    checked={canViewManager}
-                    onChange={(checked) => setCanViewManager(checked)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm">Employee Access</Label>
-                  <Switch
-                    checked={canViewEmployee}
-                    onChange={(checked) => setCanViewEmployee(checked)}
-                  />
-                </div>
+      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+        >
+          {/* Header with gradient accent */}
+          <div className="relative px-8 pt-8 pb-6">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-primary/10 to-violet-500/5" />
+            <div className="relative flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <FileUp className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  Upload Document
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Add a new document to your organization
+                </p>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Compliance (both types) */}
-          {(type === "employee" || type === "company") && (
-            <div className="rounded-lg border p-4">
-              <h4 className="font-semibold mb-3">Compliance</h4>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm">Requires Acknowledgement</Label>
-                  <Switch checked={requiresAck} onChange={setRequiresAck} />
-                </div>
-                {/* Only show signature option for employee documents */}
-                {type === "employee" && (
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm">Requires Signature</Label>
-                    <Switch
-                      checked={requiresSignature}
-                      onChange={setRequiresSignature}
-                    />
+          {/* Content Area */}
+          <div className="px-8 pb-8 max-h-[65vh] overflow-y-auto space-y-6">
+            {/* Step 1: Type Selector - Modern Cards */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-foreground/80">Document Type</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <motion.button
+                  type="button"
+                  onClick={() => setType("employee")}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`relative p-5 rounded-2xl border-2 text-left transition-all duration-300 ${
+                    type === "employee" 
+                      ? "border-primary bg-primary/5 shadow-lg shadow-primary/10" 
+                      : "border-muted/50 bg-white/30 dark:bg-white/5 hover:border-primary/30 hover:bg-primary/5"
+                  }`}
+                >
+                  {type === "employee" && (
+                    <motion.div
+                      layoutId="typeIndicator"
+                      className="absolute top-3 right-3"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    >
+                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      </div>
+                    </motion.div>
+                  )}
+                  <div className={`p-3 rounded-xl mb-3 w-fit ${type === "employee" ? "bg-primary/20" : "bg-muted/50"}`}>
+                    <User className={`w-5 h-5 ${type === "employee" ? "text-primary" : "text-muted-foreground"}`} />
                   </div>
-                )}
+                  <h4 className={`font-semibold mb-1 ${type === "employee" ? "text-primary" : "text-foreground"}`}>
+                    Employee Document
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Tied to one specific employee
+                  </p>
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  onClick={() => setType("company")}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`relative p-5 rounded-2xl border-2 text-left transition-all duration-300 ${
+                    type === "company" 
+                      ? "border-violet-500 bg-violet-500/5 shadow-lg shadow-violet-500/10" 
+                      : "border-muted/50 bg-white/30 dark:bg-white/5 hover:border-violet-500/30 hover:bg-violet-500/5"
+                  }`}
+                >
+                  {type === "company" && (
+                    <motion.div
+                      layoutId="typeIndicator"
+                      className="absolute top-3 right-3"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    >
+                      <div className="w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center">
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      </div>
+                    </motion.div>
+                  )}
+                  <div className={`p-3 rounded-xl mb-3 w-fit ${type === "company" ? "bg-violet-500/20" : "bg-muted/50"}`}>
+                    <Building2 className={`w-5 h-5 ${type === "company" ? "text-violet-500" : "text-muted-foreground"}`} />
+                  </div>
+                  <h4 className={`font-semibold mb-1 ${type === "company" ? "text-violet-600 dark:text-violet-400" : "text-foreground"}`}>
+                    Company Document
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Visible to all or specific groups
+                  </p>
+                </motion.button>
               </div>
+            </div>
 
-              {requiresSignature && type === "employee" && (
-                <div className="space-y-3 mt-4">
-                  <div>
-                    <Label>Signature due date (optional)</Label>
-                    <Input
-                      type="datetime-local"
-                      value={signatureDueAt}
-                      onChange={(e) => setSignatureDueAt(e.target.value)}
-                    />
-                  </div>
-                </div>
+            {/* Employee Document Fields */}
+            <AnimatePresence mode="wait">
+              {type === "employee" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-2"
+                >
+                  <Label className="text-sm font-medium text-foreground/80">Select Employee</Label>
+                  <Select 
+                    open={isEmployeeSelectOpen}
+                    onOpenChange={handleEmployeeOpenChange}
+                    onValueChange={setEmployeeId}
+                  >
+                    <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                      <SelectValue placeholder="Choose an employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shouldShowEmployeeSearch && (
+                        <SelectSearchInput
+                          value={employeeSearch}
+                          onChange={setEmployeeSearch}
+                          placeholder="Search employees..."
+                        />
+                      )}
+                      {employeeOptions.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.firstName} {emp.lastName} ({emp.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </motion.div>
               )}
-            </div>
-          )}
-        </div>
 
-        <div>
-          <Label>Upload File</Label>
-          <Input
-            type="file"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-          />
-        </div>
+              {/* Company Document Fields */}
+              {type === "company" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground/80">Restrict by Department</Label>
+                    <MultiSelect
+                      options={departmentsList}
+                      selected={selectedDepartments}
+                      onChange={(values) =>
+                        values.includes("all")
+                          ? setSelectedDepartments(["all"])
+                          : setSelectedDepartments(values)
+                      }
+                      placeholder="Select department(s)"
+                      searchable
+                      searchPlaceholder="Search departments..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground/80">Restrict by Job Role</Label>
+                    <MultiSelect
+                      options={jobRolesList}
+                      selected={selectedJobRoles}
+                      onChange={(values) =>
+                        values.includes("all")
+                          ? setSelectedJobRoles(["all"])
+                          : setSelectedJobRoles(values)
+                      }
+                      placeholder="Select job role(s)"
+                      searchable
+                      searchPlaceholder="Search job roles..."
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-        {/* Only show preview/upload actions when a file is selected */}
-        {file && (
-          requiresSignature ? (
-            <div className="flex items-center justify-between">
-              <Button
-                variant="secondary"
-                onClick={() => setIsPlacementBeforeSendOpen(true)}
+            {/* Document Details Section */}
+            {type && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.1 }}
+                className="space-y-4 p-5 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30"
               >
-                Preview & Place Signature Fields
-              </Button>
-              <Button
-                onClick={() => uploadWithPending(pendingFields)}
-                disabled={loading}
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <span className="font-medium text-sm">Document Details</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground/80">
+                      Title <span className="text-primary">*</span>
+                    </Label>
+                    <Input 
+                      value={title} 
+                      onChange={(e) => setTitle(e.target.value)} 
+                      placeholder="Enter document title"
+                      className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground/80">Category</Label>
+                    <Select
+                      value={category || undefined}
+                      onValueChange={(v) => {
+                        if (v === "__new__") {
+                          setManageCategoriesOpen(true);
+                        } else {
+                          setCategory(v);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoriesList.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                        <div className="border-t border-muted/30 mt-1 pt-1">
+                          <SelectItem value="__new__">
+                            <span className="text-primary">+ Add new category</span>
+                          </SelectItem>
+                        </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground/80">Description</Label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Optional description of the document..."
+                    className="min-h-[80px] rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all resize-none"
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* Settings Panels */}
+            {type && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.15 }}
+                className="space-y-4"
               >
-                {loading ? "Uploading..." : "Upload"}
-              </Button>
-            </div>
-          ) : (
-            <Button onClick={handleSubmit} disabled={loading}>
-              {loading ? "Uploading..." : "Upload Document"}
-            </Button>
-          )
-        )}
+                {/* Visibility (Employee only) */}
+                {type === "employee" && (
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 to-primary/5 border border-blue-500/20">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-sm">Visibility Settings</span>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-muted-foreground" />
+                          <Label className="text-sm cursor-pointer">Admin Access</Label>
+                        </div>
+                        <Switch
+                          checked={canViewAdmin}
+                          onChange={(checked) => setCanViewAdmin(checked)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <Label className="text-sm cursor-pointer">Manager Access</Label>
+                        </div>
+                        <Switch
+                          checked={canViewManager}
+                          onChange={(checked) => setCanViewManager(checked)}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <Label className="text-sm cursor-pointer">Employee Access</Label>
+                        </div>
+                        <Switch
+                          checked={canViewEmployee}
+                          onChange={(checked) => setCanViewEmployee(checked)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Compliance Section */}
+                <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <span className="font-medium text-sm">Compliance Requirements</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <Label className="text-sm cursor-pointer">Requires Acknowledgement</Label>
+                          <p className="text-xs text-muted-foreground">Employee must confirm they've read the document</p>
+                        </div>
+                      </div>
+                      <Switch checked={requiresAck} onChange={setRequiresAck} />
+                    </div>
+                    {type === "employee" && (
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                        <div className="flex items-center gap-2">
+                          <PenLine className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <Label className="text-sm cursor-pointer">Requires Signature</Label>
+                            <p className="text-xs text-muted-foreground">Document needs to be signed</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={requiresSignature}
+                          onChange={setRequiresSignature}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <AnimatePresence>
+                    {requiresSignature && type === "employee" && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="mt-4 pt-4 border-t border-amber-500/20"
+                      >
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-foreground/80 flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            Signature Due Date
+                          </Label>
+                          <Input
+                            type="datetime-local"
+                            value={signatureDueAt}
+                            onChange={(e) => setSignatureDueAt(e.target.value)}
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            )}
+
+            {/* File Upload Section - Modern Drag & Drop */}
+            {type && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.2 }}
+                className="space-y-2"
+              >
+                <Label className="text-sm font-medium text-foreground/80">
+                  Upload File <span className="text-primary">*</span>
+                </Label>
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                    isDragging 
+                      ? "border-primary bg-primary/10 scale-[1.02]" 
+                      : file 
+                        ? "border-emerald-500 bg-emerald-500/10" 
+                        : "border-muted/50 bg-white/30 dark:bg-white/5 hover:border-primary/50 hover:bg-primary/5"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  
+                  {file ? (
+                    <div className="space-y-2">
+                      <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                        <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <p className="font-medium text-emerald-600 dark:text-emerald-400">{file.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <X className="w-4 h-4 mr-1" /> Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className={`w-12 h-12 mx-auto rounded-2xl flex items-center justify-center transition-colors ${
+                        isDragging ? "bg-primary/20" : "bg-muted/50"
+                      }`}>
+                        <Upload className={`w-6 h-6 ${isDragging ? "text-primary" : "text-muted-foreground"}`} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {isDragging ? "Drop file here" : "Drag & drop or click to upload"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          PDF, Word, Excel, or image files
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Action Buttons */}
+            {file && type && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center justify-end gap-3 pt-4"
+              >
+                {requiresSignature ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsPlacementBeforeSendOpen(true)}
+                      className="h-11 rounded-xl"
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Preview & Place Fields
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => uploadWithPending(pendingFields)}
+                      disabled={loading || !title}
+                      className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+                    >
+                      {loading ? (
+                        <>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
+                          />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Document
+                        </>
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    type="button"
+                    onClick={handleSubmit} 
+                    disabled={loading || !title}
+                    className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+                  >
+                    {loading ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full mr-2"
+                        />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Document
+                      </>
+                    )}
+                  </Button>
+                )}
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
       </DialogContent>
     {/* Manage Categories Modal */}
     <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Manage Categories</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-2 max-h-60 overflow-auto border rounded p-2">
-            {categoriesList.map((c) => (
-              <div key={c} className="flex items-center justify-between gap-2">
-                <span className="text-sm">{c}</span>
+      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-md">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-ultra rounded-2xl overflow-hidden shadow-depth-4"
+        >
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <FolderOpen className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold">Manage Categories</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="space-y-2 max-h-60 overflow-auto rounded-xl border border-muted/30 bg-white/30 dark:bg-white/5">
+                {categoriesList.map((c) => (
+                  <div key={c} className="flex items-center justify-between gap-2 p-3 hover:bg-muted/30 transition-colors">
+                    <span className="text-sm font-medium">{c}</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/document-categories", {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ name: c }),
+                          });
+                          if (!res.ok) throw new Error("Failed to delete category");
+                          setCategoriesList((prev) => prev.filter((x) => x !== c));
+                          if (category === c) setCategory("");
+                        } catch (e: any) {
+                          toast.error(e.message);
+                        }
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                {categoriesList.length === 0 && (
+                  <p className="text-sm text-muted-foreground p-4 text-center">No categories yet.</p>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="New category name"
+                  className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5"
+                />
                 <Button
-                  size="sm"
-                  variant="danger"
+                  className="h-11 px-5 rounded-xl"
                   onClick={async () => {
+                    const name = newCategoryName.trim();
+                    if (!name) return;
                     try {
                       const res = await fetch("/api/document-categories", {
-                        method: "DELETE",
+                        method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name: c }),
+                        body: JSON.stringify({ name }),
                       });
-                      if (!res.ok) throw new Error("Failed to delete category");
-                      setCategoriesList((prev) => prev.filter((x) => x !== c));
-                      if (category === c) setCategory("");
+                      if (!res.ok) throw new Error("Failed to add category");
+                      setCategoriesList((prev) => (prev.includes(name) ? prev : [...prev, name]));
+                      setCategory(name);
+                      setNewCategoryName("");
                     } catch (e: any) {
                       toast.error(e.message);
                     }
                   }}
                 >
-                  Delete
+                  Add
                 </Button>
               </div>
-            ))}
-            {categoriesList.length === 0 && (
-              <p className="text-sm text-muted-foreground">No categories yet.</p>
-            )}
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-muted/30 flex justify-end">
+              <Button variant="ghost" onClick={() => setManageCategoriesOpen(false)} className="rounded-xl">
+                Done
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Input
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              placeholder="New category name"
-            />
-            <Button
-              onClick={async () => {
-                const name = newCategoryName.trim();
-                if (!name) return;
-                try {
-                  const res = await fetch("/api/document-categories", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ name }),
-                  });
-                  if (!res.ok) throw new Error("Failed to add category");
-                  setCategoriesList((prev) => (prev.includes(name) ? prev : [...prev, name]));
-                  setCategory(name);
-                  setNewCategoryName("");
-                } catch (e: any) {
-                  toast.error(e.message);
-                }
-              }}
-            >
-              Add
-            </Button>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setManageCategoriesOpen(false)}>Close</Button>
-        </DialogFooter>
+        </motion.div>
       </DialogContent>
     </Dialog>
       {/* Placement before upload (local) */}

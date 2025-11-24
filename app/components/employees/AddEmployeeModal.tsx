@@ -9,6 +9,7 @@ import {
   useRef,
   KeyboardEvent,
 } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -34,7 +35,7 @@ import type {
 import { fetchWithCsrf } from "@/lib/csrf";
 import { prepareSensitiveDataForTransmission } from "@/lib/crypto";
 import { AddEmployeeModalErrorBoundary } from "./AddEmployeeModalErrorBoundary";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, User, Briefcase, Calendar, Shield, Building2, MapPin, FileText, DollarSign, Phone, Heart, CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
 
 // 👇 Toggle
 import { Switch } from "@/components/ui/switch";
@@ -64,6 +65,110 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { HelpCircle, X, AlertCircle } from "lucide-react";
+
+// Animation variants for smooth transitions
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 300 : -300,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    x: direction < 0 ? 300 : -300,
+    opacity: 0,
+  }),
+};
+
+// Collapsible Section Component
+const FormSection = ({ 
+  title, 
+  icon: Icon, 
+  children, 
+  defaultOpen = true,
+  accentColor = "primary"
+}: { 
+  title: string; 
+  icon: React.ElementType; 
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  accentColor?: "primary" | "emerald" | "violet" | "amber" | "rose";
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
+  const colorClasses = {
+    primary: "from-primary/20 to-primary/5 border-primary/20",
+    emerald: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/20",
+    violet: "from-violet-500/20 to-violet-500/5 border-violet-500/20",
+    amber: "from-amber-500/20 to-amber-500/5 border-amber-500/20",
+    rose: "from-rose-500/20 to-rose-500/5 border-rose-500/20",
+  };
+
+  const iconColors = {
+    primary: "text-primary",
+    emerald: "text-emerald-600 dark:text-emerald-400",
+    violet: "text-violet-600 dark:text-violet-400",
+    amber: "text-amber-600 dark:text-amber-400",
+    rose: "text-rose-600 dark:text-rose-400",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`rounded-2xl border bg-gradient-to-br ${colorClasses[accentColor]} backdrop-blur-sm overflow-hidden transition-all duration-300`}
+    >
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 hover:bg-white/30 dark:hover:bg-white/5 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl bg-white/50 dark:bg-white/10 ${iconColors[accentColor]}`}>
+            <Icon className="w-4 h-4" />
+          </div>
+          <span className="font-semibold text-foreground">{title}</span>
+        </div>
+        <motion.div
+          animate={{ rotate: isOpen ? 90 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <div className="px-4 pb-4 space-y-4">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
 
 // NZ Tax Code options based on IRD tables
 const NZ_TAX_CODES = [
@@ -1319,27 +1424,111 @@ export default function AddEmployeeModal({
       onClose();
     }}>
       <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
-        <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
-          <Card className="w-full p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Add Employee</h2>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <span
-                    className={`px-2 py-1 rounded ${currentStep === 1 ? "bg-blue-100 text-blue-800" : "bg-gray-100"}`}
-                  >
-                    Step 1: Basic Details
-                  </span>
-                  <span className="text-gray-400">→</span>
-                  <span
-                    className={`px-2 py-1 rounded ${currentStep === 2 ? "bg-blue-100 text-blue-800" : "bg-gray-100"}`}
-                  >
-                    Step 2: Holiday Settings
-                  </span>
+        <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-3xl">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+          >
+            {/* Header with gradient accent */}
+            <div className="relative px-8 pt-8 pb-6">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-violet-500/10 to-primary/5" />
+              <div className="relative flex items-start justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                      Add New Employee
+                    </h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground ml-14">
+                    Complete the wizard to onboard your new team member
+                  </p>
+                </div>
+              </div>
+              
+              {/* Modern Step Indicator */}
+              <div className="relative mt-8">
+                <div className="flex items-center justify-between">
+                  {/* Step 1 */}
+                  <div className="flex items-center gap-3 flex-1">
+                    <motion.div 
+                      className={`relative flex items-center justify-center w-10 h-10 rounded-2xl font-semibold text-sm transition-all duration-300 ${
+                        currentStep >= 1 
+                          ? "bg-primary text-white shadow-lg shadow-primary/30" 
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                      animate={{ scale: currentStep === 1 ? 1.05 : 1 }}
+                    >
+                      {currentStep > 1 ? <CheckCircle2 className="w-5 h-5" /> : "1"}
+                      {currentStep === 1 && (
+                        <motion.div
+                          className="absolute inset-0 rounded-2xl bg-primary"
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                          style={{ opacity: 0.3 }}
+                        />
+                      )}
+                    </motion.div>
+                    <div className="hidden sm:block">
+                      <p className={`text-sm font-medium ${currentStep >= 1 ? "text-foreground" : "text-muted-foreground"}`}>
+                        Employee Details
+                      </p>
+                      <p className="text-xs text-muted-foreground">Basic info & compliance</p>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="flex-1 mx-4 hidden sm:block">
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-primary to-violet-500 rounded-full"
+                        initial={{ width: "0%" }}
+                        animate={{ width: currentStep >= 2 ? "100%" : "0%" }}
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className="flex items-center gap-3 flex-1 justify-end">
+                    <div className="hidden sm:block text-right">
+                      <p className={`text-sm font-medium ${currentStep >= 2 ? "text-foreground" : "text-muted-foreground"}`}>
+                        Leave & Working
+                      </p>
+                      <p className="text-xs text-muted-foreground">Holiday entitlements</p>
+                    </div>
+                    <motion.div 
+                      className={`flex items-center justify-center w-10 h-10 rounded-2xl font-semibold text-sm transition-all duration-300 ${
+                        currentStep >= 2 
+                          ? "bg-primary text-white shadow-lg shadow-primary/30" 
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                      animate={{ scale: currentStep === 2 ? 1.05 : 1 }}
+                    >
+                      {currentStep > 2 ? <CheckCircle2 className="w-5 h-5" /> : "2"}
+                    </motion.div>
+                  </div>
                 </div>
               </div>
             </div>
-            {error && <p className="text-red-600">{error}</p>}
+
+            {/* Content Area */}
+            <div className="px-8 pb-8 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive flex items-center gap-3"
+                >
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm font-medium">{error}</p>
+                </motion.div>
+              )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {hasCriticalError && (
@@ -1420,346 +1609,418 @@ export default function AddEmployeeModal({
                 className={hasCriticalError ? "pointer-events-none opacity-60" : undefined}
               >
                 {currentStep === 1 && (
-                  <div className="space-y-4">
-                    <h3 className="text-md font-medium">
-                      Basic Employee Information
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="firstName" className="text-sm font-medium">
-                          First Name *
+                  <motion.div 
+                    key="step1"
+                    custom={1}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="space-y-5"
+                  >
+                    {/* Personal Information Section */}
+                    <FormSection title="Personal Information" icon={User} accentColor="primary">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="firstName" className="text-sm font-medium text-foreground/80">
+                            First Name <span className="text-primary">*</span>
+                          </Label>
+                          <Input
+                            id="firstName"
+                            name="firstName"
+                            value={formData.firstName}
+                            onChange={handleChange}
+                            required
+                            placeholder="Enter first name"
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="lastName" className="text-sm font-medium text-foreground/80">
+                            Last Name <span className="text-primary">*</span>
+                          </Label>
+                          <Input
+                            id="lastName"
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleChange}
+                            required
+                            placeholder="Enter last name"
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-sm font-medium text-foreground/80">
+                          Email Address <span className="text-primary">*</span>
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={handleEmailChange}
+                            required
+                            placeholder="employee@company.com"
+                            className={`h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 transition-all ${
+                              emailError || duplicateEmailError 
+                                ? "border-destructive focus:border-destructive focus:ring-destructive/20" 
+                                : "focus:border-primary focus:ring-primary/20"
+                            }`}
+                            aria-describedby={emailError || duplicateEmailError ? "email-error" : undefined}
+                          />
+                          {isCheckingDuplicate && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full"
+                              />
+                            </div>
+                          )}
+                        </div>
+                        {emailError && (
+                          <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} id="email-error" className="text-xs text-destructive flex items-center gap-1" role="alert">
+                            <AlertCircle className="w-3 h-3" />{emailError}
+                          </motion.p>
+                        )}
+                        {!emailError && duplicateEmailError && (
+                          <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} id="email-error" className="text-xs text-destructive flex items-center gap-1" role="alert">
+                            <AlertCircle className="w-3 h-3" />{duplicateEmailError}
+                          </motion.p>
+                        )}
+                        {!emailError && !duplicateEmailError && isCheckingDuplicate && (
+                          <p className="text-xs text-muted-foreground" aria-live="polite">Verifying email availability...</p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-sm font-medium text-foreground/80">
+                          Phone Number
                         </Label>
                         <Input
-                          id="firstName"
-                          name="firstName"
-                          value={formData.firstName}
-                          onChange={handleChange}
-                          required
-                          className="mt-1"
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          value={formData.phone}
+                          onChange={handlePhoneChange}
+                          placeholder="+64 21 123 4567"
+                          className={`h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 transition-all ${
+                            phoneError ? "border-destructive focus:border-destructive" : "focus:border-primary focus:ring-primary/20"
+                          }`}
+                          aria-describedby="phone-help"
                         />
+                        {phoneError ? (
+                          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} id="phone-help" className="text-xs text-destructive flex items-center gap-1" role="alert">
+                            <AlertCircle className="w-3 h-3" />{phoneError}
+                          </motion.p>
+                        ) : formData.phone ? (
+                          <p id="phone-help" className="text-xs text-muted-foreground">{getPhoneHelperText(formData.phone)}</p>
+                        ) : (
+                          <p id="phone-help" className="text-xs text-muted-foreground">Auto-formats to +64 (NZ). International numbers accepted.</p>
+                        )}
                       </div>
-                      <div>
-                        <Label htmlFor="lastName" className="text-sm font-medium">
-                          Last Name *
-                        </Label>
-                        <Input
-                          id="lastName"
-                          name="lastName"
-                          value={formData.lastName}
-                          onChange={handleChange}
-                          required
-                          className="mt-1"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="dateOfBirth" className="text-sm font-medium text-foreground/80">
+                            Date of Birth
+                          </Label>
+                          <Input
+                            id="dateOfBirth"
+                            type="date"
+                            name="dateOfBirth"
+                            value={formData.dateOfBirth}
+                            onChange={handleChange}
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="startDate" className="text-sm font-medium text-foreground/80">
+                            Start Date <span className="text-primary">*</span>
+                          </Label>
+                          <Input
+                            id="startDate"
+                            type="date"
+                            name="startDate"
+                            value={formData.startDate}
+                            onChange={handleChange}
+                            required
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                          />
+                        </div>
                       </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="email" className="text-sm font-medium">
-                        Email Address *
-                      </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleEmailChange}
-                        required
-                        className={`mt-1 ${emailError || duplicateEmailError ? "border-red-500" : ""}`}
-                        aria-describedby={emailError || duplicateEmailError ? "email-error" : undefined}
-                      />
-                      {emailError && (
-                        <p id="email-error" className="text-xs text-red-600 mt-1" role="alert">{emailError}</p>
-                      )}
-                      {!emailError && duplicateEmailError && (
-                        <p id="email-error" className="text-xs text-red-600 mt-1" role="alert">{duplicateEmailError}</p>
-                      )}
-                      {!emailError && !duplicateEmailError && isCheckingDuplicate && (
-                        <p className="text-xs text-gray-500 mt-1" aria-live="polite">Checking availability...</p>
-                      )}
-                    </div>
-                    <div>
-                      <Label htmlFor="phone" className="text-sm font-medium">
-                        Phone Number
-                      </Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handlePhoneChange}
-                        className={`mt-1 ${phoneError ? "border-red-500" : ""}`}
-                        aria-describedby="phone-help"
-                      />
-                      {phoneError && (
-                        <p id="phone-help" className="text-xs text-red-600 mt-1" role="alert">{phoneError}</p>
-                      )}
-                      {!phoneError && formData.phone && (
-                        <p id="phone-help" className="text-xs text-gray-500 mt-1">{getPhoneHelperText(formData.phone)}</p>
-                      )}
-                      {!phoneError && !formData.phone && (
-                        <p id="phone-help" className="text-xs text-gray-500 mt-1">Automatically formats to +64 (NZ). Accepts international numbers.</p>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Date of Birth
-                        </label>
-                        <Input
-                          type="date"
-                          name="dateOfBirth"
-                          value={formData.dateOfBirth}
-                          onChange={handleChange}
-                        />
+
+                      {/* Admin Access Toggle - Premium styled */}
+                      <div className="mt-2 p-4 rounded-xl bg-gradient-to-r from-violet-500/10 to-primary/10 border border-violet-500/20">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-violet-500/20">
+                              <Shield className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                            </div>
+                            <div>
+                              <Label htmlFor="adminAccess" className="text-sm font-medium cursor-pointer">Admin Access</Label>
+                              <p className="text-xs text-muted-foreground">Grant system administration privileges</p>
+                            </div>
+                          </div>
+                          <Switch
+                            id="adminAccess"
+                            checked={isAdminAccess}
+                            onChange={(checked: boolean) => setIsAdminAccess(checked)}
+                            aria-describedby="admin-access-description"
+                          />
+                        </div>
+                        <p id="admin-access-description" className="sr-only">Grant this employee administrative privileges to manage system settings and other employees</p>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Start Date *
-                        </label>
-                        <Input
-                          type="date"
-                          name="startDate"
-                          value={formData.startDate}
-                          onChange={handleChange}
-                          required
-                        />
+                    </FormSection>
+
+                    {/* Job & Organization Section */}
+                    <FormSection title="Job & Organization" icon={Briefcase} accentColor="emerald" defaultOpen={true}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-foreground/80">Department</Label>
+                          <Select
+                            open={isDeptSelectOpen}
+                            onOpenChange={handleDeptOpenChange}
+                            value={formData.departmentId || undefined}
+                            onValueChange={(value) => {
+                              setShowAllTemplates(false);
+                              setFormData({ ...formData, departmentId: value });
+                            }}
+                          >
+                            <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                              <SelectValue placeholder="Select department" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {shouldShowDepartmentSearch && (
+                                <SelectSearchInput
+                                  value={departmentSearch}
+                                  onChange={setDepartmentSearch}
+                                  placeholder="Search departments..."
+                                />
+                              )}
+                              {departmentOptions.map((d) => (
+                                <SelectItem key={d.id} value={d.id}>
+                                  {d.name}
+                                </SelectItem>
+                              ))}
+                              <div className="px-2 py-2 border-t border-muted/30">
+                                <Button type="button" variant="ghost" size="sm" className="w-full justify-start text-primary" onClick={() => { setIsDeptSelectOpen(false); setDeptModalOpen(true); }}>
+                                  <span className="mr-2">+</span> Add new department
+                                </Button>
+                              </div>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-foreground/80">Job Role</Label>
+                          <Select
+                            open={isRoleSelectOpen}
+                            onOpenChange={handleJobRoleOpenChange}
+                            value={formData.jobRoleId || undefined}
+                            onValueChange={(value: string) => {
+                              setShowAllTemplates(false);
+                              setFormData({ ...formData, jobRoleId: value });
+                            }}
+                          >
+                            <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                              <SelectValue placeholder="Select job role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {shouldShowJobRoleSearch && (
+                                <SelectSearchInput
+                                  value={jobRoleSearch}
+                                  onChange={setJobRoleSearch}
+                                  placeholder="Search job roles..."
+                                />
+                              )}
+                              {jobRoleOptions.map((j) => (
+                                <SelectItem key={j.id} value={j.id}>
+                                  {j.name}
+                                </SelectItem>
+                              ))}
+                              <div className="px-2 py-2 border-t border-muted/30">
+                                <Button type="button" variant="ghost" size="sm" className="w-full justify-start text-primary" onClick={() => { setIsRoleSelectOpen(false); setRoleModalOpen(true); }}>
+                                  <span className="mr-2">+</span> Add new job role
+                                </Button>
+                              </div>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="adminAccess"
-                        checked={isAdminAccess}
-                        onChange={(checked: boolean) => setIsAdminAccess(checked)}
-                        aria-describedby="admin-access-description"
-                      />
-                      <Label htmlFor="adminAccess" className="text-sm">Admin Access?</Label>
-                      <p id="admin-access-description" className="sr-only">Grant this employee administrative privileges to manage system settings and other employees</p>
-                    </div>
-
-                    <Select
-                      open={isDeptSelectOpen}
-                      onOpenChange={handleDeptOpenChange}
-                      value={formData.departmentId || undefined}
-                      onValueChange={(value) => {
-                        setShowAllTemplates(false);
-                        setFormData({ ...formData, departmentId: value });
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select Department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shouldShowDepartmentSearch && (
-                          <SelectSearchInput
-                            value={departmentSearch}
-                            onChange={setDepartmentSearch}
-                            placeholder="Search departments..."
-                          />
-                        )}
-                        {departmentOptions.map((d) => (
-                          <SelectItem key={d.id} value={d.id}>
-                            {d.name}
-                          </SelectItem>
-                        ))}
-                        <div className="px-2 py-2">
-                          <Button type="button" variant="ghost" onClick={() => { setIsDeptSelectOpen(false); setDeptModalOpen(true); }}>
-                            + Add new department
-                          </Button>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-foreground/80">Location</Label>
+                          <Select
+                            open={isLocationSelectOpen}
+                            onOpenChange={handleLocationOpenChange}
+                            value={formData.locationId || undefined}
+                            onValueChange={(value: string) => setFormData({ ...formData, locationId: value })}
+                          >
+                            <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                              <SelectValue placeholder="Select location" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {shouldShowLocationSearch && (
+                                <SelectSearchInput
+                                  value={locationSearch}
+                                  onChange={setLocationSearch}
+                                  placeholder="Search locations..."
+                                />
+                              )}
+                              {locationOptions.map((l) => (
+                                <SelectItem key={l.id} value={l.id}>
+                                  {l.name}
+                                </SelectItem>
+                              ))}
+                              <div className="px-2 py-2 border-t border-muted/30">
+                                <Button type="button" variant="ghost" size="sm" className="w-full justify-start text-primary" onClick={() => { setIsLocationSelectOpen(false); setLocationModalOpen(true); }}>
+                                  <span className="mr-2">+</span> Add new location
+                                </Button>
+                              </div>
+                            </SelectContent>
+                          </Select>
                         </div>
-                      </SelectContent>
-                    </Select>
 
-                    <Select
-                      open={isRoleSelectOpen}
-                      onOpenChange={handleJobRoleOpenChange}
-                      value={formData.jobRoleId || undefined}
-                      onValueChange={(value: string) => {
-                        setShowAllTemplates(false);
-                        setFormData({ ...formData, jobRoleId: value });
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select Job Role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shouldShowJobRoleSearch && (
-                          <SelectSearchInput
-                            value={jobRoleSearch}
-                            onChange={setJobRoleSearch}
-                            placeholder="Search job roles..."
-                          />
-                        )}
-                        {jobRoleOptions.map((j) => (
-                          <SelectItem key={j.id} value={j.id}>
-                            {j.name}
-                          </SelectItem>
-                        ))}
-                        <div className="px-2 py-2">
-                          <Button type="button" variant="ghost" onClick={() => { setIsRoleSelectOpen(false); setRoleModalOpen(true); }}>
-                            + Add new job role
-                          </Button>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-foreground/80">Contract Type</Label>
+                          <Select
+                            open={isContractTypeSelectOpen}
+                            onOpenChange={handleContractTypeOpenChange}
+                            value={formData.contractType || undefined}
+                            onValueChange={(value: string) => setFormData({ ...formData, contractType: value })}
+                          >
+                            <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                              <SelectValue placeholder="Select contract type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {shouldShowContractTypeSearch && (
+                                <SelectSearchInput
+                                  value={contractTypeSearch}
+                                  onChange={setContractTypeSearch}
+                                  placeholder="Search contract types..."
+                                />
+                              )}
+                              {contractTypeOptions.map((t) => (
+                                <SelectItem key={t.id} value={t.label}>
+                                  {t.label}
+                                </SelectItem>
+                              ))}
+                              <div className="px-2 py-2 border-t border-muted/30">
+                                <Button type="button" variant="ghost" size="sm" className="w-full justify-start text-primary" onClick={() => { setIsContractTypeSelectOpen(false); setContractTypeModalOpen(true); }}>
+                                  <span className="mr-2">+</span> Add new contract type
+                                </Button>
+                              </div>
+                            </SelectContent>
+                          </Select>
                         </div>
-                      </SelectContent>
-                    </Select>
+                      </div>
 
-                    <Select
-                      open={isLocationSelectOpen}
-                      onOpenChange={handleLocationOpenChange}
-                      value={formData.locationId || undefined}
-                      onValueChange={(value: string) => setFormData({ ...formData, locationId: value })}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select Location" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shouldShowLocationSearch && (
-                          <SelectSearchInput
-                            value={locationSearch}
-                            onChange={setLocationSearch}
-                            placeholder="Search locations..."
-                          />
-                        )}
-                        {locationOptions.map((l) => (
-                          <SelectItem key={l.id} value={l.id}>
-                            {l.name}
-                          </SelectItem>
-                        ))}
-                        <div className="px-2 py-2">
-                          <Button type="button" variant="ghost" onClick={() => { setIsLocationSelectOpen(false); setLocationModalOpen(true); }}>
-                            + Add new location
-                          </Button>
-                        </div>
-                      </SelectContent>
-                    </Select>
-
-                    <Select
-                      open={isContractTypeSelectOpen}
-                      onOpenChange={handleContractTypeOpenChange}
-                      value={formData.contractType || undefined}
-                      onValueChange={(value: string) => setFormData({ ...formData, contractType: value })}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select Contract Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shouldShowContractTypeSearch && (
-                          <SelectSearchInput
-                            value={contractTypeSearch}
-                            onChange={setContractTypeSearch}
-                            placeholder="Search contract types..."
-                          />
-                        )}
-                        {contractTypeOptions.map((t) => (
-                          <SelectItem key={t.id} value={t.label}>
-                            {t.label}
-                          </SelectItem>
-                        ))}
-                        <div className="px-2 py-2">
-                          <Button type="button" variant="ghost" onClick={() => { setIsContractTypeSelectOpen(false); setContractTypeModalOpen(true); }}>
-                            + Add new contract type
-                          </Button>
-                        </div>
-                      </SelectContent>
-                    </Select>
-
-                    <Select
-                      open={isManagerSelectOpen}
-                      onOpenChange={handleManagerOpenChange}
-                      value={formData.managerId || undefined}
-                      onValueChange={(value: string) =>
-                        setFormData({ ...formData, managerId: value })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select Line Manager (Optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shouldShowManagerSearch && (
-                          <SelectSearchInput
-                            value={managerSearch}
-                            onChange={setManagerSearch}
-                            placeholder="Search managers..."
-                          />
-                        )}
-                        {managerOptions.map((emp) => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {getEmployeeDisplayName(emp)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <Select
-                      open={isTemplateSelectOpen}
-                      onOpenChange={handleTemplateOpenChange}
-                      value={formData.onboardingTemplateId || undefined}
-                      onValueChange={(value: string) => {
-                        if (value === "show_all_templates") {
-                          setShowAllTemplates(true);
-                          return;
-                        }
-
-                        // Treat "none" as undefined/null
-                        setFormData({
-                          ...formData,
-                          onboardingTemplateId: value === "none" ? undefined : value,
-                        });
-
-                        if (value === "none") {
-                          setShowAllTemplates(false);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select Onboarding Template *" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {shouldShowTemplateSearch && (
-                          <SelectSearchInput
-                            value={templateSearch}
-                            onChange={setTemplateSearch}
-                            placeholder="Search templates..."
-                          />
-                        )}
-                        {templateOptions.map((t) => (
-                          <SelectItem key={t.id} value={t.id}>
-                            {t.name}
-                          </SelectItem>
-                        ))}
-                        {!showAllTemplates && hasTemplateFilters && (
-                          <SelectItem value="show_all_templates">
-                            Show all templates
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {!showAllTemplates && filteredTemplates.length === 0 && (
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        No onboarding templates match the selected department or
-                        job role. The list filters according to your choices.
-                        {" "}
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto p-0 align-baseline font-medium text-primary underline-offset-2 hover:underline"
-                          onClick={handleClearFilters}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground/80">Line Manager</Label>
+                        <Select
+                          open={isManagerSelectOpen}
+                          onOpenChange={handleManagerOpenChange}
+                          value={formData.managerId || undefined}
+                          onValueChange={(value: string) =>
+                            setFormData({ ...formData, managerId: value })
+                          }
                         >
-                          Clear filters
-                        </Button>
-                        {" "}to see everything.
-                      </p>
-                    )}
+                          <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                            <SelectValue placeholder="Select line manager (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {shouldShowManagerSearch && (
+                              <SelectSearchInput
+                                value={managerSearch}
+                                onChange={setManagerSearch}
+                                placeholder="Search managers..."
+                              />
+                            )}
+                            {managerOptions.map((emp) => (
+                              <SelectItem key={emp.id} value={emp.id}>
+                                {getEmployeeDisplayName(emp)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </FormSection>
 
-                    {/* NZ-specific onboarding fields */}
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <h3 className="text-md font-medium mb-4">
-                        NZ Tax & Payroll Information
-                      </h3>
+                    {/* Onboarding Template Section */}
+                    <FormSection title="Onboarding" icon={FileText} accentColor="violet" defaultOpen={true}>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground/80">
+                          Onboarding Template <span className="text-primary">*</span>
+                        </Label>
+                        <Select
+                          open={isTemplateSelectOpen}
+                          onOpenChange={handleTemplateOpenChange}
+                          value={formData.onboardingTemplateId || undefined}
+                          onValueChange={(value: string) => {
+                            if (value === "show_all_templates") {
+                              setShowAllTemplates(true);
+                              return;
+                            }
+                            setFormData({
+                              ...formData,
+                              onboardingTemplateId: value === "none" ? undefined : value,
+                            });
+                            if (value === "none") {
+                              setShowAllTemplates(false);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                            <SelectValue placeholder="Choose onboarding template" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {shouldShowTemplateSearch && (
+                              <SelectSearchInput
+                                value={templateSearch}
+                                onChange={setTemplateSearch}
+                                placeholder="Search templates..."
+                              />
+                            )}
+                            {templateOptions.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                {t.name}
+                              </SelectItem>
+                            ))}
+                            {!showAllTemplates && hasTemplateFilters && (
+                              <SelectItem value="show_all_templates">
+                                <span className="text-primary">Show all templates</span>
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        {!showAllTemplates && filteredTemplates.length === 0 && (
+                          <motion.p 
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="text-sm text-muted-foreground bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-200 dark:border-amber-800"
+                          >
+                            No templates match your filters.{" "}
+                            <button
+                              type="button"
+                              className="font-medium text-primary hover:underline"
+                              onClick={handleClearFilters}
+                            >
+                              Clear filters
+                            </button>
+                            {" "}to see all options.
+                          </motion.p>
+                        )}
+                      </div>
+                    </FormSection>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="irdNumber" className="text-sm font-medium">
+                    {/* NZ Tax & Payroll Section */}
+                    <FormSection title="NZ Tax & Payroll" icon={DollarSign} accentColor="amber" defaultOpen={false}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="irdNumber" className="text-sm font-medium text-foreground/80">
                             IRD Number
                           </Label>
                           <Input
@@ -1768,18 +2029,21 @@ export default function AddEmployeeModal({
                             placeholder="123-456-789"
                             value={formData.irdNumber}
                             onChange={handleIRDChange}
-                            className="mt-1"
+                            className={`h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 transition-all ${
+                              irdError ? "border-destructive" : "focus:border-primary focus:ring-primary/20"
+                            }`}
                           />
-                          {irdError && (
-                            <p className="text-xs text-red-600 mt-1">{irdError}</p>
+                          {irdError ? (
+                            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-destructive flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />{irdError}
+                            </motion.p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">8 or 9 digits</p>
                           )}
-                          <p className="text-xs text-gray-500 mt-1">
-                            8 or 9 digits (optional dashes)
-                          </p>
                         </div>
 
-                        <div>
-                          <Label htmlFor="taxCode" className="text-sm font-medium">
+                        <div className="space-y-2">
+                          <Label htmlFor="taxCode" className="text-sm font-medium text-foreground/80">
                             Tax Code
                           </Label>
                           <Select
@@ -1790,7 +2054,7 @@ export default function AddEmployeeModal({
                               setFormData({ ...formData, taxCode: value })
                             }
                           >
-                            <SelectTrigger className="w-full mt-1">
+                            <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
                               <SelectValue placeholder="Select tax code" />
                             </SelectTrigger>
                             <SelectContent>
@@ -1808,14 +2072,12 @@ export default function AddEmployeeModal({
                               ))}
                             </SelectContent>
                           </Select>
-                          <p className="text-xs text-gray-500 mt-1">
-                            IRD tax code for PAYE
-                          </p>
+                          <p className="text-xs text-muted-foreground">IRD tax code for PAYE</p>
                         </div>
                       </div>
 
-                      <div className="mt-4">
-                        <Label htmlFor="bankAccountNumber" className="text-sm font-medium">
+                      <div className="space-y-2">
+                        <Label htmlFor="bankAccountNumber" className="text-sm font-medium text-foreground/80">
                           Bank Account Number
                         </Label>
                         <Input
@@ -1824,18 +2086,31 @@ export default function AddEmployeeModal({
                           placeholder="12-3456-7890123-00"
                           value={formData.bankAccountNumber}
                           onChange={handleBankAccountChange}
-                          className="mt-1"
+                          className={`h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 transition-all ${
+                            bankAccountError ? "border-destructive" : "focus:border-primary focus:ring-primary/20"
+                          }`}
                         />
-                        {bankAccountError && (
-                          <p className="text-xs text-red-600 mt-1">{bankAccountError}</p>
+                        {bankAccountError ? (
+                          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />{bankAccountError}
+                          </motion.p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Format: XX-XXXX-XXXXXXX-XXX</p>
                         )}
-                        <p className="text-xs text-gray-500 mt-1">
-                          NZ bank account format: XX-XXXX-XXXXXXX-XXX
-                        </p>
                       </div>
 
-                      <div className="mt-4 space-y-3">
-                        <div className="flex items-center gap-2">
+                      {/* KiwiSaver Toggle - Premium styled */}
+                      <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-emerald-500/20">
+                              <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            </div>
+                            <div>
+                              <Label htmlFor="kiwiSaverEnrolled" className="text-sm font-medium cursor-pointer">KiwiSaver Enrolled</Label>
+                              <p className="text-xs text-muted-foreground">NZ retirement savings scheme</p>
+                            </div>
+                          </div>
                           <Switch
                             id="kiwiSaverEnrolled"
                             checked={formData.kiwiSaverEnrolled}
@@ -1844,77 +2119,77 @@ export default function AddEmployeeModal({
                             }
                             aria-describedby="kiwisaver-description"
                           />
-                          <Label htmlFor="kiwiSaverEnrolled" className="text-sm">KiwiSaver Enrolled?</Label>
-                          <p id="kiwisaver-description" className="sr-only">Indicate if employee is enrolled in New Zealand KiwiSaver retirement savings scheme</p>
                         </div>
-
-                        {formData.kiwiSaverEnrolled && (
-                          <div>
-                            <Label htmlFor="kiwiSaverRate" className="text-sm font-medium">
-                              KiwiSaver Employee Contribution Rate
-                            </Label>
-                            <Select
-                              value={formData.kiwiSaverEmployeeRate || undefined}
-                              onValueChange={(value) =>
-                                setFormData({ ...formData, kiwiSaverEmployeeRate: value })
-                              }
+                        <p id="kiwisaver-description" className="sr-only">Indicate if employee is enrolled in New Zealand KiwiSaver retirement savings scheme</p>
+                        
+                        <AnimatePresence>
+                          {formData.kiwiSaverEnrolled && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="mt-4 pt-4 border-t border-emerald-500/20"
                             >
-                              <SelectTrigger className="w-full mt-1">
-                                <SelectValue placeholder="Select contribution rate" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {KIWISAVER_RATES.map((rate) => (
-                                  <SelectItem key={rate.value} value={rate.value}>
-                                    {rate.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Minimum 3%, maximum 10%
-                            </p>
-                          </div>
-                        )}
+                              <Label htmlFor="kiwiSaverRate" className="text-sm font-medium text-foreground/80">
+                                Contribution Rate
+                              </Label>
+                              <Select
+                                value={formData.kiwiSaverEmployeeRate || undefined}
+                                onValueChange={(value) =>
+                                  setFormData({ ...formData, kiwiSaverEmployeeRate: value })
+                                }
+                              >
+                                <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 mt-2">
+                                  <SelectValue placeholder="Select rate" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {KIWISAVER_RATES.map((rate) => (
+                                    <SelectItem key={rate.value} value={rate.value}>
+                                      {rate.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <p className="text-xs text-muted-foreground mt-1">3% minimum, 10% maximum</p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
-                      <div className="mt-4">
-                        <Label htmlFor="residencyStatus" className="text-sm font-medium">
+                      <div className="space-y-2">
+                        <Label htmlFor="residencyStatus" className="text-sm font-medium text-foreground/80">
                           Residency Status
                         </Label>
                         <Input
                           id="residencyStatus"
                           name="residencyStatus"
-                          placeholder="e.g., NZ Citizen, Permanent Resident, Work Visa"
+                          placeholder="e.g., NZ Citizen, Permanent Resident"
                           value={formData.residencyStatus}
                           onChange={handleChange}
-                          className="mt-1"
+                          className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                          For compliance and reporting
-                        </p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mt-4">
-                        <div>
-                          <Label htmlFor="workPermitType" className="text-sm font-medium">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="workPermitType" className="text-sm font-medium text-foreground/80">
                             Work Permit Type
                           </Label>
                           <Input
                             id="workPermitType"
                             name="workPermitType"
-                            placeholder="e.g., Essential Skills, Partnership"
+                            placeholder="e.g., Essential Skills"
                             value={formData.workPermitType}
                             onChange={handleChange}
-                            className="mt-1"
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
                           />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Required for non-residents/non-citizens
-                          </p>
+                          <p className="text-xs text-muted-foreground">For non-residents</p>
                         </div>
 
-                        <div>
-                          <Label htmlFor="visaExpiryDate" className="text-sm font-medium">
-                            Visa/Permit Expiry Date
+                        <div className="space-y-2">
+                          <Label htmlFor="visaExpiryDate" className="text-sm font-medium text-foreground/80">
+                            Visa Expiry Date
                           </Label>
                           <Input
                             id="visaExpiryDate"
@@ -1922,76 +2197,88 @@ export default function AddEmployeeModal({
                             name="visaExpiryDate"
                             value={formData.visaExpiryDate}
                             onChange={handleChange}
-                            className="mt-1"
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
                           />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Immigration Act 2009 compliance
-                          </p>
+                          <p className="text-xs text-muted-foreground">Immigration compliance</p>
                         </div>
                       </div>
-                    </div>
+                    </FormSection>
 
-                    {/* Emergency Contact Information */}
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <h3 className="text-md font-medium mb-4">
-                        Emergency Contact
-                      </h3>
+                    {/* Emergency Contact Section */}
+                    <FormSection title="Emergency Contact" icon={Heart} accentColor="rose" defaultOpen={false}>
+                      <div className="space-y-2">
+                        <Label htmlFor="emergencyContactName" className="text-sm font-medium text-foreground/80">
+                          Contact Name
+                        </Label>
+                        <Input
+                          id="emergencyContactName"
+                          name="emergencyContactName"
+                          placeholder="Full name"
+                          value={formData.emergencyContactName}
+                          onChange={handleChange}
+                          className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                        />
+                      </div>
 
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="emergencyContactName" className="text-sm font-medium">
-                            Contact Name
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="emergencyContactPhone" className="text-sm font-medium text-foreground/80">
+                            Contact Phone
                           </Label>
                           <Input
-                            id="emergencyContactName"
-                            name="emergencyContactName"
-                            placeholder="Full name"
-                            value={formData.emergencyContactName}
+                            id="emergencyContactPhone"
+                            name="emergencyContactPhone"
+                            placeholder="+64 21 123 4567"
+                            value={formData.emergencyContactPhone}
                             onChange={handleChange}
-                            className="mt-1"
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
                           />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="emergencyContactPhone" className="text-sm font-medium">
-                              Contact Phone
-                            </Label>
-                            <Input
-                              id="emergencyContactPhone"
-                              name="emergencyContactPhone"
-                              placeholder="Phone number"
-                              value={formData.emergencyContactPhone}
-                              onChange={handleChange}
-                              className="mt-1"
-                            />
-                          </div>
-
-                          <div>
-                            <Label htmlFor="emergencyContactRelationship" className="text-sm font-medium">
-                              Relationship
-                            </Label>
-                            <Input
-                              id="emergencyContactRelationship"
-                              name="emergencyContactRelationship"
-                              placeholder="e.g., Spouse, Parent"
-                              value={formData.emergencyContactRelationship}
-                              onChange={handleChange}
-                              className="mt-1"
-                            />
-                          </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="emergencyContactRelationship" className="text-sm font-medium text-foreground/80">
+                            Relationship
+                          </Label>
+                          <Input
+                            id="emergencyContactRelationship"
+                            name="emergencyContactRelationship"
+                            placeholder="e.g., Spouse, Parent"
+                            value={formData.emergencyContactRelationship}
+                            onChange={handleChange}
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                          />
                         </div>
                       </div>
-                    </div>
+                    </FormSection>
 
                     {/* 90-Day Trial Period Section */}
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                      <h3 className="text-md font-medium mb-4">
-                        Trial Period (NZ Employment Relations Act 2000)
-                      </h3>
-
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
+                    <FormSection title="Trial Period" icon={Shield} accentColor="primary" defaultOpen={false}>
+                      <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-500/20">
+                              <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor="ninetyDayTrial" className="text-sm font-medium cursor-pointer">90-Day Trial Period</Label>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs p-4 glass-ultra rounded-xl">
+                                      <p className="text-sm">
+                                        Under the Employment Relations Act 2000, employers with fewer than 20 employees
+                                        may include a 90-day trial provision in employment agreements.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                              <p className="text-xs text-muted-foreground">NZ Employment Relations Act 2000</p>
+                            </div>
+                          </div>
                           <Switch
                             id="ninetyDayTrial"
                             checked={formData.ninetyDayTrialPeriod}
@@ -2004,92 +2291,100 @@ export default function AddEmployeeModal({
                             }}
                             aria-describedby="trial-period-description"
                           />
-                          <Label htmlFor="ninetyDayTrial" className="text-sm font-medium">
-                            90-Day Trial Period
-                          </Label>
-                          <p id="trial-period-description" className="sr-only">Enable 90-day trial period for this employment agreement as allowed under Employment Relations Act 2000 for employers with fewer than 20 employees</p>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs">
-                                <p className="text-sm">
-                                  Under the Employment Relations Act 2000, employers with fewer than 20 employees
-                                  may include a 90-day trial provision in employment agreements. During this period,
-                                  the employer may dismiss the employee without risk of personal grievance claims.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
                         </div>
+                        <p id="trial-period-description" className="sr-only">Enable 90-day trial period for this employment agreement</p>
 
-                        {formData.ninetyDayTrialPeriod && (
-                          <div className="ml-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
-                            <div className="flex items-start gap-2">
-                              <input
-                                type="checkbox"
-                                id="trialPeriodAccepted"
-                                checked={formData.trialPeriodAccepted}
-                                onChange={(e) =>
-                                  setFormData({ ...formData, trialPeriodAccepted: e.target.checked })
-                                }
-                                className="mt-1"
-                              />
-                              <div>
-                                <Label htmlFor="trialPeriodAccepted" className="text-sm font-medium cursor-pointer">
-                                  Employee acknowledges and accepts 90-day trial period terms
-                                </Label>
-                                <p className="text-xs text-gray-600 mt-1">
-                                  By checking this box, the employee confirms they have received and understood the
-                                  trial period clause in their employment agreement. This must be clearly communicated
-                                  before employment commences.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                        <AnimatePresence>
+                          {formData.ninetyDayTrialPeriod && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="mt-4 pt-4 border-t border-blue-500/20"
+                            >
+                              <label className="flex items-start gap-3 p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/50 cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  id="trialPeriodAccepted"
+                                  checked={formData.trialPeriodAccepted}
+                                  onChange={(e) =>
+                                    setFormData({ ...formData, trialPeriodAccepted: e.target.checked })
+                                  }
+                                  className="mt-0.5 h-4 w-4 rounded border-amber-300 text-primary focus:ring-primary/20"
+                                />
+                                <div>
+                                  <span className="text-sm font-medium text-foreground">
+                                    Employee acknowledges 90-day trial terms
+                                  </span>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Confirms understanding of trial period clause before employment commences.
+                                  </p>
+                                </div>
+                              </label>
 
-                        {formData.ninetyDayTrialPeriod && !formData.trialPeriodAccepted && (
-                          <p className="text-xs text-amber-700 mt-2">
-                            ⚠️ Employee must acknowledge trial period terms before proceeding
-                          </p>
-                        )}
+                              {!formData.trialPeriodAccepted && (
+                                <motion.p 
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="text-xs text-amber-600 dark:text-amber-400 mt-3 flex items-center gap-1"
+                                >
+                                  <AlertCircle className="w-3 h-3" />
+                                  Acknowledgement required before proceeding
+                                </motion.p>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
-                    </div>
+                    </FormSection>
 
-                    <div className="flex justify-end mt-6">
+                    {/* Step Navigation */}
+                    <motion.div 
+                      className="flex justify-end pt-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
                       <Button
                         type="button"
                         onClick={nextStep}
                         disabled={!isStep1Valid}
+                        className="h-12 px-8 rounded-2xl bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 text-white font-semibold shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50 disabled:shadow-none"
                       >
-                        Next
+                        <span>Continue to Leave Settings</span>
+                        <ChevronRight className="w-5 h-5 ml-2" />
                       </Button>
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
                 )}
 
                 {currentStep === 2 && (
-                  <div className="space-y-4">
-                    <h3 className="text-md font-medium">
-                      Holiday & Working Pattern Settings
-                    </h3>
-
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-sm font-medium">
-                          Holiday Year Start
+                  <motion.div 
+                    key="step2"
+                    custom={1}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="space-y-5"
+                  >
+                    {/* Holiday Year Section */}
+                    <FormSection title="Holiday Year" icon={Calendar} accentColor="primary" defaultOpen={true}>
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-foreground/80">
+                          Holiday Year Start Date
                         </Label>
-                        <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <div className="flex flex-col sm:flex-row gap-3">
                           <Select
                             open={isHolidayMonthSelectOpen}
                             onOpenChange={handleHolidayMonthOpenChange}
                             value={holidayStartMonth || undefined}
                             onValueChange={handleHolidayMonthChange}
                           >
-                            <SelectTrigger className="w-full sm:w-48">
-                              <SelectValue placeholder="Month" />
+                            <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 flex-1">
+                              <SelectValue placeholder="Select month" />
                             </SelectTrigger>
                             <SelectContent>
                               {shouldShowHolidayMonthSearch && (
@@ -2114,41 +2409,36 @@ export default function AddEmployeeModal({
                             placeholder="Day"
                             value={holidayStartDay}
                             onChange={handleHolidayDayChange}
-                            className="w-full sm:w-24"
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 w-full sm:w-28 focus:border-primary focus:ring-primary/20 transition-all"
                           />
                         </div>
                         {holidayYearError ? (
-                          <p className="text-xs text-red-600 mt-2">
-                            {holidayYearError}
-                          </p>
+                          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />{holidayYearError}
+                          </motion.p>
                         ) : selectedHolidayRange ? (
-                          <p className="text-xs text-gray-500 mt-2">
-                            Holiday year runs from{" "}
-                            <span className="font-medium">
-                              {formatMonthDay(
-                                selectedHolidayRange.startMonth,
-                                selectedHolidayRange.startDay,
-                              )}
-                            </span>{" "}
-                            to{" "}
-                            <span className="font-medium">
-                              {formatMonthDay(
-                                selectedHolidayRange.endMonth,
-                                selectedHolidayRange.endDay,
-                              )}
-                            </span>
-                            .
-                          </p>
+                          <motion.div 
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-3 rounded-xl bg-primary/5 border border-primary/10"
+                          >
+                            <p className="text-sm text-foreground">
+                              Holiday year: <span className="font-semibold text-primary">{formatMonthDay(selectedHolidayRange.startMonth, selectedHolidayRange.startDay)}</span>
+                              {" "}to{" "}
+                              <span className="font-semibold text-primary">{formatMonthDay(selectedHolidayRange.endMonth, selectedHolidayRange.endDay)}</span>
+                            </p>
+                          </motion.div>
                         ) : (
-                          <p className="text-xs text-gray-500 mt-2">
-                            Choose the first day of your company holiday year.
-                          </p>
+                          <p className="text-xs text-muted-foreground">Choose the first day of your company holiday year</p>
                         )}
                       </div>
+                    </FormSection>
 
-                      <div>
-                        <Label className="text-sm font-medium">
-                          Working Pattern
+                    {/* Working Pattern Section */}
+                    <FormSection title="Working Pattern" icon={Briefcase} accentColor="emerald" defaultOpen={true}>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground/80">
+                          Working Pattern <span className="text-primary">*</span>
                         </Label>
                         <Select
                           open={isWorkingPatternSelectOpen}
@@ -2158,7 +2448,7 @@ export default function AddEmployeeModal({
                             setFormData({ ...formData, workingPatternId: value })
                           }
                         >
-                          <SelectTrigger className="w-full mt-1">
+                          <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
                             <SelectValue placeholder="Select working pattern" />
                           </SelectTrigger>
                           <SelectContent>
@@ -2177,12 +2467,15 @@ export default function AddEmployeeModal({
                           </SelectContent>
                         </Select>
                       </div>
+                    </FormSection>
 
-                      <div>
-                        <Label className="text-sm font-medium">
-                          Annual Leave Entitlement (Days)
+                    {/* Leave Entitlements Section */}
+                    <FormSection title="Leave Entitlements" icon={Calendar} accentColor="violet" defaultOpen={true}>
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-foreground/80">
+                          Annual Leave Entitlement <span className="text-primary">*</span>
                         </Label>
-                        <div className="flex gap-2 mt-1">
+                        <div className="flex gap-3">
                           <Input
                             type="number"
                             step="0.01"
@@ -2190,27 +2483,25 @@ export default function AddEmployeeModal({
                             placeholder="20"
                             value={formData.entitlementDays}
                             onChange={handleChange}
-                            className="flex-1"
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 flex-1 focus:border-primary focus:ring-primary/20 transition-all"
                             required
                           />
                           <Button
                             type="button"
                             variant="outline"
                             onClick={() => setIsCalculateModalOpen(true)}
+                            className="h-11 rounded-xl border-violet-500/30 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10"
                           >
+                            <Sparkles className="w-4 h-4 mr-2" />
                             Calculate
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          NZ: 4 weeks (20 days) after 12 months. Prorated before anniversary.
-                        </p>
+                        <p className="text-xs text-muted-foreground">NZ: 4 weeks (20 days) after 12 months. Prorated before anniversary.</p>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                          <Label className="text-sm font-medium">
-                            Sick Leave (Days/Year)
-                          </Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-foreground/80">Sick Leave (Days/Year)</Label>
                           <Input
                             type="number"
                             step="0.5"
@@ -2218,17 +2509,13 @@ export default function AddEmployeeModal({
                             placeholder="10"
                             value={formData.sickLeaveDays}
                             onChange={handleChange}
-                            className="mt-1"
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
                           />
-                          <p className="text-xs text-gray-500 mt-1">
-                            NZ minimum: 10 days after 6 months
-                          </p>
+                          <p className="text-xs text-muted-foreground">Min: 10 days after 6 months</p>
                         </div>
 
-                        <div>
-                          <Label className="text-sm font-medium">
-                            Alternative Holidays
-                          </Label>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-foreground/80">Alternative Holidays</Label>
                           <Input
                             type="number"
                             step="0.5"
@@ -2236,17 +2523,13 @@ export default function AddEmployeeModal({
                             placeholder="0"
                             value={formData.alternativeHolidayDays}
                             onChange={handleChange}
-                            className="mt-1"
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
                           />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Days owed for working public holidays
-                          </p>
+                          <p className="text-xs text-muted-foreground">For public holiday work</p>
                         </div>
 
-                        <div>
-                          <Label className="text-sm font-medium">
-                            Public Holidays/Year
-                          </Label>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-foreground/80">Public Holidays</Label>
                           <Input
                             type="number"
                             step="1"
@@ -2254,22 +2537,28 @@ export default function AddEmployeeModal({
                             placeholder="11"
                             value={formData.publicHolidayEntitlement}
                             onChange={handleChange}
-                            className="mt-1"
+                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
                           />
-                          <p className="text-xs text-gray-500 mt-1">
-                            NZ: 11 national + regional holidays
-                          </p>
+                          <p className="text-xs text-muted-foreground">NZ: 11 + regional</p>
                         </div>
                       </div>
-                    </div>
+                    </FormSection>
 
-                    <div className="flex justify-between">
+                    {/* Step Navigation */}
+                    <motion.div 
+                      className="flex justify-between items-center pt-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
                       <Button
                         type="button"
                         variant="ghost"
                         onClick={prevStep}
                         disabled={isSubmitting}
+                        className="h-12 px-6 rounded-2xl text-muted-foreground hover:text-foreground"
                       >
+                        <ChevronRight className="w-5 h-5 mr-2 rotate-180" />
                         Back
                       </Button>
                       <Button
@@ -2277,15 +2566,18 @@ export default function AddEmployeeModal({
                         loading={isSubmitting}
                         loadingText="Creating Employee..."
                         disabled={isSubmitting || !isStep2Valid}
+                        className="h-12 px-8 rounded-2xl bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50 disabled:shadow-none"
                       >
+                        <CheckCircle2 className="w-5 h-5 mr-2" />
                         Add Employee
                       </Button>
-                    </div>
-                  </div>
+                    </motion.div>
+                  </motion.div>
                 )}
               </fieldset>
             </form>
-          </Card>
+            </div>
+          </motion.div>
         </DialogContent>
       </Dialog>
 

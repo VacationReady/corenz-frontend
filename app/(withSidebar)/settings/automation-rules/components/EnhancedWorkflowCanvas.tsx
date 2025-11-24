@@ -111,7 +111,7 @@ function EnhancedWorkflowCanvasInner({
   onRequestEdit,
 }: EnhancedWorkflowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { fitView, setViewport, screenToFlowPosition } = useReactFlow();
+  const { fitView, setViewport } = useReactFlow();
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(workflow?.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
@@ -414,12 +414,16 @@ function EnhancedWorkflowCanvasInner({
     event.preventDefault();
 
     const type = event.dataTransfer.getData('application/reactflow');
-    if (!type) return;
+    if (!type || !reactFlowInstance) return;
 
-    // Use screenToFlowPosition for accurate coordinate conversion
-    const position = screenToFlowPosition({
-      x: event.clientX,
-      y: event.clientY,
+    // Get the bounding rect of the React Flow wrapper
+    const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+    if (!reactFlowBounds) return;
+
+    // Convert screen coordinates to flow coordinates
+    const position = reactFlowInstance.project({
+      x: event.clientX - reactFlowBounds.left,
+      y: event.clientY - reactFlowBounds.top,
     });
 
     const nodeConfig = getNodeConfig(type);
@@ -443,7 +447,7 @@ function EnhancedWorkflowCanvasInner({
     setTimeout(() => {
       fitView({ padding: 0.2, duration: 200 });
     }, 50);
-  }, [screenToFlowPosition, setNodes, readOnly, fitView]);
+  }, [reactFlowInstance, setNodes, readOnly, fitView]);
 
   // Get node configuration
   const getNodeConfig = (type: string) => {

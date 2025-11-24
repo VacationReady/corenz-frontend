@@ -82,7 +82,7 @@ const containerVariants = {
       staggerChildren: 0.1,
     },
   },
-};
+} as const;
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20, scale: 0.95 },
@@ -91,7 +91,7 @@ const cardVariants = {
     y: 0, 
     scale: 1,
     transition: { 
-      type: "spring", 
+      type: "spring" as const, 
       stiffness: 300, 
       damping: 24 
     } 
@@ -109,7 +109,7 @@ const successExitVariants = {
     opacity: 0,
     scale: 1.05,
     y: -30,
-    transition: { duration: 0.4, ease: "easeOut" },
+    transition: { duration: 0.4, ease: "easeOut" as const },
   },
 };
 
@@ -118,7 +118,7 @@ const declineExitVariants = {
     opacity: 0,
     scale: 0.85,
     x: -50,
-    transition: { duration: 0.3, ease: "easeIn" },
+    transition: { duration: 0.3, ease: "easeIn" as const },
   },
 };
 

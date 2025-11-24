@@ -4,7 +4,7 @@ import { useState, ChangeEvent } from "react";
 import { motion } from "framer-motion";
 import Button from "@/components/ui/Button";
 import { PlusCircle, Sparkles, Tag } from "lucide-react";
-import { Input } from "@/components/ui/Input";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
@@ -13,7 +13,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/Select";
+} from "@/components/ui/select";
 import { toast } from "react-hot-toast";
 
 interface AddSubcategoryModalProps {
@@ -121,7 +121,7 @@ export default function AddSubcategoryModal({
               <Label className="text-sm font-medium text-foreground/80">Default Paid Status</Label>
               <Select
                 value={defaultPaidStatus}
-                onValueChange={(v) => setDefaultPaidStatus(v as "PAID" | "UNPAID")}
+                onValueChange={(v: string) => setDefaultPaidStatus(v as "PAID" | "UNPAID")}
               >
                 <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
                   <SelectValue />

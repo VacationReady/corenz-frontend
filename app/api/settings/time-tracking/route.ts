@@ -183,12 +183,16 @@ export async function GET(req: NextRequest) {
     }
 
     // Sync geofences from Location table if geofencing is enabled
-    if (settings.enableGeofencing) {
+    if (settings?.enableGeofencing) {
       await syncGeofenceLocations(employee.companyId);
       // Re-fetch settings to get synced geofences
       settings = await prisma.timeTrackingSettings.findUnique({
         where: { companyId: employee.companyId },
-      })!;
+      });
+    }
+
+    if (!settings) {
+      return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 });
     }
 
     // Convert Decimal fields to numbers for frontend compatibility

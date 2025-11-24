@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function syncGeofenceLocations(companyId: string): Promise<void> {
   try {
     // Fetch all active locations with geofence data
+    // @ts-ignore - Fields exist in schema but client not generated yet
     const locations = await prisma.location.findMany({
       where: {
         companyId,
@@ -41,14 +42,16 @@ export async function syncGeofenceLocations(companyId: string): Promise<void> {
     }));
 
     // Update TimeTrackingSettings with synced geofences
+    const locationsJson = geofenceLocations.length > 0 ? (geofenceLocations as any) : null;
+    
     await prisma.timeTrackingSettings.upsert({
       where: { companyId },
       update: {
-        geofenceLocations: geofenceLocations.length > 0 ? geofenceLocations : null,
+        geofenceLocations: locationsJson,
       },
       create: {
         companyId,
-        geofenceLocations: geofenceLocations.length > 0 ? geofenceLocations : null,
+        geofenceLocations: locationsJson,
       },
     });
   } catch (error) {

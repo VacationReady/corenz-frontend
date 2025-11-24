@@ -1165,13 +1165,18 @@ model LeaveRequest {
 }
 
 model Location {
-  id         String      @id
-  name       String      @unique
-  companyId  String?
-  Company    Company?    @relation(fields: [companyId], references: [id])
-  Employees  Employee[]
-  Shifts     Shift[]     @relation("ShiftLocation")
-  RotaGroups RotaGroup[]
+  id             String      @id
+  name           String      @unique
+  companyId      String?
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  geofenceRadius Int?
+  isActive       Boolean     @default(true)
+  Company        Company?    @relation(fields: [companyId], references: [id])
+  Employees      Employee[]
+  Shifts         Shift[]     @relation("ShiftLocation")
+  RotaGroups     RotaGroup[]
 }
 
 model NewsPost {

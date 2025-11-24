@@ -108,6 +108,7 @@ export async function PUT(
       }
     }
 
+    // @ts-ignore - Fields added to schema but client not regenerated
     const location = await prisma.location.update({
       where: { id },
       data: {

@@ -149,13 +149,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
     }
 
-    // Only admins can view settings
-    if (employee.User.role !== 'ADMIN') {
+    // Allow any employee to view settings (needed for clock-in requirements)
+    /* if (employee.User.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Only admins can view time tracking settings' },
         { status: 403 }
       );
-    }
+    } */
 
     // Fetch or create settings
     let settings = await prisma.timeTrackingSettings.findUnique({

@@ -33,8 +33,13 @@ export function NewsWidget({ limit = 1 }: NewsWidgetProps) {
       try {
         const res = await tenantFetch(`/api/news?limit=${limit}`);
         const data = await res.json();
-        if (Array.isArray(data)) setItems(data);
-        else setItems([]);
+        if (Array.isArray(data)) {
+          setItems(data);
+        } else if (data && Array.isArray(data.posts)) {
+          setItems(data.posts);
+        } else {
+          setItems([]);
+        }
       } catch (err) {
         console.error("Failed to fetch news", err);
         setError("Failed to load news");

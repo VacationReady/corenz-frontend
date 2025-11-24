@@ -375,9 +375,14 @@ export default function FieldPlacementModal({
                 onPointerMove={onPointerMoveContainer}
                 onPointerUp={onPointerUpContainer}
               >
-              {/* Use embed to render files cross-origin where possible */}
+              {/* Use iframe for better control and to resolve permission policy violations */}
               {docUrl ? (
-                <embed src={docUrl + "#toolbar=0&navpanes=0&scrollbar=1"} type="application/pdf" className="w-full h-full" />
+                <iframe 
+                  src={docUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH"} 
+                  className="w-full h-full"
+                  title="Document Preview"
+                  allow="fullscreen" 
+                />
               ) : null}
               {fields.map((f, idx) => {
                 const theme = getFieldTheme(f.label);

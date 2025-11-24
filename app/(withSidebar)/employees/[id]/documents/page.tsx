@@ -48,6 +48,7 @@ import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
 import ModernSignatureCapture, { SignatureCaptureValue } from "@/components/documents/ModernSignatureCapture";
 import AcknowledgmentSuccessAnimation from "@/components/documents/AcknowledgmentSuccessAnimation";
 import SignatureSuccessAnimation from "@/components/documents/SignatureSuccessAnimation";
+import DocumentUploadSuccessAnimation, { UploadSuccessType } from "@/components/documents/DocumentUploadSuccessAnimation";
 import ModernDocumentPreview from "@/components/documents/ModernDocumentPreview";
 import SignatureProgressRing from "@/components/documents/SignatureProgressRing";
 
@@ -100,6 +101,9 @@ export default function EmployeeDocumentsPage() {
   const [activeFieldIdx, setActiveFieldIdx] = useState<number | null>(null);
   const [showAckSuccess, setShowAckSuccess] = useState(false);
   const [showSignSuccess, setShowSignSuccess] = useState(false);
+  const [showUploadSuccess, setShowUploadSuccess] = useState(false);
+  const [uploadSuccessType, setUploadSuccessType] = useState<UploadSuccessType>("standard");
+  const [uploadSuccessDocName, setUploadSuccessDocName] = useState("");
   const [companyName, setCompanyName] = useState<string>("");
 
   const [canViewAdmin, setCanViewAdmin] = useState(true);
@@ -253,7 +257,6 @@ export default function EmployeeDocumentsPage() {
       });
       if (res.ok) {
         const payload = await res.json();
-        toast("Upload successful");
         if (requiresSignature && payload?.Document?.id) {
           setSelectedDoc({
             ...(payload.Document as any),
@@ -273,6 +276,11 @@ export default function EmployeeDocumentsPage() {
           setCanViewEmployee(true);
           setRequiresAck(false);
           fetchDocuments();
+          
+          // Trigger success animation
+          setUploadSuccessDocName(name);
+          setUploadSuccessType(requiresAck ? "ack" : "standard");
+          setShowUploadSuccess(true);
         }
       } else {
         toast("Upload failed", { description: "Please try again." });
@@ -742,6 +750,13 @@ export default function EmployeeDocumentsPage() {
           companyName={companyName}
         />
 
+        <DocumentUploadSuccessAnimation
+          isOpen={showUploadSuccess}
+          onClose={() => setShowUploadSuccess(false)}
+          type={uploadSuccessType}
+          documentName={uploadSuccessDocName}
+        />
+
         {isAdminUser && (
           <EditAccessModal
             isOpen={isEditAccessOpen}
@@ -767,6 +782,16 @@ export default function EmployeeDocumentsPage() {
             setIsPlacementBeforeSendOpen(false);
             setIsUploadModalOpen(false);
             fetchDocuments();
+          }}
+          onSaveComplete={async () => {
+            setIsPlacementBeforeSendOpen(false);
+            setIsUploadModalOpen(false);
+            fetchDocuments();
+            
+            // Trigger signature success animation
+            setUploadSuccessDocName(selectedDoc?.name || "");
+            setUploadSuccessType("sign");
+            setShowUploadSuccess(true);
           }}
           documentId={selectedDoc?.id || ""}
           url={selectedDoc?.url || ""}

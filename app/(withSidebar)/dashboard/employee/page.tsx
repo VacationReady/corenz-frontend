@@ -22,9 +22,16 @@ export default async function EmployeeDashboard() {
     employeeId = employee?.id;
   }
 
+  const user = userId ? await prisma.user.findUnique({
+    where: { id: userId },
+    select: { firstName: true },
+  }) : null;
+
+  const title = user?.firstName ? `Hi ${user.firstName}` : "Employee Dashboard";
+
   return (
     <PageShell
-      title="Employee Dashboard"
+      title={title}
       breadcrumbs={{
         items: [
           { label: "Dashboard", href: "/dashboard" },

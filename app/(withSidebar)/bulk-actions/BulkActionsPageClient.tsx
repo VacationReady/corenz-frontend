@@ -85,7 +85,7 @@ export default function BulkActionsPageClient() {
     if (session?.user?.companyId) {
       headers["x-company-id"] = session.user.companyId;
     }
-    const response = await fetch("/api/employees?status=all", {
+    const response = await fetch("/api/employees?status=all&limit=all", {
       cache: "no-store",
       headers,
     });

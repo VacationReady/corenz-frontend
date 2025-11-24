@@ -194,11 +194,15 @@ export async function GET(req: Request) {
     const managerId = searchParams.get("managerId");
     const scope = (searchParams.get("scope") || "directory").toLowerCase();
     
-    // Pagination parameters
-    const limit = Math.min(
-      Math.max(1, parseInt(searchParams.get("limit") || "50", 10)),
-      100, // Max 100 per page
-    );
+    const limitParam = searchParams.get("limit");
+    const fetchAll = limitParam === "all";
+
+    const limit = fetchAll
+      ? undefined
+      : Math.min(
+          Math.max(1, parseInt(limitParam || "50", 10)),
+          100, // Max 100 per page
+        );
     const cursor = searchParams.get("cursor") || undefined;
 
     // Base scoping
@@ -307,13 +311,13 @@ export async function GET(req: Request) {
         },
       },
       orderBy: { id: "desc" },
-      take: limit + 1, // Fetch one extra to determine if there are more results
+      take: fetchAll ? undefined : (limit! + 1), // Fetch one extra to determine if there are more results
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
     // Determine if there are more results
-    const hasMore = employees.length > limit;
-    const results = hasMore ? employees.slice(0, limit) : employees;
+    const hasMore = fetchAll ? false : employees.length > limit!;
+    const results = fetchAll || !hasMore ? employees : employees.slice(0, limit!);
     const nextCursor = hasMore ? results[results.length - 1].id : null;
 
     // ✅ Batch sign profile URLs (1 operation instead of N)

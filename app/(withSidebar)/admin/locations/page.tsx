@@ -65,6 +65,7 @@ export default function LocationsManagementPage() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([-41.2865, 174.7762]); // Wellington, NZ
   const { toast } = useToast();
   const [addressSearchLoading, setAddressSearchLoading] = useState(false);
+  const [showCoordinates, setShowCoordinates] = useState(false);
 
   useEffect(() => {
     fetchLocations();
@@ -340,8 +341,8 @@ export default function LocationsManagementPage() {
 
         {/* Locations List */}
         <div className="space-y-6 order-1 lg:order-2">
-          <Card className="backdrop-blur-md bg-white/10 border-white/20 max-h-[700px] flex flex-col">
-            <CardHeader>
+          <Card className="backdrop-blur-md bg-white/10 border-white/20 h-[700px] flex flex-col">
+            <CardHeader className="shrink-0">
               <div className="flex items-center justify-between">
                 <CardTitle>Locations</CardTitle>
                 <Button onClick={handleOpenCreateDialog} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -350,8 +351,8 @@ export default function LocationsManagementPage() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4 flex-1 overflow-y-auto">
-              <div className="relative">
+            <CardContent className="flex-1 min-h-0 flex flex-col space-y-4 overflow-hidden">
+              <div className="relative shrink-0">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search locations..."
@@ -361,7 +362,7 @@ export default function LocationsManagementPage() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 flex-1 min-h-0 overflow-y-auto">
                 {filteredLocations.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <MapPin className="w-12 h-12 mx-auto mb-3 opacity-50" />

@@ -79,7 +79,8 @@ export async function POST(req: NextRequest) {
       const geofences = settings.geofenceLocations as any[];
       const verification = verifyClockLocation(data.location, geofences, {
         requireGeofence: isGpsLocationRequired(settings),
-        maxAccuracyMeters: 100,
+        // Increase max accuracy tolerance for mobile networks
+        maxAccuracyMeters: 2000,
       });
 
       if (!verification.isValid) {
@@ -88,6 +89,13 @@ export async function POST(req: NextRequest) {
             error: 'Location verification failed',
             details: verification.errors,
             warnings: verification.warnings,
+            // Include helpful debug info for the user
+            debug: {
+              userLat: data.location.lat,
+              userLng: data.location.lng,
+              accuracy: data.location.accuracy,
+              nearestGeofence: verification.nearestGeofence,
+            }
           },
           { status: 400 }
         );

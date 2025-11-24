@@ -131,6 +131,8 @@ export function verifyClockLocation(
   // Check accuracy
   const maxAccuracy = options.maxAccuracyMeters || 100;
   if (!isAccuracyAcceptable(location, maxAccuracy)) {
+    // For now, only warn about accuracy instead of rejecting
+    // This prevents blocking users with poor GPS signal (e.g. indoors)
     warnings.push(`GPS accuracy (${location.accuracy}m) exceeds threshold (${maxAccuracy}m)`);
   }
 

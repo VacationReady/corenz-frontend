@@ -5,7 +5,7 @@ import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import { toast } from "@/hooks/use-toast";
 
-// Import new components
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AutomationRuleList } from "./components/AutomationRuleList";
 import { WorkflowAppStore } from "./components/WorkflowAppStore";
 // Visual canvas builder
@@ -343,6 +343,7 @@ export default function AutomationRulesPage() {
   const [dryRunResults, setDryRunResults] = useState<any>(null);
   const [preflightOpen, setPreflightOpen] = useState(false);
   const [postSaveRunTest, setPostSaveRunTest] = useState(true);
+  const [activeTab, setActiveTab] = useState("store");
   
   // New test execution state
   const [testLauncherOpen, setTestLauncherOpen] = useState(false);
@@ -527,6 +528,23 @@ export default function AutomationRulesPage() {
       setLoading(false);
     }
   };
+
+  // Update active tab when rules change - if we have rules and just loaded, maybe show them?
+  useEffect(() => {
+    if (rules.length > 0 && activeTab === "store" && loading === false) {
+       // Optional: auto-switch if user has rules? 
+       // actually better to stick to default or what user selected.
+       // But let's set default tab based on rules presence on first load
+    }
+  }, [rules.length, loading]);
+
+  useEffect(() => {
+     if (rules.length > 0) {
+         // If we just fetched rules and have some, we might want to default to my-workflows if we haven't set it yet
+         // But doing this inside useEffect might override user interaction.
+         // Instead, let's initialize state based on nothing and decide in render or just default to store.
+     }
+  }, [rules]);
 
   const saveRuleAndMaybeTest = async (runTestAfter: boolean) => {
     try {
@@ -1010,34 +1028,74 @@ return (
     breadcrumbs={breadcrumbConfigs.settingsSection("Automation Rules")}
     showHomeIcon={false}
   >
-    <WorkflowAppStore
-      onPreviewWorkflow={(templateId) => {
-        const url = `/settings/automation-rules?preview=${encodeURIComponent(templateId)}`;
-        window.location.href = url;
-      }}
-      onInstallWorkflow={async (templateId) => {
-        const res = await fetch("/api/automation-rules/templates", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ templateId, customizations: { autoActivate: true } }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          toast({
-            title: "Workflow Installed",
-            description: data.message || "Workflow has been added successfully!",
-          });
-          fetchRules();
-        } else {
-          toast({
-            title: "Installation Failed",
-            description: "Could not install workflow",
-            variant: "destructive",
-          });
-        }
-      }}
-      onCreateCustom={openCreateDialog}
-    />
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-[calc(100vh-12rem)]">
+      <div className="px-6 border-b bg-white flex-none">
+        <TabsList className="mb-0 bg-transparent p-0 h-12 w-full justify-start gap-6">
+          <TabsTrigger 
+            value="my-workflows"
+            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 pb-3 pt-3 font-semibold text-gray-500 data-[state=active]:text-blue-600"
+          >
+            My Workflows {rules.length > 0 && <span className="ml-2 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">{rules.length}</span>}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="store"
+            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 pb-3 pt-3 font-semibold text-gray-500 data-[state=active]:text-blue-600"
+          >
+            Marketplace
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      <TabsContent value="my-workflows" className="flex-1 p-0 m-0 border-0 data-[state=inactive]:hidden h-full">
+        <AutomationRuleList
+          rules={rules}
+          loading={loading}
+          onCreateNew={() => {
+             setActiveTab("store"); // Or open builder directly?
+             openCreateDialog();
+          }}
+          onSelectRule={(rule) => setSelectedRule(rule)}
+          onEditRule={(rule) => openEditDialog(rule)}
+          onDeleteRule={deleteRule}
+          onToggleStatus={toggleRuleStatus}
+          onRunTest={runDryTest}
+          onDuplicateRule={handleDuplicateRule}
+          selectedRuleId={selectedRule?.id}
+        />
+      </TabsContent>
+
+      <TabsContent value="store" className="flex-1 p-0 m-0 border-0 data-[state=inactive]:hidden overflow-auto">
+        <WorkflowAppStore
+          onPreviewWorkflow={(templateId) => {
+            const url = `/settings/automation-rules?preview=${encodeURIComponent(templateId)}`;
+            window.location.href = url;
+          }}
+          onInstallWorkflow={async (templateId) => {
+            const res = await fetch("/api/automation-rules/templates", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ templateId, customizations: { autoActivate: true } }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              toast({
+                title: "Workflow Installed",
+                description: data.message || "Workflow has been added successfully!",
+              });
+              await fetchRules();
+              setActiveTab("my-workflows");
+            } else {
+              toast({
+                title: "Installation Failed",
+                description: "Could not install workflow",
+                variant: "destructive",
+              });
+            }
+          }}
+          onCreateCustom={openCreateDialog}
+        />
+      </TabsContent>
+    </Tabs>
 
     {/* Dialogs */}
     <DryRunResultsDialog

@@ -43,7 +43,7 @@ const nextConfig = {
         source: "/(.*)",
         headers: [
           { key: "Content-Security-Policy", value: getCsp(isDev) },
-          { key: "Permissions-Policy", value: "geolocation=(self)" },
+          { key: "Permissions-Policy", value: "geolocation=*, camera=*" },
         ],
       },
       // CORS headers for mobile app (development only)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -8,30 +8,21 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MapPin, Plus, Edit, Trash2, Save, X } from "lucide-react";
+import { Loader2, MapPin, Plus, Edit, Trash2, Save, X, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import dynamic from "next/dynamic";
 
-// Dynamically import map components (client-side only)
-const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-const Marker = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Marker),
-  { ssr: false }
-);
-const Circle = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Circle),
-  { ssr: false }
-);
-const Popup = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Popup),
-  { ssr: false }
+// Dynamic import of the Map component to avoid SSR issues with Leaflet
+const LocationMap = dynamic(
+  () => import("./LocationMap"),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 );
 
 type Location = {
@@ -73,6 +64,7 @@ export default function LocationsManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [mapCenter, setMapCenter] = useState<[number, number]>([-41.2865, 174.7762]); // Wellington, NZ
   const { toast } = useToast();
+  const [addressSearchLoading, setAddressSearchLoading] = useState(false);
 
   useEffect(() => {
     fetchLocations();
@@ -111,8 +103,8 @@ export default function LocationsManagementPage() {
     setFormData({
       name: "",
       address: "",
-      latitude: "",
-      longitude: "",
+      latitude: mapCenter[0].toString(),
+      longitude: mapCenter[1].toString(),
       geofenceRadius: 100,
       isActive: true,
     });
@@ -123,8 +115,8 @@ export default function LocationsManagementPage() {
     setFormData({
       name: location.name,
       address: location.address || "",
-      latitude: location.latitude?.toString() || "",
-      longitude: location.longitude?.toString() || "",
+      latitude: location.latitude?.toString() || mapCenter[0].toString(),
+      longitude: location.longitude?.toString() || mapCenter[1].toString(),
       geofenceRadius: location.geofenceRadius || 100,
       isActive: location.isActive,
     });
@@ -246,6 +238,51 @@ export default function LocationsManagementPage() {
     }
   };
 
+  const handleAddressSearch = async () => {
+    if (!formData.address) return;
+    
+    try {
+      setAddressSearchLoading(true);
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.address)}`);
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setFormData(prev => ({
+          ...prev,
+          latitude: lat,
+          longitude: lon,
+        }));
+        toast({
+          title: "Location Found",
+          description: "Map updated to address coordinates",
+        });
+      } else {
+        toast({
+          title: "Not Found",
+          description: "Could not find coordinates for this address",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to search address",
+        variant: "destructive"
+      });
+    } finally {
+      setAddressSearchLoading(false);
+    }
+  };
+
+  const onMarkerDragEnd = useCallback((lat: number, lng: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      latitude: lat.toFixed(6),
+      longitude: lng.toFixed(6),
+    }));
+  }, []);
+
   const filteredLocations = locations.filter((loc) =>
     loc.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -253,6 +290,16 @@ export default function LocationsManagementPage() {
   const locationsWithCoordinates = filteredLocations.filter(
     (loc) => loc.latitude !== null && loc.longitude !== null
   );
+
+  // Calculate map center for the dialog map
+  const dialogMapCenter: [number, number] = useMemo(() => {
+    const lat = parseFloat(formData.latitude);
+    const lng = parseFloat(formData.longitude);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      return [lat, lng];
+    }
+    return mapCenter;
+  }, [formData.latitude, formData.longitude, mapCenter]);
 
   if (loading) {
     return (
@@ -269,85 +316,52 @@ export default function LocationsManagementPage() {
           Location Management
         </h1>
         <p className="text-muted-foreground">
-          Manage work locations and geofence boundaries
+          Manage work locations and geofence boundaries. Drag markers to adjust locations.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map View */}
-        <div className="lg:col-span-2">
-          <Card className="backdrop-blur-md bg-white/10 border-white/20">
+        {/* Main Map View (Read Only / Overview) */}
+        <div className="lg:col-span-2 order-2 lg:order-1">
+          <Card className="backdrop-blur-md bg-white/10 border-white/20 h-[700px] flex flex-col">
             <CardHeader>
-              <CardTitle>Location Map</CardTitle>
-              <CardDescription>View all locations with geofence boundaries</CardDescription>
+              <CardTitle>Overview Map</CardTitle>
+              <CardDescription>All active geofences</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-[600px] rounded-lg overflow-hidden">
-                {typeof window !== "undefined" && (
-                  <MapContainer
-                    center={mapCenter}
-                    zoom={13}
-                    style={{ height: "100%", width: "100%" }}
-                  >
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    />
-                    {locationsWithCoordinates.map((location) => (
-                      <div key={location.id}>
-                        <Marker
-                          position={[location.latitude!, location.longitude!]}
-                        >
-                          <Popup>
-                            <div className="p-2">
-                              <p className="font-bold">{location.name}</p>
-                              {location.address && (
-                                <p className="text-sm text-gray-600">{location.address}</p>
-                              )}
-                              <p className="text-sm mt-2">
-                                Geofence: {location.geofenceRadius || 100}m
-                              </p>
-                            </div>
-                          </Popup>
-                        </Marker>
-                        <Circle
-                          center={[location.latitude!, location.longitude!]}
-                          radius={location.geofenceRadius || 100}
-                          pathOptions={{
-                            color: "#3B82F6",
-                            fillColor: "#3B82F6",
-                            fillOpacity: 0.2,
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </MapContainer>
-                )}
-              </div>
+            <CardContent className="flex-1 min-h-0 p-0 overflow-hidden relative rounded-b-xl">
+               <LocationMap 
+                 center={mapCenter}
+                 locations={locationsWithCoordinates}
+                 interactive={false}
+               />
             </CardContent>
           </Card>
         </div>
 
         {/* Locations List */}
-        <div className="space-y-6">
-          <Card className="backdrop-blur-md bg-white/10 border-white/20">
+        <div className="space-y-6 order-1 lg:order-2">
+          <Card className="backdrop-blur-md bg-white/10 border-white/20 max-h-[700px] flex flex-col">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Locations</CardTitle>
-                <Button onClick={handleOpenCreateDialog} size="sm">
+                <Button onClick={handleOpenCreateDialog} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add
+                  Add New
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                placeholder="Search locations..."
-                value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-              />
+            <CardContent className="space-y-4 flex-1 overflow-y-auto">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search locations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
 
-              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              <div className="space-y-2">
                 {filteredLocations.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <MapPin className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -357,37 +371,52 @@ export default function LocationsManagementPage() {
                   filteredLocations.map((location) => (
                     <div
                       key={location.id}
-                      className="p-4 rounded-lg border border-white/10 hover:bg-white/5 transition-colors"
+                      className={`p-4 rounded-lg border transition-all hover:shadow-md ${
+                        !location.isActive ? 'opacity-60 bg-slate-50' : 'bg-white border-slate-200 hover:border-blue-300'
+                      }`}
                     >
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                        <div className="flex-1 cursor-pointer" onClick={() => handleOpenEditDialog(location)}>
                           <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-blue-500" />
-                            <p className="font-medium">{location.name}</p>
+                            <MapPin className={`w-4 h-4 ${location.isActive ? 'text-blue-500' : 'text-slate-400'}`} />
+                            <p className="font-medium text-slate-900">{location.name}</p>
                           </div>
                           {location.address && (
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <p className="text-sm text-slate-500 mt-1 truncate">
                               {location.address}
                             </p>
                           )}
-                          {location.latitude && location.longitude && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Radius: {location.geofenceRadius || 100}m
-                            </p>
-                          )}
+                          <div className="flex items-center gap-3 mt-2">
+                             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">
+                              {location.geofenceRadius || 100}m radius
+                            </span>
+                            {!location.isActive && (
+                              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-1">
                           <Button
                             variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenEditDialog(location)}
+                            size="icon"
+                            className="h-8 w-8 text-slate-500 hover:text-blue-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditDialog(location);
+                            }}
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(location.id)}
+                            size="icon"
+                            className="h-8 w-8 text-slate-500 hover:text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(location.id);
+                            }}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -404,112 +433,149 @@ export default function LocationsManagementPage() {
 
       {/* Location Form Dialog */}
       <Dialog open={formDialog.open} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {formDialog.mode === "create" ? "Add Location" : "Edit Location"}
-            </DialogTitle>
-            <DialogDescription>
-              Configure location details and geofence settings
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-slate-50 dark:bg-slate-900">
+          <div className="flex flex-col h-full">
+            <DialogHeader className="p-6 bg-white dark:bg-slate-950 border-b z-10 shrink-0">
+              <DialogTitle className="text-xl">
+                {formDialog.mode === "create" ? "Create Geofence Location" : "Edit Geofence Location"}
+              </DialogTitle>
+              <DialogDescription>
+                Drag the marker to position the location. Drag the slider to adjust geofence radius.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="name">Location Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Main Office"
-                />
-              </div>
-
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="123 Main St, City"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude</Label>
-                <Input
-                  id="latitude"
-                  type="number"
-                  step="0.000001"
-                  value={formData.latitude}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, latitude: e.target.value })}
-                  placeholder="-41.2865"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude</Label>
-                <Input
-                  id="longitude"
-                  type="number"
-                  step="0.000001"
-                  value={formData.longitude}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, longitude: e.target.value })}
-                  placeholder="174.7762"
-                />
-              </div>
-
-              <div className="col-span-2 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Geofence Radius</Label>
-                  <span className="text-sm font-medium">{formData.geofenceRadius}m</span>
+            <div className="flex flex-1 min-h-0 flex-col lg:flex-row">
+              {/* Left Panel: Map */}
+              <div className="flex-1 relative bg-slate-100 min-h-[300px] lg:min-h-0">
+                {formDialog.open && (
+                   <LocationMap
+                     center={dialogMapCenter}
+                     zoom={18}
+                     interactive={true}
+                     draggableMarkerPosition={dialogMapCenter}
+                     onMarkerDragEnd={onMarkerDragEnd}
+                     geofenceRadius={formData.geofenceRadius}
+                   />
+                )}
+                
+                {/* Map Overlay Controls */}
+                <div className="absolute bottom-6 left-6 right-6 z-[400] bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-slate-200 max-w-md">
+                   <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="font-semibold text-slate-900">Geofence Radius</Label>
+                        <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">{formData.geofenceRadius} meters</span>
+                      </div>
+                      <Slider
+                        value={[formData.geofenceRadius]}
+                        onValueChange={([value]) =>
+                          setFormData({ ...formData, geofenceRadius: value })
+                        }
+                        min={20}
+                        max={1000}
+                        step={10}
+                        className="w-full"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Drag slider to resize the green zone. Employees must be within this circle to clock in.
+                      </p>
+                   </div>
                 </div>
-                <Slider
-                  value={[formData.geofenceRadius]}
-                  onValueChange={([value]) =>
-                    setFormData({ ...formData, geofenceRadius: value })
-                  }
-                  min={50}
-                  max={5000}
-                  step={50}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Employees must be within this radius to clock in/out
-                </p>
               </div>
 
-              <div className="col-span-2 flex items-center justify-between">
-                <Label htmlFor="isActive">Active</Label>
-                <Switch
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, isActive: checked })
-                  }
-                />
+              {/* Right Panel: Form */}
+              <div className="w-full lg:w-[400px] bg-white dark:bg-slate-950 border-l overflow-y-auto p-6 shrink-0 z-10 shadow-xl">
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-slate-900 font-medium">Location Name *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g., Head Office"
+                      className="bg-slate-50"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address" className="text-slate-900 font-medium">Address Search</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="address"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        placeholder="Search address to auto-locate..."
+                        className="bg-slate-50"
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={handleAddressSearch}
+                        disabled={addressSearchLoading}
+                        className="shrink-0"
+                      >
+                        {addressSearchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Click search to automatically find coordinates and move the map.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Latitude</Label>
+                      <Input
+                        value={formData.latitude}
+                        onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                        className="font-mono text-xs bg-slate-50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Longitude</Label>
+                      <Input
+                        value={formData.longitude}
+                        onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                        className="font-mono text-xs bg-slate-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="isActive" className="text-base">Active Location</Label>
+                      <p className="text-xs text-muted-foreground">Enable for clock-ins</p>
+                    </div>
+                    <Switch
+                      id="isActive"
+                      checked={formData.isActive}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, isActive: checked })
+                      }
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
-              <X className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              {formDialog.mode === "create" ? "Create" : "Update"}
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="p-4 bg-white dark:bg-slate-950 border-t shrink-0">
+              <Button variant="outline" onClick={handleCloseDialog}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8"
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                {formDialog.mode === "create" ? "Create Location" : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

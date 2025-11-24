@@ -182,7 +182,7 @@ export default function TimeTrackingSettingsPage() {
   }
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={300}>
       <div className="container mx-auto p-6 max-w-7xl">
         {breadcrumbs && (
           <div className="mb-6">
@@ -248,11 +248,13 @@ export default function TimeTrackingSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Label>Photo Requirement</Label>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                             <Info className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>When should employees be required to attach photos?</p>
+                        <TooltipContent className="max-w-xs">
+                          <p>Enforce photo evidence during clock events. Choose 'Clock In' for start of shift only, or 'Clock In & Out' for complete verification.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -280,11 +282,13 @@ export default function TimeTrackingSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Label htmlFor="requireGpsLocation">Require GPS Location</Label>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                            <Info className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Track employee location when clocking in/out</p>
+                        <TooltipContent className="max-w-xs">
+                          <p>Mandatory GPS coordinates for every clock event. Employees cannot clock in without enabling location services.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -299,11 +303,13 @@ export default function TimeTrackingSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Label htmlFor="allowManualTimeEntry">Allow Manual Time Entry</Label>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                            <Info className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Allow employees to manually enter time if they forget to clock in/out</p>
+                        <TooltipContent className="max-w-xs">
+                          <p>Permits employees to add or edit time entries manually. Disable to enforce real-time clocking only.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -332,11 +338,13 @@ export default function TimeTrackingSettingsPage() {
                       <div className="flex items-center gap-2">
                         <Label>Minimum Rest Hours</Label>
                         <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground" />
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                              <Info className="w-4 h-4 text-muted-foreground" />
+                            </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Minimum hours required between shifts</p>
+                          <TooltipContent className="max-w-xs">
+                            <p>Legally required minimum break between shifts. Employees cannot clock in if this duration hasn't passed since their last shift.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -357,11 +365,13 @@ export default function TimeTrackingSettingsPage() {
                       <div className="flex items-center gap-2">
                         <Label>Overtime Threshold</Label>
                         <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground" />
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                              <Info className="w-4 h-4 text-muted-foreground" />
+                            </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Hours per week before overtime applies</p>
+                          <TooltipContent className="max-w-xs">
+                            <p>The number of hours worked in a week before standard overtime rates apply (if not using Pattern Based calculation).</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -381,11 +391,13 @@ export default function TimeTrackingSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Label htmlFor="requireShiftConfirmation">Require Shift Confirmation</Label>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                            <Info className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Require employees to confirm assigned shifts</p>
+                        <TooltipContent className="max-w-xs">
+                          <p>Employees must explicitly accept their assigned shifts in the mobile app.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -402,11 +414,13 @@ export default function TimeTrackingSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Label htmlFor="managerApprovalSwaps">Manager Approval for Swaps</Label>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                            <Info className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Require manager approval for shift swap requests</p>
+                        <TooltipContent className="max-w-xs">
+                          <p>Shift swaps between employees require manager sign-off before becoming active.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -448,11 +462,13 @@ export default function TimeTrackingSettingsPage() {
                   <div className="flex items-center gap-2">
                     <Label>Calculation Mode</Label>
                     <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="w-4 h-4 text-muted-foreground" />
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                          <Info className="w-4 h-4 text-muted-foreground" />
+                        </Button>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Choose how overtime hours are identified and calculated</p>
+                      <TooltipContent className="max-w-xs">
+                        <p>Determines how overtime is calculated. 'Daily' checks hours per day. 'Weekly' checks total hours per week. 'Pattern Based' compares against the employee's specific contract schedule (Recommended for shifting rosters).</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -678,11 +694,13 @@ export default function TimeTrackingSettingsPage() {
                       <div className="flex items-center gap-2">
                         <Label htmlFor="auto-apply">Auto-Calculate Overtime</Label>
                         <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground" />
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                              <Info className="w-4 h-4 text-muted-foreground" />
+                            </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Automatically calculate overtime from clock entries during timesheet generation</p>
+                          <TooltipContent className="max-w-xs">
+                            <p>Automatically applies overtime rates when thresholds are breached. If disabled, overtime must be manually flagged.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -696,11 +714,13 @@ export default function TimeTrackingSettingsPage() {
                       <div className="flex items-center gap-2">
                         <Label htmlFor="allow-manual">Allow Manual Overtime Entry</Label>
                         <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground" />
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                              <Info className="w-4 h-4 text-muted-foreground" />
+                            </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Employees can manually mark entries as overtime</p>
+                          <TooltipContent className="max-w-xs">
+                            <p>Allows employees/managers to manually flag a time entry as 'Overtime' regardless of thresholds.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -714,11 +734,13 @@ export default function TimeTrackingSettingsPage() {
                       <div className="flex items-center gap-2">
                         <Label htmlFor="block-during-hours">Block OT During Regular Hours</Label>
                         <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground" />
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                              <Info className="w-4 h-4 text-muted-foreground" />
+                            </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Prevent manual overtime entries during contracted working hours</p>
+                          <TooltipContent className="max-w-xs">
+                            <p>Prevents manual overtime flagging if the employee is within their standard contracted hours.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -733,11 +755,13 @@ export default function TimeTrackingSettingsPage() {
                       <div className="flex items-center gap-2">
                         <Label htmlFor="require-approval">Require Extra Approval for OT</Label>
                         <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground" />
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                              <Info className="w-4 h-4 text-muted-foreground" />
+                            </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Require additional approval step for timesheets containing overtime</p>
+                          <TooltipContent className="max-w-xs">
+                            <p>Timesheets with overtime trigger a secondary approval step (e.g., by a senior manager).</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -751,11 +775,13 @@ export default function TimeTrackingSettingsPage() {
                       <div className="flex items-center gap-2">
                         <Label htmlFor="enable-breakdown">Show Detailed Overtime Breakdown</Label>
                         <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="w-4 h-4 text-muted-foreground" />
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                              <Info className="w-4 h-4 text-muted-foreground" />
+                            </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Display detailed overtime breakdown table in timesheet view</p>
+                          <TooltipContent className="max-w-xs">
+                            <p>Displays a granular breakdown of how overtime hours were calculated on the timesheet view.</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -784,11 +810,13 @@ export default function TimeTrackingSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Label htmlFor="enableGeofencing">Enable Geofencing</Label>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                            <Info className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Restrict clocking in/out to specific locations</p>
+                        <TooltipContent className="max-w-xs">
+                          <p>Restricts clock-in/out capability to defined geographic zones around work locations.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -805,11 +833,13 @@ export default function TimeTrackingSettingsPage() {
                         <div className="flex items-center gap-2">
                           <Label>Geofence Radius</Label>
                           <Tooltip>
-                            <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground" />
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                                <Info className="w-4 h-4 text-muted-foreground" />
+                              </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Default radius for location geofences</p>
+                            <TooltipContent className="max-w-xs">
+                              <p>The allowable distance (in meters) from the work location center where clocking is permitted.</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -830,11 +860,13 @@ export default function TimeTrackingSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Label htmlFor="requireBreaks">Require Breaks</Label>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                            <Info className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Require employees to take breaks during shifts</p>
+                        <TooltipContent className="max-w-xs">
+                          <p>Enforces break recording. Employees will be prompted to record breaks during their shift.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -851,11 +883,13 @@ export default function TimeTrackingSettingsPage() {
                         <div className="flex items-center gap-2">
                           <Label>Minimum Break Duration</Label>
                           <Tooltip>
-                            <TooltipTrigger>
-                              <Info className="w-4 h-4 text-muted-foreground" />
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                                <Info className="w-4 h-4 text-muted-foreground" />
+                              </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Minimum required break time in minutes</p>
+                            <TooltipContent className="max-w-xs">
+                              <p>The minimum length of a break. Shorter breaks may not be counted or allowed.</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -889,11 +923,13 @@ export default function TimeTrackingSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Label htmlFor="payrollExportFormat">Export Format</Label>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                            <Info className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Default format for payroll exports</p>
+                        <TooltipContent className="max-w-xs">
+                          <p>The file format generated for payroll processing.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -916,11 +952,13 @@ export default function TimeTrackingSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Label htmlFor="includeBreaks">Include Breaks</Label>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                            <Info className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Include break duration in payroll exports</p>
+                        <TooltipContent className="max-w-xs">
+                          <p>Exports break start/end times or durations to the payroll file.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -935,11 +973,13 @@ export default function TimeTrackingSettingsPage() {
                     <div className="flex items-center gap-2">
                       <Label htmlFor="includeNotes">Include Notes</Label>
                       <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="w-4 h-4 text-muted-foreground" />
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                            <Info className="w-4 h-4 text-muted-foreground" />
+                          </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Include timesheet notes in payroll exports</p>
+                        <TooltipContent className="max-w-xs">
+                          <p>Includes employee comments/notes in the payroll export file.</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>

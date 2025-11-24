@@ -497,13 +497,13 @@ export default function LocationsManagementPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address" className="text-slate-900 font-medium">Address Search</Label>
+                    <Label htmlFor="address" className="text-slate-900 font-medium">Address / Postcode</Label>
                     <div className="flex gap-2">
                       <Input
                         id="address"
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        placeholder="Search address to auto-locate..."
+                        placeholder="Enter street address or postcode..."
                         className="bg-slate-50"
                         onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
                       />
@@ -512,34 +512,48 @@ export default function LocationsManagementPage() {
                         size="icon" 
                         onClick={handleAddressSearch}
                         disabled={addressSearchLoading}
-                        className="shrink-0"
+                        className="shrink-0 bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 hover:border-blue-300"
+                        title="Find location on map"
                       >
                         {addressSearchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Click search to automatically find coordinates and move the map.
+                      Click search to locate by address/postcode, or drag the map marker.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Latitude</Label>
-                      <Input
-                        value={formData.latitude}
-                        onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                        className="font-mono text-xs bg-slate-50"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Longitude</Label>
-                      <Input
-                        value={formData.longitude}
-                        onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                        className="font-mono text-xs bg-slate-50"
-                      />
-                    </div>
+                  <div className="pt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowCoordinates(!showCoordinates)}
+                      className="text-xs text-muted-foreground h-auto p-0 hover:text-blue-600 hover:bg-transparent"
+                    >
+                      {showCoordinates ? "Hide Coordinates" : "Show Coordinates (Advanced)"}
+                    </Button>
                   </div>
+
+                  {showCoordinates && (
+                    <div className="grid grid-cols-2 gap-4 pt-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Latitude</Label>
+                        <Input
+                          value={formData.latitude}
+                          onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                          className="font-mono text-xs bg-slate-50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Longitude</Label>
+                        <Input
+                          value={formData.longitude}
+                          onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                          className="font-mono text-xs bg-slate-50"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
                     <div className="space-y-0.5">

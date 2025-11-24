@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
-import { Briefcase, PenLine, UserRound, X, AlertTriangle } from "lucide-react";
+import { Briefcase, PenLine, UserRound, X, AlertTriangle, Grip } from "lucide-react";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { PDFDocument } from "pdf-lib";
 import {
   Select,
   SelectContent,
@@ -154,13 +155,16 @@ export default function FieldPlacementModal({
   onDiscard?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
   const dragOffsetRef = useRef<{ dx: number; dy: number } | null>(null);
+  const resizingRef = useRef<{ idx: number; handle: string; startX: number; startY: number; startField: Field } | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const lastPointerEventRef = useRef<React.PointerEvent<HTMLDivElement> | null>(null);
 
   const [docUrl, setDocUrl] = useState<string>("");
+  const [pdfAspectRatio, setPdfAspectRatio] = useState<number | null>(null); // width / height
   const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
   
@@ -190,6 +194,24 @@ export default function FieldPlacementModal({
     if (saveMode === "local") {
       setDocUrl(url);
       setFields((prev) => prev); // keep local edits
+      // Try to load PDF for local mode too if url is available
+      if (url) {
+        fetch(url)
+          .then(res => res.arrayBuffer())
+          .then(async (buffer) => {
+            try {
+              const doc = await PDFDocument.load(buffer);
+              const page = doc.getPages()[0];
+              if (page) {
+                const { width, height } = page.getSize();
+                setPdfAspectRatio(width / height);
+              }
+            } catch (e) {
+              console.error("Failed to parse PDF dimensions", e);
+            }
+          })
+          .catch(() => {});
+      }
     } else {
       tenantFetch(`/api/documents/signature-fields/${documentId}`)
         .then((r: Response) => r.json())
@@ -205,7 +227,28 @@ export default function FieldPlacementModal({
       // Always fetch a fresh signed URL to guarantee preview
       tenantFetch(`/api/documents/signed-url/${documentId}`)
         .then((r: Response) => r.json())
-        .then((d: any) => setDocUrl(d?.url || url))
+        .then((d: any) => {
+          const newUrl = d?.url || url;
+          setDocUrl(newUrl);
+          // Fetch PDF to get dimensions
+          if (newUrl) {
+            fetch(newUrl)
+              .then(res => res.arrayBuffer())
+              .then(async (buffer) => {
+                try {
+                  const doc = await PDFDocument.load(buffer);
+                  const page = doc.getPages()[0];
+                  if (page) {
+                    const { width, height } = page.getSize();
+                    setPdfAspectRatio(width / height);
+                  }
+                } catch (e) {
+                  console.error("Failed to parse PDF dimensions", e);
+                }
+              })
+              .catch(err => console.error("Failed to fetch PDF for dimensions", err));
+          }
+        })
         .catch(() => setDocUrl(url));
     }
     // Load employee list for assignees (supports server route: /api/employees?status=active)
@@ -311,10 +354,23 @@ export default function FieldPlacementModal({
     }
   };
 
+  const onPointerDownHandle = (idx: number, handle: string, e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    resizingRef.current = {
+      idx,
+      handle,
+      startX: e.clientX,
+      startY: e.clientY,
+      startField: { ...fields[idx] },
+    };
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+  };
+
   const onPointerDownField = (idx: number, e: React.PointerEvent<HTMLDivElement>) => {
     setDraggingIdx(idx);
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
+    if (!contentRef.current) return;
+    const rect = contentRef.current.getBoundingClientRect();
     const f = fields[idx];
     const centerX = rect.left + f.x * rect.width;
     const centerY = rect.top + f.y * rect.height;
@@ -325,32 +381,80 @@ export default function FieldPlacementModal({
   const onPointerUpContainer = () => {
     setDraggingIdx(null);
     dragOffsetRef.current = null;
+    resizingRef.current = null;
     if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     rafIdRef.current = null;
     lastPointerEventRef.current = null;
   };
 
   const onPointerMoveContainer = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (draggingIdx === null || !containerRef.current) return;
+    if ((draggingIdx === null && !resizingRef.current) || !contentRef.current) return;
     lastPointerEventRef.current = e;
     if (rafIdRef.current) return;
     rafIdRef.current = requestAnimationFrame(() => {
       rafIdRef.current = null;
       const ev = lastPointerEventRef.current;
       if (!ev) return;
-      const rect = containerRef.current!.getBoundingClientRect();
-      const offset = dragOffsetRef.current || { dx: 0, dy: 0 };
-      const centerClientX = ev.clientX - offset.dx;
-      const centerClientY = ev.clientY - offset.dy;
-      let x = (centerClientX - rect.left) / rect.width;
-      let y = (centerClientY - rect.top) / rect.height;
-      x = Math.min(Math.max(0, x), 1);
-      y = Math.min(Math.max(0, y), 1);
-      setFields((prev) => {
-        const copy = [...prev];
-        copy[draggingIdx] = { ...copy[draggingIdx], x, y };
-        return copy;
-      });
+      const rect = contentRef.current!.getBoundingClientRect();
+
+      // Resizing logic
+      if (resizingRef.current) {
+        const { idx, handle, startX, startY, startField } = resizingRef.current;
+        const deltaX = (ev.clientX - startX) / rect.width;
+        const deltaY = (ev.clientY - startY) / rect.height;
+
+        setFields((prev) => {
+          const copy = [...prev];
+          const f = { ...startField };
+          
+          // Calculate current edges
+          let left = f.x - f.width / 2;
+          let right = f.x + f.width / 2;
+          let top = f.y - f.height / 2;
+          let bottom = f.y + f.height / 2;
+
+          if (handle.includes("l")) left += deltaX;
+          if (handle.includes("r")) right += deltaX;
+          if (handle.includes("t")) top += deltaY;
+          if (handle.includes("b")) bottom += deltaY;
+
+          // Constrain minimal size
+          if (right - left < 0.02) {
+             if (handle.includes("l")) left = right - 0.02;
+             else right = left + 0.02;
+          }
+          if (bottom - top < 0.02) {
+             if (handle.includes("t")) top = bottom - 0.02;
+             else bottom = top + 0.02;
+          }
+
+          // Update center and size
+          f.width = Math.abs(right - left);
+          f.height = Math.abs(bottom - top);
+          f.x = (left + right) / 2;
+          f.y = (top + bottom) / 2;
+
+          copy[idx] = f;
+          return copy;
+        });
+        return;
+      }
+
+      // Dragging logic
+      if (draggingIdx !== null) {
+        const offset = dragOffsetRef.current || { dx: 0, dy: 0 };
+        const centerClientX = ev.clientX - offset.dx;
+        const centerClientY = ev.clientY - offset.dy;
+        let x = (centerClientX - rect.left) / rect.width;
+        let y = (centerClientY - rect.top) / rect.height;
+        x = Math.min(Math.max(0, x), 1);
+        y = Math.min(Math.max(0, y), 1);
+        setFields((prev) => {
+          const copy = [...prev];
+          copy[draggingIdx] = { ...copy[draggingIdx], x, y };
+          return copy;
+        });
+      }
     });
   };
 
@@ -368,71 +472,93 @@ export default function FieldPlacementModal({
         </DialogHeader>
         <div className="flex-1 overflow-hidden p-6">
           <div className="grid grid-cols-12 gap-6 h-full">
-            <div className="col-span-9 h-full">
+            <div className="col-span-9 h-full relative">
               <div
                 ref={containerRef}
-                className="relative border border-slate-200 rounded-2xl overflow-hidden bg-slate-50 h-full"
+                className="absolute inset-0 overflow-y-auto overflow-x-hidden bg-slate-100 rounded-2xl border border-slate-200"
                 onPointerMove={onPointerMoveContainer}
                 onPointerUp={onPointerUpContainer}
+                onPointerLeave={onPointerUpContainer}
               >
-              {/* Use iframe for better control and to resolve permission policy violations */}
-              {docUrl ? (
-                <iframe 
-                  src={docUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH"} 
-                  className="w-full h-full"
-                  title="Document Preview"
-                  allow="fullscreen" 
-                />
-              ) : null}
-              {fields.map((f, idx) => {
-                const theme = getFieldTheme(f.label);
-                const Icon = theme.icon;
-                const assigneeName = getAssigneeName(f.assignedEmployeeId);
-                
-                return (
-                  <div
-                    key={idx}
-                    className={`absolute border ${theme.border} bg-white/95 rounded-xl shadow-xl shadow-slate-900/10 backdrop-blur-sm cursor-grab active:cursor-grabbing select-none transition flex items-center`}
-                    style={{
-                      left: `${f.x * 100}%`,
-                      top: `${f.y * 100}%`,
-                      width: `${f.width * 100}%`,
-                      height: `${f.height * 100}%`,
-                      transform: "translate(-50%, -50%)",
-                      willChange: "left, top, transform",
-                      padding: "8px 12px", // Reduced vertical padding for better fit
-                    }}
-                    onPointerDown={(e) => onPointerDownField(idx, e)}
-                  >
-                    <div className="flex items-center gap-3 pointer-events-none w-full overflow-hidden">
-                      <span className={`flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 shadow-sm ${theme.iconBg}`}>
-                        <Icon className="w-5 h-5" />
-                      </span>
-                      <div className="flex flex-col overflow-hidden min-w-0">
-                        <span className="text-xs font-semibold text-slate-900 truncate">
-                          {assigneeName || f.label || "Signature"}
-                        </span>
-                        <span className="text-[10px] text-slate-500 truncate">
-                          {assigneeName ? f.label || "Signature" : "Drag to reposition"}
-                        </span>
+                <div
+                  ref={contentRef}
+                  className="relative w-full bg-white shadow-sm mx-auto"
+                  style={{
+                    aspectRatio: pdfAspectRatio ? `${pdfAspectRatio}` : undefined,
+                    minHeight: "100%",
+                  }}
+                >
+                  {/* Use iframe for better control and to resolve permission policy violations */}
+                  {docUrl ? (
+                    <iframe 
+                      src={docUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH"} 
+                      className="w-full h-full block"
+                      title="Document Preview"
+                      allow="fullscreen"
+                      scrolling={pdfAspectRatio ? "no" : "yes"}
+                      style={{ pointerEvents: "none" }}
+                    />
+                  ) : null}
+                  {fields.map((f, idx) => {
+                    const theme = getFieldTheme(f.label);
+                    const Icon = theme.icon;
+                    const assigneeName = getAssigneeName(f.assignedEmployeeId);
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className={`absolute border ${theme.border} bg-white/95 rounded-xl shadow-xl shadow-slate-900/10 backdrop-blur-sm cursor-grab active:cursor-grabbing select-none transition-none flex items-center group`}
+                        style={{
+                          left: `${f.x * 100}%`,
+                          top: `${f.y * 100}%`,
+                          width: `${f.width * 100}%`,
+                          height: `${f.height * 100}%`,
+                          transform: "translate(-50%, -50%)",
+                          willChange: "left, top, width, height",
+                          padding: "8px 12px", // Reduced vertical padding for better fit
+                        }}
+                        onPointerDown={(e) => onPointerDownField(idx, e)}
+                      >
+                        {/* Resize Handles */}
+                        <div className="absolute -top-1 -left-1 w-3 h-3 bg-white border border-slate-400 rounded-full cursor-nw-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                             onPointerDown={(e) => onPointerDownHandle(idx, "tl", e)} />
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-white border border-slate-400 rounded-full cursor-ne-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                             onPointerDown={(e) => onPointerDownHandle(idx, "tr", e)} />
+                        <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-white border border-slate-400 rounded-full cursor-sw-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                             onPointerDown={(e) => onPointerDownHandle(idx, "bl", e)} />
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-slate-400 rounded-full cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                             onPointerDown={(e) => onPointerDownHandle(idx, "br", e)} />
+
+                        <div className="flex items-center gap-3 pointer-events-none w-full overflow-hidden h-full">
+                          <span className={`flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 shadow-sm ${theme.iconBg}`}>
+                            <Icon className="w-4 h-4" />
+                          </span>
+                          <div className="flex flex-col overflow-hidden min-w-0 justify-center">
+                            <span className="text-[10px] font-bold text-slate-900 truncate uppercase tracking-wider leading-none mb-0.5">
+                              {assigneeName || f.label || "Signature"}
+                            </span>
+                            <span className="text-[9px] text-slate-500 truncate leading-none">
+                              {assigneeName ? f.label || "Signature" : "Drag to move"}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white/80 bg-white/90 text-slate-500 shadow-sm flex items-center justify-center hover:text-slate-900 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label="Remove field"
+                          onPointerDown={(e) => e.stopPropagation()} 
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            ev.preventDefault();
+                            setFields((prev) => prev.filter((_, i) => i !== idx));
+                          }}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
                       </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full border border-white/80 bg-white/90 text-slate-500 shadow-sm flex items-center justify-center hover:text-slate-900 z-10"
-                      aria-label="Remove field"
-                      onPointerDown={(e) => e.stopPropagation()} 
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        ev.preventDefault();
-                        setFields((prev) => prev.filter((_, i) => i !== idx));
-                      }}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
             <div className="col-span-3 space-y-4 h-full flex flex-col">

@@ -34,6 +34,7 @@ import {
   Info,
   UserMinus,
   Sailboat,
+  MapPin,
 } from "lucide-react";
 import {
   Accordion,
@@ -94,6 +95,12 @@ const holidaySettings = [
     href: "/admin/settings/time-tracking",
     icon: <Clock className="h-5 w-5" />,
     description: "Configure timesheet, shift, and clock in/out settings",
+  },
+  {
+    title: "Locations",
+    href: "/admin/locations",
+    icon: <MapPin className="h-5 w-5" />,
+    description: "Manage work locations and geofence boundaries for time tracking",
   },
 ];
 

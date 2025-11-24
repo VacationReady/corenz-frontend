@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { validateCoordinates } from "@/lib/geofence";
+import { syncGeofenceLocations } from "@/lib/sync-geofence-locations";
 
 const locationUpdateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -111,8 +112,16 @@ export async function PUT(
       where: { id },
       data: {
         name: data.name,
+        address: data.address !== undefined ? (data.address || null) : undefined,
+        latitude: data.latitude !== undefined ? (data.latitude ?? null) : undefined,
+        longitude: data.longitude !== undefined ? (data.longitude ?? null) : undefined,
+        geofenceRadius: data.geofenceRadius !== undefined ? (data.geofenceRadius ?? null) : undefined,
+        isActive: data.isActive !== undefined ? data.isActive : undefined,
       },
     });
+
+    // Sync geofences to TimeTrackingSettings if geofencing is enabled
+    await syncGeofenceLocations(existing.companyId);
 
     return NextResponse.json(location);
   } catch (error) {
@@ -157,10 +166,13 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Soft delete by setting isActive to false
+    // Delete location
     await prisma.location.delete({
       where: { id },
     });
+
+    // Sync geofences to TimeTrackingSettings after deletion
+    await syncGeofenceLocations(location.companyId);
 
     return NextResponse.json({ success: true, message: "Location deleted successfully" });
   } catch (error) {

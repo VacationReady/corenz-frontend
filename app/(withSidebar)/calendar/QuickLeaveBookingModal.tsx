@@ -90,9 +90,20 @@ export default function QuickLeaveBookingModal({
 
       if (empRes.ok) {
         const empData = await empRes.json();
-        const employeeList = empData.employees || [];
+        const employeeList = empData.data || [];
         console.log("Loaded employees:", employeeList.length);
-        setEmployees(employeeList);
+        // Map to the expected format with nested user object
+        const mappedEmployees = employeeList.map((emp: any) => ({
+          id: emp.id,
+          user: {
+            firstName: emp.firstName,
+            lastName: emp.lastName,
+            name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || null,
+            profileImageUrl: emp.profileImageUrl,
+          },
+          department: emp.departmentName ? { name: emp.departmentName } : null,
+        }));
+        setEmployees(mappedEmployees);
       } else {
         console.error("Failed to fetch employees:", empRes.status);
         toast.error("Failed to load employees");

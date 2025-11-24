@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import type { TimeTrackingSettingsResponse } from '@/types/time-tracking-settings';
+import { syncGeofenceLocations } from '@/lib/sync-geofence-locations';
 
 /**
  * Create or get default timesheet approval workflow for a company
@@ -181,6 +182,15 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Sync geofences from Location table if geofencing is enabled
+    if (settings.enableGeofencing) {
+      await syncGeofenceLocations(employee.companyId);
+      // Re-fetch settings to get synced geofences
+      settings = await prisma.timeTrackingSettings.findUnique({
+        where: { companyId: employee.companyId },
+      })!;
+    }
+
     // Convert Decimal fields to numbers for frontend compatibility
     // Note: Using 'as any' temporarily until Prisma Client is regenerated
     const settingsAny = settings as any;
@@ -283,6 +293,18 @@ export async function PUT(req: NextRequest) {
         ...data,
       },
     });
+
+    // If geofencing is being enabled, sync locations from Location table
+    if (data.enableGeofencing || settings.enableGeofencing) {
+      await syncGeofenceLocations(employee.companyId);
+      // Re-fetch settings to get synced geofences
+      const updatedSettings = await prisma.timeTrackingSettings.findUnique({
+        where: { companyId: employee.companyId },
+      });
+      if (updatedSettings) {
+        Object.assign(settings, updatedSettings);
+      }
+    }
 
     // Create audit log
     await prisma.globalAuditLog.create({

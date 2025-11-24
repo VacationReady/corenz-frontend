@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
 import { validateCoordinates } from "@/lib/geofence";
+import { syncGeofenceLocations } from "@/lib/sync-geofence-locations";
 
 const locationCreateSchema = z.object({
   name: z.string().min(1, "Location name is required"),
@@ -30,6 +31,11 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        address: true,
+        latitude: true,
+        longitude: true,
+        geofenceRadius: true,
+        isActive: true,
       },
     });
 
@@ -81,8 +87,16 @@ export async function POST(req: Request) {
         id: crypto.randomUUID(),
         name: data.name.trim(),
         companyId: session.user.companyId,
+        address: data.address?.trim() || null,
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
+        geofenceRadius: data.geofenceRadius ?? null,
+        isActive: data.isActive ?? true,
       },
     });
+
+    // Sync geofences to TimeTrackingSettings if geofencing is enabled
+    await syncGeofenceLocations(session.user.companyId);
 
     return NextResponse.json(location);
   } catch (error) {

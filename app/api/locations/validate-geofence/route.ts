@@ -58,16 +58,55 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized access to location" }, { status: 403 });
     }
 
-    // Location model doesn't support geofencing - use TimeTrackingSettings.geofenceLocations instead
+    // Get geofence data from TimeTrackingSettings
+    const settings = await prisma.timeTrackingSettings.findUnique({
+      where: { companyId: employee.companyId },
+      select: { geofenceLocations: true, geofenceRadius: true },
+    });
+
+    const geofences = (settings?.geofenceLocations as any[]) || [];
+    const defaultRadius = settings?.geofenceRadius || 100;
+
+    // Find matching geofence for this location
+    const matchingGeofence = geofences.find((g: any) => g.id === location.id);
+    
+    if (!matchingGeofence) {
+      return NextResponse.json({
+        isWithinGeofence: false,
+        distance: null,
+        location: {
+          id: location.id,
+          name: location.name,
+        },
+        geofenceRadius: defaultRadius,
+        message: 'Location not found in geofence configuration',
+      });
+    }
+
+    // Check if coordinates are within geofence
+    const distance = calculateDistance(
+      data.latitude,
+      data.longitude,
+      matchingGeofence.lat,
+      matchingGeofence.lng
+    );
+
+    const isWithin = isWithinGeofence(
+      data.latitude,
+      data.longitude,
+      matchingGeofence.lat,
+      matchingGeofence.lng,
+      matchingGeofence.radius || defaultRadius
+    );
+
     return NextResponse.json({
-      isWithinGeofence: true,
-      distance: 0,
+      isWithinGeofence: isWithin,
+      distance: Math.round(distance),
       location: {
         id: location.id,
         name: location.name,
       },
-      geofenceRadius: 100,
-      message: 'Location validation passed - configure geofencing in TimeTrackingSettings',
+      geofenceRadius: matchingGeofence.radius || defaultRadius,
     });
   } catch (error) {
     console.error("Geofence validation error:", error);

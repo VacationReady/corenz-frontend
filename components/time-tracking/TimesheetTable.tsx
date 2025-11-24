@@ -2,7 +2,14 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { Clock, Edit2, Trash2 } from 'lucide-react';
+import { Clock, Edit2, Trash2, MapPin } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+interface LocationData {
+  lat: number;
+  lng: number;
+  accuracy?: number;
+}
 
 interface TimesheetEntry {
   id: string;
@@ -14,6 +21,8 @@ interface TimesheetEntry {
   isOvertime: boolean;
   notes?: string | null;
   entryType: string;
+  clockInLocation?: LocationData | null;
+  clockOutLocation?: LocationData | null;
 }
 
 interface TimesheetTableProps {
@@ -84,6 +93,9 @@ export default function TimesheetTable({
                 Hours
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
+                Location
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.14em] text-white/70">
                 Type
               </th>
               {editable && (
@@ -134,6 +146,40 @@ export default function TimesheetTable({
                         <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
                           OT
                         </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      {(entry.clockInLocation || entry.clockOutLocation) ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors cursor-help text-slate-600">
+                                <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                                <span className="text-xs font-medium">GPS</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs max-w-xs">
+                              <div className="space-y-1">
+                                {entry.clockInLocation && (
+                                  <p className="font-medium text-blue-600 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                                    In: {entry.clockInLocation.lat.toFixed(5)}, {entry.clockInLocation.lng.toFixed(5)}
+                                  </p>
+                                )}
+                                {entry.clockOutLocation && (
+                                  <p className="font-medium text-purple-600 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
+                                    Out: {entry.clockOutLocation.lat.toFixed(5)}, {entry.clockOutLocation.lng.toFixed(5)}
+                                  </p>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">No data</span>
                       )}
                     </div>
                   </td>

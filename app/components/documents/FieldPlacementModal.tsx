@@ -207,13 +207,18 @@ export default function FieldPlacementModal({
     // Load employee list for assignees (supports server route: /api/employees?status=active)
     tenantFetch(`/api/employees?status=active`)
       .then((r: Response) => r.ok ? r.json() : [])
-      .then((arr: any[]) => {
-        const sorted = (arr || [])
+      .then((response: any) => {
+        // API returns { data: [...] }
+        const arr = Array.isArray(response) ? response : (response.data || []);
+        const sorted = arr
           .map((e: any) => ({ id: e.id, name: `${e.firstName || e.user?.firstName || ""} ${e.lastName || e.user?.lastName || ""}`.trim() }))
           .sort((a: any, b: any) => a.name.localeCompare(b.name));
         setAssignees(sorted);
       })
-      .catch(() => setAssignees([]));
+      .catch((err) => {
+        console.error("Failed to load employees:", err);
+        setAssignees([]);
+      });
   }, [documentId, isOpen, url, saveMode, tenantFetch]);
 
   // Set default assignee when assignees load
@@ -349,19 +354,19 @@ export default function FieldPlacementModal({
   return (
     <>
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl">
-        <DialogHeader>
+      <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle>Place Signature Fields</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-9">
-            <div
-              ref={containerRef}
-              className="relative border border-slate-200 rounded-2xl overflow-hidden bg-slate-50"
-              style={{ height: 600 }}
-              onPointerMove={onPointerMoveContainer}
-              onPointerUp={onPointerUpContainer}
-            >
+        <div className="flex-1 overflow-hidden p-6">
+          <div className="grid grid-cols-12 gap-6 h-full">
+            <div className="col-span-9 h-full">
+              <div
+                ref={containerRef}
+                className="relative border border-slate-200 rounded-2xl overflow-hidden bg-slate-50 h-full"
+                onPointerMove={onPointerMoveContainer}
+                onPointerUp={onPointerUpContainer}
+              >
               {/* Use embed to render files cross-origin where possible */}
               {docUrl ? (
                 <embed src={docUrl + "#toolbar=0&navpanes=0&scrollbar=1"} type="application/pdf" className="w-full h-full" />
@@ -387,8 +392,8 @@ export default function FieldPlacementModal({
                     onPointerDown={(e) => onPointerDownField(idx, e)}
                   >
                     <div className="flex items-center gap-3 pointer-events-none w-full overflow-hidden">
-                      <span className={`flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 ${theme.iconBg}`}>
-                        <Icon className="w-4 h-4" />
+                      <span className={`flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 shadow-sm ${theme.iconBg}`}>
+                        <Icon className="w-5 h-5" />
                       </span>
                       <div className="flex flex-col overflow-hidden min-w-0">
                         <span className="text-xs font-semibold text-slate-900 truncate">
@@ -417,8 +422,8 @@ export default function FieldPlacementModal({
               })}
             </div>
           </div>
-          <div className="col-span-3 space-y-3">
-            <div className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm">
+          <div className="col-span-3 space-y-4 h-full flex flex-col">
+            <div className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm flex-shrink-0">
               <div className="font-semibold text-sm text-slate-900 mb-3">Palette</div>
               <div className="space-y-2">
                 {paletteOptions.map((item) => {
@@ -432,8 +437,8 @@ export default function FieldPlacementModal({
                       onClick={() => addField(item.type)}
                     >
                       <div className="flex items-center gap-3">
-                        <span className={`flex items-center justify-center w-9 h-9 rounded-full ${item.iconBg}`}>
-                          <Icon className="w-4 h-4" />
+                        <span className={`flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0 shadow-sm ${item.iconBg}`}>
+                          <Icon className="w-5 h-5" />
                         </span>
                         <div>
                           <div className="text-sm font-semibold text-slate-900 leading-tight">{item.label}</div>
@@ -474,9 +479,11 @@ export default function FieldPlacementModal({
               </Select>
               <div className="text-xs text-muted-foreground mt-1">New fields will be assigned to the selected signer.</div>
             </div>
-            <div className="space-y-2 max-h-[520px] overflow-auto">
-              {fields.map((f, idx) => (
-                <div key={idx} className="border rounded p-2 space-y-1">
+            <div className="flex-1 min-h-0 flex flex-col border border-slate-200 rounded-2xl bg-white shadow-sm overflow-hidden">
+               <div className="p-3 border-b bg-slate-50 font-medium text-sm">Placed Fields</div>
+               <div className="overflow-y-auto p-2 space-y-2 flex-1">
+                {fields.map((f, idx) => (
+                  <div key={idx} className="border rounded p-2 space-y-1 bg-white">
                   <Label className="text-xs">Label</Label>
                   <input
                     className="w-full border rounded px-2 py-1 text-sm"
@@ -526,9 +533,9 @@ export default function FieldPlacementModal({
             </div>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t mt-0">
           <Button 
-            variant="outline" 
+            variant="outline"  
             onClick={handleClose}
             disabled={sendingNotifications}
           >

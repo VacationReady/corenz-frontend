@@ -129,6 +129,8 @@ export default function TimesheetDetailView({
         isOvertime: false,
         notes: entry.notes,
         entryType: 'CLOCK',
+        clockInLocation: entry.clockInLocation,
+        clockOutLocation: entry.clockOutLocation,
       }))
   );
 

@@ -58,6 +58,13 @@ export async function middleware(request: NextRequest) {
 
     const requestHeaders = new Headers(request.headers);
 
+    // Ensure Permissions-Policy is set for all requests
+    // This overrides any potential misconfiguration or missing headers from Vercel/Next.js
+    requestHeaders.set(
+      "Permissions-Policy", 
+      "geolocation=(self), camera=(self)"
+    );
+
     // Add company ID header if not present
     if (!requestHeaders.has("x-company-id")) {
       try {
@@ -117,7 +124,10 @@ export async function middleware(request: NextRequest) {
         });
         // Allow the request to proceed but skip rate limiting
         // This prevents 401 errors when token extraction fails
-        return NextResponse.next({ request: { headers: requestHeaders } });
+        return NextResponse.next({ 
+      request: { headers: requestHeaders },
+      headers: { "Permissions-Policy": "geolocation=(self), camera=(self)" } 
+    });
       }
 
       try {
@@ -157,7 +167,10 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return NextResponse.next({ 
+      request: { headers: requestHeaders },
+      headers: { "Permissions-Policy": "geolocation=(self), camera=(self)" } 
+    });
   } catch (error) {
     console.error("Middleware error:", error);
     // Return a basic response to prevent hanging

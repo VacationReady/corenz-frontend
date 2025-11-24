@@ -426,9 +426,9 @@ export default function FieldPlacementModal({
                   </div>
                 );
               })}
+              </div>
             </div>
-          </div>
-          <div className="col-span-3 space-y-4 h-full flex flex-col">
+            <div className="col-span-3 space-y-4 h-full flex flex-col">
             <div className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm flex-shrink-0">
               <div className="font-semibold text-sm text-slate-900 mb-3">Palette</div>
               <div className="space-y-2">
@@ -539,6 +539,7 @@ export default function FieldPlacementModal({
             </div>
           </div>
           </div>
+        </div>
         </div>
         <DialogFooter className="px-6 py-4 border-t mt-0">
           <Button 

@@ -51,10 +51,6 @@ type TimeTrackingSettings = {
   publicHolidayMultiplier: number;
   sundayMultiplier: number | null;
   enableOvertimeBreakdown: boolean;
-  // Backward compatibility (deprecated)
-  requirePhotos?: boolean;
-  enableGPSTracking?: boolean;
-  allowManualEntry?: boolean;
 };
 
 const defaultSettings: TimeTrackingSettings = {
@@ -113,8 +109,17 @@ export default function TimeTrackingSettingsPage() {
       const response = await fetch("/api/settings/time-tracking");
       if (!response.ok) throw new Error("Failed to fetch settings");
       const data = await response.json();
-      setSettings(data.settings);
-      setOriginalSettings(data.settings);
+      
+      // Remove deprecated fields to prevent conflicts
+      const { 
+        enableGPSTracking, 
+        requirePhotos, 
+        allowManualEntry, 
+        ...cleanSettings 
+      } = data.settings;
+      
+      setSettings(cleanSettings);
+      setOriginalSettings(cleanSettings);
     } catch (error) {
       toast({
         title: "Error",
@@ -638,7 +643,7 @@ export default function TimeTrackingSettingsPage() {
                         step="0.1"
                         value={settings.overtimeMultiplierTier2 || ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          const val = parseFloat(e.target.value) || 2.0;
+                          const val = e.target.value === '' ? null : parseFloat(e.target.value);
                           updateSetting('overtimeMultiplierTier2', val);
                         }}
                         placeholder="e.g., 2.0 for double time"
@@ -676,7 +681,7 @@ export default function TimeTrackingSettingsPage() {
                         step="0.1"
                         value={settings.sundayMultiplier || ''}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                          const val = parseFloat(e.target.value) || 0;
+                          const val = e.target.value === '' ? null : parseFloat(e.target.value);
                           updateSetting('sundayMultiplier', val);
                         }}
                         placeholder="e.g., 1.5 for Sunday premium"

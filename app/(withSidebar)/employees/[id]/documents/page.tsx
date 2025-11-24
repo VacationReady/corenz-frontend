@@ -770,6 +770,7 @@ export default function EmployeeDocumentsPage() {
           }}
           documentId={selectedDoc?.id || ""}
           url={selectedDoc?.url || ""}
+          defaultAssigneeId={employeeId}
         />
         </div>
       </TooltipProvider>

@@ -107,6 +107,7 @@ const settingsUpdateSchema = z.object({
   weeklyOvertimeThreshold: z.coerce.number().min(0).max(168).optional().nullable(),
   monthlyOvertimeThreshold: z.coerce.number().min(0).max(744).optional().nullable(),
   overtimeMultiplierTier2: z.coerce.number().min(1.0).max(3.0).optional().nullable(),
+  overtimeMultiplier: z.coerce.number().min(1.0).max(3.0).optional(),
   overtimeThresholdTier2: z.coerce.number().min(0).max(100).optional().nullable(),
   publicHolidayMultiplier: z.coerce.number().min(1.0).max(3.0).optional(),
   sundayMultiplier: z.coerce.number().min(1.0).max(3.0).optional().nullable(),
@@ -242,9 +243,11 @@ export async function PUT(req: NextRequest) {
     const data: Record<string, any> = { ...rawData };
     
     // Handle GPS tracking field name migration
-    if ('enableGPSTracking' in rawData && !('requireGpsLocation' in rawData)) {
-      console.warn('[TimeTracking] Deprecated field "enableGPSTracking" used, mapping to "requireGpsLocation"');
-      data.requireGpsLocation = rawData.enableGPSTracking;
+    if ('enableGPSTracking' in rawData) {
+      if (!('requireGpsLocation' in rawData)) {
+        console.warn('[TimeTracking] Deprecated field "enableGPSTracking" used, mapping to "requireGpsLocation"');
+        data.requireGpsLocation = rawData.enableGPSTracking;
+      }
       delete data.enableGPSTracking;
     }
     

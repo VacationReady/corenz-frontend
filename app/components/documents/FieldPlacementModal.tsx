@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo, ChangeEvent, KeyboardEvent } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,14 @@ import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
 import { Briefcase, PenLine, UserRound, X, AlertTriangle } from "lucide-react";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import { Input } from "@/components/ui/Input";
 
 interface Field {
   pageNumber: number;
@@ -79,6 +87,47 @@ const getFieldTheme = (label?: string) => {
   return fieldThemes.signature;
 };
 
+// Searchable Select Helper
+const SelectSearchInput = ({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) => (
+  <div className="sticky top-0 z-10 bg-popover p-2 border-b border-muted/40">
+    <Input
+      value={value}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      placeholder={placeholder ?? "Search..."}
+      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.stopPropagation()}
+      autoFocus
+      className="h-9"
+    />
+  </div>
+);
+
+const filterBySearch = <T,>(
+  items: T[],
+  accessor: (item: T) => string | undefined,
+  query: string,
+) => {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    const value = accessor(item);
+    if (!value) {
+      return false;
+    }
+    return value.toLowerCase().includes(normalized);
+  });
+};
+
 export default function FieldPlacementModal({
   isOpen,
   onClose,
@@ -88,6 +137,7 @@ export default function FieldPlacementModal({
   onSaveFields,
   onSaveComplete,
   sendingNotifications = false,
+  defaultAssigneeId,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -97,6 +147,7 @@ export default function FieldPlacementModal({
   onSaveFields?: (fields: Field[]) => void;
   onSaveComplete?: () => Promise<void>;
   sendingNotifications?: boolean;
+  defaultAssigneeId?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
@@ -109,12 +160,21 @@ export default function FieldPlacementModal({
   const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
   
+  // Searchable select state
+  const [assigneeSearch, setAssigneeSearch] = useState("");
+  const [isAssigneeSelectOpen, setIsAssigneeSelectOpen] = useState(false);
+
   // Dirty state tracking
   const [initialFields, setInitialFields] = useState<Field[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   
   const tenantFetch = useTenantFetch();
+
+  // Filtered assignees for search
+  const filteredAssignees = useMemo(() => {
+    return filterBySearch(assignees, (a) => a.name, assigneeSearch);
+  }, [assignees, assigneeSearch]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -147,13 +207,24 @@ export default function FieldPlacementModal({
     // Load employee list for assignees (supports server route: /api/employees?status=active)
     tenantFetch(`/api/employees?status=active`)
       .then((r: Response) => r.ok ? r.json() : [])
-      .then((arr: any[]) =>
-        setAssignees(
-          (arr || []).map((e: any) => ({ id: e.id, name: `${e.firstName || e.user?.firstName || ""} ${e.lastName || e.user?.lastName || ""}`.trim() })),
-        ),
-      )
+      .then((arr: any[]) => {
+        const sorted = (arr || [])
+          .map((e: any) => ({ id: e.id, name: `${e.firstName || e.user?.firstName || ""} ${e.lastName || e.user?.lastName || ""}`.trim() }))
+          .sort((a: any, b: any) => a.name.localeCompare(b.name));
+        setAssignees(sorted);
+      })
       .catch(() => setAssignees([]));
   }, [documentId, isOpen, url, saveMode, tenantFetch]);
+
+  // Set default assignee when assignees load
+  useEffect(() => {
+    if (defaultAssigneeId && assignees.length > 0 && !selectedAssignee) {
+      const exists = assignees.find(a => a.id === defaultAssigneeId);
+      if (exists) {
+        setSelectedAssignee(defaultAssigneeId);
+      }
+    }
+  }, [defaultAssigneeId, assignees, selectedAssignee]);
 
   // Check if fields have changed
   useEffect(() => {
@@ -162,7 +233,8 @@ export default function FieldPlacementModal({
   }, [fields, initialFields]);
 
   const addField = (type: "SIGNATURE" | "NAME" | "JOB_ROLE") => {
-    const base = { pageNumber: 1, x: 0.1, y: 0.1, width: 0.25, height: 0.08 } as Field;
+    // Increased default height slightly to prevent icon cutoff
+    const base = { pageNumber: 1, x: 0.1, y: 0.1, width: 0.25, height: 0.1 } as Field;
     const label = type === "SIGNATURE" ? "Signature" : type === "NAME" ? "Name" : "Job Role";
     setFields((prev) => [
       ...prev,
@@ -269,6 +341,11 @@ export default function FieldPlacementModal({
     });
   };
 
+  const getAssigneeName = (id?: string) => {
+    if (!id) return "";
+    return assignees.find(a => a.id === id)?.name || "";
+  };
+
   return (
     <>
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -292,10 +369,12 @@ export default function FieldPlacementModal({
               {fields.map((f, idx) => {
                 const theme = getFieldTheme(f.label);
                 const Icon = theme.icon;
+                const assigneeName = getAssigneeName(f.assignedEmployeeId);
+                
                 return (
                   <div
                     key={idx}
-                    className={`absolute border ${theme.border} bg-white/95 rounded-xl shadow-xl shadow-slate-900/10 backdrop-blur-sm cursor-grab active:cursor-grabbing select-none transition`}
+                    className={`absolute border ${theme.border} bg-white/95 rounded-xl shadow-xl shadow-slate-900/10 backdrop-blur-sm cursor-grab active:cursor-grabbing select-none transition flex items-center`}
                     style={{
                       left: `${f.x * 100}%`,
                       top: `${f.y * 100}%`,
@@ -303,27 +382,31 @@ export default function FieldPlacementModal({
                       height: `${f.height * 100}%`,
                       transform: "translate(-50%, -50%)",
                       willChange: "left, top, transform",
-                      padding: "12px 14px",
+                      padding: "8px 12px", // Reduced vertical padding for better fit
                     }}
                     onPointerDown={(e) => onPointerDownField(idx, e)}
                   >
-                    <div className="flex items-center gap-3 pointer-events-none">
-                      <span className={`flex items-center justify-center w-9 h-9 rounded-full ${theme.iconBg}`}>
+                    <div className="flex items-center gap-3 pointer-events-none w-full overflow-hidden">
+                      <span className={`flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 ${theme.iconBg}`}>
                         <Icon className="w-4 h-4" />
                       </span>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-slate-900">
-                          {f.label || "Signature"}
+                      <div className="flex flex-col overflow-hidden min-w-0">
+                        <span className="text-xs font-semibold text-slate-900 truncate">
+                          {assigneeName || f.label || "Signature"}
                         </span>
-                        <span className="text-[11px] text-slate-500">Drag to reposition</span>
+                        <span className="text-[10px] text-slate-500 truncate">
+                          {assigneeName ? f.label || "Signature" : "Drag to reposition"}
+                        </span>
                       </div>
                     </div>
                     <button
                       type="button"
-                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full border border-white/80 bg-white/90 text-slate-500 shadow-sm flex items-center justify-center hover:text-slate-900"
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full border border-white/80 bg-white/90 text-slate-500 shadow-sm flex items-center justify-center hover:text-slate-900 z-10"
                       aria-label="Remove field"
+                      onPointerDown={(e) => e.stopPropagation()} 
                       onClick={(ev) => {
                         ev.stopPropagation();
+                        ev.preventDefault();
                         setFields((prev) => prev.filter((_, i) => i !== idx));
                       }}
                     >
@@ -365,16 +448,30 @@ export default function FieldPlacementModal({
             </div>
             <div className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm">
               <div className="font-medium mb-2">Assign signer</div>
-              <select
-                className="w-full border rounded px-2 py-1 text-sm"
+              <Select
                 value={selectedAssignee}
-                onChange={(e) => setSelectedAssignee(e.target.value)}
+                onValueChange={setSelectedAssignee}
+                open={isAssigneeSelectOpen}
+                onOpenChange={(open) => {
+                  setIsAssigneeSelectOpen(open);
+                  if (!open) setAssigneeSearch("");
+                }}
               >
-                <option value="">Unassigned</option>
-                {assignees.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Unassigned" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectSearchInput
+                    value={assigneeSearch}
+                    onChange={setAssigneeSearch}
+                    placeholder="Search employees..."
+                  />
+                  <SelectItem value="unassigned_item_null">Unassigned</SelectItem>
+                  {filteredAssignees.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className="text-xs text-muted-foreground mt-1">New fields will be assigned to the selected signer.</div>
             </div>
             <div className="space-y-2 max-h-[520px] overflow-auto">
@@ -394,23 +491,33 @@ export default function FieldPlacementModal({
                     }}
                   />
                   <div className="text-xs">Assigned to</div>
-                  <select
-                    className="w-full border rounded px-2 py-1 text-sm"
-                    value={f.assignedEmployeeId || ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
+                  <Select
+                    value={f.assignedEmployeeId || "unassigned_item_null"}
+                    onValueChange={(v) => {
+                      const newVal = v === "unassigned_item_null" ? undefined : v;
                       setFields((prev) => {
                         const copy = [...prev];
-                        copy[idx] = { ...copy[idx], assignedEmployeeId: v || undefined };
+                        copy[idx] = { ...copy[idx], assignedEmployeeId: newVal };
                         return copy;
                       });
                     }}
                   >
-                    <option value="">Unassigned</option>
-                    {assignees.map((a) => (
-                      <option key={a.id} value={a.id}>{a.name}</option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-full h-8 text-xs">
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectSearchInput
+                        value={assigneeSearch}
+                        onChange={setAssigneeSearch}
+                        placeholder="Search employees..."
+                      />
+                      <SelectItem value="unassigned_item_null">Unassigned</SelectItem>
+                      {filteredAssignees.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
                   <div className="text-xs text-muted-foreground">
                     x: {f.x.toFixed(2)} y: {f.y.toFixed(2)} w: {f.width.toFixed(2)} h: {f.height.toFixed(2)}
                   </div>
@@ -471,5 +578,3 @@ export default function FieldPlacementModal({
     </>
   );
 }
-
-

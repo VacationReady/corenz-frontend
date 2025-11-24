@@ -131,6 +131,7 @@ export default function AddDocumentModal({
 
   // Sort and filter employees for dropdown
   const sortedEmployees = useMemo(() => {
+    if (!Array.isArray(employees)) return [];
     return [...employees].sort((a, b) => {
       const lastNameCompare = (a.lastName || "").localeCompare(b.lastName || "", undefined, {
         sensitivity: "base",
@@ -173,7 +174,9 @@ export default function AddDocumentModal({
         const deptData = await deptRes.json();
         const roleData = await roleRes.json();
 
-        setEmployees(empRes);
+        // Ensure employees is always an array
+        const employeesData = Array.isArray(empRes) ? empRes : [];
+        setEmployees(employeesData);
         setDepartmentsList([
           { label: "All Departments", value: "all" },
           ...deptData.map((d: any) => ({ label: d.name, value: d.id })),
@@ -617,7 +620,7 @@ export default function AddDocumentModal({
                       <div>
                         <Label>Additional Individual Signers</Label>
                         <MultiSelect
-                          options={employees.map((e:any)=>({label:`${e.firstName} ${e.lastName} (${e.email})`, value:e.id}))}
+                          options={Array.isArray(employees) ? employees.map((e:any)=>({label:`${e.firstName} ${e.lastName} (${e.email})`, value:e.id})) : []}
                           selected={signerEmployees}
                           onChange={setSignerEmployees}
                           placeholder="Select specific employees"

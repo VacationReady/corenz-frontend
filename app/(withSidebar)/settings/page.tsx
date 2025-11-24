@@ -243,7 +243,7 @@ function SettingSection({
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-primary/10 p-2 text-primary transition-colors group-hover:bg-primary/20 group-hover:text-primary-foreground">
+                    <div className="rounded-lg bg-primary/10 p-2 text-primary transition-colors group-hover:bg-primary/20">
                       {icon}
                     </div>
                     <div className="space-y-1">

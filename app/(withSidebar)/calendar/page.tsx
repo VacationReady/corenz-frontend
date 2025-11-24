@@ -83,7 +83,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [blackoutModalOpen, setBlackoutModalOpen] = useState(false);
   const [dayActionSheetOpen, setDayActionSheetOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(false);
   const [currentView, setCurrentView] = useState<"dayGridMonth" | "listMonth">(initialView);
   const [tenantTimeSettings, setTenantTimeSettings] = useState<TenantTimeSettings>(() =>
     resolveTenantTimeSettings(null, null),
@@ -99,6 +98,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [bankHolidaysAvailable, setBankHolidaysAvailable] = useState(false);
   const [templateLabel, setTemplateLabel] = useState<string | null>(null);
   const [currentTitle, setCurrentTitle] = useState("");
+  const [currentCalendarDate, setCurrentCalendarDate] = useState<Date | null>(null);
   const _bankHolidayCacheRef = useRef<any | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -264,6 +264,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           : null;
         if (parsed && !isNaN(parsed.getTime())) {
           setSelectedDay(parsed);
+          setCurrentCalendarDate(parsed);
           // Defer until calendar ref is ready
           setTimeout(() => {
             try {
@@ -286,9 +287,14 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       if (filters.search) url.searchParams.set("q", filters.search);
       else url.searchParams.delete("q");
       url.searchParams.set("view", currentView === "listMonth" ? "list" : "month");
+      // Preserve the current calendar date in URL if it exists
+      if (currentCalendarDate) {
+        const dateStr = `${currentCalendarDate.getFullYear()}-${String(currentCalendarDate.getMonth() + 1).padStart(2, "0")}-${String(currentCalendarDate.getDate()).padStart(2, "0")}`;
+        url.searchParams.set("date", dateStr);
+      }
       router.replace(url.pathname + "?" + url.searchParams.toString(), { scroll: false });
     } catch (_err) {}
-  }, [filters.departments.join(","), filters.search, currentView, router]);
+  }, [filters.departments.join(","), filters.search, currentView, currentCalendarDate, router]);
 
   const fetchLeaveEvents = useCallback(
     async (
@@ -443,7 +449,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       setBlackoutIdsByDay(idMap);
       if (nextHash !== blackoutKeyHashRef.current) {
         blackoutKeyHashRef.current = nextHash;
-        setRefreshTrigger((prev) => !prev);
+        // Blackout keys changed - day cells will re-render automatically via state update
       }
       successCallback(blackoutEvents);
     } catch (error) {
@@ -781,8 +787,13 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const refreshCalendar = () => {
     console.log("Refreshing calendar events...");
     eventsCacheRef.current = null;
-    calendarRef.current?.getApi().refetchEvents();
-    setRefreshTrigger((prev) => !prev);
+    // Preserve the current date when refreshing
+    const api = calendarRef.current?.getApi();
+    if (api) {
+      const currentDate = api.getDate();
+      setCurrentCalendarDate(currentDate);
+      api.refetchEvents();
+    }
   };
 
   const deleteBlackoutForDate = async (date: Date) => {
@@ -965,9 +976,14 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
               ref={calendarRef}
               plugins={[dayGridPlugin, interactionPlugin, listPlugin]}
               initialView={initialView}
+              initialDate={currentCalendarDate || undefined}
               headerToolbar={false}
               datesSet={(arg: any) => {
                 setCurrentTitle(arg.view?.title || "");
+                // Track the current visible date to preserve navigation state
+                if (arg.view?.currentStart) {
+                  setCurrentCalendarDate(new Date(arg.view.currentStart));
+                }
               }}
               eventSources={eventSources}
               dateClick={handleDateClick}
@@ -977,7 +993,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
               dayCellContent={dayCellContent}
               fixedWeekCount={false}
               height="auto"
-              key={`${tenantTimeSettings.timeZone}-${refreshTrigger ? "refresh-on" : "refresh-off"}`}
+              key={`${tenantTimeSettings.timeZone}`}
               timeZone={tenantTimeSettings.timeZone}
             />
           )}

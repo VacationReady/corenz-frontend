@@ -297,10 +297,35 @@ export async function POST(req: NextRequest) {
             const w = f.width * pw;
             const h = f.height * ph;
 
-            if (pngImage) {
+            // Determine field purpose based on label
+            const fieldLabel = (f.label || "").toLowerCase();
+            const isSignatureField = !fieldLabel.includes("name") && !fieldLabel.includes("job");
+            
+            // Only draw signature image on actual signature fields, not on name/job role fields
+            if (pngImage && isSignatureField && method === "DRAWN") {
               page.drawImage(pngImage, { x: x - w / 2, y: y - h / 2, width: w, height: h });
             }
-            page.drawText(new Date().toLocaleString(), { x: x - w / 2 + 4, y: y - h / 2 + 4, size: 8, font, color: rgb(0.4, 0.4, 0.4) });
+            
+            // For name fields with typed signature, draw the typed text
+            if (method === "TYPED" && typedText && fieldLabel.includes("name")) {
+              const textSize = Math.min(14, h * 0.5);
+              page.drawText(typedText, { 
+                x: x - w / 2 + 4, 
+                y: y - h / 2 + h * 0.4, 
+                size: textSize, 
+                font, 
+                color: rgb(0, 0, 0) 
+              });
+            }
+            
+            // Add timestamp below the signature/name
+            page.drawText(new Date().toLocaleString(), { 
+              x: x - w / 2 + 4, 
+              y: y - h / 2 + 4, 
+              size: 8, 
+              font, 
+              color: rgb(0.4, 0.4, 0.4) 
+            });
           }
 
           const stampedBytes = await pdfDoc.save();

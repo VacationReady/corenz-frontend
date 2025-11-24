@@ -14,7 +14,69 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HelpCircle } from "lucide-react";
+import { 
+  HelpCircle,
+  Mail,
+  User,
+  CheckCircle2,
+  FileText,
+  Paperclip,
+  PenSquare,
+  DoorOpen,
+  Edit,
+  Umbrella,
+  GraduationCap,
+  Star,
+  Lock,
+  Link,
+  Building2,
+  Briefcase,
+  MapPin,
+  Calendar,
+  Clock,
+  Search,
+  Hash,
+  Users,
+  ClipboardList,
+  Settings,
+  Watch,
+  LucideIcon
+} from "lucide-react";
+
+// Helper function to render icon strings as Lucide components
+const getIconComponent = (iconName: string | React.ReactNode): React.ReactNode => {
+  if (typeof iconName !== 'string') return iconName;
+  
+  const iconMap: Record<string, LucideIcon> = {
+    Mail,
+    User,
+    CheckCircle2,
+    FileText,
+    Paperclip,
+    PenSquare,
+    DoorOpen,
+    Edit,
+    Umbrella,
+    GraduationCap,
+    Star,
+    Lock,
+    Link,
+    Building2,
+    Briefcase,
+    MapPin,
+    Calendar,
+    Clock,
+    Search,
+    Hash,
+    Users,
+    ClipboardList,
+    Settings,
+    Watch,
+  };
+  
+  const Icon = iconMap[iconName];
+  return Icon ? <Icon className="w-4 h-4" /> : iconName;
+};
 
 interface ConfigFieldProps {
   field: any;
@@ -205,7 +267,7 @@ export const TriggerConfiguration: React.FC<TriggerConfigurationProps> = ({
             {triggerTypes.map((trigger: any) => (
               <SelectItem key={trigger.id} value={trigger.id}>
                 <div className="flex items-center gap-2">
-                  {trigger.icon}
+                  {getIconComponent(trigger.icon)}
                   <span>{trigger.name}</span>
                 </div>
               </SelectItem>
@@ -221,7 +283,7 @@ export const TriggerConfiguration: React.FC<TriggerConfigurationProps> = ({
       {triggerInfo && (
         <>
           <div className="flex items-center gap-2 pt-2">
-            {triggerInfo.icon}
+            {getIconComponent(triggerInfo.icon)}
             <div>
               <p className="text-sm font-medium">{triggerInfo.name}</p>
               <p className="text-xs text-muted-foreground">{triggerInfo.description}</p>
@@ -377,7 +439,7 @@ export const ActionConfiguration: React.FC<ActionConfigurationProps> = ({
               onClick={() => onUpdate({ type: type.id, config: {} })}
             >
               <div className="flex items-start gap-2">
-                {type.icon}
+                {getIconComponent(type.icon)}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium truncate">{type.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{type.description}</p>

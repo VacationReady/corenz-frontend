@@ -180,14 +180,21 @@ export default function ModernDocumentPreview({
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl overflow-hidden border-2 border-gray-200 shadow-inner bg-gray-50"
+                  className="rounded-xl overflow-hidden border-2 border-gray-200 shadow-inner bg-white"
                 >
-                  <embed
-                    src={`${doc.url}#toolbar=0&navpanes=0&scrollbar=1`}
+                  <object
+                    data={`${doc.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
                     type="application/pdf"
                     className="w-full"
-                    style={{ height: "70vh", minHeight: "500px" }}
-                  />
+                    style={{ height: "80vh", minHeight: "600px" }}
+                  >
+                    <iframe
+                      src={`${doc.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                      className="w-full"
+                      style={{ height: "80vh", minHeight: "600px" }}
+                      title="Document Preview"
+                    />
+                  </object>
                 </motion.div>
 
                 {/* Download Button */}

@@ -36,6 +36,13 @@ import {
   Shield,
   DollarSign,
   Loader2,
+  Scale,
+  FileText,
+  Hand,
+  Umbrella,
+  DoorOpen,
+  PartyPopper,
+  LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -333,14 +340,52 @@ export function WorkflowAppStore({
   );
 }
 
-// Helper function to map emoji icons to modern Lucide icons
+// Helper function to map icon names/emojis to modern Lucide icons
 function getIconComponent(icon: React.ReactNode) {
   // If it's already a React node, return it
   if (typeof icon !== 'string') {
     return icon;
   }
   
-  const iconMap: Record<string, React.ReactNode> = {
+  // Map icon names (from config files) to Lucide components
+  const iconNameMap: Record<string, LucideIcon> = {
+    Scale,
+    FileText,
+    Hand,
+    Umbrella,
+    Calendar,
+    Star,
+    Clock,
+    DoorOpen,
+    PartyPopper,
+    Target,
+    Handshake,
+    ClipboardCheck,
+    CheckCircle2,
+    UserCheck,
+    Bell,
+    FileCheck,
+    Briefcase,
+    Users,
+    TrendingUp,
+    Award,
+    BookOpen,
+    MessageSquare,
+    Gift,
+    Heart,
+    Activity,
+    Shield,
+    DollarSign,
+  };
+  
+  // If it's an icon name, render the component
+  if (iconNameMap[icon]) {
+    const IconComponent = iconNameMap[icon];
+    return <IconComponent className="w-6 h-6 text-blue-600" />;
+  }
+  
+  // Legacy emoji mapping for backward compatibility
+  const emojiMap: Record<string, React.ReactNode> = {
     "🎯": <Target className="w-6 h-6 text-blue-600" />,
     "🤝": <Handshake className="w-6 h-6 text-purple-600" />,
     "📋": <ClipboardCheck className="w-6 h-6 text-amber-600" />,
@@ -367,7 +412,7 @@ function getIconComponent(icon: React.ReactNode) {
     "🎉": <Gift className="w-6 h-6 text-pink-600" />,
   };
 
-  return iconMap[icon] || <Target className="w-6 h-6 text-gray-600" />;
+  return emojiMap[icon] || <Target className="w-6 h-6 text-gray-600" />;
 }
 
 interface WorkflowCardProps {

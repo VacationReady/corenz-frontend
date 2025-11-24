@@ -303,7 +303,7 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
                 </CardContent>
 
                 <div
-                  className="absolute inset-y-3 right-3 flex translate-x-10 flex-col items-stretch gap-2 rounded-2xl bg-background/80 px-3 py-2 text-xs shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100"
+                  className="absolute top-2 right-2 flex translate-x-10 flex-col items-stretch gap-2 rounded-2xl bg-background/80 px-3 py-2 text-xs shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Button
@@ -342,17 +342,6 @@ export const AutomationRuleList: React.FC<AutomationRuleListProps> = ({
                       </>
                     )}
                   </Button>
-                  {onDuplicateRule && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="justify-start h-7"
-                      onClick={() => onDuplicateRule(rule)}
-                    >
-                      <Copy className="w-3.5 h-3.5 mr-2" />
-                      Duplicate
-                    </Button>
-                  )}
                   <Button
                     size="sm"
                     variant="danger"

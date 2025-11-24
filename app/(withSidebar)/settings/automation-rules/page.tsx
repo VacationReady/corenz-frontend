@@ -6,6 +6,7 @@ import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import { toast } from "@/hooks/use-toast";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/Button";
 import { AutomationRuleList } from "./components/AutomationRuleList";
 import { WorkflowAppStore } from "./components/WorkflowAppStore";
 // Visual canvas builder
@@ -961,6 +962,11 @@ export default function AutomationRulesPage() {
                   setTestLauncherOpen(true);
                 }
               }}
+              onExit={() => {
+                setBuilderMode(null);
+                setSelectedRule(null);
+                setPreviewMode(false);
+              }}
               isValid={isFormValid}
               isDirty={JSON.stringify(formData) !== JSON.stringify(selectedRule || {})}
               readOnly={previewMode}
@@ -1027,6 +1033,12 @@ return (
     description="Create and manage no-code automation rules to streamline HR processes"
     breadcrumbs={breadcrumbConfigs.settingsSection("Automation Rules")}
     showHomeIcon={false}
+    action={
+      <Button onClick={openCreateDialog} size="sm" className="gap-2">
+        <Plus className="w-4 h-4" />
+        Build a custom workflow
+      </Button>
+    }
   >
     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-[calc(100vh-12rem)]">
       <div className="px-6 border-b bg-white flex-none">

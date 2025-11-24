@@ -90,6 +90,7 @@ interface EnhancedWorkflowCanvasProps {
   onWorkflowChange?: (workflow: any) => void;
   onSave?: () => void;
   onTest?: () => void;
+  onExit?: () => void;
   isValid?: boolean;
   isDirty?: boolean;
   readOnly?: boolean;
@@ -102,6 +103,7 @@ function EnhancedWorkflowCanvasInner({
   onWorkflowChange,
   onSave,
   onTest,
+  onExit,
   isValid = true,
   isDirty = false,
   readOnly = false,
@@ -1898,13 +1900,31 @@ function EnhancedWorkflowCanvasInner({
               gap={20} 
               size={1} 
               color="#e2e8f0" 
+              style={{ zIndex: -1 }}
             />
             <Controls className="bg-card border-2" />
           </ReactFlow>
 
-        {/* Top Action Bar */}
+        {/* Top Action Bar - Left Section with Back/Close Button */}
         <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-10">
           <div className="flex gap-2 pointer-events-auto">
+            {/* Close/Back Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (onExit) {
+                  onExit();
+                } else {
+                   window.location.href = '/settings/automation-rules';
+                }
+              }}
+              className="bg-white/95 backdrop-blur-xl shadow-sm border-slate-200/60 mr-2"
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Close
+            </Button>
+
             {!readOnly && (
               <>
                 {/* Undo/Redo/Duplicate Group */}

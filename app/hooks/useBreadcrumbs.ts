@@ -92,6 +92,19 @@ export function useBreadcrumbs(
       case "calendar":
         return breadcrumbConfigs.calendar;
 
+      case "employee":
+        if (pathSegments.length === 1) {
+          return null; // No breadcrumb for just /employee
+        }
+        
+        const employeeSection = pathSegments[1];
+        if (employeeSection === "timesheet") {
+          return breadcrumbConfigs.employeeTimesheet;
+        }
+        
+        // Handle other employee sections if needed in the future
+        return null;
+
       case "bulk-actions":
         return breadcrumbConfigs.bulkActions;
 

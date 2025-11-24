@@ -142,6 +142,12 @@ export const breadcrumbConfigs = {
       { label: "Calendar", isCurrentPage: true },
     ],
   },
+  employeeTimesheet: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "My Timesheet", isCurrentPage: true },
+    ],
+  },
   analytics: {
     items: [
       { label: "Dashboard", href: "/dashboard" },

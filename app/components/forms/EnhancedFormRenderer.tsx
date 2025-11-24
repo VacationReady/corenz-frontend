@@ -15,6 +15,7 @@ import HistoryButton from "@/components/audit/HistoryButton";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
 import UnsavedChangesGuard, { useUnsavedChangesContext } from "@/components/ui/UnsavedChangesGuard";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 const isSerializableValue = (value: unknown) => {
   if (value === undefined) return false;
@@ -76,6 +77,7 @@ export function EnhancedFormRenderer({
   const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
   const [pendingAction, setPendingAction] = useState<"data" | "submit" | null>(null);
   const [pendingPayload, setPendingPayload] = useState<Record<string, any> | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const { register, handleSubmit, setValue, watch, reset, formState } = useForm();
   const { data: session } = useSession();
@@ -286,7 +288,7 @@ export function EnhancedFormRenderer({
         body: JSON.stringify({ employeeId, data, reasons: reasons || {} }),
       });
       if (res.ok) {
-        toast.success("Data saved successfully");
+        setShowSuccess(true);
         clearFormDraftStorage();
         onDataChange?.(data);
         unsavedCtxRef.current?.markSaved();
@@ -314,7 +316,7 @@ export function EnhancedFormRenderer({
         body: JSON.stringify({ employeeId, data, reasons: reasons || {} }),
       });
       if (res.ok) {
-        toast.success("Form submitted successfully");
+        setShowSuccess(true);
         reset();
         clearFormDraftStorage();
         onDataChange?.(data);
@@ -618,6 +620,12 @@ export function EnhancedFormRenderer({
             setPendingAction(null);
             setPendingPayload(null);
           }}
+        />
+
+        <ProfileUpdateSuccessAnimation
+          isOpen={showSuccess}
+          onClose={() => setShowSuccess(false)}
+          fieldName={formData?.form?.name || "Form Data"}
         />
       </div>
     </UnsavedChangesGuard>

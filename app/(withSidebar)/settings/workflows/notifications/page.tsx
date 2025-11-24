@@ -26,6 +26,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 interface SectionPreference {
   section: string;
@@ -55,6 +56,7 @@ export default function TransactionalNotificationsPage() {
   const [originalGroups, setOriginalGroups] = useState<PreferenceGroup[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [openAdvanced, setOpenAdvanced] = useState<Record<string, boolean>>({});
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Track which accordion items are open
   const [openAccordions, setOpenAccordions] = useState<string[]>([]);
@@ -125,7 +127,7 @@ export default function TransactionalNotificationsPage() {
       const data = await response.json();
       setGroups(data.groups);
       setOriginalGroups(JSON.parse(JSON.stringify(data.groups)));
-      toast.success("Notification preferences saved successfully");
+      setShowSuccess(true);
     } catch (error) {
       console.error("Error saving preferences:", error);
       toast.error("Failed to save notification preferences");
@@ -561,6 +563,12 @@ export default function TransactionalNotificationsPage() {
             </Card>
           </div>
         )}
+
+        <ProfileUpdateSuccessAnimation
+          isOpen={showSuccess}
+          onClose={() => setShowSuccess(false)}
+          fieldName="Notification Preferences"
+        />
       </div>
     </PageShell>
   );

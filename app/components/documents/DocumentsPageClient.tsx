@@ -677,7 +677,6 @@ function DocumentsContent() {
                 <TableHead>Job Role</TableHead>
                 <TableHead>Access</TableHead>
                 <TableHead>Read Receipt</TableHead>
-                <TableHead>Signatures</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Size</TableHead>
                 {isAdminUser && (
@@ -770,44 +769,6 @@ function DocumentsContent() {
                           </div>
                         ) : (
                           <span className="text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs">✓ Required</span>
-                        )
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {doc.requiresSignature ? (
-                        typeof doc.signatureCompletedCount === "number" &&
-                        typeof doc.signatureTargetCount === "number" ? (
-                          <div className="flex items-center gap-2">
-                            <SignatureProgressRing
-                              completed={doc.signatureCompletedCount}
-                              total={doc.signatureTargetCount}
-                              size="sm"
-                            />
-                            <div className="flex flex-col">
-                              <span
-                                className={
-                                  doc.signatureCompletedCount === doc.signatureTargetCount
-                                    ? "text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs font-medium"
-                                    : doc.signatureCompletedCount > 0
-                                    ? "text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-xs font-medium"
-                                    : "text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-xs font-medium"
-                                }
-                              >
-                                {doc.signatureCompletedCount}/{doc.signatureTargetCount}
-                              </span>
-                              {doc.signatureOutstandingCount && doc.signatureOutstandingCount > 0 ? (
-                                <span className="text-xs text-muted-foreground mt-1">
-                                  {doc.signatureOutstandingCount} pending
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">
-                            Required
-                          </span>
                         )
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
@@ -1013,23 +974,7 @@ function DocumentsContent() {
                     onChange={setRequireAckFromNewStarters}
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <Label>Requires Signature</Label>
-                  <Switch
-                    checked={requiresSignature}
-                    onChange={setRequiresSignature}
-                  />
-                </div>
-                {requiresSignature && (
-                  <div>
-                    <Label>Signature Due (optional)</Label>
-                    <Input
-                      type="datetime-local"
-                      value={signatureDueAt}
-                      onChange={(e) => setSignatureDueAt(e.target.value)}
-                    />
-                  </div>
-                )}
+
               </div>
               <DialogFooter>
                 <Button

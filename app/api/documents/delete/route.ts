@@ -43,8 +43,13 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // Delete DB record (scoped)
-    await prisma.document.delete({ where: { id: doc.id } });
+    // Delete related acknowledgements first, then delete the document
+    await prisma.$transaction([
+      prisma.documentAcknowledgement.deleteMany({
+        where: { documentId: doc.id },
+      }),
+      prisma.document.delete({ where: { id: doc.id } }),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (err) {

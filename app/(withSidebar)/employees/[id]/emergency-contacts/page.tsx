@@ -11,6 +11,7 @@ import ChangeReasonModal, {
   ChangeInfo,
   changeRequiresReason,
 } from "@/components/audit/ChangeReasonModal";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 type Contact = {
   id: string;
@@ -29,6 +30,7 @@ export default function EmergencyContactsPage() {
   const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
   const [pendingAction, setPendingAction] = useState<"create" | "update" | "delete" | null>(null);
   const [pendingPayload, setPendingPayload] = useState<any>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const load = async () => {
     const res = await fetch(`/api/employees/${id}/emergency-contacts`);
@@ -104,7 +106,7 @@ export default function EmergencyContactsPage() {
       if (!res.ok) {
         throw new Error("Failed to update");
       }
-      toast.success("Saved");
+      setShowSuccess(true);
       await load();
       return;
     }
@@ -270,7 +272,7 @@ export default function EmergencyContactsPage() {
               });
               if (!res.ok) throw new Error("Failed to delete");
             }
-            toast.success("Saved");
+            setShowSuccess(true);
             setIsReasonOpen(false);
             setPendingChanges([]);
             setPendingAction(null);
@@ -282,6 +284,12 @@ export default function EmergencyContactsPage() {
             setLoading(false);
           }
         }}
+      />
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName="Emergency Contacts"
       />
     </div>
   );

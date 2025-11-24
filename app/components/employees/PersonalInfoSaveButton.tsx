@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "../audit/ChangeReasonModal";
 import { useUnsavedChangesContext } from "@/components/ui/UnsavedChangesGuard";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 export default function PersonalInfoSaveButton({
   employeeId,
@@ -21,7 +22,24 @@ export default function PersonalInfoSaveButton({
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
   const [pendingPayload, setPendingPayload] = useState<Record<string, any>>({});
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
   const unsavedChanges = useUnsavedChangesContext();
+
+  // Derive friendly section name for animation
+  const getSectionLabel = () => {
+    if (!section) return "Personal Information";
+    const labels: Record<string, string> = {
+      "personal": "Personal Details",
+      "contact": "Contact Information",
+      "address": "Address Details",
+      "bank": "Bank Details",
+      "payment": "Payment Information",
+      "emergency": "Emergency Contacts",
+      "identification": "ID Documents",
+    };
+    return labels[section.toLowerCase()] || section.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  };
 
   // Capture initial form values when component mounts
   useEffect(() => {
@@ -136,7 +154,12 @@ export default function PersonalInfoSaveButton({
         throw new Error(err?.error || "Failed to save");
       }
       
-      toast.success("Changes saved successfully");
+      const data = await res.json().catch(() => ({}));
+      
+      // Check if change is pending approval (transactional)
+      const isPending = data?.pendingApproval === true || data?.status === "PENDING";
+      setIsPendingApproval(isPending);
+      setShowSuccess(true);
 
       // Update initial values to current values
       setInitialValues(payload);
@@ -185,6 +208,13 @@ export default function PersonalInfoSaveButton({
         changes={pendingChanges}
         onSubmit={handleReasonSubmit}
         loading={loading}
+      />
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName={getSectionLabel()}
+        updateType={isPendingApproval ? "pending_approval" : "instant"}
       />
     </>
   );

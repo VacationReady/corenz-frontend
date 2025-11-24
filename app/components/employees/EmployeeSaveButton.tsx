@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "../audit/ChangeReasonModal";
 import { useUnsavedChangesContext } from "@/components/ui/UnsavedChangesGuard";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 interface EmployeeSaveButtonProps {
   employeeId: string;
@@ -66,7 +67,22 @@ export default function EmployeeSaveButton({
   const [loading, setLoading] = useState(false);
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
   const unsavedChanges = useUnsavedChangesContext();
+
+  // Derive friendly label from endpoint
+  const getEndpointLabel = () => {
+    const labels: Record<string, string> = {
+      "bank-payroll": "Bank & Payroll",
+      "employment-details": "Employment Details",
+      "personal-info": "Personal Information",
+      "contact-info": "Contact Information",
+      "emergency-contacts": "Emergency Contacts",
+      "documents": "Documents",
+    };
+    return labels[endpoint] || endpoint.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  };
 
   const handleSave = async () => {
     try {
@@ -121,7 +137,13 @@ export default function EmployeeSaveButton({
         throw new Error(err?.error || "Failed to save");
       }
       
-      toast.success("Changes saved successfully");
+      const data = await res.json().catch(() => ({}));
+      
+      // Check if change is pending approval (transactional)
+      const isPending = data?.pendingApproval === true || data?.status === "PENDING";
+      setIsPendingApproval(isPending);
+      setShowSuccess(true);
+      
       onSaveSuccess?.();
       unsavedChanges?.markSaved();
     } catch (error: any) {
@@ -164,6 +186,13 @@ export default function EmployeeSaveButton({
         changes={pendingChanges}
         onSubmit={handleReasonSubmit}
         loading={loading}
+      />
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName={getEndpointLabel()}
+        updateType={isPendingApproval ? "pending_approval" : "instant"}
       />
     </>
   );

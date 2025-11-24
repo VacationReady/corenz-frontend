@@ -123,6 +123,17 @@ export default function AddDocumentModal({
 
   const user = session?.user;
 
+  // Reset signature state when switching to company type (company docs only support acknowledgement)
+  useEffect(() => {
+    if (type === "company") {
+      setRequiresSignature(false);
+      setSignatureDueAt("");
+      setSignerDepartments([]);
+      setSignerJobRoles([]);
+      setSignerEmployees([]);
+    }
+  }, [type]);
+
   // Helper function to get employee display name
   const getEmployeeDisplayName = (emp: any) =>
     (emp.firstName || emp.lastName)
@@ -578,16 +589,19 @@ export default function AddDocumentModal({
                   <Label className="text-sm">Requires Acknowledgement</Label>
                   <Switch checked={requiresAck} onChange={setRequiresAck} />
                 </div>
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm">Requires Signature</Label>
-                  <Switch
-                    checked={requiresSignature}
-                    onChange={setRequiresSignature}
-                  />
-                </div>
+                {/* Only show signature option for employee documents */}
+                {type === "employee" && (
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">Requires Signature</Label>
+                    <Switch
+                      checked={requiresSignature}
+                      onChange={setRequiresSignature}
+                    />
+                  </div>
+                )}
               </div>
 
-              {requiresSignature && (
+              {requiresSignature && type === "employee" && (
                 <div className="space-y-3 mt-4">
                   <div>
                     <Label>Signature due date (optional)</Label>
@@ -597,37 +611,6 @@ export default function AddDocumentModal({
                       onChange={(e) => setSignatureDueAt(e.target.value)}
                     />
                   </div>
-                  {type === "company" && (
-                    <>
-                      <div>
-                        <Label>Signers: Departments</Label>
-                        <MultiSelect
-                          options={departmentsList}
-                          selected={signerDepartments}
-                          onChange={setSignerDepartments}
-                          placeholder="Select departments required to sign"
-                        />
-                      </div>
-                      <div>
-                        <Label>Signers: Job Roles</Label>
-                        <MultiSelect
-                          options={jobRolesList}
-                          selected={signerJobRoles}
-                          onChange={setSignerJobRoles}
-                          placeholder="Select job roles required to sign"
-                        />
-                      </div>
-                      <div>
-                        <Label>Additional Individual Signers</Label>
-                        <MultiSelect
-                          options={Array.isArray(employees) ? employees.map((e:any)=>({label:`${e.firstName} ${e.lastName} (${e.email})`, value:e.id})) : []}
-                          selected={signerEmployees}
-                          onChange={setSignerEmployees}
-                          placeholder="Select specific employees"
-                        />
-                      </div>
-                    </>
-                  )}
                 </div>
               )}
             </div>

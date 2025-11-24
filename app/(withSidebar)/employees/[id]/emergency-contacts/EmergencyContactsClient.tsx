@@ -9,6 +9,7 @@ import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
 import UnsavedChangesGuard, { useUnsavedChangesContext } from "@/components/ui/UnsavedChangesGuard";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 type Contact = {
   id: string;
@@ -41,6 +42,7 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
   const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
   const [pendingAction, setPendingAction] = useState<"create" | "update" | "delete" | null>(null);
   const [pendingPayload, setPendingPayload] = useState<any>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const load = async () => {
     const res = await tenantFetch(`/api/employees/${employeeId}/emergency-contacts`);
@@ -107,7 +109,7 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
       if (!res.ok) {
         throw new Error("Failed to update");
       }
-      toast.success("Saved");
+      setShowSuccess(true);
       await load();
       return;
     }
@@ -266,7 +268,7 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
                 });
                 if (!res.ok) throw new Error("Failed to delete");
               }
-              toast.success("Saved");
+              setShowSuccess(true);
               setIsReasonOpen(false);
               setPendingChanges([]);
               setPendingAction(null);
@@ -278,6 +280,12 @@ export default function EmergencyContactsClient({ employeeId }: { employeeId: st
               setLoading(false);
             }
           }}
+        />
+
+        <ProfileUpdateSuccessAnimation
+          isOpen={showSuccess}
+          onClose={() => setShowSuccess(false)}
+          fieldName="Emergency Contacts"
         />
       </div>
     </UnsavedChangesGuard>

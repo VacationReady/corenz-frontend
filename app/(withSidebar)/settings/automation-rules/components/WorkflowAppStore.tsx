@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import Button from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ChevronDown,
@@ -43,6 +43,38 @@ import {
   DoorOpen,
   PartyPopper,
   LucideIcon,
+  Plane,
+  Home,
+  Laptop,
+  Mail,
+  Mic,
+  Brain,
+  Cake,
+  Baby,
+  AlertTriangle,
+  HardHat,
+  Landmark,
+  UserCog,
+  UserPlus,
+  FileSignature,
+  Lock,
+  Compass,
+  GraduationCap,
+  Rocket,
+  BarChart3,
+  BadgeCheck,
+  ScrollText,
+  HeartPulse,
+  Wallet,
+  Gauge,
+  PieChart,
+  Theater,
+  Palmtree,
+  Siren,
+  HeartHandshake,
+  Zap,
+  Receipt,
+  Network,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -340,79 +372,128 @@ export function WorkflowAppStore({
   );
 }
 
-// Helper function to map icon names/emojis to modern Lucide icons
+// Helper function to map icon names/emojis to modern Lucide icons with variety
 function getIconComponent(icon: React.ReactNode) {
   // If it's already a React node, return it
   if (typeof icon !== 'string') {
     return icon;
   }
   
-  // Map icon names (from config files) to Lucide components
-  const iconNameMap: Record<string, LucideIcon> = {
-    Scale,
-    FileText,
-    Hand,
-    Umbrella,
-    Calendar,
-    Star,
-    Clock,
-    DoorOpen,
-    PartyPopper,
-    Target,
-    Handshake,
-    ClipboardCheck,
-    CheckCircle2,
-    UserCheck,
-    Bell,
-    FileCheck,
-    Briefcase,
-    Users,
-    TrendingUp,
-    Award,
-    BookOpen,
-    MessageSquare,
-    Gift,
-    Heart,
-    Activity,
-    Shield,
-    DollarSign,
+  // Map icon names (from config files) to Lucide components with specific colors
+  const iconNameMap: Record<string, { Icon: LucideIcon; color: string }> = {
+    Scale: { Icon: Scale, color: "text-amber-600" },
+    FileText: { Icon: FileText, color: "text-slate-600" },
+    Hand: { Icon: Hand, color: "text-orange-500" },
+    Umbrella: { Icon: Umbrella, color: "text-cyan-600" },
+    Calendar: { Icon: Calendar, color: "text-green-600" },
+    Star: { Icon: Star, color: "text-yellow-500" },
+    Clock: { Icon: Clock, color: "text-purple-600" },
+    DoorOpen: { Icon: DoorOpen, color: "text-rose-500" },
+    PartyPopper: { Icon: PartyPopper, color: "text-pink-500" },
+    Target: { Icon: Target, color: "text-blue-600" },
+    Handshake: { Icon: Handshake, color: "text-violet-600" },
+    ClipboardCheck: { Icon: ClipboardCheck, color: "text-amber-600" },
+    CheckCircle2: { Icon: CheckCircle2, color: "text-emerald-600" },
+    UserCheck: { Icon: UserCheck, color: "text-blue-600" },
+    Bell: { Icon: Bell, color: "text-orange-500" },
+    FileCheck: { Icon: FileCheck, color: "text-teal-600" },
+    Briefcase: { Icon: Briefcase, color: "text-indigo-600" },
+    Users: { Icon: Users, color: "text-purple-600" },
+    TrendingUp: { Icon: TrendingUp, color: "text-green-600" },
+    Award: { Icon: Award, color: "text-amber-500" },
+    BookOpen: { Icon: BookOpen, color: "text-blue-500" },
+    MessageSquare: { Icon: MessageSquare, color: "text-purple-500" },
+    Gift: { Icon: Gift, color: "text-pink-500" },
+    Heart: { Icon: Heart, color: "text-red-500" },
+    Activity: { Icon: Activity, color: "text-orange-600" },
+    Shield: { Icon: Shield, color: "text-blue-600" },
+    DollarSign: { Icon: DollarSign, color: "text-emerald-600" },
   };
   
   // If it's an icon name, render the component
   if (iconNameMap[icon]) {
-    const IconComponent = iconNameMap[icon];
-    return <IconComponent className="w-6 h-6 text-blue-600" />;
+    const { Icon, color } = iconNameMap[icon];
+    return <Icon className={`w-6 h-6 ${color}`} />;
   }
   
-  // Legacy emoji mapping for backward compatibility
+  // Comprehensive emoji mapping with unique icons and colors for variety
   const emojiMap: Record<string, React.ReactNode> = {
+    // Onboarding & HR
     "🎯": <Target className="w-6 h-6 text-blue-600" />,
-    "🤝": <Handshake className="w-6 h-6 text-purple-600" />,
-    "📋": <ClipboardCheck className="w-6 h-6 text-amber-600" />,
-    "📅": <Calendar className="w-6 h-6 text-green-600" />,
-    "✅": <CheckCircle2 className="w-6 h-6 text-green-600" />,
-    "👤": <UserCheck className="w-6 h-6 text-blue-600" />,
-    "🔔": <Bell className="w-6 h-6 text-orange-600" />,
-    "📄": <FileCheck className="w-6 h-6 text-blue-600" />,
-    "💼": <Briefcase className="w-6 h-6 text-indigo-600" />,
+    "🤝": <Handshake className="w-6 h-6 text-violet-600" />,
+    "🚀": <Rocket className="w-6 h-6 text-indigo-600" />,
+    "👋": <Hand className="w-6 h-6 text-orange-500" />,
+    "👔": <UserCog className="w-6 h-6 text-slate-600" />,
+    "👨‍💼": <UserPlus className="w-6 h-6 text-blue-700" />,
+    "👤": <UserCheck className="w-6 h-6 text-sky-600" />,
     "👥": <Users className="w-6 h-6 text-purple-600" />,
-    "📈": <TrendingUp className="w-6 h-6 text-green-600" />,
-    "🏆": <Award className="w-6 h-6 text-amber-600" />,
-    "📚": <BookOpen className="w-6 h-6 text-blue-600" />,
-    "💬": <MessageSquare className="w-6 h-6 text-purple-600" />,
-    "🎁": <Gift className="w-6 h-6 text-pink-600" />,
-    "❤️": <Heart className="w-6 h-6 text-red-600" />,
+    
+    // Performance & Development
+    "📊": <BarChart3 className="w-6 h-6 text-cyan-600" />,
+    "📈": <TrendingUp className="w-6 h-6 text-emerald-600" />,
+    "🎓": <GraduationCap className="w-6 h-6 text-indigo-500" />,
+    "🏆": <Award className="w-6 h-6 text-amber-500" />,
+    "💬": <MessageSquare className="w-6 h-6 text-purple-500" />,
+    "⭐": <Star className="w-6 h-6 text-yellow-500" />,
+    
+    // Leave & Time
+    "✈️": <Plane className="w-6 h-6 text-sky-500" />,
+    "🏖️": <Palmtree className="w-6 h-6 text-teal-500" />,
+    "🏡": <Home className="w-6 h-6 text-green-600" />,
+    "🏠": <Home className="w-6 h-6 text-amber-600" />,
+    "📅": <Calendar className="w-6 h-6 text-green-600" />,
+    "⏰": <Clock className="w-6 h-6 text-purple-600" />,
+    "🎊": <PartyPopper className="w-6 h-6 text-pink-500" />,
+    
+    // Documents & Compliance
+    "📋": <ClipboardCheck className="w-6 h-6 text-amber-600" />,
+    "📄": <FileText className="w-6 h-6 text-slate-600" />,
+    "📑": <FileSignature className="w-6 h-6 text-indigo-600" />,
+    "📝": <ScrollText className="w-6 h-6 text-blue-600" />,
+    "📖": <BookOpen className="w-6 h-6 text-teal-600" />,
+    "🔒": <Lock className="w-6 h-6 text-slate-700" />,
+    "🔍": <Compass className="w-6 h-6 text-cyan-600" />,
+    "🛂": <BadgeCheck className="w-6 h-6 text-rose-600" />,
+    "⚖️": <Scale className="w-6 h-6 text-amber-600" />,
+    "✅": <CheckCircle2 className="w-6 h-6 text-emerald-600" />,
+    
+    // IT & Equipment
+    "💻": <Laptop className="w-6 h-6 text-slate-600" />,
+    "📧": <Mail className="w-6 h-6 text-blue-500" />,
+    "🎭": <Theater className="w-6 h-6 text-purple-500" />,
+    
+    // Offboarding
+    "🧠": <Brain className="w-6 h-6 text-pink-600" />,
+    "🎤": <Mic className="w-6 h-6 text-violet-600" />,
+    "💵": <Receipt className="w-6 h-6 text-green-600" />,
+    
+    // Engagement & Culture
+    "🎉": <PartyPopper className="w-6 h-6 text-pink-500" />,
+    "🎂": <Cake className="w-6 h-6 text-rose-500" />,
+    "🎁": <Gift className="w-6 h-6 text-pink-500" />,
+    "👶": <Baby className="w-6 h-6 text-blue-400" />,
+    "❤️": <Heart className="w-6 h-6 text-red-500" />,
+    
+    // Health & Safety
+    "🚨": <Siren className="w-6 h-6 text-red-600" />,
+    "🦺": <HardHat className="w-6 h-6 text-orange-500" />,
+    "💚": <HeartHandshake className="w-6 h-6 text-emerald-500" />,
+    "🏥": <HeartPulse className="w-6 h-6 text-red-500" />,
     "💪": <Activity className="w-6 h-6 text-orange-600" />,
-    "🏥": <Activity className="w-6 h-6 text-red-600" />,
     "🛡️": <Shield className="w-6 h-6 text-blue-600" />,
-    "💰": <DollarSign className="w-6 h-6 text-green-600" />,
-    "🚀": <Target className="w-6 h-6 text-blue-600" />,
-    "🏖️": <Calendar className="w-6 h-6 text-teal-600" />,
-    "👋": <Handshake className="w-6 h-6 text-orange-600" />,
-    "🎉": <Gift className="w-6 h-6 text-pink-600" />,
+    
+    // Payroll & Benefits
+    "🏦": <Landmark className="w-6 h-6 text-blue-700" />,
+    "💰": <DollarSign className="w-6 h-6 text-emerald-600" />,
+    "💼": <Briefcase className="w-6 h-6 text-indigo-600" />,
+    "🔔": <Bell className="w-6 h-6 text-orange-500" />,
+    
+    // Misc
+    "📚": <BookOpen className="w-6 h-6 text-blue-500" />,
+    "⚡": <Zap className="w-6 h-6 text-yellow-500" />,
   };
 
-  return emojiMap[icon] || <Target className="w-6 h-6 text-gray-600" />;
+  return emojiMap[icon] || <Network className="w-6 h-6 text-slate-500" />;
 }
 
 interface WorkflowCardProps {

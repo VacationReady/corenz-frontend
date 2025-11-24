@@ -5,6 +5,7 @@ import { Camera } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 type Props = {
   userId: string;
@@ -22,6 +23,7 @@ export default function ProfileAvatarUploader({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [url, setUrl] = useState<string | undefined | null>(initialUrl);
   const [isUploading, setIsUploading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleClick = () => inputRef.current?.click();
 
@@ -44,7 +46,7 @@ export default function ProfileAvatarUploader({
       if (!res.ok) throw new Error(await res.text());
       const json = await res.json();
       setUrl(json.url);
-      toast.success("Profile photo updated");
+      setShowSuccess(true);
     } catch (err) {
       toast.error("Failed to upload profile photo");
     } finally {
@@ -73,32 +75,40 @@ export default function ProfileAvatarUploader({
   }, [initialPath]);
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative">
-        <Avatar
-          src={url || undefined}
-          name={name}
-          className="bg-muted"
-          size={96}
-        />
-        <Button
-          type="button"
-          onClick={handleClick}
-          className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full p-0 flex items-center justify-center"
-          variant="secondary"
-          disabled={isUploading}
-          aria-label="Upload profile photo"
-        >
-          <Camera className="h-4 w-4" />
-        </Button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={onFileChange}
-        />
+    <>
+      <div className="flex flex-col items-center">
+        <div className="relative">
+          <Avatar
+            src={url || undefined}
+            name={name}
+            className="bg-muted"
+            size={96}
+          />
+          <Button
+            type="button"
+            onClick={handleClick}
+            className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full p-0 flex items-center justify-center"
+            variant="secondary"
+            disabled={isUploading}
+            aria-label="Upload profile photo"
+          >
+            <Camera className="h-4 w-4" />
+          </Button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFileChange}
+          />
+        </div>
       </div>
-    </div>
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName="Profile Photo"
+      />
+    </>
   );
 }

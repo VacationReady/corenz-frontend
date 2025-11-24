@@ -14,6 +14,7 @@ import Button from "@/components/ui/Button";
 import { FormRenderer } from "@/components/forms/FormRenderer";
 import { CheckCircle, ArrowLeft, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { SurveyCompletionSuccessAnimation } from "@/components/animations";
 
 interface Survey {
   id: string;
@@ -41,6 +42,8 @@ export default function SurveyCompletePage({ params }: SurveyCompletePageProps) 
   const [submitting, setSubmitting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [surveyId, setSurveyId] = useState<string>("");
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [questionCount, setQuestionCount] = useState<number | undefined>();
 
   useEffect(() => {
     const loadSurvey = async () => {
@@ -86,8 +89,14 @@ export default function SurveyCompletePage({ params }: SurveyCompletePageProps) 
       });
 
       if (response.ok) {
-        setCompleted(true);
-        toast.success("Survey completed successfully!");
+        // Count questions answered
+        const answeredCount = Object.keys(formData || {}).filter(
+          (key) => formData[key] !== undefined && formData[key] !== ""
+        ).length;
+        setQuestionCount(answeredCount);
+        
+        // Show success animation first
+        setShowSuccessAnimation(true);
         
         // Mark action item as completed if provided
         if (actionItemId) {
@@ -180,52 +189,65 @@ export default function SurveyCompletePage({ params }: SurveyCompletePageProps) 
   }
 
   return (
-    <PageShell
-      title={survey.name}
-      description={survey.description || "Complete this survey"}
-      icon={<CheckCircle className="w-6 h-6" />}
-      action={
-        <Button onClick={() => router.push("/dashboard")} variant="outline">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
-      }
-    >
-      <div className="space-y-6">
-        {/* Survey Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{survey.name}</CardTitle>
-            {survey.description && (
-              <CardDescription>{survey.description}</CardDescription>
-            )}
-            {survey.deadline && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>
-                  Due: {new Date(survey.deadline).toLocaleDateString("en-NZ", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-            )}
-          </CardHeader>
-        </Card>
+    <>
+      {/* Success Animation */}
+      <SurveyCompletionSuccessAnimation
+        isOpen={showSuccessAnimation}
+        onClose={() => {
+          setShowSuccessAnimation(false);
+          setCompleted(true);
+        }}
+        surveyName={survey.name}
+        questionCount={questionCount}
+      />
 
-        {/* Survey Form */}
-        <Card>
-          <CardContent className="p-6">
-            <FormRenderer
-              schema={survey.Form.schema}
-              onSubmit={handleSubmit}
-              submitLabel="Submit Survey"
-              submitting={submitting}
-            />
-          </CardContent>
-        </Card>
-      </div>
-    </PageShell>
+      <PageShell
+        title={survey.name}
+        description={survey.description || "Complete this survey"}
+        icon={<CheckCircle className="w-6 h-6" />}
+        action={
+          <Button onClick={() => router.push("/dashboard")} variant="outline">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+        }
+      >
+        <div className="space-y-6">
+          {/* Survey Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{survey.name}</CardTitle>
+              {survey.description && (
+                <CardDescription>{survey.description}</CardDescription>
+              )}
+              {survey.deadline && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    Due: {new Date(survey.deadline).toLocaleDateString("en-NZ", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+              )}
+            </CardHeader>
+          </Card>
+
+          {/* Survey Form */}
+          <Card>
+            <CardContent className="p-6">
+              <FormRenderer
+                schema={survey.Form.schema}
+                onSubmit={handleSubmit}
+                submitLabel="Submit Survey"
+                submitting={submitting}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </PageShell>
+    </>
   );
 }

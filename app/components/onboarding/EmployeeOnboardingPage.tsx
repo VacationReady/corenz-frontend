@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+import { OnboardingCompleteAnimation } from "@/components/animations";
 
 type Step = {
   id: string;
@@ -68,6 +69,8 @@ export default function EmployeeOnboardingPage({
   const [assignSuccess, setAssignSuccess] = useState(false);
   const [completingStepId, setCompletingStepId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showCompleteAnimation, setShowCompleteAnimation] = useState(false);
+  const prevActiveStepRef = useRef<Step | undefined>(undefined);
   const canAssignTemplate =
     session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
 
@@ -317,6 +320,18 @@ export default function EmployeeOnboardingPage({
   const isCompletingActive =
     !!activeStepKey && completingStepId === activeStepKey;
 
+  // Detect when onboarding completes (activeStep transitions from something to undefined)
+  useEffect(() => {
+    if (prevActiveStepRef.current && !activeStep && !loading) {
+      // Just completed all steps - show celebration!
+      setShowCompleteAnimation(true);
+    }
+    prevActiveStepRef.current = activeStep;
+  }, [activeStep, loading]);
+
+  // Get employee name for animation
+  const employeeName = session?.user?.name || "there";
+
   const statusCopy = useMemo(() => {
     if (!activeStep) return "All steps completed";
     const position = currentIdx + 1;
@@ -326,6 +341,15 @@ export default function EmployeeOnboardingPage({
   }, [activeStep, currentIdx, totalSteps]);
 
   return (
+    <>
+      {/* Onboarding Complete Celebration Animation */}
+      <OnboardingCompleteAnimation
+        isOpen={showCompleteAnimation}
+        onClose={() => setShowCompleteAnimation(false)}
+        employeeName={employeeName}
+        completedSteps={totalSteps}
+        onGoToDashboard={() => router.push("/dashboard")}
+      />
     <div className="max-w-3xl mx-auto py-8 space-y-6">
       <section
         className="grid gap-4 lg:grid-cols-[1fr_auto] items-start"
@@ -507,5 +531,6 @@ export default function EmployeeOnboardingPage({
         </div>
       </Card>
     </div>
+    </>
   );
 }

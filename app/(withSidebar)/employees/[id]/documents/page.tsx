@@ -49,6 +49,8 @@ import ModernSignatureCapture, { SignatureCaptureValue } from "@/components/docu
 import AcknowledgmentSuccessAnimation from "@/components/documents/AcknowledgmentSuccessAnimation";
 import SignatureSuccessAnimation from "@/components/documents/SignatureSuccessAnimation";
 import DocumentUploadSuccessAnimation, { UploadSuccessType } from "@/components/documents/DocumentUploadSuccessAnimation";
+import DocumentDeleteConfirmModal from "@/components/documents/DocumentDeleteConfirmModal";
+import DocumentDeleteSuccessAnimation from "@/components/documents/DocumentDeleteSuccessAnimation";
 import ModernDocumentPreview from "@/components/documents/ModernDocumentPreview";
 import SignatureProgressRing from "@/components/documents/SignatureProgressRing";
 
@@ -126,6 +128,11 @@ export default function EmployeeDocumentsPage() {
   const [pendingOpenId, setPendingOpenId] = useState<string | null>(null);
 
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+  const [deletingDocName, setDeletingDocName] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   const fetchUserRole = async () => {
     try {
@@ -293,15 +300,35 @@ export default function EmployeeDocumentsPage() {
     }
   };
 
-  const confirmDelete = async (id: string) => {
-    if (!confirm("Delete this document?")) return;
-    await tenantFetch("/api/documents/delete", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ documentId: id }),
-    });
-    toast("Document deleted");
-    fetchDocuments();
+  const confirmDelete = (id: string) => {
+    const doc = documents.find((d) => d.id === id);
+    setDeletingDocId(id);
+    setDeletingDocName(doc?.name || "Document");
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingDocId) return;
+    setIsDeleting(true);
+    try {
+      const res = await tenantFetch("/api/documents/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: deletingDocId }),
+      });
+      if (res.ok) {
+        setIsDeleteConfirmOpen(false);
+        setShowDeleteSuccess(true);
+        fetchDocuments();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to delete document");
+      }
+    } catch (error) {
+      toast.error("Error deleting document");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const formatFileSize = (size: number) =>
@@ -755,6 +782,28 @@ export default function EmployeeDocumentsPage() {
           onClose={() => setShowUploadSuccess(false)}
           type={uploadSuccessType}
           documentName={uploadSuccessDocName}
+        />
+
+        <DocumentDeleteConfirmModal
+          isOpen={isDeleteConfirmOpen}
+          onClose={() => {
+            setIsDeleteConfirmOpen(false);
+            setDeletingDocId(null);
+            setDeletingDocName("");
+          }}
+          onConfirm={handleDeleteConfirm}
+          documentName={deletingDocName}
+          isDeleting={isDeleting}
+        />
+
+        <DocumentDeleteSuccessAnimation
+          isOpen={showDeleteSuccess}
+          onClose={() => {
+            setShowDeleteSuccess(false);
+            setDeletingDocId(null);
+            setDeletingDocName("");
+          }}
+          documentName={deletingDocName}
         />
 
         {isAdminUser && (

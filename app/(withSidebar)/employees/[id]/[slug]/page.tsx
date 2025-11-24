@@ -57,7 +57,7 @@ export default function EmployeeFormPage() {
   }, [slug, employeeId]);
 
   const handleFormSubmit = () => {
-    toast.success("Saved successfully");
+    // Animation is handled by the form renderer
     // Stay on page; do not navigate
   };
 

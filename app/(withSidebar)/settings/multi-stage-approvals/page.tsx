@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Layers
 } from "lucide-react";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 type Workflow = any;
 
@@ -31,6 +32,7 @@ export default function MultiStageApprovalsSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Workflow | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const [eventCategories, setEventCategories] = useState<Option[]>([]);
   const [departments, setDepartments] = useState<Option[]>([]);
@@ -205,7 +207,7 @@ export default function MultiStageApprovalsSettingsPage() {
         toast.error(json?.error ? JSON.stringify(json.error) : "Failed to save workflow");
         return;
       }
-      toast.success("Workflow saved");
+      setShowSuccess(true);
       setOpen(false);
       await load();
     } catch (e) {
@@ -459,6 +461,12 @@ export default function MultiStageApprovalsSettingsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName="Workflow"
+      />
     </PageShell>
   );
 }

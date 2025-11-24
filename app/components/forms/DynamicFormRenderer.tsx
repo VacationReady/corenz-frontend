@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
 import ChangeReasonModal, { ChangeInfo, changeRequiresReason } from "@/components/audit/ChangeReasonModal";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 interface DynamicFormRendererProps {
   formId: string;
@@ -40,6 +41,7 @@ export function DynamicFormRenderer({
   const [isReasonOpen, setIsReasonOpen] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<ChangeInfo[]>([]);
   const [pendingData, setPendingData] = useState<Record<string, any> | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -142,7 +144,7 @@ export function DynamicFormRenderer({
         body: JSON.stringify({ employeeId, data: processedData, reasons: reasons || {} }),
       });
       if (res.ok) {
-        toast.success("Form submitted successfully");
+        setShowSuccess(true);
         onSubmitSuccess?.(processedData);
       } else {
         toast.error("Failed to submit form");
@@ -222,6 +224,12 @@ export function DynamicFormRenderer({
           setPendingChanges([]);
           setPendingData(null);
         }}
+      />
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName="Form"
       />
     </form>
   );

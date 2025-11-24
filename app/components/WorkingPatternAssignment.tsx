@@ -13,6 +13,7 @@ import {
   SelectItem,
 } from "@/components/ui/Select";
 import { toast } from "sonner";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 interface Pattern {
   id: string;
@@ -40,6 +41,8 @@ export default function WorkingPatternAssignment({
   const [hourlyRate, setHourlyRate] = useState<number | null>(null);
   const [currentSalary, setCurrentSalary] = useState<number | null>(null);
   const [newSalary, setNewSalary] = useState<number | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     fetch("/api/working-patterns")
@@ -170,10 +173,12 @@ export default function WorkingPatternAssignment({
           console.error("Failed to update salary:", errorData);
           toast.warning("Working pattern assigned, but salary update failed.");
         } else {
-          toast.success("Working pattern and annual salary updated successfully.");
+          setSuccessMessage("Working Pattern & Salary");
+          setShowSuccess(true);
         }
       } else {
-        toast.success("Working pattern assigned successfully.");
+        setSuccessMessage("Working Pattern");
+        setShowSuccess(true);
       }
 
       setOpen(false);
@@ -272,6 +277,12 @@ export default function WorkingPatternAssignment({
           </div>
         </DialogContent>
       </Dialog>
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName={successMessage}
+      />
     </>
   );
 }

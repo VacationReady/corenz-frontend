@@ -14,6 +14,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Target, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { formatLondonDate } from "@/lib/time";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 interface ObjectiveDetailPageProps {
   params: Promise<{ id: string }>;
@@ -52,6 +53,7 @@ export default function ObjectiveDetailPage({ params }: ObjectiveDetailPageProps
 
   const [updateContent, setUpdateContent] = useState("");
   const [updateProgressInput, setUpdateProgressInput] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const canManageObjectives = useMemo(() => {
     const role = session?.user?.role as string | undefined;
@@ -188,7 +190,7 @@ export default function ObjectiveDetailPage({ params }: ObjectiveDetailPageProps
           : ""
       );
 
-      toast.success("Objective updated");
+      setShowSuccess(true);
     } catch (error) {
       toast.error("Failed to update objective");
     } finally {
@@ -245,7 +247,7 @@ export default function ObjectiveDetailPage({ params }: ObjectiveDetailPageProps
 
       setUpdateContent("");
       setUpdateProgressInput("");
-      toast.success("Update added");
+      setShowSuccess(true);
     } catch (error) {
       toast.error("Failed to add update");
     } finally {
@@ -516,6 +518,12 @@ export default function ObjectiveDetailPage({ params }: ObjectiveDetailPageProps
           </CardContent>
         </Card>
       </div>
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName="Objective"
+      />
     </PageShell>
   );
 }

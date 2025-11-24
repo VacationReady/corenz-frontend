@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
+import { LeaveRequestSuccessAnimation } from "@/components/animations";
 
 interface AddLeaveRequestDialogProps {
   employeeId: string;
@@ -59,6 +60,16 @@ export default function AddLeaveRequestDialog({
   const [totalDays, setTotalDays] = useState(0);
   const [deduction, setDeduction] = useState(0);
   const [loading, setLoading] = useState(false);
+  
+  // Success animation state
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<{
+    leaveType: string;
+    startDate: string;
+    endDate: string;
+    totalDays: number;
+    isAutoApproved: boolean;
+  } | null>(null);
 
   const fetchCategories = async () => {
     try {
@@ -185,8 +196,18 @@ export default function AddLeaveRequestDialog({
         return;
       }
 
-      toast.success("Leave request submitted successfully.");
+      // Store success data and show animation
+      setSuccessData({
+        leaveType: selectedCategory.name,
+        startDate,
+        endDate,
+        totalDays,
+        isAutoApproved: isAdminOrManager,
+      });
       handleSetOpen(false);
+      setShowSuccess(true);
+      
+      // Reset form
       setType("");
       setSubcategory("");
       setStartDate("");
@@ -219,6 +240,23 @@ export default function AddLeaveRequestDialog({
             Book Leave
           </Button>
         )}
+
+        {/* Success Animation */}
+        {successData && (
+          <LeaveRequestSuccessAnimation
+            isOpen={showSuccess}
+            onClose={() => {
+              setShowSuccess(false);
+              setSuccessData(null);
+            }}
+            leaveType={successData.leaveType}
+            startDate={successData.startDate}
+            endDate={successData.endDate}
+            totalDays={successData.totalDays}
+            isAutoApproved={successData.isAutoApproved}
+          />
+        )}
+
         <Modal
           isOpen={modalOpen}
           onClose={() => handleSetOpen(false)}

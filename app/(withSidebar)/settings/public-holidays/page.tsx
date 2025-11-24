@@ -26,6 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { Check, ChevronsUpDown, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 type Template = "NZ" | "AU" | "UK" | null;
 
@@ -42,6 +43,7 @@ export default function PublicHolidaysSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [previewHolidays, setPreviewHolidays] = useState<Array<{ title: string; start: string }>>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -145,7 +147,7 @@ export default function PublicHolidaysSettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ template: value, region }),
       });
-      if (res.ok) toast.success("Public holiday template saved");
+      if (res.ok) setShowSuccess(true);
       else toast.error("Failed to save");
     } catch {
       toast.error("Error saving");
@@ -396,6 +398,12 @@ export default function PublicHolidaysSettingsPage() {
           </AnimatePresence>
         </div>
       </motion.div>
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName="Public Holidays"
+      />
     </PageShell>
   );
 }

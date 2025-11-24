@@ -35,6 +35,7 @@ import { format } from "date-fns";
 import { PermissionDiff } from "./PermissionDiff";
 import { ScreenPermissions } from "@/lib/permissions";
 import { PermissionEditor } from "./PermissionEditor";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 interface PermissionProfile {
   id: string;
@@ -101,6 +102,7 @@ export function PermissionProfileManagement({
     screens: { key: string; label: string }[];
     actions: { key: "read" | "edit" | "delete"; label: string }[];
   } | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [customPermissionsDraft, setCustomPermissionsDraft] = useState<
     Record<string, ("read" | "edit" | "delete")[]>
   >({});
@@ -185,7 +187,7 @@ export function PermissionProfileManagement({
       setNote("");
       setShowConfirmDialog(false);
 
-      toast.success("Permission profile updated successfully");
+      setShowSuccess(true);
     } catch (error) {
       console.error("Error updating permissions:", error);
       toast.error(
@@ -219,7 +221,7 @@ export function PermissionProfileManagement({
         setCustomPermissionsDraft(mapped);
       }
       setNote("");
-      toast.success("Custom permissions saved");
+      setShowSuccess(true);
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Failed to save");
@@ -462,6 +464,12 @@ export function PermissionProfileManagement({
           </CardContent>
         </Card>
       )}
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName="Permissions"
+      />
     </div>
   );
 }

@@ -32,6 +32,7 @@ import {
 import { DynamicFormRenderer } from "@/components/forms/DynamicFormRenderer";
 import HistoryButton from "@/components/audit/HistoryButton";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 interface FormAssignment {
   id: string;
@@ -71,6 +72,7 @@ export default function EmployeeFormsPage() {
   const [selectedForm, setSelectedForm] = useState<FormAssignment | null>(null);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [employeeName, setEmployeeName] = useState<string>("Employee");
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -162,11 +164,11 @@ export default function EmployeeFormsPage() {
       );
 
       if (res.ok) {
-        toast.success("Form submitted successfully");
+        setShowSuccess(true);
         setIsFormDialogOpen(false);
         setSelectedForm(null);
-        // Refresh data
-        window.location.reload();
+        // Refresh data after animation closes
+        setTimeout(() => window.location.reload(), 1500);
       } else {
         toast.error("Failed to submit form");
       }
@@ -350,6 +352,12 @@ export default function EmployeeFormsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName="Form"
+      />
       </div>
     </PageShell>
   );

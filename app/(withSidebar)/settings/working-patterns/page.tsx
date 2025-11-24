@@ -14,6 +14,7 @@ import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import { cn } from "@/lib/utils";
+import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 
 export default function WorkingPatternsPage() {
   const [patterns, setPatterns] = useState<any[]>([]);
@@ -33,6 +34,7 @@ export default function WorkingPatternsPage() {
   >("all");
 
   const [viewPattern, setViewPattern] = useState<any>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   // Copy/Paste week clipboard (in-memory only)
   const clipboardRef = useRef<Record<string, string> | null>(null);
 
@@ -193,7 +195,7 @@ export default function WorkingPatternsPage() {
     });
 
     if (res.ok) {
-      toast.success(`Working pattern ${editMode ? "updated" : "created"}`);
+      setShowSuccess(true);
       setName("");
       setDescription("");
       setPatternType("STANDARD");
@@ -746,6 +748,12 @@ export default function WorkingPatternsPage() {
           })}
         </AnimatePresence>
       </div>
+
+      <ProfileUpdateSuccessAnimation
+        isOpen={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        fieldName="Working Pattern"
+      />
     </PageShell>
   );
 }

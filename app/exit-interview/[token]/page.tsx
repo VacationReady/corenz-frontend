@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 
 import { FullScreenHeader } from "@/components/ui/FullScreenHeader";
+import { ExitInterviewSuccessAnimation } from "@/components/animations";
 
 const SUPPORT_FALLBACK_EMAIL = "support@peoplecore.co.nz";
 
@@ -77,6 +78,7 @@ export default function ExitInterviewPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [template, setTemplate] = useState<FormTemplate | null>(null);
@@ -208,8 +210,8 @@ export default function ExitInterviewPage() {
         throw new Error(errorData.error || "Failed to submit form");
       }
 
-      setSubmitted(true);
-      toast.success("Exit interview form submitted successfully");
+      // Show success animation first
+      setShowSuccessAnimation(true);
     } catch (err) {
       console.error("Error submitting form:", err);
       toast.error(err instanceof Error ? err.message : "Failed to submit form");
@@ -511,12 +513,28 @@ export default function ExitInterviewPage() {
       );
   };
 
+  const employeeName = employee 
+    ? `${employee.firstName} ${employee.lastName}` 
+    : undefined;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {header}
-      <div className="mx-auto w-full max-w-2xl px-4 pb-12 pt-10">
-        {renderContent()}
+    <>
+      {/* Success Animation */}
+      <ExitInterviewSuccessAnimation
+        isOpen={showSuccessAnimation}
+        onClose={() => {
+          setShowSuccessAnimation(false);
+          setSubmitted(true);
+        }}
+        employeeName={employeeName}
+      />
+
+      <div className="min-h-screen bg-gray-50">
+        {header}
+        <div className="mx-auto w-full max-w-2xl px-4 pb-12 pt-10">
+          {renderContent()}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

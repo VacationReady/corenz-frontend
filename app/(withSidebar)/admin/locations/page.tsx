@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MapPin, Plus, Edit, Trash2, Save, X, Search } from "lucide-react";
+import { Loader2, MapPin, Plus, Edit, Trash2, Save, X, Search, Globe } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import dynamic from "next/dynamic";
 
@@ -66,6 +66,15 @@ export default function LocationsManagementPage() {
   const { toast } = useToast();
   const [addressSearchLoading, setAddressSearchLoading] = useState(false);
   const [showCoordinates, setShowCoordinates] = useState(false);
+
+  // Draggable marker logic
+  const onMarkerDragEnd = useCallback((lat: number, lng: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      latitude: lat.toFixed(6),
+      longitude: lng.toFixed(6),
+    }));
+  }, []);
 
   useEffect(() => {
     fetchLocations();
@@ -276,14 +285,6 @@ export default function LocationsManagementPage() {
     }
   };
 
-  const onMarkerDragEnd = useCallback((lat: number, lng: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      latitude: lat.toFixed(6),
-      longitude: lng.toFixed(6),
-    }));
-  }, []);
-
   const filteredLocations = locations.filter((loc) =>
     loc.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -312,135 +313,135 @@ export default function LocationsManagementPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          Location Management
-        </h1>
-        <p className="text-muted-foreground">
-          Manage work locations and geofence boundaries. Drag markers to adjust locations.
-        </p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            Location Management
+          </h1>
+          <p className="text-muted-foreground">
+            Manage work locations and geofence boundaries
+          </p>
+        </div>
+        <Button 
+          onClick={handleOpenCreateDialog} 
+          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Location
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Map View (Read Only / Overview) */}
-        <div className="lg:col-span-2 order-2 lg:order-1">
-          <Card className="backdrop-blur-md bg-white/10 border-white/20 h-[700px] flex flex-col">
-            <CardHeader>
-              <CardTitle>Overview Map</CardTitle>
-              <CardDescription>All active geofences</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 min-h-0 p-0 overflow-hidden relative rounded-b-xl">
-               <LocationMap 
-                 center={mapCenter}
-                 locations={locationsWithCoordinates}
-                 interactive={false}
-               />
-            </CardContent>
-          </Card>
-        </div>
+      <div className="relative max-w-md mb-8">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search locations..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 bg-white/50 backdrop-blur-sm border-white/20"
+        />
+      </div>
 
-        {/* Locations List */}
-        <div className="space-y-6 order-1 lg:order-2">
-          <Card className="backdrop-blur-md bg-white/10 border-white/20 h-[700px] flex flex-col">
-            <CardHeader className="shrink-0">
-              <div className="flex items-center justify-between">
-                <CardTitle>Locations</CardTitle>
-                <Button onClick={handleOpenCreateDialog} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add New
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1 min-h-0 flex flex-col space-y-4 overflow-hidden">
-              <div className="relative shrink-0">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search locations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-
-              <div className="space-y-2 flex-1 min-h-0 overflow-y-auto">
-                {filteredLocations.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <MapPin className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No locations found</p>
-                  </div>
-                ) : (
-                  filteredLocations.map((location) => (
-                    <div
-                      key={location.id}
-                      className={`p-4 rounded-lg border transition-all hover:shadow-md ${
-                        !location.isActive ? 'opacity-60 bg-slate-50' : 'bg-white border-slate-200 hover:border-blue-300'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 cursor-pointer" onClick={() => handleOpenEditDialog(location)}>
-                          <div className="flex items-center gap-2">
-                            <MapPin className={`w-4 h-4 ${location.isActive ? 'text-blue-500' : 'text-slate-400'}`} />
-                            <p className="font-medium text-slate-900">{location.name}</p>
-                          </div>
-                          {location.address && (
-                            <p className="text-sm text-slate-500 mt-1 truncate">
-                              {location.address}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-3 mt-2">
-                             <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">
-                              {location.geofenceRadius || 100}m radius
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {filteredLocations.length === 0 ? (
+          <div className="col-span-full flex flex-col items-center justify-center py-16 text-muted-foreground bg-white/50 rounded-3xl border border-dashed border-slate-300">
+            <div className="bg-slate-100 p-4 rounded-full mb-4">
+              <MapPin className="w-8 h-8 opacity-50" />
+            </div>
+            <p className="text-lg font-medium">No locations found</p>
+            <p className="text-sm text-slate-500 mt-1">Add a location to get started with geofencing</p>
+          </div>
+        ) : (
+          filteredLocations.map((location) => (
+            <Card 
+              key={location.id} 
+              className={`group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-white/20 ${
+                !location.isActive ? 'opacity-75 bg-slate-50 border-slate-200' : 'bg-white/40 backdrop-blur-md border-white/40'
+              }`}
+            >
+              <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2.5 rounded-xl shadow-sm ${
+                      location.isActive 
+                        ? 'bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600' 
+                        : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold text-slate-900">{location.name}</CardTitle>
+                      <div className="flex items-center gap-2 mt-1.5">
+                          {!location.isActive && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">
+                              Inactive
                             </span>
-                            {!location.isActive && (
-                              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
-                                Inactive
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-slate-500 hover:text-blue-600"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEditDialog(location);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-slate-500 hover:text-red-600"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(location.id);
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                          )}
+                          <span className="text-xs text-slate-500 flex items-center gap-1.5 bg-white/50 px-2 py-0.5 rounded-full border border-white/20">
+                            <div className={`w-1.5 h-1.5 rounded-full ${location.isActive ? 'bg-green-500' : 'bg-slate-400'}`} />
+                            {location.geofenceRadius || 100}m radius
+                          </span>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  </div>
+                  
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600 rounded-full"
+                      onClick={() => handleOpenEditDialog(location)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 hover:bg-red-50 hover:text-red-600 rounded-full"
+                      onClick={() => handleDelete(location.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-start gap-2.5 text-sm text-slate-600 bg-white/30 p-3 rounded-lg">
+                    <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
+                    {location.address ? (
+                      <p className="leading-relaxed">{location.address}</p>
+                    ) : (
+                      <p className="italic text-slate-400">No address provided</p>
+                    )}
+                  </div>
+                  
+                  {location.latitude && location.longitude && (
+                    <div className="flex items-center gap-2 text-xs text-slate-500 pl-1">
+                      <Globe className="w-3.5 h-3.5" />
+                      <span className="font-mono">
+                        {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Location Form Dialog */}
       <Dialog open={formDialog.open} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-slate-50 dark:bg-slate-900">
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-slate-50 dark:bg-slate-900 border-none shadow-2xl">
           <div className="flex flex-col h-full">
             <DialogHeader className="p-6 bg-white dark:bg-slate-950 border-b z-10 shrink-0">
-              <DialogTitle className="text-xl">
+              <DialogTitle className="text-xl font-bold text-slate-900">
                 {formDialog.mode === "create" ? "Create Geofence Location" : "Edit Geofence Location"}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-slate-500">
                 Drag the marker to position the location. Drag the slider to adjust geofence radius.
               </DialogDescription>
             </DialogHeader>
@@ -460,11 +461,13 @@ export default function LocationsManagementPage() {
                 )}
                 
                 {/* Map Overlay Controls */}
-                <div className="absolute bottom-6 left-6 right-6 z-[400] bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-slate-200 max-w-md">
+                <div className="absolute bottom-6 left-6 right-6 z-[400] bg-white/95 backdrop-blur-sm p-5 rounded-2xl shadow-xl border border-white/20 max-w-md mx-auto">
                    <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <Label className="font-semibold text-slate-900">Geofence Radius</Label>
-                        <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">{formData.geofenceRadius} meters</span>
+                        <span className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+                          {formData.geofenceRadius} meters
+                        </span>
                       </div>
                       <Slider
                         value={[formData.geofenceRadius]}
@@ -476,8 +479,8 @@ export default function LocationsManagementPage() {
                         step={10}
                         className="w-full"
                       />
-                      <p className="text-xs text-slate-500">
-                        Drag slider to resize the green zone. Employees must be within this circle to clock in.
+                      <p className="text-xs text-slate-500 text-center">
+                        Employees must be within this green circle to clock in.
                       </p>
                    </div>
                 </div>
@@ -487,25 +490,25 @@ export default function LocationsManagementPage() {
               <div className="w-full lg:w-[400px] bg-white dark:bg-slate-950 border-l overflow-y-auto p-6 shrink-0 z-10 shadow-xl">
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-slate-900 font-medium">Location Name *</Label>
+                    <Label htmlFor="name" className="text-slate-900 font-semibold">Location Name *</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g., Head Office"
-                      className="bg-slate-50"
+                      className="bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address" className="text-slate-900 font-medium">Address / Postcode</Label>
+                    <Label htmlFor="address" className="text-slate-900 font-semibold">Address / Postcode</Label>
                     <div className="flex gap-2">
                       <Input
                         id="address"
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                         placeholder="Enter street address or postcode..."
-                        className="bg-slate-50"
+                        className="bg-slate-50 border-slate-200 focus:bg-white transition-colors"
                         onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
                       />
                       <Button 
@@ -513,7 +516,7 @@ export default function LocationsManagementPage() {
                         size="icon" 
                         onClick={handleAddressSearch}
                         disabled={addressSearchLoading}
-                        className="shrink-0 bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 hover:border-blue-300"
+                        className="shrink-0 bg-blue-50 border-blue-200 text-blue-600 hover:bg-blue-100 hover:border-blue-300 transition-colors"
                         title="Find location on map"
                       >
                         {addressSearchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
@@ -556,9 +559,9 @@ export default function LocationsManagementPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border">
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
                     <div className="space-y-0.5">
-                      <Label htmlFor="isActive" className="text-base">Active Location</Label>
+                      <Label htmlFor="isActive" className="text-base font-medium text-slate-900">Active Location</Label>
                       <p className="text-xs text-muted-foreground">Enable for clock-ins</p>
                     </div>
                     <Switch
@@ -580,7 +583,7 @@ export default function LocationsManagementPage() {
               <Button
                 onClick={handleSave}
                 disabled={saving}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 shadow-lg hover:shadow-xl transition-all"
               >
                 {saving ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

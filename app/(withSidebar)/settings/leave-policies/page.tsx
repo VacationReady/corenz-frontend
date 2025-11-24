@@ -131,18 +131,24 @@ interface LeavePolicy {
   _count: { assignments: number };
 }
 
+interface ServiceLengthTierFormData {
+  minYears: string;
+  maxYears: string;
+  accrualRate: string;
+}
+
 interface LeavePolicyFormData {
   name: string;
   description: string;
   eventCategoryId: string;
   effectiveFrom: string;
   effectiveTo: string;
-  accrualRate: number;
+  accrualRate: string;
   accrualPeriod: "WEEKLY" | "MONTHLY" | "QUARTERLY" | "ANNUALLY";
   accrualUnit: "DAYS" | "HOURS";
   enableProration: boolean;
   prorationMethod: "DAILY" | "WEEKLY" | "MONTHLY" | "NONE";
-  serviceLengthTiers: ServiceLengthTier[];
+  serviceLengthTiers: ServiceLengthTierFormData[];
   allowNegativeBalance: boolean;
   isActive: boolean;
 }
@@ -159,7 +165,7 @@ export default function LeavePoliciesPage() {
     eventCategoryId: "",
     effectiveFrom: new Date().toISOString().split("T")[0],
     effectiveTo: "",
-    accrualRate: 0,
+    accrualRate: "",
     accrualPeriod: "MONTHLY",
     accrualUnit: "DAYS",
     enableProration: true,
@@ -219,10 +225,16 @@ export default function LeavePoliciesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          accrualRate: parseFloat(formData.accrualRate) || 0,
           effectiveTo: formData.effectiveTo || null,
           serviceLengthTiers:
             formData.serviceLengthTiers.length > 0
-              ? formData.serviceLengthTiers
+              ? formData.serviceLengthTiers.map((tier) => ({
+                  ...tier,
+                  minYears: parseInt(tier.minYears) || 0,
+                  maxYears: tier.maxYears ? parseInt(tier.maxYears) : null,
+                  accrualRate: parseFloat(tier.accrualRate) || 0,
+                }))
               : null,
         }),
       });
@@ -260,12 +272,17 @@ export default function LeavePoliciesPage() {
       eventCategoryId: policy.eventCategory.id,
       effectiveFrom: policy.effectiveFrom.split("T")[0],
       effectiveTo: policy.effectiveTo?.split("T")[0] || "",
-      accrualRate: policy.accrualRate,
+      accrualRate: policy.accrualRate.toString(),
       accrualPeriod: policy.accrualPeriod,
       accrualUnit: policy.accrualUnit,
       enableProration: policy.enableProration,
       prorationMethod: policy.prorationMethod,
-      serviceLengthTiers: policy.serviceLengthTiers || [],
+      serviceLengthTiers:
+        policy.serviceLengthTiers?.map((tier) => ({
+          minYears: tier.minYears.toString(),
+          maxYears: tier.maxYears?.toString() || "",
+          accrualRate: tier.accrualRate.toString(),
+        })) || [],
       allowNegativeBalance: policy.allowNegativeBalance,
       isActive: policy.isActive,
     });
@@ -311,7 +328,7 @@ export default function LeavePoliciesPage() {
       eventCategoryId: "",
       effectiveFrom: new Date().toISOString().split("T")[0],
       effectiveTo: "",
-      accrualRate: 0,
+      accrualRate: "",
       accrualPeriod: "MONTHLY",
       accrualUnit: "DAYS",
       enableProration: true,
@@ -327,15 +344,15 @@ export default function LeavePoliciesPage() {
       ...prev,
       serviceLengthTiers: [
         ...prev.serviceLengthTiers,
-        { minYears: 0, accrualRate: 0 },
+        { minYears: "0", maxYears: "", accrualRate: "0" },
       ],
     }));
   };
 
   const updateServiceLengthTier = (
     index: number,
-    field: keyof ServiceLengthTier,
-    value: number,
+    field: keyof ServiceLengthTierFormData,
+    value: string,
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -518,7 +535,7 @@ export default function LeavePoliciesPage() {
                         onChange={(e) =>
                           setFormData((prev) => ({
                             ...prev,
-                            accrualRate: parseFloat(e.target.value) || 0,
+                            accrualRate: e.target.value,
                           }))
                         }
                         required
@@ -670,7 +687,7 @@ export default function LeavePoliciesPage() {
                                 updateServiceLengthTier(
                                   index,
                                   "minYears",
-                                  parseInt(e.target.value) || 0,
+                                  e.target.value,
                                 )
                               }
                             />
@@ -680,12 +697,12 @@ export default function LeavePoliciesPage() {
                             <Input
                               type="number"
                               min="0"
-                              value={tier.maxYears || ""}
+                              value={tier.maxYears}
                               onChange={(e) =>
                                 updateServiceLengthTier(
                                   index,
                                   "maxYears",
-                                  parseInt(e.target.value) || 0,
+                                  e.target.value,
                                 )
                               }
                             />
@@ -701,7 +718,7 @@ export default function LeavePoliciesPage() {
                                 updateServiceLengthTier(
                                   index,
                                   "accrualRate",
-                                  parseFloat(e.target.value) || 0,
+                                  e.target.value,
                                 )
                               }
                             />
@@ -790,12 +807,6 @@ export default function LeavePoliciesPage() {
             className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3"
           >
             {policies.map((policy) => {
-              const prorationClasses = policy.enableProration
-                ? "border-sky-500/40 bg-sky-400/10 text-sky-600 dark:border-sky-400/40 dark:bg-sky-400/10 dark:text-sky-300"
-                : "border-slate-500/40 bg-slate-500/10 text-slate-600 dark:border-slate-700/50 dark:bg-slate-800/60 dark:text-slate-300";
-              const negativeClasses = policy.allowNegativeBalance
-                ? "border-amber-500/40 bg-amber-400/15 text-amber-600 dark:border-amber-400/40 dark:bg-amber-400/10 dark:text-amber-300"
-                : "border-slate-500/40 bg-slate-500/10 text-slate-600 dark:border-slate-700/50 dark:bg-slate-800/60 dark:text-slate-300";
               const prorationLabel = policy.prorationMethod
                 .toLowerCase()
                 .replace(/_/g, " ")
@@ -864,80 +875,61 @@ export default function LeavePoliciesPage() {
                         </CardDescription>
                       </div>
                     </CardHeader>
-                    <CardContent className="relative z-10 px-6 pb-6 pt-0">
-                      <div className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
-                        <div className="rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner dark:border-slate-800/60 dark:bg-slate-900/50">
-                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Effective period</div>
-                          <div className="mt-1 font-semibold text-foreground">
-                            {new Date(policy.effectiveFrom).toLocaleDateString()} –{" "}
-                            {policy.effectiveTo
-                              ? new Date(policy.effectiveTo).toLocaleDateString()
-                              : "Ongoing"}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner dark:border-slate-800/60 dark:bg-slate-900/50">
-                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Proration</div>
-                          <div className="mt-1 font-semibold text-foreground">
-                            {policy.enableProration ? prorationLabel : "Disabled"}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner dark:border-slate-800/60 dark:bg-slate-900/50">
-                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Service tiers</div>
-                          <div className="mt-1 font-semibold text-foreground">
-                            {policy.serviceLengthTiers?.length || 0} configured
-                          </div>
-                        </div>
-                        <div className="rounded-2xl border border-white/20 bg-white/60 p-4 shadow-inner dark:border-slate-800/60 dark:bg-slate-900/50">
-                          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Negative balance</div>
-                          <div className="mt-1 font-semibold text-foreground">
-                            {policy.allowNegativeBalance ? "Allowed" : "Not allowed"}
-                          </div>
-                        </div>
-                      </div>
-                      {policy.description && (
-                        <div className="mt-6 rounded-2xl border border-white/20 bg-white/70 p-4 text-sm text-muted-foreground shadow-inner dark:border-slate-800/60 dark:bg-slate-900/60">
+                    <CardContent className="relative z-10 px-6 pt-0 pb-6">
+                      {policy.description ? (
+                        <div className="text-sm text-muted-foreground line-clamp-2">
                           {policy.description}
                         </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground italic opacity-50">
+                          No description provided
+                        </div>
                       )}
+                      
+                      <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 opacity-70" />
+                          <span>
+                            Effective {new Date(policy.effectiveFrom).toLocaleDateString()}
+                            {policy.effectiveTo && ` – ${new Date(policy.effectiveTo).toLocaleDateString()}`}
+                          </span>
+                        </div>
+                        {(policy.serviceLengthTiers?.length || 0) > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                            <span>{policy.serviceLengthTiers?.length} service tiers</span>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
-                    <CardFooter transparent className="relative z-10 border-none px-6 pb-6 pt-0">
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                        <div className="flex items-center gap-2 rounded-full border border-emerald-500/35 bg-emerald-400/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-600 backdrop-blur-sm dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300">
-                          <Users className="h-4 w-4" />
-                          <div className="flex items-baseline gap-1 text-sm">
-                            <MotionNumber value={policy._count.assignments} />
-                          </div>
-                          <span className="text-[11px] font-medium uppercase tracking-wide opacity-80">
-                            Assignments
-                          </span>
+                    <CardFooter transparent className="relative z-10 border-t border-white/10 px-6 py-4 dark:border-slate-800/50">
+                      <div className="flex w-full items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                          <Users className="h-3.5 w-3.5" />
+                          <MotionNumber value={policy._count.assignments} />
+                          <span>Assignments</span>
                         </div>
-                        <div
-                          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm ${prorationClasses}`}
-                        >
-                          <Settings className="h-4 w-4" />
-                          <div className="flex items-baseline gap-1 text-sm">
-                            <MotionNumber value={policy.enableProration ? 1 : 0} />
+
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`flex items-center gap-1.5 text-xs font-medium ${
+                              policy.enableProration ? "text-sky-600 dark:text-sky-400" : "text-muted-foreground"
+                            }`}
+                            title="Proration"
+                          >
+                            <Settings className="h-3.5 w-3.5" />
+                            <span>{policy.enableProration ? prorationLabel : "No Proration"}</span>
                           </div>
-                          <span className="text-[11px] font-medium uppercase tracking-wide opacity-80">
-                            Proration
-                          </span>
-                          <span className="hidden text-[11px] font-medium normal-case opacity-80 sm:inline">
-                            {policy.enableProration ? prorationLabel : "Off"}
-                          </span>
-                        </div>
-                        <div
-                          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide backdrop-blur-sm ${negativeClasses}`}
-                        >
-                          <AlertTriangle className="h-4 w-4" />
-                          <div className="flex items-baseline gap-1 text-sm">
-                            <MotionNumber value={policy.allowNegativeBalance ? 1 : 0} />
+                          
+                          <div
+                            className={`flex items-center gap-1.5 text-xs font-medium ${
+                              policy.allowNegativeBalance ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                            }`}
+                            title="Negative Balance"
+                          >
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            <span>{policy.allowNegativeBalance ? "Negative Allowed" : "No Negative"}</span>
                           </div>
-                          <span className="text-[11px] font-medium uppercase tracking-wide opacity-80">
-                            Negative balance
-                          </span>
-                          <span className="hidden text-[11px] font-medium normal-case opacity-80 sm:inline">
-                            {policy.allowNegativeBalance ? "Enabled" : "Locked"}
-                          </span>
                         </div>
                       </div>
                     </CardFooter>

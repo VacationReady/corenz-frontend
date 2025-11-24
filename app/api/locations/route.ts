@@ -11,7 +11,7 @@ const locationCreateSchema = z.object({
   address: z.string().optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
-  geofenceRadius: z.number().int().min(50).max(5000).optional(),
+  geofenceRadius: z.number().int().min(20).max(5000).optional(),
   isActive: z.boolean().optional(),
 });
 

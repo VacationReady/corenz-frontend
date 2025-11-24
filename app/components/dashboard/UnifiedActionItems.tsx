@@ -84,9 +84,9 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
     fetcher
   );
 
-  // Fetch approvals (for managers)
+  // Fetch approvals (for all users who might be approvers)
   const { data: approvals, mutate: mutateApprovals } = useSWR(
-    !isLoadingSession && isManager ? `/api/approvals?status=PENDING` : null,
+    !isLoadingSession ? `/api/approvals?status=PENDING` : null,
     fetcher
   );
 
@@ -320,8 +320,8 @@ export function UnifiedActionItems({ employeeId, isManager = false }: UnifiedAct
         });
       }
 
-      // Process approvals (for managers)
-      if (isManager && approvals?.items) {
+      // Process approvals (for all users)
+      if (approvals?.items) {
         const approvalItems = Array.isArray(approvals.items) ? approvals.items : [];
         approvalItems.forEach((approval: any) => {
           items.push({

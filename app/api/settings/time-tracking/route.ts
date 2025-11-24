@@ -93,7 +93,7 @@ const settingsUpdateSchema = z.object({
 
   // Clock in/out settings
   enableGeofencing: z.boolean().optional(),
-  geofenceRadius: z.coerce.number().int().min(50).max(5000).optional(),
+  geofenceRadius: z.coerce.number().int().min(20).max(5000).optional(),
   requireBreaks: z.boolean().optional(),
   minBreakDuration: z.coerce.number().int().min(0).max(120).optional(),
 

@@ -1,20 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import useSWR from 'swr';
-import { DashboardWidget } from '@/components/ui/DashboardWidget';
-import { Clock, MapPin, PlayCircle, StopCircle, Loader2 } from 'lucide-react';
-import Button from '@/components/ui/Button';
-import { useRouter } from 'next/navigation';
-import { format, formatDistance } from 'date-fns';
-import { WidgetLoading, WidgetError } from '@/components/ui/WidgetStates';
-import { toast } from 'sonner';
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+import ClockWidget from "@/components/time-tracking/ClockWidget";
 
 export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
   const router = useRouter();
-  const [isClocking, setIsClocking] = useState(false);
   
   const { data, error, isLoading, mutate } = useSWR(
     employeeId ? `/api/shifts/today?employeeId=${employeeId}` : null,
@@ -22,55 +11,20 @@ export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
     { refreshInterval: 30000 } // Refresh every 30 seconds
   );
 
+  // Fetch time tracking settings to check for GPS requirement
+  const { data: settingsData } = useSWR(
+    '/api/settings/time-tracking',
+    fetcher
+  );
+
+  const settings = settingsData?.settings;
+
   // Temporary debugging
   console.log('[TodaysShift] API Response:', data);
 
-  const handleClockIn = async () => {
-    setIsClocking(true);
-    try {
-      const response = await fetch('/api/time-tracking/clock-in', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to clock in');
-      }
-
-      toast.success('Clocked in successfully!');
-      mutate(); // Refresh data
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to clock in');
-    } finally {
-      setIsClocking(false);
-    }
-  };
-
-  const handleClockOut = async () => {
-    setIsClocking(true);
-    try {
-      const response = await fetch('/api/time-tracking/clock-out', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to clock out');
-      }
-
-      toast.success(`Clocked out successfully! Hours worked: ${result.hoursWorked}`);
-      mutate(); // Refresh data
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to clock out');
-    } finally {
-      setIsClocking(false);
-    }
+  const handleClockUpdate = async () => {
+    mutate();
+    toast.success('Clock status updated');
   };
 
   return (
@@ -101,6 +55,30 @@ export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
               {JSON.stringify(data, null, 2)}
             </pre>
           </details>
+          <div className="mt-6 pt-4 border-t border-gray-100">
+             <ClockWidget 
+               requireGpsLocation={settings?.requireGpsLocation}
+               photoRequirement={settings?.photoRequirement}
+               onClockIn={async (data) => {
+                 const response = await fetch('/api/time-tracking/clock-in', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                 });
+                 if (!response.ok) throw new Error(await response.text());
+                 handleClockUpdate();
+               }}
+               onClockOut={async (data) => {
+                 const response = await fetch('/api/time-tracking/clock-out', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                 });
+                 if (!response.ok) throw new Error(await response.text());
+                 handleClockUpdate();
+               }}
+             />
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -141,57 +119,42 @@ export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
             ) : null}
           </div>
 
-          {/* Active Clock Entry Display */}
-          {data.activeClockEntry && (
-            <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                    Currently clocked in
-                  </span>
-                </div>
-                <span className="text-xs text-green-600 dark:text-green-400">
-                  {formatDistance(new Date(data.activeClockEntry.clockInTime), new Date(), { addSuffix: true })}
-                </span>
-              </div>
-            </div>
-          )}
+          {/* Clock Widget replaces simple buttons */}
+          <ClockWidget 
+             requireGpsLocation={settings?.requireGpsLocation}
+             photoRequirement={settings?.photoRequirement}
+             onClockIn={async (data) => {
+               const response = await fetch('/api/time-tracking/clock-in', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(data),
+               });
+               const result = await response.json();
+               if (!response.ok) throw new Error(result.error || 'Failed to clock in');
+               handleClockUpdate();
+             }}
+             onClockOut={async (data) => {
+               const response = await fetch('/api/time-tracking/clock-out', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(data),
+               });
+               const result = await response.json();
+               if (!response.ok) throw new Error(result.error || 'Failed to clock out');
+               handleClockUpdate();
+             }}
+           />
 
-          {/* Clock In/Out Buttons */}
-          <div className="flex gap-2">
-            {data.activeClockEntry ? (
-              <Button
-                onClick={handleClockOut}
-                variant="default"
-                size="sm"
-                className="flex-1 bg-red-600 hover:bg-red-700"
-                disabled={isClocking}
-                icon={isClocking ? <Loader2 className="h-4 w-4 animate-spin" /> : <StopCircle className="h-4 w-4" />}
-              >
-                Clock Out
-              </Button>
-            ) : (
-              <Button
-                onClick={handleClockIn}
-                variant="default"
-                size="sm"
-                className="flex-1"
-                disabled={isClocking}
-                icon={isClocking ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
-              >
-                Clock In
-              </Button>
-            )}
+           <div className="mt-4">
             <Button
               onClick={() => router.push('/employee/timesheet')}
               variant="outline"
               size="sm"
-              className="flex-1"
+              className="w-full"
             >
               My Timesheet
             </Button>
-          </div>
+           </div>
         </div>
       )}
     </DashboardWidget>

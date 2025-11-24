@@ -138,6 +138,8 @@ export default function FieldPlacementModal({
   onSaveComplete,
   sendingNotifications = false,
   defaultAssigneeId,
+  isInitialUpload,
+  onDiscard,
 }: {
   isOpen: boolean;
   onClose: () => void;

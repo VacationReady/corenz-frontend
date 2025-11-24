@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Info, Save, RotateCcw, Clock, Calendar, MapPin, FileText, TrendingUp } from "lucide-react";
+import { Loader2, Info, Save, RotateCcw, Clock, Calendar, MapPin, FileText, TrendingUp, Check } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/Input';
@@ -90,6 +90,7 @@ export default function TimeTrackingSettingsPage() {
   const [originalSettings, setOriginalSettings] = useState<TimeTrackingSettings>(defaultSettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const { toast } = useToast();
   const breadcrumbs = useBreadcrumbs();
@@ -146,6 +147,8 @@ export default function TimeTrackingSettingsPage() {
       setSettings(data.settings);
       setOriginalSettings(data.settings);
       setHasChanges(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
 
       toast({
         title: "Success",
@@ -1012,13 +1015,22 @@ export default function TimeTrackingSettingsPage() {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!hasChanges || saving}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              disabled={!hasChanges || saving || saved}
+              className={`min-w-[140px] transition-all duration-200 ${
+                saved 
+                  ? "bg-green-600 hover:bg-green-700 text-white border-green-600" 
+                  : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              }`}
             >
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Saving...
+                </>
+              ) : saved ? (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Saved!
                 </>
               ) : (
                 <>

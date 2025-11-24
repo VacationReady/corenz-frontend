@@ -85,6 +85,9 @@ interface EventRule {
   maxConcurrentMode: "HARD_BLOCK" | "SOFT_GATE";
   maxBookingLengthMode: "HARD_BLOCK" | "SOFT_GATE";
   notes?: string;
+  // Rolling maximum days limit (e.g., max 5 days compassionate leave over 12 months)
+  maxDaysPerPeriod?: number | null;
+  periodMonths?: number | null;
 }
 
 interface TestScenario {
@@ -193,6 +196,8 @@ export default function EventRulesPage() {
           noticePeriodDays: 0,
           maxConcurrent: null,
           maxBookingLength: 14,
+          maxDaysPerPeriod: null,
+          periodMonths: null,
           maxCarryoverDays: null,
           carryoverExpiryMonths: null,
           maxConcurrentMode: "HARD_BLOCK",
@@ -1101,6 +1106,66 @@ export default function EventRulesPage() {
                             }
                           />
                           <Label>Enforce Entitlement</Label>
+                        </div>
+
+                        {/* Rolling Maximum Days Limit - for non-entitlement tracked leave */}
+                        <div className="mt-6 p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+                          <h4 className="font-semibold mb-3 flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            Rolling Maximum Days Limit
+                          </h4>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Set a maximum number of days that can be booked over a rolling period. 
+                            Useful for leave types like Compassionate Leave (e.g., max 5 days over 12 months).
+                            Leave both fields empty for no limit.
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor={`maxDaysPerPeriod-${category.id}`}>
+                                Max Days Allowed
+                              </Label>
+                              <Input
+                                id={`maxDaysPerPeriod-${category.id}`}
+                                type="number"
+                                min="1"
+                                value={rule.maxDaysPerPeriod || ""}
+                                onChange={(e) =>
+                                  updateRule(
+                                    category.id,
+                                    "maxDaysPerPeriod",
+                                    parseInt(e.target.value) || null,
+                                  )
+                                }
+                                placeholder="No limit"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor={`periodMonths-${category.id}`}>
+                                Over Period (months)
+                              </Label>
+                              <Input
+                                id={`periodMonths-${category.id}`}
+                                type="number"
+                                min="1"
+                                value={rule.periodMonths || ""}
+                                onChange={(e) =>
+                                  updateRule(
+                                    category.id,
+                                    "periodMonths",
+                                    parseInt(e.target.value) || null,
+                                  )
+                                }
+                                placeholder="e.g., 12"
+                              />
+                            </div>
+                          </div>
+                          {rule.maxDaysPerPeriod && rule.periodMonths && (
+                            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                              <div className="text-sm text-blue-800">
+                                <strong>Current Setting:</strong> Maximum {rule.maxDaysPerPeriod} day(s) of {category.name} allowed per rolling {rule.periodMonths} month period.
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </TabsContent>
 

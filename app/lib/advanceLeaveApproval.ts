@@ -200,8 +200,21 @@ export async function processDecision({
       throw new Error("Leave request not found");
     }
 
-    // Only perform deduction if the request is not already approved
-    if (lrFull.approvalStatus !== "APPROVED") {
+    // Check if entitlement is enforced for this event category
+    const eventRule = await tx.eventRule.findUnique({
+      where: {
+        companyId_eventCategoryId: {
+          companyId: lrFull.companyId,
+          eventCategoryId: lrFull.eventCategoryId,
+        },
+      },
+      select: { enforceEntitlement: true },
+    });
+
+    const enforceEntitlement = eventRule?.enforceEntitlement ?? true;
+
+    // Only perform deduction if the request is not already approved AND entitlement is enforced
+    if (lrFull.approvalStatus !== "APPROVED" && enforceEntitlement) {
       const totalDays: number[] = [];
       let currentDate = new Date(lrFull.startDate);
       const endDate = new Date(lrFull.endDate);
@@ -238,6 +251,8 @@ export async function processDecision({
           data: { usedDays: entitlement.usedDays + totalDeduction },
         });
       }
+    } else if (!enforceEntitlement) {
+      console.log("ℹ️ Entitlement enforcement disabled for this event type. Skipping balance deduction.");
     }
 
     const lr = await tx.leaveRequest.update({

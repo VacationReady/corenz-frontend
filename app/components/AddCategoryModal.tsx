@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusIcon, BriefcaseIcon, UmbrellaIcon, Sparkles, CheckCircle2, Palette, Settings, Shield } from "lucide-react";
+import { PlusIcon, BriefcaseIcon, UmbrellaIcon, Sparkles, CheckCircle2, Palette, Settings, Shield, Check } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { IconPicker } from "@/components/IconPicker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+
+// Modern color palette with beautiful, curated colors
+const COLOR_PALETTE = [
+  // Row 1 - Reds & Pinks
+  "#ef4444", "#f43f5e", "#ec4899", "#d946ef", "#a855f7",
+  // Row 2 - Purples & Blues
+  "#8b5cf6", "#6366f1", "#3b82f6", "#0ea5e9", "#06b6d4",
+  // Row 3 - Teals & Greens
+  "#14b8a6", "#10b981", "#22c55e", "#84cc16", "#eab308",
+  // Row 4 - Yellows & Oranges
+  "#f59e0b", "#f97316", "#fb923c", "#f87171", "#fda4af",
+  // Row 5 - Neutrals & Pastels
+  "#64748b", "#78716c", "#a8a29e", "#94a3b8", "#cbd5e1",
+];
 
 interface AddCategoryModalProps {
   isOpen: boolean;
@@ -248,21 +263,71 @@ export default function AddCategoryModal({
                       </div>
                     </div>
 
-                    {/* Color Picker */}
+                    {/* Color Palette Picker */}
                     <div className="p-5 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30">
                       <div className="flex items-center gap-2 mb-4">
                         <Palette className="w-4 h-4 text-primary" />
                         <span className="font-medium text-sm">Color</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <input 
-                          type="color" 
-                          value={color} 
-                          onChange={(e) => setColor(e.target.value)} 
-                          className="h-11 w-20 rounded-xl overflow-hidden cursor-pointer border-2 border-muted/50 bg-white/50 dark:bg-white/5"
-                        />
-                        <span className="text-sm text-muted-foreground font-mono">{color}</span>
-                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="group flex items-center gap-3 p-2 pr-4 rounded-xl border-2 border-muted/50 bg-white/50 dark:bg-white/5 hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
+                          >
+                            <div 
+                              className="w-9 h-9 rounded-lg shadow-inner ring-2 ring-white/50 dark:ring-white/10 transition-transform"
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+                              Click to change
+                            </span>
+                          </motion.button>
+                        </PopoverTrigger>
+                        <PopoverContent 
+                          className="w-auto p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-muted/30 shadow-2xl rounded-2xl"
+                          align="start"
+                          sideOffset={8}
+                        >
+                          <div className="space-y-3">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Choose a color
+                            </p>
+                            <div className="grid grid-cols-5 gap-2">
+                              {COLOR_PALETTE.map((paletteColor) => (
+                                <motion.button
+                                  key={paletteColor}
+                                  type="button"
+                                  whileHover={{ scale: 1.15, y: -2 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={() => setColor(paletteColor)}
+                                  className={`relative w-8 h-8 rounded-lg shadow-md transition-all duration-150 ${
+                                    color === paletteColor 
+                                      ? "ring-2 ring-primary ring-offset-2 ring-offset-white dark:ring-offset-gray-900" 
+                                      : "hover:shadow-lg"
+                                  }`}
+                                  style={{ backgroundColor: paletteColor }}
+                                >
+                                  <AnimatePresence>
+                                    {color === paletteColor && (
+                                      <motion.div
+                                        initial={{ scale: 0, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0, opacity: 0 }}
+                                        className="absolute inset-0 flex items-center justify-center"
+                                      >
+                                        <Check className="w-4 h-4 text-white drop-shadow-md" />
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </motion.button>
+                              ))}
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </div>
 
                     {/* Options */}

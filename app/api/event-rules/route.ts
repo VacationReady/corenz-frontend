@@ -42,11 +42,13 @@ export async function POST(req: Request) {
       noticePeriodDays,
       maxConcurrent,
       maxBookingLength,
-      maxCarryoverDays, // ✅ NEW
-      carryoverExpiryMonths, // ✅ NEW
+      maxCarryoverDays,
+      carryoverExpiryMonths,
       maxConcurrentMode = "HARD_BLOCK",
       maxBookingLengthMode = "HARD_BLOCK",
       notes,
+      maxDaysPerPeriod,  // Rolling max days limit (e.g., 5 days compassionate over 12 months)
+      periodMonths,      // Period for rolling limit (e.g., 12 months)
     } = body;
 
     const rule = await prisma.eventRule.upsert({
@@ -63,6 +65,8 @@ export async function POST(req: Request) {
         ...(maxBookingLength !== undefined && { maxBookingLength }),
         ...(maxCarryoverDays !== undefined && { maxCarryoverDays }),
         ...(carryoverExpiryMonths !== undefined && { carryoverExpiryMonths }),
+        ...(maxDaysPerPeriod !== undefined && { maxDaysPerPeriod }),
+        ...(periodMonths !== undefined && { periodMonths }),
         maxConcurrentMode,
         maxBookingLengthMode,
         notes,
@@ -78,6 +82,8 @@ export async function POST(req: Request) {
         maxBookingLength: maxBookingLength ?? 14,
         maxCarryoverDays: maxCarryoverDays ?? null,
         carryoverExpiryMonths: carryoverExpiryMonths ?? null,
+        maxDaysPerPeriod: maxDaysPerPeriod ?? null,
+        periodMonths: periodMonths ?? null,
         maxConcurrentMode,
         maxBookingLengthMode,
         notes,

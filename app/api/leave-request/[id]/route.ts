@@ -166,46 +166,71 @@ export async function PATCH(
     }
 
     if (action === "approve") {
-      const totalDays: number[] = [];
-      let currentDate = new Date(leave.startDate);
-      const endDate = new Date(leave.endDate);
-      // End date is return-to-work (exclusive) for deduction purposes
-      const exclusiveEnd = new Date(endDate);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
-
-      while (currentDate <= exclusiveEnd) {
-        const deduction = await calculateLeaveDeduction(
-          leave.employeeId,
-          currentDate,
-        );
-        totalDays.push(deduction);
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-
-      const totalDeduction = totalDays.reduce((sum, val) => sum + val, 0);
-
-      const updatedLeaveRequest = await prisma.$transaction(async (tx) => {
-        const entitlement = await tx.leaveEntitlement.findFirst({
-          where: {
-            employeeId: leave.employeeId,
+      // Check if entitlement is enforced for this event category
+      const eventRule = await prisma.eventRule.findUnique({
+        where: {
+          companyId_eventCategoryId: {
+            companyId: leave.companyId,
             eventCategoryId: leave.eventCategoryId,
           },
-        });
+        },
+        select: { enforceEntitlement: true },
+      });
 
-        if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
-          throw new Error("Insufficient leave balance.");
+      const enforceEntitlement = eventRule?.enforceEntitlement ?? true;
+
+      let updatedLeaveRequest;
+
+      if (enforceEntitlement) {
+        // Calculate deduction and enforce entitlement check
+        const totalDays: number[] = [];
+        let currentDate = new Date(leave.startDate);
+        const endDate = new Date(leave.endDate);
+        // End date is return-to-work (exclusive) for deduction purposes
+        const exclusiveEnd = new Date(endDate);
+        exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+
+        while (currentDate <= exclusiveEnd) {
+          const deduction = await calculateLeaveDeduction(
+            leave.employeeId,
+            currentDate,
+          );
+          totalDays.push(deduction);
+          currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        await tx.leaveEntitlement.update({
-          where: { id: entitlement.id },
-          data: { usedDays: entitlement.usedDays + totalDeduction },
-        });
+        const totalDeduction = totalDays.reduce((sum, val) => sum + val, 0);
 
-        return tx.leaveRequest.update({
+        updatedLeaveRequest = await prisma.$transaction(async (tx) => {
+          const entitlement = await tx.leaveEntitlement.findFirst({
+            where: {
+              employeeId: leave.employeeId,
+              eventCategoryId: leave.eventCategoryId,
+            },
+          });
+
+          if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
+            throw new Error("Insufficient leave balance.");
+          }
+
+          await tx.leaveEntitlement.update({
+            where: { id: entitlement.id },
+            data: { usedDays: entitlement.usedDays + totalDeduction },
+          });
+
+          return tx.leaveRequest.update({
+            where: { id: leaveId },
+            data: { approvalStatus: "APPROVED", approvedById: session.user.id },
+          });
+        });
+      } else {
+        // Entitlement not enforced - just approve without balance check/deduction
+        console.log("ℹ️ Entitlement enforcement disabled for this event type. Approving without balance check.");
+        updatedLeaveRequest = await prisma.leaveRequest.update({
           where: { id: leaveId },
           data: { approvalStatus: "APPROVED", approvedById: session.user.id },
         });
-      });
+      }
 
       // Complete associated action items
       try {

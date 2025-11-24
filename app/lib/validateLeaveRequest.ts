@@ -1,13 +1,17 @@
 // lib/validateLeaveRequest.ts
 
 import { prisma } from "@/lib/prisma";
-import { eachDayOfInterval } from "date-fns";
+import { eachDayOfInterval, subMonths } from "date-fns";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { checkNegativeBalanceAllowed } from "@/lib/accrualEngine";
 import dayjs from "dayjs";
 
 /**
  * Validates a leave request against entitlement, business rules, blackout days, working pattern, and concurrency.
+ * 
+ * NOTE: Entitlement validation only applies when enforceEntitlement is true (typically only for Annual Leave).
+ * For other event types (e.g., Compassionate Leave, Sick Leave), entitlement is NOT enforced.
+ * Instead, they may have a maxDaysPerPeriod limit (e.g., max 5 days over 12 months).
  */
 export async function validateLeaveRequest({
   employeeId,
@@ -51,12 +55,16 @@ export async function validateLeaveRequest({
       },
     },
     select: {
+      enforceEntitlement: true,
       noticePeriodDays: true,
       maxConcurrent: true,
       maxBookingLength: true,
+      maxDaysPerPeriod: true,
+      periodMonths: true,
     },
   });
 
+  const enforceEntitlement = eventRule?.enforceEntitlement ?? true;
   const requiredNoticeDays = eventRule?.noticePeriodDays ?? 0;
 
   const leaveStart = dayjs(startDate).startOf("day");
@@ -116,7 +124,80 @@ export async function validateLeaveRequest({
     }
   }
 
+  // ── CALCULATE DAYS FOR THIS REQUEST ────────────────
+  const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
+  let daysRequestedForDeduction = 0;
+
+  for (const date of datesInRange) {
+    const deduction = await calculateLeaveDeduction(employeeId, date);
+    daysRequestedForDeduction += deduction;
+  }
+
+  console.log("📊 Days requested for this leave:", daysRequestedForDeduction);
+
+  // ── MAX DAYS PER PERIOD CHECK (Rolling Limit) ────────────────
+  // This applies regardless of enforceEntitlement (e.g., compassionate leave max 5 days per 12 months)
+  const maxDaysPerPeriod = eventRule?.maxDaysPerPeriod;
+  const periodMonths = eventRule?.periodMonths;
+
+  if (maxDaysPerPeriod != null && periodMonths != null && !isAdmin) {
+    console.log("🔍 Checking rolling max days limit:", { maxDaysPerPeriod, periodMonths });
+    
+    // Calculate the rolling period start date
+    const periodStart = subMonths(startDate, periodMonths);
+    
+    // Find all approved leave requests for this event category within the rolling period
+    const existingLeaves = await prisma.leaveRequest.findMany({
+      where: {
+        employeeId,
+        eventCategoryId,
+        approvalStatus: "APPROVED",
+        startDate: { gte: periodStart },
+        endDate: { lte: endDate },
+      },
+      select: { startDate: true, endDate: true },
+    });
+
+    // Calculate total days already used in the period
+    let daysAlreadyUsed = 0;
+    for (const leave of existingLeaves) {
+      const leaveDates = eachDayOfInterval({ 
+        start: new Date(leave.startDate), 
+        end: new Date(leave.endDate) 
+      });
+      for (const date of leaveDates) {
+        const deduction = await calculateLeaveDeduction(employeeId, date);
+        daysAlreadyUsed += deduction;
+      }
+    }
+
+    const totalDaysWithNewRequest = daysAlreadyUsed + daysRequestedForDeduction;
+    
+    console.log("📊 Rolling period check:", {
+      periodStart: periodStart.toISOString(),
+      daysAlreadyUsed,
+      daysRequestedForDeduction,
+      totalDaysWithNewRequest,
+      maxDaysPerPeriod,
+    });
+
+    if (totalDaysWithNewRequest > maxDaysPerPeriod) {
+      const remainingAllowed = Math.max(0, maxDaysPerPeriod - daysAlreadyUsed);
+      console.error(`❌ Exceeds maximum ${maxDaysPerPeriod} days over ${periodMonths} months.`);
+      throw new Error(
+        `This exceeds the maximum of ${maxDaysPerPeriod} days allowed for ${eventCategory.name} over a ${periodMonths}-month period. You have ${remainingAllowed} day(s) remaining.`,
+      );
+    }
+  }
+
   // ── ENTITLEMENT & CARRYOVER LOGIC ────────────────
+  // Only enforce entitlement for event types that have enforceEntitlement=true (typically Annual Leave)
+  if (!enforceEntitlement) {
+    console.log("ℹ️ Entitlement enforcement is disabled for this event type. Skipping entitlement check.");
+    console.log("✅ [validateLeaveRequest] Validation passed successfully.");
+    return;
+  }
+
   const entitlement = await prisma.leaveEntitlement.findFirst({
     where: {
       employeeId,
@@ -132,14 +213,6 @@ export async function validateLeaveRequest({
     throw new Error(
       `No entitlement found for event category: ${eventCategory.name}`,
     );
-  }
-
-  const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
-  let daysRequestedForDeduction = 0;
-
-  for (const date of datesInRange) {
-    const deduction = await calculateLeaveDeduction(employeeId, date);
-    daysRequestedForDeduction += deduction;
   }
 
   const availableCarryover = entitlement.carryoverDays ?? 0;

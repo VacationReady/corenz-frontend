@@ -720,6 +720,9 @@ model EventRule {
   maxBookingLengthMode  EnforcementMode @default(HARD_BLOCK)
   maxConcurrentMode     EnforcementMode @default(HARD_BLOCK)
   notes                 String?
+  // Rolling maximum days limit (e.g., max 5 days compassionate leave over 12 months)
+  maxDaysPerPeriod      Int?            // Maximum days allowed over the period (null = unlimited)
+  periodMonths          Int?            // Period in months (e.g., 12 = rolling 12 months)
   EventCategory         EventCategory   @relation(fields: [eventCategoryId], references: [id])
 
   @@unique([companyId, eventCategoryId])

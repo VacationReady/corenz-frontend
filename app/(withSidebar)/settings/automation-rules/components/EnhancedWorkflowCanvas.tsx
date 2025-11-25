@@ -755,9 +755,12 @@ function EnhancedWorkflowCanvasInner({
   const renderPropertyEditor = () => {
     if (!selectedNode) {
       return (
-        <div className="p-4 text-center text-muted-foreground">
-          <HelpCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Select a node to edit its properties</p>
+        <div className="p-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center mx-auto mb-4">
+            <HelpCircle className="w-8 h-8 text-slate-400" />
+          </div>
+          <p className="text-sm font-medium text-slate-600 mb-1">No node selected</p>
+          <p className="text-xs text-slate-400">Click on any node to edit its properties</p>
         </div>
       );
     }
@@ -769,13 +772,18 @@ function EnhancedWorkflowCanvasInner({
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-medium">Node Properties</h3>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+              <Settings className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="font-semibold text-slate-800">Properties</h3>
+          </div>
           {!readOnly && (
             <Button
               variant="ghost"
               size="sm"
               onClick={deleteSelectedNode}
-              className="text-destructive"
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
             >
               Delete
             </Button>
@@ -1863,26 +1871,28 @@ function EnhancedWorkflowCanvasInner({
 
   return (
     <div className={cn(
-      "flex h-full bg-background",
+      "flex h-full bg-gradient-to-br from-slate-50 via-white to-blue-50/30",
       isFullscreen && "fixed inset-0 z-50"
     )}>
       {/* Left Panel - Component Palette */}
       {!previewMode && !readOnly && (
         <div className={cn(
-          "border-r bg-card transition-all duration-200",
-          showPalette ? "w-64" : "w-12"
+          "border-r border-slate-200/60 bg-white/80 backdrop-blur-sm transition-all duration-300",
+          showPalette ? "w-72" : "w-12"
         )}>
           {showPalette ? (
             <WorkflowPalette onCollapse={() => setShowPalette(false)} />
           ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowPalette(true)}
-              className="w-full h-12 rounded-none"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <div className="h-full flex items-center justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPalette(true)}
+                className="h-10 w-10 p-0 rounded-xl hover:bg-slate-100"
+              >
+                <ChevronRight className="h-4 w-4 text-slate-500" />
+              </Button>
+            </div>
           )}
         </div>
       )}
@@ -1937,50 +1947,50 @@ function EnhancedWorkflowCanvasInner({
                    window.location.href = '/settings/automation-rules';
                 }
               }}
-              className="bg-white/95 backdrop-blur-xl shadow-sm border-slate-200/60 mr-2"
+              className="bg-white/95 backdrop-blur-xl shadow-lg border-slate-200/60 mr-2 rounded-xl h-9 hover:bg-slate-50 transition-all"
             >
-              <XCircle className="h-4 w-4 mr-2" />
+              <XCircle className="h-4 w-4 mr-2 text-slate-500" />
               Close
             </Button>
 
             {!readOnly && (
               <>
                 {/* Undo/Redo/Duplicate Group */}
-                <div className="flex items-center gap-1 bg-white/95 backdrop-blur-xl rounded-lg shadow-lg border border-slate-200/60 px-1.5 py-1.5">
+                <div className="flex items-center gap-1 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/60 px-2 py-1.5">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleUndo}
                     disabled={historyIndex <= 0}
-                    className="h-8 px-2.5 hover:bg-slate-100 disabled:opacity-40 transition-all"
+                    className="h-8 w-8 p-0 hover:bg-slate-100 disabled:opacity-40 transition-all rounded-lg"
                     title="Undo (Ctrl+Z)"
                   >
-                    <Undo className="h-4 w-4" />
+                    <Undo className="h-4 w-4 text-slate-600" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleRedo}
                     disabled={historyIndex >= history.length - 1}
-                    className="h-8 px-2.5 hover:bg-slate-100 disabled:opacity-40 transition-all"
+                    className="h-8 w-8 p-0 hover:bg-slate-100 disabled:opacity-40 transition-all rounded-lg"
                     title="Redo (Ctrl+Y)"
                   >
-                    <Redo className="h-4 w-4" />
+                    <Redo className="h-4 w-4 text-slate-600" />
                   </Button>
-                  <div className="w-px h-5 bg-slate-200 mx-0.5" />
+                  <div className="w-px h-5 bg-slate-200 mx-1" />
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleDuplicateNode}
                     disabled={!selectedNode}
-                    className="h-8 px-2.5 hover:bg-slate-100 disabled:opacity-40 transition-all"
+                    className="h-8 w-8 p-0 hover:bg-slate-100 disabled:opacity-40 transition-all rounded-lg"
                     title="Duplicate selected node (Ctrl+D)"
                   >
-                    <Copy className="h-4 w-4" />
+                    <Copy className="h-4 w-4 text-slate-600" />
                   </Button>
                 </div>
                 
-                <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-lg shadow-lg border border-slate-200/60">
+                <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/60">
                   <Select
                     onValueChange={(value: string) => {
                       if (value.startsWith('direction-')) {
@@ -2051,10 +2061,10 @@ function EnhancedWorkflowCanvasInner({
                   variant="ghost"
                   size="sm"
                   onClick={checkForCycles}
-                  className="bg-white/95 backdrop-blur-xl rounded-lg shadow-lg border border-slate-200/60 h-9 px-3 hover:bg-slate-50 transition-all"
+                  className="bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/60 h-9 w-9 p-0 hover:bg-slate-50 transition-all"
                   title="Detect cycles"
                 >
-                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
                 </Button>
               </>
             )}
@@ -2065,7 +2075,7 @@ function EnhancedWorkflowCanvasInner({
             <Button
               variant="outline"
               size="sm"
-              className="bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
+              className="bg-blue-50/95 backdrop-blur-xl text-blue-800 border-blue-200 hover:bg-blue-100 rounded-xl h-9 shadow-lg"
               onClick={() => {
                 if (readOnly && previewMode) {
                   setShowPreviewWarning(true);
@@ -2074,18 +2084,19 @@ function EnhancedWorkflowCanvasInner({
                 }
               }}
             >
-              <Lock className="h-3 w-3 mr-1" />
+              <Lock className="h-3.5 w-3.5 mr-1.5" />
               Preview Mode - Click to Edit
             </Button>
           )}
           {readOnly && !previewMode && (
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800">
-                <Lock className="h-3 w-3 mr-1" />
+              <Badge variant="secondary" className="bg-amber-100/95 backdrop-blur-xl text-amber-800 border-amber-200 rounded-lg px-3 py-1.5 shadow-lg">
+                <Lock className="h-3.5 w-3.5 mr-1.5" />
                 Read Only
               </Badge>
             )}
             {isDirty && !readOnly && (
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+              <Badge variant="secondary" className="bg-amber-100/95 backdrop-blur-xl text-amber-800 border-amber-200 rounded-lg px-3 py-1.5 shadow-lg">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 animate-pulse" />
                 Unsaved changes
               </Badge>
             )}
@@ -2094,9 +2105,10 @@ function EnhancedWorkflowCanvasInner({
               variant="outline"
               size="sm"
               onClick={exportWorkflow}
-              className="bg-white/90 backdrop-blur"
+              className="bg-white/95 backdrop-blur-xl border-slate-200/60 hover:bg-slate-50 shadow-lg rounded-xl h-9 w-9 p-0"
+              title="Export workflow"
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-4 w-4 text-slate-600" />
             </Button>
             
             {!readOnly && (
@@ -2105,9 +2117,10 @@ function EnhancedWorkflowCanvasInner({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="bg-white/90 backdrop-blur cursor-pointer"
+                    className="bg-white/95 backdrop-blur-xl border-slate-200/60 hover:bg-slate-50 shadow-lg cursor-pointer rounded-xl h-9 w-9 p-0"
+                    title="Import workflow"
                   >
-                    <Upload className="h-4 w-4" />
+                    <Upload className="h-4 w-4 text-slate-600" />
                   </Button>
                 </label>
                 <input
@@ -2124,9 +2137,10 @@ function EnhancedWorkflowCanvasInner({
               variant="outline"
               size="sm"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="bg-white/90 backdrop-blur"
+              className="bg-white/95 backdrop-blur-xl border-slate-200/60 hover:bg-slate-50 shadow-lg rounded-xl h-9 w-9 p-0"
+              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             >
-              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              {isFullscreen ? <Minimize2 className="h-4 w-4 text-slate-600" /> : <Maximize2 className="h-4 w-4 text-slate-600" />}
             </Button>
             
             {!readOnly && (
@@ -2136,12 +2150,12 @@ function EnhancedWorkflowCanvasInner({
                   size="sm"
                   onClick={testWorkflow}
                   disabled={!isValid || isExecuting}
-                  className="bg-white/90 backdrop-blur"
+                  className="bg-white/95 backdrop-blur-xl border-slate-200/60 hover:bg-slate-50 shadow-lg rounded-xl h-9 px-4"
                 >
                   {isExecuting ? (
-                    <Pause className="h-4 w-4 mr-2 animate-pulse" />
+                    <Pause className="h-4 w-4 mr-2 animate-pulse text-amber-500" />
                   ) : (
-                    <TestTube className="h-4 w-4 mr-2" />
+                    <TestTube className="h-4 w-4 mr-2 text-violet-500" />
                   )}
                   {isExecuting ? 'Testing...' : 'Test'}
                 </Button>
@@ -2151,7 +2165,7 @@ function EnhancedWorkflowCanvasInner({
                     size="sm"
                     onClick={onSave}
                     disabled={!isValid || !isDirty}
-                    className="bg-primary text-primary-foreground"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 rounded-xl h-9 px-5"
                   >
                     <Save className="h-4 w-4 mr-2" />
                     Save
@@ -2164,15 +2178,17 @@ function EnhancedWorkflowCanvasInner({
 
         {/* Bottom Status Bar */}
         <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center pointer-events-none">
-          <div className="bg-white/90 backdrop-blur rounded-lg px-3 py-1 text-xs text-muted-foreground pointer-events-auto">
-            {nodes.length} nodes • {edges.length} connections
+          <div className="bg-white/95 backdrop-blur-xl rounded-xl px-4 py-2 text-xs text-slate-600 pointer-events-auto shadow-lg border border-slate-200/60">
+            <span className="font-medium">{nodes.length}</span> nodes • <span className="font-medium">{edges.length}</span> connections
           </div>
           {selectedNode && !readOnly && (
-            <div className="bg-white/90 backdrop-blur rounded-lg px-3 py-1 text-xs pointer-events-auto flex gap-2">
-              <span>Selected: {selectedNode.data?.label || selectedNode.type}</span>
+            <div className="bg-white/95 backdrop-blur-xl rounded-xl px-4 py-2 text-xs pointer-events-auto flex items-center gap-3 shadow-lg border border-slate-200/60">
+              <span className="text-slate-600">
+                <span className="font-medium text-slate-800">{selectedNode.data?.label || selectedNode.type}</span> selected
+              </span>
               <button 
                 onClick={deleteSelectedNode}
-                className="hover:text-destructive"
+                className="text-red-500 hover:text-red-600 font-medium transition-colors"
               >
                 Delete
               </button>
@@ -2183,19 +2199,23 @@ function EnhancedWorkflowCanvasInner({
 
       {/* Right Panel - Properties */}
       <div className={cn(
-        "border-l bg-card transition-all duration-200 overflow-hidden",
+        "border-l border-slate-200/60 bg-gradient-to-b from-white to-slate-50/50 transition-all duration-300 overflow-hidden",
         showProperties ? "w-80" : "w-12"
       )}>
         {showProperties ? (
           <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between p-3 border-b">
-              <h3 className="font-medium">Properties</h3>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200/60 bg-white/80 backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-blue-500" />
+                <h3 className="font-semibold text-slate-800">Node Editor</h3>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowProperties(false)}
+                className="h-8 w-8 p-0 hover:bg-slate-100 rounded-lg"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 text-slate-500" />
               </Button>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -2203,14 +2223,16 @@ function EnhancedWorkflowCanvasInner({
             </div>
           </div>
         ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowProperties(true)}
-            className="w-full h-12 rounded-none"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+          <div className="h-full flex items-center justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowProperties(true)}
+              className="h-10 w-10 p-0 rounded-xl hover:bg-slate-100"
+            >
+              <ChevronLeft className="h-4 w-4 text-slate-500" />
+            </Button>
+          </div>
         )}
       </div>
 

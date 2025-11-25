@@ -20,6 +20,7 @@
 
 import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useTransition, useRef } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
@@ -34,10 +35,11 @@ import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuConten
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OffboardingModal from "@/components/employees/OffboardingModal";
-import { MoreVertical, Users, UserX, Archive } from "lucide-react";
+import { MoreVertical, Users, UserX, Archive, UserCheck, UserPlus, Download, Filter, Sparkles, TrendingUp, Building2 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { toast } from "sonner";
 import { deleteEmployeeAction, sendActivationEmailAction, refreshEmployeesAction } from "./actions";
+import { cn } from "@/lib/utils";
 
 // ✅ Inline type definition to avoid import error
 type FilterOption = { label: string; value: string };
@@ -295,26 +297,39 @@ function EmployeesContent(props: EmployeesClientProps) {
         cell: ({ row }) => {
           const emp = row.original as Employee;
           return (
-            <div className="flex items-center gap-3">
-              <Avatar
-                size={28}
-                name={`${emp.firstName} ${emp.lastName}`}
-                src={(emp as any).profileImageUrl}
-              />
-              <Link
-                href={`/employees/${emp.id}/overview`}
-                className="text-primary hover:text-primary/80 font-medium transition-smooth"
-              >
-                {emp.firstName} {emp.lastName}
-              </Link>
-            </div>
+            <Link
+              href={`/employees/${emp.id}/overview`}
+              className="group flex items-center gap-3 py-1"
+            >
+              <div className="relative">
+                <Avatar
+                  size={36}
+                  name={`${emp.firstName} ${emp.lastName}`}
+                  src={(emp as any).profileImageUrl}
+                  className="ring-2 ring-white dark:ring-card shadow-sm group-hover:ring-primary/30 transition-all duration-200"
+                />
+                {emp.isActive && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-card" />
+                )}
+              </div>
+              <div>
+                <span className="font-medium text-foreground group-hover:text-primary transition-colors duration-200">
+                  {emp.firstName} {emp.lastName}
+                </span>
+                <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
+              </div>
+            </Link>
           );
         },
       },
       {
         accessorKey: "phone",
         header: "Phone",
-        cell: ({ row }) => (row.original.phone ? row.original.phone : "-"),
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground">
+            {row.original.phone || "—"}
+          </span>
+        ),
       },
       {
         accessorKey: "departmentName",
@@ -326,7 +341,18 @@ function EmployeesContent(props: EmployeesClientProps) {
               (departments || []).map((d: any) => ({ label: d.name, value: d.name })),
           },
         },
-        cell: ({ row }) => row.original.departmentName || "-",
+        cell: ({ row }) => (
+          row.original.departmentName ? (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                <Building2 className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <span className="text-sm font-medium">{row.original.departmentName}</span>
+            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">—</span>
+          )
+        ),
       },
       {
         accessorKey: "jobRoleName",
@@ -338,9 +364,15 @@ function EmployeesContent(props: EmployeesClientProps) {
               (jobRoles || []).map((j: any) => ({ label: j.name, value: j.name })),
           },
         },
-        cell: ({ row }) => row.original.jobRoleName || "-",
+        cell: ({ row }) => (
+          <span className={cn(
+            "text-sm",
+            row.original.jobRoleName ? "font-medium text-foreground" : "text-muted-foreground"
+          )}>
+            {row.original.jobRoleName || "—"}
+          </span>
+        ),
       },
-      { accessorKey: "email", header: "Email", cell: ({ row }) => row.original.email || "-" },
       {
         id: "status",
         header: "Status",
@@ -357,19 +389,44 @@ function EmployeesContent(props: EmployeesClientProps) {
         cell: ({ row }) => {
           const emp = row.original as Employee;
           return (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
                 {emp.isActive ? (
-                  <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
+                  <Badge 
+                    variant="default" 
+                    className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 font-medium"
+                  >
+                    Active
+                  </Badge>
                 ) : (
-                  <Badge variant="secondary" className="bg-gray-100 text-gray-800">Archived</Badge>
+                  <Badge 
+                    variant="secondary" 
+                    className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-0 font-medium"
+                  >
+                    Archived
+                  </Badge>
                 )}
-                <Badge variant={emp.isActivated ? "outline" : "destructive"} className="text-xs">
-                  {emp.isActivated ? "Activated" : "Pending"}
-                </Badge>
+                {emp.isActivated ? (
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs border-blue-200 text-blue-700 dark:border-blue-800 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20"
+                  >
+                    Activated
+                  </Badge>
+                ) : (
+                  <Badge 
+                    variant="outline"
+                    className="text-xs border-amber-200 text-amber-700 dark:border-amber-800 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-900/20"
+                  >
+                    Pending
+                  </Badge>
+                )}
               </div>
               {!emp.isActive && emp.offboardingRecord && (
-                <Badge variant="outline" className="text-xs">
+                <Badge 
+                  variant="outline" 
+                  className="text-xs w-fit border-slate-200 dark:border-slate-700"
+                >
                   {emp.offboardingRecord.offboardingType.replace("_", " ")}
                 </Badge>
               )}
@@ -379,7 +436,7 @@ function EmployeesContent(props: EmployeesClientProps) {
       },
       {
         id: "actions",
-        header: "Actions",
+        header: "",
         enableSorting: false,
         enableColumnFilter: false,
         cell: ({ row }) => {
@@ -387,11 +444,15 @@ function EmployeesContent(props: EmployeesClientProps) {
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="ghost">
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  className="h-8 w-8 p-0 hover:bg-muted/80 transition-colors duration-200 rounded-lg"
+                >
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-depth-3 border-border/50">
                 <DropdownMenuItem
                 onClick={async () => {
                   if (
@@ -425,7 +486,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                     console.error(err);
                   }
                 }}
-                className="text-destructive"
+                className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg"
               >
                 Delete
               </DropdownMenuItem>
@@ -445,11 +506,15 @@ function EmployeesContent(props: EmployeesClientProps) {
                     toast.error("Network error sending activation email");
                   }
                 }}
+                className="rounded-lg"
               >
                 {emp.isActivated ? "Resend activation email" : "Send activation email"}
               </DropdownMenuItem>
               {row.original.isActive && !row.original.offboardingRecord && (
-                <DropdownMenuItem onClick={() => handleStartOffboarding(row.original)} className="text-orange-600">
+                <DropdownMenuItem 
+                  onClick={() => handleStartOffboarding(row.original)} 
+                  className="text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-900/20 rounded-lg"
+                >
                   <UserX className="w-4 h-4 mr-2" />
                   Start Offboarding
                 </DropdownMenuItem>
@@ -493,6 +558,10 @@ function EmployeesContent(props: EmployeesClientProps) {
 
   const breadcrumbs = useBreadcrumbs();
 
+  // Calculate additional stats
+  const activatedCount = employees.filter(e => e.isActivated).length;
+  const pendingActivationCount = employees.filter(e => !e.isActivated && e.isActive).length;
+
   return (
     <PageShell
       title="Employees"
@@ -501,76 +570,259 @@ function EmployeesContent(props: EmployeesClientProps) {
       breadcrumbs={breadcrumbs || undefined}
       action={
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleExport}>Export</Button>
-          <Button onClick={() => setModalOpen(true)} variant="primary">
-            Add Employee
-          </Button>
+          <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <Button 
+              variant="outline" 
+              onClick={handleExport}
+              className="border-border/50 hover:bg-muted/50 transition-all duration-200"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+          >
+            <Button 
+              onClick={() => setModalOpen(true)} 
+              variant="primary"
+              className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/25 transition-all duration-300"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Employee
+            </Button>
+          </motion.div>
         </div>
       }
     >
-      {error && (
-        <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-          <p className="text-destructive font-medium">{error}</p>
-        </div>
-      )}
-
-      {/* Column filters are rendered by DataTable at the top of the table */}
-
-      {/* Employee Status Tabs with Reset filters */}
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="active" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Active ({counts.active})
-            </TabsTrigger>
-            <TabsTrigger value="archived" className="flex items-center gap-2">
-              <Archive className="w-4 h-4" />
-              Archived ({counts.archived})
-            </TabsTrigger>
-            <TabsTrigger value="all" className="flex items-center gap-2">
-              All ({counts.all})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <Button
-          variant="ghost"
-          onClick={() => setResetFiltersTick((t) => t + 1)}
-          className="text-sm"
-        >
-          Reset filters
-        </Button>
-      </div>
-
-      {/* Employee Table with column filters */}
-      <div className="bg-card rounded-xl shadow-lg border border-enhanced overflow-hidden p-4">
-        <DataTable<Employee, unknown>
-          columns={columns}
-          data={employees}
-          getRowId={(row) => row.id}
-          onFilteredRowsChange={(rows) => setVisibleEmployees(rows as Employee[])}
-          resetFiltersAt={resetFiltersTick}
-        />
-        
-        {/* Load More Button */}
-        {pagination.hasMore && (
-          <div className="mt-4 flex justify-center">
-            <Button
-              variant="outline"
-              onClick={loadMore}
-              disabled={pagination.loading}
+      <div className="space-y-6">
+        {/* Error Alert */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-4 bg-destructive/10 border border-destructive/20 rounded-2xl backdrop-blur-sm"
             >
-              {pagination.loading ? "Loading..." : "Load More Employees"}
-            </Button>
+              <p className="text-destructive font-medium">{error}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Stats Cards */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+        >
+          {/* Active Employees */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border border-emerald-200/50 dark:border-emerald-700/30 p-5 shadow-depth-2"
+          >
+            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-emerald-500/10 blur-2xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                  <UserCheck className="w-5 h-5 text-white" />
+                </div>
+                <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{counts.active}</p>
+                <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">Active Employees</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Activated */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200/50 dark:border-blue-700/30 p-5 shadow-depth-2"
+          >
+            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-blue-500/10 blur-2xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{activatedCount}</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Activated</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Pending Activation */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border border-amber-200/50 dark:border-amber-700/30 p-5 shadow-depth-2"
+          >
+            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-amber-500/10 blur-2xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                  <Users className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl font-bold text-amber-900 dark:text-amber-100">{pendingActivationCount}</p>
+                <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">Pending Activation</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Archived */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/40 dark:to-slate-700/40 border border-slate-200/50 dark:border-slate-600/30 p-5 shadow-depth-2"
+          >
+            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-slate-500/10 blur-2xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center shadow-lg shadow-slate-500/25">
+                  <Archive className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{counts.archived}</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">Archived</p>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Employee Status Tabs with Reset filters */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="flex items-center justify-between gap-3"
+        >
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full max-w-md grid-cols-3 bg-muted/50 backdrop-blur-sm p-1 rounded-xl">
+              <TabsTrigger 
+                value="active" 
+                className={cn(
+                  "flex items-center gap-2 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-card"
+                )}
+              >
+                <UserCheck className="w-4 h-4" />
+                Active ({counts.active})
+              </TabsTrigger>
+              <TabsTrigger 
+                value="archived" 
+                className={cn(
+                  "flex items-center gap-2 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-card"
+                )}
+              >
+                <Archive className="w-4 h-4" />
+                Archived ({counts.archived})
+              </TabsTrigger>
+              <TabsTrigger 
+                value="all" 
+                className={cn(
+                  "flex items-center gap-2 rounded-lg transition-all duration-200 data-[state=active]:bg-white data-[state=active]:shadow-sm dark:data-[state=active]:bg-card"
+                )}
+              >
+                All ({counts.all})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button
+            variant="ghost"
+            onClick={() => setResetFiltersTick((t) => t + 1)}
+            className="text-sm hover:bg-muted/50 transition-all duration-200"
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            Reset filters
+          </Button>
+        </motion.div>
+
+        {/* Employee Table with column filters */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="glass-card rounded-2xl shadow-depth-2 overflow-hidden"
+        >
+          <div className="p-5">
+            <DataTable<Employee, unknown>
+              columns={columns}
+              data={employees}
+              getRowId={(row) => row.id}
+              onFilteredRowsChange={(rows) => setVisibleEmployees(rows as Employee[])}
+              resetFiltersAt={resetFiltersTick}
+            />
+            
+            {/* Load More Button */}
+            <AnimatePresence>
+              {pagination.hasMore && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="mt-6 flex justify-center"
+                >
+                  <Button
+                    variant="outline"
+                    onClick={loadMore}
+                    disabled={pagination.loading}
+                    className="border-border/50 hover:bg-muted/50 transition-all duration-200 rounded-xl px-6"
+                  >
+                    {pagination.loading ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-4 h-4 mr-2 border-2 border-primary border-t-transparent rounded-full"
+                        />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="w-4 h-4 mr-2" />
+                        Load More Employees
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            {/* Loading indicator for initial load */}
+            <AnimatePresence>
+              {pagination.loading && employees.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="mt-8 text-center"
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                    className="w-8 h-8 mx-auto border-3 border-primary border-t-transparent rounded-full"
+                  />
+                  <p className="mt-4 text-sm text-muted-foreground font-medium">Loading employees...</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        )}
-        
-        {/* Loading indicator for initial load */}
-        {pagination.loading && employees.length === 0 && (
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            Loading employees...
-          </div>
-        )}
+        </motion.div>
       </div>
 
       {/* Modals */}

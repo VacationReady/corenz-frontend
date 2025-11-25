@@ -1,40 +1,28 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import { toast } from "@/hooks/use-toast";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { AutomationRuleList } from "./components/AutomationRuleList";
 import { WorkflowAppStore } from "./components/WorkflowAppStore";
-// Visual canvas builder
 import { DryRunResultsDialog } from "./components/DryRunResultsDialog";
 import { PreflightDialog } from "./components/PreflightDialog";
-import { ValidationChecklist } from "./components/ValidationChecklist";
 import EnhancedWorkflowCanvas from "./components/EnhancedWorkflowCanvas";
 import { TestRunLauncher } from "./components/TestRunLauncher";
 import { TestExecutionViewer } from "./components/TestExecutionViewer";
 import {
-  Settings,
   Plus,
-  Play,
-  Pause,
-  TestTube,
   Zap,
-  Filter,
-  Send,
-  Calendar,
-  User,
-  FileText,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Trash2,
-  Edit,
-  Copy,
-  HelpCircle,
+  Store,
+  Layers,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 
 interface AutomationRule {
@@ -58,21 +46,6 @@ interface TriggerType {
   configFields: ConfigField[];
 }
 
-interface ConditionType {
-  id: string;
-  name: string;
-  description: string;
-  configFields: ConfigField[];
-}
-
-interface ActionType {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  configFields: ConfigField[];
-}
-
 interface ConfigField {
   key: string;
   label: string;
@@ -88,250 +61,25 @@ const triggerTypes: TriggerType[] = [
     id: "DOCUMENT_EXPIRING",
     name: "Document Expiring",
     description: "Triggered when a document is approaching its expiry date",
-    icon: <FileText className="w-4 h-4" />,
+    icon: <Zap className="w-4 h-4" />,
     configFields: [
-      {
-        key: "daysBefore",
-        label: "Days Before Expiry",
-        type: "number",
-        required: true,
-        placeholder: "30",
-      },
-      {
-        key: "documentTypes",
-        label: "Document Types",
-        type: "multiselect",
-        options: [],
-      }, // Will be populated from API
+      { key: "daysBefore", label: "Days Before Expiry", type: "number", required: true, placeholder: "30" },
+      { key: "documentTypes", label: "Document Types", type: "multiselect", options: [] },
     ],
   },
   {
     id: "FORM_SUBMITTED",
     name: "Form Submitted",
     description: "Triggered when a specific form is submitted",
-    icon: <FileText className="w-4 h-4" />,
-    configFields: [
-      {
-        key: "formId",
-        label: "Form",
-        type: "select",
-        required: true,
-        options: [],
-      }, // Will be populated from API
-    ],
-  },
-  {
-    id: "ONBOARDING_STEP_COMPLETED",
-    name: "Onboarding Step Completed",
-    description: "Triggered when an onboarding step is completed",
-    icon: <User className="w-4 h-4" />,
-    configFields: [
-      {
-        key: "stepType",
-        label: "Step Type",
-        type: "select",
-        options: [
-          { value: "ACKNOWLEDGE_DOCUMENT", label: "Acknowledge Document" },
-          { value: "UPLOAD_DOCUMENT", label: "Upload Document" },
-          { value: "FORM_FILL", label: "Fill Form" },
-          { value: "INSTRUCTION", label: "Instruction" },
-        ],
-      },
-    ],
+    icon: <Zap className="w-4 h-4" />,
+    configFields: [{ key: "formId", label: "Form", type: "select", required: true, options: [] }],
   },
   {
     id: "EMPLOYEE_CREATED",
     name: "Employee Created",
     description: "Triggered when a new employee is added to the system",
-    icon: <User className="w-4 h-4" />,
+    icon: <Zap className="w-4 h-4" />,
     configFields: [],
-  },
-];
-
-const conditionTypes: ConditionType[] = [
-  {
-    id: "role",
-    name: "Employee Role",
-    description: "Filter by employee role",
-    configFields: [
-      {
-        key: "operator",
-        label: "Operator",
-        type: "select",
-        options: [
-          { value: "equals", label: "Equals" },
-          { value: "not_equals", label: "Not Equals" },
-          { value: "in", label: "In" },
-        ],
-      },
-      {
-        key: "value",
-        label: "Role",
-        type: "multiselect",
-        options: [
-          { value: "ADMIN", label: "Admin" },
-          { value: "MANAGER", label: "Manager" },
-          { value: "EMPLOYEE", label: "Employee" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "department",
-    name: "Department",
-    description: "Filter by department",
-    configFields: [
-      {
-        key: "operator",
-        label: "Operator",
-        type: "select",
-        options: [
-          { value: "equals", label: "Equals" },
-          { value: "not_equals", label: "Not Equals" },
-          { value: "in", label: "In" },
-        ],
-      },
-      { key: "value", label: "Department", type: "multiselect", options: [] }, // Will be populated from API
-    ],
-  },
-  {
-    id: "jobRole",
-    name: "Job Role",
-    description: "Filter by job role",
-    configFields: [
-      {
-        key: "operator",
-        label: "Operator",
-        type: "select",
-        options: [
-          { value: "equals", label: "Equals" },
-          { value: "not_equals", label: "Not Equals" },
-          { value: "in", label: "In" },
-        ],
-      },
-      { key: "value", label: "Job Role", type: "multiselect", options: [] }, // Will be populated from API
-    ],
-  },
-  {
-    id: "dateWindow",
-    name: "Date Window",
-    description: "Filter by date range",
-    configFields: [
-      { key: "startDate", label: "Start Date", type: "date" },
-      { key: "endDate", label: "End Date", type: "date" },
-    ],
-  },
-];
-
-const actionTypes: ActionType[] = [
-  {
-    id: "create_task",
-    name: "Create Task",
-    description: "Create a task for a user",
-    icon: <CheckCircle className="w-4 h-4" />,
-    configFields: [
-      { key: "title", label: "Task Title", type: "text", required: true },
-      { key: "description", label: "Task Description", type: "text" },
-      {
-        key: "assigneeType",
-        label: "Assign To",
-        type: "select",
-        required: true,
-        options: [
-          { value: "employee", label: "Employee (trigger subject)" },
-          { value: "manager", label: "Employee's Manager" },
-          { value: "hr", label: "HR Team" },
-          { value: "specific", label: "Specific User" },
-        ],
-      },
-      {
-        key: "assigneeId",
-        label: "Specific User",
-        type: "select",
-        options: [],
-      }, // Conditional field
-      {
-        key: "dueDays",
-        label: "Due in (days)",
-        type: "number",
-        placeholder: "7",
-      },
-    ],
-  },
-  {
-    id: "send_notification",
-    name: "Send Notification",
-    description: "Send email, Slack, or Teams notification",
-    icon: <Send className="w-4 h-4" />,
-    configFields: [
-      {
-        key: "channels",
-        label: "Channels",
-        type: "multiselect",
-        required: true,
-        options: [
-          { value: "email", label: "Email" },
-          { value: "slack", label: "Slack" },
-          { value: "teams", label: "Teams" },
-        ],
-      },
-      {
-        key: "recipientType",
-        label: "Send To",
-        type: "select",
-        required: true,
-        options: [
-          { value: "employee", label: "Employee (trigger subject)" },
-          { value: "manager", label: "Employee's Manager" },
-          { value: "hr", label: "HR Team" },
-          { value: "specific", label: "Specific Users" },
-        ],
-      },
-      {
-        key: "recipients",
-        label: "Specific Recipients",
-        type: "multiselect",
-        options: [],
-      }, // Conditional field
-      { key: "subject", label: "Subject", type: "text", required: true },
-      { key: "message", label: "Message", type: "text", required: true },
-    ],
-  },
-  {
-    id: "start_onboarding",
-    name: "Start Onboarding Template",
-    description: "Assign an onboarding template to the employee",
-    icon: <User className="w-4 h-4" />,
-    configFields: [
-      {
-        key: "templateId",
-        label: "Onboarding Template",
-        type: "select",
-        required: true,
-        options: [],
-      }, // Will be populated from API
-    ],
-  },
-  {
-    id: "update_field",
-    name: "Update Employee Field",
-    description: "Update a field on the employee record",
-    icon: <Edit className="w-4 h-4" />,
-    configFields: [
-      {
-        key: "field",
-        label: "Field",
-        type: "select",
-        required: true,
-        options: [
-          { value: "department", label: "Department" },
-          { value: "jobRole", label: "Job Role" },
-          { value: "manager", label: "Manager" },
-          { value: "workingPattern", label: "Working Pattern" },
-        ],
-      },
-      { key: "value", label: "New Value", type: "text", required: true },
-    ],
   },
 ];
 
@@ -346,13 +94,12 @@ export default function AutomationRulesPage() {
   const [postSaveRunTest, setPostSaveRunTest] = useState(true);
   const [activeTab, setActiveTab] = useState("store");
   
-  // New test execution state
   const [testLauncherOpen, setTestLauncherOpen] = useState(false);
   const [testExecutionOpen, setTestExecutionOpen] = useState(false);
   const [currentTestSessionId, setCurrentTestSessionId] = useState<string | null>(null);
   const [testingRule, setTestingRule] = useState<AutomationRule | null>(null);
+  const [previewMode, setPreviewMode] = useState(false);
 
-  // Form state for rule creation/editing
   const [formData, setFormData] = useState<AutomationRule>({
     name: "",
     description: "",
@@ -363,24 +110,15 @@ export default function AutomationRulesPage() {
     actions: [],
   });
 
-  // Dynamic select options
   const [formsOptions, setFormsOptions] = useState<{ value: string; label: string }[]>([]);
-  const [templatesOptions, setTemplatesOptions] = useState<{ value: string; label: string }[]>([]);
-  const [departmentsOptions, setDepartmentsOptions] = useState<{ value: string; label: string }[]>([]);
-  const [jobRolesOptions, setJobRolesOptions] = useState<{ value: string; label: string }[]>([]);
   const [usersOptions, setUsersOptions] = useState<{ value: string; label: string }[]>([]);
   const [documentTypeOptions, setDocumentTypeOptions] = useState<{ value: string; label: string }[]>([]);
-  const [previewMode, setPreviewMode] = useState(false);
-
-  // Validation states
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [validationHints, setValidationHints] = useState<string[]>([]);
 
   useEffect(() => {
     fetchRules();
     loadOptions();
     
-    // Support opening a specific rule via URL parameter
     const handleRuleIdParam = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
@@ -390,19 +128,17 @@ export default function AutomationRulesPage() {
             const res = await fetch(`/api/automation-rules/${ruleId}`);
             if (res.ok) {
               const rule = await res.json();
-              // Fetch full rule including workflowDefinition for the canvas
               setFormData(rule as any);
               setSelectedRule(rule as any);
               setBuilderMode("edit");
               setPreviewMode(false);
-              // Clean up URL parameter
               const newUrl = window.location.pathname;
               window.history.replaceState({}, "", newUrl);
             }
           } catch (error) {
             console.error("Failed to load rule:", error);
           }
-          return true; // Indicate we handled the ruleId
+          return true;
         }
       } catch (error) {
         console.error("Error parsing URL parameters:", error);
@@ -410,10 +146,9 @@ export default function AutomationRulesPage() {
       return false;
     };
     
-    // Support previewing a template in the builder (editable, not installed)
     (async () => {
       const handledRuleId = await handleRuleIdParam();
-      if (handledRuleId) return; // Don't process preview if we handled ruleId
+      if (handledRuleId) return;
       
       try {
         const params = new URLSearchParams(window.location.search);
@@ -424,7 +159,6 @@ export default function AutomationRulesPage() {
             const data = await res.json();
             const tpl = (data.templates || []).find((t: any) => t.id === previewId);
             if (tpl) {
-              // Load template as editable workflow (not read-only)
               setFormData({
                 name: tpl.name,
                 description: tpl.description,
@@ -453,11 +187,8 @@ export default function AutomationRulesPage() {
 
   const loadOptions = async () => {
     try {
-      const [formsRes, templatesRes, departmentsRes, jobRolesRes, usersRes, docTypesRes] = await Promise.all([
+      const [formsRes, usersRes, docTypesRes] = await Promise.all([
         fetch("/api/forms"),
-        fetch("/api/onboarding/templates"),
-        fetch("/api/departments"),
-        fetch("/api/job-roles"),
         fetch("/api/users?limit=1000"),
         fetch("/api/employment-checks/types"),
       ]);
@@ -465,26 +196,6 @@ export default function AutomationRulesPage() {
       if (formsRes.ok) {
         const forms = await formsRes.json();
         setFormsOptions(forms.map((f: any) => ({ value: f.id, label: f.name })));
-      }
-
-      if (templatesRes.ok) {
-        const templates = await templatesRes.json();
-        setTemplatesOptions(
-          templates.map((t: any) => ({ value: t.id, label: t.name })),
-        );
-      }
-
-      if (departmentsRes.ok) {
-        const departments = await departmentsRes.json();
-        setDepartmentsOptions(
-          departments.map((d: any) => ({ value: d.id, label: d.name })),
-        );
-      }
-
-      if (jobRolesRes.ok) {
-        const jr = await jobRolesRes.json();
-        const roles = Array.isArray(jr) ? jr : jr.jobRoles || [];
-        setJobRolesOptions(roles.map((r: any) => ({ value: r.id, label: r.name })));
       }
 
       if (usersRes.ok) {
@@ -502,13 +213,8 @@ export default function AutomationRulesPage() {
         setDocumentTypeOptions(types.map((t: string) => ({ value: t, label: t })));
       }
     } catch (e) {
-      // Non-blocking; options can be retried later
-      console.warn("Failed loading options for automation rules:", e);
+      console.warn("Failed loading options:", e);
     }
-  };
-
-  const exitPreviewMode = () => {
-    setPreviewMode(false);
   };
 
   const fetchRules = async () => {
@@ -529,23 +235,6 @@ export default function AutomationRulesPage() {
       setLoading(false);
     }
   };
-
-  // Update active tab when rules change - if we have rules and just loaded, maybe show them?
-  useEffect(() => {
-    if (rules.length > 0 && activeTab === "store" && loading === false) {
-       // Optional: auto-switch if user has rules? 
-       // actually better to stick to default or what user selected.
-       // But let's set default tab based on rules presence on first load
-    }
-  }, [rules.length, loading]);
-
-  useEffect(() => {
-     if (rules.length > 0) {
-         // If we just fetched rules and have some, we might want to default to my-workflows if we haven't set it yet
-         // But doing this inside useEffect might override user interaction.
-         // Instead, let's initialize state based on nothing and decide in render or just default to store.
-     }
-  }, [rules]);
 
   const saveRuleAndMaybeTest = async (runTestAfter: boolean) => {
     try {
@@ -601,10 +290,7 @@ export default function AutomationRulesPage() {
       });
 
       if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Rule deleted successfully",
-        });
+        toast({ title: "Success", description: "Rule deleted successfully" });
         fetchRules();
       }
     } catch (error) {
@@ -641,7 +327,6 @@ export default function AutomationRulesPage() {
   };
 
   const runDryTest = async (rule: AutomationRule) => {
-    // Open test launcher instead of old dry run
     setTestingRule(rule);
     setTestLauncherOpen(true);
   };
@@ -710,7 +395,6 @@ export default function AutomationRulesPage() {
 
   const openEditDialog = async (rule: AutomationRule, opts?: { preview?: boolean }) => {
     try {
-      // Fetch full rule including workflowDefinition for the canvas
       const res = await fetch(`/api/automation-rules/${rule.id}`);
       const full = res.ok ? await res.json() : rule;
       setFormData(full as any);
@@ -718,7 +402,6 @@ export default function AutomationRulesPage() {
       setBuilderMode("edit");
       setPreviewMode(!!opts?.preview);
     } catch {
-      // Fallback to existing rule data
       setFormData(rule);
       setSelectedRule(rule);
       setBuilderMode("edit");
@@ -730,176 +413,23 @@ export default function AutomationRulesPage() {
     return triggerTypes.find((t) => t.id === triggerType);
   };
 
-  const getTriggerFieldOptions = (field: ConfigField) => {
-    // Provide dynamic options where defined; fall back to static field.options
-    if (formData.triggerType === "FORM_SUBMITTED" && field.key === "formId") {
-      return formsOptions;
-    }
-    if (formData.triggerType === "DOCUMENT_EXPIRING" && field.key === "documentTypes") {
-      return documentTypeOptions;
-    }
-    return field.options ?? [];
-  };
-
-  // Validation helpers (pure)
   const computeErrors = (data: AutomationRule) => {
     const errors: Record<string, string> = {};
-    const hints: string[] = [];
-
-    if (!data.name?.trim()) {
-      errors["name"] = "Give your automation a clear, human-friendly name.";
-      hints.push("Add a descriptive name so your team recognizes this automation.");
-    }
-    if (!data.triggerType) {
-      errors["triggerType"] = "Select a trigger to start the automation.";
-      hints.push("Choose a trigger like Document Expiring or Form Submitted.");
-    }
-
-    if (data.triggerType === "FORM_SUBMITTED") {
-      if (!data.triggerConfig?.formId) {
-        errors["triggerConfig.formId"] = "Choose the form to watch for submissions.";
-      }
-    }
-    if (data.triggerType === "DOCUMENT_EXPIRING") {
-      const days = data.triggerConfig?.daysBefore;
-      if (typeof days !== "number" || days <= 0) {
-        errors["triggerConfig.daysBefore"] = "Enter days before expiry (e.g., 30).";
-      }
-    }
-    if (data.triggerType === "ONBOARDING_STEP_COMPLETED") {
-      if (!data.triggerConfig?.stepType) {
-        errors["triggerConfig.stepType"] = "Choose the onboarding step type.";
-      }
-    }
-
-    if (!Array.isArray(data.actions) || data.actions.length === 0) {
-      errors["actions"] = "Add at least one action (e.g., Send Notification).";
-      hints.push("Most automations send a notification or create a task.");
-    }
-    data.actions?.forEach((action: any, index: number) => {
-      const prefix = `actions.${index}`;
-      if (!action?.type) {
-        errors[`${prefix}.type`] = "Select an action type.";
-      }
-      if (action?.type === "create_task") {
-        if (!action.config?.title) errors[`${prefix}.title`] = "Add a task title.";
-        if (!action.config?.assigneeType) errors[`${prefix}.assigneeType`] = "Choose an assignee.";
-        if (action.config?.assigneeType === "specific" && !action.config?.assigneeId) {
-          errors[`${prefix}.assigneeId`] = "Choose a specific user to assign the task to.";
-        }
-      }
-      if (action?.type === "send_notification") {
-        if (!Array.isArray(action.config?.channels) || action.config.channels.length === 0) {
-          errors[`${prefix}.channels`] = "Select at least one channel (Email, Slack, Teams).";
-        }
-        if (!action.config?.recipientType) {
-          errors[`${prefix}.recipientType`] = "Choose who should receive the message.";
-        }
-        if (action.config?.recipientType === "specific" && (!Array.isArray(action.config?.recipients) || action.config.recipients.length === 0)) {
-          errors[`${prefix}.recipients`] = "Select at least one recipient.";
-        }
-        if (!action.config?.subject) errors[`${prefix}.subject`] = "Add a subject for the message.";
-        if (!action.config?.message) errors[`${prefix}.message`] = "Write a short message.";
-      }
-      if (action?.type === "start_onboarding") {
-        if (!action.config?.templateId) errors[`${prefix}.templateId`] = "Choose an onboarding template.";
-      }
-      if (action?.type === "update_field") {
-        if (!action.config?.field) errors[`${prefix}.field`] = "Choose a field to update.";
-        if (!action.config?.value) errors[`${prefix}.value`] = "Enter a new value.";
-      }
-    });
-
-    return { errors, hints, isValid: Object.keys(errors).length === 0 };
+    if (!data.name?.trim()) errors["name"] = "Give your automation a clear name.";
+    if (!data.triggerType) errors["triggerType"] = "Select a trigger.";
+    return { errors, isValid: Object.keys(errors).length === 0 };
   };
 
   useEffect(() => {
-    const { errors, hints } = computeErrors(formData);
+    const { errors } = computeErrors(formData);
     setValidationErrors(errors);
-    setValidationHints(hints);
   }, [formData]);
 
-  const getError = (key: string) => validationErrors[key];
   const isFormValid = Object.keys(validationErrors).length === 0;
-
-  // Presets
-  const usePreset = (preset: "expiry-30" | "welcome" | "form-followup") => {
-    if (preset === "expiry-30") {
-      setFormData({
-        ...formData,
-        name: "Document Expiry Reminder",
-        description: "Notify employees before key documents expire",
-        triggerType: "DOCUMENT_EXPIRING",
-        triggerConfig: { daysBefore: 30, documentTypes: [] },
-        actions: [
-          {
-            type: "send_notification",
-            config: {
-              channels: ["email"],
-              recipientType: "employee",
-              subject: "Your document is expiring soon",
-              message: "Please update your expiring document to stay compliant.",
-            },
-          },
-        ],
-      });
-      return;
-    }
-    if (preset === "welcome") {
-      setFormData({
-        ...formData,
-        name: "Welcome New Starter",
-        description: "Welcome email and manager task for new employees",
-        triggerType: "EMPLOYEE_CREATED",
-        triggerConfig: {},
-        actions: [
-          {
-            type: "send_notification",
-            config: {
-              channels: ["email"],
-              recipientType: "employee",
-              subject: "Welcome to the team!",
-              message: "We’re excited to have you onboard. Here’s what to expect in your first week.",
-            },
-          },
-          {
-            type: "create_task",
-            config: {
-              title: "Complete new starter setup",
-              description: "Set up accounts and schedule intro sessions",
-              assigneeType: "manager",
-              dueDays: 7,
-            },
-          },
-        ],
-      });
-      return;
-    }
-    if (preset === "form-followup") {
-      setFormData({
-        ...formData,
-        name: "Form Submission Follow-up",
-        description: "Create a task when a key form is submitted",
-        triggerType: "FORM_SUBMITTED",
-        triggerConfig: { formId: formsOptions[0]?.value || "" },
-        actions: [
-          {
-            type: "create_task",
-            config: {
-              title: "Review form submission",
-              description: "Check responses and follow up if needed",
-              assigneeType: "hr",
-              dueDays: 3,
-            },
-          },
-        ],
-      });
-    }
-  };
 
   const attemptSave = () => {
     if (!isFormValid) {
-      toast({ title: "Check required fields", description: "Please fix the highlighted items before saving.", variant: "destructive" });
+      toast({ title: "Check required fields", description: "Please fix the highlighted items.", variant: "destructive" });
       return;
     }
     if (formData.isActive) {
@@ -921,63 +451,237 @@ export default function AutomationRulesPage() {
     setBuilderMode("create");
   };
 
-  // Show builder view when in create/edit mode
+  // Builder view
   if (builderMode) {
     return (
+      <PageShell
+        title="Workflow Builder"
+        description="Design your automation workflow with the visual builder"
+        breadcrumbs={breadcrumbConfigs.settingsSection("Automation Rules")}
+        showHomeIcon={false}
+      >
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex h-[calc(100vh-12rem)]"
+        >
+          <div className="flex-1 flex">
+            <div className="flex-1">
+              <EnhancedWorkflowCanvas
+                workflow={{
+                  id: selectedRule?.id || formData.id,
+                  name: formData.name,
+                  description: formData.description,
+                  nodes: ((formData as any).workflowDefinition?.nodes || []),
+                  edges: ((formData as any).workflowDefinition?.edges || []),
+                }}
+                onWorkflowChange={(workflow) => {
+                  if (previewMode) return;
+                  setFormData({ 
+                    ...(formData as any), 
+                    workflowDefinition: { 
+                      nodes: workflow.nodes, 
+                      edges: workflow.edges 
+                    } 
+                  } as any);
+                }}
+                onSave={attemptSave}
+                onTest={() => {
+                  if (selectedRule?.id) {
+                    runDryTest(selectedRule);
+                  } else {
+                    setTestingRule(formData as any);
+                    setTestLauncherOpen(true);
+                  }
+                }}
+                onExit={() => {
+                  setBuilderMode(null);
+                  setSelectedRule(null);
+                  setPreviewMode(false);
+                }}
+                isValid={isFormValid}
+                isDirty={JSON.stringify(formData) !== JSON.stringify(selectedRule || {})}
+                readOnly={previewMode}
+                previewMode={previewMode}
+                onRequestEdit={() => setPreviewMode(false)}
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        <DryRunResultsDialog
+          open={testDialogOpen}
+          onOpenChange={setTestDialogOpen}
+          results={dryRunResults}
+          ruleName={selectedRule?.name}
+          onEditRule={() => setTestDialogOpen(false)}
+        />
+
+        <PreflightDialog
+          open={preflightOpen}
+          onOpenChange={setPreflightOpen}
+          formData={formData}
+          postSaveRunTest={postSaveRunTest}
+          onPostSaveRunTestChange={setPostSaveRunTest}
+          onConfirm={async () => {
+            setPreflightOpen(false);
+            await saveRuleAndMaybeTest(postSaveRunTest);
+          }}
+          onCancel={() => setPreflightOpen(false)}
+          getTriggerTypeInfo={getTriggerTypeInfo}
+        />
+
+        <TestRunLauncher
+          open={testLauncherOpen}
+          onOpenChange={setTestLauncherOpen}
+          rule={testingRule || undefined}
+          onStartTest={startTestRun}
+          employeesOptions={usersOptions}
+          formsOptions={formsOptions}
+        />
+
+        <TestExecutionViewer
+          open={testExecutionOpen}
+          onOpenChange={setTestExecutionOpen}
+          sessionId={currentTestSessionId || undefined}
+          ruleId={testingRule?.id || "draft"}
+          ruleName={testingRule?.name}
+          onReRun={() => {
+            setTestExecutionOpen(false);
+            setTestLauncherOpen(true);
+          }}
+        />
+      </PageShell>
+    );
+  }
+
+  // Main view with beautiful tabs
+  return (
     <PageShell
       title="Automation Rules"
-      description="Create and manage no-code automation rules to streamline HR processes"
+      description="Create and manage no-code automation workflows to streamline HR processes"
       breadcrumbs={breadcrumbConfigs.settingsSection("Automation Rules")}
       showHomeIcon={false}
+      action={
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Button 
+            onClick={openCreateDialog} 
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Build Custom Workflow
+          </Button>
+        </motion.div>
+      }
     >
-      <div className="flex h-[calc(100vh-12rem)]">
-        {/* Main Builder Area - Full width in preview mode */}
-        <div className="flex-1 flex">
-          <div className="flex-1">
-            <EnhancedWorkflowCanvas
-              workflow={{
-                id: selectedRule?.id || formData.id,
-                name: formData.name,
-                description: formData.description,
-                nodes: ((formData as any).workflowDefinition?.nodes || []),
-                edges: ((formData as any).workflowDefinition?.edges || []),
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="h-[calc(100vh-12rem)]"
+      >
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+          {/* Beautiful Tab Header */}
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 px-6 sticky top-0 z-10"
+          >
+            <TabsList className="h-14 bg-transparent p-0 gap-1">
+              <TabsTrigger 
+                value="store"
+                className="relative px-5 py-3 rounded-lg data-[state=active]:bg-transparent data-[state=active]:shadow-none font-medium text-slate-500 data-[state=active]:text-slate-900 transition-all"
+              >
+                <span className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 group-data-[state=active]:from-violet-500 group-data-[state=active]:to-purple-500">
+                    <Store className="w-4 h-4 text-violet-600 group-data-[state=active]:text-white" />
+                  </div>
+                  <span>Marketplace</span>
+                </span>
+                {activeTab === "store" && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 to-purple-500"
+                    initial={false}
+                  />
+                )}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="my-workflows"
+                className="relative px-5 py-3 rounded-lg data-[state=active]:bg-transparent data-[state=active]:shadow-none font-medium text-slate-500 data-[state=active]:text-slate-900 transition-all"
+              >
+                <span className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500/10 to-indigo-500/10">
+                    <Layers className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <span>My Workflows</span>
+                  {rules.length > 0 && (
+                    <Badge className="ml-1.5 bg-blue-100 text-blue-700 border-0 px-2 py-0.5 text-xs font-semibold">
+                      {rules.length}
+                    </Badge>
+                  )}
+                </span>
+                {activeTab === "my-workflows" && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500"
+                    initial={false}
+                  />
+                )}
+              </TabsTrigger>
+            </TabsList>
+          </motion.div>
+
+          {/* Tab Content */}
+          <TabsContent value="my-workflows" className="flex-1 m-0 border-0 data-[state=inactive]:hidden">
+            <AutomationRuleList
+              rules={rules}
+              loading={loading}
+              onCreateNew={() => {
+                setActiveTab("store");
               }}
-              onWorkflowChange={(workflow) => {
-                if (previewMode) return;
-                setFormData({ 
-                  ...(formData as any), 
-                  workflowDefinition: { 
-                    nodes: workflow.nodes, 
-                    edges: workflow.edges 
-                  } 
-                } as any);
+              onSelectRule={(rule) => setSelectedRule(rule)}
+              onEditRule={(rule) => openEditDialog(rule)}
+              onDeleteRule={deleteRule}
+              onToggleStatus={toggleRuleStatus}
+              onRunTest={runDryTest}
+              onDuplicateRule={handleDuplicateRule}
+              selectedRuleId={selectedRule?.id}
+            />
+          </TabsContent>
+
+          <TabsContent value="store" className="flex-1 m-0 border-0 data-[state=inactive]:hidden overflow-auto bg-gradient-to-br from-slate-50/50 via-white to-violet-50/30">
+            <WorkflowAppStore
+              onPreviewWorkflow={(templateId) => {
+                const url = `/settings/automation-rules?preview=${encodeURIComponent(templateId)}`;
+                window.location.href = url;
               }}
-              onSave={attemptSave}
-              onTest={() => {
-                if (selectedRule?.id) {
-                  runDryTest(selectedRule);
+              onInstallWorkflow={async (templateId) => {
+                const res = await fetch("/api/automation-rules/templates", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ templateId, customizations: { autoActivate: true } }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  toast({
+                    title: "Workflow Installed",
+                    description: data.message || "Workflow has been added successfully!",
+                  });
+                  await fetchRules();
+                  setActiveTab("my-workflows");
                 } else {
-                  // Testing unsaved draft
-                  setTestingRule(formData as any);
-                  setTestLauncherOpen(true);
+                  toast({
+                    title: "Installation Failed",
+                    description: "Could not install workflow",
+                    variant: "destructive",
+                  });
                 }
               }}
-              onExit={() => {
-                setBuilderMode(null);
-                setSelectedRule(null);
-                setPreviewMode(false);
-              }}
-              isValid={isFormValid}
-              isDirty={JSON.stringify(formData) !== JSON.stringify(selectedRule || {})}
-              readOnly={previewMode}
-              previewMode={previewMode}
-              onRequestEdit={() => setPreviewMode(false)}
+              onCreateCustom={openCreateDialog}
             />
-          </div>
-
-          {/* Right Sidebar replaced by properties panel inside WorkflowCanvas */}
-        </div>
-      </div>
+          </TabsContent>
+        </Tabs>
+      </motion.div>
 
       {/* Dialogs */}
       <DryRunResultsDialog
@@ -986,20 +690,6 @@ export default function AutomationRulesPage() {
         results={dryRunResults}
         ruleName={selectedRule?.name}
         onEditRule={() => setTestDialogOpen(false)}
-      />
-
-      <PreflightDialog
-        open={preflightOpen}
-        onOpenChange={setPreflightOpen}
-        formData={formData}
-        postSaveRunTest={postSaveRunTest}
-        onPostSaveRunTestChange={setPostSaveRunTest}
-        onConfirm={async () => {
-          setPreflightOpen(false);
-          await saveRuleAndMaybeTest(postSaveRunTest);
-        }}
-        onCancel={() => setPreflightOpen(false)}
-        getTriggerTypeInfo={getTriggerTypeInfo}
       />
 
       <TestRunLauncher
@@ -1024,120 +714,4 @@ export default function AutomationRulesPage() {
       />
     </PageShell>
   );
-}
-
-// Default view - show beautiful app store
-return (
-  <PageShell
-    title="Automation Rules"
-    description="Create and manage no-code automation rules to streamline HR processes"
-    breadcrumbs={breadcrumbConfigs.settingsSection("Automation Rules")}
-    showHomeIcon={false}
-    action={
-      <Button onClick={openCreateDialog} size="sm" className="gap-2">
-        <Plus className="w-4 h-4" />
-        Build a custom workflow
-      </Button>
-    }
-  >
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-[calc(100vh-12rem)]">
-      <div className="px-6 border-b bg-white flex-none">
-        <TabsList className="mb-0 bg-transparent p-0 h-12 w-full justify-start gap-6">
-          <TabsTrigger 
-            value="my-workflows"
-            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 pb-3 pt-3 font-semibold text-gray-500 data-[state=active]:text-blue-600"
-          >
-            My Workflows {rules.length > 0 && <span className="ml-2 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">{rules.length}</span>}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="store"
-            className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-blue-600 rounded-none px-0 pb-3 pt-3 font-semibold text-gray-500 data-[state=active]:text-blue-600"
-          >
-            Marketplace
-          </TabsTrigger>
-        </TabsList>
-      </div>
-
-      <TabsContent value="my-workflows" className="flex-1 p-0 m-0 border-0 data-[state=inactive]:hidden h-full">
-        <AutomationRuleList
-          rules={rules}
-          loading={loading}
-          onCreateNew={() => {
-             setActiveTab("store"); // Or open builder directly?
-             openCreateDialog();
-          }}
-          onSelectRule={(rule) => setSelectedRule(rule)}
-          onEditRule={(rule) => openEditDialog(rule)}
-          onDeleteRule={deleteRule}
-          onToggleStatus={toggleRuleStatus}
-          onRunTest={runDryTest}
-          onDuplicateRule={handleDuplicateRule}
-          selectedRuleId={selectedRule?.id}
-        />
-      </TabsContent>
-
-      <TabsContent value="store" className="flex-1 p-0 m-0 border-0 data-[state=inactive]:hidden overflow-auto">
-        <WorkflowAppStore
-          onPreviewWorkflow={(templateId) => {
-            const url = `/settings/automation-rules?preview=${encodeURIComponent(templateId)}`;
-            window.location.href = url;
-          }}
-          onInstallWorkflow={async (templateId) => {
-            const res = await fetch("/api/automation-rules/templates", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ templateId, customizations: { autoActivate: true } }),
-            });
-            if (res.ok) {
-              const data = await res.json();
-              toast({
-                title: "Workflow Installed",
-                description: data.message || "Workflow has been added successfully!",
-              });
-              await fetchRules();
-              setActiveTab("my-workflows");
-            } else {
-              toast({
-                title: "Installation Failed",
-                description: "Could not install workflow",
-                variant: "destructive",
-              });
-            }
-          }}
-          onCreateCustom={openCreateDialog}
-        />
-      </TabsContent>
-    </Tabs>
-
-    {/* Dialogs */}
-    <DryRunResultsDialog
-      open={testDialogOpen}
-      onOpenChange={setTestDialogOpen}
-      results={dryRunResults}
-      ruleName={selectedRule?.name}
-      onEditRule={() => setTestDialogOpen(false)}
-    />
-
-    <TestRunLauncher
-      open={testLauncherOpen}
-      onOpenChange={setTestLauncherOpen}
-      rule={testingRule || undefined}
-      onStartTest={startTestRun}
-      employeesOptions={usersOptions}
-      formsOptions={formsOptions}
-    />
-
-    <TestExecutionViewer
-      open={testExecutionOpen}
-      onOpenChange={setTestExecutionOpen}
-      sessionId={currentTestSessionId || undefined}
-      ruleId={testingRule?.id || "draft"}
-      ruleName={testingRule?.name}
-      onReRun={() => {
-        setTestExecutionOpen(false);
-        setTestLauncherOpen(true);
-      }}
-    />
-  </PageShell>
-);
 }

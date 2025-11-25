@@ -136,7 +136,9 @@ function EmployeesContent(props: EmployeesClientProps) {
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   
   // Open dropdown and calculate position in one action
-  const handleOpenDropdown = (key: string, ref: React.RefObject<HTMLButtonElement | null>) => {
+  const handleOpenDropdown = (e: React.MouseEvent, key: string, ref: React.RefObject<HTMLButtonElement | null>) => {
+    e.stopPropagation(); // Prevent click-outside from firing immediately
+    
     if (openDropdown === key) {
       setOpenDropdown(null);
       setDropdownPosition(null);
@@ -149,8 +151,8 @@ function EmployeesContent(props: EmployeesClientProps) {
         top: rect.bottom + 8,
         left: rect.left,
       });
+      setOpenDropdown(key);
     }
-    setOpenDropdown(key);
   };
   
   // Recalculate position on scroll and resize
@@ -948,7 +950,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 <div className="relative" data-filter-dropdown>
                   <button
                     ref={departmentButtonRef}
-                    onClick={() => handleOpenDropdown("department", departmentButtonRef)}
+                    onClick={(e) => handleOpenDropdown(e, "department", departmentButtonRef)}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
                       "transition-all duration-200",
@@ -976,6 +978,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
+                        data-filter-dropdown
                         className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[9999] max-h-64 overflow-y-auto"
                         style={{
                           top: `${dropdownPosition.top}px`,
@@ -1021,7 +1024,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 <div className="relative" data-filter-dropdown>
                   <button
                     ref={jobRoleButtonRef}
-                    onClick={() => handleOpenDropdown("jobRole", jobRoleButtonRef)}
+                    onClick={(e) => handleOpenDropdown(e, "jobRole", jobRoleButtonRef)}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
                       "transition-all duration-200",
@@ -1049,6 +1052,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
+                        data-filter-dropdown
                         className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[9999] max-h-64 overflow-y-auto"
                         style={{
                           top: `${dropdownPosition.top}px`,
@@ -1094,7 +1098,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 <div className="relative" data-filter-dropdown>
                   <button
                     ref={statusButtonRef}
-                    onClick={() => handleOpenDropdown("status", statusButtonRef)}
+                    onClick={(e) => handleOpenDropdown(e, "status", statusButtonRef)}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
                       "transition-all duration-200",
@@ -1122,6 +1126,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
+                        data-filter-dropdown
                         className="fixed w-48 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[9999]"
                         style={{
                           top: `${dropdownPosition.top}px`,

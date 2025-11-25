@@ -140,7 +140,7 @@ function EmployeesContent(props: EmployeesClientProps) {
   }>({});
   
   // Calculate dropdown positions when they open or window changes
-  const calculateDropdownPosition = (ref: React.RefObject<HTMLButtonElement>, key: string) => {
+  const calculateDropdownPosition = (ref: React.RefObject<HTMLButtonElement | null>, key: string) => {
     if (!ref.current) return;
     const rect = ref.current.getBoundingClientRect();
     setDropdownPositions(prev => ({

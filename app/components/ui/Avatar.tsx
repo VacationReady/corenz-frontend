@@ -11,6 +11,14 @@ type AvatarProps = {
 };
 
 export function Avatar({ src, name, className, size = 32, children }: AvatarProps & { children?: React.ReactNode }) {
+  // Track if the image failed to load
+  const [imgError, setImgError] = React.useState(false);
+  
+  // Reset error state when src changes (e.g., new signed URL)
+  React.useEffect(() => {
+    setImgError(false);
+  }, [src]);
+  
   // If children provided, render as shadcn-style Avatar wrapper
   if (children) {
     return (
@@ -38,7 +46,8 @@ export function Avatar({ src, name, className, size = 32, children }: AvatarProp
     minWidth: size,
   } as React.CSSProperties;
 
-  if (src) {
+  // Show image if src is provided and hasn't errored
+  if (src && !imgError) {
     // eslint-disable-next-line @next/next/no-img-element
     return (
       <img
@@ -46,10 +55,12 @@ export function Avatar({ src, name, className, size = 32, children }: AvatarProp
         alt={name || "avatar"}
         className={cn("rounded-full object-cover bg-muted", className)}
         style={dimension}
+        onError={() => setImgError(true)}
       />
     );
   }
 
+  // Fallback to initials (no src, or image failed to load)
   return (
     <div
       className={cn(
@@ -70,14 +81,39 @@ export function Avatar({ src, name, className, size = 32, children }: AvatarProp
 }
 
 // Shadcn-style Avatar subcomponents for compatibility
-export function AvatarImage({ src, alt, className }: { src?: string; alt?: string; className?: string }) {
-  if (!src) return null;
+export function AvatarImage({ 
+  src, 
+  alt, 
+  className,
+  onLoadingStatusChange, 
+}: { 
+  src?: string; 
+  alt?: string; 
+  className?: string;
+  onLoadingStatusChange?: (status: "loading" | "loaded" | "error") => void;
+}) {
+  const [status, setStatus] = React.useState<"loading" | "loaded" | "error">("loading");
+  
+  // Reset status when src changes
+  React.useEffect(() => {
+    setStatus("loading");
+  }, [src]);
+  
+  // Notify parent of status changes
+  React.useEffect(() => {
+    onLoadingStatusChange?.(status);
+  }, [status, onLoadingStatusChange]);
+  
+  if (!src || status === "error") return null;
+  
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={alt || "avatar"}
       className={cn("aspect-square h-full w-full object-cover", className)}
+      onLoad={() => setStatus("loaded")}
+      onError={() => setStatus("error")}
     />
   );
 }

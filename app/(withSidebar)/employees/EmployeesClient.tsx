@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useTransition, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -127,46 +128,46 @@ function EmployeesContent(props: EmployeesClientProps) {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   
-  // Refs for dropdown buttons to calculate positions
-  const departmentButtonRef = useRef<HTMLButtonElement>(null);
-  const jobRoleButtonRef = useRef<HTMLButtonElement>(null);
-  const statusButtonRef = useRef<HTMLButtonElement>(null);
-  
   // Position for currently open dropdown (calculated on click)
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   
+  // Store reference to the current button element
+  const currentButtonRef = useRef<HTMLElement | null>(null);
+  
+  // Track if component is mounted (for portal rendering)
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
   // Open dropdown and calculate position in one action
-  const handleOpenDropdown = (e: React.MouseEvent, key: string, ref: React.RefObject<HTMLButtonElement | null>) => {
+  const handleOpenDropdown = (e: React.MouseEvent<HTMLButtonElement>, key: string) => {
     e.stopPropagation(); // Prevent click-outside from firing immediately
     
     if (openDropdown === key) {
       setOpenDropdown(null);
       setDropdownPosition(null);
+      currentButtonRef.current = null;
       return;
     }
     
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + 8,
-        left: rect.left,
-      });
-      setOpenDropdown(key);
-    }
+    const button = e.currentTarget;
+    currentButtonRef.current = button;
+    const rect = button.getBoundingClientRect();
+    setDropdownPosition({
+      top: rect.bottom + 8,
+      left: rect.left,
+    });
+    setOpenDropdown(key);
   };
   
   // Recalculate position on scroll and resize
   useEffect(() => {
-    if (!openDropdown) return;
+    if (!openDropdown || !currentButtonRef.current) return;
     
     const handleUpdate = () => {
-      const ref = 
-        openDropdown === "department" ? departmentButtonRef :
-        openDropdown === "jobRole" ? jobRoleButtonRef :
-        openDropdown === "status" ? statusButtonRef : null;
-      
-      if (ref?.current) {
-        const rect = ref.current.getBoundingClientRect();
+      if (currentButtonRef.current) {
+        const rect = currentButtonRef.current.getBoundingClientRect();
         setDropdownPosition({
           top: rect.bottom + 8,
           left: rect.left,
@@ -949,8 +950,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 {/* Department Filter */}
                 <div className="relative" data-filter-dropdown>
                   <button
-                    ref={departmentButtonRef}
-                    onClick={(e) => handleOpenDropdown(e, "department", departmentButtonRef)}
+                    onClick={(e) => handleOpenDropdown(e, "department")}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
                       "transition-all duration-200",
@@ -971,60 +971,54 @@ function EmployeesContent(props: EmployeesClientProps) {
                       openDropdown === "department" && "rotate-180"
                     )} />
                   </button>
-                  <AnimatePresence>
-                    {openDropdown === "department" && dropdownPosition && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        data-filter-dropdown
-                        className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[9999] max-h-64 overflow-y-auto"
-                        style={{
-                          top: `${dropdownPosition.top}px`,
-                          left: `${dropdownPosition.left}px`,
-                        }}
-                      >
-                        {departmentOptions.length === 0 ? (
-                          <p className="text-sm text-muted-foreground px-3 py-2">No departments found</p>
-                        ) : (
-                          departmentOptions.map(option => (
-                            <button
-                              key={option.value}
-                              onClick={() => toggleFilter(option.value, selectedDepartments, setSelectedDepartments)}
-                              className={cn(
-                                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left",
-                                "transition-colors duration-150",
-                                selectedDepartments.includes(option.value)
-                                  ? "bg-primary/10 text-primary"
-                                  : "hover:bg-muted/50 text-foreground"
+                  {isMounted && openDropdown === "department" && dropdownPosition && createPortal(
+                    <div
+                      data-filter-dropdown
+                      className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-xl z-[9999] max-h-64 overflow-y-auto"
+                      style={{
+                        top: `${dropdownPosition.top}px`,
+                        left: `${dropdownPosition.left}px`,
+                      }}
+                    >
+                      {departmentOptions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground px-3 py-2">No departments found</p>
+                      ) : (
+                        departmentOptions.map(option => (
+                          <button
+                            key={option.value}
+                            onClick={() => toggleFilter(option.value, selectedDepartments, setSelectedDepartments)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left",
+                              "transition-colors duration-150",
+                              selectedDepartments.includes(option.value)
+                                ? "bg-primary/10 text-primary"
+                                : "hover:bg-muted/50 text-foreground"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-4 h-4 rounded border flex items-center justify-center",
+                              "transition-colors duration-150",
+                              selectedDepartments.includes(option.value)
+                                ? "bg-primary border-primary"
+                                : "border-border"
+                            )}>
+                              {selectedDepartments.includes(option.value) && (
+                                <Check className="w-3 h-3 text-white" />
                               )}
-                            >
-                              <div className={cn(
-                                "w-4 h-4 rounded border flex items-center justify-center",
-                                "transition-colors duration-150",
-                                selectedDepartments.includes(option.value)
-                                  ? "bg-primary border-primary"
-                                  : "border-border"
-                              )}>
-                                {selectedDepartments.includes(option.value) && (
-                                  <Check className="w-3 h-3 text-white" />
-                                )}
-                              </div>
-                              {option.label}
-                            </button>
-                          ))
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                            </div>
+                            {option.label}
+                          </button>
+                        ))
+                      )}
+                    </div>,
+                    document.body
+                  )}
                 </div>
 
                 {/* Job Role Filter */}
                 <div className="relative" data-filter-dropdown>
                   <button
-                    ref={jobRoleButtonRef}
-                    onClick={(e) => handleOpenDropdown(e, "jobRole", jobRoleButtonRef)}
+                    onClick={(e) => handleOpenDropdown(e, "jobRole")}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
                       "transition-all duration-200",
@@ -1045,60 +1039,54 @@ function EmployeesContent(props: EmployeesClientProps) {
                       openDropdown === "jobRole" && "rotate-180"
                     )} />
                   </button>
-                  <AnimatePresence>
-                    {openDropdown === "jobRole" && dropdownPosition && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        data-filter-dropdown
-                        className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[9999] max-h-64 overflow-y-auto"
-                        style={{
-                          top: `${dropdownPosition.top}px`,
-                          left: `${dropdownPosition.left}px`,
-                        }}
-                      >
-                        {jobRoleOptions.length === 0 ? (
-                          <p className="text-sm text-muted-foreground px-3 py-2">No job roles found</p>
-                        ) : (
-                          jobRoleOptions.map(option => (
-                            <button
-                              key={option.value}
-                              onClick={() => toggleFilter(option.value, selectedJobRoles, setSelectedJobRoles)}
-                              className={cn(
-                                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left",
-                                "transition-colors duration-150",
-                                selectedJobRoles.includes(option.value)
-                                  ? "bg-primary/10 text-primary"
-                                  : "hover:bg-muted/50 text-foreground"
+                  {isMounted && openDropdown === "jobRole" && dropdownPosition && createPortal(
+                    <div
+                      data-filter-dropdown
+                      className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-xl z-[9999] max-h-64 overflow-y-auto"
+                      style={{
+                        top: `${dropdownPosition.top}px`,
+                        left: `${dropdownPosition.left}px`,
+                      }}
+                    >
+                      {jobRoleOptions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground px-3 py-2">No job roles found</p>
+                      ) : (
+                        jobRoleOptions.map(option => (
+                          <button
+                            key={option.value}
+                            onClick={() => toggleFilter(option.value, selectedJobRoles, setSelectedJobRoles)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left",
+                              "transition-colors duration-150",
+                              selectedJobRoles.includes(option.value)
+                                ? "bg-primary/10 text-primary"
+                                : "hover:bg-muted/50 text-foreground"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-4 h-4 rounded border flex items-center justify-center",
+                              "transition-colors duration-150",
+                              selectedJobRoles.includes(option.value)
+                                ? "bg-primary border-primary"
+                                : "border-border"
+                            )}>
+                              {selectedJobRoles.includes(option.value) && (
+                                <Check className="w-3 h-3 text-white" />
                               )}
-                            >
-                              <div className={cn(
-                                "w-4 h-4 rounded border flex items-center justify-center",
-                                "transition-colors duration-150",
-                                selectedJobRoles.includes(option.value)
-                                  ? "bg-primary border-primary"
-                                  : "border-border"
-                              )}>
-                                {selectedJobRoles.includes(option.value) && (
-                                  <Check className="w-3 h-3 text-white" />
-                                )}
-                              </div>
-                              {option.label}
-                            </button>
-                          ))
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                            </div>
+                            {option.label}
+                          </button>
+                        ))
+                      )}
+                    </div>,
+                    document.body
+                  )}
                 </div>
 
                 {/* Status Filter */}
                 <div className="relative" data-filter-dropdown>
                   <button
-                    ref={statusButtonRef}
-                    onClick={(e) => handleOpenDropdown(e, "status", statusButtonRef)}
+                    onClick={(e) => handleOpenDropdown(e, "status")}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
                       "transition-all duration-200",
@@ -1119,49 +1107,44 @@ function EmployeesContent(props: EmployeesClientProps) {
                       openDropdown === "status" && "rotate-180"
                     )} />
                   </button>
-                  <AnimatePresence>
-                    {openDropdown === "status" && dropdownPosition && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        data-filter-dropdown
-                        className="fixed w-48 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[9999]"
-                        style={{
-                          top: `${dropdownPosition.top}px`,
-                          left: `${dropdownPosition.left}px`,
-                        }}
-                      >
-                        {statusOptions.map(option => (
-                          <button
-                            key={option.value}
-                            onClick={() => toggleFilter(option.value, selectedStatuses, setSelectedStatuses)}
-                            className={cn(
-                              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left",
-                              "transition-colors duration-150",
-                              selectedStatuses.includes(option.value)
-                                ? "bg-primary/10 text-primary"
-                                : "hover:bg-muted/50 text-foreground"
+                  {isMounted && openDropdown === "status" && dropdownPosition && createPortal(
+                    <div
+                      data-filter-dropdown
+                      className="fixed w-48 p-2 rounded-xl bg-card border border-border/50 shadow-xl z-[9999]"
+                      style={{
+                        top: `${dropdownPosition.top}px`,
+                        left: `${dropdownPosition.left}px`,
+                      }}
+                    >
+                      {statusOptions.map(option => (
+                        <button
+                          key={option.value}
+                          onClick={() => toggleFilter(option.value, selectedStatuses, setSelectedStatuses)}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left",
+                            "transition-colors duration-150",
+                            selectedStatuses.includes(option.value)
+                              ? "bg-primary/10 text-primary"
+                              : "hover:bg-muted/50 text-foreground"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-4 h-4 rounded border flex items-center justify-center",
+                            "transition-colors duration-150",
+                            selectedStatuses.includes(option.value)
+                              ? "bg-primary border-primary"
+                              : "border-border"
+                          )}>
+                            {selectedStatuses.includes(option.value) && (
+                              <Check className="w-3 h-3 text-white" />
                             )}
-                          >
-                            <div className={cn(
-                              "w-4 h-4 rounded border flex items-center justify-center",
-                              "transition-colors duration-150",
-                              selectedStatuses.includes(option.value)
-                                ? "bg-primary border-primary"
-                                : "border-border"
-                            )}>
-                              {selectedStatuses.includes(option.value) && (
-                                <Check className="w-3 h-3 text-white" />
-                              )}
-                            </div>
-                            {option.label}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                          </div>
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>,
+                    document.body
+                  )}
                 </div>
 
                 {/* Clear All Button */}

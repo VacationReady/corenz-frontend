@@ -93,25 +93,13 @@ const items: PaletteItem[] = [
 function DraggablePaletteItem({ item, index }: { item: PaletteItem; index: number }) {
   const [isDragging, setIsDragging] = useState(false);
   
-  const handleNativeDragStart = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
     event.dataTransfer.setData("application/reactflow", item.id);
     event.dataTransfer.effectAllowed = "move";
     setIsDragging(true);
-    
-    // Create custom drag image
-    const dragPreview = document.createElement('div');
-    dragPreview.className = 'fixed pointer-events-none';
-    dragPreview.innerHTML = `
-      <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-xl shadow-2xl border-2 border-slate-200">
-        <span class="font-semibold text-slate-800">${item.label}</span>
-      </div>
-    `;
-    document.body.appendChild(dragPreview);
-    event.dataTransfer.setDragImage(dragPreview, 40, 20);
-    setTimeout(() => document.body.removeChild(dragPreview), 0);
   };
   
-  const handleNativeDragEnd = () => {
+  const handleDragEnd = () => {
     setIsDragging(false);
   };
 
@@ -119,24 +107,26 @@ function DraggablePaletteItem({ item, index }: { item: PaletteItem; index: numbe
     <TooltipProvider delayDuration={500}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05, type: "spring" as const, stiffness: 300, damping: 25 }}
+          <div
             draggable
-            onDragStart={handleNativeDragStart as unknown as React.DragEventHandler}
-            onDragEnd={handleNativeDragEnd as unknown as React.DragEventHandler}
-            whileHover={{ scale: 1.02, x: 4 }}
-            whileTap={{ scale: 0.98 }}
-            className={cn(
-              "group rounded-xl p-3 cursor-grab active:cursor-grabbing",
-              "bg-white/80 backdrop-blur-sm border border-slate-200/60",
-              "hover:border-slate-300 hover:shadow-lg transition-all duration-200",
-              "active:shadow-xl active:ring-2 active:ring-primary/20",
-              item.bgHover,
-              isDragging && "opacity-50 scale-95"
-            )}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           >
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05, type: "spring" as const, stiffness: 300, damping: 25 }}
+              whileHover={{ scale: 1.02, x: 4 }}
+              whileTap={{ scale: 0.98 }}
+              className={cn(
+                "group rounded-xl p-3 cursor-grab active:cursor-grabbing",
+                "bg-white/80 backdrop-blur-sm border border-slate-200/60",
+                "hover:border-slate-300 hover:shadow-lg transition-all duration-200",
+                "active:shadow-xl active:ring-2 active:ring-primary/20",
+                item.bgHover,
+                isDragging && "opacity-50 scale-95"
+              )}
+            >
             <div className="flex items-center gap-3">
               <div className={cn(
                 "p-2.5 rounded-xl bg-gradient-to-br text-white shadow-lg transition-all duration-200",
@@ -156,7 +146,8 @@ function DraggablePaletteItem({ item, index }: { item: PaletteItem; index: numbe
               </div>
               <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-slate-400 transition-colors" />
             </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </TooltipTrigger>
         <TooltipContent 
           side="right" 

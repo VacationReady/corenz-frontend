@@ -449,15 +449,15 @@ function WorkflowCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onSelect={() => onEdit()}>
+              <DropdownMenuItem onClick={() => onEdit()}>
                 <Edit className="w-4 h-4 mr-2" />
                 Edit Workflow
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onTest()}>
+              <DropdownMenuItem onClick={() => onTest()}>
                 <TestTube className="w-4 h-4 mr-2" />
                 Test Run
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onToggleStatus()}>
+              <DropdownMenuItem onClick={() => onToggleStatus()}>
                 {rule.isActive ? (
                   <>
                     <Pause className="w-4 h-4 mr-2" />
@@ -471,14 +471,14 @@ function WorkflowCard({
                 )}
               </DropdownMenuItem>
               {onDuplicate && (
-                <DropdownMenuItem onSelect={() => onDuplicate()}>
+                <DropdownMenuItem onClick={() => onDuplicate()}>
                   <Copy className="w-4 h-4 mr-2" />
                   Duplicate
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onSelect={() => { 
+                onClick={() => { 
                   if (confirm("Are you sure you want to delete this workflow?")) {
                     onDelete(); 
                   }

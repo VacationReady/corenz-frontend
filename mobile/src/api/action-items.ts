@@ -30,10 +30,15 @@ export async function getMyActionItems(): Promise<ActionItem[]> {
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Unauthorized');
+    }
     throw new Error('Failed to fetch action items');
   }
 
-  return response.json();
+  const data = await response.json();
+  // Server returns { success: true, data: [...] } format
+  return Array.isArray(data) ? data : (data.data || []);
 }
 
 /**

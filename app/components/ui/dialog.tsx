@@ -94,6 +94,8 @@ type DialogContentProps = Omit<
   actions?: React.ReactNode;
   containerClassName?: string;
   size?: "sm" | "md" | "lg" | "xl" | "full";
+  /** When true, renders children directly without the body wrapper (useful for custom modal layouts) */
+  rawContent?: boolean;
 };
 
 const sizeClasses = {
@@ -107,7 +109,7 @@ const sizeClasses = {
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, children, title, description, actions, containerClassName, size = "md", ...props }, ref) => (
+>(({ className, children, title, description, actions, containerClassName, size = "md", rawContent = false, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <div
@@ -129,31 +131,38 @@ const DialogContent = React.forwardRef<
         )}
         {...props}
       >
-        {/* Header */}
-        {(title || description) && (
-          <div className="relative overflow-hidden">
-            {/* Subtle gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-            
-            <div className="relative px-6 py-5 border-b border-white/20">
-              {title && <DialogTitle>{title}</DialogTitle>}
-              {description && <DialogDescription>{description}</DialogDescription>}
-            </div>
-          </div>
-        )}
+        {rawContent ? (
+          // Raw content mode - render children directly without any wrappers
+          children
+        ) : (
+          <>
+            {/* Header */}
+            {(title || description) && (
+              <div className="relative overflow-hidden">
+                {/* Subtle gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+                
+                <div className="relative px-6 py-5 border-b border-white/20">
+                  {title && <DialogTitle>{title}</DialogTitle>}
+                  {description && <DialogDescription>{description}</DialogDescription>}
+                </div>
+              </div>
+            )}
 
-        {/* Body */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
-          {children}
-        </div>
-
-        {/* Footer */}
-        {actions && (
-          <div className="px-6 py-4 border-t border-white/20 bg-gray-50/50 dark:bg-white/5 rounded-b-3xl">
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              {actions}
+            {/* Body */}
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              {children}
             </div>
-          </div>
+
+            {/* Footer */}
+            {actions && (
+              <div className="px-6 py-4 border-t border-white/20 bg-gray-50/50 dark:bg-white/5 rounded-b-3xl">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  {actions}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Close Button */}

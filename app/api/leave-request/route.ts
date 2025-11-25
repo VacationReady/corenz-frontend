@@ -1,15 +1,14 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { NextRequest, NextResponse } from "next/server";
+import { getMobileSession } from "@/lib/mobile-session";
 import { hasPermission } from "@/lib/permissions";
 
 export const runtime = "nodejs";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     await ensurePrismaConnected();
-    const session = await getServerSession(authOptions);
+    const session = await getMobileSession(req);
 
     if (!session?.user?.id) {
       console.log("❌ Unauthenticated");
@@ -53,14 +52,103 @@ export async function GET(req: Request) {
       | "CANCELLED"
       | null;
     const status = statusParam || "PENDING";
-    const scope = searchParams.get("scope"); // "my" or "all" (admins only)
+    const scope = searchParams.get("scope"); // "my", "all", or "balances"
     const departmentId = searchParams.get("departmentId") || undefined;
     const limitParam = searchParams.get("limit");
     const take = limitParam
       ? Math.max(1, Math.min(50, parseInt(limitParam, 10) || 0))
       : undefined;
 
-    // Only ADMINs may view "all"; managers default to direct reports only
+    // Handle balances scope - return leave balances for the current user
+    if (scope === "balances") {
+      // Get the employee record for the current user
+      const employee = await prisma.employee.findUnique({
+        where: { userId: session.user.id },
+        select: { id: true },
+      });
+
+      if (!employee) {
+        return NextResponse.json([]);
+      }
+
+      // Get all leave policy assignments for this employee
+      const assignments = await prisma.leavePolicyAssignment.findMany({
+        where: {
+          employeeId: employee.id,
+          policy: {
+            companyId: session.user.companyId,
+            isActive: true,
+          },
+        },
+        include: {
+          policy: {
+            select: {
+              id: true,
+              name: true,
+              EventCategory: {
+                select: { name: true },
+              },
+            },
+          },
+        },
+      });
+
+      // Calculate balances for each assignment
+      const currentYear = new Date().getFullYear();
+      const yearStart = new Date(currentYear, 0, 1);
+      const yearEnd = new Date(currentYear, 11, 31);
+
+      const balances = await Promise.all(
+        assignments.map(async (assignment) => {
+          // Get approved leave requests for this policy in the current year
+          const approvedLeave = await prisma.leaveRequest.aggregate({
+            where: {
+              employeeId: employee.id,
+              eventCategoryId: assignment.policy.EventCategory?.name ? undefined : assignment.policyId,
+              approvalStatus: "APPROVED",
+              startDate: { gte: yearStart },
+              endDate: { lte: yearEnd },
+            },
+            _sum: {
+              days: true,
+            },
+          });
+
+          // Get pending leave requests
+          const pendingLeave = await prisma.leaveRequest.aggregate({
+            where: {
+              employeeId: employee.id,
+              eventCategoryId: assignment.policy.EventCategory?.name ? undefined : assignment.policyId,
+              approvalStatus: "PENDING",
+              startDate: { gte: yearStart },
+              endDate: { lte: yearEnd },
+            },
+            _sum: {
+              days: true,
+            },
+          });
+
+          const used = approvedLeave._sum.days || 0;
+          const pending = pendingLeave._sum.days || 0;
+          const totalAllowance = assignment.entitlementOverride ?? 20; // Default 20 days if not specified
+          const remaining = Math.max(0, totalAllowance - used);
+
+          return {
+            id: assignment.id,
+            policyId: assignment.policyId,
+            policyName: assignment.policy.name || assignment.policy.EventCategory?.name || "Leave",
+            totalAllowance,
+            used,
+            remaining,
+            pending,
+          };
+        })
+      );
+
+      return NextResponse.json(balances);
+    }
+
+    // Only ADMINs may view "all"; managers default to direct reports only      
     const canViewAll =
       session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN";
 

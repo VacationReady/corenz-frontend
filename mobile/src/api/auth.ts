@@ -124,8 +124,8 @@ export async function getSession() {
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    // Validate session with the server
-    const response = await fetch(`${API_BASE_URL}/api/auth/session`, {
+    // Validate session with the mobile-session endpoint (not NextAuth's /api/auth/session)
+    const response = await fetch(`${API_BASE_URL}/api/auth/mobile-session`, {
       method: "GET",
       headers: {
         Cookie: `next-auth.session-token=${storedToken}`,
@@ -150,10 +150,13 @@ export async function getSession() {
       return null;
     }
 
+    console.log("✅ Session validated successfully");
     return session;
   } catch (error) {
     clearTimeout(timeoutId);
     console.error("Error validating session:", error);
+    // Don't clear the token on network errors - the token might still be valid
+    // Only clear on explicit rejection from the server
     return null;
   }
 }

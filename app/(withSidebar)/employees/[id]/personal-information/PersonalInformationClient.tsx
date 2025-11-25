@@ -80,7 +80,7 @@ export default function PersonalInformationClient({
           title="Basic Details"
           description="Name, date of birth, and identification"
           icon={User}
-          iconColor="from-violet-500/20 to-purple-500/20"
+          iconColor="from-primary/20 to-blue-500/20"
           delay={0.1}
         >
           <form
@@ -268,8 +268,9 @@ export default function PersonalInformationClient({
           title="Address"
           description="Home address information"
           icon={MapPin}
-          iconColor="from-blue-500/20 to-cyan-500/20"
+          iconColor="from-blue-500/20 to-indigo-500/20"
           delay={0.2}
+          className="mt-6"
         >
           <FormSection columns={2}>
             {/* Street */}

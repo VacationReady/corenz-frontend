@@ -38,22 +38,22 @@ interface EmployeeNavClientProps {
   showNotificationsQuickView: boolean;
 }
 
-// Map menu labels to icons and colors
+// Map menu labels to icons and colors - consistent aurora blue theme
 const menuConfig: Record<string, { icon: typeof User; color: string }> = {
-  "Overview": { icon: LayoutGrid, color: "from-blue-500 to-indigo-500" },
-  "Personal information": { icon: User, color: "from-violet-500 to-purple-500" },
-  "Leave": { icon: Calendar, color: "from-green-500 to-emerald-500" },
-  "Documents": { icon: FileText, color: "from-cyan-500 to-blue-500" },
-  "Employment Details": { icon: Briefcase, color: "from-emerald-500 to-teal-500" },
-  "Emergency Contacts": { icon: Phone, color: "from-rose-500 to-pink-500" },
-  "Bank & Payroll": { icon: CreditCard, color: "from-amber-500 to-orange-500" },
-  "Performance": { icon: TrendingUp, color: "from-purple-500 to-violet-500" },
-  "Onboarding History": { icon: PlayCircle, color: "from-green-500 to-lime-500" },
-  "Offboarding": { icon: LogOut, color: "from-orange-500 to-red-500" },
-  "Driver Licenses": { icon: Car, color: "from-slate-500 to-gray-500" },
-  "Training": { icon: GraduationCap, color: "from-blue-500 to-cyan-500" },
-  "Employment Checks": { icon: ClipboardCheck, color: "from-teal-500 to-green-500" },
-  "Settings": { icon: Settings, color: "from-gray-500 to-slate-500" },
+  "Overview": { icon: LayoutGrid, color: "from-primary to-blue-500" },
+  "Personal information": { icon: User, color: "from-primary to-blue-500" },
+  "Leave": { icon: Calendar, color: "from-primary to-blue-500" },
+  "Documents": { icon: FileText, color: "from-blue-500 to-indigo-500" },
+  "Employment Details": { icon: Briefcase, color: "from-blue-500 to-indigo-500" },
+  "Emergency Contacts": { icon: Phone, color: "from-indigo-500 to-violet-500" },
+  "Bank & Payroll": { icon: CreditCard, color: "from-sky-500 to-blue-500" },
+  "Performance": { icon: TrendingUp, color: "from-indigo-500 to-violet-500" },
+  "Onboarding History": { icon: PlayCircle, color: "from-primary to-blue-500" },
+  "Offboarding": { icon: LogOut, color: "from-slate-500 to-gray-600" },
+  "Driver Licenses": { icon: Car, color: "from-slate-500 to-blue-500" },
+  "Training": { icon: GraduationCap, color: "from-blue-500 to-indigo-500" },
+  "Employment Checks": { icon: ClipboardCheck, color: "from-sky-500 to-blue-500" },
+  "Settings": { icon: Settings, color: "from-slate-500 to-gray-600" },
 };
 
 export default function EmployeeNavClient({
@@ -141,7 +141,7 @@ export default function EmployeeNavClient({
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="flex justify-center"
               >
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 text-amber-600 dark:text-amber-400">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-blue-100 dark:from-primary/30 dark:to-blue-900/30 text-primary dark:text-blue-400">
                   <Bell className="w-5 h-5" />
                 </div>
               </motion.div>

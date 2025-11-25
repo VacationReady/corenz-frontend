@@ -1,13 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import supabase from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
+export async function GET(req: NextRequest) {
+  const session = await getMobileSession(req);
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

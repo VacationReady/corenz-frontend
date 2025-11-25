@@ -207,8 +207,8 @@ function EmptyLeaveState() {
       animate={{ opacity: 1, scale: 1 }}
       className="flex flex-col items-center justify-center py-12 text-center"
     >
-      <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 mb-4">
-        <CalendarDays className="w-8 h-8 text-green-600 dark:text-green-400" />
+      <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/20 mb-4">
+        <CalendarDays className="w-8 h-8 text-primary dark:text-blue-400" />
       </div>
       <h3 className="text-lg font-semibold text-foreground mb-2">No Leave Scheduled</h3>
       <p className="text-sm text-muted-foreground max-w-sm">
@@ -436,13 +436,13 @@ export default function LeavePage() {
           title="Leave Management"
           description="Review current and upcoming leave for this employee"
           icon={Calendar}
-          iconColor="from-green-500 to-emerald-500"
+          iconColor="from-primary to-blue-500"
         />
 
         <EmployeeFormCard
           title="Access Error"
           icon={AlertCircle}
-          iconColor="from-red-500/20 to-rose-500/20"
+          iconColor="from-slate-500/20 to-gray-500/20"
         >
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-destructive/10 mb-4">
@@ -476,12 +476,12 @@ export default function LeavePage() {
 
   return (
     <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">
-      <EmployeePageHeader
-        title="Leave Management"
-        description="Review current and upcoming leave for this employee"
-        icon={Calendar}
-        iconColor="from-green-500 to-emerald-500"
-        action={
+        <EmployeePageHeader
+          title="Leave Management"
+          description="Review current and upcoming leave for this employee"
+          icon={Calendar}
+          iconColor="from-primary to-blue-500"
+          action={
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -563,7 +563,7 @@ export default function LeavePage() {
         title="Current Leave"
         description="Leave currently in progress"
         icon={CalendarDays}
-        iconColor="from-blue-500/20 to-indigo-500/20"
+        iconColor="from-primary/20 to-blue-500/20"
         delay={0.15}
       >
         {loading ? (
@@ -593,7 +593,7 @@ export default function LeavePage() {
         title="Upcoming Leave"
         description="Scheduled future leave"
         icon={Calendar}
-        iconColor="from-green-500/20 to-emerald-500/20"
+        iconColor="from-blue-500/20 to-indigo-500/20"
         delay={0.2}
       >
         {loading ? (

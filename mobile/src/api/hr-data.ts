@@ -5,7 +5,7 @@ import { apiFetch } from './client';
  */
 export async function getEmployeeProfile(userId: string) {
   const response = await apiFetch(
-    `/api/employees?status=active&userId=${encodeURIComponent(userId)}`,
+    `/api/employees?status=active&userId=${encodeURIComponent(userId)}`,        
     {
       method: "GET",
     }
@@ -18,8 +18,10 @@ export async function getEmployeeProfile(userId: string) {
     throw new Error("Failed to fetch employee profile");
   }
 
-  const employees = await response.json();
-  return Array.isArray(employees) ? employees[0] : null;
+  const result = await response.json();
+  // Server returns { data: [...], pagination: {...} } format
+  const employees = Array.isArray(result) ? result : (result.data || []);
+  return employees.length > 0 ? employees[0] : null;
 }
 
 /**
@@ -67,10 +69,10 @@ export async function getPendingLeaveRequests() {
 /**
  * Fetch all employees (for admins/managers)
  */
-export async function getAllEmployees(params?: { status?: string; department?: string }) {
+export async function getAllEmployees(params?: { status?: string; department?: string }) {                                                                      
   const queryParams = new URLSearchParams();
   if (params?.status) queryParams.append("status", params.status);
-  if (params?.department) queryParams.append("department", params.department);
+  if (params?.department) queryParams.append("department", params.department);  
 
   const queryString = queryParams.toString();
   const url = `/api/employees${queryString ? `?${queryString}` : ""}`;
@@ -86,5 +88,7 @@ export async function getAllEmployees(params?: { status?: string; department?: s
     throw new Error("Failed to fetch employees");
   }
 
-  return response.json();
+  const result = await response.json();
+  // Server returns { data: [...], pagination: {...} } format
+  return Array.isArray(result) ? result : (result.data || []);
 }

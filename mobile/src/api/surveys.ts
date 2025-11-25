@@ -29,10 +29,15 @@ export async function getPendingSurveys(): Promise<Survey[]> {
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Unauthorized');
+    }
     throw new Error('Failed to fetch surveys');
   }
 
-  return response.json();
+  const data = await response.json();
+  // Server returns { surveys: [...], pagination: {...} } format
+  return Array.isArray(data) ? data : (data.surveys || []);
 }
 
 /**

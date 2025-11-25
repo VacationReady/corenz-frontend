@@ -465,14 +465,14 @@ export default function AddDocumentModal({
           className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
         >
           {/* Header with gradient accent */}
-          <div className="relative px-8 pt-8 pb-6">
+          <div className="relative px-6 pt-6 pb-4">
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-primary/10 to-violet-500/5" />
             <div className="relative flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 <FileUp className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                <h2 className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                   Upload Document
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -483,79 +483,87 @@ export default function AddDocumentModal({
           </div>
 
           {/* Content Area */}
-          <div className="px-8 pb-8 max-h-[65vh] overflow-y-auto space-y-6">
-            {/* Step 1: Type Selector - Modern Cards */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-foreground/80">Document Type</Label>
-              <div className="grid grid-cols-2 gap-4">
+          <div className="px-6 pb-6 space-y-4">
+            {/* Step 1: Type Selector - Compact Cards */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-foreground/80">Document Type</Label>
+              <div className="grid grid-cols-2 gap-3">
                 <motion.button
                   type="button"
                   onClick={() => setType("employee")}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`relative p-5 rounded-2xl border-2 text-left transition-all duration-300 ${
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className={`relative p-3 rounded-xl border-2 text-left transition-all duration-300 ${
                     type === "employee" 
-                      ? "border-primary bg-primary/5 shadow-lg shadow-primary/10" 
+                      ? "border-primary bg-primary/5 shadow-md shadow-primary/10" 
                       : "border-muted/50 bg-white/30 dark:bg-white/5 hover:border-primary/30 hover:bg-primary/5"
                   }`}
                 >
                   {type === "employee" && (
                     <motion.div
                       layoutId="typeIndicator"
-                      className="absolute top-3 right-3"
+                      className="absolute top-2 right-2"
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", stiffness: 500, damping: 30 }}
                     >
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                        <CheckCircle2 className="w-3 h-3 text-white" />
                       </div>
                     </motion.div>
                   )}
-                  <div className={`p-3 rounded-xl mb-3 w-fit ${type === "employee" ? "bg-primary/20" : "bg-muted/50"}`}>
-                    <User className={`w-5 h-5 ${type === "employee" ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-2 rounded-lg ${type === "employee" ? "bg-primary/20" : "bg-muted/50"}`}>
+                      <User className={`w-4 h-4 ${type === "employee" ? "text-primary" : "text-muted-foreground"}`} />
+                    </div>
+                    <div>
+                      <h4 className={`font-semibold text-sm ${type === "employee" ? "text-primary" : "text-foreground"}`}>
+                        Employee Document
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Tied to one specific employee
+                      </p>
+                    </div>
                   </div>
-                  <h4 className={`font-semibold mb-1 ${type === "employee" ? "text-primary" : "text-foreground"}`}>
-                    Employee Document
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    Tied to one specific employee
-                  </p>
                 </motion.button>
 
                 <motion.button
                   type="button"
                   onClick={() => setType("company")}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`relative p-5 rounded-2xl border-2 text-left transition-all duration-300 ${
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className={`relative p-3 rounded-xl border-2 text-left transition-all duration-300 ${
                     type === "company" 
-                      ? "border-violet-500 bg-violet-500/5 shadow-lg shadow-violet-500/10" 
+                      ? "border-violet-500 bg-violet-500/5 shadow-md shadow-violet-500/10" 
                       : "border-muted/50 bg-white/30 dark:bg-white/5 hover:border-violet-500/30 hover:bg-violet-500/5"
                   }`}
                 >
                   {type === "company" && (
                     <motion.div
                       layoutId="typeIndicator"
-                      className="absolute top-3 right-3"
+                      className="absolute top-2 right-2"
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", stiffness: 500, damping: 30 }}
                     >
-                      <div className="w-6 h-6 rounded-full bg-violet-500 flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center">
+                        <CheckCircle2 className="w-3 h-3 text-white" />
                       </div>
                     </motion.div>
                   )}
-                  <div className={`p-3 rounded-xl mb-3 w-fit ${type === "company" ? "bg-violet-500/20" : "bg-muted/50"}`}>
-                    <Building2 className={`w-5 h-5 ${type === "company" ? "text-violet-500" : "text-muted-foreground"}`} />
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-2 rounded-lg ${type === "company" ? "bg-violet-500/20" : "bg-muted/50"}`}>
+                      <Building2 className={`w-4 h-4 ${type === "company" ? "text-violet-500" : "text-muted-foreground"}`} />
+                    </div>
+                    <div>
+                      <h4 className={`font-semibold text-sm ${type === "company" ? "text-violet-600 dark:text-violet-400" : "text-foreground"}`}>
+                        Company Document
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        Visible to all or specific groups
+                      </p>
+                    </div>
                   </div>
-                  <h4 className={`font-semibold mb-1 ${type === "company" ? "text-violet-600 dark:text-violet-400" : "text-foreground"}`}>
-                    Company Document
-                  </h4>
-                  <p className="text-sm text-muted-foreground">
-                    Visible to all or specific groups
-                  </p>
                 </motion.button>
               </div>
             </div>
@@ -568,15 +576,15 @@ export default function AddDocumentModal({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-2"
+                  className="space-y-1.5"
                 >
-                  <Label className="text-sm font-medium text-foreground/80">Select Employee</Label>
+                  <Label className="text-xs font-medium text-foreground/80">Select Employee</Label>
                   <Select 
                     open={isEmployeeSelectOpen}
                     onOpenChange={handleEmployeeOpenChange}
                     onValueChange={setEmployeeId}
                   >
-                    <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                    <SelectTrigger className="h-9 rounded-lg border-muted/50 bg-white/50 dark:bg-white/5 text-sm">
                       <SelectValue placeholder="Choose an employee" />
                     </SelectTrigger>
                     <SelectContent>
@@ -604,10 +612,10 @@ export default function AddDocumentModal({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-4"
+                  className="grid grid-cols-2 gap-3"
                 >
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground/80">Restrict by Department</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground/80">Restrict by Department</Label>
                     <MultiSelect
                       options={departmentsList}
                       selected={selectedDepartments}
@@ -621,8 +629,8 @@ export default function AddDocumentModal({
                       searchPlaceholder="Search departments..."
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground/80">Restrict by Job Role</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground/80">Restrict by Job Role</Label>
                     <MultiSelect
                       options={jobRolesList}
                       selected={selectedJobRoles}
@@ -646,28 +654,28 @@ export default function AddDocumentModal({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.1 }}
-                className="space-y-4 p-5 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30"
+                className="p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30"
               >
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <FileText className="w-4 h-4 text-primary" />
                   <span className="font-medium text-sm">Document Details</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground/80">
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground/80">
                       Title <span className="text-primary">*</span>
                     </Label>
                     <Input 
                       value={title} 
                       onChange={(e) => setTitle(e.target.value)} 
                       placeholder="Enter document title"
-                      className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                      className="h-9 rounded-lg border-muted/50 bg-white/50 dark:bg-white/5 text-sm"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground/80">Category</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-foreground/80">Category</Label>
                     <Select
                       value={category || undefined}
                       onValueChange={(v) => {
@@ -678,7 +686,7 @@ export default function AddDocumentModal({
                         }
                       }}
                     >
-                      <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                      <SelectTrigger className="h-9 rounded-lg border-muted/50 bg-white/50 dark:bg-white/5 text-sm">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -697,13 +705,13 @@ export default function AddDocumentModal({
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground/80">Description</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground/80">Description</Label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Optional description of the document..."
-                    className="min-h-[80px] rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all resize-none"
+                    className="min-h-[60px] rounded-lg border-muted/50 bg-white/50 dark:bg-white/5 text-sm resize-none"
                   />
                 </div>
               </motion.div>
@@ -715,69 +723,53 @@ export default function AddDocumentModal({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.15 }}
-                className="space-y-4"
+                className="space-y-3"
               >
-                {/* Visibility (Employee only) */}
+                {/* Visibility (Employee only) - Compact inline */}
                 {type === "employee" && (
-                  <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 to-primary/5 border border-blue-500/20">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      <span className="font-medium text-sm">Visibility Settings</span>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-muted-foreground" />
-                          <Label className="text-sm cursor-pointer">Admin Access</Label>
-                        </div>
-                        <Switch
-                          checked={canViewAdmin}
-                          onChange={(checked) => setCanViewAdmin(checked)}
-                        />
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-primary/5 border border-blue-500/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <span className="font-medium text-sm">Visibility</span>
                       </div>
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <Label className="text-sm cursor-pointer">Manager Access</Label>
-                        </div>
-                        <Switch
-                          checked={canViewManager}
-                          onChange={(checked) => setCanViewManager(checked)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <Label className="text-sm cursor-pointer">Employee Access</Label>
-                        </div>
-                        <Switch
-                          checked={canViewEmployee}
-                          onChange={(checked) => setCanViewEmployee(checked)}
-                        />
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
+                          <span className="text-xs font-medium">Admin</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <Switch checked={canViewManager} onChange={setCanViewManager} />
+                          <span className="text-xs font-medium">Manager</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
+                          <span className="text-xs font-medium">Employee</span>
+                        </label>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Compliance Section */}
-                <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20">
-                  <div className="flex items-center gap-2 mb-4">
+                {/* Compliance Section - Compact */}
+                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20">
+                  <div className="flex items-center gap-2 mb-3">
                     <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                     <span className="font-medium text-sm">Compliance Requirements</span>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/30 dark:bg-white/5">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
                         <div>
                           <Label className="text-sm cursor-pointer">Requires Acknowledgement</Label>
-                          <p className="text-xs text-muted-foreground">Employee must confirm they've read the document</p>
+                          <p className="text-xs text-muted-foreground">Employee must confirm reading</p>
                         </div>
                       </div>
                       <Switch checked={requiresAck} onChange={setRequiresAck} />
                     </div>
                     {type === "employee" && (
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                      <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/30 dark:bg-white/5">
                         <div className="flex items-center gap-2">
                           <PenLine className="w-4 h-4 text-muted-foreground" />
                           <div>
@@ -785,10 +777,7 @@ export default function AddDocumentModal({
                             <p className="text-xs text-muted-foreground">Document needs to be signed</p>
                           </div>
                         </div>
-                        <Switch
-                          checked={requiresSignature}
-                          onChange={setRequiresSignature}
-                        />
+                        <Switch checked={requiresSignature} onChange={setRequiresSignature} />
                       </div>
                     )}
                   </div>
@@ -800,18 +789,18 @@ export default function AddDocumentModal({
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="mt-4 pt-4 border-t border-amber-500/20"
+                        className="mt-3 pt-3 border-t border-amber-500/20"
                       >
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-foreground/80 flex items-center gap-2">
-                            <Clock className="w-4 h-4" />
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-foreground/80 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
                             Signature Due Date
                           </Label>
                           <Input
                             type="datetime-local"
                             value={signatureDueAt}
                             onChange={(e) => setSignatureDueAt(e.target.value)}
-                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                            className="h-9 rounded-lg border-muted/50 bg-white/50 dark:bg-white/5 text-sm"
                           />
                         </div>
                       </motion.div>
@@ -821,24 +810,24 @@ export default function AddDocumentModal({
               </motion.div>
             )}
 
-            {/* File Upload Section - Modern Drag & Drop */}
+            {/* File Upload Section - Compact Drag & Drop */}
             {type && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.2 }}
-                className="space-y-2"
+                className="space-y-1.5"
               >
-                <Label className="text-sm font-medium text-foreground/80">
+                <Label className="text-xs font-medium text-foreground/80">
                   Upload File <span className="text-primary">*</span>
                 </Label>
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                  className={`relative border-2 border-dashed rounded-xl p-4 text-center transition-all duration-300 ${
                     isDragging 
-                      ? "border-primary bg-primary/10 scale-[1.02]" 
+                      ? "border-primary bg-primary/10 scale-[1.01]" 
                       : file 
                         ? "border-emerald-500 bg-emerald-500/10" 
                         : "border-muted/50 bg-white/30 dark:bg-white/5 hover:border-primary/50 hover:bg-primary/5"
@@ -851,36 +840,40 @@ export default function AddDocumentModal({
                   />
                   
                   {file ? (
-                    <div className="space-y-2">
-                      <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/20 flex items-center justify-center">
-                        <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-medium text-emerald-600 dark:text-emerald-400 text-sm truncate max-w-[200px]">{file.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
                       </div>
-                      <p className="font-medium text-emerald-600 dark:text-emerald-400">{file.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                        className="text-muted-foreground hover:text-destructive"
+                        className="text-muted-foreground hover:text-destructive h-8"
                       >
-                        <X className="w-4 h-4 mr-1" /> Remove
+                        <X className="w-4 h-4" />
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      <div className={`w-12 h-12 mx-auto rounded-2xl flex items-center justify-center transition-colors ${
+                    <div className="flex items-center justify-center gap-3 py-2">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
                         isDragging ? "bg-primary/20" : "bg-muted/50"
                       }`}>
-                        <Upload className={`w-6 h-6 ${isDragging ? "text-primary" : "text-muted-foreground"}`} />
+                        <Upload className={`w-5 h-5 ${isDragging ? "text-primary" : "text-muted-foreground"}`} />
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground">
+                      <div className="text-left">
+                        <p className="font-medium text-foreground text-sm">
                           {isDragging ? "Drop file here" : "Drag & drop or click to upload"}
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs text-muted-foreground">
                           PDF, Word, Excel, or image files
                         </p>
                       </div>
@@ -896,7 +889,7 @@ export default function AddDocumentModal({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
-                className="flex items-center justify-end gap-3 pt-4"
+                className="flex items-center justify-end gap-3 pt-2"
               >
                 {requiresSignature ? (
                   <>
@@ -904,7 +897,7 @@ export default function AddDocumentModal({
                       type="button"
                       variant="outline"
                       onClick={() => setIsPlacementBeforeSendOpen(true)}
-                      className="h-11 rounded-xl"
+                      className="h-9 rounded-lg"
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       Preview & Place Fields
@@ -913,7 +906,7 @@ export default function AddDocumentModal({
                       type="button"
                       onClick={() => uploadWithPending(pendingFields)}
                       disabled={loading || !title}
-                      className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+                      className="h-9 px-5 rounded-lg bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
                     >
                       {loading ? (
                         <>
@@ -937,7 +930,7 @@ export default function AddDocumentModal({
                     type="button"
                     onClick={handleSubmit} 
                     disabled={loading || !title}
-                    className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+                    className="h-9 px-5 rounded-lg bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
                   >
                     {loading ? (
                       <>

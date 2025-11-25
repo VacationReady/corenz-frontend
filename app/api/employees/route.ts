@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import type { Prisma } from "@prisma/client";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { getMobileSession } from "@/lib/mobile-session";
 import { canAccessEmployee } from "@/lib/permissions";
 import { z } from "zod";
 import supabase from "@/lib/supabase-admin";
@@ -173,10 +172,10 @@ async function getAllSubordinatesIterative(
 }
 
 // ✅ GET: Return employees with pagination and optimized signed URL batching
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     await ensurePrismaConnected();
-    const session = await getServerSession(authOptions);
+    const session = await getMobileSession(req);
     console.log("[employees] Session check:", {
       hasSession: !!session,
       hasUser: !!session?.user,
@@ -391,9 +390,9 @@ export async function GET(req: Request) {
 }
 
 // ✅ POST: Add new employee with companyId scoping and activation email
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getMobileSession(req);
 
     if (!session || !session.user || !session.user.companyId) {
       return NextResponse.json(

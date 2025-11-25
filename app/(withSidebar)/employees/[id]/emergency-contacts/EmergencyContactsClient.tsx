@@ -58,10 +58,10 @@ function ContactCard({
     >
       {/* Card Header */}
       <div className="relative px-5 py-4 border-b border-white/20 dark:border-white/10">
-        <div className="absolute inset-0 bg-gradient-to-r from-rose-500/5 via-transparent to-pink-500/5 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-transparent to-violet-500/5 pointer-events-none" />
         <div className="relative flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500/20 to-pink-500/20">
-            <User className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20">
+            <User className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-foreground truncate">
@@ -177,8 +177,8 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       animate={{ opacity: 1, scale: 1 }}
       className="glass-card rounded-3xl p-12 text-center"
     >
-      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 mb-4">
-        <AlertCircle className="w-8 h-8 text-rose-600 dark:text-rose-400" />
+      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 mb-4">
+        <AlertCircle className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
       </div>
       <h3 className="text-lg font-semibold text-foreground mb-2">
         No Emergency Contacts

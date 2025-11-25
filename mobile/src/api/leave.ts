@@ -33,15 +33,20 @@ export interface LeaveRequest {
  * Get leave balances for the current user
  */
 export async function getLeaveBalances(): Promise<LeaveBalance[]> {
-  const response = await apiFetch('/api/leave-request?scope=balances', {
+  const response = await apiFetch('/api/leave-request?scope=balances', {        
     method: 'GET',
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Unauthorized');
+    }
     throw new Error('Failed to fetch leave balances');
   }
 
-  return response.json();
+  const data = await response.json();
+  // Server may return array directly or wrapped in { success, data }
+  return Array.isArray(data) ? data : (data.data || []);
 }
 
 /**
@@ -53,10 +58,15 @@ export async function getMyLeaveRequests(): Promise<LeaveRequest[]> {
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Unauthorized');
+    }
     throw new Error('Failed to fetch leave requests');
   }
 
-  return response.json();
+  const data = await response.json();
+  // Server returns { success, data } format
+  return Array.isArray(data) ? data : (data.data || []);
 }
 
 /**

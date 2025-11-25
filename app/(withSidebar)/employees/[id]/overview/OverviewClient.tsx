@@ -83,13 +83,14 @@ function QuickInfoCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay }}
+      className="h-full"
     >
       <Link
         href={href}
-        className="group block focus:outline-none"
+        className="group block focus:outline-none h-full"
       >
         <div className={cn(
-          "glass-card rounded-2xl overflow-hidden shadow-depth-2 h-full",
+          "glass-card rounded-2xl overflow-hidden shadow-depth-2 h-full flex flex-col",
           "transition-all duration-300",
           "hover:shadow-depth-3 hover:scale-[1.02]",
           "group-focus-visible:ring-2 group-focus-visible:ring-primary/50"
@@ -117,7 +118,7 @@ function QuickInfoCard({
           </div>
           
           {/* Content */}
-          <div className="p-5">
+          <div className="p-5 flex-1">
             {children}
           </div>
         </div>
@@ -196,13 +197,13 @@ export default function OverviewClient({
       </motion.div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
         {/* Contact Info */}
         <QuickInfoCard
           href={`/employees/${employeeId}/personal-information`}
           title="Contact Info"
           icon={Mail}
-          iconColor="from-violet-500 to-purple-500"
+          iconColor="from-primary to-blue-500"
           delay={0.15}
         >
           <div className="space-y-1">
@@ -216,7 +217,7 @@ export default function OverviewClient({
           href={`/employees/${employeeId}/employment-details`}
           title="Employment"
           icon={Briefcase}
-          iconColor="from-emerald-500 to-teal-500"
+          iconColor="from-blue-500 to-indigo-500"
           delay={0.2}
         >
           <div className="space-y-1">
@@ -245,7 +246,7 @@ export default function OverviewClient({
           href={`/employees/${employeeId}/bank-payroll`}
           title="Bank & Payroll"
           icon={CreditCard}
-          iconColor="from-amber-500 to-orange-500"
+          iconColor="from-sky-500 to-blue-500"
           delay={0.25}
         >
           <TooltipProvider>
@@ -287,15 +288,15 @@ export default function OverviewClient({
           href={`/employees/${employeeId}/emergency-contacts`}
           title="Emergency Contacts"
           icon={Phone}
-          iconColor="from-rose-500 to-pink-500"
+          iconColor="from-indigo-500 to-violet-500"
           delay={0.3}
         >
           {emergencyContacts.length > 0 ? (
             <div className="space-y-3">
               {emergencyContacts.slice(0, 2).map((contact) => (
                 <div key={contact.id} className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
-                    <Users className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">
@@ -333,9 +334,9 @@ export default function OverviewClient({
         >
           <div className="glass-card rounded-2xl overflow-hidden shadow-depth-2">
             <div className="relative px-5 py-4 border-b border-white/20 dark:border-white/10">
-              <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-blue-500/5 pointer-events-none" />
               <div className="relative flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-sm">
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 shadow-sm">
                   <Calendar className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="font-semibold text-foreground">Leave Balances</h3>

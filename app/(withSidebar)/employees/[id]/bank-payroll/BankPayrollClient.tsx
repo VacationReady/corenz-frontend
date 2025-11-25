@@ -508,7 +508,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
             title="Banking & Tax Details"
             description="IRD, bank account, and tax code information"
             icon={Banknote}
-            iconColor="from-amber-500/20 to-orange-500/20"
+            iconColor="from-sky-500/20 to-blue-500/20"
             delay={0.1}
           >
             <FormSection columns={2}>
@@ -623,7 +623,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
             title="KiwiSaver"
             description="Retirement savings contribution details"
             icon={GraduationCap}
-            iconColor="from-green-500/20 to-emerald-500/20"
+            iconColor="from-primary/20 to-blue-500/20"
             delay={0.2}
           >
             <FormSection columns={2}>
@@ -853,7 +853,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
             title="Compensation"
             description="Salary and hourly rate information"
             icon={DollarSign}
-            iconColor="from-purple-500/20 to-violet-500/20"
+            iconColor="from-indigo-500/20 to-violet-500/20"
             delay={0.4}
           >
             <FormSection columns={2}>

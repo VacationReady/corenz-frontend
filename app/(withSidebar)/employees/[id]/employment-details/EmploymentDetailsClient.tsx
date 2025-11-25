@@ -432,7 +432,7 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
           title="Position & Status"
           description="Employment type, contract, and location details"
           icon={Briefcase}
-          iconColor="from-emerald-500/20 to-teal-500/20"
+          iconColor="from-blue-500/20 to-indigo-500/20"
           delay={0.1}
         >
           <FormSection columns={2}>

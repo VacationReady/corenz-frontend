@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import { Role } from "@prisma/client";
+import { resend, PEOPLECORE_FROM_EMAIL } from "@/lib/resend";
+import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
 
 const SALT_ROUNDS = 10;
 const ADMIN_ROLE: Role = "ADMIN";
@@ -86,18 +88,19 @@ async function findOrCreateDepartment(companyId: string): Promise<string> {
 /**
  * POST /api/setup-admin/create
  * 
- * Creates an initial admin user for the specified company.
+ * Creates an initial admin user and company for trial setup.
  * User provides their own password which is hashed with bcrypt.
+ * Sends a welcome confirmation email upon successful creation.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, firstName, lastName, password, companyId, newCompanyName } = body;
+    const { email, firstName, lastName, password, companyName } = body;
 
     // Validate required fields
-    if (!email || !firstName || !lastName || !password) {
+    if (!email || !firstName || !lastName || !password || !companyName) {
       return NextResponse.json(
-        { error: "Email, first name, last name, and password are required" },
+        { error: "Email, first name, last name, password, and company name are required" },
         { status: 400 }
       );
     }
@@ -119,49 +122,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let targetCompanyId: string;
-    let targetCompanyName: string;
-
-    // Determine company (use existing or create new)
-    if (companyId) {
-      const company = await prisma.company.findUnique({
-        where: { id: companyId },
-      });
-      if (!company) {
-        return NextResponse.json(
-          { error: "Selected company not found" },
-          { status: 404 }
-        );
-      }
-      targetCompanyId = company.id;
-      targetCompanyName = company.name;
-    } else if (newCompanyName) {
-      // Check if company name already exists
-      const existingCompany = await prisma.company.findUnique({
-        where: { name: newCompanyName },
-      });
-      if (existingCompany) {
-        return NextResponse.json(
-          { error: `A company named "${newCompanyName}" already exists` },
-          { status: 400 }
-        );
-      }
-      
-      const newCompany = await prisma.company.create({
-        data: {
-          id: randomUUID(),
-          name: newCompanyName,
-          updatedAt: new Date(),
-        },
-      });
-      targetCompanyId = newCompany.id;
-      targetCompanyName = newCompany.name;
-    } else {
+    // Check if company name already exists
+    const existingCompany = await prisma.company.findUnique({
+      where: { name: companyName },
+    });
+    if (existingCompany) {
       return NextResponse.json(
-        { error: "Please select an existing company or provide a new company name" },
+        { error: `A company named "${companyName}" already exists. Please choose a different name or contact support.` },
         { status: 400 }
       );
     }
+    
+    // Create the company
+    const newCompany = await prisma.company.create({
+      data: {
+        id: randomUUID(),
+        name: companyName,
+        updatedAt: new Date(),
+      },
+    });
+    const targetCompanyId = newCompany.id;
+    const targetCompanyName = newCompany.name;
 
     // Check if admin already exists
     const existingAdmin = await prisma.user.findUnique({
@@ -219,6 +200,63 @@ export async function POST(request: NextRequest) {
         isActive: true,
       },
     });
+
+    // Send welcome confirmation email
+    try {
+      const loginUrl = `${getAppBaseUrl()}/login`;
+      
+      const { html, text } = renderPeopleCoreEmail({
+        preheader: `Welcome to PeopleCore, ${firstName}! Your account is ready.`,
+        title: "Welcome Aboard! 🎉",
+        heroBadge: "Account Created",
+        heroSubtitle: `Your PeopleCore account for ${targetCompanyName} is ready to go`,
+        intro: [
+          `Hi ${firstName},`,
+          `Welcome to PeopleCore! We're thrilled to have you and ${targetCompanyName} join us on this journey to transform the way you manage your people.`,
+        ],
+        sections: [
+          {
+            title: "Your Account Details",
+            highlight: true,
+            description: [
+              `Organisation: ${targetCompanyName}`,
+              `Email: ${email}`,
+              `Role: Administrator`,
+            ],
+          },
+          {
+            title: "What's Next?",
+            bulletPoints: [
+              "Explore your dashboard and familiarise yourself with the platform",
+              "Add your team members and set up departments",
+              "Configure leave policies and working patterns",
+              "Set up onboarding workflows for new hires",
+            ],
+          },
+        ],
+        ctas: {
+          label: "Log In to PeopleCore",
+          href: loginUrl,
+        },
+        outro: [
+          "Bookmark this link to access PeopleCore anytime.",
+          "If you have any questions or need assistance, our support team is here to help.",
+          "Welcome aboard!",
+          "The PeopleCore Team",
+        ],
+      });
+
+      await resend.emails.send({
+        from: PEOPLECORE_FROM_EMAIL,
+        to: email,
+        subject: `Welcome to PeopleCore, ${firstName}! 🎉`,
+        html,
+        text,
+      });
+    } catch (emailError) {
+      // Log but don't fail the request if email sending fails
+      console.error("Failed to send welcome email:", emailError);
+    }
 
     return NextResponse.json({
       success: true,

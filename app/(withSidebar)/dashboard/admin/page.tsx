@@ -88,7 +88,7 @@ export default async function AdminDashboardPage() {
 
                 {/* User Info with gradient text */}
                 <div>
-                  <h1 className="text-2xl font-bold text-gradient-premium">{fullName}</h1>
+                  <h1 className="text-2xl font-bold text-primary">{fullName}</h1>
                   <p className="text-muted-foreground text-sm">{user.email}</p>
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
@@ -111,19 +111,19 @@ export default async function AdminDashboardPage() {
               {/* Quick Actions - enhanced */}
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
                 <Link href={`/employees/${user.Employee.id}/overview`}>
-                  <Button className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-premium">
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-premium">
                     <User className="h-4 w-4 mr-2" /> View profile
                   </Button>
                 </Link>
                 {/* Email Employee */}
                 <Link href="/bulk-actions?action=messaging">
-                  <Button className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-premium">
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-premium">
                     <Mail className="h-4 w-4 mr-2" /> Email Employee
                   </Button>
                 </Link>
                 {/* AI Chatbot */}
                 <Link href="/assistant">
-                  <Button className="bg-gradient-to-r from-primary via-[hsl(var(--sunset-2))] to-[hsl(var(--sunset-3))] hover:from-primary/90 hover:via-[hsl(var(--sunset-2))]/90 hover:to-[hsl(var(--sunset-3))]/90 shadow-premium">
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-premium">
                     <Bot className="h-4 w-4 mr-2" /> AI Chatbot
                   </Button>
                 </Link>

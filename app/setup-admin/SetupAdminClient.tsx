@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,18 +15,12 @@ import {
   EyeOff,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   Shield,
   Rocket,
   RefreshCw,
   Check,
   X,
 } from "lucide-react";
-
-interface Company {
-  id: string;
-  name: string;
-}
 
 interface PasswordStrength {
   score: number;
@@ -75,9 +69,7 @@ function evaluatePasswordStrength(password: string): PasswordStrength {
 export default function SetupAdminClient() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [checkingCompanies, setCheckingCompanies] = useState(true);
   const [error, setError] = useState("");
-  const [companies, setCompanies] = useState<Company[]>([]);
   const [registrationComplete, setRegistrationComplete] = useState(false);
 
   // Form state
@@ -86,43 +78,22 @@ export default function SetupAdminClient() {
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-  const [newCompanyName, setNewCompanyName] = useState("");
-  const [useNewCompany, setUseNewCompany] = useState(false);
+  const [companyName, setCompanyName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const passwordStrength = evaluatePasswordStrength(password);
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
 
-  // Fetch available companies on mount
-  useEffect(() => {
-    async function fetchCompanies() {
-      try {
-        const response = await fetch("/api/setup-admin/companies");
-        if (response.ok) {
-          const data = await response.json();
-          setCompanies(data.companies || []);
-          if (data.companies?.length > 0) {
-            setSelectedCompanyId(data.companies[0].id);
-          } else {
-            // No companies exist, show create new company form
-            setUseNewCompany(true);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch companies:", err);
-      } finally {
-        setCheckingCompanies(false);
-      }
-    }
-    fetchCompanies();
-  }, []);
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
     // Validation
+    if (!companyName.trim()) {
+      setError("Please enter your company name");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
@@ -146,8 +117,7 @@ export default function SetupAdminClient() {
           firstName,
           lastName,
           password, // Will be hashed on the server
-          companyId: useNewCompany ? null : selectedCompanyId,
-          newCompanyName: useNewCompany ? newCompanyName : null,
+          companyName: companyName.trim(),
         }),
       });
 
@@ -331,59 +301,21 @@ export default function SetupAdminClient() {
                 className="glass-premium rounded-3xl p-8"
               >
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  {/* Company Selection */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  {/* Company Name */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                       <Building2 className="w-4 h-4 text-primary" />
-                      <span>Company</span>
-                    </div>
-
-                    {checkingCompanies ? (
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm py-3">
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Checking existing companies...</span>
-                      </div>
-                    ) : companies.length > 0 && !useNewCompany ? (
-                      <div className="space-y-2">
-                        <select
-                          value={selectedCompanyId}
-                          onChange={(e) => setSelectedCompanyId(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-border bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-                        >
-                          {companies.map((company) => (
-                            <option key={company.id} value={company.id}>
-                              {company.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => setUseNewCompany(true)}
-                          className="text-sm text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
-                        >
-                          <Sparkles className="w-3 h-3" />
-                          Create a new company instead
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <Input
-                          value={newCompanyName}
-                          onChange={(e) => setNewCompanyName(e.target.value)}
-                          placeholder="Enter your company name"
-                          required={useNewCompany || companies.length === 0}
-                        />
-                        {companies.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setUseNewCompany(false)}
-                            className="text-sm text-primary hover:text-primary/80 transition-colors"
-                          >
-                            ← Use existing company
-                          </button>
-                        )}
-                      </div>
-                    )}
+                      <span>Company Name</span>
+                    </label>
+                    <Input
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      placeholder="Enter your company name"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This will be the name of your organisation in PeopleCore
+                    </p>
                   </div>
 
                   {/* Name Fields */}
@@ -569,7 +501,7 @@ export default function SetupAdminClient() {
                     }}
                     loading={loading}
                     loadingText="Creating your account..."
-                    disabled={loading || !passwordsMatch || passwordStrength.score < 3}
+                    disabled={loading || !companyName.trim() || !passwordsMatch || passwordStrength.score < 3}
                     icon={<Rocket className="w-5 h-5" />}
                   >
                     Create Account & Sign In

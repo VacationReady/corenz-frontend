@@ -158,6 +158,11 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
     style: "currency",
     currency: "NZD",
   });
+  
+  // Pre-format currency values since Intl.NumberFormat can't be passed to client components
+  const formattedSalary = salaryAmount !== null ? currencyFormatter.format(salaryAmount) : null;
+  const formattedHourlyRate = hourlyRate !== null ? currencyFormatter.format(hourlyRate) : null;
+  
   const kiwiSaverStatus =
     employee.kiwiSaverEnrolled === null || employee.kiwiSaverEnrolled === undefined
       ? "Not provided"
@@ -217,14 +222,13 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
       bankAccountNumber={employee.bankAccountNumber}
       irdNumber={employee.irdNumber}
       kiwiSaverContribution={employee.kiwiSaverContribution}
-      salaryAmount={salaryAmount}
-      hourlyRate={hourlyRate}
+      formattedSalary={formattedSalary}
+      formattedHourlyRate={formattedHourlyRate}
       kiwiSaverStatus={kiwiSaverStatus}
       emergencyContacts={employee.EmergencyContact}
       insights={insights}
       canSeeBankPayrollOverview={canSeeBankPayrollOverview}
       isAdmin={isAdmin}
-      currencyFormatter={currencyFormatter}
       profileAvatar={
         <ProfileAvatarUploader
           userId={employee.userId}

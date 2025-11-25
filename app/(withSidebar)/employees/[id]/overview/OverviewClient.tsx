@@ -51,14 +51,13 @@ interface OverviewClientProps {
   bankAccountNumber: string | null;
   irdNumber: string | null;
   kiwiSaverContribution: number | null;
-  salaryAmount: number | null;
-  hourlyRate: number | null;
+  formattedSalary: string | null;
+  formattedHourlyRate: string | null;
   kiwiSaverStatus: string;
   emergencyContacts: EmergencyContactData[];
   insights: InsightData[];
   canSeeBankPayrollOverview: boolean;
   isAdmin: boolean;
-  currencyFormatter: Intl.NumberFormat;
   leaveBalanceComponent: React.ReactNode;
   profileAvatar: React.ReactNode;
 }
@@ -150,14 +149,13 @@ export default function OverviewClient({
   bankAccountNumber,
   irdNumber,
   kiwiSaverContribution,
-  salaryAmount,
-  hourlyRate,
+  formattedSalary,
+  formattedHourlyRate,
   kiwiSaverStatus,
   emergencyContacts,
   insights,
   canSeeBankPayrollOverview,
   isAdmin,
-  currencyFormatter,
   leaveBalanceComponent,
   profileAvatar,
 }: OverviewClientProps) {
@@ -263,11 +261,11 @@ export default function OverviewClient({
                   <>
                     <InfoRow 
                       label="Salary" 
-                      value={salaryAmount !== null ? currencyFormatter.format(salaryAmount) : "Not provided"} 
+                      value={formattedSalary ?? "Not provided"} 
                     />
                     <InfoRow 
                       label="Hourly rate" 
-                      value={hourlyRate !== null ? currencyFormatter.format(hourlyRate) : "Not provided"} 
+                      value={formattedHourlyRate ?? "Not provided"} 
                     />
                   </>
                 )}

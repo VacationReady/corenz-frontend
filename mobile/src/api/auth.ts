@@ -2,6 +2,7 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
+const SESSION_TOKEN_KEY = "next-auth.session-token";
 
 export async function signInWithCredentials(email: string, password: string) {
   if (!API_BASE_URL) {
@@ -9,86 +10,59 @@ export async function signInWithCredentials(email: string, password: string) {
     throw new Error("API configuration missing");
   }
 
-  console.log("🔄 Attempting login to:", `${API_BASE_URL}/api/auth/callback/credentials`);
+  console.log("🔄 Attempting mobile login to:", `${API_BASE_URL}/api/auth/mobile-login`);
   console.log("📧 Email:", email);
   console.log("🌐 API Base URL:", API_BASE_URL);
   console.log("📱 Platform:", `${Platform.OS} ${Platform.Version}`);
 
   // Create abort controller for timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/callback/credentials`, {
+    const response = await fetch(`${API_BASE_URL}/api/auth/mobile-login`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/json",
       },
-      body: new URLSearchParams({
-        email,
+      body: JSON.stringify({
+        email: email.trim(),
         password,
-        json: "true",
-        redirect: "false",
-      }).toString(),
+      }),
       signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     console.log("📡 Response status:", response.status);
-    console.log(
-      "📡 Response headers:",
-      JSON.stringify(Object.fromEntries(response.headers.entries()))
-    );
 
-    const responseText = await response.text();
-    console.log("📡 Response body:", responseText);
+    const data = await response.json();
+    console.log("📡 Response data:", JSON.stringify(data, null, 2));
 
-    // NextAuth returns JSON when json=true parameter is used
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (e) {
-      console.error("❌ Failed to parse response as JSON");
-      throw new Error("Invalid server response");
-    }
-
-    // Check if login was successful
-    if (data.error) {
+    if (!response.ok) {
       console.error("❌ Login failed:", data.error);
       throw new Error(data.error || "Login failed");
     }
 
-    // Extract and store session token from set-cookie header
-    const setCookie = response.headers.get("set-cookie");
-    console.log("🍪 Set-Cookie header:", setCookie);
-
-    if (setCookie) {
-      // Extract the session token from the cookie string
-      const match = setCookie.match(/next-auth\.session-token=([^;]+)/);
-      if (match) {
-        await SecureStore.setItemAsync("next-auth.session-token", match[1]);
-        console.log("✅ Session token stored");
-      }
+    // Store the session token securely
+    if (data.sessionToken) {
+      await SecureStore.setItemAsync(SESSION_TOKEN_KEY, data.sessionToken);
+      console.log("✅ Session token stored successfully");
+    } else {
+      console.warn("⚠️ No session token in response");
     }
 
-    // Return success - the session will be validated on subsequent requests
-    clearTimeout(timeoutId);
     console.log("✅ Login successful");
     return {
-      user: {
-        email: email,
-      },
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      user: data.user,
+      expires: data.expires,
     };
   } catch (error: any) {
     clearTimeout(timeoutId);
-    console.error("❌ Network error during login:", error);
+    console.error("❌ Login error:", error);
     console.error("❌ Error details:", {
       name: error?.name,
       message: error?.message,
-      stack: error?.stack,
-      apiUrl: `${API_BASE_URL}/api/auth/callback/credentials`,
-      errorType: typeof error,
-      errorKeys: error ? Object.keys(error) : [],
       platform: `${Platform.OS} ${Platform.Version}`,
     });
 
@@ -97,16 +71,14 @@ export async function signInWithCredentials(email: string, password: string) {
 
     if (error?.name === "AbortError" || errorMessage.includes("timed out")) {
       throw new Error(
-        `Request to ${API_BASE_URL} timed out. Make sure the backend is running (npm run dev), bound to your LAN, Windows Firewall allows Node.js on port 3000, and visit ${API_BASE_URL} from your phone to confirm it loads.`
+        `Request to ${API_BASE_URL} timed out. Make sure the backend is running and accessible.`
       );
     } else if (errorMessage.includes("Network request failed")) {
       throw new Error(
-        `Unable to connect to ${API_BASE_URL}. Please check:\n1. Server is running (npm run dev)\n2. IP address ${API_BASE_URL} is correct\n3. Phone and computer are on same WiFi`
+        `Unable to connect to ${API_BASE_URL}. Please check your network connection.`
       );
-    } else if (errorMessage.includes("fetch")) {
-      throw new Error("Connection error. Please ensure the server is running and accessible.");
     } else {
-      throw new Error(`Login failed: ${errorMessage}`);
+      throw new Error(errorMessage);
     }
   }
 }
@@ -117,23 +89,48 @@ export async function getSession() {
     throw new Error("API configuration missing");
   }
 
+  // First check if we have a stored token
+  const storedToken = await SecureStore.getItemAsync(SESSION_TOKEN_KEY);
+  if (!storedToken) {
+    console.log("📱 No stored session token");
+    return null;
+  }
+
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
+    // Validate session with the server
     const response = await fetch(`${API_BASE_URL}/api/auth/session`, {
       method: "GET",
-      credentials: "include",
+      headers: {
+        Cookie: `next-auth.session-token=${storedToken}`,
+      },
       signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      throw new Error("Session expired");
+      console.log("📱 Session validation failed, clearing token");
+      await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
+      return null;
     }
 
-    return response.json();
-  } finally {
+    const session = await response.json();
+    
+    // If session is empty or has no user, clear the token
+    if (!session || !session.user) {
+      console.log("📱 Empty session response, clearing token");
+      await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
+      return null;
+    }
+
+    return session;
+  } catch (error) {
     clearTimeout(timeoutId);
+    console.error("Error validating session:", error);
+    return null;
   }
 }
 
@@ -144,7 +141,7 @@ export async function requestPasswordReset(email: string) {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/password-reset`, {
@@ -154,38 +151,52 @@ export async function requestPasswordReset(email: string) {
       signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       throw new Error(data?.error || "Unable to send reset email");
     }
-  } finally {
+  } catch (error) {
     clearTimeout(timeoutId);
+    throw error;
   }
 }
 
 export async function signOut() {
-  if (!API_BASE_URL) {
-    console.error("❌ API_BASE_URL is not configured!");
-    return;
-  }
-
   try {
-    await SecureStore.deleteItemAsync("next-auth.session-token");
-    await fetch(`${API_BASE_URL}/api/auth/signout`, {
-      method: "POST",
-      credentials: "include",
-    });
+    // Clear the stored session token
+    await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
+    console.log("✅ Session token cleared");
+
+    // Optionally notify the server (don't wait for response)
+    if (API_BASE_URL) {
+      fetch(`${API_BASE_URL}/api/auth/signout`, {
+        method: "POST",
+      }).catch(() => {
+        // Ignore errors - the important thing is clearing local storage
+      });
+    }
   } catch (error) {
     console.error("Sign out error:", error);
   }
 }
 
-export async function getStoredSession() {
+export async function getStoredSession(): Promise<string | null> {
   try {
-    const token = await SecureStore.getItemAsync("next-auth.session-token");
+    const token = await SecureStore.getItemAsync(SESSION_TOKEN_KEY);
     return token;
   } catch (error) {
     console.error("Error getting stored session:", error);
     return null;
+  }
+}
+
+export async function clearStoredSession(): Promise<void> {
+  try {
+    await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
+    console.log("✅ Stored session cleared");
+  } catch (error) {
+    console.error("Error clearing stored session:", error);
   }
 }

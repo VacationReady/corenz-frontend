@@ -12,7 +12,7 @@ export default function NewFormPage() {
   const breadcrumbItems = [
     { label: 'Settings', href: '/settings' },
     { label: 'Screen Designer', href: '/settings/forms' },
-    { label: 'Create New Form', isCurrentPage: true }
+    { label: 'Create New Screen', isCurrentPage: true }
   ];
 
   const handleSave = async (data: {
@@ -37,21 +37,21 @@ export default function NewFormPage() {
       });
 
       if (res.ok) {
-        toast.success("Form created successfully!");
+        toast.success("Screen created successfully!");
         router.push("/settings/forms");
       } else {
         const error = await res.json();
-        toast.error(error.error || "Failed to create form");
+        toast.error(error.error || "Failed to create screen");
       }
     } catch {
-      toast.error("Failed to create form");
+      toast.error("Failed to create screen");
     }
   };
 
   return (
     <PageShell
-      title="Create New Form"
-      description="Design a custom form in three easy steps"
+      title="Create New Screen"
+      description="Design a custom data screen, table, or survey in three easy steps"
       breadcrumbs={{ items: breadcrumbItems }}
       showHomeIcon={false}
     >

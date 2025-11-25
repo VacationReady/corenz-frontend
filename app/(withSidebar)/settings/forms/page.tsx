@@ -166,14 +166,14 @@ export default function FormsPage() {
       const res = await fetch(`/api/forms/${formId}`, { method: "DELETE" });
 
       if (res.ok) {
-        toast.success("Form deleted successfully");
+        toast.success("Screen deleted successfully");
         setForms(forms.filter((f) => f.id !== formId));
       } else {
         const error = await res.json();
-        toast.error(error.error || "Failed to delete form");
+        toast.error(error.error || "Failed to delete screen");
       }
     } catch (error) {
-      toast.error("Failed to delete form");
+      toast.error("Failed to delete screen");
       console.error("Delete error:", error);
     }
   };
@@ -235,7 +235,7 @@ export default function FormsPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 className="pl-11 h-11 glass-subtle border-white/20 focus:border-primary/50 rounded-xl"
-                placeholder="Search forms..."
+                placeholder="Search screens..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
@@ -283,12 +283,12 @@ export default function FormsPage() {
           {/* Actions */}
           <div className="flex items-center gap-3">
             <div className="text-sm text-muted-foreground font-medium">
-              {filteredForms.length} form{filteredForms.length !== 1 ? "s" : ""}
+              {filteredForms.length} screen{filteredForms.length !== 1 ? "s" : ""}
             </div>
             <Button asChild className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-lg h-11 px-6 rounded-xl">
               <Link href="/settings/forms/new" className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Create Form</span>
+                <span className="hidden sm:inline">Create Screen</span>
               </Link>
             </Button>
           </div>
@@ -304,14 +304,14 @@ export default function FormsPage() {
           <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mx-auto mb-6">
             <Layers className="h-12 w-12 text-primary" />
           </div>
-          <h3 className="text-2xl font-bold mb-3">No forms yet</h3>
+          <h3 className="text-2xl font-bold mb-3">No screens yet</h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Create your first custom form to collect data from employees, build surveys, or design data entry screens.
+            Create custom data screens for employee profiles, tables for repeating data, or surveys for collecting feedback.
           </p>
           <Button asChild className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-lg h-12 px-8 rounded-xl">
             <Link href="/settings/forms/new" className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
-              Create Your First Form
+              Create Your First Screen
             </Link>
           </Button>
         </motion.div>
@@ -455,7 +455,7 @@ export default function FormsPage() {
                                       if (!res.ok) throw new Error("Failed to duplicate");
                                       const cloned = await res.json();
                                       setForms([cloned, ...forms]);
-                                      toast.success("Form duplicated");
+                                      toast.success("Screen duplicated");
                                     } catch (e) {
                                       toast.error("Failed to duplicate");
                                     }
@@ -499,7 +499,7 @@ export default function FormsPage() {
                                   }}
                                 >
                                   <Trash2 className="h-4 w-4" />
-                                  Delete Form
+                                  Delete Screen
                                 </button>
                               </motion.div>
                             </>
@@ -543,15 +543,15 @@ export default function FormsPage() {
                 if (!res.ok) throw new Error("Import failed");
                 const created = await res.json();
                 setForms([created, ...forms]);
-                toast.success("Form imported successfully");
+                toast.success("Screen imported successfully");
               } catch (e) {
-                toast.error("Failed to import form");
+                toast.error("Failed to import screen");
               }
             };
             input.click();
           }}
         >
-          <Upload className="h-4 w-4 mr-2" /> Import Form from JSON
+          <Upload className="h-4 w-4 mr-2" /> Import Screen from JSON
         </Button>
       </motion.div>
 

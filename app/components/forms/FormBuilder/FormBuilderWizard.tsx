@@ -50,8 +50,8 @@ import { cn } from "@/lib/utils";
 
 // Step configuration
 const STEPS = [
-  { id: 1, title: "Build Form", description: "Design your form structure", icon: Layers },
-  { id: 2, title: "Preview", description: "Review your form", icon: Eye },
+  { id: 1, title: "Build Screen", description: "Design your screen structure", icon: Layers },
+  { id: 2, title: "Preview", description: "Review your screen", icon: Eye },
   { id: 3, title: "Set Audience", description: "Control visibility", icon: Users },
 ];
 
@@ -364,8 +364,8 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
   };
 
   const saveForm = () => {
-    if (!formName.trim()) return toast.error("Form name is required");
-    if (!formSlug.trim()) return toast.error("Form slug is required");
+    if (!formName.trim()) return toast.error("Screen name is required");
+    if (!formSlug.trim()) return toast.error("Screen slug is required");
     if (!slugIsValid)
       return toast.error("Slug can only contain lowercase letters, numbers, and hyphens");
     const allFields = sections.flatMap((s) => s.fields);
@@ -392,7 +392,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
       autoSave,
     });
 
-    toast.success("Form saved successfully");
+    toast.success("Screen saved successfully");
   };
 
   const goToForms = () => {
@@ -431,28 +431,37 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
         {/* Form Details Bar - Always visible */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div className="space-y-1.5">
-            <Label className="text-sm font-semibold text-slate-700">Form Name</Label>
+            <Label className="text-sm font-semibold text-slate-700">Screen Name</Label>
             <Input
               value={formName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNameChange(e.target.value)}
-              placeholder="Enter form name"
+              placeholder="Enter screen name"
               className="bg-white border-slate-200 focus:border-primary/50 transition-all h-11"
             />
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              Form Type
+              Screen Type
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent className="bg-slate-900 text-white max-w-xs">
-                    <p>
-                      <strong>Form:</strong> Editable data screen<br/>
-                      <strong>Table:</strong> Multiple records<br/>
-                      <strong>Survey:</strong> One-time submission
-                    </p>
+                  <TooltipContent className="bg-slate-900 text-white max-w-xs p-3">
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <strong className="text-emerald-400">Data Screen:</strong>
+                        <p className="text-slate-300 text-xs mt-0.5">Single editable screen within employee profile. Changes saved with full audit trail.</p>
+                      </div>
+                      <div>
+                        <strong className="text-blue-400">Table:</strong>
+                        <p className="text-slate-300 text-xs mt-0.5">Multiple rows of the same fields. For lists like certifications, dependents, etc.</p>
+                      </div>
+                      <div>
+                        <strong className="text-amber-400">Survey:</strong>
+                        <p className="text-slate-300 text-xs mt-0.5">One-time submission form. For collecting feedback or responses.</p>
+                      </div>
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -462,7 +471,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-white border-slate-200">
-                <SelectItem value="FORM">Form</SelectItem>
+                <SelectItem value="FORM">Data Screen</SelectItem>
                 <SelectItem value="TABLE">Table</SelectItem>
                 <SelectItem value="SURVEY">Survey</SelectItem>
               </SelectContent>
@@ -479,7 +488,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                 className="bg-primary hover:bg-primary/90 shadow-sm h-11 px-6"
               >
                 <Save className="mr-2 h-4 w-4" />
-                Save Form
+                Save Screen
               </Button>
             ) : (
               <Button
@@ -651,10 +660,10 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold text-foreground">
-                        Form Preview
+                        Screen Preview
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        This is how your form will appear to users
+                        This is how your screen will appear within employee profiles
                       </p>
                     </div>
                   </div>
@@ -663,13 +672,13 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                     onClick={goToForms}
                     className="glass-subtle border-white/20 hover:border-primary/50"
                   >
-                    View All Forms
+                    View All Screens
                   </Button>
                 </div>
                 
-                {/* Form title and description preview */}
+                {/* Screen title and description preview */}
                 <div className="mb-6 pb-6 border-b border-border/50">
-                  <h2 className="text-2xl font-bold text-foreground">{formName || "Untitled Form"}</h2>
+                  <h2 className="text-2xl font-bold text-foreground">{formName || "Untitled Screen"}</h2>
                   {formDescription && (
                     <p className="text-muted-foreground mt-2">{formDescription}</p>
                   )}
@@ -697,7 +706,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                       Visibility Settings
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Control who can see and access this form
+                      Control who can see and access this screen
                     </p>
                   </div>
                 </div>

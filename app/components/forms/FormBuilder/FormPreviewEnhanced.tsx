@@ -156,7 +156,7 @@ export function FormPreviewEnhanced({ fields }: { fields: FormField[] }) {
             </motion.div>
           ))}
 
-          {/* Preview submit button */}
+          {/* Preview save button */}
           <motion.div 
             variants={itemVariants}
             className="pt-6 border-t border-border/50"
@@ -167,10 +167,10 @@ export function FormPreviewEnhanced({ fields }: { fields: FormField[] }) {
               className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-white font-semibold shadow-lg shadow-primary/20 opacity-80 cursor-not-allowed flex items-center justify-center gap-2"
             >
               <CheckCircle2 className="h-5 w-5" />
-              Submit Form (Preview Only)
+              Save Changes
             </button>
             <p className="text-xs text-center text-muted-foreground mt-3">
-              This is a preview. Users will see and interact with the form like this.
+              This screen will appear within the employee&apos;s profile with full audit trail.
             </p>
           </motion.div>
         </motion.form>

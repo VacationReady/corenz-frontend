@@ -4,7 +4,15 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
-import { CheckCircle, Clock, ArrowRight, PenLine, UserRound, Briefcase } from "lucide-react";
+import { 
+  CheckCircle, 
+  Clock, 
+  ArrowRight, 
+  PenLine, 
+  UserRound, 
+  Briefcase,
+} from "lucide-react";
+import { getActionItemIconConfig } from "@/lib/action-item-icons";
 import Button from "@/components/ui/Button";
 import { WidgetLoading } from "@/components/ui/WidgetStates";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -676,7 +684,11 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
           </div>
         ) : (
           <div className="space-y-2">
-            {displayItems.map((item) => (
+            {displayItems.map((item) => {
+              const iconConfig = getActionItemIconConfig(item);
+              const ItemIcon = iconConfig.icon;
+              
+              return (
               <div
                 key={item.id}
                 className="group relative flex items-center justify-between p-3 rounded-lg border border-border/50 hover:border-border hover:bg-muted/30 transition-all cursor-pointer"
@@ -694,9 +706,13 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
                 }}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {item.urgent && (
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  )}
+                  {/* Action item type icon */}
+                  <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${iconConfig.bgColor} flex items-center justify-center relative`}>
+                    <ItemIcon className={`w-4.5 h-4.5 ${iconConfig.iconColor}`} />
+                    {item.urgent && (
+                      <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse border-2 border-white" />
+                    )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{item.title}</p>
                     {item.subtitle && (
@@ -750,7 +766,8 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
                   </Button>
                 </div>
               </div>
-            ))}
+            );
+            })}
 
             {!viewAll && pendingCount > 3 && (
               <button

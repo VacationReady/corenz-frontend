@@ -26,6 +26,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getIconConfigFromType } from "@/lib/action-item-icons";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -466,7 +467,11 @@ export default function AdminActionItemsPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {items.map((item) => (
+              {items.map((item) => {
+                const iconConfig = getIconConfigFromType(item.type);
+                const ItemIcon = iconConfig.icon;
+                
+                return (
                 <div
                   key={item.id}
                   className={`p-4 rounded-lg border-2 transition-all ${
@@ -476,11 +481,16 @@ export default function AdminActionItemsPage() {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-4">
+                    {/* Action item type icon */}
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-lg ${iconConfig.bgColor} flex items-center justify-center relative`}>
+                      <ItemIcon className={`w-5 h-5 ${iconConfig.iconColor}`} />
+                      {item.isOverdue && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-white" />
+                      )}
+                    </div>
+                    
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        {item.isOverdue && (
-                          <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" />
-                        )}
                         <Badge
                           variant="outline"
                           className="text-xs flex-shrink-0"
@@ -554,7 +564,8 @@ export default function AdminActionItemsPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </CardContent>

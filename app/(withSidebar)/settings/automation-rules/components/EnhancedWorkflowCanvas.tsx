@@ -126,8 +126,8 @@ function EnhancedWorkflowCanvasInner({
   const [showPreviewWarning, setShowPreviewWarning] = useState(false);
   const prevSentSnapshotRef = useRef<string>("");
   const notifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isLocalUpdateRef = useRef(false);
-  const lastSyncedWorkflowIdRef = useRef<string | undefined>(undefined);
+  const hasInitializedRef = useRef(false);
+  const lastWorkflowIdRef = useRef<string | undefined>(undefined);
   
   // Undo/Redo history
   const [history, setHistory] = useState<{ nodes: Node[]; edges: Edge[] }[]>([]);
@@ -249,66 +249,50 @@ function EnhancedWorkflowCanvasInner({
   }, []);
 
 
-  // Load workflow nodes when workflow prop changes (deferred to avoid updates during render/drag)
+  // Load workflow nodes ONLY on initial mount or when switching to a different workflow
   useEffect(() => {
-    // Skip sync if we just made a local update (like dropping a node)
-    if (isLocalUpdateRef.current) {
-      isLocalUpdateRef.current = false;
-      return;
-    }
-
-    // Only sync if this is a different workflow (by ID) or initial load
     const currentWorkflowId = workflow?.id;
-    if (currentWorkflowId !== undefined && lastSyncedWorkflowIdRef.current === currentWorkflowId) {
-      // Same workflow - check if incoming has more nodes (external update) or if local state is empty
-      if (nodes.length > 0 && workflow?.nodes && workflow.nodes.length <= nodes.length) {
-        // Local state has same or more nodes, don't overwrite
-        return;
+    const isDifferentWorkflow = currentWorkflowId !== lastWorkflowIdRef.current;
+    
+    // Only sync from props on:
+    // 1. Initial load (not yet initialized)
+    // 2. Switching to a completely different workflow (different ID)
+    if (!hasInitializedRef.current || (isDifferentWorkflow && currentWorkflowId !== undefined)) {
+      hasInitializedRef.current = true;
+      lastWorkflowIdRef.current = currentWorkflowId;
+      
+      if (workflow?.nodes || workflow?.edges) {
+        const { nodesSafe, edgesSafe } = sanitizeNodesAndEdges(workflow.nodes || [], workflow.edges || []);
+        
+        // Enrich nodes with validation errors
+        const enrichedNodes = nodesSafe.map(node => {
+          const validation = nodeValidation.get(node.id);
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              validationErrors: validation?.errors || [],
+            },
+          };
+        });
+
+        setNodes(enrichedNodes);
+        setEdges(edgesSafe);
+
+        if (nodesSafe.length > 0) {
+          setTimeout(() => {
+            fitView({ padding: 0.2, duration: 300 });
+          }, 100);
+        }
+      } else {
+        // New workflow with no nodes - start fresh
+        setNodes([]);
+        setEdges([]);
       }
     }
-
-    if (workflow?.nodes && workflow?.edges) {
-      const { nodesSafe, edgesSafe } = sanitizeNodesAndEdges(workflow.nodes, workflow.edges);
-      
-      // Enrich nodes with validation errors
-      const enrichedNodes = nodesSafe.map(node => {
-        const validation = nodeValidation.get(node.id);
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            validationErrors: validation?.errors || [],
-          },
-        };
-      });
-
-      // Defer updates to next tick to avoid React error #185 during drag/render cycles
-      const t = setTimeout(() => {
-        // Only update local state if different from current state snapshot
-        const incomingSnapshot = JSON.stringify({ n: enrichedNodes, e: edgesSafe });
-        const currentSnapshot = JSON.stringify({ n: nodes, e: edges });
-        if (incomingSnapshot !== currentSnapshot) {
-          setNodes(enrichedNodes);
-          setEdges(edgesSafe);
-          lastSyncedWorkflowIdRef.current = currentWorkflowId;
-
-          if (nodesSafe.length > 0) {
-            setTimeout(() => {
-              fitView({ padding: 0.2, duration: 300 });
-            }, 100);
-          }
-        }
-      }, 0);
-
-      return () => clearTimeout(t);
-    } else if (workflow?.id !== lastSyncedWorkflowIdRef.current) {
-      // New workflow with no nodes yet - reset state
-      setNodes([]);
-      setEdges([]);
-      lastSyncedWorkflowIdRef.current = workflow?.id;
-    }
-  // Intentionally exclude nodes/edges/setters from deps to avoid re-running during drags
-  }, [workflow, fitView, sanitizeNodesAndEdges, nodeValidation]);
+  // Only depend on workflow.id changes, not the entire workflow object
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflow?.id]);
 
   // Track history for undo/redo (only when not in read-only mode)
   useEffect(() => {
@@ -458,9 +442,12 @@ function EnhancedWorkflowCanvasInner({
       },
     };
 
-    // Mark that we're making a local update to prevent useEffect from overwriting
-    isLocalUpdateRef.current = true;
-    setNodes((nds) => [...nds, newNode]);
+    setNodes((nds) => {
+      const updated = [...nds, newNode];
+      console.log('[WorkflowCanvas] Node added, total nodes:', updated.length);
+      return updated;
+    });
+    
     toast.success(`Added ${nodeConfig.label}`, {
       icon: nodeConfig.icon,
       duration: 2000,

@@ -12,9 +12,11 @@ import {
   AlertTriangle, 
   ArrowRight,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ActionItemWithSource } from "@/hooks/usePerformanceData";
+import { actionItemIconConfig } from "@/lib/action-item-icons";
 
 interface PendingActionItemsPanelProps {
   actionItems: ActionItemWithSource[];
@@ -115,6 +117,14 @@ export function PendingActionItemsPanel({
                 )}
               >
                 <div className="flex items-start justify-between gap-4">
+                  {/* Meeting action item icon */}
+                  <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${actionItemIconConfig.meeting_action_item.bgColor} flex items-center justify-center relative`}>
+                    <MessageSquare className={`w-4 h-4 ${actionItemIconConfig.meeting_action_item.iconColor}`} />
+                    {overdue && (
+                      <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 border-2 border-white" />
+                    )}
+                  </div>
+                  
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       {statusIcons[item.status as keyof typeof statusIcons]}

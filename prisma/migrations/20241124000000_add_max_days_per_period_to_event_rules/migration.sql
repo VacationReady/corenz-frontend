@@ -6,3 +6,4 @@ ALTER TABLE "EventRule" ADD COLUMN "maxDaysPerPeriod" INTEGER;
 ALTER TABLE "EventRule" ADD COLUMN "periodMonths" INTEGER;
 
 
+

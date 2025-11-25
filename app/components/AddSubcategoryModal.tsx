@@ -76,14 +76,7 @@ export default function AddSubcategoryModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-lg">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-2xl"
-        >
+      <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-lg rounded-2xl overflow-hidden">
           {/* Header */}
           <div className="px-8 pt-8 pb-6">
             <div className="flex items-center gap-3">
@@ -165,7 +158,6 @@ export default function AddSubcategoryModal({
               </Button>
             </div>
           </div>
-        </motion.div>
       </DialogContent>
     </Dialog>
   );

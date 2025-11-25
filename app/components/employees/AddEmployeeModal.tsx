@@ -1414,14 +1414,7 @@ export default function AddEmployeeModal({
       onClose();
     }}>
       <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
-        <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-2xl"
-          >
+        <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl rounded-2xl overflow-hidden">
             {/* Header */}
             <div className="px-8 pt-8 pb-6">
               <div className="flex items-start justify-between">
@@ -2566,7 +2559,6 @@ export default function AddEmployeeModal({
               </fieldset>
             </form>
             </div>
-          </motion.div>
         </DialogContent>
       </Dialog>
 

@@ -125,7 +125,7 @@ export function HolidayApprovalModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         {loading ? (
           <div className="py-12 text-center">
             <Clock className="w-12 h-12 mx-auto mb-4 text-muted-foreground animate-spin" />
@@ -139,21 +139,21 @@ export function HolidayApprovalModal({
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Employee Section */}
-              <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
-                <div className="flex items-start gap-4">
-                  <Avatar className="w-16 h-16 border-2 border-white shadow-lg">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
+                <div className="flex items-center gap-4">
+                  <Avatar className="w-14 h-14 border-2 border-white shadow-lg">
                     <AvatarImage src={details.employee.profileImageUrl} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-lg font-semibold">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-base font-semibold">
                       {getInitials(details.employee.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                    <h3 className="text-lg font-semibold text-gray-900">
                       {details.employee.name}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-1">{details.employee.email}</p>
+                    <p className="text-sm text-gray-600">{details.employee.email}</p>
                     {details.employee.department && (
                       <div className="flex items-center gap-1.5 text-sm text-gray-700">
                         <Users className="w-4 h-4" />
@@ -165,71 +165,71 @@ export function HolidayApprovalModal({
               </div>
 
               {/* Leave Type & Dates */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-5 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
-                  <div className="flex items-center gap-2 mb-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
                     <div
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: details.leaveType.color || "#8b5cf6" }}
+                      style={{ backgroundColor: details.leaveType.color || "#3b82f6" }}
                     />
-                    <h4 className="font-semibold text-gray-900">Leave Type</h4>
+                    <h4 className="font-semibold text-gray-900 text-sm">Leave Type</h4>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">{details.leaveType.name}</p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-xl font-bold text-gray-900">{details.leaveType.name}</p>
+                  <p className="text-sm text-gray-600">
                     {details.dates.requestedDays} {details.dates.requestedDays === 1 ? "day" : "days"}
                   </p>
                 </div>
 
-                <div className="p-5 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Calendar className="w-5 h-5 text-green-700" />
-                    <h4 className="font-semibold text-gray-900">Dates Requested</h4>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <h4 className="font-semibold text-gray-900 text-sm">Dates Requested</h4>
                   </div>
                   <p className="text-sm font-medium text-gray-900">{formatDate(details.dates.start)}</p>
-                  <p className="text-sm text-gray-600 my-1">to</p>
+                  <p className="text-xs text-gray-500">to</p>
                   <p className="text-sm font-medium text-gray-900">{formatDate(details.dates.end)}</p>
                 </div>
               </div>
 
               {/* Reason */}
               {details.reason && (
-                <div className="p-4 rounded-lg bg-gray-50 border border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-2">Reason</h4>
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <h4 className="font-semibold text-gray-900 mb-1 text-sm">Reason</h4>
                   <p className="text-sm text-gray-700">{details.reason}</p>
                 </div>
               )}
 
               {/* Leave Balance */}
               {details.balance && (
-                <div className="p-6 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-amber-700" />
+                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-blue-600" />
                     Leave Balance Impact
                   </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-4 gap-3">
                     <div>
                       <p className="text-xs text-gray-600 mb-1">Total Allowance</p>
-                      <p className="text-2xl font-bold text-gray-900">{details.balance.totalDays}</p>
+                      <p className="text-xl font-bold text-gray-900">{details.balance.totalDays}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-600 mb-1">Already Used</p>
-                      <p className="text-2xl font-bold text-orange-600">{details.balance.usedDays}</p>
+                      <p className="text-xl font-bold text-gray-900">{details.balance.usedDays}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-600 mb-1">Current Balance</p>
-                      <p className="text-2xl font-bold text-blue-600">{details.balance.remainingDays}</p>
+                      <p className="text-xl font-bold text-gray-900">{details.balance.remainingDays}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-600 mb-1">After Approval</p>
-                      <p className={`text-2xl font-bold ${details.balance.remainingAfterApproval >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <p className={`text-xl font-bold ${details.balance.remainingAfterApproval < 0 ? 'text-red-600' : 'text-gray-900'}`}>
                         {details.balance.remainingAfterApproval}
                       </p>
                     </div>
                   </div>
                   {details.balance.remainingAfterApproval < 0 && (
-                    <div className="mt-4 p-3 rounded-lg bg-red-100 border border-red-300 flex items-start gap-2">
-                      <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-red-800">
+                    <div className="mt-3 p-2 rounded-lg bg-red-100 border border-red-300 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-red-800">
                         <strong>Warning:</strong> Approving this request will result in a negative balance of{" "}
                         {Math.abs(details.balance.remainingAfterApproval)} days.
                       </p>
@@ -240,80 +240,73 @@ export function HolidayApprovalModal({
 
               {/* Department Colleagues On Leave */}
               {details.departmentColleagues.length > 0 && (
-                <div className="p-6 rounded-xl bg-gradient-to-br from-rose-50 to-red-50 border-2 border-rose-200">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-rose-700" />
+                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+                    <Users className="w-4 h-4 text-blue-600" />
                     Department Colleagues Also Off ({details.departmentColleagues.length})
                   </h4>
-                  <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {details.departmentColleagues.map((colleague) => (
+                  <div className="space-y-2">
+                    {details.departmentColleagues.slice(0, 3).map((colleague) => (
                       <div
                         key={colleague.id}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-white border border-rose-200 hover:border-rose-300 transition-colors"
+                        className="flex items-center gap-3 p-2 rounded-lg bg-white border border-blue-200"
                       >
-                        <Avatar className="w-10 h-10 border border-gray-200">
+                        <Avatar className="w-8 h-8 border border-gray-200">
                           <AvatarImage src={colleague.profileImageUrl} />
-                          <AvatarFallback className="bg-gradient-to-br from-rose-400 to-red-500 text-white text-sm">
+                          <AvatarFallback className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white text-xs">
                             {getInitials(colleague.name)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-gray-900 text-sm">{colleague.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2">
                             <div
                               className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: colleague.leaveColor || "#ef4444" }}
+                              style={{ backgroundColor: colleague.leaveColor || "#3b82f6" }}
                             />
                             <p className="text-xs text-gray-600">{colleague.leaveType}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-600">
-                            {new Date(colleague.startDate).toLocaleDateString("en-NZ", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </p>
-                          <p className="text-xs text-gray-500">to</p>
-                          <p className="text-xs text-gray-600">
-                            {new Date(colleague.endDate).toLocaleDateString("en-NZ", {
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </p>
+                        <div className="text-right text-xs text-gray-600">
+                          {new Date(colleague.startDate).toLocaleDateString("en-NZ", { month: "short", day: "numeric" })}
+                          {" - "}
+                          {new Date(colleague.endDate).toLocaleDateString("en-NZ", { month: "short", day: "numeric" })}
                         </div>
                       </div>
                     ))}
+                    {details.departmentColleagues.length > 3 && (
+                      <p className="text-xs text-gray-500 text-center pt-1">
+                        +{details.departmentColleagues.length - 3} more colleagues off
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
 
               {details.departmentColleagues.length === 0 && details.employee.department && (
-                <div className="p-4 rounded-lg bg-green-50 border border-green-200 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                  <p className="text-sm text-green-800">
+                <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <p className="text-sm text-gray-700">
                     No other team members from {details.employee.department} are scheduled to be off during these dates.
                   </p>
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t">
+              <div className="flex justify-end gap-3 pt-3 border-t">
                 <Button
                   variant="outline"
-                  size="lg"
                   onClick={handleDecline}
                   disabled={processing}
-                  className="min-w-[120px] border-2 hover:border-red-500 hover:bg-red-50 hover:text-red-700"
+                  className="min-w-[100px] border hover:border-red-500 hover:bg-red-50 hover:text-red-700"
                 >
                   <XCircle className="w-4 h-4 mr-2" />
                   Decline
                 </Button>
                 <Button
-                  size="lg"
                   onClick={handleApprove}
                   disabled={processing}
-                  className="min-w-[120px] bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                  className="min-w-[100px] bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
                 >
                   {processing ? (
                     <Clock className="w-4 h-4 mr-2 animate-spin" />

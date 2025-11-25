@@ -14,6 +14,9 @@ import {
   UserX,
   FileQuestion,
   CalendarDays,
+  GraduationCap,
+  Shield,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -97,10 +100,39 @@ export const actionItemIconConfig: Record<string, ActionItemIconConfig> = {
     iconColor: "text-pink-600",
   },
   // Forms
+  form: {
+    icon: FileText,
+    bgColor: "bg-violet-100",
+    iconColor: "text-violet-600",
+  },
   form_completion: {
     icon: FileQuestion,
     bgColor: "bg-violet-100",
     iconColor: "text-violet-600",
+  },
+  // Training
+  training: {
+    icon: GraduationCap,
+    bgColor: "bg-lime-100",
+    iconColor: "text-lime-600",
+  },
+  // Permissions
+  permissions: {
+    icon: Shield,
+    bgColor: "bg-red-100",
+    iconColor: "text-red-600",
+  },
+  // Reviews (alias for performance)
+  review: {
+    icon: Star,
+    bgColor: "bg-yellow-100",
+    iconColor: "text-yellow-600",
+  },
+  // Document upload request
+  document_upload_request: {
+    icon: FileCheck,
+    bgColor: "bg-blue-100",
+    iconColor: "text-blue-600",
   },
   // Onboarding
   onboarding: {
@@ -248,6 +280,12 @@ export function getActionItemIconConfig(item: ActionItemLike): ActionItemIconCon
   if (metadataType.includes("form")) {
     return actionItemIconConfig.form_completion;
   }
+  if (metadataType.includes("training")) {
+    return actionItemIconConfig.training;
+  }
+  if (metadataType.includes("permission")) {
+    return actionItemIconConfig.permissions;
+  }
 
   // Check subtitle and title for context clues
   if (subtitle.includes("onboarding") || title.includes("onboarding")) {
@@ -275,6 +313,15 @@ export function getActionItemIconConfig(item: ActionItemLike): ActionItemIconCon
   }
   if (subtitle.includes("timesheet") || title.includes("timesheet")) {
     return actionItemIconConfig.timesheet;
+  }
+  if (subtitle.includes("training") || title.includes("training") || title.includes("course")) {
+    return actionItemIconConfig.training;
+  }
+  if (subtitle.includes("permission") || title.includes("permission")) {
+    return actionItemIconConfig.permissions;
+  }
+  if (subtitle.includes("form") || title.includes("complete form")) {
+    return actionItemIconConfig.form;
   }
 
   // Fall back to base type
@@ -332,6 +379,12 @@ export function getIconConfigFromType(type: string): ActionItemIconConfig {
   }
   if (normalizedType.includes("bulk")) {
     return actionItemIconConfig.bulk_update;
+  }
+  if (normalizedType.includes("training")) {
+    return actionItemIconConfig.training;
+  }
+  if (normalizedType.includes("permission")) {
+    return actionItemIconConfig.permissions;
   }
 
   return actionItemIconConfig.task;

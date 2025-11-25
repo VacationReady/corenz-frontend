@@ -49,6 +49,7 @@ import {
   User,
   Sparkles,
   Settings,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ensureDefaultSurveyTemplates, findTemplateMetaBySlug } from "@/lib/survey-templates";

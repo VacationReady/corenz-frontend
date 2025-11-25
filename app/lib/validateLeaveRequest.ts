@@ -64,7 +64,19 @@ export async function validateLeaveRequest({
     },
   });
 
-  const enforceEntitlement = eventRule?.enforceEntitlement ?? true;
+  // Determine if entitlement should be enforced:
+  // - If explicitly configured in EventRule, use that setting
+  // - If no rule exists, only enforce for "Annual Leave" (case-insensitive)
+  // - All other event types default to NOT enforcing entitlement
+  const isAnnualLeave = eventCategory.name.toLowerCase().includes("annual leave");
+  const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
+  
+  console.log("📋 Entitlement enforcement:", { 
+    eventType: eventCategory.name, 
+    isAnnualLeave, 
+    hasExplicitRule: eventRule !== null,
+    enforceEntitlement 
+  });
   const requiredNoticeDays = eventRule?.noticePeriodDays ?? 0;
 
   const leaveStart = dayjs(startDate).startOf("day");

@@ -40,7 +40,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
 
   const loadProfile = async () => {
     try {
-      const response = await apiClient.get('/employees/me');
+      const response = await apiClient.get('/api/employees/me');
       setProfile({
         name: response.data.User?.name || 'Unknown',
         email: response.data.User?.email || '',

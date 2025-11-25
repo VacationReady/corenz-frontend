@@ -177,7 +177,9 @@ export async function PATCH(
         select: { enforceEntitlement: true },
       });
 
-      const enforceEntitlement = eventRule?.enforceEntitlement ?? true;
+      // Only enforce entitlement for Annual Leave by default (unless explicitly configured)
+      const isAnnualLeave = leave.EventCategory?.name?.toLowerCase().includes("annual leave") ?? false;
+      const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
 
       let updatedLeaveRequest;
 

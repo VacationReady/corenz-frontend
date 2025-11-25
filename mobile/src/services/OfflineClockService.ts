@@ -32,7 +32,7 @@ export async function clockInOffline(
     if (online) {
       // Try to clock in online
       try {
-        const response = await apiClient.post('/time-tracking/clock-in', {
+        const response = await apiClient.post('/api/time-tracking/clock-in', {
           location: location
             ? {
                 lat: location.latitude,
@@ -94,7 +94,7 @@ export async function clockOutOffline(
     if (online) {
       // Try to clock out online
       try {
-        const response = await apiClient.post('/time-tracking/clock-out', {
+        const response = await apiClient.post('/api/time-tracking/clock-out', {
           location: location
             ? {
                 lat: location.latitude,
@@ -177,7 +177,7 @@ export async function syncOfflineActions(): Promise<{
     }));
 
     // Call sync API
-    const response = await apiClient.post('/time-tracking/sync', {
+    const response = await apiClient.post('/api/time-tracking/sync', {
       entries,
     });
 

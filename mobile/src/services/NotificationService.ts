@@ -83,7 +83,7 @@ export async function sendTokenToServer(token: string): Promise<boolean> {
     const deviceId = await getDeviceId();
     const platform = Platform.OS;
 
-    const response = await apiClient.post('/notifications/register-token', {
+    const response = await apiClient.post('/api/notifications/register-token', {
       token,
       deviceId,
       platform,

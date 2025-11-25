@@ -68,7 +68,7 @@ export default function ClockScreen() {
 
   const loadStatus = async () => {
     try {
-      const response = await apiClient.get('/time-tracking/status');
+      const response = await apiClient.get('/api/time-tracking/status');
       setStatus(response.data);
     } catch (error) {
       console.error('Error loading status:', error);

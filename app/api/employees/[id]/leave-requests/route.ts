@@ -303,7 +303,9 @@ export async function POST(
           select: { enforceEntitlement: true },
         });
 
-        const enforceEntitlement = eventRule?.enforceEntitlement ?? true;
+        // Only enforce entitlement for Annual Leave by default (unless explicitly configured)
+        const isAnnualLeave = EventCategoryName.toLowerCase().includes("annual leave");
+        const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
 
         if (enforceEntitlement) {
           // Calculate deduction and enforce entitlement check

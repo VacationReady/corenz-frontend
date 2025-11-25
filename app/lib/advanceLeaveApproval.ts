@@ -211,7 +211,9 @@ export async function processDecision({
       select: { enforceEntitlement: true },
     });
 
-    const enforceEntitlement = eventRule?.enforceEntitlement ?? true;
+    // Only enforce entitlement for Annual Leave by default (unless explicitly configured)
+    const isAnnualLeave = lrFull.EventCategory.name.toLowerCase().includes("annual leave");
+    const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
 
     // Only perform deduction if the request is not already approved AND entitlement is enforced
     if (lrFull.approvalStatus !== "APPROVED" && enforceEntitlement) {

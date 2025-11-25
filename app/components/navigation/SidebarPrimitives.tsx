@@ -28,7 +28,7 @@ export function SidebarContainer({
 }: SidebarContainerProps) {
   const baseClasses = clsx(
     "flex flex-col h-full transition-premium",
-    variant === "mobile" ? "w-full" : collapsed ? "w-20" : "w-72",
+    variant === "mobile" ? "w-full" : collapsed ? "w-[4.5rem]" : "w-[13rem]",
     className
   );
 
@@ -76,12 +76,12 @@ export function SidebarHeader({
   const brandingContent = (
     <>
       {logo && (
-        <div className="flex-shrink-0 w-10 h-10">
+        <div className="flex-shrink-0 w-8 h-8">
           {logo}
         </div>
       )}
       {!collapsed && title && (
-        <h1 className="font-semibold text-xl text-foreground truncate">
+        <h1 className="font-semibold text-base text-foreground truncate">
           {title}
         </h1>
       )}
@@ -107,7 +107,7 @@ export function SidebarHeader({
   return (
     <div className={clsx(
       "glass-subtle border-b border-glass flex items-center justify-between",
-      variant === "mobile" ? "px-6 py-6" : collapsed ? "px-4 py-6" : "px-6 py-6"
+      variant === "mobile" ? "px-4 py-4" : collapsed ? "px-3 py-4" : "px-4 py-4"
     )}>
       {brandingNode}
 
@@ -152,13 +152,13 @@ export function SidebarSection({
   collapsed = false,
 }: SidebarSectionProps) {
   return (
-    <div className="py-4">
+    <div className="py-2">
       {title && !collapsed && (
-        <h3 className="px-6 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <h3 className="px-4 mb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
           {title}
         </h3>
       )}
-      <nav className="space-y-1 px-3">
+      <nav className="space-y-0.5 px-2">
         {children}
       </nav>
     </div>
@@ -193,7 +193,7 @@ export function SidebarItem({
       href={href}
       onClick={onClick}
       className={clsx(
-        "group flex items-center gap-4 rounded-xl px-4 py-3 text-base font-medium transition-glass",
+        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-glass",
         isActive
           ? "glass-strong text-primary shadow-depth-1"
           : "text-foreground sidebar-hover-gradient",
@@ -203,7 +203,7 @@ export function SidebarItem({
       <Icon className={clsx(
         "flex-shrink-0 transition-colors",
         isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
-        collapsed ? "w-6 h-6" : "w-5 h-5"
+        collapsed ? "w-5 h-5" : "w-4 h-4"
       )} />
 
       {!collapsed && (
@@ -268,14 +268,14 @@ export function SidebarAction({
     <button
       onClick={onClick}
       className={clsx(
-        "group flex w-full items-center gap-4 rounded-xl px-4 py-3 text-base font-medium transition-glass",
+        "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-glass",
         variantClasses,
         collapsed && "justify-center"
       )}
     >
       <Icon className={clsx(
         "flex-shrink-0",
-        collapsed ? "w-6 h-6" : "w-5 h-5"
+        collapsed ? "w-5 h-5" : "w-4 h-4"
       )} />
       {!collapsed && <span className="flex-1 text-left">{label}</span>}
     </button>

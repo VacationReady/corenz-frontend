@@ -60,10 +60,9 @@ const DEFAULT_FIELD_BASE: Partial<FormField> = {
   hidden: false,
 };
 
-const GROUPS: { title: string; color: string; items: PaletteItem[] }[] = [
+const GROUPS: { title: string; items: PaletteItem[] }[] = [
   {
     title: "Layout & Display",
-    color: "from-violet-500 to-purple-600",
     items: [
       {
         type: "sectionHeader",
@@ -97,7 +96,6 @@ const GROUPS: { title: string; color: string; items: PaletteItem[] }[] = [
   },
   {
     title: "Basic Inputs",
-    color: "from-blue-500 to-indigo-600",
     items: [
       { type: "text", label: "Text", hint: "Single-line text input", icon: Type, defaults: { ...DEFAULT_FIELD_BASE, placeholder: "Enter text" } },
       { type: "textarea", label: "Textarea", hint: "Multi-line text input", icon: AlignLeft, defaults: { ...DEFAULT_FIELD_BASE, placeholder: "Enter details" } },
@@ -110,7 +108,6 @@ const GROUPS: { title: string; color: string; items: PaletteItem[] }[] = [
   },
   {
     title: "Choices",
-    color: "from-emerald-500 to-teal-600",
     items: [
       { type: "select", label: "Dropdown", hint: "Single-select dropdown", icon: ListChecks, defaults: { ...DEFAULT_FIELD_BASE, options: ["Option 1", "Option 2"], appearance: "dropdown" } },
       { type: "radio", label: "Radio", hint: "Single-choice buttons", icon: CaseSensitive, defaults: { ...DEFAULT_FIELD_BASE, options: ["Option A", "Option B"], appearance: "buttons" } },
@@ -121,7 +118,6 @@ const GROUPS: { title: string; color: string; items: PaletteItem[] }[] = [
   },
   {
     title: "Advanced Inputs",
-    color: "from-amber-500 to-orange-600",
     items: [
       { type: "switch", label: "Toggle", hint: "On/off switch", icon: ToggleLeft, defaults: { ...DEFAULT_FIELD_BASE, defaultValue: false } },
       { type: "rating", label: "Rating", hint: "Star rating 1-5", icon: SlidersHorizontal, defaults: { ...DEFAULT_FIELD_BASE, validation: { min: 1, max: 5 }, defaultValue: 3 } },
@@ -134,7 +130,6 @@ const GROUPS: { title: string; color: string; items: PaletteItem[] }[] = [
   },
   {
     title: "Attachments",
-    color: "from-rose-500 to-pink-600",
     items: [
       { type: "file", label: "File Upload", hint: "Single file", icon: Upload, defaults: { ...DEFAULT_FIELD_BASE } },
       { type: "attachmentGallery", label: "Attachment Gallery", hint: "Multiple files", icon: Images, defaults: { ...DEFAULT_FIELD_BASE, allowMultiple: true, maxEntries: 10 } },
@@ -143,14 +138,12 @@ const GROUPS: { title: string; color: string; items: PaletteItem[] }[] = [
   },
   {
     title: "Collections",
-    color: "from-cyan-500 to-sky-600",
     items: [
       { type: "list", label: "List", hint: "Multiple text entries", icon: ListIcon, defaults: { ...DEFAULT_FIELD_BASE, allowMultiple: true, maxEntries: 20 } },
     ],
   },
   {
     title: "Computed & Read-only",
-    color: "from-slate-500 to-gray-600",
     items: [
       { type: "computed", label: "Computed", hint: "Calculated value", icon: Calculator, defaults: { ...DEFAULT_FIELD_BASE, readOnly: true, calculationConfig: { expression: "fieldA + fieldB", dependsOn: ["fieldA", "fieldB"], format: "number", precision: 2 } } },
       { type: "readOnly", label: "Read-only", hint: "Non-editable field", icon: Eye, defaults: { ...DEFAULT_FIELD_BASE, readOnly: true } },
@@ -181,20 +174,20 @@ export function FieldPalette() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
+      <div className="space-y-3">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             placeholder="Search elements..."
-            className="pl-9 h-10 glass-subtle border-white/20 focus:border-primary/50 rounded-xl text-sm"
+            className="pl-9 h-9 bg-white border-slate-200 focus:border-primary/50 rounded-lg text-sm"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
           />
         </div>
 
         {/* Groups */}
-        <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-1 -mr-1">
+        <div className="space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto">
           <AnimatePresence>
             {filteredGroups.map((group) => {
               const isExpanded = expandedGroups.includes(group.title);
@@ -204,36 +197,26 @@ export function FieldPalette() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="rounded-xl overflow-hidden"
+                  className="rounded-lg overflow-hidden border border-slate-100"
                 >
                   <button
                     onClick={() => toggleGroup(group.title)}
                     className={cn(
-                      "w-full flex items-center justify-between px-3 py-2.5 text-left transition-all",
-                      "bg-gradient-to-r bg-opacity-10 hover:bg-opacity-20",
-                      isExpanded ? "rounded-t-xl" : "rounded-xl"
+                      "w-full flex items-center justify-between px-3 py-2 text-left",
+                      "bg-slate-50 hover:bg-slate-100 transition-colors",
+                      isExpanded ? "rounded-t-lg" : "rounded-lg"
                     )}
-                    style={{
-                      background: `linear-gradient(to right, rgba(${group.color === 'from-violet-500 to-purple-600' ? '139, 92, 246' : 
-                        group.color === 'from-blue-500 to-indigo-600' ? '59, 130, 246' :
-                        group.color === 'from-emerald-500 to-teal-600' ? '16, 185, 129' :
-                        group.color === 'from-amber-500 to-orange-600' ? '245, 158, 11' :
-                        group.color === 'from-rose-500 to-pink-600' ? '244, 63, 94' :
-                        group.color === 'from-cyan-500 to-sky-600' ? '6, 182, 212' :
-                        '100, 116, 139'
-                      }, 0.1) 0%, transparent 100%)`
-                    }}
                   >
-                    <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                       {group.title}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{group.items.length}</span>
+                      <span className="text-xs text-slate-400 bg-slate-200 px-1.5 py-0.5 rounded">{group.items.length}</span>
                       <motion.div
                         animate={{ rotate: isExpanded ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.15 }}
                       >
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
                       </motion.div>
                     </div>
                   </button>
@@ -244,18 +227,18 @@ export function FieldPalette() {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: 0.15 }}
                         className="overflow-hidden"
                       >
-                        <div className="grid grid-cols-2 gap-1.5 p-2 bg-white/30 rounded-b-xl">
+                        <div className="grid grid-cols-2 gap-1 p-1.5 bg-white">
                           {group.items.map((item, index) => (
                             <motion.div
                               key={`${group.title}-${item.type}`}
-                              initial={{ opacity: 0, y: 5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.02 }}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: index * 0.01 }}
                             >
-                              <DraggableField field={item} groupColor={group.color} />
+                              <DraggableField field={item} />
                             </motion.div>
                           ))}
                         </div>
@@ -270,13 +253,9 @@ export function FieldPalette() {
 
         {/* Empty State */}
         {filteredGroups.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-8 text-muted-foreground"
-          >
+          <div className="text-center py-6 text-slate-400">
             <p className="text-sm">No elements match your search</p>
-          </motion.div>
+          </div>
         )}
       </div>
     </TooltipProvider>
@@ -285,10 +264,8 @@ export function FieldPalette() {
 
 function DraggableField({
   field,
-  groupColor,
 }: {
   field: PaletteItem;
-  groupColor: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -305,33 +282,28 @@ function DraggableField({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <motion.div
+        <div
           ref={setNodeRef}
           {...attributes}
           {...listeners}
           style={style}
-          whileHover={{ scale: 1.02, y: -2 }}
-          whileTap={{ scale: 0.98 }}
           className={cn(
-            "flex items-center gap-2 p-2.5 rounded-lg text-xs font-medium",
-            "bg-white/70 border border-white/40 hover:border-primary/30",
-            "hover:bg-white hover:shadow-md transition-all duration-200",
+            "flex items-center gap-2 p-2 rounded-md text-xs font-medium",
+            "bg-slate-50 border border-slate-100 hover:border-slate-200",
+            "hover:bg-slate-100 transition-colors duration-150",
             "select-none cursor-grab active:cursor-grabbing",
-            isDragging && "ring-2 ring-primary/50 shadow-lg z-50"
+            isDragging && "ring-2 ring-primary/50 shadow-md z-50 bg-white"
           )}
         >
-          <div className={cn(
-            "p-1.5 rounded-md bg-gradient-to-br text-white shadow-sm",
-            groupColor
-          )}>
+          <div className="p-1 rounded bg-slate-200 text-slate-600">
             {field.icon ? <field.icon className="h-3.5 w-3.5" /> : null}
           </div>
-          <span className="text-foreground/80 truncate">{field.label}</span>
-        </motion.div>
+          <span className="text-slate-700 truncate">{field.label}</span>
+        </div>
       </TooltipTrigger>
-      <TooltipContent side="right" className="glass-premium text-xs max-w-[200px]">
+      <TooltipContent side="right" className="bg-slate-900 text-white text-xs max-w-[200px]">
         <p className="font-medium mb-0.5">{field.label}</p>
-        <p className="text-muted-foreground">{field.hint}</p>
+        <p className="text-slate-300">{field.hint}</p>
       </TooltipContent>
     </Tooltip>
   );

@@ -450,15 +450,173 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
     return await executeBulkLeaveBooking(action, pending.data);
   }
 
+  // Handle step 0: User is providing the employee name after we asked for it
+  if (pending?.type === "book_leave" && pending.step === 0) {
+    const providedName = action.parameters.employeeName || action.parameters.value || action.intent?.trim();
+    
+    // Check if user provided a date instead of a name (common mistake)
+    const datePatterns = /^(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next\s+\w+|this\s+\w+|\d{1,2}\/\d{1,2}|\d{1,2}\s+\w+|\w+\s+\d{1,2})/i;
+    if (providedName && datePatterns.test(providedName)) {
+      return {
+        success: true,
+        message: `It looks like you've given me a date (**${providedName}**) but I still need to know **who** the leave is for.\n\n**Who should I book leave for?** Just give me their name.\n\n💡 Or say "**for me**" if you want to book leave for yourself.`,
+        nextStep: { question: "Employee name?" },
+      };
+    }
+    
+    // Check for self-booking patterns
+    const selfPatterns = /^(me|myself|my\s+leave|for\s+me|i\s+want|i\s+need|i'm|im)$/i;
+    if (providedName && selfPatterns.test(providedName.trim())) {
+      // User wants to book for themselves - find their employee record
+      const userEmployee = await prisma.employee.findFirst({
+        where: { userId: action.userId, companyId: action.companyId },
+        include: { User: true, Department: true },
+      });
+      
+      if (!userEmployee) {
+        return {
+          success: true,
+          message: "I couldn't find your employee record. Please provide the name of the person you want to book leave for.",
+          nextStep: { question: "Employee name?" },
+        };
+      }
+      
+      const employeeName = `${userEmployee.User.firstName} ${userEmployee.User.lastName}`;
+      
+      // Now we have the employee, ask for dates
+      setPendingAction(action.userId, action.companyId, {
+        type: "book_leave",
+        step: 1,
+        data: { employeeId: userEmployee.id, employeeName, isSelfBooking: true },
+      });
+
+      return {
+        success: true,
+        message: `Great! I'll help book leave for **you** (${employeeName}).\n\n**What dates would you like off?**\n\nExamples:\n• "Tomorrow"\n• "Next Monday"\n• "December 20-27"\n• "Next week"`,
+        nextStep: { question: "What dates?" },
+      };
+    }
+    
+    if (!providedName) {
+      return {
+        success: true,
+        message: "I still need the name of who to book leave for. What's their name?\n\n💡 Or say \"**for me**\" if you want to book leave for yourself.",
+        nextStep: { question: "Employee name?" },
+      };
+    }
+    
+    // Search for the employee
+    const employees = await findEmployeeByName(providedName, action.companyId);
+    
+    if (employees.length === 0) {
+      return {
+        success: true,
+        message: `I couldn't find anyone named "**${providedName}**".\n\nTry:\n• Checking the spelling\n• Using just the first name\n• Or say "**for me**" to book for yourself`,
+        nextStep: { question: "Try a different name?" },
+      };
+    }
+
+    if (employees.length > 1) {
+      return {
+        success: true,
+        message: `I found **${employees.length} people** matching "${providedName}":\n\n${employees.map((e, i) => `${i + 1}. **${e.name}** (${e.department})`).join("\n")}\n\n**Which one?** (Just say the number or full name)`,
+        data: employees,
+        nextStep: { question: "Which employee?" },
+      };
+    }
+
+    const employee = employees[0];
+
+    // We have the employee, now ask for dates
+    setPendingAction(action.userId, action.companyId, {
+      type: "book_leave",
+      step: 1,
+      data: { employeeId: employee.id, employeeName: employee.name },
+    });
+
+    return {
+      success: true,
+      message: `Great! I'll help book leave for **${employee.name}**.\n\n**What dates would you like?**\n\nExamples:\n• "Tomorrow"\n• "Next Monday"\n• "December 20-27"\n• "Next week"`,
+      nextStep: { question: "What dates?" },
+    };
+  }
+
   // Multi-step conversation for booking leave
   if (!pending || pending.type !== "book_leave") {
     // Step 1: Find employee
-    const { employeeName, startDate, endDate } = action.parameters;
+    const { employeeName, startDate, endDate, selfBooking } = action.parameters;
+    
+    // Check for self-booking: either from intent classifier (selfBooking param) or from pattern matching
+    const selfBookingPatterns = /\b(can\s+i|i\s+want|i\s+need|i'd\s+like|book\s+(me|my)|for\s+me|my\s+(leave|holiday|time\s+off|vacation))\b/i;
+    const isSelfBooking = selfBooking === true || selfBookingPatterns.test(action.intent || '');
+    
+    if (isSelfBooking) {
+      // User wants to book for themselves - find their employee record
+      const userEmployee = await prisma.employee.findFirst({
+        where: { userId: action.userId, companyId: action.companyId },
+        include: { User: true, Department: true },
+      });
+      
+      if (userEmployee) {
+        const selfName = `${userEmployee.User.firstName} ${userEmployee.User.lastName}`;
+        
+        // If dates provided, go to leave type selection
+        if (startDate || endDate) {
+          const start = startDate || endDate;
+          const end = endDate || startDate;
+          
+          setPendingAction(action.userId, action.companyId, {
+            type: "book_leave",
+            step: 2,
+            data: { employeeId: userEmployee.id, employeeName: selfName, startDate: start, endDate: end, isSelfBooking: true },
+          });
+
+          const categories = await prisma.eventCategory.findMany({
+            where: { companyId: action.companyId, isActive: true },
+            select: { id: true, name: true },
+          });
+
+          const isSingleDay = start === end;
+          const dateDisplay = isSingleDay ? start : `${start} to ${end}`;
+          
+          return {
+            success: true,
+            message: `Great! I'll book leave for **you** (${selfName}) on **${dateDisplay}**.\n\n**Which type of leave?**\n${categories.map((c, i) => `${i + 1}. ${c.name}`).join("\n")}`,
+            nextStep: {
+              question: "Which leave type?",
+              options: categories.map(c => c.name),
+            },
+            data: { categories },
+          };
+        }
+        
+        // No dates provided - ask for them
+        setPendingAction(action.userId, action.companyId, {
+          type: "book_leave",
+          step: 1,
+          data: { employeeId: userEmployee.id, employeeName: selfName, isSelfBooking: true },
+        });
+
+        return {
+          success: true,
+          message: `Absolutely! I'll help you book some time off. 🌴\n\n**What dates would you like?**\n\nExamples:\n• "Tomorrow"\n• "Next Monday"\n• "December 20-27"\n• "Next week Monday to Friday"`,
+          nextStep: { question: "What dates?" },
+        };
+      }
+      // If no employee record found, fall through to ask for name
+    }
     
     if (!employeeName) {
+      // SET PENDING ACTION so we maintain context!
+      setPendingAction(action.userId, action.companyId, {
+        type: "book_leave",
+        step: 0, // Step 0 = waiting for employee name
+        data: {},
+      });
+      
       return {
         success: true,
-        message: "Sure! **Who should I book leave for?**\n\nJust give me their first name or full name.",
+        message: "Sure! I can help with that. 🌴\n\n**Who should I book leave for?**\n\nJust give me their name, or say \"**for me**\" if it's for yourself.",
         nextStep: { question: "Employee name?" },
       };
     }

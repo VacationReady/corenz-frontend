@@ -277,56 +277,56 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
   return (
     <div className="relative">
       <div className="mb-4">
-        <div className="glass-premium rounded-2xl p-3 mb-4 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-center">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-muted-foreground">
+        <div className="bg-white rounded-2xl p-5 mb-6 shadow-sm border border-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700">
                 Form Name
               </Label>
               <Input
                 value={formName}
                 onChange={(event) => handleNameChange(event.target.value)}
                 placeholder="Enter form name"
-                className="glass-subtle border-white/20 focus:border-primary/50 transition-colors"
+                className="bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/20 text-slate-900 placeholder:text-slate-400"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                 Form Type
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
                     </TooltipTrigger>
-                    <TooltipContent className="glass-premium max-w-xs">
-                      <p>
-                        <strong>Form:</strong> Data screen with save functionality (editable, multiple updates)<br/>
+                    <TooltipContent className="bg-slate-900 text-white max-w-xs p-3 rounded-lg shadow-xl">
+                      <p className="text-sm">
+                        <strong>Form:</strong> Data screen with save functionality<br/>
                         <strong>Table:</strong> Multiple records per employee<br/>
-                        <strong>Survey:</strong> One-time submission (not editable)
+                        <strong>Survey:</strong> One-time submission
                       </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </Label>
               <Select value={formType} onValueChange={(value) => setFormType(value as "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN")}>
-                <SelectTrigger className="glass-subtle border-white/20 focus:border-primary/50">
+                <SelectTrigger className="bg-slate-50 border-slate-200 focus:border-indigo-500 text-slate-900">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="glass-premium">
+                <SelectContent className="bg-white border border-slate-200 shadow-lg">
                   <SelectItem value="FORM">Form</SelectItem>
                   <SelectItem value="TABLE">Table</SelectItem>
                   <SelectItem value="SURVEY">Survey</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={goToForms}>
+            <div className="flex items-center gap-3 justify-end">
+              <Button variant="outline" onClick={goToForms} className="border-slate-300 text-slate-700 hover:bg-slate-50">
                 Cancel
               </Button>
               <Button
                 onClick={saveForm}
                 disabled={false || !slugIsValid}
-                className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-sm px-6"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/25 font-semibold px-6"
               >
                 {false ? "Saving..." : "Save Form"}
               </Button>
@@ -353,19 +353,19 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
         >
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12 lg:col-span-3">
-              <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 lg:sticky lg:top-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gradient-premium">
+                  <h3 className="text-base font-semibold text-slate-900">
                     Form Elements
                   </h3>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => setSections(initialSections)}
-                    className="hover:text-primary"
+                    className="hover:text-indigo-600 hover:bg-indigo-50 text-slate-500"
                     aria-label="Reset builder"
                   >
-                    <RotateCcw className="h-5 w-5" />
+                    <RotateCcw className="h-4 w-4" />
                   </Button>
                 </div>
                 <FieldPalette />
@@ -373,7 +373,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
             </div>
 
             <div className="col-span-12 lg:col-span-6">
-              <div className="glass-premium rounded-3xl p-8 min-h-[600px] shadow-premium">
+              <div className="bg-white rounded-2xl p-6 min-h-[600px] shadow-sm border border-slate-200">
                 <FormCanvas
                   sections={sections}
                   setSections={setSections}
@@ -385,19 +385,19 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
             <div className="col-span-12 lg:col-span-3">
               {selectedField ? (
-                <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 lg:sticky lg:top-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gradient-premium">
+                    <h3 className="text-base font-semibold text-slate-900">
                       Field Properties
                     </h3>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => setSelectedField(null)}
-                      className="hover:text-primary"
+                      className="hover:text-red-600 hover:bg-red-50 text-slate-500"
                       aria-label="Clear selection"
                     >
-                      <X className="h-5 w-5" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                   <FieldEditor
@@ -418,32 +418,32 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
                   />
                 </div>
               ) : (
-                <div className="glass-subtle rounded-3xl p-6 border-2 border-dashed border-white/20 text-center text-muted-foreground">
-                  Select a field to edit its properties
+                <div className="bg-slate-50 rounded-2xl p-6 border-2 border-dashed border-slate-300 text-center">
+                  <p className="text-slate-500 text-sm font-medium">Select a field to edit its properties</p>
                 </div>
               )}
             </div>
           </div>
           <DragOverlay>
             {activeDragField ? (
-              <div className="glass-premium rounded-xl p-4 shadow-xl">
+              <div className="bg-white rounded-xl p-4 shadow-xl border border-slate-200 text-slate-900 font-medium">
                 {activeDragField.label}
               </div>
             ) : null}
           </DragOverlay>
         </DndContext>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
           <div className="lg:col-span-2">
-            <div className="glass-premium rounded-3xl p-8 shadow-premium">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gradient-premium">
+                <h3 className="text-lg font-semibold text-slate-900">
                   Form Preview
                 </h3>
                 <Button
                   variant="outline"
                   onClick={goToForms}
-                  className="glass-subtle border-white/20 hover:border-primary/50"
+                  className="border-slate-300 text-slate-700 hover:bg-slate-50"
                 >
                   View All Forms
                 </Button>
@@ -453,11 +453,11 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
           </div>
 
           <div className="lg:col-span-1">
-            <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
-              <h3 className="text-lg font-semibold text-gradient-premium mb-4">
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 lg:sticky lg:top-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-2">
                 Visibility Settings
               </h3>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-slate-500 mb-4">
                 Control who can see and access this form
               </p>
               <VisibilitySettings

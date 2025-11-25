@@ -37,7 +37,7 @@ export function EnhancedWidget({
       whileHover={{ y: -4 }}
       className={cn(sizeClasses[size], className)}
     >
-      <div className="glass-premium rounded-3xl p-6 h-full hover-lift-premium transition-premium">
+      <div className="glass-premium rounded-2xl p-4 h-full hover-lift-premium transition-premium">
         {children}
       </div>
     </motion.div>

@@ -378,9 +378,24 @@ export default function CreateShiftModal({
   const fetchEmployees = async () => {
     setLoadingEmployees(true);
     try {
-      const response = await fetch('/api/employees?status=active');
+      const response = await fetch('/api/employees?status=active&limit=all');
       const data = await response.json();
-      setEmployees(data.employees || []);
+      // API returns { data: [...], pagination: {...} } with flat employee objects
+      // Transform to expected nested format for the component
+      const employeeList = (data.data || data.employees || []).map((emp: any) => ({
+        id: emp.id,
+        User: {
+          name: emp.firstName && emp.lastName 
+            ? `${emp.firstName} ${emp.lastName}`.trim()
+            : emp.User?.name || emp.email || 'Unknown',
+          email: emp.email || emp.User?.email || '',
+          profileImageUrl: emp.profileImageUrl || emp.User?.profileImageUrl || null,
+        },
+        Department: emp.departmentName 
+          ? { name: emp.departmentName }
+          : emp.Department || undefined,
+      }));
+      setEmployees(employeeList);
     } catch (error) {
       console.error('Error fetching employees:', error);
     } finally {

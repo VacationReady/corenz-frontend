@@ -51,8 +51,8 @@ import { cn } from "@/lib/utils";
 // Step configuration
 const STEPS = [
   { id: 1, title: "Build Form", description: "Design your form structure", icon: Layers },
-  { id: 2, title: "Preview", description: "See how it looks", icon: Eye },
-  { id: 3, title: "Set Audience", description: "Control who sees this", icon: Users },
+  { id: 2, title: "Preview", description: "Review your form", icon: Eye },
+  { id: 3, title: "Set Audience", description: "Control visibility", icon: Users },
 ];
 
 function useSlug(initialName: string, initialSlug: string) {
@@ -116,7 +116,7 @@ interface FormBuilderWizardProps {
   };
 }
 
-// Step indicator component with enhanced animations
+// Step indicator component - clean and numbered
 function StepIndicator({ 
   currentStep, 
   onStepClick 
@@ -125,12 +125,11 @@ function StepIndicator({
   onStepClick: (step: number) => void;
 }) {
   return (
-    <div className="flex items-center justify-center gap-2 md:gap-4">
+    <div className="flex items-center justify-center gap-2 md:gap-6">
       {STEPS.map((step, index) => {
         const isActive = currentStep === step.id;
         const isCompleted = currentStep > step.id;
         const isClickable = currentStep >= step.id;
-        const Icon = step.icon;
 
         return (
           <div key={step.id} className="flex items-center">
@@ -138,91 +137,59 @@ function StepIndicator({
               onClick={() => isClickable && onStepClick(step.id)}
               disabled={!isClickable}
               className={cn(
-                "relative flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300",
-                isActive && "bg-gradient-to-r from-primary/15 via-primary/10 to-transparent",
-                !isActive && !isCompleted && "opacity-50",
-                isClickable && "cursor-pointer hover:bg-white/50",
+                "relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+                isActive && "bg-white/80 shadow-sm",
+                !isActive && !isCompleted && "opacity-60",
+                isClickable && "cursor-pointer hover:bg-white/60",
                 !isClickable && "cursor-not-allowed"
               )}
-              whileHover={isClickable ? { scale: 1.02 } : {}}
-              whileTap={isClickable ? { scale: 0.98 } : {}}
+              whileHover={isClickable ? { scale: 1.01 } : {}}
+              whileTap={isClickable ? { scale: 0.99 } : {}}
             >
-              <motion.div
+              {/* Step number circle */}
+              <div
                 className={cn(
-                  "relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300",
-                  isActive && "bg-gradient-to-br from-primary to-primary/80 text-white shadow-lg shadow-primary/30",
-                  isCompleted && "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30",
-                  !isActive && !isCompleted && "bg-white/60 text-muted-foreground border border-white/40"
+                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold transition-all duration-200",
+                  isActive && "bg-primary text-white",
+                  isCompleted && "bg-emerald-600 text-white",
+                  !isActive && !isCompleted && "bg-slate-200 text-slate-500"
                 )}
-                initial={false}
-                animate={{
-                  scale: isActive ? 1.1 : 1,
-                }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
               >
-                <AnimatePresence mode="wait">
-                  {isCompleted ? (
-                    <motion.div
-                      key="check"
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    >
-                      <Check className="h-5 w-5" strokeWidth={3} />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="icon"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                
-                {/* Active ring animation */}
-                {isActive && (
-                  <motion.div
-                    className="absolute inset-0 rounded-xl border-2 border-primary"
-                    initial={{ scale: 1, opacity: 1 }}
-                    animate={{ scale: 1.4, opacity: 0 }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  />
+                {isCompleted ? (
+                  <Check className="h-4 w-4" strokeWidth={3} />
+                ) : (
+                  step.id
                 )}
-              </motion.div>
+              </div>
               
               <div className="hidden md:block text-left">
-                <motion.p
+                <p
                   className={cn(
                     "text-sm font-semibold transition-colors",
-                    isActive && "text-foreground",
-                    isCompleted && "text-emerald-600",
-                    !isActive && !isCompleted && "text-muted-foreground"
+                    isActive && "text-slate-900",
+                    isCompleted && "text-emerald-700",
+                    !isActive && !isCompleted && "text-slate-500"
                   )}
                 >
                   {step.title}
-                </motion.p>
-                <p className="text-xs text-muted-foreground">{step.description}</p>
+                </p>
+                <p className={cn(
+                  "text-xs",
+                  isActive ? "text-slate-600" : "text-slate-400"
+                )}>{step.description}</p>
               </div>
             </motion.button>
 
             {/* Connector line */}
             {index < STEPS.length - 1 && (
-              <div className="hidden sm:block w-8 md:w-16 h-0.5 mx-2">
-                <motion.div
+              <div className="hidden sm:block w-8 md:w-12 h-0.5 mx-1">
+                <div
                   className={cn(
-                    "h-full rounded-full transition-colors duration-500",
+                    "h-full rounded-full transition-colors duration-300",
                     currentStep > step.id 
-                      ? "bg-gradient-to-r from-emerald-500 to-emerald-400" 
-                      : "bg-border/50"
+                      ? "bg-emerald-500" 
+                      : "bg-slate-200"
                   )}
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ delay: 0.2 * index }}
-                  style={{ transformOrigin: "left" }}
                 />
               </div>
             )}
@@ -454,7 +421,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-premium rounded-3xl p-6 mb-6 shadow-premium"
+        className="bg-white rounded-2xl p-6 mb-6 shadow-sm border border-slate-100"
       >
         {/* Step Indicator */}
         <div className="mb-6">
@@ -462,37 +429,25 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
         </div>
 
         {/* Form Details Bar - Always visible */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-muted-foreground">Form Name</Label>
+            <Label className="text-sm font-semibold text-slate-700">Form Name</Label>
             <Input
               value={formName}
-              onChange={(event) => handleNameChange(event.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNameChange(e.target.value)}
               placeholder="Enter form name"
-              className="glass-subtle border-white/20 focus:border-primary/50 transition-all h-11"
+              className="bg-white border-slate-200 focus:border-primary/50 transition-all h-11"
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-muted-foreground">Slug</Label>
-            <Input
-              value={formSlug}
-              onChange={(e) => setFormSlug(e.target.value)}
-              placeholder="form-slug"
-              className={cn(
-                "glass-subtle border-white/20 focus:border-primary/50 transition-all h-11 font-mono text-sm",
-                !slugIsValid && formSlug && "border-destructive/50"
-              )}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
               Form Type
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                    <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
                   </TooltipTrigger>
-                  <TooltipContent className="glass-premium max-w-xs">
+                  <TooltipContent className="bg-slate-900 text-white max-w-xs">
                     <p>
                       <strong>Form:</strong> Editable data screen<br/>
                       <strong>Table:</strong> Multiple records<br/>
@@ -502,26 +457,26 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                 </Tooltip>
               </TooltipProvider>
             </Label>
-            <Select value={formType} onValueChange={(value) => setFormType(value as any)}>
-              <SelectTrigger className="glass-subtle border-white/20 focus:border-primary/50 h-11">
+            <Select value={formType} onValueChange={(value: string) => setFormType(value as "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN")}>
+              <SelectTrigger className="bg-white border-slate-200 focus:border-primary/50 h-11">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="glass-premium">
+              <SelectContent className="bg-white border-slate-200">
                 <SelectItem value="FORM">Form</SelectItem>
                 <SelectItem value="TABLE">Table</SelectItem>
                 <SelectItem value="SURVEY">Survey</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={goToForms} className="glass-subtle h-11">
+          <div className="flex items-center gap-2 justify-end">
+            <Button variant="outline" onClick={goToForms} className="h-11 border-slate-200">
               Cancel
             </Button>
             {currentStep === 3 ? (
               <Button
                 onClick={saveForm}
                 disabled={!canProceed(3)}
-                className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-lg h-11 px-6"
+                className="bg-primary hover:bg-primary/90 shadow-sm h-11 px-6"
               >
                 <Save className="mr-2 h-4 w-4" />
                 Save Form
@@ -530,7 +485,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
               <Button
                 onClick={nextStep}
                 disabled={!canProceed(currentStep)}
-                className="bg-gradient-to-r from-primary to-[hsl(var(--sunset-2))] hover:from-primary/90 hover:to-[hsl(var(--sunset-2))]/90 shadow-lg h-11 px-6"
+                className="bg-primary hover:bg-primary/90 shadow-sm h-11 px-6"
               >
                 Continue
                 <ChevronRight className="ml-2 h-4 w-4" />
@@ -577,25 +532,20 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6"
+                    className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 lg:sticky lg:top-6"
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
-                          <Wand2 className="h-5 w-5 text-primary" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-foreground">
-                          Elements
-                        </h3>
-                      </div>
+                      <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">
+                        Elements
+                      </h3>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setSections(initialSections)}
-                        className="hover:text-primary h-8 w-8"
+                        className="hover:text-primary h-7 w-7 text-slate-400"
                         aria-label="Reset builder"
                       >
-                        <RotateCcw className="h-4 w-4" />
+                        <RotateCcw className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                     <FieldPalette />
@@ -608,7 +558,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="glass-premium rounded-3xl p-8 min-h-[600px] shadow-premium"
+                    className="bg-white rounded-2xl p-6 min-h-[600px] shadow-sm border border-slate-100"
                   >
                     <FormCanvas
                       sections={sections}
@@ -627,24 +577,19 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                     transition={{ delay: 0.3 }}
                   >
                     {selectedField ? (
-                      <div className="glass-premium rounded-3xl p-6 shadow-premium lg:sticky lg:top-6">
+                      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 lg:sticky lg:top-6">
                         <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/10">
-                              <Sparkles className="h-5 w-5 text-amber-600" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-foreground">
-                              Properties
-                            </h3>
-                          </div>
+                          <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-wide">
+                            Properties
+                          </h3>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setSelectedField(null)}
-                            className="hover:text-primary h-8 w-8"
+                            className="hover:text-primary h-7 w-7 text-slate-400"
                             aria-label="Clear selection"
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                         <FieldEditor
@@ -665,12 +610,12 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                         />
                       </div>
                     ) : (
-                      <div className="glass-subtle rounded-3xl p-8 border-2 border-dashed border-white/20 text-center">
-                        <div className="w-16 h-16 rounded-2xl bg-white/30 flex items-center justify-center mx-auto mb-4">
-                          <Sparkles className="h-8 w-8 text-muted-foreground/50" />
+                      <div className="bg-slate-50 rounded-2xl p-8 border-2 border-dashed border-slate-200 text-center lg:sticky lg:top-6">
+                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                          <Sparkles className="h-6 w-6 text-slate-400" />
                         </div>
-                        <p className="text-muted-foreground font-medium">Select a field</p>
-                        <p className="text-sm text-muted-foreground/70 mt-1">Click on any field to edit its properties</p>
+                        <p className="text-slate-600 font-medium text-sm">Select a field</p>
+                        <p className="text-xs text-slate-400 mt-1">Click on any field to edit its properties</p>
                       </div>
                     )}
                   </motion.div>

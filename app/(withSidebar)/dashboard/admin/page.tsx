@@ -71,26 +71,26 @@ export default async function AdminDashboardPage() {
     <div className="h-full">
       <div className="relative z-10 flex flex-col w-full h-full overflow-y-auto">
         {/* Enhanced Hero Profile Card */}
-        <div className="p-6">
-          <div className="glass-premium rounded-3xl shadow-premium p-8 hover-lift-premium transition-premium">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-6">
+        <div className="p-4">
+          <div className="glass-premium rounded-2xl shadow-premium p-5 hover-lift-premium transition-premium">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-4">
                 {/* Avatar with org-chart glow */}
                 <div className="relative">
-                  <div className="absolute -inset-2 bg-gradient-to-br from-primary to-[hsl(var(--sunset-2))] rounded-full opacity-60 blur-md" />
+                  <div className="absolute -inset-1.5 bg-gradient-to-br from-primary to-[hsl(var(--sunset-2))] rounded-full opacity-60 blur-md" />
                   <Avatar
                     src={avatarUrl ?? undefined}
                     name={fullName}
-                    size={80}
+                    size={56}
                     className="relative border-2 border-white shadow-premium"
                   />
                 </div>
 
                 {/* User Info with gradient text */}
                 <div>
-                  <h1 className="text-3xl font-bold text-gradient-premium">{fullName}</h1>
-                  <p className="text-muted-foreground mt-1">{user.email}</p>
-                  <div className="flex flex-wrap gap-2 mt-3">
+                  <h1 className="text-2xl font-bold text-gradient-premium">{fullName}</h1>
+                  <p className="text-muted-foreground text-sm">{user.email}</p>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
                     <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                       {roleLabel}
                     </span>
@@ -141,7 +141,7 @@ export default async function AdminDashboardPage() {
         </div>
 
         {/* Main Content Area - Bento Grid */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4 pt-0">
           <div className="bento-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
             <EnhancedWidget size="medium" delay={0.05}>
               <LeaveSummaryCard employeeId={user.Employee.id} />

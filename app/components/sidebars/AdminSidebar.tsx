@@ -64,15 +64,15 @@ export default function AdminSidebar({
       className="w-full h-full object-contain"
     />
   ) : (
-    <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-depth-1">
-      <span className="text-primary-foreground font-bold text-lg">
+    <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-depth-1">
+      <span className="text-primary-foreground font-bold text-sm">
         {branding.initials}
       </span>
     </div>
   );
 
   return (
-    <div className={isMobile ? "h-full w-full" : "h-full p-4"}>
+    <div className={isMobile ? "h-full w-full" : "h-full p-2"}>
       <SidebarContainer collapsed={collapsed} variant={variant}>
         <SidebarHeader
           logo={logoElement}
@@ -127,7 +127,7 @@ export default function AdminSidebar({
         {/* User Profile */}
 
         {/* Logout */}
-        <div className="p-3">
+        <div className="p-2">
           <SidebarAction
             icon={LogOut}
             label="Logout"

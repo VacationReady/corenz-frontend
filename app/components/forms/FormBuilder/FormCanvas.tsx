@@ -64,22 +64,22 @@ export function FormCanvas({
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5">
-              <Layers className="h-5 w-5 text-primary" />
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/25">
+              <Layers className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-foreground">Form Layout</h3>
-              <p className="text-xs text-muted-foreground">Drag fields here to build your form</p>
+              <h3 className="text-lg font-semibold text-slate-900">Form Layout</h3>
+              <p className="text-sm text-slate-500">Drag fields here to build your form</p>
             </div>
           </div>
           <motion.div 
             key={totalFields}
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full glass-subtle text-xs font-medium"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border border-slate-200 text-sm font-semibold"
           >
-            <span className="text-foreground">{totalFields}</span>
-            <span className="text-muted-foreground">field{totalFields !== 1 ? 's' : ''}</span>
+            <span className="text-slate-900">{totalFields}</span>
+            <span className="text-slate-500">field{totalFields !== 1 ? 's' : ''}</span>
           </motion.div>
         </div>
 
@@ -87,7 +87,7 @@ export function FormCanvas({
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-20 px-8 border-2 border-dashed border-white/30 rounded-2xl bg-gradient-to-b from-white/30 to-transparent"
+            className="flex flex-col items-center justify-center py-20 px-8 border-2 border-dashed border-slate-300 rounded-2xl bg-gradient-to-b from-slate-50 to-white"
           >
             <motion.div
               animate={{ 
@@ -95,12 +95,12 @@ export function FormCanvas({
                 scale: [1, 1.05, 1]
               }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-6 shadow-lg shadow-primary/10"
+              className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-6 shadow-lg shadow-indigo-500/10 border border-indigo-200"
             >
-              <PlusCircle className="h-10 w-10 text-primary/60" />
+              <PlusCircle className="h-10 w-10 text-indigo-500" />
             </motion.div>
-            <p className="font-semibold text-foreground text-lg mb-2">Start building your form</p>
-            <p className="text-sm text-muted-foreground text-center max-w-xs">
+            <p className="font-semibold text-slate-900 text-lg mb-2">Start building your form</p>
+            <p className="text-sm text-slate-500 text-center max-w-xs">
               Drag elements from the palette on the left, or click on them to add fields to your form
             </p>
           </motion.div>
@@ -161,25 +161,25 @@ function SectionBox({
   const { setNodeRef, isOver } = useDroppable({ id: `section-${section.id}` });
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden group hover:shadow-lg transition-all duration-300">
+    <div className="bg-white rounded-2xl overflow-hidden group hover:shadow-lg transition-all duration-300 border border-slate-200 shadow-sm">
       {/* Section Header */}
-      <div className="bg-gradient-to-r from-white/80 to-white/50 border-b border-white/30 px-5 py-4">
+      <div className="bg-slate-50 border-b border-slate-200 px-5 py-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1">
-            <div className="p-1.5 rounded-lg bg-gray-100/80 text-muted-foreground cursor-grab active:cursor-grabbing">
+            <div className="p-1.5 rounded-lg bg-slate-200 text-slate-500 cursor-grab active:cursor-grabbing hover:bg-slate-300 transition-colors">
               <GripVertical className="h-4 w-4" />
             </div>
             <input
-              className="text-sm font-semibold bg-transparent border-0 border-b-2 border-transparent hover:border-gray-200 focus:border-primary/50 rounded-none px-1 py-0.5 transition-colors w-full max-w-xs outline-none focus:ring-0"
+              className="text-sm font-semibold bg-transparent border-0 border-b-2 border-transparent hover:border-slate-300 focus:border-indigo-500 rounded-none px-1 py-0.5 transition-colors w-full max-w-xs outline-none focus:ring-0 text-slate-900 placeholder:text-slate-400"
               value={section.title || ""}
               onChange={(e) => onTitleChange(e.target.value)}
               placeholder="Section Title (optional)"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4 text-muted-foreground" />
+            <Settings2 className="h-4 w-4 text-slate-400" />
             <select
-              className="text-xs bg-white/80 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-white focus:border-primary/50 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-primary/20"
+              className="text-xs bg-white border border-slate-200 rounded-lg px-3 py-1.5 hover:bg-slate-50 focus:border-indigo-500 transition-all cursor-pointer outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 font-medium"
               value={String(section.columns || 1)}
               onChange={(e) => onColumnsChange(Number(e.target.value) as 1 | 2 | 3)}
             >
@@ -203,16 +203,16 @@ function SectionBox({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-10 px-4 border-2 border-dashed border-gray-200/80 rounded-xl bg-gradient-to-b from-gray-50/50 to-transparent"
+            className="flex flex-col items-center justify-center py-10 px-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50"
           >
             <motion.div
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              <PlusCircle className="h-8 w-8 text-gray-300 mb-3" />
+              <PlusCircle className="h-8 w-8 text-slate-400 mb-3" />
             </motion.div>
-            <p className="text-sm font-medium text-muted-foreground">Drop fields here</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">or click elements in the palette</p>
+            <p className="text-sm font-medium text-slate-600">Drop fields here</p>
+            <p className="text-xs text-slate-400 mt-1">or click elements in the palette</p>
           </motion.div>
         ) : (
           <SortableContext items={section.fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>

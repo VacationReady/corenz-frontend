@@ -22,9 +22,9 @@ export default function EmployeeSidebar({
   const { branding } = useTenantBranding();
   const pathname = usePathname();
   const isMobile = variant === "mobile";
-  const headerPadding = isMobile ? "px-6 py-6" : "px-8 py-8";
-  const sectionPadding = isMobile ? "px-6 py-5" : "px-8 py-6";
-  const navPadding = isMobile ? "px-4" : "px-6";
+  const headerPadding = isMobile ? "px-4 py-4" : "px-4 py-4";
+  const sectionPadding = isMobile ? "px-4 py-3" : "px-4 py-3";
+  const navPadding = isMobile ? "px-2" : "px-2";
 
   const brandName = branding.shortName || branding.name;
   const brandLogo = branding.squareLogoUrl || branding.logoUrl || null;
@@ -53,45 +53,44 @@ export default function EmployeeSidebar({
     <div
       className={clsx(
         "transition-all duration-300 flex flex-col",
-        isMobile ? "h-full w-full max-w-sm p-4" : "h-full m-4 ml-6 w-80",
+        isMobile ? "h-full w-full max-w-sm p-2" : "h-full p-2 w-[13rem]",
       )}
     >
       {/* Glassmorphism Container */}
-      <div className="glass rounded-3xl shadow-glass h-full flex flex-col overflow-hidden">
+      <div className="glass rounded-2xl shadow-glass h-full flex flex-col overflow-hidden">
         {/* Logo Section */}
         <div className={clsx("border-b border-glass", headerPadding)}>
           <div className="flex items-center justify-between">
             <Link
               href="/dashboard"
               onClick={() => onMobileNavigate?.()}
-              className="flex items-center rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               aria-label={`Go to ${brandName} dashboard`}
             >
-              <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center mr-4 shadow-warm overflow-hidden">
+              <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center mr-3 shadow-warm overflow-hidden">
                 {brandLogo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={brandLogo}
                     alt={`${brandName} logo`}
-                    className="h-8 w-8 object-contain"
+                    className="h-6 w-6 object-contain"
                   />
                 ) : (
-                  <span className="text-primary-foreground font-bold text-lg">
+                  <span className="text-primary-foreground font-bold text-sm">
                     {branding.initials}
                   </span>
                 )}
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground">{brandName}</h2>
-                <p className="text-sm text-muted-foreground">Employee Portal</p>
+                <h2 className="text-base font-bold text-foreground">{brandName}</h2>
               </div>
             </Link>
             {isMobile && onMobileClose && (
               <button
                 onClick={onMobileClose}
-                className="p-3 hover-glass rounded-2xl transition-glass"
+                className="p-2 hover-glass rounded-xl transition-glass"
               >
-                <X className="h-6 w-6 text-foreground" />
+                <X className="h-5 w-5 text-foreground" />
                 <span className="sr-only">Close navigation</span>
               </button>
             )}
@@ -100,44 +99,36 @@ export default function EmployeeSidebar({
 
         {/* Quick Actions Header */}
         <div className={clsx(sectionPadding)}>
-          <h2 className="text-lg font-bold text-foreground mb-2">
-            Quick actions
+          <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Navigation
           </h2>
-          <p className="text-sm text-muted-foreground flex items-center gap-2">
-            Navigate your workspace
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/80 border border-glass rounded-md px-1.5 py-0.5">
-              <kbd className="font-mono">Ctrl</kbd>
-              <span>+</span>
-              <kbd className="font-mono">K</kbd>
-            </span>
-          </p>
         </div>
 
         {/* Navigation */}
         <nav
           className={clsx(
-            "flex-1 pb-6",
+            "flex-1 pb-2",
             navPadding,
             isMobile && "overflow-y-auto",
           )}
         >
-          <div className="space-y-2">
+          <div className="space-y-0.5">
             {navItems.map(({ label, href, icon }) => (
               <Link
                 key={href}
                 href={href}
                 className={clsx(
-                  "flex items-center gap-4 px-4 py-3 rounded-2xl transition-glass",
+                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-glass",
                   pathname === href
                     ? "bg-primary text-primary-foreground shadow-warm"
                     : "text-foreground sidebar-hover-gradient",
                 )}
                 onClick={() => onMobileNavigate?.()}
               >
-                <div className="w-6 h-6">
-                  {React.cloneElement(icon, { size: 24 })}
+                <div className="w-4 h-4">
+                  {React.cloneElement(icon, { size: 16 })}
                 </div>
-                <span className="truncate font-medium text-base">{label}</span>
+                <span className="truncate font-medium text-sm">{label}</span>
               </Link>
             ))}
           </div>
@@ -147,14 +138,14 @@ export default function EmployeeSidebar({
         <div
           className={clsx(
             "border-t border-glass",
-            isMobile ? "px-6 py-5" : "px-6 py-6",
+            isMobile ? "px-2 py-3" : "px-2 py-2",
           )}
         >
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-4 py-3 text-sm text-destructive sidebar-hover-gradient rounded-2xl transition-glass"
+            className="flex items-center gap-3 w-full px-3 py-2 text-sm text-destructive sidebar-hover-gradient rounded-lg transition-glass"
           >
-            <LogOut size={20} />
+            <LogOut size={16} />
             <span className="font-medium">Logout</span>
           </button>
         </div>

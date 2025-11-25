@@ -157,7 +157,8 @@ export async function processUserMessage(
       }
       
       // Check if it's a continuation (providing requested info)
-      if (pending.step && userMessage.length > 2 && !userMessage.toLowerCase().startsWith('show') && !userMessage.toLowerCase().startsWith('list')) {
+      // Use typeof check because step 0 is valid but falsy
+      if (typeof pending.step === 'number' && userMessage.length > 2 && !userMessage.toLowerCase().startsWith('show') && !userMessage.toLowerCase().startsWith('list')) {
         console.log("[AI Orchestrator] Continuing multi-step action:", pending.type, "step", pending.step);
         
         // Continue the pending action with the user's message as additional info
@@ -1021,7 +1022,8 @@ async function parseContextualParameters(message: string, pending: any): Promise
   let expectedType: 'dates' | 'leaveType' | 'employeeName' | 'category' | 'general' = 'general';
   
   if (pending.type === 'book_leave') {
-    if (pending.step === 1) expectedType = 'dates';
+    if (pending.step === 0) expectedType = 'employeeName'; // Step 0 = waiting for employee name
+    else if (pending.step === 1) expectedType = 'dates';
     else if (pending.step === 2) expectedType = 'leaveType';
   } else if (pending.type === 'document_upload') {
     if (pending.step === 1) expectedType = 'employeeName';
@@ -1039,6 +1041,13 @@ async function parseContextualParameters(message: string, pending: any): Promise
   
   // Map AI response to expected parameter names
   if (pending.type === 'book_leave') {
+    // Step 0: User is providing employee name
+    if (pending.step === 0) {
+      return { 
+        employeeName: extracted.value || message.trim(),
+        value: message.trim(), // Also pass raw message for self-booking detection
+      };
+    }
     if (pending.step === 1 && extracted.startDate) {
       return {
         startDate: extracted.startDate,

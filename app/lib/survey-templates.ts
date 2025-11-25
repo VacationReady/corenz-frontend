@@ -5,6 +5,7 @@ export interface SurveyTemplateDefinition {
   slug: string;
   description: string;
   emoji: string;
+  icon: "trending-up" | "palette" | "compass";
   accentColor: string;
   accentGradient: string;
   highlights: string[];
@@ -18,6 +19,7 @@ export const DEFAULT_SURVEY_TEMPLATES: SurveyTemplateDefinition[] = [
     description:
       "Measure employee loyalty with a quick, industry-standard 0-10 promoter score and gather context on the rating.",
     emoji: "📈",
+    icon: "trending-up",
     accentColor: "text-blue-600",
     accentGradient: "from-blue-500/90 via-indigo-500/90 to-sky-500/80",
     highlights: ["0-10 promoter scale", "Follow-up sentiment", "Actionable improvement ideas"],
@@ -74,6 +76,7 @@ export const DEFAULT_SURVEY_TEMPLATES: SurveyTemplateDefinition[] = [
     description:
       "Capture quick snapshots of team sentiment with expressive mood pickers and lightweight follow-up prompts.",
     emoji: "🌈",
+    icon: "palette",
     accentColor: "text-pink-600",
     accentGradient: "from-pink-500/90 via-rose-500/90 to-orange-400/80",
     highlights: ["Mood tracker with emojis", "Workload & energy check", "Weekly wins & support"],
@@ -156,6 +159,7 @@ export const DEFAULT_SURVEY_TEMPLATES: SurveyTemplateDefinition[] = [
     description:
       "A comprehensive temperature check covering engagement, leadership, growth, and culture touchpoints.",
     emoji: "🧭",
+    icon: "compass",
     accentColor: "text-emerald-600",
     accentGradient: "from-emerald-500/90 via-teal-500/90 to-cyan-500/80",
     highlights: ["Engagement benchmarks", "Leadership & culture insights", "Open feedback prompts"],

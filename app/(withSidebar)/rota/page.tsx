@@ -15,6 +15,14 @@ import {
   Settings,
   Sparkles,
   CalendarClock,
+  Users,
+  Radio,
+  Building2,
+  Calendar,
+  Trash2,
+  RefreshCw,
+  Clock,
+  X,
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
@@ -47,6 +55,48 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+
+// Rota Groups types
+interface RotaGroup {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  roles: string[];
+  Location?: { id: string; name: string };
+  Department?: { id: string; name: string };
+  _count: {
+    Members: number;
+    Shifts: number;
+    ShiftRequirements: number;
+  };
+}
+
+// Live Attendance types
+interface EmployeeStatus {
+  id: string;
+  name: string;
+  email: string;
+  department?: string;
+  status: 'CLOCKED_IN' | 'CLOCKED_OUT';
+  clockInTime?: string;
+  hoursWorked?: number;
+}
+
+interface LiveAttendanceData {
+  summary: {
+    totalEmployees: number;
+    totalClockedIn: number;
+    totalClockedOut: number;
+    attendanceRate: string;
+  };
+  employees: EmployeeStatus[];
+  timestamp: string;
+}
 
 interface Conflict {
   type: 'DOUBLE_BOOKING' | 'REST_PERIOD' | 'OVERTIME' | 'UNAVAILABLE' | 'SKILL_MISMATCH';
@@ -167,6 +217,16 @@ export default function RotaPage() {
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [isConflictsLoading, setIsConflictsLoading] = useState(false);
   const [conflictInspectorOpen, setConflictInspectorOpen] = useState(false);
+  
+  // Rota Groups panel state
+  const [rotaGroupsPanelOpen, setRotaGroupsPanelOpen] = useState(false);
+  const [rotaGroups, setRotaGroups] = useState<RotaGroup[]>([]);
+  const [loadingRotaGroups, setLoadingRotaGroups] = useState(false);
+  
+  // Live Attendance panel state
+  const [liveAttendancePanelOpen, setLiveAttendancePanelOpen] = useState(false);
+  const [liveAttendanceData, setLiveAttendanceData] = useState<LiveAttendanceData | null>(null);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
 
   const {
     shifts,
@@ -211,14 +271,16 @@ export default function RotaPage() {
           : []
       );
 
+      // API returns { data: [...], pagination: {...} } with flat employee objects
+      const employeeList = empData?.data || empData?.employees || [];
       setEmployees(
-        Array.isArray(empData?.employees)
-          ? empData.employees.map((emp: any) => ({
+        Array.isArray(employeeList)
+          ? employeeList.map((emp: any) => ({
               value: emp.id,
-              label: emp.User?.firstName && emp.User?.lastName
-                ? `${emp.User.firstName} ${emp.User.lastName}`
-                : emp.User?.name ?? 'Unnamed employee',
-              meta: emp.User?.email,
+              label: emp.firstName && emp.lastName
+                ? `${emp.firstName} ${emp.lastName}`
+                : emp.User?.name ?? emp.email ?? 'Unnamed employee',
+              meta: emp.email || emp.User?.email,
             }))
           : []
       );
@@ -275,6 +337,79 @@ export default function RotaPage() {
   useEffect(() => {
     fetchConflicts();
   }, [fetchConflicts]);
+
+  // Fetch rota groups when panel opens
+  const fetchRotaGroups = useCallback(async () => {
+    setLoadingRotaGroups(true);
+    try {
+      const response = await fetch('/api/rota-groups');
+      const data = await response.json();
+      setRotaGroups(data.rotaGroups || []);
+    } catch (error) {
+      console.error('Error fetching rota groups:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load rota groups',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingRotaGroups(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (rotaGroupsPanelOpen) {
+      fetchRotaGroups();
+    }
+  }, [rotaGroupsPanelOpen, fetchRotaGroups]);
+
+  // Fetch live attendance data when panel opens
+  const fetchLiveAttendance = useCallback(async () => {
+    setLoadingAttendance(true);
+    try {
+      const response = await fetch('/api/time-tracking/live');
+      const data = await response.json();
+      setLiveAttendanceData(data);
+    } catch (error) {
+      console.error('Error fetching live attendance:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load attendance data',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingAttendance(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (liveAttendancePanelOpen) {
+      fetchLiveAttendance();
+      // Auto-refresh every 30 seconds when panel is open
+      const interval = setInterval(fetchLiveAttendance, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [liveAttendancePanelOpen, fetchLiveAttendance]);
+
+  const handleDeleteRotaGroup = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this rota group?')) return;
+    
+    try {
+      const response = await fetch(`/api/rota-groups/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete');
+      }
+      setRotaGroups(groups => groups.filter(g => g.id !== id));
+      toast({ title: 'Rota group deleted' });
+    } catch (error: any) {
+      toast({
+        title: 'Delete failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
 
   const laborCostData = useMemo(() => {
     if (!summary) {
@@ -467,6 +602,25 @@ export default function RotaPage() {
                   <Filter className="h-4 w-4" />
                   Filters
                   <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                </button>
+                <button
+                  onClick={() => setRotaGroupsPanelOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-card-foreground shadow-md transition hover:bg-accent"
+                >
+                  <Users className="h-4 w-4" />
+                  Teams
+                </button>
+                <button
+                  onClick={() => setLiveAttendancePanelOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-card-foreground shadow-md transition hover:bg-accent"
+                >
+                  <Radio className="h-4 w-4" />
+                  Live
+                  {liveAttendanceData && (
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-green-500 text-white text-xs font-bold">
+                      {liveAttendanceData.summary.totalClockedIn}
+                    </span>
+                  )}
                 </button>
                 <div className="flex rounded-lg border border-border bg-background p-1">
                   {(['week', 'month', 'list'] as ViewMode[]).map(mode => (
@@ -811,8 +965,206 @@ export default function RotaPage() {
         />
       )}
 
+      {/* Rota Groups Panel */}
+      <Sheet open={rotaGroupsPanelOpen} onOpenChange={setRotaGroupsPanelOpen}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              Rota Groups / Teams
+            </SheetTitle>
+            <SheetDescription>
+              Manage scheduling pools and shift teams for workforce management
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="mt-6 space-y-4">
+            <Link
+              href="/admin/rota-groups/create"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground shadow-lg transition hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4" />
+              Create New Team
+            </Link>
+
+            {loadingRotaGroups ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : rotaGroups.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-3">🏭</div>
+                <p className="text-muted-foreground">No rota groups yet</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Create your first team to organize employees by location and roles.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {rotaGroups.map((group) => (
+                  <div
+                    key={group.id}
+                    className="bg-card border border-border rounded-xl p-4 hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="text-2xl p-2 rounded-lg flex-shrink-0"
+                        style={{
+                          backgroundColor: group.color ? `${group.color}20` : 'rgba(59, 130, 246, 0.2)',
+                        }}
+                      >
+                        {group.icon || '📋'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-foreground truncate">{group.name}</h4>
+                        {group.Location && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                            <Building2 className="h-3 w-3" />
+                            {group.Location.name}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3 w-3 text-green-500" />
+                            {group._count.Members}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 text-purple-500" />
+                            {group._count.Shifts}
+                          </span>
+                        </div>
+                        {group.roles?.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {group.roles.slice(0, 2).map((role, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {role}
+                              </Badge>
+                            ))}
+                            {group.roles.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{group.roles.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <Link
+                          href={`/admin/rota-groups/${group.id}/edit`}
+                          className="p-2 rounded-lg hover:bg-muted transition-colors"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteRotaGroup(group.id)}
+                          className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Live Attendance Panel */}
+      <Sheet open={liveAttendancePanelOpen} onOpenChange={setLiveAttendancePanelOpen}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Radio className="h-5 w-5 text-green-500" />
+              Live Attendance
+            </SheetTitle>
+            <SheetDescription className="flex items-center justify-between">
+              <span>Real-time clock in/out status</span>
+              <Button variant="outline" size="sm" onClick={fetchLiveAttendance} disabled={loadingAttendance}>
+                <RefreshCw className={`h-3 w-3 mr-1 ${loadingAttendance ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-4">
+            {loadingAttendance && !liveAttendanceData ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : liveAttendanceData ? (
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
+                    <div className="text-3xl font-bold text-green-600">{liveAttendanceData.summary.totalClockedIn}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Clocked In</div>
+                  </div>
+                  <div className="bg-muted/50 border border-border rounded-xl p-4 text-center">
+                    <div className="text-3xl font-bold text-muted-foreground">{liveAttendanceData.summary.totalClockedOut}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Not Working</div>
+                  </div>
+                </div>
+
+                <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 text-center">
+                  <div className="text-2xl font-bold text-primary">{liveAttendanceData.summary.attendanceRate}%</div>
+                  <div className="text-xs text-muted-foreground mt-1">Attendance Rate</div>
+                </div>
+
+                {/* Employee List */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Currently Working</h4>
+                  {liveAttendanceData.employees.filter(e => e.status === 'CLOCKED_IN').map((employee) => (
+                    <div
+                      key={employee.id}
+                      className="flex items-center gap-3 p-3 border border-border rounded-lg"
+                    >
+                      <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{employee.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {employee.department || 'No Department'}
+                        </p>
+                      </div>
+                      {employee.clockInTime && (
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {new Date(employee.clockInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          {employee.hoursWorked !== undefined && (
+                            <div className="text-xs font-medium text-primary">
+                              {employee.hoursWorked.toFixed(1)}h
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {liveAttendanceData.employees.filter(e => e.status === 'CLOCKED_IN').length === 0 && (
+                    <p className="text-center text-sm text-muted-foreground py-4">
+                      No employees currently clocked in
+                    </p>
+                  )}
+                </div>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  Last updated: {new Date(liveAttendanceData.timestamp).toLocaleTimeString()}
+                </p>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Unable to load attendance data</p>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <Link
-        href="/rota/settings"
+        href="/admin/settings/time-tracking"
         className="fixed bottom-8 right-8 z-50 flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-card p-4 shadow-xl transition hover:scale-105 hover:bg-accent"
       >
         <Settings className="h-6 w-6 text-card-foreground transition duration-300 group-hover:rotate-90" />

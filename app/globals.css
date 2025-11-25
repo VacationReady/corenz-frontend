@@ -2233,9 +2233,9 @@ video {
   /* Bento Grid System */
   .bento-grid {
     display: grid;
-    gap: 1.5rem;
+    gap: 1rem;
     grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: minmax(200px, auto);
+    grid-auto-rows: minmax(160px, auto);
   }
 
   .bento-item {

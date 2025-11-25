@@ -363,10 +363,10 @@ export default function SendSurveyPage() {
     switch (step) {
       case 1:
         return (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold text-foreground">Select Survey Template</h2>
-              <p className="text-sm text-muted-foreground mt-1">
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-slate-50 to-white p-6 rounded-2xl border border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Select Survey Template</h2>
+              <p className="text-sm text-slate-600 mt-1">
                 Choose a survey template to send to your employees
               </p>
             </div>
@@ -577,81 +577,107 @@ export default function SendSurveyPage() {
 
       case 2:
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Target Audience</CardTitle>
-              <CardDescription>
+          <Card className="bg-white border-slate-200 shadow-sm">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
+              <CardTitle className="text-slate-900">Select Target Audience</CardTitle>
+              <CardDescription className="text-slate-600">
                 Choose who should receive this survey
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-6">
+              {/* Quick Select: All Employees - Prominent option for fast workflow */}
+              <div 
+                onClick={() => setTargetType("all")}
+                className={`relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-300 ${
+                  targetType === "all"
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-600 shadow-xl shadow-emerald-500/25 scale-[1.01]"
+                    : "bg-gradient-to-r from-slate-100 to-slate-50 hover:from-emerald-50 hover:to-teal-50 border-2 border-slate-200 hover:border-emerald-300"
+                }`}
+              >
+                <div className="relative z-10 p-5 flex items-center gap-5">
+                  <div className={`p-4 rounded-2xl ${
+                    targetType === "all" 
+                      ? "bg-white/20 backdrop-blur-sm" 
+                      : "bg-emerald-100"
+                  }`}>
+                    <Users className={`h-8 w-8 ${targetType === "all" ? "text-white" : "text-emerald-600"}`} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className={`text-lg font-bold ${targetType === "all" ? "text-white" : "text-slate-900"}`}>
+                        All Employees
+                      </h3>
+                      {targetType === "all" && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          Selected
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-sm mt-1 ${targetType === "all" ? "text-emerald-100" : "text-slate-600"}`}>
+                      Send to everyone in your organization • <span className="font-semibold">{employees.length} people</span>
+                    </p>
+                  </div>
+                  <div className={`text-right ${targetType === "all" ? "text-white" : "text-slate-400"}`}>
+                    {targetType === "all" ? (
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <span>Ready to continue</span>
+                        <ArrowLeft className="h-4 w-4 rotate-180" />
+                      </div>
+                    ) : (
+                      <span className="text-sm">Click to select</span>
+                    )}
+                  </div>
+                </div>
+                {targetType === "all" && (
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.15),_transparent_50%)]" />
+                )}
+              </div>
+
+              {/* Or choose specific targeting */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200"></div>
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-4 text-sm font-medium text-slate-500">Or target specific groups</span>
+                </div>
+              </div>
+
               <div className="space-y-4">
-                <Label>Target Audience</Label>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div 
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      targetType === "all" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => setTargetType("all")}
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      <Users className="h-6 w-6 mb-2" />
-                      <span className="font-medium">All Employees</span>
-                      <span className="text-sm text-muted-foreground">{employees.length} people</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { type: "departments" as const, icon: Building, label: "Departments", sublabel: `${departments.length} departments` },
+                    { type: "roles" as const, icon: Briefcase, label: "Job Roles", sublabel: `${jobRoles.length} roles` },
+                    { type: "locations" as const, icon: Building, label: "Locations", sublabel: `${locations.length} locations` },
+                    { type: "individuals" as const, icon: User, label: "Individuals", sublabel: "Select specific people" },
+                  ].map(({ type, icon: Icon, label, sublabel }) => (
+                    <div 
+                      key={type}
+                      className={`p-4 rounded-xl cursor-pointer transition-all duration-200 ${
+                        targetType === type 
+                          ? "bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-500 shadow-lg shadow-indigo-500/10" 
+                          : "bg-white border-2 border-slate-200 hover:border-slate-300 hover:shadow-md"
+                      }`}
+                      onClick={() => setTargetType(type)}
+                    >
+                      <div className="flex flex-col items-center text-center">
+                        <div className={`p-2.5 rounded-xl mb-3 ${
+                          targetType === type 
+                            ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white" 
+                            : "bg-slate-100 text-slate-500"
+                        }`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <span className={`font-semibold text-sm ${
+                          targetType === type ? "text-indigo-900" : "text-slate-900"
+                        }`}>{label}</span>
+                        <span className={`text-xs mt-1 ${
+                          targetType === type ? "text-indigo-600" : "text-slate-500"
+                        }`}>{sublabel}</span>
+                      </div>
                     </div>
-                  </div>
-
-                  <div 
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      targetType === "departments" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => setTargetType("departments")}
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      <Building className="h-6 w-6 mb-2" />
-                      <span className="font-medium">Departments</span>
-                      <span className="text-sm text-muted-foreground">{departments.length} departments</span>
-                    </div>
-                  </div>
-
-                  <div 
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      targetType === "roles" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => setTargetType("roles")}
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      <Briefcase className="h-6 w-6 mb-2" />
-                      <span className="font-medium">Job Roles</span>
-                      <span className="text-sm text-muted-foreground">{jobRoles.length} roles</span>
-                    </div>
-                  </div>
-
-                  <div 
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      targetType === "locations" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => setTargetType("locations")}
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      <Building className="h-6 w-6 mb-2" />
-                      <span className="font-medium">Locations</span>
-                      <span className="text-sm text-muted-foreground">{locations.length} locations</span>
-                    </div>
-                  </div>
-
-                  <div 
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      targetType === "individuals" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => setTargetType("individuals")}
-                  >
-                    <div className="flex flex-col items-center text-center">
-                      <User className="h-6 w-6 mb-2" />
-                      <span className="font-medium">Individuals</span>
-                      <span className="text-sm text-muted-foreground">Select specific people</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
 
@@ -830,15 +856,19 @@ export default function SendSurveyPage() {
                 </div>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-blue-600" />
-                  <span className="font-medium text-blue-900">
-                    Survey will be sent to {getTargetEmployeeCount()} employees
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-indigo-100">
+                    <Target className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-indigo-900 block">
+                      Survey will be sent to {getTargetEmployeeCount()} employees
+                    </span>
                     {excludedEmployees.length > 0 && (
-                      <span className="text-blue-700"> (excluding {excludedEmployees.length})</span>
+                      <span className="text-sm text-indigo-600">(excluding {excludedEmployees.length} employees)</span>
                     )}
-                  </span>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -847,79 +877,85 @@ export default function SendSurveyPage() {
 
       case 3:
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Review & Send</CardTitle>
-              <CardDescription>
+          <Card className="bg-white border-slate-200 shadow-sm">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-200">
+              <CardTitle className="text-slate-900">Review & Send</CardTitle>
+              <CardDescription className="text-slate-600">
                 Review your survey details before sending
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Survey Name</Label>
-                  <p className="text-lg font-semibold">{surveyName}</p>
+            <CardContent className="space-y-6 pt-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Survey Name</Label>
+                  <p className="text-lg font-bold text-slate-900 mt-1">{surveyName}</p>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Template</Label>
+                  <p className="text-base font-semibold text-slate-900 mt-1">{getSelectedTemplate()?.name}</p>
                 </div>
 
                 {surveyDescription && (
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Description</Label>
-                    <p className="text-sm">{surveyDescription}</p>
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 sm:col-span-2">
+                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</Label>
+                    <p className="text-sm text-slate-700 mt-1">{surveyDescription}</p>
                   </div>
                 )}
-
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Template</Label>
-                  <p className="text-sm">{getSelectedTemplate()?.name}</p>
-                </div>
 
                 {deadline && (
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Deadline</Label>
-                    <p className="text-sm">{new Date(deadline).toLocaleString()}</p>
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Deadline</Label>
+                    <p className="text-sm font-medium text-slate-900 mt-1">{new Date(deadline).toLocaleString()}</p>
                   </div>
                 )}
 
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Anonymization Level</Label>
-                  <p className="text-sm">
-                    {anonymizationLevel === "public" && "Public - Responses visible with names"}
-                    {anonymizationLevel === "department" && "Department-level anonymization"}
-                    {anonymizationLevel === "location" && "Location-level anonymization"}
-                    {anonymizationLevel === "full" && "Fully anonymous responses"}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <Label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Anonymization</Label>
+                  <p className="text-sm font-medium text-slate-900 mt-1">
+                    {anonymizationLevel === "public" && "Public - Visible with names"}
+                    {anonymizationLevel === "department" && "Department-level"}
+                    {anonymizationLevel === "location" && "Location-level"}
+                    {anonymizationLevel === "full" && "Fully anonymous"}
                   </p>
                 </div>
 
-                <div>
-                  <Label className="text-sm font-medium text-muted-foreground">Target Audience</Label>
-                  <p className="text-sm">
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200 sm:col-span-2">
+                  <Label className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Target Audience</Label>
+                  <p className="text-base font-semibold text-indigo-900 mt-1">
                     {targetType === "all" && "All Employees"}
                     {targetType === "departments" && `${selectedDepartments.length} selected departments`}
                     {targetType === "roles" && `${selectedRoles.length} selected job roles`}
                     {targetType === "locations" && `${selectedLocations.length} selected locations`}
                     {targetType === "individuals" && `${selectedEmployees.length} selected employees`}
                   </p>
-                  {excludedEmployees.length > 0 && (
-                    <p className="text-sm text-orange-600">
-                      Excluding {excludedEmployees.length} employees
-                    </p>
-                  )}
-                  <p className="text-sm text-muted-foreground">
-                    Total recipients: {getTargetEmployeeCount()} employees
-                  </p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <span className="text-sm font-semibold text-indigo-700">
+                      {getTargetEmployeeCount()} recipients
+                    </span>
+                    {excludedEmployees.length > 0 && (
+                      <span className="text-sm text-orange-600 font-medium">
+                        ({excludedEmployees.length} excluded)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="font-medium text-green-900">
-                    Ready to send survey
-                  </span>
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-5 rounded-xl border border-emerald-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-emerald-100">
+                    <CheckCircle className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-emerald-900 block">
+                      Ready to send survey
+                    </span>
+                    <p className="text-sm text-emerald-700 mt-0.5">
+                      Employees will receive this survey as an action item in their dashboard.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-green-700 mt-1">
-                  Employees will receive this survey as an action item in their dashboard.
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -944,31 +980,41 @@ export default function SendSurveyPage() {
       }}
     >
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Progress Steps */}
-        <Card>
+        {/* Progress Steps - Modern stepper design */}
+        <Card className="bg-white border-slate-200 shadow-sm overflow-hidden">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              {[1, 2, 3].map((stepNum) => (
-                <div key={stepNum} className="flex items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                    step >= stepNum 
-                      ? "bg-blue-600 text-white" 
-                      : "bg-gray-200 text-gray-600"
+            <div className="flex items-center justify-between relative">
+              {/* Progress line */}
+              <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200 mx-12" />
+              <div 
+                className="absolute left-0 top-4 h-0.5 bg-gradient-to-r from-indigo-600 to-purple-600 mx-12 transition-all duration-500"
+                style={{ width: `${((step - 1) / 2) * 100}%` }}
+              />
+              
+              {[
+                { num: 1, label: "Template", icon: FileText },
+                { num: 2, label: "Audience", icon: Users },
+                { num: 3, label: "Review", icon: CheckCircle },
+              ].map(({ num, label, icon: Icon }) => (
+                <div key={num} className="flex flex-col items-center relative z-10">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                    step >= num 
+                      ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30" 
+                      : "bg-slate-100 text-slate-400 border-2 border-slate-200"
                   }`}>
-                    {stepNum}
+                    {step > num ? (
+                      <CheckCircle className="w-4 h-4" />
+                    ) : (
+                      num
+                    )}
                   </div>
-                  {stepNum < 3 && (
-                    <div className={`w-16 h-1 mx-2 ${
-                      step > stepNum ? "bg-blue-600" : "bg-gray-200"
-                    }`} />
-                  )}
+                  <span className={`mt-2 text-xs font-medium ${
+                    step >= num ? "text-slate-900" : "text-slate-400"
+                  }`}>
+                    {label}
+                  </span>
                 </div>
               ))}
-            </div>
-            <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-              <span>Template</span>
-              <span>Audience</span>
-              <span>Review</span>
             </div>
           </CardContent>
         </Card>
@@ -987,7 +1033,7 @@ export default function SendSurveyPage() {
                 router.back();
               }
             }}
-            className="flex items-center"
+            className="flex items-center border-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             {step > 1 ? "Previous" : "Back"}
@@ -1006,14 +1052,15 @@ export default function SendSurveyPage() {
                   (targetType === "individuals" && selectedEmployees.length === 0)
                 ))
               }
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg shadow-indigo-500/25"
             >
-              Next
+              Continue
             </Button>
           ) : (
             <Button
               onClick={handleSendSurvey}
               disabled={loading}
-              className="bg-green-600 hover:bg-green-700 flex items-center"
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold shadow-lg shadow-emerald-500/25 flex items-center"
             >
               {loading ? (
                 <>

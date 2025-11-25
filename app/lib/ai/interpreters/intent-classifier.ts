@@ -296,6 +296,7 @@ PARAMETER EXTRACTION:
 - reason: Explanation for the change (CRITICAL for audit compliance)
 - startDate/endDate: For leave booking - ALWAYS extract if mentioned (e.g., "next Monday", "Dec 20-27", "tomorrow", "next week")
 - leaveType: Leave category (e.g., "Annual Leave", "Sick Leave")
+- selfBooking: true when user wants to book leave for themselves (e.g., "Can I book", "I want to take", "I need time off", "book me some leave")
 - bulk: true for bulk leave booking (e.g., "all employees", "everyone", "all staff")
 - scope: "all" for company-wide, or department/audience for specific groups
 - reportType: Type of report
@@ -365,6 +366,14 @@ ACTION ITEMS EXAMPLES:
 
 LEAVE BOOKING EXAMPLES:
 - "Book leave for Gary next Monday" → {actionType: "book_leave", parameters: {employeeName: "Gary", startDate: "next Monday", endDate: "next Monday"}}
+- "Can I book some holiday" → {actionType: "book_leave", parameters: {selfBooking: true}} (user wants to book for themselves)
+- "Can I book some leave" → {actionType: "book_leave", parameters: {selfBooking: true}}
+- "I need some time off" → {actionType: "book_leave", parameters: {selfBooking: true}}
+- "I want to take leave tomorrow" → {actionType: "book_leave", parameters: {selfBooking: true, startDate: "tomorrow", endDate: "tomorrow"}}
+- "I'd like to book holiday next week" → {actionType: "book_leave", parameters: {selfBooking: true, startDate: "next week"}}
+- "Can I take Friday off" → {actionType: "book_leave", parameters: {selfBooking: true, startDate: "Friday", endDate: "Friday"}}
+- "Book me some annual leave" → {actionType: "book_leave", parameters: {selfBooking: true, leaveType: "Annual Leave"}}
+- "I need a sick day tomorrow" → {actionType: "book_leave", parameters: {selfBooking: true, startDate: "tomorrow", endDate: "tomorrow", leaveType: "Sick Leave"}}
 
 ACTIVATION EMAIL EXAMPLES:
 - "Send login invite to John Smith" → {actionType: "send_activation_email", parameters: {employeeName: "John Smith"}}

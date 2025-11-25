@@ -84,10 +84,14 @@ export async function GET(req: NextRequest) {
       where: { userId: user.id },
       select: {
         id: true,
-        firstName: true,
-        lastName: true,
-        jobTitle: true,
-        department: true,
+        departmentId: true,
+        jobRoleId: true,
+        Department: {
+          select: { name: true },
+        },
+        JobRole: {
+          select: { name: true },
+        },
       },
     });
 
@@ -102,13 +106,13 @@ export async function GET(req: NextRequest) {
       homeCompanyId: user.companyId,
       // Include employee info if available
       employeeId: employee?.id,
-      jobTitle: employee?.jobTitle,
-      department: employee?.department,
+      jobTitle: employee?.JobRole?.name,
+      department: employee?.Department?.name,
     };
 
     // Calculate expiration from token
     const expires = decoded.exp
-      ? new Date(decoded.exp * 1000).toISOString()
+      ? new Date((decoded.exp as number) * 1000).toISOString()
       : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     return NextResponse.json({

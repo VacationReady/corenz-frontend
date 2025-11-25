@@ -61,89 +61,129 @@ export async function GET(req: NextRequest) {
 
     // Handle balances scope - return leave balances for the current user
     if (scope === "balances") {
-      // Get the employee record for the current user
+      // Get the employee record for the current user with balance info
       const employee = await prisma.employee.findUnique({
         where: { userId: session.user.id },
-        select: { id: true },
+        select: { 
+          id: true,
+          departmentId: true,
+          jobRoleId: true,
+          locationId: true,
+          annualLeaveBalance: true,
+          sickLeaveBalance: true,
+          sickLeaveEntitlement: true,
+        },
       });
 
       if (!employee) {
         return NextResponse.json([]);
       }
 
-      // Get all leave policy assignments for this employee
+      // Get leave policies assigned to this employee through various methods
       const assignments = await prisma.leavePolicyAssignment.findMany({
         where: {
-          employeeId: employee.id,
-          policy: {
-            companyId: session.user.companyId,
-            isActive: true,
-          },
+          companyId: session.user.companyId,
+          OR: [
+            { employeeIds: { has: employee.id } },
+            ...(employee.departmentId ? [{ departmentIds: { has: employee.departmentId } }] : []),
+            ...(employee.jobRoleId ? [{ jobRoleIds: { has: employee.jobRoleId } }] : []),
+            ...(employee.locationId ? [{ locationIds: { has: employee.locationId } }] : []),
+          ],
         },
         include: {
-          policy: {
+          LeavePolicy: {
             select: {
               id: true,
               name: true,
+              accrualRate: true,
+              accrualPeriod: true,
               EventCategory: {
-                select: { name: true },
+                select: { id: true, name: true },
               },
             },
           },
         },
       });
 
-      // Calculate balances for each assignment
+      // Calculate balances for each assigned policy
       const currentYear = new Date().getFullYear();
       const yearStart = new Date(currentYear, 0, 1);
       const yearEnd = new Date(currentYear, 11, 31);
 
       const balances = await Promise.all(
         assignments.map(async (assignment) => {
-          // Get approved leave requests for this policy in the current year
-          const approvedLeave = await prisma.leaveRequest.aggregate({
+          const policy = assignment.LeavePolicy;
+          
+          // Get approved leave requests for this policy's event category in the current year
+          const approvedLeave = await prisma.leaveRequest.count({
             where: {
               employeeId: employee.id,
-              eventCategoryId: assignment.policy.EventCategory?.name ? undefined : assignment.policyId,
+              eventCategoryId: policy.EventCategory?.id,
               approvalStatus: "APPROVED",
               startDate: { gte: yearStart },
               endDate: { lte: yearEnd },
             },
-            _sum: {
-              days: true,
-            },
           });
 
           // Get pending leave requests
-          const pendingLeave = await prisma.leaveRequest.aggregate({
+          const pendingLeave = await prisma.leaveRequest.count({
             where: {
               employeeId: employee.id,
-              eventCategoryId: assignment.policy.EventCategory?.name ? undefined : assignment.policyId,
+              eventCategoryId: policy.EventCategory?.id,
               approvalStatus: "PENDING",
               startDate: { gte: yearStart },
               endDate: { lte: yearEnd },
             },
-            _sum: {
-              days: true,
-            },
           });
 
-          const used = approvedLeave._sum.days || 0;
-          const pending = pendingLeave._sum.days || 0;
-          const totalAllowance = assignment.entitlementOverride ?? 20; // Default 20 days if not specified
-          const remaining = Math.max(0, totalAllowance - used);
+          // Calculate annual entitlement based on accrual rate and period
+          const accrualMultiplier = policy.accrualPeriod === "MONTHLY" ? 12 : 
+                                    policy.accrualPeriod === "WEEKLY" ? 52 : 1;
+          const totalAllowance = Math.round(policy.accrualRate * accrualMultiplier);
+          const remaining = Math.max(0, totalAllowance - approvedLeave);
 
           return {
             id: assignment.id,
-            policyId: assignment.policyId,
-            policyName: assignment.policy.name || assignment.policy.EventCategory?.name || "Leave",
+            policyId: policy.id,
+            policyName: policy.name || policy.EventCategory?.name || "Leave",
             totalAllowance,
-            used,
+            used: approvedLeave,
             remaining,
-            pending,
+            pending: pendingLeave,
           };
         })
       );
+
+      // If no policy assignments found, return basic balances from employee record
+      if (balances.length === 0) {
+        const basicBalances = [];
+        
+        if (employee.annualLeaveBalance !== null) {
+          basicBalances.push({
+            id: "annual-leave",
+            policyId: "annual-leave",
+            policyName: "Annual Leave",
+            totalAllowance: 20, // Default NZ annual leave
+            used: 20 - Number(employee.annualLeaveBalance || 0),
+            remaining: Number(employee.annualLeaveBalance || 0),
+            pending: 0,
+          });
+        }
+        
+        if (employee.sickLeaveBalance !== null) {
+          basicBalances.push({
+            id: "sick-leave",
+            policyId: "sick-leave",
+            policyName: "Sick Leave",
+            totalAllowance: Number(employee.sickLeaveEntitlement || 10),
+            used: Number(employee.sickLeaveEntitlement || 10) - Number(employee.sickLeaveBalance || 0),
+            remaining: Number(employee.sickLeaveBalance || 0),
+            pending: 0,
+          });
+        }
+        
+        return NextResponse.json(basicBalances);
+      }
 
       return NextResponse.json(balances);
     }

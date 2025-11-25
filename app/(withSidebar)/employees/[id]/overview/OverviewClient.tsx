@@ -217,7 +217,7 @@ export default function OverviewClient({
           href={`/employees/${employeeId}/employment-details`}
           title="Employment"
           icon={Briefcase}
-          iconColor="from-blue-500 to-indigo-500"
+          iconColor="from-primary to-blue-500"
           delay={0.2}
         >
           <div className="space-y-1">
@@ -246,7 +246,7 @@ export default function OverviewClient({
           href={`/employees/${employeeId}/bank-payroll`}
           title="Bank & Payroll"
           icon={CreditCard}
-          iconColor="from-sky-500 to-blue-500"
+          iconColor="from-primary to-blue-500"
           delay={0.25}
         >
           <TooltipProvider>
@@ -288,15 +288,15 @@ export default function OverviewClient({
           href={`/employees/${employeeId}/emergency-contacts`}
           title="Emergency Contacts"
           icon={Phone}
-          iconColor="from-indigo-500 to-violet-500"
+          iconColor="from-primary to-blue-500"
           delay={0.3}
         >
           {emergencyContacts.length > 0 ? (
             <div className="space-y-3">
               {emergencyContacts.slice(0, 2).map((contact) => (
                 <div key={contact.id} className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
-                    <Users className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4 text-primary dark:text-blue-400" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">

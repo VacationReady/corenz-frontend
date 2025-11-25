@@ -871,15 +871,15 @@ function DocumentsContent() {
               </div>
 
               {/* Content Area */}
-              <form onSubmit={handleUpload} className="px-8 pb-8 max-h-[60vh] overflow-y-auto space-y-5">
+              <form onSubmit={handleUpload} className="px-8 pb-8 space-y-5">
                 {/* Document Details */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="p-5 rounded-2xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30 space-y-4"
+                  className="space-y-4"
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-primary" />
                     <span className="font-medium text-sm">Document Details</span>
                   </div>
@@ -936,9 +936,9 @@ function DocumentsContent() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
-                  className="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 space-y-4"
+                  className="space-y-4"
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2">
                     <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     <span className="font-medium text-sm">Target Audience</span>
                   </div>
@@ -982,30 +982,24 @@ function DocumentsContent() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="p-5 rounded-2xl bg-gradient-to-br from-blue-500/10 to-primary/5 border border-blue-500/20"
+                  className="space-y-3"
                 >
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2">
                     <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span className="font-medium text-sm">Access Permissions</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="p-3 rounded-xl bg-white/30 dark:bg-white/5 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="canViewAdmin" className="text-xs font-medium">Admins</Label>
-                        <Switch id="canViewAdmin" checked={canViewAdmin} onChange={setCanViewAdmin} />
-                      </div>
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <Switch id="canViewAdmin" checked={canViewAdmin} onChange={setCanViewAdmin} />
+                      <Label htmlFor="canViewAdmin" className="text-sm font-medium">Admins</Label>
                     </div>
-                    <div className="p-3 rounded-xl bg-white/30 dark:bg-white/5 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="canViewManager" className="text-xs font-medium">Managers</Label>
-                        <Switch id="canViewManager" checked={canViewManager} onChange={setCanViewManager} />
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <Switch id="canViewManager" checked={canViewManager} onChange={setCanViewManager} />
+                      <Label htmlFor="canViewManager" className="text-sm font-medium">Managers</Label>
                     </div>
-                    <div className="p-3 rounded-xl bg-white/30 dark:bg-white/5 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="canViewEmployee" className="text-xs font-medium">Employees</Label>
-                        <Switch id="canViewEmployee" checked={canViewEmployee} onChange={setCanViewEmployee} />
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <Switch id="canViewEmployee" checked={canViewEmployee} onChange={setCanViewEmployee} />
+                      <Label htmlFor="canViewEmployee" className="text-sm font-medium">Employees</Label>
                     </div>
                   </div>
                 </motion.div>
@@ -1015,14 +1009,14 @@ function DocumentsContent() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25 }}
-                  className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20"
+                  className="space-y-3"
                 >
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2">
                     <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                     <span className="font-medium text-sm">Compliance Requirements</span>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
                         <div>
@@ -1032,7 +1026,7 @@ function DocumentsContent() {
                       </div>
                       <Switch checked={requiresAck} onChange={setRequiresAck} />
                     </div>
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <PenLine className="w-4 h-4 text-muted-foreground" />
                         <div>
@@ -1045,7 +1039,7 @@ function DocumentsContent() {
                   </div>
                   
                   {requiresAck && file && (
-                    <div className="mt-4 pt-4 border-t border-amber-500/20 flex justify-end">
+                    <div className="pt-3 flex justify-end">
                       <Button
                         type="button"
                         variant="outline"

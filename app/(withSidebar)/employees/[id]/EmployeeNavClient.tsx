@@ -38,22 +38,22 @@ interface EmployeeNavClientProps {
   showNotificationsQuickView: boolean;
 }
 
-// Map menu labels to icons and colors - consistent aurora blue theme
+// Map menu labels to icons - all using consistent aurora blue
 const menuConfig: Record<string, { icon: typeof User; color: string }> = {
   "Overview": { icon: LayoutGrid, color: "from-primary to-blue-500" },
   "Personal information": { icon: User, color: "from-primary to-blue-500" },
   "Leave": { icon: Calendar, color: "from-primary to-blue-500" },
-  "Documents": { icon: FileText, color: "from-blue-500 to-indigo-500" },
-  "Employment Details": { icon: Briefcase, color: "from-blue-500 to-indigo-500" },
-  "Emergency Contacts": { icon: Phone, color: "from-indigo-500 to-violet-500" },
-  "Bank & Payroll": { icon: CreditCard, color: "from-sky-500 to-blue-500" },
-  "Performance": { icon: TrendingUp, color: "from-indigo-500 to-violet-500" },
+  "Documents": { icon: FileText, color: "from-primary to-blue-500" },
+  "Employment Details": { icon: Briefcase, color: "from-primary to-blue-500" },
+  "Emergency Contacts": { icon: Phone, color: "from-primary to-blue-500" },
+  "Bank & Payroll": { icon: CreditCard, color: "from-primary to-blue-500" },
+  "Performance": { icon: TrendingUp, color: "from-primary to-blue-500" },
   "Onboarding History": { icon: PlayCircle, color: "from-primary to-blue-500" },
-  "Offboarding": { icon: LogOut, color: "from-slate-500 to-gray-600" },
-  "Driver Licenses": { icon: Car, color: "from-slate-500 to-blue-500" },
-  "Training": { icon: GraduationCap, color: "from-blue-500 to-indigo-500" },
-  "Employment Checks": { icon: ClipboardCheck, color: "from-sky-500 to-blue-500" },
-  "Settings": { icon: Settings, color: "from-slate-500 to-gray-600" },
+  "Offboarding": { icon: LogOut, color: "from-primary to-blue-500" },
+  "Driver Licenses": { icon: Car, color: "from-primary to-blue-500" },
+  "Training": { icon: GraduationCap, color: "from-primary to-blue-500" },
+  "Employment Checks": { icon: ClipboardCheck, color: "from-primary to-blue-500" },
+  "Settings": { icon: Settings, color: "from-primary to-blue-500" },
 };
 
 export default function EmployeeNavClient({
@@ -185,14 +185,11 @@ export default function EmployeeNavClient({
               >
                 {/* Active indicator */}
                 {isActive && (
-                  <motion.div
-                    layoutId="activeNavIndicator"
+                  <div
                     className={cn(
-                      "absolute left-0 w-1 rounded-full bg-gradient-to-b",
-                      color,
+                      "absolute left-0 w-1 rounded-full bg-gradient-to-b from-primary to-blue-500",
                       collapsed ? "h-6 top-1/2 -translate-y-1/2" : "h-8 top-1/2 -translate-y-1/2"
                     )}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
 

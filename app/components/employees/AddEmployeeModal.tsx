@@ -111,14 +111,6 @@ const FormSection = ({
   accentColor?: "primary" | "emerald" | "violet" | "amber" | "rose";
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  
-  const colorClasses = {
-    primary: "from-primary/20 to-primary/5 border-primary/20",
-    emerald: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/20",
-    violet: "from-violet-500/20 to-violet-500/5 border-violet-500/20",
-    amber: "from-amber-500/20 to-amber-500/5 border-amber-500/20",
-    rose: "from-rose-500/20 to-rose-500/5 border-rose-500/20",
-  };
 
   const iconColors = {
     primary: "text-primary",
@@ -132,17 +124,15 @@ const FormSection = ({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-2xl border bg-gradient-to-br ${colorClasses[accentColor]} backdrop-blur-sm overflow-hidden transition-all duration-300`}
+      className="overflow-hidden"
     >
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 hover:bg-white/30 dark:hover:bg-white/5 transition-colors"
+        className="w-full flex items-center justify-between py-2 hover:opacity-80 transition-opacity"
       >
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-xl bg-white/50 dark:bg-white/10 ${iconColors[accentColor]}`}>
-            <Icon className="w-4 h-4" />
-          </div>
+        <div className="flex items-center gap-2">
+          <Icon className={`w-4 h-4 ${iconColors[accentColor]}`} />
           <span className="font-semibold text-foreground">{title}</span>
         </div>
         <motion.div
@@ -160,7 +150,7 @@ const FormSection = ({
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <div className="px-4 pb-4 space-y-4">
+            <div className="pt-3 space-y-4">
               {children}
             </div>
           </motion.div>

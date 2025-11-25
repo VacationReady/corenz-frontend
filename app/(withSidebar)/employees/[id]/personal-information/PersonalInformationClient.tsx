@@ -268,7 +268,7 @@ export default function PersonalInformationClient({
           title="Address"
           description="Home address information"
           icon={MapPin}
-          iconColor="from-blue-500/20 to-indigo-500/20"
+          iconColor="from-primary/20 to-blue-500/20"
           delay={0.2}
           className="mt-6"
         >

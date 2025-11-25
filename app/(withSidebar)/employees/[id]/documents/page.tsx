@@ -710,9 +710,9 @@ export default function EmployeeDocumentsPage() {
                   </div>
 
                   {/* Compliance Section - Compact */}
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-violet-500/5 border border-indigo-500/20">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-blue-500/5 border border-primary/20">
                     <div className="flex items-center gap-2 mb-3">
-                      <Shield className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      <Shield className="w-4 h-4 text-primary dark:text-blue-400" />
                       <span className="font-medium text-sm">Compliance Requirements</span>
                     </div>
                     <div className="space-y-2">
@@ -745,7 +745,7 @@ export default function EmployeeDocumentsPage() {
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.2 }}
-                          className="mt-3 pt-3 border-t border-indigo-500/20"
+                          className="mt-3 pt-3 border-t border-primary/20"
                         >
                           <div className="space-y-1.5">
                             <Label className="text-xs font-medium text-foreground/80 flex items-center gap-1">

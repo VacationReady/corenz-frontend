@@ -508,7 +508,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
             title="Banking & Tax Details"
             description="IRD, bank account, and tax code information"
             icon={Banknote}
-            iconColor="from-sky-500/20 to-blue-500/20"
+            iconColor="from-primary/20 to-blue-500/20"
             delay={0.1}
           >
             <FormSection columns={2}>
@@ -745,7 +745,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
             title="Student Loan & Special Tax"
             description="Student loan and special tax rate information"
             icon={Calculator}
-            iconColor="from-blue-500/20 to-indigo-500/20"
+            iconColor="from-primary/20 to-blue-500/20"
             delay={0.3}
           >
             <FormSection columns={2}>
@@ -853,7 +853,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
             title="Compensation"
             description="Salary and hourly rate information"
             icon={DollarSign}
-            iconColor="from-indigo-500/20 to-violet-500/20"
+            iconColor="from-primary/20 to-blue-500/20"
             delay={0.4}
           >
             <FormSection columns={2}>

@@ -442,7 +442,7 @@ export default function LeavePage() {
         <EmployeeFormCard
           title="Access Error"
           icon={AlertCircle}
-          iconColor="from-slate-500/20 to-gray-500/20"
+          iconColor="from-primary/20 to-blue-500/20"
         >
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-destructive/10 mb-4">
@@ -593,7 +593,7 @@ export default function LeavePage() {
         title="Upcoming Leave"
         description="Scheduled future leave"
         icon={Calendar}
-        iconColor="from-blue-500/20 to-indigo-500/20"
+        iconColor="from-primary/20 to-blue-500/20"
         delay={0.2}
       >
         {loading ? (

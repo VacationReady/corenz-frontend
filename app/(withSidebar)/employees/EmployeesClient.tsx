@@ -370,9 +370,7 @@ function EmployeesContent(props: EmployeesClientProps) {
         id: "name",
         header: "Name",
         accessorFn: (row) => `${row.firstName} ${row.lastName}`,
-        meta: {
-          filter: { type: "multi" },
-        },
+        enableColumnFilter: false,
         cell: ({ row }) => {
           const emp = row.original as Employee;
           return (
@@ -401,6 +399,7 @@ function EmployeesContent(props: EmployeesClientProps) {
       {
         accessorKey: "phone",
         header: "Phone",
+        enableColumnFilter: false,
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground">
             {row.original.phone || "—"}
@@ -410,13 +409,7 @@ function EmployeesContent(props: EmployeesClientProps) {
       {
         accessorKey: "departmentName",
         header: "Department",
-        meta: {
-          filter: {
-            type: "multi",
-            options: ({ departments }: any) =>
-              (departments || []).map((d: any) => ({ label: d.name, value: d.name })),
-          },
-        },
+        enableColumnFilter: false,
         cell: ({ row }) => (
           row.original.departmentName ? (
             <div className="flex items-center gap-2">
@@ -433,13 +426,7 @@ function EmployeesContent(props: EmployeesClientProps) {
       {
         accessorKey: "jobRoleName",
         header: "Job Role",
-        meta: {
-          filter: {
-            type: "multi",
-            options: ({ jobRoles }: any) =>
-              (jobRoles || []).map((j: any) => ({ label: j.name, value: j.name })),
-          },
-        },
+        enableColumnFilter: false,
         cell: ({ row }) => (
           <span className={cn(
             "text-sm",
@@ -453,15 +440,7 @@ function EmployeesContent(props: EmployeesClientProps) {
         id: "status",
         header: "Status",
         accessorFn: (row) => (row.isActive ? "Active" : "Archived"),
-        meta: {
-          filter: {
-            type: "multi",
-            options: [
-              { label: "Active", value: "Active" },
-              { label: "Archived", value: "Archived" },
-            ],
-          },
-        },
+        enableColumnFilter: false,
         cell: ({ row }) => {
           const emp = row.original as Employee;
           return (

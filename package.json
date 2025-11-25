@@ -11,6 +11,7 @@
     "test": "tsx --test tests/**/*.test.ts",
     "migrate:deploy": "prisma migrate deploy",
     "scripts:init-workflows": "tsx scripts/initialize-default-workflows.ts",
+    "create-admin": "tsx scripts/createInitialAdmin.ts",
     "evaluate-finetune": "tsx scripts/evaluate-finetune.ts",
     "mobile": "cd mobile && npx expo start",
     "mobile:ios": "cd mobile && npx expo run:ios",

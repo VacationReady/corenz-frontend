@@ -88,23 +88,23 @@ export default async function AdminDashboardPage() {
 
                 {/* User Info with gradient text */}
                 <div>
-                  <h1 className="text-2xl font-bold text-primary">{fullName}</h1>
-                  <p className="text-muted-foreground text-sm">{user.email}</p>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
-                      {roleLabel}
-                    </span>
-                    {departmentName && (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-[hsl(var(--sunset-2))]/10 text-sunset-2 border border-[hsl(var(--sunset-2))]/20">
-                        {departmentName}
-                      </span>
-                    )}
-                    {jobRoleName && (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-[hsl(var(--sunset-3))]/10 text-sunset-3 border border-[hsl(var(--sunset-3))]/20">
-                        {jobRoleName}
-                      </span>
-                    )}
-                  </div>
+                  <h1 className="text-2xl font-bold text-primary">
+                    Hi, {user.firstName || "User"}!
+                  </h1>
+                  {(departmentName || jobRoleName) && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {departmentName && (
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-[hsl(var(--sunset-2))]/10 text-sunset-2 border border-[hsl(var(--sunset-2))]/20">
+                          {departmentName}
+                        </span>
+                      )}
+                      {jobRoleName && (
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-[hsl(var(--sunset-3))]/10 text-sunset-3 border border-[hsl(var(--sunset-3))]/20">
+                          {jobRoleName}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

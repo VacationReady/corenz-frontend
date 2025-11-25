@@ -18,7 +18,7 @@
  * - Prompt 8: Server-first refactor
  */
 
-import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useTransition, useRef } from "react";
+import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useTransition, useRef, useLayoutEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
@@ -126,6 +126,64 @@ function EmployeesContent(props: EmployeesClientProps) {
   const [selectedJobRoles, setSelectedJobRoles] = useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  
+  // Refs for dropdown buttons to calculate positions
+  const departmentButtonRef = useRef<HTMLButtonElement>(null);
+  const jobRoleButtonRef = useRef<HTMLButtonElement>(null);
+  const statusButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Positions for fixed dropdowns
+  const [dropdownPositions, setDropdownPositions] = useState<{
+    department?: { top: number; left: number };
+    jobRole?: { top: number; left: number };
+    status?: { top: number; left: number };
+  }>({});
+  
+  // Calculate dropdown positions when they open or window changes
+  const calculateDropdownPosition = (ref: React.RefObject<HTMLButtonElement>, key: string) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    setDropdownPositions(prev => ({
+      ...prev,
+      [key]: {
+        top: rect.bottom + 8, // mt-2 equivalent
+        left: rect.left,
+      },
+    }));
+  };
+  
+  useLayoutEffect(() => {
+    if (openDropdown === "department") {
+      calculateDropdownPosition(departmentButtonRef, "department");
+    } else if (openDropdown === "jobRole") {
+      calculateDropdownPosition(jobRoleButtonRef, "jobRole");
+    } else if (openDropdown === "status") {
+      calculateDropdownPosition(statusButtonRef, "status");
+    }
+  }, [openDropdown]);
+  
+  // Recalculate positions on scroll and resize
+  useEffect(() => {
+    if (!openDropdown) return;
+    
+    const handleUpdate = () => {
+      if (openDropdown === "department") {
+        calculateDropdownPosition(departmentButtonRef, "department");
+      } else if (openDropdown === "jobRole") {
+        calculateDropdownPosition(jobRoleButtonRef, "jobRole");
+      } else if (openDropdown === "status") {
+        calculateDropdownPosition(statusButtonRef, "status");
+      }
+    };
+    
+    window.addEventListener('scroll', handleUpdate, true);
+    window.addEventListener('resize', handleUpdate);
+    
+    return () => {
+      window.removeEventListener('scroll', handleUpdate, true);
+      window.removeEventListener('resize', handleUpdate);
+    };
+  }, [openDropdown]);
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -893,6 +951,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 {/* Department Filter */}
                 <div className="relative" data-filter-dropdown>
                   <button
+                    ref={departmentButtonRef}
                     onClick={() => setOpenDropdown(openDropdown === "department" ? null : "department")}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
@@ -915,13 +974,17 @@ function EmployeesContent(props: EmployeesClientProps) {
                     )} />
                   </button>
                   <AnimatePresence>
-                    {openDropdown === "department" && (
+                    {openDropdown === "department" && dropdownPositions.department && (
                       <motion.div
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-full left-0 mt-2 w-64 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[100] max-h-64 overflow-y-auto"
+                        className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[9999] max-h-64 overflow-y-auto"
+                        style={{
+                          top: `${dropdownPositions.department.top}px`,
+                          left: `${dropdownPositions.department.left}px`,
+                        }}
                       >
                         {departmentOptions.length === 0 ? (
                           <p className="text-sm text-muted-foreground px-3 py-2">No departments found</p>
@@ -961,6 +1024,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 {/* Job Role Filter */}
                 <div className="relative" data-filter-dropdown>
                   <button
+                    ref={jobRoleButtonRef}
                     onClick={() => setOpenDropdown(openDropdown === "jobRole" ? null : "jobRole")}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
@@ -983,13 +1047,17 @@ function EmployeesContent(props: EmployeesClientProps) {
                     )} />
                   </button>
                   <AnimatePresence>
-                    {openDropdown === "jobRole" && (
+                    {openDropdown === "jobRole" && dropdownPositions.jobRole && (
                       <motion.div
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-full left-0 mt-2 w-64 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[100] max-h-64 overflow-y-auto"
+                        className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[9999] max-h-64 overflow-y-auto"
+                        style={{
+                          top: `${dropdownPositions.jobRole.top}px`,
+                          left: `${dropdownPositions.jobRole.left}px`,
+                        }}
                       >
                         {jobRoleOptions.length === 0 ? (
                           <p className="text-sm text-muted-foreground px-3 py-2">No job roles found</p>
@@ -1029,6 +1097,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 {/* Status Filter */}
                 <div className="relative" data-filter-dropdown>
                   <button
+                    ref={statusButtonRef}
                     onClick={() => setOpenDropdown(openDropdown === "status" ? null : "status")}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
@@ -1051,13 +1120,17 @@ function EmployeesContent(props: EmployeesClientProps) {
                     )} />
                   </button>
                   <AnimatePresence>
-                    {openDropdown === "status" && (
+                    {openDropdown === "status" && dropdownPositions.status && (
                       <motion.div
                         initial={{ opacity: 0, y: -10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-full left-0 mt-2 w-48 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[100]"
+                        className="fixed w-48 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-[9999]"
+                        style={{
+                          top: `${dropdownPositions.status.top}px`,
+                          left: `${dropdownPositions.status.left}px`,
+                        }}
                       >
                         {statusOptions.map(option => (
                           <button

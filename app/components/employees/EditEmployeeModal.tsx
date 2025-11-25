@@ -170,9 +170,9 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-xl rounded-2xl overflow-hidden [&>button]:hidden">
+      <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col [&>button]:hidden">
           {/* Header */}
-          <div className="relative px-6 pt-6 pb-5">
+          <div className="relative px-6 pt-6 pb-5 flex-shrink-0">
             {/* Custom Close Button */}
             <motion.button
               onClick={() => onOpenChange(false)}
@@ -242,7 +242,7 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
           </div>
 
           {/* Content */}
-          <div className="px-6 pb-6">
+          <div className="px-6 pb-6 flex-1 overflow-y-auto">
             <AnimatePresence mode="wait">
               {step === "select" ? (
                 <motion.div

@@ -113,7 +113,7 @@ export function EmployeeListModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <Card className="w-full max-w-4xl max-h-[80vh] overflow-hidden">
+      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div className="space-y-1">
             <CardTitle className="text-2xl font-bold">{title}</CardTitle>

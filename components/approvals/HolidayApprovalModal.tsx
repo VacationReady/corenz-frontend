@@ -125,7 +125,7 @@ export function HolidayApprovalModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh]">
         {loading ? (
           <div className="py-12 text-center">
             <Clock className="w-12 h-12 mx-auto mb-4 text-muted-foreground animate-spin" />

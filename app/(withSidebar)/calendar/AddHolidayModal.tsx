@@ -188,9 +188,9 @@ export default function AddHolidayModal({
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) setOpen(false); }}>
-      <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-2xl rounded-2xl overflow-hidden">
+      <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-2xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="px-8 pt-8 pb-6">
+          <div className="px-8 pt-8 pb-6 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
                 <CalendarDays className="w-5 h-5" />
@@ -207,7 +207,7 @@ export default function AddHolidayModal({
           </div>
 
           {/* Content Area */}
-          <div className="px-8 pb-8 max-h-[65vh] overflow-y-auto space-y-6">
+          <div className="px-8 pb-8 flex-1 overflow-y-auto space-y-6">
             {/* Employee Selection */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-foreground/80">

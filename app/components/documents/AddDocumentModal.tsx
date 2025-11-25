@@ -456,9 +456,9 @@ export default function AddDocumentModal({
         if (!isOpen) onClose();
       }}
     >
-      <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-2xl rounded-2xl overflow-hidden">
+      <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-2xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="px-6 pt-6 pb-4">
+          <div className="px-6 pt-6 pb-4 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 <FileUp className="w-5 h-5" />
@@ -475,7 +475,7 @@ export default function AddDocumentModal({
           </div>
 
           {/* Content Area */}
-          <div className="px-6 pb-6 space-y-4">
+          <div className="px-6 pb-6 space-y-4 flex-1 overflow-y-auto">
             {/* Step 1: Type Selector - Compact Cards */}
             <div className="space-y-2">
               <Label className="text-xs font-medium text-foreground/80">Document Type</Label>
@@ -945,8 +945,8 @@ export default function AddDocumentModal({
       </DialogContent>
     {/* Manage Categories Modal */}
     <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
-      <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-md rounded-2xl overflow-hidden">
-          <div className="p-6">
+      <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-md max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
+          <div className="p-6 flex-1 overflow-y-auto">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-xl bg-primary/10">
                 <FolderOpen className="w-5 h-5 text-primary" />

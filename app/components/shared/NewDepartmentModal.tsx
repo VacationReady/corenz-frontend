@@ -99,9 +99,9 @@ export default function NewDepartmentModal({
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-lg rounded-2xl overflow-hidden">
+      <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-lg max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
           {/* Header */}
-          <div className="px-8 pt-8 pb-6">
+          <div className="px-8 pt-8 pb-6 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                 <Building2 className="w-5 h-5" />
@@ -118,7 +118,7 @@ export default function NewDepartmentModal({
           </div>
 
           {/* Content Area */}
-          <div className="px-8 pb-8 max-h-[65vh] overflow-y-auto space-y-6">
+          <div className="px-8 pb-8 flex-1 overflow-y-auto space-y-6">
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}

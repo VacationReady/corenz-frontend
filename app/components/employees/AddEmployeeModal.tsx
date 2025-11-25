@@ -1414,9 +1414,9 @@ export default function AddEmployeeModal({
       onClose();
     }}>
       <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
-        <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl rounded-2xl overflow-hidden">
+        <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="px-8 pt-8 pb-6">
+            <div className="px-8 pt-8 pb-6 flex-shrink-0">
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
@@ -1500,7 +1500,7 @@ export default function AddEmployeeModal({
             </div>
 
             {/* Content Area */}
-            <div className="px-8 pb-8">
+            <div className="px-8 pb-8 flex-1 overflow-y-auto">
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}

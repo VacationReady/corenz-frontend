@@ -278,23 +278,15 @@ export default function AddLeaveRequestDialog({
             if (!isOpen) handleSetOpen(false);
           }}
         >
-          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
-            >
-              {/* Header with gradient accent */}
-              <div className="relative px-8 pt-8 pb-6">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-primary/10 to-violet-500/5" />
-                <div className="relative flex items-center gap-3">
+          <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-2xl rounded-2xl overflow-hidden">
+              {/* Header */}
+              <div className="px-8 pt-8 pb-6">
+                <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                     <CalendarDays className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    <h2 className="text-2xl font-bold text-foreground">
                       Book Leave
                     </h2>
                     <p className="text-sm text-muted-foreground">
@@ -305,7 +297,7 @@ export default function AddLeaveRequestDialog({
               </div>
 
               {/* Content Area */}
-              <div className="px-8 pb-8 max-h-[65vh] overflow-y-auto space-y-6">
+              <div className="px-8 pb-8 space-y-6">
                 {/* Leave Type Selection */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-foreground/80">
@@ -533,7 +525,6 @@ export default function AddLeaveRequestDialog({
                   </Button>
                 </div>
               </div>
-            </motion.div>
           </DialogContent>
         </Dialog>
       </>

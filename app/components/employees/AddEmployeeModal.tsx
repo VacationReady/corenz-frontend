@@ -1420,18 +1420,17 @@ export default function AddEmployeeModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+            className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-2xl"
           >
-            {/* Header with gradient accent */}
-            <div className="relative px-8 pt-8 pb-6">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-violet-500/10 to-primary/5" />
-              <div className="relative flex items-start justify-between">
+            {/* Header */}
+            <div className="px-8 pt-8 pb-6">
+              <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
                       <Sparkles className="w-5 h-5" />
                     </div>
-                    <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    <h2 className="text-2xl font-bold text-foreground">
                       Add New Employee
                     </h2>
                   </div>
@@ -1508,7 +1507,7 @@ export default function AddEmployeeModal({
             </div>
 
             {/* Content Area */}
-            <div className="px-8 pb-8 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+            <div className="px-8 pb-8">
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}

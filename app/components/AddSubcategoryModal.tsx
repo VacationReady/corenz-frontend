@@ -82,12 +82,11 @@ export default function AddSubcategoryModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
+          className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-2xl"
         >
-          {/* Header with gradient accent */}
-          <div className="relative px-8 pt-8 pb-6">
-            <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-primary/10 to-blue-500/5" />
-            <div className="relative flex items-center gap-3">
+          {/* Header */}
+          <div className="px-8 pt-8 pb-6">
+            <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
                 <Tag className="w-5 h-5" />
               </div>

@@ -453,11 +453,8 @@ function EnhancedWorkflowCanvasInner({
       duration: 2000,
     });
 
-    // Fit view to show the new node after a short delay
-    setTimeout(() => {
-      fitView({ padding: 0.2, duration: 200 });
-    }, 50);
-  }, [reactFlowInstance, setNodes, readOnly, fitView]);
+    // Don't auto-zoom - let user maintain their preferred zoom level
+  }, [reactFlowInstance, setNodes, readOnly]);
 
   // Get node configuration
   const getNodeConfig = (type: string) => {
@@ -1933,77 +1930,89 @@ function EnhancedWorkflowCanvasInner({
             <Controls className="bg-card border-2" />
           </ReactFlow>
 
-        {/* Top Action Bar - Left Section with Back/Close Button */}
-        <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none z-10">
-          <div className="flex gap-2 pointer-events-auto">
-            {/* Close/Back Button */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (onExit) {
-                  onExit();
-                } else {
-                   window.location.href = '/settings/automation-rules';
-                }
-              }}
-              className="bg-white/95 backdrop-blur-xl shadow-lg border-slate-200/60 mr-2 rounded-xl h-9 hover:bg-slate-50 transition-all"
-            >
-              <XCircle className="h-4 w-4 mr-2 text-slate-500" />
-              Close
-            </Button>
+        {/* Clean Top Toolbar */}
+        <div className="absolute top-3 left-3 right-3 pointer-events-none z-10">
+          <div className="flex items-center justify-center">
+            {/* Single unified toolbar */}
+            <div className="pointer-events-auto bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-slate-200/60 flex items-center h-11 px-1.5 gap-0.5">
+              {/* Close Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (onExit) {
+                    onExit();
+                  } else {
+                    window.location.href = '/settings/automation-rules';
+                  }
+                }}
+                className="h-8 px-3 hover:bg-slate-100 rounded-lg text-slate-600 font-medium text-sm"
+              >
+                <XCircle className="h-4 w-4 mr-1.5 text-slate-400" />
+                Close
+              </Button>
 
-            {!readOnly && (
-              <>
-                {/* Undo/Redo/Duplicate Group */}
-                <div className="flex items-center gap-1 bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/60 px-2 py-1.5">
+              {!readOnly && (
+                <>
+                  {/* Divider */}
+                  <div className="w-px h-6 bg-slate-200 mx-1" />
+                  
+                  {/* Undo/Redo */}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleUndo}
                     disabled={historyIndex <= 0}
-                    className="h-8 w-8 p-0 hover:bg-slate-100 disabled:opacity-40 transition-all rounded-lg"
-                    title="Undo (Ctrl+Z)"
+                    className="h-8 w-8 p-0 hover:bg-slate-100 disabled:opacity-30 rounded-lg"
+                    title="Undo"
                   >
-                    <Undo className="h-4 w-4 text-slate-600" />
+                    <Undo className="h-4 w-4 text-slate-500" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleRedo}
                     disabled={historyIndex >= history.length - 1}
-                    className="h-8 w-8 p-0 hover:bg-slate-100 disabled:opacity-40 transition-all rounded-lg"
-                    title="Redo (Ctrl+Y)"
+                    className="h-8 w-8 p-0 hover:bg-slate-100 disabled:opacity-30 rounded-lg"
+                    title="Redo"
                   >
-                    <Redo className="h-4 w-4 text-slate-600" />
+                    <Redo className="h-4 w-4 text-slate-500" />
                   </Button>
-                  <div className="w-px h-5 bg-slate-200 mx-1" />
+                  
+                  {/* Divider */}
+                  <div className="w-px h-6 bg-slate-200 mx-1" />
+                  
+                  {/* Duplicate */}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleDuplicateNode}
                     disabled={!selectedNode}
-                    className="h-8 w-8 p-0 hover:bg-slate-100 disabled:opacity-40 transition-all rounded-lg"
-                    title="Duplicate selected node (Ctrl+D)"
+                    className="h-8 w-8 p-0 hover:bg-slate-100 disabled:opacity-30 rounded-lg"
+                    title="Duplicate node"
                   >
-                    <Copy className="h-4 w-4 text-slate-600" />
+                    <Copy className="h-4 w-4 text-slate-500" />
                   </Button>
-                </div>
-                
-                <div className="flex items-center bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/60">
+
+                  {/* Layout Dropdown */}
                   <Select
                     onValueChange={(value: string) => {
-                      if (value.startsWith('direction-')) {
+                      if (value === 'check-cycles') {
+                        checkForCycles();
+                      } else if (value.startsWith('direction-')) {
                         setLayoutDirection(value.replace('direction-', '') as any);
                       } else {
                         applyAutoLayout(value);
                       }
                     }}
                   >
-                    <SelectTrigger className="w-32 h-8 border-0">
-                      <SelectValue placeholder="Layout" />
+                    <SelectTrigger className="w-[110px] h-8 border-0 bg-transparent hover:bg-slate-100 rounded-lg text-slate-600 text-sm font-medium px-2.5 focus:ring-0">
+                      <div className="flex items-center gap-1.5">
+                        <Layout className="h-3.5 w-3.5 text-slate-400" />
+                        <span>Layout</span>
+                      </div>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent align="center">
                       <SelectItem value="dagre">
                         <div className="flex items-center gap-2">
                           <Layout className="h-4 w-4" />
@@ -2029,150 +2038,125 @@ function EnhancedWorkflowCanvasInner({
                         </div>
                       </SelectItem>
                       <div className="border-t my-1" />
-                      <SelectItem value="direction-TB">
+                      <SelectItem value="direction-TB">↕ Top-Bottom</SelectItem>
+                      <SelectItem value="direction-LR">↔ Left-Right</SelectItem>
+                      <SelectItem value="direction-BT">↕ Bottom-Top</SelectItem>
+                      <SelectItem value="direction-RL">↔ Right-Left</SelectItem>
+                      <div className="border-t my-1" />
+                      <SelectItem value="check-cycles">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs">↕</span>
-                          Top-Bottom
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="direction-LR">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs">↔</span>
-                          Left-Right
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="direction-BT">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs">↕</span>
-                          Bottom-Top
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="direction-RL">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs">↔</span>
-                          Right-Left
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                          Check for Cycles
                         </div>
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
 
+                  {/* Divider */}
+                  <div className="w-px h-6 bg-slate-200 mx-1" />
+                  
+                  {/* Import/Export */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={exportWorkflow}
+                    className="h-8 w-8 p-0 hover:bg-slate-100 rounded-lg"
+                    title="Export"
+                  >
+                    <Download className="h-4 w-4 text-slate-500" />
+                  </Button>
+                  <label htmlFor="import-workflow" className="cursor-pointer">
+                    <div className="h-8 w-8 flex items-center justify-center hover:bg-slate-100 rounded-lg">
+                      <Upload className="h-4 w-4 text-slate-500" />
+                    </div>
+                  </label>
+                  <input
+                    id="import-workflow"
+                    type="file"
+                    accept=".json"
+                    onChange={importWorkflow}
+                    className="hidden"
+                  />
+                </>
+              )}
+
+              {/* Fullscreen */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="h-8 w-8 p-0 hover:bg-slate-100 rounded-lg"
+                title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              >
+                {isFullscreen ? <Minimize2 className="h-4 w-4 text-slate-500" /> : <Maximize2 className="h-4 w-4 text-slate-500" />}
+              </Button>
+
+              {/* Divider before status/actions */}
+              <div className="w-px h-6 bg-slate-200 mx-1" />
+
+              {/* Status Indicators */}
+              {previewMode && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={checkForCycles}
-                  className="bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/60 h-9 w-9 p-0 hover:bg-slate-50 transition-all"
-                  title="Detect cycles"
+                  className="h-8 px-2.5 text-blue-600 hover:bg-blue-50 rounded-lg text-sm"
+                  onClick={() => {
+                    if (readOnly && previewMode) {
+                      setShowPreviewWarning(true);
+                    } else {
+                      onRequestEdit?.();
+                    }
+                  }}
                 >
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <Lock className="h-3.5 w-3.5 mr-1.5" />
+                  Preview
                 </Button>
-              </>
-            )}
-          </div>
+              )}
+              {readOnly && !previewMode && (
+                <span className="h-8 px-2.5 flex items-center text-amber-600 text-sm font-medium">
+                  <Lock className="h-3.5 w-3.5 mr-1.5" />
+                  Read Only
+                </span>
+              )}
+              {isDirty && !readOnly && (
+                <span className="h-8 px-2.5 flex items-center text-amber-600 text-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse" />
+                  Unsaved
+                </span>
+              )}
 
-          <div className="flex gap-2 pointer-events-auto">
-          {previewMode && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-blue-50/95 backdrop-blur-xl text-blue-800 border-blue-200 hover:bg-blue-100 rounded-xl h-9 shadow-lg"
-              onClick={() => {
-                if (readOnly && previewMode) {
-                  setShowPreviewWarning(true);
-                } else {
-                  onRequestEdit?.();
-                }
-              }}
-            >
-              <Lock className="h-3.5 w-3.5 mr-1.5" />
-              Preview Mode - Click to Edit
-            </Button>
-          )}
-          {readOnly && !previewMode && (
-              <Badge variant="secondary" className="bg-amber-100/95 backdrop-blur-xl text-amber-800 border-amber-200 rounded-lg px-3 py-1.5 shadow-lg">
-                <Lock className="h-3.5 w-3.5 mr-1.5" />
-                Read Only
-              </Badge>
-            )}
-            {isDirty && !readOnly && (
-              <Badge variant="secondary" className="bg-amber-100/95 backdrop-blur-xl text-amber-800 border-amber-200 rounded-lg px-3 py-1.5 shadow-lg">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 animate-pulse" />
-                Unsaved changes
-              </Badge>
-            )}
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={exportWorkflow}
-              className="bg-white/95 backdrop-blur-xl border-slate-200/60 hover:bg-slate-50 shadow-lg rounded-xl h-9 w-9 p-0"
-              title="Export workflow"
-            >
-              <Download className="h-4 w-4 text-slate-600" />
-            </Button>
-            
-            {!readOnly && (
-              <>
-                <label htmlFor="import-workflow">
+              {/* Action Buttons */}
+              {!readOnly && (
+                <>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="bg-white/95 backdrop-blur-xl border-slate-200/60 hover:bg-slate-50 shadow-lg cursor-pointer rounded-xl h-9 w-9 p-0"
-                    title="Import workflow"
+                    onClick={testWorkflow}
+                    disabled={!isValid || isExecuting}
+                    className="h-8 px-3 hover:bg-violet-50 rounded-lg text-violet-600 font-medium text-sm disabled:opacity-40"
                   >
-                    <Upload className="h-4 w-4 text-slate-600" />
+                    {isExecuting ? (
+                      <Pause className="h-4 w-4 mr-1.5 animate-pulse" />
+                    ) : (
+                      <TestTube className="h-4 w-4 mr-1.5" />
+                    )}
+                    {isExecuting ? 'Testing' : 'Test'}
                   </Button>
-                </label>
-                <input
-                  id="import-workflow"
-                  type="file"
-                  accept=".json"
-                  onChange={importWorkflow}
-                  className="hidden"
-                />
-              </>
-            )}
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="bg-white/95 backdrop-blur-xl border-slate-200/60 hover:bg-slate-50 shadow-lg rounded-xl h-9 w-9 p-0"
-              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-            >
-              {isFullscreen ? <Minimize2 className="h-4 w-4 text-slate-600" /> : <Maximize2 className="h-4 w-4 text-slate-600" />}
-            </Button>
-            
-            {!readOnly && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={testWorkflow}
-                  disabled={!isValid || isExecuting}
-                  className="bg-white/95 backdrop-blur-xl border-slate-200/60 hover:bg-slate-50 shadow-lg rounded-xl h-9 px-4"
-                >
-                  {isExecuting ? (
-                    <Pause className="h-4 w-4 mr-2 animate-pulse text-amber-500" />
-                  ) : (
-                    <TestTube className="h-4 w-4 mr-2 text-violet-500" />
+                  
+                  {onSave && (
+                    <Button
+                      size="sm"
+                      onClick={onSave}
+                      disabled={!isValid || !isDirty}
+                      className="h-8 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg shadow-sm shadow-blue-500/20 font-medium text-sm disabled:opacity-40"
+                    >
+                      <Save className="h-4 w-4 mr-1.5" />
+                      Save
+                    </Button>
                   )}
-                  {isExecuting ? 'Testing...' : 'Test'}
-                </Button>
-                
-                {onSave && (
-                  <Button
-                    size="sm"
-                    onClick={onSave}
-                    disabled={!isValid || !isDirty}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 rounded-xl h-9 px-5"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save
-                  </Button>
-                )}
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 

@@ -592,15 +592,15 @@ export default function AutomationRulesPage() {
                 className="relative px-5 py-3 rounded-lg data-[state=active]:bg-transparent data-[state=active]:shadow-none font-medium text-slate-500 data-[state=active]:text-slate-900 transition-all"
               >
                 <span className="flex items-center gap-2.5">
-                  <div className="p-1.5 rounded-lg bg-gradient-to-br from-violet-500/10 to-purple-500/10 group-data-[state=active]:from-violet-500 group-data-[state=active]:to-purple-500">
-                    <Store className="w-4 h-4 text-violet-600 group-data-[state=active]:text-white" />
+                  <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary/10 to-blue-500/10 group-data-[state=active]:from-primary group-data-[state=active]:to-blue-500">
+                    <Store className="w-4 h-4 text-blue-600 group-data-[state=active]:text-white" />
                   </div>
                   <span>Marketplace</span>
                 </span>
                 {activeTab === "store" && (
                   <motion.div
                     layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 to-purple-500"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-blue-500"
                     initial={false}
                   />
                 )}
@@ -649,7 +649,7 @@ export default function AutomationRulesPage() {
             />
           </TabsContent>
 
-          <TabsContent value="store" className="flex-1 m-0 border-0 data-[state=inactive]:hidden overflow-auto bg-gradient-to-br from-slate-50/50 via-white to-violet-50/30">
+          <TabsContent value="store" className="flex-1 m-0 border-0 data-[state=inactive]:hidden overflow-auto bg-gradient-to-br from-slate-50/50 via-white to-blue-50/30">
             <WorkflowAppStore
               onPreviewWorkflow={(templateId) => {
                 const url = `/settings/automation-rules?preview=${encodeURIComponent(templateId)}`;

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import {
   ChevronDown,
   ChevronUp,
@@ -211,11 +211,11 @@ export function WorkflowAppStore({
           className="flex flex-col items-center gap-4"
         >
           <div className="relative">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center animate-pulse">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center animate-pulse">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
             <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-white shadow-lg flex items-center justify-center">
-              <Loader2 className="w-4 h-4 text-violet-600 animate-spin" />
+              <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
             </div>
           </div>
           <p className="text-muted-foreground font-medium">Loading workflows...</p>
@@ -236,12 +236,12 @@ export function WorkflowAppStore({
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-50 to-primary-50 border border-blue-200 shadow-sm"
         >
-          <Sparkles className="w-4 h-4 text-violet-600" />
-          <span className="text-sm font-semibold text-violet-900">{availableCount} Ready-to-Use Automation Workflows</span>
+          <Sparkles className="w-4 h-4 text-blue-600" />
+          <span className="text-sm font-semibold text-blue-900">{availableCount} Ready-to-Use Automation Workflows</span>
         </motion.div>
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-violet-900 to-purple-900 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-blue-900 to-primary-900 bg-clip-text text-transparent">
           HR Automation Marketplace
         </h1>
         <p className="text-lg text-slate-600 max-w-2xl mx-auto">
@@ -278,12 +278,12 @@ export function WorkflowAppStore({
         className="max-w-xl mx-auto"
       >
         <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-violet-500 transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <Input
             placeholder="Search workflows by name, category, or keyword..."
             value={searchQuery}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(event.target.value)}
-            className="pl-12 h-14 text-base bg-white border-2 border-slate-200/60 focus:border-violet-400 focus:ring-4 focus:ring-violet-500/10 shadow-lg shadow-slate-100 rounded-2xl transition-all"
+            className="pl-12 h-14 text-base bg-white border-2 border-slate-200/60 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 shadow-lg shadow-slate-100 rounded-2xl transition-all"
           />
         </div>
       </motion.div>
@@ -297,7 +297,7 @@ export function WorkflowAppStore({
           className="max-w-xs mx-auto"
         >
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="h-12 bg-white border-2 border-slate-200/60 focus:border-violet-400 rounded-xl">
+            <SelectTrigger className="h-12 bg-white border-2 border-slate-200/60 focus:border-blue-400 rounded-xl">
               <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-slate-200">
@@ -331,10 +331,10 @@ export function WorkflowAppStore({
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch"
             >
               {popularTemplates.map((template) => (
-                <motion.div key={template.id} variants={itemVariants}>
+                <motion.div key={template.id} variants={itemVariants} className="h-full">
                   <WorkflowCard
                     template={template}
                     onPreview={() => onPreviewWorkflow(template.id)}
@@ -356,17 +356,17 @@ export function WorkflowAppStore({
         whileTap={{ scale: 0.99 }}
       >
         <Card 
-          className="border-2 border-dashed border-violet-300 bg-gradient-to-br from-violet-50/80 via-white to-purple-50/80 hover:border-violet-400 hover:shadow-xl transition-all cursor-pointer group overflow-hidden"
+          className="border-2 border-dashed border-blue-300 bg-gradient-to-br from-blue-50/80 via-white to-primary-50/80 hover:border-blue-400 hover:shadow-xl transition-all cursor-pointer group overflow-hidden"
           onClick={onCreateCustom}
         >
           <CardContent className="p-8 text-center relative">
             {/* Background decoration */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-violet-200/20 to-purple-300/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/20 to-primary-300/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-200/20 to-indigo-300/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
             
             <div className="relative z-10">
               <motion.div 
-                className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-violet-500/40 group-hover:scale-110 transition-transform"
+                className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/40 group-hover:scale-110 transition-transform"
                 whileHover={{ rotate: 90 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
@@ -378,7 +378,7 @@ export function WorkflowAppStore({
               </p>
               <Button 
                 size="lg" 
-                className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-lg shadow-violet-500/30 h-12 px-8"
+                className="bg-gradient-to-r from-primary to-blue-500 hover:from-blue-600 hover:to-blue-600 shadow-lg shadow-blue-500/30 h-12 px-8"
               >
                 <Sparkles className="w-5 h-5 mr-2" />
                 Start Building
@@ -397,9 +397,9 @@ export function WorkflowAppStore({
 
           const isExpanded = expandedCategories[category.id];
           const colorMap: Record<string, { gradient: string; border: string; text: string; bg: string }> = {
-            blue: { gradient: "from-blue-500 to-indigo-500", border: "border-blue-200", text: "text-blue-900", bg: "from-blue-50 to-indigo-50" },
+            blue: { gradient: "from-primary to-blue-500", border: "border-blue-200", text: "text-blue-900", bg: "from-blue-50 to-indigo-50" },
             green: { gradient: "from-emerald-500 to-green-500", border: "border-emerald-200", text: "text-emerald-900", bg: "from-emerald-50 to-green-50" },
-            purple: { gradient: "from-violet-500 to-purple-500", border: "border-violet-200", text: "text-violet-900", bg: "from-violet-50 to-purple-50" },
+            purple: { gradient: "from-primary to-blue-500", border: "border-blue-200", text: "text-blue-900", bg: "from-blue-50 to-indigo-50" },
             amber: { gradient: "from-amber-500 to-orange-500", border: "border-amber-200", text: "text-amber-900", bg: "from-amber-50 to-orange-50" },
             red: { gradient: "from-rose-500 to-red-500", border: "border-rose-200", text: "text-rose-900", bg: "from-rose-50 to-red-50" },
             pink: { gradient: "from-pink-500 to-rose-500", border: "border-pink-200", text: "text-pink-900", bg: "from-pink-50 to-rose-50" },
@@ -467,10 +467,10 @@ export function WorkflowAppStore({
                       variants={containerVariants}
                       initial="hidden"
                       animate="visible"
-                      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-4"
+                      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-4 items-stretch"
                     >
                       {categoryTemplates.map((template) => (
-                        <motion.div key={template.id} variants={itemVariants}>
+                        <motion.div key={template.id} variants={itemVariants} className="h-full">
                           <WorkflowCard
                             template={template}
                             onPreview={() => onPreviewWorkflow(template.id)}
@@ -578,40 +578,40 @@ function WorkflowCard({ template, onPreview, onInstall }: WorkflowCardProps) {
   const [isInstalling, setIsInstalling] = useState(false);
 
   return (
-    <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }}>
+    <motion.div whileHover={{ y: -4 }} transition={{ duration: 0.2 }} className="h-full">
       <Card
         className={cn(
-          "group overflow-hidden transition-all duration-300 border-2 h-full",
+          "group overflow-hidden transition-all duration-300 border-2 h-full flex flex-col",
           "bg-white/80 backdrop-blur-sm hover:shadow-2xl",
           template.isInstalled 
             ? "border-emerald-200 hover:border-emerald-300" 
-            : "border-slate-200/60 hover:border-violet-300"
+            : "border-slate-200/60 hover:border-blue-300"
         )}
       >
         {/* Gradient accent */}
         <div className={cn(
-          "h-1.5 w-full",
+          "h-1.5 w-full flex-shrink-0",
           template.isInstalled 
             ? "bg-gradient-to-r from-emerald-500 to-green-500"
-            : "bg-gradient-to-r from-violet-500 to-purple-500"
+            : "bg-gradient-to-r from-primary to-blue-500"
         )} />
         
-        <CardContent className="p-5 space-y-4">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-3">
+        <CardContent className="p-5 flex flex-col flex-1">
+          {/* Header - fixed height section */}
+          <div className="flex items-start justify-between gap-3 min-h-[72px]">
             <div className="flex items-start gap-3">
               <div className={cn(
                 "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 shadow-lg",
                 template.isInstalled
                   ? "bg-gradient-to-br from-emerald-500 to-green-500 shadow-emerald-500/30"
-                  : "bg-gradient-to-br from-violet-500 to-purple-500 shadow-violet-500/30"
+                  : "bg-gradient-to-br from-primary to-blue-500 shadow-blue-500/30"
               )}>
                 <span className="text-white">
                   {getIconComponent(template.icon) || <Zap className="w-6 h-6" />}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-slate-900 leading-tight mb-1 group-hover:text-violet-600 transition-colors">
+                <h3 className="font-bold text-slate-900 leading-tight mb-1 group-hover:text-blue-600 transition-colors">
                   {template.name}
                 </h3>
                 <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
@@ -626,8 +626,8 @@ function WorkflowCard({ template, onPreview, onInstall }: WorkflowCardProps) {
             )}
           </div>
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-1.5">
+          {/* Tags - fixed height section */}
+          <div className="flex flex-wrap gap-1.5 min-h-[28px] mt-4">
             {template.tags?.slice(0, 3).map((tag: string) => (
               <Badge
                 key={tag}
@@ -644,28 +644,34 @@ function WorkflowCard({ template, onPreview, onInstall }: WorkflowCardProps) {
             )}
           </div>
 
-          {/* Benefits */}
-          {template.benefits && template.benefits.length > 0 && (
-            <div className="space-y-1.5 pt-2 border-t border-slate-100">
-              {template.benefits.slice(0, 2).map((benefit: string, idx: number) => (
-                <div key={idx} className="flex items-start gap-2 text-xs text-slate-600">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                  <span className="leading-relaxed">{benefit}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Benefits - flexible section that grows */}
+          <div className="flex-1 mt-4 pt-3 border-t border-slate-100 min-h-[60px]">
+            {template.benefits && template.benefits.length > 0 ? (
+              <div className="space-y-1.5">
+                {template.benefits.slice(0, 2).map((benefit: string, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2 text-xs text-slate-600">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="leading-relaxed line-clamp-1">{benefit}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-slate-400 italic">Ready to use</div>
+            )}
+          </div>
 
-          {/* Time estimate */}
-          {template.estimatedTime && (
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Saves ~{template.estimatedTime}</span>
-            </div>
-          )}
+          {/* Time estimate - fixed height */}
+          <div className="flex items-center gap-2 text-xs text-slate-500 h-5 mt-2">
+            {template.estimatedTime ? (
+              <>
+                <Clock className="w-3.5 h-3.5" />
+                <span>Saves ~{template.estimatedTime}</span>
+              </>
+            ) : null}
+          </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 pt-2">
+          {/* Actions - fixed at bottom */}
+          <div className="flex gap-2 pt-4 mt-auto">
             {template.isInstalled ? (
               <>
                 <Button
@@ -695,7 +701,7 @@ function WorkflowCard({ template, onPreview, onInstall }: WorkflowCardProps) {
                 </Button>
                 <Button
                   size="sm"
-                  className="flex-1 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 rounded-xl shadow-lg shadow-violet-500/25"
+                  className="flex-1 bg-gradient-to-r from-primary to-blue-500 hover:from-blue-600 hover:to-blue-600 rounded-xl shadow-lg shadow-blue-500/25"
                   onClick={async () => {
                     setIsInstalling(true);
                     try {

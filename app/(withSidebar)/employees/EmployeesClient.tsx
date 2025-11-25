@@ -35,7 +35,7 @@ import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuConten
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OffboardingModal from "@/components/employees/OffboardingModal";
-import { MoreVertical, Users, UserX, Archive, UserCheck, UserPlus, Download, Filter, Sparkles, TrendingUp, Building2 } from "lucide-react";
+import { MoreVertical, Users, UserX, Archive, UserCheck, UserPlus, Download, Filter, Sparkles, TrendingUp, Building2, Clock, CalendarDays, Briefcase, Search, X, ChevronDown, Check } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { toast } from "sonner";
 import { deleteEmployeeAction, sendActivationEmailAction, refreshEmployeesAction } from "./actions";
@@ -119,6 +119,28 @@ function EmployeesContent(props: EmployeesClientProps) {
   const [error, setError] = useState("");
   const [visibleEmployees, setVisibleEmployees] = useState<Employee[]>([]);
   const [resetFiltersTick, setResetFiltersTick] = useState(0);
+  
+  // Modern filter bar state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  const [selectedJobRoles, setSelectedJobRoles] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-filter-dropdown]')) {
+        setOpenDropdown(null);
+      }
+    };
+    
+    if (openDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openDropdown]);
   const [counts, setCounts] = useState(() =>
     props.initialCounts || {
       active: props.initialEmployees.filter((emp) => emp.isActive).length,
@@ -308,9 +330,6 @@ function EmployeesContent(props: EmployeesClientProps) {
                   src={(emp as any).profileImageUrl}
                   className="ring-2 ring-white dark:ring-card shadow-sm group-hover:ring-primary/30 transition-all duration-200"
                 />
-                {emp.isActive && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-card" />
-                )}
               </div>
               <div>
                 <span className="font-medium text-foreground group-hover:text-primary transition-colors duration-200">
@@ -558,9 +577,99 @@ function EmployeesContent(props: EmployeesClientProps) {
 
   const breadcrumbs = useBreadcrumbs();
 
-  // Calculate additional stats
-  const activatedCount = employees.filter(e => e.isActivated).length;
-  const pendingActivationCount = employees.filter(e => !e.isActivated && e.isActive).length;
+  // Calculate HRIS insights
+  const totalHeadcount = counts.active;
+  const uniqueDepartmentsCount = new Set(employees.filter(e => e.departmentName).map(e => e.departmentName)).size;
+  const uniqueJobRolesCount = new Set(employees.filter(e => e.jobRoleName).map(e => e.jobRoleName)).size;
+  
+  // Calculate turnover (archived out of total)
+  const turnoverRate = counts.all > 0 ? Math.round((counts.archived / counts.all) * 100) : 0;
+  
+  // Get unique values for filter dropdowns
+  const departmentOptions = useMemo(() => 
+    Array.from(new Set(employees.filter(e => e.departmentName).map(e => e.departmentName)))
+      .sort()
+      .map(name => ({ label: name as string, value: name as string })),
+    [employees]
+  );
+  
+  const jobRoleOptions = useMemo(() => 
+    Array.from(new Set(employees.filter(e => e.jobRoleName).map(e => e.jobRoleName)))
+      .sort()
+      .map(name => ({ label: name as string, value: name as string })),
+    [employees]
+  );
+  
+  const statusOptions = [
+    { label: "Active", value: "active" },
+    { label: "Archived", value: "archived" },
+  ];
+  
+  // Filter employees based on search and filters
+  const filteredEmployees = useMemo(() => {
+    return employees.filter(emp => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          emp.firstName?.toLowerCase().includes(query) ||
+          emp.lastName?.toLowerCase().includes(query) ||
+          emp.email?.toLowerCase().includes(query) ||
+          emp.departmentName?.toLowerCase().includes(query) ||
+          emp.jobRoleName?.toLowerCase().includes(query);
+        if (!matchesSearch) return false;
+      }
+      
+      // Department filter
+      if (selectedDepartments.length > 0 && !selectedDepartments.includes(emp.departmentName || "")) {
+        return false;
+      }
+      
+      // Job Role filter
+      if (selectedJobRoles.length > 0 && !selectedJobRoles.includes(emp.jobRoleName || "")) {
+        return false;
+      }
+      
+      // Status filter
+      if (selectedStatuses.length > 0) {
+        const empStatus = emp.isActive ? "active" : "archived";
+        if (!selectedStatuses.includes(empStatus)) return false;
+      }
+      
+      return true;
+    });
+  }, [employees, searchQuery, selectedDepartments, selectedJobRoles, selectedStatuses]);
+  
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchQuery("");
+    setSelectedDepartments([]);
+    setSelectedJobRoles([]);
+    setSelectedStatuses([]);
+    setResetFiltersTick(t => t + 1);
+  };
+  
+  const hasActiveFilters = searchQuery || selectedDepartments.length > 0 || selectedJobRoles.length > 0 || selectedStatuses.length > 0;
+  
+  // Toggle filter selection
+  const toggleFilter = (value: string, selected: string[], setSelected: (v: string[]) => void) => {
+    if (selected.includes(value)) {
+      setSelected(selected.filter(v => v !== value));
+    } else {
+      setSelected([...selected, value]);
+    }
+  };
+  
+  // Remove single filter
+  const removeFilter = (type: "department" | "jobRole" | "status", value: string) => {
+    if (type === "department") {
+      setSelectedDepartments(prev => prev.filter(v => v !== value));
+    } else if (type === "jobRole") {
+      setSelectedJobRoles(prev => prev.filter(v => v !== value));
+    } else {
+      setSelectedStatuses(prev => prev.filter(v => v !== value));
+    }
+  };
 
   return (
     <PageShell
@@ -616,101 +725,100 @@ function EmployeesContent(props: EmployeesClientProps) {
           )}
         </AnimatePresence>
 
-        {/* Stats Cards */}
+        {/* HRIS Insight Cards - Consistent Blue Theme */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="grid grid-cols-2 md:grid-cols-4 gap-4"
         >
-          {/* Active Employees */}
+          {/* Total Headcount */}
           <motion.div
             whileHover={{ scale: 1.02, y: -2 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border border-emerald-200/50 dark:border-emerald-700/30 p-5 shadow-depth-2"
-          >
-            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-emerald-500/10 blur-2xl" />
-            <div className="relative">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
-                  <UserCheck className="w-5 h-5 text-white" />
-                </div>
-                <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div className="mt-4">
-                <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{counts.active}</p>
-                <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">Active Employees</p>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Activated */}
-          <motion.div
-            whileHover={{ scale: 1.02, y: -2 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200/50 dark:border-blue-700/30 p-5 shadow-depth-2"
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-800/20 border border-blue-200/50 dark:border-blue-700/30 p-5 shadow-depth-2"
           >
             <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-blue-500/10 blur-2xl" />
             <div className="relative">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              <div className="mt-4">
-                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{activatedCount}</p>
-                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Activated</p>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Pending Activation */}
-          <motion.div
-            whileHover={{ scale: 1.02, y: -2 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border border-amber-200/50 dark:border-amber-700/30 p-5 shadow-depth-2"
-          >
-            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-amber-500/10 blur-2xl" />
-            <div className="relative">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
                   <Users className="w-5 h-5 text-white" />
                 </div>
+                <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="mt-4">
-                <p className="text-2xl font-bold text-amber-900 dark:text-amber-100">{pendingActivationCount}</p>
-                <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">Pending Activation</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{totalHeadcount}</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Total Headcount</p>
               </div>
             </div>
           </motion.div>
 
-          {/* Archived */}
+          {/* Departments */}
           <motion.div
             whileHover={{ scale: 1.02, y: -2 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/40 dark:to-slate-700/40 border border-slate-200/50 dark:border-slate-600/30 p-5 shadow-depth-2"
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-sky-100 dark:from-blue-900/20 dark:to-sky-800/20 border border-blue-200/50 dark:border-blue-700/30 p-5 shadow-depth-2"
           >
-            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-slate-500/10 blur-2xl" />
+            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-blue-500/10 blur-2xl" />
             <div className="relative">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-600 flex items-center justify-center shadow-lg shadow-slate-500/25">
-                  <Archive className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                  <Building2 className="w-5 h-5 text-white" />
                 </div>
               </div>
               <div className="mt-4">
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{counts.archived}</p>
-                <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">Archived</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{uniqueDepartmentsCount}</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Departments</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Job Roles */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-100 dark:from-indigo-900/20 dark:to-blue-800/20 border border-blue-200/50 dark:border-blue-700/30 p-5 shadow-depth-2"
+          >
+            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-indigo-500/10 blur-2xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                  <Briefcase className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{uniqueJobRolesCount}</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Job Roles</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Turnover Rate */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -2 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-50 to-blue-100 dark:from-sky-900/20 dark:to-blue-800/20 border border-blue-200/50 dark:border-blue-700/30 p-5 shadow-depth-2"
+          >
+            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-sky-500/10 blur-2xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{turnoverRate}%</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Turnover Rate</p>
               </div>
             </div>
           </motion.div>
         </motion.div>
 
-        {/* Employee Status Tabs with Reset filters */}
+        {/* Employee Status Tabs */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="flex items-center justify-between gap-3"
         >
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full max-w-md grid-cols-3 bg-muted/50 backdrop-blur-sm p-1 rounded-xl">
@@ -742,14 +850,370 @@ function EmployeesContent(props: EmployeesClientProps) {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button
-            variant="ghost"
-            onClick={() => setResetFiltersTick((t) => t + 1)}
-            className="text-sm hover:bg-muted/50 transition-all duration-200"
-          >
-            <Filter className="w-4 h-4 mr-2" />
-            Reset filters
-          </Button>
+        </motion.div>
+
+        {/* Modern Filter Bar - HiBob/Workday Style */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="glass-card rounded-2xl p-4 shadow-depth-2"
+        >
+          <div className="flex flex-col gap-4">
+            {/* Top row: Search + Filter dropdowns */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search employees..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={cn(
+                    "w-full pl-10 pr-4 py-2.5 rounded-xl border border-border/50",
+                    "bg-background/50 backdrop-blur-sm",
+                    "text-sm placeholder:text-muted-foreground",
+                    "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30",
+                    "transition-all duration-200"
+                  )}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted/50 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5 text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+
+              {/* Filter Dropdowns */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Department Filter */}
+                <div className="relative" data-filter-dropdown>
+                  <button
+                    onClick={() => setOpenDropdown(openDropdown === "department" ? null : "department")}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
+                      "transition-all duration-200",
+                      selectedDepartments.length > 0
+                        ? "bg-primary/10 border-primary/30 text-primary dark:bg-primary/20 dark:border-primary/40"
+                        : "bg-background/50 border-border/50 text-foreground hover:bg-muted/50 hover:border-border"
+                    )}
+                  >
+                    <Building2 className="w-4 h-4" />
+                    Department
+                    {selectedDepartments.length > 0 && (
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-xs font-semibold">
+                        {selectedDepartments.length}
+                      </span>
+                    )}
+                    <ChevronDown className={cn(
+                      "w-4 h-4 transition-transform duration-200",
+                      openDropdown === "department" && "rotate-180"
+                    )} />
+                  </button>
+                  <AnimatePresence>
+                    {openDropdown === "department" && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full left-0 mt-2 w-64 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-50 max-h-64 overflow-y-auto"
+                      >
+                        {departmentOptions.length === 0 ? (
+                          <p className="text-sm text-muted-foreground px-3 py-2">No departments found</p>
+                        ) : (
+                          departmentOptions.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => toggleFilter(option.value, selectedDepartments, setSelectedDepartments)}
+                              className={cn(
+                                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left",
+                                "transition-colors duration-150",
+                                selectedDepartments.includes(option.value)
+                                  ? "bg-primary/10 text-primary"
+                                  : "hover:bg-muted/50 text-foreground"
+                              )}
+                            >
+                              <div className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center",
+                                "transition-colors duration-150",
+                                selectedDepartments.includes(option.value)
+                                  ? "bg-primary border-primary"
+                                  : "border-border"
+                              )}>
+                                {selectedDepartments.includes(option.value) && (
+                                  <Check className="w-3 h-3 text-white" />
+                                )}
+                              </div>
+                              {option.label}
+                            </button>
+                          ))
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Job Role Filter */}
+                <div className="relative" data-filter-dropdown>
+                  <button
+                    onClick={() => setOpenDropdown(openDropdown === "jobRole" ? null : "jobRole")}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
+                      "transition-all duration-200",
+                      selectedJobRoles.length > 0
+                        ? "bg-primary/10 border-primary/30 text-primary dark:bg-primary/20 dark:border-primary/40"
+                        : "bg-background/50 border-border/50 text-foreground hover:bg-muted/50 hover:border-border"
+                    )}
+                  >
+                    <Briefcase className="w-4 h-4" />
+                    Job Role
+                    {selectedJobRoles.length > 0 && (
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-xs font-semibold">
+                        {selectedJobRoles.length}
+                      </span>
+                    )}
+                    <ChevronDown className={cn(
+                      "w-4 h-4 transition-transform duration-200",
+                      openDropdown === "jobRole" && "rotate-180"
+                    )} />
+                  </button>
+                  <AnimatePresence>
+                    {openDropdown === "jobRole" && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full left-0 mt-2 w-64 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-50 max-h-64 overflow-y-auto"
+                      >
+                        {jobRoleOptions.length === 0 ? (
+                          <p className="text-sm text-muted-foreground px-3 py-2">No job roles found</p>
+                        ) : (
+                          jobRoleOptions.map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => toggleFilter(option.value, selectedJobRoles, setSelectedJobRoles)}
+                              className={cn(
+                                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left",
+                                "transition-colors duration-150",
+                                selectedJobRoles.includes(option.value)
+                                  ? "bg-primary/10 text-primary"
+                                  : "hover:bg-muted/50 text-foreground"
+                              )}
+                            >
+                              <div className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center",
+                                "transition-colors duration-150",
+                                selectedJobRoles.includes(option.value)
+                                  ? "bg-primary border-primary"
+                                  : "border-border"
+                              )}>
+                                {selectedJobRoles.includes(option.value) && (
+                                  <Check className="w-3 h-3 text-white" />
+                                )}
+                              </div>
+                              {option.label}
+                            </button>
+                          ))
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Status Filter */}
+                <div className="relative" data-filter-dropdown>
+                  <button
+                    onClick={() => setOpenDropdown(openDropdown === "status" ? null : "status")}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium",
+                      "transition-all duration-200",
+                      selectedStatuses.length > 0
+                        ? "bg-primary/10 border-primary/30 text-primary dark:bg-primary/20 dark:border-primary/40"
+                        : "bg-background/50 border-border/50 text-foreground hover:bg-muted/50 hover:border-border"
+                    )}
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    Status
+                    {selectedStatuses.length > 0 && (
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary text-white text-xs font-semibold">
+                        {selectedStatuses.length}
+                      </span>
+                    )}
+                    <ChevronDown className={cn(
+                      "w-4 h-4 transition-transform duration-200",
+                      openDropdown === "status" && "rotate-180"
+                    )} />
+                  </button>
+                  <AnimatePresence>
+                    {openDropdown === "status" && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full left-0 mt-2 w-48 p-2 rounded-xl bg-card border border-border/50 shadow-depth-3 z-50"
+                      >
+                        {statusOptions.map(option => (
+                          <button
+                            key={option.value}
+                            onClick={() => toggleFilter(option.value, selectedStatuses, setSelectedStatuses)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left",
+                              "transition-colors duration-150",
+                              selectedStatuses.includes(option.value)
+                                ? "bg-primary/10 text-primary"
+                                : "hover:bg-muted/50 text-foreground"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-4 h-4 rounded border flex items-center justify-center",
+                              "transition-colors duration-150",
+                              selectedStatuses.includes(option.value)
+                                ? "bg-primary border-primary"
+                                : "border-border"
+                            )}>
+                              {selectedStatuses.includes(option.value) && (
+                                <Check className="w-3 h-3 text-white" />
+                              )}
+                            </div>
+                            {option.label}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Clear All Button */}
+                {hasActiveFilters && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    onClick={clearAllFilters}
+                    className="flex items-center gap-1.5 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                    Clear all
+                  </motion.button>
+                )}
+              </div>
+            </div>
+
+            {/* Active Filter Pills */}
+            <AnimatePresence>
+              {hasActiveFilters && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex flex-wrap items-center gap-2"
+                >
+                  <span className="text-xs text-muted-foreground font-medium">Active filters:</span>
+                  
+                  {/* Search Query Pill */}
+                  {searchQuery && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium"
+                    >
+                      <Search className="w-3 h-3" />
+                      "{searchQuery}"
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="ml-0.5 p-0.5 rounded-full hover:bg-primary/20 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </motion.span>
+                  )}
+                  
+                  {/* Department Pills */}
+                  {selectedDepartments.map(dept => (
+                    <motion.span
+                      key={`dept-${dept}`}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs font-medium"
+                    >
+                      <Building2 className="w-3 h-3" />
+                      {dept}
+                      <button
+                        onClick={() => removeFilter("department", dept)}
+                        className="ml-0.5 p-0.5 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </motion.span>
+                  ))}
+                  
+                  {/* Job Role Pills */}
+                  {selectedJobRoles.map(role => (
+                    <motion.span
+                      key={`role-${role}`}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 text-xs font-medium"
+                    >
+                      <Briefcase className="w-3 h-3" />
+                      {role}
+                      <button
+                        onClick={() => removeFilter("jobRole", role)}
+                        className="ml-0.5 p-0.5 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800/50 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </motion.span>
+                  ))}
+                  
+                  {/* Status Pills */}
+                  {selectedStatuses.map(status => (
+                    <motion.span
+                      key={`status-${status}`}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium",
+                        status === "active" 
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                      )}
+                    >
+                      {status === "active" ? <UserCheck className="w-3 h-3" /> : <Archive className="w-3 h-3" />}
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                      <button
+                        onClick={() => removeFilter("status", status)}
+                        className={cn(
+                          "ml-0.5 p-0.5 rounded-full transition-colors",
+                          status === "active" 
+                            ? "hover:bg-emerald-200 dark:hover:bg-emerald-800/50"
+                            : "hover:bg-slate-200 dark:hover:bg-slate-700"
+                        )}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </motion.span>
+                  ))}
+                  
+                  {/* Results count */}
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {filteredEmployees.length} of {employees.length} employees
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
 
         {/* Employee Table with column filters */}
@@ -762,7 +1226,7 @@ function EmployeesContent(props: EmployeesClientProps) {
           <div className="p-5">
             <DataTable<Employee, unknown>
               columns={columns}
-              data={employees}
+              data={filteredEmployees}
               getRowId={(row) => row.id}
               onFilteredRowsChange={(rows) => setVisibleEmployees(rows as Employee[])}
               resetFiltersAt={resetFiltersTick}

@@ -456,23 +456,15 @@ export default function AddDocumentModal({
         if (!isOpen) onClose();
       }}
     >
-      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
-        >
-          {/* Header with gradient accent */}
-          <div className="relative px-6 pt-6 pb-4">
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-primary/10 to-violet-500/5" />
-            <div className="relative flex items-center gap-3">
+      <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-2xl rounded-2xl overflow-hidden">
+          {/* Header */}
+          <div className="px-6 pt-6 pb-4">
+            <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 <FileUp className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                <h2 className="text-xl font-bold text-foreground">
                   Upload Document
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -654,14 +646,14 @@ export default function AddDocumentModal({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.1 }}
-                className="p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30"
+                className="space-y-3"
               >
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
                   <span className="font-medium text-sm">Document Details</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium text-foreground/80">
                       Title <span className="text-primary">*</span>
@@ -727,38 +719,36 @@ export default function AddDocumentModal({
               >
                 {/* Visibility (Employee only) - Compact inline */}
                 {type === "employee" && (
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-primary/5 border border-blue-500/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        <span className="font-medium text-sm">Visibility</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
-                          <span className="text-xs font-medium">Admin</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <Switch checked={canViewManager} onChange={setCanViewManager} />
-                          <span className="text-xs font-medium">Manager</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
-                          <span className="text-xs font-medium">Employee</span>
-                        </label>
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-sm">Visibility</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
+                        <span className="text-xs font-medium">Admin</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <Switch checked={canViewManager} onChange={setCanViewManager} />
+                        <span className="text-xs font-medium">Manager</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
+                        <span className="text-xs font-medium">Employee</span>
+                      </label>
                     </div>
                   </div>
                 )}
 
                 {/* Compliance Section - Compact */}
-                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20">
-                  <div className="flex items-center gap-2 mb-3">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
                     <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                     <span className="font-medium text-sm">Compliance Requirements</span>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/30 dark:bg-white/5">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
                         <div>
@@ -769,7 +759,7 @@ export default function AddDocumentModal({
                       <Switch checked={requiresAck} onChange={setRequiresAck} />
                     </div>
                     {type === "employee" && (
-                      <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/30 dark:bg-white/5">
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <PenLine className="w-4 h-4 text-muted-foreground" />
                           <div>
@@ -789,7 +779,7 @@ export default function AddDocumentModal({
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="mt-3 pt-3 border-t border-amber-500/20"
+                        className="pt-3 border-t border-muted/30"
                       >
                         <div className="space-y-1.5">
                           <Label className="text-xs font-medium text-foreground/80 flex items-center gap-1">
@@ -952,16 +942,10 @@ export default function AddDocumentModal({
               </motion.div>
             )}
           </div>
-        </motion.div>
       </DialogContent>
     {/* Manage Categories Modal */}
     <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
-      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-md">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="glass-ultra rounded-2xl overflow-hidden shadow-depth-4"
-        >
+      <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-md rounded-2xl overflow-hidden">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 rounded-xl bg-primary/10">
@@ -1041,7 +1025,6 @@ export default function AddDocumentModal({
               </Button>
             </div>
           </div>
-        </motion.div>
       </DialogContent>
     </Dialog>
       {/* Placement before upload (local) */}

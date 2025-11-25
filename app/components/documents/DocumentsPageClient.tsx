@@ -844,23 +844,15 @@ function DocumentsContent() {
         )}
 
         <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
-            >
-              {/* Header with gradient accent */}
-              <div className="relative px-8 pt-8 pb-6">
-                <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-primary/10 to-emerald-500/5" />
-                <div className="relative flex items-center gap-3">
+          <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-2xl rounded-2xl overflow-hidden">
+              {/* Header */}
+              <div className="px-8 pt-8 pb-6">
+                <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
                     <FileUp className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    <h2 className="text-2xl font-bold text-foreground">
                       Upload Company Document
                     </h2>
                     <p className="text-sm text-muted-foreground">
@@ -1143,18 +1135,12 @@ function DocumentsContent() {
                   </Button>
                 </motion.div>
               </form>
-            </motion.div>
           </DialogContent>
         </Dialog>
 
-        {/* Manage Categories Modal - Modern Design */}
+        {/* Manage Categories Modal */}
         <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
-          <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-ultra rounded-2xl overflow-hidden shadow-depth-4"
-            >
+          <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-md rounded-2xl overflow-hidden">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 rounded-xl bg-primary/10">
@@ -1236,7 +1222,6 @@ function DocumentsContent() {
                   </Button>
                 </div>
               </div>
-            </motion.div>
           </DialogContent>
         </Dialog>
 

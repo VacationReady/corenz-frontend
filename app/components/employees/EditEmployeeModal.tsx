@@ -170,30 +170,21 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-xl [&>button]:hidden">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
-        >
-          {/* Header with gradient accent */}
+      <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-xl rounded-2xl overflow-hidden [&>button]:hidden">
+          {/* Header */}
           <div className="relative px-6 pt-6 pb-5">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-blue-500/10 to-violet-500/5" />
-            
             {/* Custom Close Button */}
             <motion.button
               onClick={() => onOpenChange(false)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="absolute right-4 top-4 p-2 rounded-xl text-muted-foreground hover:text-foreground bg-white/50 hover:bg-white/80 dark:bg-white/10 dark:hover:bg-white/20 transition-all z-10"
+              className="absolute right-4 top-4 p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all z-10"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
             </motion.button>
             
-            <div className="relative pr-10">
+            <div className="pr-10">
               <AnimatePresence mode="wait">
                 {step === "select" ? (
                   <motion.div
@@ -422,7 +413,6 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
               )}
             </AnimatePresence>
           </div>
-        </motion.div>
       </DialogContent>
     </Dialog>
   );

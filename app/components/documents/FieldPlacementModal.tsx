@@ -475,27 +475,28 @@ export default function FieldPlacementModal({
             <div className="col-span-9 h-full relative">
               <div
                 ref={containerRef}
-                className="absolute inset-0 overflow-y-auto overflow-x-hidden bg-slate-100 rounded-2xl border border-slate-200"
+                className="absolute inset-0 overflow-hidden rounded-2xl border border-slate-200 flex items-center justify-center bg-slate-50"
                 onPointerMove={onPointerMoveContainer}
                 onPointerUp={onPointerUpContainer}
                 onPointerLeave={onPointerUpContainer}
               >
                 <div
                   ref={contentRef}
-                  className="relative w-full bg-white shadow-sm mx-auto"
+                  className="relative bg-white shadow-lg"
                   style={{
-                    aspectRatio: pdfAspectRatio ? `${pdfAspectRatio}` : undefined,
-                    minHeight: "100%",
+                    aspectRatio: pdfAspectRatio ? `${pdfAspectRatio}` : '8.5 / 11',
+                    height: '100%',
+                    maxWidth: '100%',
                   }}
                 >
                   {/* Use iframe for better control and to resolve permission policy violations */}
                   {docUrl ? (
                     <iframe 
-                      src={docUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH"} 
-                      className="w-full h-full block"
+                      src={docUrl + "#toolbar=0&navpanes=0&scrollbar=0&view=FitH,FitV"} 
+                      className="absolute inset-0 w-full h-full block border-0"
                       title="Document Preview"
                       allow="fullscreen"
-                      scrolling={pdfAspectRatio ? "no" : "yes"}
+                      scrolling="no"
                       style={{ pointerEvents: "none" }}
                     />
                   ) : null}

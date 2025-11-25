@@ -8,32 +8,6 @@ const SALT_ROUNDS = 10;
 const ADMIN_ROLE: Role = "ADMIN";
 
 /**
- * Generate a secure temporary password
- * Format: 3 random words + 4 digits + special char
- */
-function generateSecurePassword(): string {
-  const words = [
-    "Tiger", "Cloud", "Ocean", "River", "Mountain", "Forest", "Thunder",
-    "Crystal", "Phoenix", "Dragon", "Storm", "Flame", "Shadow", "Spirit",
-    "Falcon", "Aurora", "Comet", "Breeze", "Horizon", "Sunset", "Valley",
-    "Glacier", "Meadow", "Ember", "Coral", "Lunar", "Solar", "Nebula"
-  ];
-  
-  const specialChars = "!@#$%^&*";
-  const selectedWords: string[] = [];
-  
-  for (let i = 0; i < 3; i++) {
-    const randomIndex = Math.floor(Math.random() * words.length);
-    selectedWords.push(words[randomIndex]);
-  }
-  
-  const digits = String(Math.floor(1000 + Math.random() * 9000));
-  const specialChar = specialChars[Math.floor(Math.random() * specialChars.length)];
-  
-  return `${selectedWords.join("-")}-${digits}${specialChar}`;
-}
-
-/**
  * Find or create an admin permission profile
  */
 async function findOrCreatePermissionProfile(companyId: string): Promise<string | null> {
@@ -113,17 +87,17 @@ async function findOrCreateDepartment(companyId: string): Promise<string> {
  * POST /api/setup-admin/create
  * 
  * Creates an initial admin user for the specified company.
- * This endpoint is intentionally unauthenticated to support initial setup.
+ * User provides their own password which is hashed with bcrypt.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, firstName, lastName, companyId, newCompanyName } = body;
+    const { email, firstName, lastName, password, companyId, newCompanyName } = body;
 
     // Validate required fields
-    if (!email || !firstName || !lastName) {
+    if (!email || !firstName || !lastName || !password) {
       return NextResponse.json(
-        { error: "Email, first name, and last name are required" },
+        { error: "Email, first name, last name, and password are required" },
         { status: 400 }
       );
     }
@@ -133,6 +107,14 @@ export async function POST(request: NextRequest) {
     if (!emailRegex.test(email)) {
       return NextResponse.json(
         { error: "Please provide a valid email address" },
+        { status: 400 }
+      );
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters long" },
         { status: 400 }
       );
     }
@@ -193,17 +175,16 @@ export async function POST(request: NextRequest) {
 
     if (existingAdmin) {
       return NextResponse.json({
-        success: true,
+        success: false,
         alreadyExists: true,
         email,
         companyName: targetCompanyName,
-        message: "An admin with this email already exists for this company",
+        message: "An account with this email already exists for this company",
       });
     }
 
-    // Generate secure password
-    const tempPassword = generateSecurePassword();
-    const hashedPassword = await bcrypt.hash(tempPassword, SALT_ROUNDS);
+    // Hash the password with bcrypt
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     // Find or create department
     const departmentId = await findOrCreateDepartment(targetCompanyId);
@@ -243,8 +224,8 @@ export async function POST(request: NextRequest) {
       success: true,
       alreadyExists: false,
       email,
-      password: tempPassword,
       companyName: targetCompanyName,
+      companyId: targetCompanyId,
       message: "Admin account created successfully",
     });
   } catch (error) {
@@ -255,4 +236,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

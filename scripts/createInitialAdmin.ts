@@ -12,6 +12,10 @@
  * 
  * Environment:
  *   Set DATABASE_URL in .env to point to the target database.
+ * 
+ * Alternative:
+ *   You can also use the web UI at /setup-admin to create an admin account
+ *   with your own password and automatic sign-in.
  */
 
 import { PrismaClient, Role } from "@prisma/client";
@@ -284,6 +288,8 @@ async function main() {
     console.log("║  1. Log in at your PeopleCore URL with these credentials     ║");
     console.log("║  2. Change your password immediately after first login       ║");
     console.log("║  3. Configure company settings and invite team members       ║");
+    console.log("║                                                               ║");
+    console.log("║  🌐 Alternative: Use /setup-admin to create admins via UI    ║");
     console.log("╚══════════════════════════════════════════════════════════════╝\n");
 
   } catch (error) {

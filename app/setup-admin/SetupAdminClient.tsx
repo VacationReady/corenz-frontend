@@ -2,6 +2,7 @@
 
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -16,46 +17,83 @@ import {
   AlertCircle,
   Sparkles,
   Shield,
-  ArrowRight,
-  RefreshCw,
-  Copy,
-  Check,
   Rocket,
+  RefreshCw,
+  Check,
+  X,
 } from "lucide-react";
-
-interface SetupResult {
-  success: boolean;
-  email?: string;
-  password?: string;
-  companyName?: string;
-  alreadyExists?: boolean;
-  message?: string;
-}
 
 interface Company {
   id: string;
   name: string;
 }
 
+interface PasswordStrength {
+  score: number;
+  label: string;
+  color: string;
+  checks: {
+    length: boolean;
+    uppercase: boolean;
+    lowercase: boolean;
+    number: boolean;
+    special: boolean;
+  };
+}
+
+function evaluatePasswordStrength(password: string): PasswordStrength {
+  const checks = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+  };
+
+  const score = Object.values(checks).filter(Boolean).length;
+
+  let label: string;
+  let color: string;
+
+  if (score <= 2) {
+    label = "Weak";
+    color = "bg-red-500";
+  } else if (score <= 3) {
+    label = "Fair";
+    color = "bg-amber-500";
+  } else if (score <= 4) {
+    label = "Good";
+    color = "bg-blue-500";
+  } else {
+    label = "Strong";
+    color = "bg-emerald-500";
+  }
+
+  return { score, label, color, checks };
+}
+
 export default function SetupAdminClient() {
   const router = useRouter();
-  const [step, setStep] = useState<"form" | "result">("form");
   const [loading, setLoading] = useState(false);
   const [checkingCompanies, setCheckingCompanies] = useState(true);
   const [error, setError] = useState("");
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [result, setResult] = useState<SetupResult | null>(null);
-  const [copiedPassword, setCopiedPassword] = useState(false);
-  const [copiedEmail, setCopiedEmail] = useState(false);
+  const [registrationComplete, setRegistrationComplete] = useState(false);
 
   // Form state
-  const [email, setEmail] = useState("uat.admin@peoplecore.co.nz");
-  const [firstName, setFirstName] = useState("UAT");
-  const [lastName, setLastName] = useState("Administrator");
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [newCompanyName, setNewCompanyName] = useState("");
   const [useNewCompany, setUseNewCompany] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const passwordStrength = evaluatePasswordStrength(password);
+  const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
 
   // Fetch available companies on mount
   useEffect(() => {
@@ -67,6 +105,9 @@ export default function SetupAdminClient() {
           setCompanies(data.companies || []);
           if (data.companies?.length > 0) {
             setSelectedCompanyId(data.companies[0].id);
+          } else {
+            // No companies exist, show create new company form
+            setUseNewCompany(true);
           }
         }
       } catch (err) {
@@ -80,10 +121,23 @@ export default function SetupAdminClient() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (passwordStrength.score < 3) {
+      setError("Please choose a stronger password");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
+      // Step 1: Create the admin account
       const response = await fetch("/api/setup-admin/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,6 +145,7 @@ export default function SetupAdminClient() {
           email,
           firstName,
           lastName,
+          password, // Will be hashed on the server
           companyId: useNewCompany ? null : selectedCompanyId,
           newCompanyName: useNewCompany ? newCompanyName : null,
         }),
@@ -102,27 +157,32 @@ export default function SetupAdminClient() {
         throw new Error(data.error || "Failed to create admin");
       }
 
-      setResult(data);
-      setStep("result");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (data.alreadyExists) {
+        setError("An account with this email already exists. Please sign in instead.");
+        setLoading(false);
+        return;
+      }
 
-  const copyToClipboard = async (text: string, type: "email" | "password") => {
-    try {
-      await navigator.clipboard.writeText(text);
-      if (type === "password") {
-        setCopiedPassword(true);
-        setTimeout(() => setCopiedPassword(false), 2000);
+      // Step 2: Auto-login with the credentials
+      setRegistrationComplete(true);
+      
+      const signInResult = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
+
+      if (signInResult?.ok) {
+        // Step 3: Redirect to dashboard
+        router.push("/dashboard/admin");
+        router.refresh();
       } else {
-        setCopiedEmail(true);
-        setTimeout(() => setCopiedEmail(false), 2000);
+        // Login failed but account was created - redirect to login
+        router.push("/login?registered=true");
       }
     } catch (err) {
-      console.error("Failed to copy:", err);
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setLoading(false);
     }
   };
 
@@ -202,7 +262,33 @@ export default function SetupAdminClient() {
       {/* Main content */}
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
         <AnimatePresence mode="wait">
-          {step === "form" ? (
+          {registrationComplete ? (
+            /* Loading/Redirect State */
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+                className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-6"
+                style={{
+                  background: "linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)",
+                }}
+              >
+                <CheckCircle2 className="w-12 h-12 text-emerald-500" />
+              </motion.div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Account Created!</h2>
+              <p className="text-muted-foreground mb-4">Signing you in and redirecting to your dashboard...</p>
+              <div className="flex items-center justify-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">Please wait...</span>
+              </div>
+            </motion.div>
+          ) : (
             <motion.div
               key="form"
               initial={{ opacity: 0, y: 20 }}
@@ -211,7 +297,7 @@ export default function SetupAdminClient() {
               transition={{ duration: 0.5 }}
               className="w-full max-w-lg"
             >
-              {/* Header Card */}
+              {/* Header */}
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -230,10 +316,10 @@ export default function SetupAdminClient() {
                   <Shield className="w-10 h-10 text-white" />
                 </motion.div>
                 <h1 className="text-3xl font-bold text-foreground mb-2">
-                  Create Admin Account
+                  Create Your Account
                 </h1>
                 <p className="text-muted-foreground">
-                  Set up your initial administrator to get started with PeopleCore
+                  Set up your administrator account to get started with PeopleCore
                 </p>
               </motion.div>
 
@@ -244,9 +330,9 @@ export default function SetupAdminClient() {
                 transition={{ delay: 0.2 }}
                 className="glass-premium rounded-3xl p-8"
               >
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Company Selection */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                       <Building2 className="w-4 h-4 text-primary" />
                       <span>Company</span>
@@ -258,7 +344,7 @@ export default function SetupAdminClient() {
                         <span>Checking existing companies...</span>
                       </div>
                     ) : companies.length > 0 && !useNewCompany ? (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         <select
                           value={selectedCompanyId}
                           onChange={(e) => setSelectedCompanyId(e.target.value)}
@@ -280,12 +366,12 @@ export default function SetupAdminClient() {
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         <Input
                           value={newCompanyName}
                           onChange={(e) => setNewCompanyName(e.target.value)}
-                          placeholder="Enter company name"
-                          required={useNewCompany}
+                          placeholder="Enter your company name"
+                          required={useNewCompany || companies.length === 0}
                         />
                         {companies.length > 0 && (
                           <button
@@ -298,21 +384,6 @@ export default function SetupAdminClient() {
                         )}
                       </div>
                     )}
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <Mail className="w-4 h-4 text-primary" />
-                      <span>Admin Email</span>
-                    </label>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="admin@company.com"
-                      required
-                    />
                   </div>
 
                   {/* Name Fields */}
@@ -342,19 +413,136 @@ export default function SetupAdminClient() {
                     </div>
                   </div>
 
-                  {/* Info Box */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="flex items-start gap-3 p-4 rounded-xl bg-primary/5 border border-primary/10"
-                  >
-                    <Lock className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-muted-foreground">
-                      <p className="font-medium text-foreground mb-1">Secure Password Generation</p>
-                      <p>A secure temporary password will be automatically generated. You'll be able to copy it after the account is created.</p>
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Mail className="w-4 h-4 text-primary" />
+                      <span>Email Address</span>
+                    </label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      required
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Lock className="w-4 h-4 text-primary" />
+                      <span>Password</span>
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Create a strong password"
+                        required
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
-                  </motion.div>
+                    
+                    {/* Password Strength Indicator */}
+                    {password && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="space-y-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <motion.div
+                              className={`h-full ${passwordStrength.color} rounded-full`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                              transition={{ duration: 0.3 }}
+                            />
+                          </div>
+                          <span className={`text-xs font-medium ${
+                            passwordStrength.score <= 2 ? "text-red-500" :
+                            passwordStrength.score <= 3 ? "text-amber-500" :
+                            passwordStrength.score <= 4 ? "text-blue-500" : "text-emerald-500"
+                          }`}>
+                            {passwordStrength.label}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                          <div className={`flex items-center gap-1 ${passwordStrength.checks.length ? "text-emerald-600" : "text-muted-foreground"}`}>
+                            {passwordStrength.checks.length ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            8+ characters
+                          </div>
+                          <div className={`flex items-center gap-1 ${passwordStrength.checks.uppercase ? "text-emerald-600" : "text-muted-foreground"}`}>
+                            {passwordStrength.checks.uppercase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            Uppercase letter
+                          </div>
+                          <div className={`flex items-center gap-1 ${passwordStrength.checks.lowercase ? "text-emerald-600" : "text-muted-foreground"}`}>
+                            {passwordStrength.checks.lowercase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            Lowercase letter
+                          </div>
+                          <div className={`flex items-center gap-1 ${passwordStrength.checks.number ? "text-emerald-600" : "text-muted-foreground"}`}>
+                            {passwordStrength.checks.number ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            Number
+                          </div>
+                          <div className={`flex items-center gap-1 ${passwordStrength.checks.special ? "text-emerald-600" : "text-muted-foreground"}`}>
+                            {passwordStrength.checks.special ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            Special character
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm your password"
+                        required
+                        className={`pr-10 ${
+                          confirmPassword && !passwordsMatch 
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-500/50" 
+                            : confirmPassword && passwordsMatch 
+                              ? "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500/50"
+                              : ""
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {confirmPassword && !passwordsMatch && (
+                      <p className="text-xs text-red-500 flex items-center gap-1">
+                        <X className="w-3 h-3" />
+                        Passwords do not match
+                      </p>
+                    )}
+                    {confirmPassword && passwordsMatch && (
+                      <p className="text-xs text-emerald-600 flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Passwords match
+                      </p>
+                    )}
+                  </div>
 
                   {/* Error Message */}
                   <AnimatePresence>
@@ -380,11 +568,11 @@ export default function SetupAdminClient() {
                       boxShadow: "0 8px 24px rgba(59, 130, 246, 0.35)",
                     }}
                     loading={loading}
-                    loadingText="Creating admin account..."
-                    disabled={loading}
+                    loadingText="Creating your account..."
+                    disabled={loading || !passwordsMatch || passwordStrength.score < 3}
                     icon={<Rocket className="w-5 h-5" />}
                   >
-                    Create Admin Account
+                    Create Account & Sign In
                   </Button>
                 </form>
               </motion.div>
@@ -405,201 +593,9 @@ export default function SetupAdminClient() {
                 </button>
               </motion.p>
             </motion.div>
-          ) : (
-            /* Success Result */
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className="w-full max-w-lg"
-            >
-              <motion.div
-                className="glass-premium rounded-3xl p-8 text-center"
-                initial={{ y: 20 }}
-                animate={{ y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                {/* Success Icon */}
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-                  className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-6"
-                  style={{
-                    background: result?.alreadyExists
-                      ? "linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%)"
-                      : "linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)",
-                  }}
-                >
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                  >
-                    {result?.alreadyExists ? (
-                      <AlertCircle className="w-12 h-12 text-amber-500" />
-                    ) : (
-                      <CheckCircle2 className="w-12 h-12 text-emerald-500" />
-                    )}
-                  </motion.div>
-                </motion.div>
-
-                <motion.h2
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-2xl font-bold text-foreground mb-2"
-                >
-                  {result?.alreadyExists ? "Admin Already Exists" : "Admin Created Successfully!"}
-                </motion.h2>
-
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-muted-foreground mb-8"
-                >
-                  {result?.alreadyExists
-                    ? "An admin with this email already exists in the system."
-                    : "Your administrator account has been created. Save these credentials!"}
-                </motion.p>
-
-                {/* Credentials Card */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="space-y-4 mb-8"
-                >
-                  {/* Company */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border border-border">
-                    <div className="flex items-center gap-3">
-                      <Building2 className="w-5 h-5 text-muted-foreground" />
-                      <div className="text-left">
-                        <p className="text-xs text-muted-foreground">Company</p>
-                        <p className="font-medium text-foreground">{result?.companyName}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Email */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border border-border">
-                    <div className="flex items-center gap-3">
-                      <Mail className="w-5 h-5 text-muted-foreground" />
-                      <div className="text-left">
-                        <p className="text-xs text-muted-foreground">Email</p>
-                        <p className="font-medium text-foreground">{result?.email}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => copyToClipboard(result?.email || "", "email")}
-                      className="p-2 rounded-lg hover:bg-muted transition-colors"
-                      title="Copy email"
-                    >
-                      {copiedEmail ? (
-                        <Check className="w-4 h-4 text-emerald-500" />
-                      ) : (
-                        <Copy className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Password (only show for new accounts) */}
-                  {!result?.alreadyExists && result?.password && (
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-primary/5 border border-primary/20">
-                      <div className="flex items-center gap-3">
-                        <Lock className="w-5 h-5 text-primary" />
-                        <div className="text-left">
-                          <p className="text-xs text-muted-foreground">Temporary Password</p>
-                          <p className="font-mono font-medium text-foreground">
-                            {showPassword ? result.password : "••••••••••••••••"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="p-2 rounded-lg hover:bg-muted transition-colors"
-                          title={showPassword ? "Hide password" : "Show password"}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="w-4 h-4 text-muted-foreground" />
-                          ) : (
-                            <Eye className="w-4 h-4 text-muted-foreground" />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => copyToClipboard(result?.password || "", "password")}
-                          className="p-2 rounded-lg hover:bg-muted transition-colors"
-                          title="Copy password"
-                        >
-                          {copiedPassword ? (
-                            <Check className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <Copy className="w-4 h-4 text-muted-foreground" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-
-                {/* Warning for new accounts */}
-                {!result?.alreadyExists && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.7 }}
-                    className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-left mb-8"
-                  >
-                    <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm">
-                      <p className="font-medium text-amber-700 dark:text-amber-400 mb-1">
-                        Save these credentials now!
-                      </p>
-                      <p className="text-amber-600/80 dark:text-amber-300/80">
-                        This is the only time the password will be displayed. Make sure to save it securely and change it after your first login.
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Actions */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
-                  className="flex flex-col gap-3"
-                >
-                  <Button
-                    onClick={() => router.push("/login")}
-                    className="w-full h-12 text-base font-medium transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                    style={{
-                      background: "linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(139, 92, 246) 100%)",
-                      boxShadow: "0 8px 24px rgba(59, 130, 246, 0.35)",
-                    }}
-                    icon={<ArrowRight className="w-5 h-5" />}
-                  >
-                    Continue to Login
-                  </Button>
-                  <button
-                    onClick={() => {
-                      setStep("form");
-                      setResult(null);
-                      setError("");
-                    }}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Create another admin
-                  </button>
-                </motion.div>
-              </motion.div>
-            </motion.div>
           )}
         </AnimatePresence>
       </div>
     </div>
   );
 }
-

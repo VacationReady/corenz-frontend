@@ -70,25 +70,30 @@ interface RotaCalendarProps {
   shifts: Shift[];
   conflicts?: Conflict[];
   view?: 'week' | 'month';
+  onViewChange?: (view: 'week' | 'month') => void;
   onShiftClick?: (shift: Shift) => void;
   onDateClick?: (date: Date) => void;
   onShiftEdit?: (shift: Shift) => void;
   onShiftDelete?: (shiftId: string) => void;
   showActions?: boolean;
+  hideViewToggle?: boolean;
 }
 
 export default function RotaCalendar({
   shifts,
   conflicts = [],
   view = 'week',
+  onViewChange,
   onShiftClick,
   onDateClick,
   onShiftEdit,
   onShiftDelete,
   showActions = true,
+  hideViewToggle = false,
 }: RotaCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [currentView, setCurrentView] = useState<'week' | 'month'>(view);
+  // Use prop view as controlled state when onViewChange is provided
+  const currentView = view;
 
   // Get date range based on view
   const getDateRange = () => {
@@ -182,29 +187,31 @@ export default function RotaCalendar({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* View Toggle */}
-            <div className="flex rounded-lg bg-gray-800 border border-gray-600 p-1">
-              <button
-                onClick={() => setCurrentView('week')}
-                className={`px-3 py-1 rounded text-sm font-medium transition-all ${
-                  currentView === 'week'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                }`}
-              >
-                Week
-              </button>
-              <button
-                onClick={() => setCurrentView('month')}
-                className={`px-3 py-1 rounded text-sm font-medium transition-all ${
-                  currentView === 'month'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-700'
-                }`}
-              >
-                Month
-              </button>
-            </div>
+            {/* View Toggle - only show if not hidden and onViewChange is provided */}
+            {!hideViewToggle && (
+              <div className="flex rounded-lg bg-gray-800 border border-gray-600 p-1">
+                <button
+                  onClick={() => onViewChange?.('week')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                    currentView === 'week'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  Week
+                </button>
+                <button
+                  onClick={() => onViewChange?.('month')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                    currentView === 'month'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  Month
+                </button>
+              </div>
+            )}
 
             {/* Navigation */}
             <button

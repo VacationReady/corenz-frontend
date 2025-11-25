@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Settings, Users, Radio, DollarSign, Clock, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 
 // Import the existing pages as components (we'll need to refactor them slightly)
 import dynamic from 'next/dynamic';
@@ -16,12 +17,23 @@ const PayrollExportView = dynamic(() => import('./PayrollExportView'), { ssr: fa
 export default function RotaSettingsPage() {
   const [activeTab, setActiveTab] = useState('time-tracking');
 
+  const breadcrumbItems = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Rota & Shifts', href: '/rota' },
+    { label: 'Settings', isCurrentPage: true },
+  ];
+
   return (
     <div className="w-full min-h-screen bg-content-panel">
       {/* Sticky Header */}
       <div className="sticky top-0 z-10">
         <div className="relative overflow-hidden rounded-b-3xl border border-white/40 bg-gradient-to-r from-primary/10 via-sky-100/40 to-transparent shadow-xl backdrop-blur-sm dark:border-slate-800/80 dark:from-primary/30 dark:via-slate-900/80">
           <div className="relative z-10 px-8 py-6">
+            {/* Breadcrumbs */}
+            <div className="mb-4">
+              <Breadcrumb items={breadcrumbItems} showHomeIcon={true} />
+            </div>
+
             <div className="flex flex-col gap-4">
               <Link
                 href="/rota"

@@ -112,7 +112,7 @@ export function FilterBar({
               value={filters.sortBy}
               onValueChange={(value) => updateFilter("sortBy", value)}
             >
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40 glass-strong text-foreground hover-glass border-glass">
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
               <SelectContent>

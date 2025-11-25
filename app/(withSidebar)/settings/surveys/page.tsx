@@ -120,7 +120,7 @@ export default function SurveysPage() {
                 {templatesWithInstances.map(({ definition }) => (
                   <span
                     key={definition.slug}
-                    className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1"
+                    className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-white"
                   >
                     <span className="text-base">{definition.emoji}</span>
                     {definition.name}
@@ -194,7 +194,7 @@ export default function SurveysPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {definition.highlights.map((highlight) => (
-                    <Badge key={highlight} variant="outline" className="bg-slate-50 text-[11px]">
+                    <Badge key={highlight} variant="outline" className="bg-slate-50 text-[11px] text-slate-700">
                       {highlight}
                     </Badge>
                   ))}
@@ -248,7 +248,7 @@ export default function SurveysPage() {
               className="pr-10"
             />
           </div>
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs text-slate-700">
             {filteredSurveys.length} {filteredSurveys.length === 1 ? "survey" : "surveys"}
           </Badge>
         </div>
@@ -317,7 +317,10 @@ export default function SurveysPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between text-xs">
-                    <Badge variant={survey.isActive ? "default" : "outline"}>
+                    <Badge 
+                      variant={survey.isActive ? "default" : "outline"}
+                      className={!survey.isActive ? "text-slate-700" : ""}
+                    >
                       {survey.isActive ? "Active" : "Draft"}
                     </Badge>
                     <span className="text-gray-500">

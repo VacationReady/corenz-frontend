@@ -270,4 +270,25 @@ export const breadcrumbConfigs = {
       { label: "AI Assistant", isCurrentPage: true },
     ],
   },
+  // Rota/Shifts section
+  rota: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Rota & Shifts", isCurrentPage: true },
+    ],
+  },
+  rotaSettings: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Rota & Shifts", href: "/rota" },
+      { label: "Settings", isCurrentPage: true },
+    ],
+  },
+  rotaCoverage: {
+    items: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Rota & Shifts", href: "/rota" },
+      { label: "Coverage", isCurrentPage: true },
+    ],
+  },
 };

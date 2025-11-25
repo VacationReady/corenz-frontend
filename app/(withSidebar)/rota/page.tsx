@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
   AlertTriangle,
+  ArrowLeft,
   Check,
   ChevronDown,
   Filter,
@@ -13,8 +14,10 @@ import {
   Send,
   Settings,
   Sparkles,
+  CalendarClock,
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import RotaCalendar from '@/components/rota/RotaCalendar';
 import ShiftCard from '@/components/rota/ShiftCard';
 import LaborCostSummary from '@/components/rota/LaborCostSummary';
@@ -424,15 +427,37 @@ export default function RotaPage() {
     );
   }
 
+  const breadcrumbItems = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Rota & Shifts', isCurrentPage: true },
+  ];
+
   return (
     <div className="w-full min-h-screen bg-content-panel">
       <div className="sticky top-0 z-10">
         <div className="relative overflow-hidden rounded-b-3xl border border-white/30 bg-gradient-to-r from-primary/10 via-sky-100/40 to-transparent shadow-xl backdrop-blur-sm dark:border-slate-800/80 dark:from-primary/30 dark:via-slate-900/80">
           <div className="relative z-10 px-8 py-6">
+            {/* Breadcrumbs */}
+            <div className="mb-4">
+              <Breadcrumb items={breadcrumbItems} showHomeIcon={true} />
+            </div>
+
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">Shift rota</h1>
-                <p className="text-muted-foreground">Confidently schedule warehouse and office teams at scale.</p>
+              <div className="flex items-start gap-3">
+                <Link
+                  href="/dashboard"
+                  className="mt-1 p-2 rounded-lg bg-card/50 hover:bg-card border border-border text-muted-foreground hover:text-foreground transition-all"
+                  aria-label="Back to dashboard"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Link>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <CalendarClock className="h-7 w-7 text-primary" />
+                    <h1 className="text-3xl font-bold text-foreground">Shift Rota</h1>
+                  </div>
+                  <p className="text-muted-foreground mt-1">Confidently schedule warehouse and office teams at scale.</p>
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -618,6 +643,7 @@ export default function RotaPage() {
                 shifts={shifts as any}
                 conflicts={conflicts}
                 view={viewMode}
+                onViewChange={(newView) => setViewMode(newView)}
                 onShiftClick={shift => setSelectedShift(shift as ShiftRecord)}
                 onDateClick={date => {
                   setSelectedDateForCreate(date);
@@ -629,6 +655,7 @@ export default function RotaPage() {
                 }}
                 onShiftDelete={shiftId => handleDeleteShift(shiftId)}
                 showActions
+                hideViewToggle
               />
             )}
           </div>

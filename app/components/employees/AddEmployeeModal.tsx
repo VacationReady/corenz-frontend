@@ -1756,8 +1756,8 @@ export default function AddEmployeeModal({
                       </div>
                     </FormSection>
 
-                    {/* Job & Organization Section */}
-                    <FormSection title="Job & Organization" icon={Briefcase} accentColor="emerald" defaultOpen={true}>
+                    {/* Job & Organisation Section */}
+                    <FormSection title="Job & Organisation" icon={Briefcase} accentColor="emerald" defaultOpen={true}>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-foreground/80">Department</Label>

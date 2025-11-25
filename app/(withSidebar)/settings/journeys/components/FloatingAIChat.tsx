@@ -24,7 +24,7 @@ export function FloatingAIChat({ journey, onJourneyUpdate }: FloatingAIChatProps
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
-      content: "Hi! I'm your Journey Designer AI assistant. I can help you create and optimize employee journeys. What would you like to build?",
+      content: "Hi! I'm your Journey Designer AI assistant. I can help you create and optimise employee journeys. What would you like to build?",
       sender: "ai",
       timestamp: new Date(),
     },

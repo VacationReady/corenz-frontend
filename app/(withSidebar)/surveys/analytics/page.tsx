@@ -238,7 +238,7 @@ export default function SurveyAnalyticsPage() {
   return (
     <PageShell
       title="Survey Analytics"
-      description="Analyze survey results and track trends over time"
+      description="Analyse survey results and track trends over time"
       icon={<TrendingUp className="w-6 h-6" />}
       breadcrumbs={{
         items: [

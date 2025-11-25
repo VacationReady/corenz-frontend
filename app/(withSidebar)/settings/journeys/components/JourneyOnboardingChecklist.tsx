@@ -110,7 +110,7 @@ export const JourneyOnboardingChecklist: React.FC<JourneyOnboardingChecklistProp
     },
     {
       id: "track-progress",
-      title: "Monitor and optimize",
+      title: "Monitor and optimise",
       description: "Track metrics and improve based on insights",
       icon: <BarChart3 className="w-5 h-5" />,
       completed: hasInstances,
@@ -149,7 +149,7 @@ export const JourneyOnboardingChecklist: React.FC<JourneyOnboardingChecklistProp
                   🎉 You're all set up!
                 </h3>
                 <p className="text-sm text-green-800">
-                  Your journey system is configured and running. Keep optimizing for better
+                  Your journey system is configured and running. Keep optimising for better
                   outcomes.
                 </p>
               </div>
@@ -282,7 +282,7 @@ export const JourneyOnboardingChecklist: React.FC<JourneyOnboardingChecklistProp
                   "Start with a simple onboarding journey. You can always add complexity later."}
                 {completedCount > 0 &&
                   completedCount < 3 &&
-                  "Use AI guidance to optimize your journey phases and experience blocks."}
+                  "Use AI guidance to optimise your journey phases and experience blocks."}
                 {completedCount >= 3 &&
                   !isComplete &&
                   "Monitor key metrics like completion rate and time-to-complete to identify bottlenecks."}

@@ -216,7 +216,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   );
 
   const autoLayout = useCallback(() => {
-    toast.success("Layout optimized");
+    toast.success("Layout optimised");
   }, []);
 
   const exportWorkflow = useCallback(() => {

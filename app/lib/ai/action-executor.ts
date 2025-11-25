@@ -2359,7 +2359,7 @@ async function updateEmployeeField(
     // If no match found, suggest what's available
     return {
       success: false,
-      message: `I can update these fields:\n\n**Contact:** email, phone, first name, last name\n**Employment:** start date, contract end date, contract type, employment type, salary, hourly rate\n**Tax:** IRD number, tax code, KiwiSaver\n**Other:** bank details, site location, notice period\n\nThe field "${field}" wasn't recognized. Try rephrasing or ask "What fields can you update?"`,
+      message: `I can update these fields:\n\n**Contact:** email, phone, first name, last name\n**Employment:** start date, contract end date, contract type, employment type, salary, hourly rate\n**Tax:** IRD number, tax code, KiwiSaver\n**Other:** bank details, site location, notice period\n\nThe field "${field}" wasn't recognised. Try rephrasing or ask "What fields can you update?"`,
     };
   } catch (error: any) {
     return {

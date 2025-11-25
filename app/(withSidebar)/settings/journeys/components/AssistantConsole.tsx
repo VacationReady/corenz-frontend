@@ -126,11 +126,11 @@ export function AssistantConsole({ journey, onJourneyUpdate, onClose }: Assistan
       id: "welcome",
       type: "assistant",
       content: journey 
-        ? `I'm here to help you optimize "${journey.name}". I can suggest improvements, create experiments, generate content, and help you iterate based on real-time data. What would you like to work on?`
-        : "Welcome to Journey Designer! I can help you create and optimize employee journey experiences. What would you like to build?",
+        ? `I'm here to help you optimise "${journey.name}". I can suggest improvements, create experiments, generate content, and help you iterate based on real-time data. What would you like to work on?`
+        : "Welcome to Journey Designer! I can help you create and optimise employee journey experiences. What would you like to build?",
       timestamp: new Date(),
       suggestions: journey ? [
-        "Analyze current performance",
+        "Analyse current performance",
         "Suggest improvements",
         "Create an experiment",
         "Add engagement touchpoints"
@@ -295,7 +295,7 @@ export function AssistantConsole({ journey, onJourneyUpdate, onClose }: Assistan
               <div>
                 <h3 className="font-medium text-sm">AI Journey Assistant</h3>
                 <p className="text-xs text-muted-foreground">
-                  {journey ? `Optimizing "${journey.name}"` : "Ready to help design your journey"}
+                  {journey ? `Optimising "${journey.name}"` : "Ready to help design your journey"}
                 </p>
               </div>
             </div>
@@ -465,7 +465,7 @@ export function AssistantConsole({ journey, onJourneyUpdate, onClose }: Assistan
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder={journey ? "Ask me to optimize your journey..." : "Describe the journey you want to create..."}
+                  placeholder={journey ? "Ask me to optimise your journey..." : "Describe the journey you want to create..."}
                   disabled={isLoading}
                   className="pr-10"
                 />

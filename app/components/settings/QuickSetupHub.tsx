@@ -542,7 +542,7 @@ export function QuickSetupHub({
               <div>
                 <p className="font-semibold">Great Progress!</p>
                 <p className="text-sm text-muted-foreground">
-                  You've completed {completedCount} configurations. Your HR system is {totalProgress}% optimized.
+                  You've completed {completedCount} configurations. Your HR system is {totalProgress}% optimised.
                 </p>
               </div>
             </div>

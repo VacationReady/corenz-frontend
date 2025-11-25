@@ -277,11 +277,11 @@ export default function IndividualSurveyAnalyticsPage() {
         }
       } else {
         const error = await response.json();
-        toast.error(error.error || "Failed to analyze survey");
+        toast.error(error.error || "Failed to analyse survey");
       }
     } catch (error) {
       console.error("Error analyzing survey:", error);
-      toast.error("Failed to analyze survey");
+      toast.error("Failed to analyse survey");
     } finally {
       setAnalyzing(false);
     }
@@ -413,7 +413,7 @@ export default function IndividualSurveyAnalyticsPage() {
             variant="outline"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${analyzing ? 'animate-spin' : ''}`} />
-            {analyzing ? 'Analyzing...' : 'Analyze with AI'}
+            {analyzing ? 'Analysing...' : 'Analyse with AI'}
           </Button>
           <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
             <DialogTrigger asChild>

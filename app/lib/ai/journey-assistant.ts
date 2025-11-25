@@ -253,7 +253,7 @@ export class JourneyAssistant {
   private async handleOptimizeJourney(intent: any, context: any): Promise<JourneyAssistantResponse> {
     if (!context.journey) {
       return {
-        message: "To optimize a journey, please select one from the library first. I can then analyze its performance and suggest improvements.",
+        message: "To optimise a journey, please select one from the library first. I can then analyse its performance and suggest improvements.",
         suggestions: ["Show me journey analytics", "What journeys need attention?"],
       };
     }

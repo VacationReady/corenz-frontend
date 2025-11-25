@@ -1,4 +1,4 @@
-﻿import { User, PermissionProfile } from "@prisma/client";
+import { User, PermissionProfile } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type PermissionAction = "read" | "edit" | "delete";
@@ -195,7 +195,7 @@ export function getScreenDisplayName(screen: string): string {
     calendar: "Calendar",
     documents: "Documents",
     reports: "Reports",
-    "org-chart": "Organization Chart",
+    "org-chart": "Organisation Chart",
     news: "News",
     "bulk-actions": "Bulk actions",
     settings: "Settings",

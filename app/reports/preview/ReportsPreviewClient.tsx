@@ -1167,7 +1167,7 @@ export default function ReportsPreviewClient() {
             <DialogTitle>Confirm export of personal data</DialogTitle>
             <DialogDescription>
               You&apos;re about to download a report that contains personal or
-              sensitive information. Please confirm you are authorized to export
+              sensitive information. Please confirm you are authorised to export
               this data and will handle it securely.
             </DialogDescription>
           </DialogHeader>

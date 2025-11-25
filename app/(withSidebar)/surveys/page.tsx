@@ -181,7 +181,7 @@ export default function SurveysDashboard() {
   return (
     <PageShell
       title="Surveys Dashboard"
-      description="Manage surveys, track responses, and analyze feedback"
+      description="Manage surveys, track responses, and analyse feedback"
       icon={<BarChart3 className="w-6 h-6" />}
       breadcrumbs={breadcrumbConfigs.surveysSection("Dashboard")}
       action={
@@ -464,7 +464,7 @@ export default function SurveysDashboard() {
                   <div className="flex flex-col items-center gap-2">
                     <TrendingUp className="h-6 w-6" />
                     <span>View Analytics</span>
-                    <span className="text-xs text-muted-foreground">Analyze trends and insights</span>
+                    <span className="text-xs text-muted-foreground">Analyse trends and insights</span>
                   </div>
                 </Link>
               </Button>

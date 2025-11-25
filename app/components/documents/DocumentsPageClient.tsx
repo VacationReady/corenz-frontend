@@ -856,7 +856,7 @@ function DocumentsContent() {
                       Upload Company Document
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      Share documents with your organization
+                      Share documents with your organisation
                     </p>
                   </div>
                 </div>

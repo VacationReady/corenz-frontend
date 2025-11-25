@@ -468,7 +468,7 @@ export default function AddDocumentModal({
                   Upload Document
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Add a new document to your organization
+                  Add a new document to your organisation
                 </p>
               </div>
             </div>

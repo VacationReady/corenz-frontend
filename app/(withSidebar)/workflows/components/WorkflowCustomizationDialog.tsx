@@ -454,9 +454,9 @@ export function WorkflowCustomizationDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Customize Workflow</DialogTitle>
+          <DialogTitle>Customise Workflow</DialogTitle>
           <DialogDescription>
-            Would you like to customize any settings before adding this workflow?
+            Would you like to customise any settings before adding this workflow?
           </DialogDescription>
         </DialogHeader>
 
@@ -560,7 +560,7 @@ export function WorkflowCustomizationDialog({
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                This workflow will be added with default settings. You can customize it later in the automation rules.
+                This workflow will be added with default settings. You can customise it later in the automation rules.
               </AlertDescription>
             </Alert>
           )}

@@ -4,6 +4,30 @@ import { Platform } from "react-native";
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
 const SESSION_TOKEN_KEY = "next-auth.session-token";
 
+// Web fallback for SecureStore (which only works on native)
+const storage = {
+  async getItem(key: string): Promise<string | null> {
+    if (Platform.OS === "web") {
+      return localStorage.getItem(key);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === "web") {
+      localStorage.setItem(key, value);
+      return;
+    }
+    return SecureStore.setItemAsync(key, value);
+  },
+  async deleteItem(key: string): Promise<void> {
+    if (Platform.OS === "web") {
+      localStorage.removeItem(key);
+      return;
+    }
+    return SecureStore.deleteItemAsync(key);
+  },
+};
+
 export async function signInWithCredentials(email: string, password: string) {
   if (!API_BASE_URL) {
     console.error("❌ API_BASE_URL is not configured!");
@@ -46,7 +70,7 @@ export async function signInWithCredentials(email: string, password: string) {
 
     // Store the session token securely
     if (data.sessionToken) {
-      await SecureStore.setItemAsync(SESSION_TOKEN_KEY, data.sessionToken);
+      await storage.setItem(SESSION_TOKEN_KEY, data.sessionToken);
       console.log("✅ Session token stored successfully");
     } else {
       console.warn("⚠️ No session token in response");
@@ -90,7 +114,7 @@ export async function getSession() {
   }
 
   // First check if we have a stored token
-  const storedToken = await SecureStore.getItemAsync(SESSION_TOKEN_KEY);
+  const storedToken = await storage.getItem(SESSION_TOKEN_KEY);
   if (!storedToken) {
     console.log("📱 No stored session token");
     return null;
@@ -113,7 +137,7 @@ export async function getSession() {
 
     if (!response.ok) {
       console.log("📱 Session validation failed, clearing token");
-      await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
+      await storage.deleteItem(SESSION_TOKEN_KEY);
       return null;
     }
 
@@ -122,7 +146,7 @@ export async function getSession() {
     // If session is empty or has no user, clear the token
     if (!session || !session.user) {
       console.log("📱 Empty session response, clearing token");
-      await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
+      await storage.deleteItem(SESSION_TOKEN_KEY);
       return null;
     }
 
@@ -166,7 +190,7 @@ export async function requestPasswordReset(email: string) {
 export async function signOut() {
   try {
     // Clear the stored session token
-    await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
+    await storage.deleteItem(SESSION_TOKEN_KEY);
     console.log("✅ Session token cleared");
 
     // Optionally notify the server (don't wait for response)
@@ -184,7 +208,7 @@ export async function signOut() {
 
 export async function getStoredSession(): Promise<string | null> {
   try {
-    const token = await SecureStore.getItemAsync(SESSION_TOKEN_KEY);
+    const token = await storage.getItem(SESSION_TOKEN_KEY);
     return token;
   } catch (error) {
     console.error("Error getting stored session:", error);
@@ -194,7 +218,7 @@ export async function getStoredSession(): Promise<string | null> {
 
 export async function clearStoredSession(): Promise<void> {
   try {
-    await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
+    await storage.deleteItem(SESSION_TOKEN_KEY);
     console.log("✅ Stored session cleared");
   } catch (error) {
     console.error("Error clearing stored session:", error);

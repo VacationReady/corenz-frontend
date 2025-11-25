@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { signInWithCredentials } from '../api/auth';
+import { signInWithCredentials as signInWeb } from '../api/auth-web';
 import ApiConnectivityStatus from '../components/ApiConnectivityStatus';
 import { AuthStackParamList } from '../navigation/types';
 
@@ -35,7 +36,12 @@ export default function LoginScreen({ onLoginSuccess, navigation }: LoginScreenP
     setError('');
 
     try {
-      await signInWithCredentials(email.trim(), password);
+      // Use web auth (httpOnly cookies) for web, mobile auth (SecureStore) for native
+      if (Platform.OS === 'web') {
+        await signInWeb(email.trim(), password);
+      } else {
+        await signInWithCredentials(email.trim(), password);
+      }
       onLoginSuccess();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';

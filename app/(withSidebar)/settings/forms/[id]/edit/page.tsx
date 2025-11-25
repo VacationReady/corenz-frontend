@@ -2,8 +2,9 @@
 
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { PageShell } from "@/components/ui/PageShell";
-import FormBuilder from "@/components/forms/FormBuilder/FormBuilder";
+import FormBuilderWizard from "@/components/forms/FormBuilder/FormBuilderWizard";
 import { toast } from "sonner";
 import { AnyFormSchema } from "@/api/forms/[id]/types";
 
@@ -31,12 +32,12 @@ export default function EditFormPage() {
 
   const breadcrumbItems = [
     { label: 'Settings', href: '/settings' },
-    { label: 'Forms & Surveys', href: '/settings/forms' },
+    { label: 'Screen Designer', href: '/settings/forms' },
     { label: formData ? `Edit: ${formData.name}` : 'Edit Form', isCurrentPage: true }
-  ]
+  ];
 
   useEffect(() => {
-    if (!formId) return; // ✅ Prevent fetch if formId is missing
+    if (!formId) return;
 
     const fetchForm = async () => {
       try {
@@ -81,7 +82,7 @@ export default function EditFormPage() {
       });
 
       if (res.ok) {
-        toast.success("Form updated successfully");
+        toast.success("Form updated successfully!");
         router.push("/settings/forms");
       } else {
         const error = await res.json();
@@ -100,8 +101,8 @@ export default function EditFormPage() {
         breadcrumbs={{ items: breadcrumbItems }}
         showHomeIcon={false}
       >
-        <div className="text-center py-8">
-          <p className="text-gray-500">The form ID is missing or invalid.</p>
+        <div className="glass-premium rounded-3xl p-12 text-center shadow-premium">
+          <p className="text-muted-foreground">The form ID is missing or invalid.</p>
         </div>
       </PageShell>
     );
@@ -116,7 +117,11 @@ export default function EditFormPage() {
         showHomeIcon={false}
       >
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary"
+          />
         </div>
       </PageShell>
     );
@@ -130,9 +135,9 @@ export default function EditFormPage() {
         breadcrumbs={{ items: breadcrumbItems }}
         showHomeIcon={false}
       >
-        <div className="text-center py-8">
-          <p className="text-gray-500">
-            Form not found or you don't have permission to edit it.
+        <div className="glass-premium rounded-3xl p-12 text-center shadow-premium">
+          <p className="text-muted-foreground">
+            Form not found or you don&apos;t have permission to edit it.
           </p>
         </div>
       </PageShell>
@@ -142,11 +147,11 @@ export default function EditFormPage() {
   return (
     <PageShell
       title={`Edit: ${formData.name}`}
-      description="Modify the form using the builder below"
+      description="Modify your form in three easy steps"
       breadcrumbs={{ items: breadcrumbItems }}
       showHomeIcon={false}
     >
-      <FormBuilder
+      <FormBuilderWizard
         onSave={handleSave}
         initialData={{
           name: formData.name,

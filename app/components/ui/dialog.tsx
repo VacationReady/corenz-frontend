@@ -2,11 +2,13 @@
 
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
+const DialogClose = DialogPrimitive.Close;
 
 const DialogPortal = ({ children }: { children: React.ReactNode }) => (
   <DialogPrimitive.Portal>{children}</DialogPrimitive.Portal>
@@ -19,7 +21,10 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/50 backdrop-blur-sm", className)}
+    className={cn(
+      "fixed inset-0 z-50 bg-black/60 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className
+    )}
     {...props}
   />
 ));
@@ -32,7 +37,7 @@ const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
+      "text-xl font-semibold leading-none tracking-tight text-foreground",
       className,
     )}
     {...props}
@@ -46,7 +51,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
+    className={cn("text-sm text-muted-foreground mt-1.5", className)}
     {...props}
   />
 ));
@@ -58,7 +63,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 text-center sm:text-left",
+      "flex flex-col space-y-2 text-center sm:text-left",
       className,
     )}
     {...props}
@@ -72,7 +77,7 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
+      "flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-4 border-t border-border/50 mt-6",
       className,
     )}
     {...props}
@@ -88,38 +93,73 @@ type DialogContentProps = Omit<
   description?: React.ReactNode;
   actions?: React.ReactNode;
   containerClassName?: string;
+  size?: "sm" | "md" | "lg" | "xl" | "full";
+};
+
+const sizeClasses = {
+  sm: "max-w-sm",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+  xl: "max-w-4xl",
+  full: "max-w-[90vw] lg:max-w-6xl",
 };
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, children, title, description, actions, containerClassName, ...props }, ref) => (
+>(({ className, children, title, description, actions, containerClassName, size = "md", ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <div
       className={cn(
-        "fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto",
+        "fixed inset-0 z-50 flex items-start justify-center p-4 pt-[10vh] overflow-y-auto",
         containerClassName,
       )}
     >
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
-          "w-full max-w-lg bg-white p-6 rounded-lg shadow-lg border max-h-[90vh] overflow-y-auto relative",
+          "w-full glass-premium rounded-3xl shadow-depth-5 relative",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out",
+          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+          "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+          "data-[state=closed]:slide-out-to-top-4 data-[state=open]:slide-in-from-top-4",
+          sizeClasses[size],
           className,
         )}
         {...props}
       >
+        {/* Header */}
         {(title || description) && (
-          <div className="mb-4 space-y-1.5">
-            {title ? <DialogTitle>{title}</DialogTitle> : null}
-            {description ? <DialogDescription>{description}</DialogDescription> : null}
+          <div className="relative overflow-hidden">
+            {/* Subtle gradient background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+            
+            <div className="relative px-6 py-5 border-b border-white/20">
+              {title && <DialogTitle>{title}</DialogTitle>}
+              {description && <DialogDescription>{description}</DialogDescription>}
+            </div>
           </div>
         )}
-        {children}
-        {actions ? <DialogFooter className="mt-4">{actions}</DialogFooter> : null}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+
+        {/* Body */}
+        <div className="p-6 max-h-[60vh] overflow-y-auto">
+          {children}
+        </div>
+
+        {/* Footer */}
+        {actions && (
+          <div className="px-6 py-4 border-t border-white/20 bg-gray-50/50 dark:bg-white/5 rounded-b-3xl">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              {actions}
+            </div>
+          </div>
+        )}
+
+        {/* Close Button */}
+        <DialogPrimitive.Close className="absolute right-5 top-5 p-2 rounded-xl text-muted-foreground hover:text-foreground bg-white/50 hover:bg-white/80 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50">
           <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </div>
@@ -127,12 +167,43 @@ const DialogContent = React.forwardRef<
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
+// Modern styled components for dialog actions
+const DialogAction = React.forwardRef<
+  HTMLButtonElement,
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: "primary" | "secondary" | "danger";
+  }
+>(({ className, variant = "primary", children, ...props }, ref) => {
+  const variants = {
+    primary: "bg-gradient-to-r from-primary to-primary/80 text-white hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25",
+    secondary: "bg-white hover:bg-gray-50 border border-gray-200 text-foreground shadow-sm",
+    danger: "bg-gradient-to-r from-rose-500 to-red-600 text-white hover:from-rose-600 hover:to-red-700 shadow-lg shadow-rose-500/25",
+  };
+
+  return (
+    <button
+      ref={ref}
+      className={cn(
+        "px-5 py-2.5 rounded-xl text-sm font-medium transition-all",
+        variants[variant],
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+});
+DialogAction.displayName = "DialogAction";
+
 export {
   Dialog,
   DialogTrigger,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogFooter,
   DialogTitle,
   DialogDescription,
+  DialogAction,
 };

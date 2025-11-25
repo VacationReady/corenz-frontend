@@ -2,6 +2,8 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 import {
   Tooltip,
   TooltipTrigger,
@@ -36,8 +38,12 @@ import {
   Quote,
   Minus,
   PanelsTopLeft,
+  ChevronDown,
+  Search,
 } from "lucide-react";
 import { FieldType, FormField } from "@/api/forms/[id]/types";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/Input";
 
 type PaletteItem = {
   type: FieldType | string;
@@ -54,9 +60,10 @@ const DEFAULT_FIELD_BASE: Partial<FormField> = {
   hidden: false,
 };
 
-const GROUPS: { title: string; items: PaletteItem[] }[] = [
+const GROUPS: { title: string; color: string; items: PaletteItem[] }[] = [
   {
     title: "Layout & Display",
+    color: "from-violet-500 to-purple-600",
     items: [
       {
         type: "sectionHeader",
@@ -90,6 +97,7 @@ const GROUPS: { title: string; items: PaletteItem[] }[] = [
   },
   {
     title: "Basic Inputs",
+    color: "from-blue-500 to-indigo-600",
     items: [
       { type: "text", label: "Text", hint: "Single-line text input", icon: Type, defaults: { ...DEFAULT_FIELD_BASE, placeholder: "Enter text" } },
       { type: "textarea", label: "Textarea", hint: "Multi-line text input", icon: AlignLeft, defaults: { ...DEFAULT_FIELD_BASE, placeholder: "Enter details" } },
@@ -102,6 +110,7 @@ const GROUPS: { title: string; items: PaletteItem[] }[] = [
   },
   {
     title: "Choices",
+    color: "from-emerald-500 to-teal-600",
     items: [
       { type: "select", label: "Dropdown", hint: "Single-select dropdown", icon: ListChecks, defaults: { ...DEFAULT_FIELD_BASE, options: ["Option 1", "Option 2"], appearance: "dropdown" } },
       { type: "radio", label: "Radio", hint: "Single-choice buttons", icon: CaseSensitive, defaults: { ...DEFAULT_FIELD_BASE, options: ["Option A", "Option B"], appearance: "buttons" } },
@@ -112,6 +121,7 @@ const GROUPS: { title: string; items: PaletteItem[] }[] = [
   },
   {
     title: "Advanced Inputs",
+    color: "from-amber-500 to-orange-600",
     items: [
       { type: "switch", label: "Toggle", hint: "On/off switch", icon: ToggleLeft, defaults: { ...DEFAULT_FIELD_BASE, defaultValue: false } },
       { type: "rating", label: "Rating", hint: "Star rating 1-5", icon: SlidersHorizontal, defaults: { ...DEFAULT_FIELD_BASE, validation: { min: 1, max: 5 }, defaultValue: 3 } },
@@ -124,6 +134,7 @@ const GROUPS: { title: string; items: PaletteItem[] }[] = [
   },
   {
     title: "Attachments",
+    color: "from-rose-500 to-pink-600",
     items: [
       { type: "file", label: "File Upload", hint: "Single file", icon: Upload, defaults: { ...DEFAULT_FIELD_BASE } },
       { type: "attachmentGallery", label: "Attachment Gallery", hint: "Multiple files", icon: Images, defaults: { ...DEFAULT_FIELD_BASE, allowMultiple: true, maxEntries: 10 } },
@@ -132,12 +143,14 @@ const GROUPS: { title: string; items: PaletteItem[] }[] = [
   },
   {
     title: "Collections",
+    color: "from-cyan-500 to-sky-600",
     items: [
       { type: "list", label: "List", hint: "Multiple text entries", icon: ListIcon, defaults: { ...DEFAULT_FIELD_BASE, allowMultiple: true, maxEntries: 20 } },
     ],
   },
   {
     title: "Computed & Read-only",
+    color: "from-slate-500 to-gray-600",
     items: [
       { type: "computed", label: "Computed", hint: "Calculated value", icon: Calculator, defaults: { ...DEFAULT_FIELD_BASE, readOnly: true, calculationConfig: { expression: "fieldA + fieldB", dependsOn: ["fieldA", "fieldB"], format: "number", precision: 2 } } },
       { type: "readOnly", label: "Read-only", hint: "Non-editable field", icon: Eye, defaults: { ...DEFAULT_FIELD_BASE, readOnly: true } },
@@ -146,21 +159,125 @@ const GROUPS: { title: string; items: PaletteItem[] }[] = [
 ];
 
 export function FieldPalette() {
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(GROUPS.map(g => g.title));
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const toggleGroup = (title: string) => {
+    setExpandedGroups(prev => 
+      prev.includes(title) 
+        ? prev.filter(t => t !== title)
+        : [...prev, title]
+    );
+  };
+
+  const filteredGroups = GROUPS.map(group => ({
+    ...group,
+    items: group.items.filter(item => 
+      searchQuery === "" ||
+      item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.hint.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })).filter(group => group.items.length > 0);
+
   return (
     <TooltipProvider>
-      <div className="space-y-6">
-        {GROUPS.map((group) => (
-          <div key={group.title}>
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 px-1">
-              {group.title}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {group.items.map((item) => (
-                <DraggableField key={`${group.title}-${item.type}`} field={item} />
-              ))}
-            </div>
-          </div>
-        ))}
+      <div className="space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search elements..."
+            className="pl-9 h-10 glass-subtle border-white/20 focus:border-primary/50 rounded-xl text-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Groups */}
+        <div className="space-y-3 max-h-[calc(100vh-300px)] overflow-y-auto pr-1 -mr-1">
+          <AnimatePresence>
+            {filteredGroups.map((group) => {
+              const isExpanded = expandedGroups.includes(group.title);
+              return (
+                <motion.div 
+                  key={group.title}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="rounded-xl overflow-hidden"
+                >
+                  <button
+                    onClick={() => toggleGroup(group.title)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2.5 text-left transition-all",
+                      "bg-gradient-to-r bg-opacity-10 hover:bg-opacity-20",
+                      isExpanded ? "rounded-t-xl" : "rounded-xl"
+                    )}
+                    style={{
+                      background: `linear-gradient(to right, rgba(${group.color === 'from-violet-500 to-purple-600' ? '139, 92, 246' : 
+                        group.color === 'from-blue-500 to-indigo-600' ? '59, 130, 246' :
+                        group.color === 'from-emerald-500 to-teal-600' ? '16, 185, 129' :
+                        group.color === 'from-amber-500 to-orange-600' ? '245, 158, 11' :
+                        group.color === 'from-rose-500 to-pink-600' ? '244, 63, 94' :
+                        group.color === 'from-cyan-500 to-sky-600' ? '6, 182, 212' :
+                        '100, 116, 139'
+                      }, 0.1) 0%, transparent 100%)`
+                    }}
+                  >
+                    <span className="text-xs font-semibold uppercase tracking-wider text-foreground/80">
+                      {group.title}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{group.items.length}</span>
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </motion.div>
+                    </div>
+                  </button>
+                  
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="grid grid-cols-2 gap-1.5 p-2 bg-white/30 rounded-b-xl">
+                          {group.items.map((item, index) => (
+                            <motion.div
+                              key={`${group.title}-${item.type}`}
+                              initial={{ opacity: 0, y: 5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.02 }}
+                            >
+                              <DraggableField field={item} groupColor={group.color} />
+                            </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
+
+        {/* Empty State */}
+        {filteredGroups.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-8 text-muted-foreground"
+          >
+            <p className="text-sm">No elements match your search</p>
+          </motion.div>
+        )}
       </div>
     </TooltipProvider>
   );
@@ -168,48 +285,53 @@ export function FieldPalette() {
 
 function DraggableField({
   field,
+  groupColor,
 }: {
   field: PaletteItem;
+  groupColor: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: field.type,
-      // Mark palette drags so the canvas can distinguish from sortable drags
       data: { kind: "palette", ...field },
     });
 
   const style = {
     transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.6 : 1,
+    opacity: isDragging ? 0.5 : 1,
     cursor: isDragging ? "grabbing" : "grab",
-    transition: "opacity 0.15s ease, transform 0.15s ease",
   };
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div
+        <motion.div
           ref={setNodeRef}
           {...attributes}
           {...listeners}
           style={style}
-          className={`
-            group flex items-center gap-3 p-3 rounded-xl text-sm font-medium
-            glass-subtle border-white/20 hover:border-primary/30 hover:bg-white/60
-            transition-all duration-200 select-none cursor-grab active:cursor-grabbing
-            ${isDragging ? "ring-2 ring-primary/50 shadow-lg scale-105" : "hover:shadow-md hover:-translate-y-0.5"}
-          `}
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          className={cn(
+            "flex items-center gap-2 p-2.5 rounded-lg text-xs font-medium",
+            "bg-white/70 border border-white/40 hover:border-primary/30",
+            "hover:bg-white hover:shadow-md transition-all duration-200",
+            "select-none cursor-grab active:cursor-grabbing",
+            isDragging && "ring-2 ring-primary/50 shadow-lg z-50"
+          )}
         >
-          <div className={`
-            p-2 rounded-lg bg-white/50 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors
-          `}>
-            {field.icon ? <field.icon className="h-4 w-4" /> : null}
+          <div className={cn(
+            "p-1.5 rounded-md bg-gradient-to-br text-white shadow-sm",
+            groupColor
+          )}>
+            {field.icon ? <field.icon className="h-3.5 w-3.5" /> : null}
           </div>
-          <span className="text-foreground/80 group-hover:text-foreground">{field.label}</span>
-        </div>
+          <span className="text-foreground/80 truncate">{field.label}</span>
+        </motion.div>
       </TooltipTrigger>
-      <TooltipContent side="right" className="glass-premium text-xs">
-        {field.hint}
+      <TooltipContent side="right" className="glass-premium text-xs max-w-[200px]">
+        <p className="font-medium mb-0.5">{field.label}</p>
+        <p className="text-muted-foreground">{field.hint}</p>
       </TooltipContent>
     </Tooltip>
   );

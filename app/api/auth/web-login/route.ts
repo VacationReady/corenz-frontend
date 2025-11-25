@@ -10,14 +10,11 @@ const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_MAX = 5;
 
 /**
- * Mobile-specific login endpoint that bypasses NextAuth's CSRF requirements.
- * Returns a JWT token that the mobile app can use for authenticated requests.
+ * Web-specific login endpoint that uses httpOnly cookies for security.
+ * This is more secure than localStorage as cookies are not accessible to JavaScript,
+ * protecting against XSS attacks.
  * 
- * Security features:
- * - Rate limiting (5 attempts per 15 minutes per IP)
- * - Password hashing verification
- * - JWT token with 30-day expiration
- * - User validation before token issuance
+ * For mobile apps, use /api/auth/mobile-login instead.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +22,7 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || 
                request.headers.get("x-real-ip") || 
                "unknown";
-    const rateLimitKey = `mobile-login:${ip}`;
+    const rateLimitKey = `web-login:${ip}`;
     
     const isRateLimited = await rateLimit(rateLimitKey, {
       limit: RATE_LIMIT_MAX,
@@ -68,7 +65,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!users.length) {
-      console.warn("[mobile-auth] User not found for email", emailInput);
+      console.warn("[web-auth] User not found for email", emailInput);
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
@@ -82,7 +79,7 @@ export async function POST(request: NextRequest) {
       const ok = await bcrypt.compare(password, candidate.password);
       if (ok) {
         if (!candidate.companyId || candidate.companyId.trim() === "") {
-          console.error("[mobile-auth] User has invalid companyId:", {
+          console.error("[web-auth] User has invalid companyId:", {
             userId: candidate.id,
             email: candidate.email,
           });
@@ -94,14 +91,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!authenticatedUser) {
-      console.warn("[mobile-auth] Invalid password for", emailInput);
+      console.warn("[web-auth] Invalid password for", emailInput);
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    console.log("[mobile-auth] User authenticated successfully:", {
+    console.log("[web-auth] User authenticated successfully:", {
       userId: authenticatedUser.id,
       email: authenticatedUser.email,
       companyId: authenticatedUser.companyId,
@@ -123,9 +120,14 @@ export async function POST(request: NextRequest) {
       maxAge: 30 * 24 * 60 * 60, // 30 days
     });
 
-    return NextResponse.json({
+    // Set httpOnly cookie (not accessible to JavaScript - XSS protection)
+    const isProduction = process.env.NODE_ENV === "production";
+    const cookieName = isProduction 
+      ? "__Host-next-auth.session-token" 
+      : "next-auth.session-token";
+
+    const response = NextResponse.json({
       success: true,
-      sessionToken: token,
       user: {
         id: authenticatedUser.id,
         email: authenticatedUser.email,
@@ -135,11 +137,27 @@ export async function POST(request: NextRequest) {
       },
       expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     });
+
+    // Set secure, httpOnly cookie
+    response.cookies.set(cookieName, token, {
+      httpOnly: true, // Not accessible to JavaScript - prevents XSS attacks
+      secure: isProduction, // Only send over HTTPS in production
+      sameSite: "lax", // CSRF protection
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60, // 30 days
+      ...(isProduction && {
+        // __Host- prefix requires these settings
+        domain: undefined, // No domain (more secure)
+      }),
+    });
+
+    return response;
   } catch (error) {
-    console.error("[mobile-auth] Login error:", error);
+    console.error("[web-auth] Login error:", error);
     return NextResponse.json(
       { error: "An error occurred during login" },
       { status: 500 }
     );
   }
 }
+

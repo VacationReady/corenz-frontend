@@ -1,8 +1,19 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
 const SESSION_TOKEN_KEY = 'next-auth.session-token';
 const SESSION_COOKIE_NAME = 'next-auth.session-token';
+
+// Web fallback for SecureStore (which only works on native)
+const storage = {
+  async getItem(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem(key);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+};
 
 function resolveUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) {
@@ -34,18 +45,31 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
     headers.set('Content-Type', 'application/json');
   }
 
-  const sessionToken = await SecureStore.getItemAsync(SESSION_TOKEN_KEY);
-  if (sessionToken) {
-    const cookie = `${SESSION_COOKIE_NAME}=${sessionToken}`;
-    const existingCookie = headers.get('Cookie');
-    headers.set('Cookie', existingCookie ? `${existingCookie}; ${cookie}` : cookie);
-  }
+  // On web, use httpOnly cookies (sent automatically by browser)
+  // On mobile, manually attach token as cookie header
+  if (Platform.OS === 'web') {
+    // Cookies are sent automatically by browser with credentials: "include"
+    // No need to manually set Cookie header
+    return fetch(resolveUrl(path), {
+      ...init,
+      headers,
+      credentials: 'include', // Important: Include cookies automatically
+    });
+  } else {
+    // Mobile: Manually attach token as cookie header
+    const sessionToken = await storage.getItem(SESSION_TOKEN_KEY);
+    if (sessionToken) {
+      const cookie = `${SESSION_COOKIE_NAME}=${sessionToken}`;
+      const existingCookie = headers.get('Cookie');
+      headers.set('Cookie', existingCookie ? `${existingCookie}; ${cookie}` : cookie);
+    }
 
-  return fetch(resolveUrl(path), {
-    ...init,
-    headers,
-    credentials: 'omit',
-  });
+    return fetch(resolveUrl(path), {
+      ...init,
+      headers,
+      credentials: 'omit',
+    });
+  }
 }
 
 // API Client wrapper for easier usage

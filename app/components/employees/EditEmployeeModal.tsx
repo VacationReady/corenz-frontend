@@ -30,6 +30,7 @@ import {
   Settings,
   ChevronRight,
   Sparkles,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -169,7 +170,7 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-2xl">
+      <DialogContent className="p-0 bg-transparent border-none shadow-none max-w-xl [&>button]:hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -178,9 +179,21 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
           className="glass-ultra rounded-3xl overflow-hidden shadow-depth-5"
         >
           {/* Header with gradient accent */}
-          <div className="relative px-8 pt-8 pb-6">
+          <div className="relative px-6 pt-6 pb-5">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-blue-500/10 to-violet-500/5" />
-            <div className="relative">
+            
+            {/* Custom Close Button */}
+            <motion.button
+              onClick={() => onOpenChange(false)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="absolute right-4 top-4 p-2 rounded-xl text-muted-foreground hover:text-foreground bg-white/50 hover:bg-white/80 dark:bg-white/10 dark:hover:bg-white/20 transition-all z-10"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </motion.button>
+            
+            <div className="relative pr-10">
               <AnimatePresence mode="wait">
                 {step === "select" ? (
                   <motion.div
@@ -188,16 +201,16 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    className="flex items-center gap-4"
+                    className="flex items-center gap-3"
                   >
-                    <div className="p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary">
-                      <Users className="w-6 h-6" />
+                    <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary">
+                      <Users className="w-5 h-5" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-foreground">
+                      <h2 className="text-xl font-bold text-foreground">
                         Edit Employee
                       </h2>
-                      <p className="text-sm text-muted-foreground mt-0.5">
+                      <p className="text-sm text-muted-foreground">
                         Select an employee to view and edit their profile
                       </p>
                     </div>
@@ -208,26 +221,26 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="flex items-center gap-4"
+                    className="flex items-center gap-3"
                   >
                     <motion.button
                       onClick={handleBack}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="p-2.5 rounded-xl bg-white/50 hover:bg-white/80 dark:bg-white/10 dark:hover:bg-white/20 text-muted-foreground hover:text-foreground transition-all"
+                      className="p-2 rounded-xl bg-white/50 hover:bg-white/80 dark:bg-white/10 dark:hover:bg-white/20 text-muted-foreground hover:text-foreground transition-all"
                     >
-                      <ArrowLeft className="w-5 h-5" />
+                      <ArrowLeft className="w-4 h-4" />
                     </motion.button>
                     <Avatar
-                      size={48}
+                      size={40}
                       name={selectedEmployee?.fullName}
                       src={selectedEmployee?.avatar?.signedUrl || undefined}
                     />
                     <div>
-                      <h2 className="text-2xl font-bold text-foreground">
+                      <h2 className="text-xl font-bold text-foreground">
                         {selectedEmployee?.fullName}
                       </h2>
-                      <p className="text-sm text-muted-foreground mt-0.5">
+                      <p className="text-sm text-muted-foreground">
                         {selectedEmployee?.jobRoleName || selectedEmployee?.departmentName || "Select a screen to edit"}
                       </p>
                     </div>
@@ -238,7 +251,7 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
           </div>
 
           {/* Content */}
-          <div className="px-8 pb-8">
+          <div className="px-6 pb-6">
             <AnimatePresence mode="wait">
               {step === "select" ? (
                 <motion.div
@@ -251,24 +264,24 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
                 >
                   {/* Search Input */}
                   <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by name, department, or role..."
-                      className="h-12 pl-12 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all text-base"
+                      className="h-10 pl-10 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all text-sm"
                     />
                   </div>
 
                   {/* Employee List */}
-                  <div className="max-h-[400px] overflow-y-auto space-y-2 pr-2 scrollbar-thin scrollbar-thumb-muted/30 scrollbar-track-transparent">
+                  <div className="max-h-[320px] overflow-y-auto space-y-1.5 -mr-2 pr-2">
                     {loading ? (
-                      <div className="space-y-3">
+                      <div className="space-y-1.5">
                         {[...Array(5)].map((_, i) => (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
-                            <Skeleton className="w-11 h-11 rounded-full" />
-                            <div className="flex-1 space-y-2">
-                              <Skeleton className="h-4 w-1/2" />
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-muted/20">
+                            <Skeleton className="w-10 h-10 rounded-full" />
+                            <div className="flex-1 space-y-1.5">
+                              <Skeleton className="h-3.5 w-1/2" />
                               <Skeleton className="h-3 w-1/3" />
                             </div>
                           </div>
@@ -301,29 +314,29 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
                           key={employee.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.02, duration: 0.2 }}
+                          transition={{ delay: index * 0.015, duration: 0.2 }}
                           onClick={() => handleSelectEmployee(employee)}
                           className={cn(
-                            "w-full flex items-center gap-4 p-4 rounded-2xl text-left",
+                            "w-full flex items-center gap-3 p-3 rounded-xl text-left",
                             "bg-white/30 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10",
                             "border border-transparent hover:border-primary/20",
                             "transition-all duration-200 group"
                           )}
                         >
                           <Avatar
-                            size={44}
+                            size={40}
                             name={employee.fullName}
                             src={employee.avatar?.signedUrl || undefined}
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                            <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
                               {employee.fullName}
                             </p>
-                            <p className="text-sm text-muted-foreground truncate">
+                            <p className="text-xs text-muted-foreground truncate">
                               {[employee.jobRoleName, employee.departmentName].filter(Boolean).join(" • ") || "No details"}
                             </p>
                           </div>
-                          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                         </motion.button>
                       ))
                     )}
@@ -349,16 +362,16 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
                   transition={{ duration: 0.2 }}
                 >
                   {/* Screen Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[450px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted/30 scrollbar-track-transparent">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[350px] overflow-y-auto -mr-2 pr-2">
                     {screenConfig.map((screen, index) => (
                       <motion.button
                         key={screen.href}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.03, duration: 0.2 }}
+                        transition={{ delay: index * 0.02, duration: 0.2 }}
                         onClick={() => handleNavigateToScreen(screen.href)}
                         className={cn(
-                          "relative group p-4 rounded-2xl text-left overflow-hidden",
+                          "relative group p-3 rounded-xl text-left overflow-hidden",
                           "bg-white/30 dark:bg-white/5 hover:bg-white/60 dark:hover:bg-white/10",
                           "border border-transparent hover:border-primary/20",
                           "transition-all duration-200"
@@ -372,17 +385,17 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
                         
                         <div className="relative">
                           <div className={cn(
-                            "inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3",
+                            "inline-flex items-center justify-center w-8 h-8 rounded-lg mb-2",
                             "bg-gradient-to-br",
                             screen.color,
-                            "text-white shadow-lg"
+                            "text-white shadow-md"
                           )}>
-                            <screen.icon className="w-5 h-5" />
+                            <screen.icon className="w-4 h-4" />
                           </div>
-                          <p className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
+                          <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors leading-tight">
                             {screen.label}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-tight">
                             {screen.description}
                           </p>
                         </div>
@@ -395,11 +408,11 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="mt-4 pt-4 border-t border-white/20"
+                    className="mt-3 pt-3 border-t border-white/20"
                   >
                     <Button
                       onClick={() => handleNavigateToScreen("overview")}
-                      className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 text-white font-semibold shadow-lg shadow-primary/25"
+                      className="w-full h-10 rounded-xl bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 text-white font-medium shadow-lg shadow-primary/25"
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
                       Go to Full Profile

@@ -9,12 +9,22 @@ import {
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { format } from "date-fns";
-import { CalendarDays, Plus, RotateCcw } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  CalendarDays,
+  Plus,
+  RotateCcw,
+  Calendar,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Filter,
+} from "lucide-react";
 
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   Select,
@@ -25,6 +35,9 @@ import {
 } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/switch";
 import { isAdminOrManager } from "@/lib/roles";
+import EmployeeFormCard from "@/components/employees/EmployeeFormCard";
+import EmployeePageHeader from "@/components/employees/EmployeePageHeader";
+import { cn } from "@/lib/utils";
 
 type RawLeaveRequest = {
   id: string;
@@ -98,19 +111,111 @@ function calculateDuration(
   return `${days} day${days === 1 ? "" : "s"}`;
 }
 
-function getStatusMeta(status?: string | null) {
+function getStatusConfig(status?: string | null) {
   if (!status) return null;
   const normalized = status.toLowerCase();
+  
   if (normalized === "approved") {
-    return { label: "Approved", variant: "secondary" as const };
+    return { 
+      label: "Approved", 
+      variant: "secondary" as const,
+      icon: CheckCircle2,
+      color: "text-green-600 dark:text-green-400",
+      bgColor: "bg-green-100 dark:bg-green-900/30"
+    };
   }
   if (normalized === "declined") {
-    return { label: "Declined", variant: "destructive" as const };
+    return { 
+      label: "Declined", 
+      variant: "destructive" as const,
+      icon: XCircle,
+      color: "text-red-600 dark:text-red-400",
+      bgColor: "bg-red-100 dark:bg-red-900/30"
+    };
   }
   return {
     label: normalized.charAt(0).toUpperCase() + normalized.slice(1),
     variant: "outline" as const,
+    icon: AlertCircle,
+    color: "text-amber-600 dark:text-amber-400",
+    bgColor: "bg-amber-100 dark:bg-amber-900/30"
   };
+}
+
+// Leave Item Card Component
+function LeaveItemCard({ leave, index }: { leave: LeaveRequest; index: number }) {
+  const statusConfig = getStatusConfig(leave.approvalStatus);
+  const dayTypeLabel = getDayTypeLabel(leave.dayType);
+  const StatusIcon = statusConfig?.icon;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
+      className={cn(
+        "group relative p-4 rounded-2xl transition-all duration-200",
+        "bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10",
+        "border border-white/30 dark:border-white/10 hover:border-primary/20",
+        "shadow-sm hover:shadow-md"
+      )}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className={cn(
+            "flex items-center justify-center w-10 h-10 rounded-xl shrink-0",
+            statusConfig?.bgColor
+          )}>
+            {StatusIcon && <StatusIcon className={cn("w-5 h-5", statusConfig?.color)} />}
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-foreground">{leave.categoryName}</span>
+              {statusConfig && (
+                <Badge variant={statusConfig.variant} className="text-xs">
+                  {statusConfig.label}
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+              <Calendar className="w-3.5 h-3.5" />
+              {formatRange(leave.start, leave.end)}
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col items-start gap-1 text-sm sm:items-end sm:text-right">
+          {dayTypeLabel && (
+            <Badge variant="outline" className="text-xs">
+              {dayTypeLabel}
+            </Badge>
+          )}
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            {calculateDuration(leave.start, leave.end, leave.dayType)}
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Empty State Component
+function EmptyLeaveState() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center justify-center py-12 text-center"
+    >
+      <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 mb-4">
+        <CalendarDays className="w-8 h-8 text-green-600 dark:text-green-400" />
+      </div>
+      <h3 className="text-lg font-semibold text-foreground mb-2">No Leave Scheduled</h3>
+      <p className="text-sm text-muted-foreground max-w-sm">
+        There's no current or upcoming leave scheduled. Click the button above to book new leave.
+      </p>
+    </motion.div>
+  );
 }
 
 import { useTenantFetch } from "@/hooks/useTenantFetch";
@@ -177,12 +282,10 @@ export default function LeavePage() {
 
         const queryString = query.toString();
         const res = await tenantFetch(
-          `/api/employees/${employeeId}/leave-requests${queryString ? `?${queryString}` : ""
-          }`,
+          `/api/employees/${employeeId}/leave-requests${queryString ? `?${queryString}` : ""}`,
           { signal: controller.signal },
         );
 
-        // Handle authorization errors
         if (res.status === 401) {
           if (!active) return;
           setAuthError({
@@ -325,110 +428,104 @@ export default function LeavePage() {
 
   const limitOptions = ["3", "5", "10"];
 
-  // Show authorization error state
+  // Authorization error state
   if (authError) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Leave Management</h1>
-            <p className="text-sm text-muted-foreground">
-              Review current and upcoming leave for this employee.
-            </p>
-          </div>
-        </div>
+      <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">
+        <EmployeePageHeader
+          title="Leave Management"
+          description="Review current and upcoming leave for this employee"
+          icon={Calendar}
+          iconColor="from-green-500 to-emerald-500"
+        />
 
-        <Card>
-          <CardContent className="p-8">
-            <div
-              className="flex flex-col items-center justify-center gap-4 text-center"
-              data-testid="leave-auth-error"
-            >
-              <div className="rounded-full bg-destructive/10 p-4">
-                <CalendarDays className="h-8 w-8 text-destructive" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">
-                  {authError.type === "unauthorized"
-                    ? "Authentication Required"
-                    : authError.type === "not_found"
-                      ? "Employee Not Found"
-                      : "Access Denied"}
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-md">
-                  {authError.message}
-                </p>
-              </div>
-              {authError.type === "unauthorized" && (
-                <Button
-                  onClick={() => router.push("/api/auth/signin")}
-                  size="sm"
-                >
-                  Sign In
-                </Button>
-              )}
-              {authError.type === "forbidden" && (
-                <Button
-                  variant="outline"
-                  onClick={() => router.push("/employees")}
-                  size="sm"
-                >
-                  Back to Employees
-                </Button>
-              )}
-              {authError.type === "not_found" && (
-                <Button
-                  variant="outline"
-                  onClick={() => router.push("/employees")}
-                  size="sm"
-                >
-                  Back to Employees
-                </Button>
-              )}
+        <EmployeeFormCard
+          title="Access Error"
+          icon={AlertCircle}
+          iconColor="from-red-500/20 to-rose-500/20"
+        >
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-destructive/10 mb-4">
+              <CalendarDays className="w-8 h-8 text-destructive" />
             </div>
-          </CardContent>
-        </Card>
+            <h3 className="text-lg font-semibold mb-2">
+              {authError.type === "unauthorized"
+                ? "Authentication Required"
+                : authError.type === "not_found"
+                  ? "Employee Not Found"
+                  : "Access Denied"}
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-md mb-6">
+              {authError.message}
+            </p>
+            {authError.type === "unauthorized" && (
+              <Button onClick={() => router.push("/api/auth/signin")}>
+                Sign In
+              </Button>
+            )}
+            {(authError.type === "forbidden" || authError.type === "not_found") && (
+              <Button variant="outline" onClick={() => router.push("/employees")}>
+                Back to Employees
+              </Button>
+            )}
+          </div>
+        </EmployeeFormCard>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Leave Management</h1>
-          <p className="text-sm text-muted-foreground">
-            Review current and upcoming leave for this employee.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 self-start">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refresh}
-            disabled={loading}
-          >
-            <RotateCcw className="mr-2 h-4 w-4" /> Refresh
-          </Button>
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Book leave
-          </Button>
-        </div>
-      </div>
+    <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">
+      <EmployeePageHeader
+        title="Leave Management"
+        description="Review current and upcoming leave for this employee"
+        icon={Calendar}
+        iconColor="from-green-500 to-emerald-500"
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refresh}
+              disabled={loading}
+              className="gap-2"
+            >
+              <RotateCcw className={cn("w-4 h-4", loading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button size="sm" onClick={() => setDialogOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Book leave
+            </Button>
+          </div>
+        }
+      />
 
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <Switch
-            checked={upcomingOnly}
-            onChange={handleToggleUpcoming}
-            aria-label="Only show current and upcoming leave"
-          />
-          <span>Only show current & upcoming leave</span>
+      {/* Filters */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between glass-subtle rounded-2xl p-4"
+      >
+        <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Filter className="w-4 h-4" />
+            <span>Filters:</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={upcomingOnly}
+              onChange={handleToggleUpcoming}
+              aria-label="Only show current and upcoming leave"
+            />
+            <span className="text-sm text-muted-foreground">Upcoming only</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Showing</span>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Show:</span>
           <Select value={String(limit)} onValueChange={handleLimitChange}>
-            <SelectTrigger className="h-9 w-[110px]">
+            <SelectTrigger className="h-9 w-24 rounded-xl">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -440,11 +537,16 @@ export default function LeavePage() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </motion.div>
 
+      {/* Error Alert */}
       {error && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive-foreground">
-          <span>{error}</span>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm"
+        >
+          <span className="text-destructive">{error}</span>
           <Button
             variant="outline"
             size="sm"
@@ -453,147 +555,73 @@ export default function LeavePage() {
           >
             Try again
           </Button>
-        </div>
+        </motion.div>
       )}
 
-      <Card>
-        <CardHeader className="flex flex-col gap-2 border-b border-glass/40 pb-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2 text-primary">
-            <CalendarDays className="h-5 w-5" />
-            <CardTitle>Current & Upcoming Leave</CardTitle>
+      {/* Current Leave Section */}
+      <EmployeeFormCard
+        title="Current Leave"
+        description="Leave currently in progress"
+        icon={CalendarDays}
+        iconColor="from-blue-500/20 to-indigo-500/20"
+        delay={0.15}
+      >
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-20 w-full rounded-2xl" />
+            <Skeleton className="h-20 w-full rounded-2xl" />
           </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {loading ? (
-            <div className="space-y-4" data-testid="leave-loading">
-              <Skeleton className="h-16 w-full rounded-2xl" />
-              <Skeleton className="h-16 w-full rounded-2xl" />
-              <Skeleton className="h-16 w-full rounded-2xl" />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {nothingScheduled && (
-                <div
-                  data-testid="leave-empty"
-                  className="rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 text-center text-sm text-muted-foreground"
-                >
-                  No current or upcoming leave scheduled yet.
-                </div>
-              )}
+        ) : currentLeaves.length === 0 ? (
+          <div className="py-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              No one is currently on leave
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <AnimatePresence>
+              {currentLeaves.map((leave, index) => (
+                <LeaveItemCard key={leave.id} leave={leave} index={index} />
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </EmployeeFormCard>
 
-              <section className="space-y-3">
-                <header className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Current leave
-                </header>
-                <div data-testid="leave-current">
-                  {currentLeaves.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-muted/40 bg-muted/10 p-4 text-sm text-muted-foreground">
-                      Nobody is currently away.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {currentLeaves.map((leave) => {
-                        const statusMeta = getStatusMeta(leave.approvalStatus);
-                        const dayTypeLabel = getDayTypeLabel(leave.dayType);
-                        return (
-                          <div
-                            key={leave.id}
-                            data-testid="leave-item"
-                            className="rounded-2xl border border-glass/40 bg-background/80 p-4 shadow-sm"
-                          >
-                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                              <div>
-                                <div className="flex flex-wrap items-center gap-2 text-base font-semibold">
-                                  <span>{leave.categoryName}</span>
-                                  {statusMeta && (
-                                    <Badge variant={statusMeta.variant}>
-                                      {statusMeta.label}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {formatRange(leave.start, leave.end)}
-                                </div>
-                              </div>
-                              <div className="flex flex-col items-start gap-1 text-xs text-muted-foreground md:items-end">
-                                {dayTypeLabel && (
-                                  <Badge variant="outline">{dayTypeLabel}</Badge>
-                                )}
-                                <span>
-                                  {calculateDuration(
-                                    leave.start,
-                                    leave.end,
-                                    leave.dayType,
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </section>
+      {/* Upcoming Leave Section */}
+      <EmployeeFormCard
+        title="Upcoming Leave"
+        description="Scheduled future leave"
+        icon={Calendar}
+        iconColor="from-green-500/20 to-emerald-500/20"
+        delay={0.2}
+      >
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-20 w-full rounded-2xl" />
+            <Skeleton className="h-20 w-full rounded-2xl" />
+          </div>
+        ) : upcomingLeaves.length === 0 ? (
+          <div className="py-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              No upcoming leave scheduled
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <AnimatePresence>
+              {upcomingLeaves.map((leave, index) => (
+                <LeaveItemCard key={leave.id} leave={leave} index={index} />
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </EmployeeFormCard>
 
-              <section className="space-y-3">
-                <header className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Upcoming leave
-                </header>
-                <div data-testid="leave-upcoming">
-                  {upcomingLeaves.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-muted/40 bg-muted/10 p-4 text-sm text-muted-foreground">
-                      No upcoming leave booked.
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {upcomingLeaves.map((leave) => {
-                        const statusMeta = getStatusMeta(leave.approvalStatus);
-                        const dayTypeLabel = getDayTypeLabel(leave.dayType);
-                        return (
-                          <div
-                            key={leave.id}
-                            data-testid="leave-item"
-                            className="rounded-2xl border border-glass/40 bg-background/80 p-4 shadow-sm"
-                          >
-                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                              <div>
-                                <div className="flex flex-wrap items-center gap-2 text-base font-semibold">
-                                  <span>{leave.categoryName}</span>
-                                  {statusMeta && (
-                                    <Badge variant={statusMeta.variant}>
-                                      {statusMeta.label}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {formatRange(leave.start, leave.end)}
-                                </div>
-                              </div>
-                              <div className="flex flex-col items-start gap-1 text-xs text-muted-foreground md:items-end">
-                                {dayTypeLabel && (
-                                  <Badge variant="outline">{dayTypeLabel}</Badge>
-                                )}
-                                <span>
-                                  {calculateDuration(
-                                    leave.start,
-                                    leave.end,
-                                    leave.dayType,
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </section>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Empty State for both */}
+      {nothingScheduled && !loading && (
+        <EmptyLeaveState />
+      )}
 
       <AddLeaveRequestDialog
         employeeId={employeeId}

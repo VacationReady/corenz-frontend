@@ -115,7 +115,7 @@ export default function SurveysPage() {
       breadcrumbs={breadcrumbConfigs.settingsSection("Surveys")}
       action={
         <Button asChild variant="primary">
-          <Link href="/settings/surveys/new">
+          <Link href="/settings/surveys/new" className="flex items-center">
             <Plus className="w-4 h-4 mr-2" />
             Create Survey
           </Link>
@@ -153,13 +153,13 @@ export default function SurveysPage() {
               </div>
               <div className="flex flex-wrap gap-3 pt-2">
                 <Button asChild variant="secondary" className="bg-white text-slate-900 hover:bg-slate-100 shadow-lg shadow-white/10 font-semibold">
-                  <Link href="/surveys/send">
+                  <Link href="/surveys/send" className="flex items-center">
                     <Send className="mr-2 h-4 w-4" />
                     Send a survey now
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 font-medium">
-                  <Link href="/settings/surveys/new">
+                  <Link href="/settings/surveys/new" className="flex items-center">
                     <Plus className="mr-2 h-4 w-4" />
                     Build from scratch
                   </Link>
@@ -261,7 +261,7 @@ export default function SurveysPage() {
                       className="flex-1 font-semibold"
                       disabled={!instance || ensuringTemplates || loading}
                     >
-                      <Link href={`/surveys/send?template=${definition.slug}`}>
+                      <Link href={`/surveys/send?template=${definition.slug}`} className="flex items-center">
                         <Sparkles className="mr-2 h-4 w-4" />
                         Use Template
                       </Link>
@@ -272,7 +272,7 @@ export default function SurveysPage() {
                       className="flex-1 font-medium"
                       disabled={!instance || ensuringTemplates || loading}
                     >
-                      <Link href={instance ? `/settings/surveys/${instance.id}/edit` : "#"}>
+                      <Link href={instance ? `/settings/surveys/${instance.id}/edit` : "#"} className="flex items-center">
                         <Settings className="mr-2 h-4 w-4" />
                         Refine
                       </Link>
@@ -327,7 +327,7 @@ export default function SurveysPage() {
               </p>
               {!query && (
                 <Button asChild variant="primary" className="font-semibold">
-                  <Link href="/settings/surveys/new">
+                  <Link href="/settings/surveys/new" className="flex items-center">
                     <Plus className="w-4 h-4 mr-2" />
                     Create Your First Survey
                   </Link>
@@ -389,7 +389,7 @@ export default function SurveysPage() {
                     </span>
                   </div>
                   <Button asChild variant="outline" size="sm" className="w-full font-medium">
-                    <Link href={`/settings/surveys/${survey.id}/edit`}>
+                    <Link href={`/settings/surveys/${survey.id}/edit`} className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />
                       Manage Survey
                     </Link>

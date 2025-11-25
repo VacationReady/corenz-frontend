@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -147,9 +146,16 @@ export default async function EmployeeLayout({
   ];
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-gradient-to-br from-background via-primary-50/30 to-background">
+      {/* Aurora background effect */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 -left-20 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-1/4 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl" />
+      </div>
+      
       {/* Profile sidebar */}
-      <aside className="glass-premium p-4 border-r border-glass rounded-tr-3xl">
+      <aside className="relative z-10 glass-premium p-4 border-r border-white/30 dark:border-white/10 rounded-tr-3xl shadow-depth-2">
         <EmployeeNavClient
           menu={menu}
           employeeName={employee.User?.name ?? ""}
@@ -159,7 +165,9 @@ export default async function EmployeeLayout({
       </aside>
 
       {/* Profile content */}
-      <main className="flex-1">{children}</main>
+      <main className="relative z-10 flex-1 overflow-y-auto">
+        {children}
+      </main>
     </div>
   );
 }

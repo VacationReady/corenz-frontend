@@ -31,7 +31,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Sparkles,
+  Palette,
+  Compass,
 } from "lucide-react";
+import { SurveyTemplateDefinition } from "@/lib/survey-templates";
 import { toast } from "sonner";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import {
@@ -68,6 +71,17 @@ interface ActiveSurvey {
     name: string;
     email: string;
   };
+}
+
+// Helper to render Lucide icons based on template icon name
+function TemplateIcon({ icon, className }: { icon: SurveyTemplateDefinition["icon"]; className?: string }) {
+  const iconMap = {
+    "trending-up": TrendingUp,
+    "palette": Palette,
+    "compass": Compass,
+  };
+  const IconComponent = iconMap[icon];
+  return <IconComponent className={className} />;
 }
 
 export default function SurveysDashboard() {
@@ -188,66 +202,62 @@ export default function SurveysDashboard() {
       }
     >
       <div className="space-y-6">
-        <Card className="relative overflow-hidden border border-primary/10 bg-gradient-to-br from-slate-900 via-indigo-900 to-blue-900 text-white">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%)]" />
-          <CardContent className="relative z-10 flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-medium uppercase tracking-wider text-gray-800">
-                <Sparkles className="h-3 w-3" /> Template library spotlight
+        {/* Template Library Spotlight - Compact */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-sky-100 via-blue-50 to-indigo-50 border border-sky-200/60">
+          <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl bg-gradient-to-b from-sky-400 to-indigo-400" />
+          <div className="flex flex-col gap-4 p-4 pl-5 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-2 flex-1">
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700">
+                  <Sparkles className="h-3 w-3" /> Template library spotlight
+                </div>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 md:text-2xl">
+              <h2 className="text-base font-semibold text-slate-900">
                 Kickstart surveys with curated experiences
               </h2>
-              <p className="text-sm text-gray-700">
+              <p className="text-xs text-slate-600 max-w-lg">
                 Choose from eNPS, pulse, and annual engagement templates—each crafted with premium employee experience in mind.
               </p>
-              <div className="flex flex-wrap gap-2 text-xs text-gray-800">
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 {curatedTemplates.map(({ definition, instance }) => (
                   <span
                     key={definition.slug}
-                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 ${
-                      instance ? "bg-white/10" : "bg-white/5"
-                    }`}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/80 border border-slate-200 px-2.5 py-1 text-xs text-slate-700 shadow-sm"
                   >
-                    <span className="text-base">{definition.emoji}</span>
-                    {definition.name}
-                    {!instance && (
-                      <Badge variant="secondary" className="ml-2 border-white/30 bg-white/20 text-[10px] text-white">
-                        Seeding…
-                      </Badge>
-                    )}
+                    <TemplateIcon icon={definition.icon} className="h-3.5 w-3.5 text-slate-500" />
+                    <span className="font-medium">{definition.name.split(" ")[0] === "Employee" ? "eNPS" : definition.name.split(" ")[0]}</span>
                   </span>
                 ))}
               </div>
             </div>
-            <div className="rounded-2xl border border-white/20 bg-white/20 p-4 text-sm backdrop-blur">
-              <p className="text-xs uppercase tracking-wide text-gray-800">Templates ready</p>
-              <div className="mt-2 flex items-baseline gap-2 text-3xl font-semibold text-gray-900">
-                {templateLibrary.length}
-                <span className="text-sm text-gray-700">available</span>
+            <div className="flex items-center gap-3 md:flex-col md:items-end lg:flex-row">
+              <div className="text-right">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500 font-medium">Templates ready</p>
+                <div className="flex items-baseline gap-1 justify-end">
+                  <span className="text-2xl font-bold text-slate-900">{templateLibrary.length}</span>
+                  <span className="text-xs text-slate-500">available</span>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  {templatesLoading ? "Generating…" : "Edit any template before sending or scheduling."}
+                </p>
               </div>
-              <p className="mt-3 text-xs text-gray-700">
-                {templatesLoading
-                  ? "Generating your starter library…"
-                  : "Edit any template before sending or scheduling."}
-              </p>
-              <div className="mt-4 flex flex-col gap-2">
-                <Button asChild variant="secondary" className="bg-white text-slate-900 hover:bg-white/90">
-                  <Link href="/surveys/send" className="flex items-center">
-                    <Send className="mr-2 h-4 w-4" />
+              <div className="flex flex-col gap-1.5">
+                <Button asChild size="sm" variant="secondary" className="bg-white text-slate-800 hover:bg-slate-50 border border-slate-200 shadow-sm text-xs h-8">
+                  <Link href="/surveys/send">
+                    <Send className="mr-1.5 h-3 w-3" />
                     Send a survey
                   </Link>
                 </Button>
-                <Button asChild variant="outline" className="border-gray-300 text-gray-800 hover:bg-white/50 bg-white/30">
-                  <Link href="/settings/surveys" className="flex items-center">
-                    <Settings className="mr-2 h-4 w-4" />
+                <Button asChild size="sm" variant="ghost" className="text-slate-600 hover:bg-white/60 text-xs h-8">
+                  <Link href="/settings/surveys">
+                    <Settings className="mr-1.5 h-3 w-3" />
                     Refine templates
                   </Link>
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Overview Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

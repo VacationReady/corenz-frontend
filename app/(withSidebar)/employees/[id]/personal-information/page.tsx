@@ -1,13 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import Button from "@/components/ui/Button";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import PersonalInfoSaveButton from "@/components/employees/PersonalInfoSaveButton";
-import UnsavedChangesGuard from "@/components/ui/UnsavedChangesGuard";
-import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
-import GenderSelectWithManage from "@/components/shared/GenderSelectWithManage";
+import PersonalInformationClient from "./PersonalInformationClient";
 
 export default async function PersonalInformationPage(context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -59,180 +53,13 @@ export default async function PersonalInformationPage(context: { params: Promise
       (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") &&
       session.user.companyId === employee.User.companyId,
   );
-  const showManageGender = canEdit;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pt-6 px-8">
-      <HeaderWithHistory 
-        title="Personal information" 
-        employeeId={id} 
-        section="personal-info" 
-      />
-
-      <UnsavedChangesGuard>
-        <Card>
-          <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Basic details</h2>
-          </div>
-          <div className="p-4 pb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <form
-              action={`/api/employees/${id}/personal-info`}
-              method="PATCH"
-              className="contents"
-            >
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  First name
-                </label>
-                <Input
-                  name="firstName"
-                  defaultValue={user.firstName ?? ""}
-                  readOnly={!canEdit}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Last name
-                </label>
-                <Input
-                  name="lastName"
-                  defaultValue={user.lastName ?? ""}
-                  readOnly={!canEdit}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <Input
-                  name="email"
-                  type="email"
-                  defaultValue={user.email ?? ""}
-                  readOnly={!canEdit}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Phone</label>
-                <Input
-                  name="phone"
-                  defaultValue={user.phone ?? ""}
-                  readOnly={!canEdit}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Date of birth</label>
-                <Input
-                  name="dateOfBirth"
-                  type="date"
-                  defaultValue={
-                    user.dateOfBirth
-                      ? new Date(user.dateOfBirth).toISOString().substring(0, 10)
-                      : ""
-                  }
-                  readOnly={!canEdit}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Gender</label>
-                {canEdit ? (
-                  <GenderSelectWithManage
-                    value={user.genderOptionId ?? undefined}
-                    options={genderOptions}
-                  />
-                ) : (
-                  <Input
-                    readOnly
-                    defaultValue={
-                      genderOptions.find((g: any) => g.id === user.genderOptionId)?.label || ""
-                    }
-                  />
-                )}
-              </div>
-              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Street</label>
-                  <Input
-                    name="addressStreet"
-                    defaultValue={user.addressStreet ?? ""}
-                    readOnly={!canEdit}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">City</label>
-                  <Input
-                    name="addressCity"
-                    defaultValue={user.addressCity ?? ""}
-                    readOnly={!canEdit}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Postcode
-                  </label>
-                  <Input
-                    name="addressPostcode"
-                    defaultValue={user.addressPostcode ?? ""}
-                    readOnly={!canEdit}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Country
-                  </label>
-                  <Input
-                    name="addressCountry"
-                    defaultValue={user.addressCountry ?? ""}
-                    readOnly={!canEdit}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Pronouns
-                  </label>
-                  {canEdit ? (
-                    <select
-                      name="pronouns"
-                      defaultValue={user.pronouns ?? ""}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="">Select pronouns</option>
-                      <option value="She/Her">She/Her</option>
-                      <option value="He/Him">He/Him</option>
-                      <option value="They/Them">They/Them</option>
-                      <option value="She/They">She/They</option>
-                      <option value="He/They">He/They</option>
-                      <option value="Any pronouns">Any pronouns</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                  ) : (
-                    <Input
-                      readOnly
-                      defaultValue={user.pronouns ?? ""}
-                    />
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-2">
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    National ID
-                  </label>
-                  <Input
-                    name="nationalId"
-                    defaultValue={user.nationalId ?? ""}
-                    readOnly={!canEdit}
-                  />
-                </div>
-                {/* Gender moved to Demographic page */}
-              </div>
-            </form>
-          </div>
-        </Card>
-
-
-        {canEdit && (
-          <PersonalInfoSaveButton employeeId={id} section="personal-info" />
-        )}
-      </UnsavedChangesGuard>
-      {/* Portal handled in client-only ManageGenderInline */}
-    </div>
+    <PersonalInformationClient
+      employeeId={id}
+      user={user}
+      genderOptions={genderOptions}
+      canEdit={canEdit}
+    />
   );
 }

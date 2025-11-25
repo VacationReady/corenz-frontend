@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Card } from "@/components/ui/Card";
+import { motion } from "framer-motion";
 import { Input } from "@/components/ui/Input";
 import Link from "next/link";
 import HeaderWithHistory from "@/components/audit/HeaderWithHistory";
 import EmployeeSaveButton from "@/components/employees/EmployeeSaveButton";
 import UnsavedChangesGuard from "@/components/ui/UnsavedChangesGuard";
+import EmployeeFormCard, { FormSection, FormField } from "@/components/employees/EmployeeFormCard";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
 import {
@@ -23,7 +24,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Info } from "lucide-react";
+import {
+  CreditCard,
+  Banknote,
+  FileText,
+  GraduationCap,
+  Calculator,
+  Info,
+  DollarSign,
+  Percent,
+  ExternalLink,
+} from "lucide-react";
 import {
   NZ_TAX_CODE_OPTIONS,
   cn,
@@ -68,6 +79,26 @@ interface InitialValuesState {
   taxExemptionReason: string | null;
   salaryAmount: number | null;
   hourlyRate: number | null;
+}
+
+// Info tooltip component
+function InfoTooltip({ content }: { content: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="More info"
+        >
+          <Info className="h-4 w-4" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-xs">
+        {content}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 export default function BankPayrollClient({ employeeId }: { employeeId: string }) {
@@ -206,7 +237,6 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
             const patterns = await patternRes.json();
             if (patterns && patterns.length > 0 && patterns[0].WorkingPattern) {
               const pattern = patterns[0].WorkingPattern;
-              console.log("Fetched working pattern:", pattern);
               setWorkingPattern(pattern);
             } else {
               setWorkingPattern(null);
@@ -307,7 +337,6 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
 
   // Auto-calculate annual salary from hourly rate
   useEffect(() => {
-    // Only calculate if hourly rate was the last edited field
     if (lastEditedField !== 'hourly' && lastEditedField !== null) return;
 
     const hourlyRateNum = parseFloat(form.hourlyRate);
@@ -332,7 +361,6 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     setCalculatedSalary(annualSalary);
     setSalaryMessage("");
     
-    // Auto-populate if not manually edited
     if (isPrivileged && !hasManuallyEditedSalary && lastEditedField === 'hourly') {
       setForm((prev) => ({ ...prev, salaryAmount: annualSalary.toFixed(2) }));
     }
@@ -340,7 +368,6 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
 
   // Auto-calculate hourly rate from annual salary
   useEffect(() => {
-    // Only calculate if salary was the last edited field
     if (lastEditedField !== 'salary' && lastEditedField !== null) return;
 
     const salaryNum = parseFloat(form.salaryAmount);
@@ -365,7 +392,6 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     setCalculatedHourlyRate(hourlyRate);
     setHourlyRateMessage("");
     
-    // Auto-populate if not manually edited
     if (isPrivileged && !hasManuallyEditedHourlyRate && lastEditedField === 'salary') {
       setForm((prev) => ({ ...prev, hourlyRate: hourlyRate.toFixed(2) }));
     }
@@ -376,18 +402,12 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
   const isBankInvalid =
     normalizedBankAccount.length > 0 && !isValidNzBankAccountNumber(normalizedBankAccount);
   
-  // Only consider IRD invalid if it has been CHANGED from the initial value and is invalid
-  // This allows saving other fields even if the existing IRD has validation issues
   const irdHasChanged = normalizedIrd !== normalizeIrdNumber(formatIrdNumber(initialValues.irdNumber ?? ""));
   const isIrdInvalid = normalizedIrd.length > 0 && irdHasChanged && !isValidIrdNumber(normalizedIrd);
   
-  // For employees, only validate bank account since they can only edit that field.
-  // For admins, only block on validation errors for fields that have been changed
   const disableSave = isEmployee && !isPrivileged 
     ? isBankInvalid 
     : (isBankInvalid || isIrdInvalid);
-  
-  console.log("Save button state:", { disableSave, isBankInvalid, isIrdInvalid, irdHasChanged, normalizedIrd, isEmployee, isPrivileged });
 
   const getCurrentValues = () => {
     const values: any = {
@@ -428,15 +448,9 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
       hourlyRate: form.hourlyRate && form.hourlyRate.trim() !== "" ? Number(form.hourlyRate) : null,
     };
 
-    console.log("getCurrentValues - form:", { salaryAmount: form.salaryAmount, hourlyRate: form.hourlyRate });
-    console.log("getCurrentValues - values:", { salaryAmount: values.salaryAmount, hourlyRate: values.hourlyRate });
-    console.log("getCurrentValues - initialValues:", { salaryAmount: initialValues.salaryAmount, hourlyRate: initialValues.hourlyRate });
-
-    // For employees, only include bankAccountNumber (other fields match initialValues to prevent changes)
     if (isEmployee && !isPrivileged) {
       return {
         bankAccountNumber: values.bankAccountNumber,
-        // Keep other fields matching initialValues so they're not detected as changed
         irdNumber: initialValues.irdNumber,
         taxCode: initialValues.taxCode,
         kiwiSaverEnrolled: initialValues.kiwiSaverEnrolled,
@@ -452,7 +466,6 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
       };
     }
 
-    console.log("Final getCurrentValues return:", values);
     return values;
   };
 
@@ -461,7 +474,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     setInitialValues(currentValues);
   };
 
-  // Reset manual edit flags when working pattern changes, allowing recalculation
+  // Reset manual edit flags when working pattern changes
   useEffect(() => {
     if (workingPattern) {
       setHasManuallyEditedSalary(false);
@@ -480,348 +493,344 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pt-6 px-8">
-      <HeaderWithHistory
-        title="Bank & Payroll"
-        employeeId={employeeId}
-        section="bank-payroll"
-      />
+    <TooltipProvider>
+      <div className="max-w-4xl mx-auto space-y-6 py-6 px-4 sm:px-6 lg:px-8">
+        <HeaderWithHistory
+          title="Bank & Payroll"
+          employeeId={employeeId}
+          section="bank-payroll"
+          description="Manage banking, tax, and compensation information"
+        />
 
-      <UnsavedChangesGuard>
-        <TooltipProvider>
-          <Card>
-          <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Payroll details</h2>
-          </div>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1" htmlFor="bankAccount">
-                Bank account
-              </label>
-              <Input
-                id="bankAccount"
-                value={form.bankAccountNumber}
-                onChange={(e) => handleBankAccountChange(e.target.value)}
-                onBlur={handleBankAccountBlur}
-                aria-invalid={Boolean(errors.bankAccountNumber)}
-                className={cn(
-                  errors.bankAccountNumber
-                    ? "border-destructive focus:border-destructive focus:ring-destructive/50"
-                    : "",
-                )}
-                placeholder="00-0000-0000000-000"
-                inputMode="numeric"
-              />
-              {errors.bankAccountNumber && (
-                <p className="mt-1 text-sm text-destructive">{errors.bankAccountNumber}</p>
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <label className="block text-sm font-medium" htmlFor="irdNumber">
-                  IRD number
-                </label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label="IRD number guidance"
-                    >
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    IRD numbers include a check digit. We&apos;ll validate them against Inland Revenue rules.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Input
-                id="irdNumber"
-                value={form.irdNumber}
-                onChange={(e) => handleIrdChange(e.target.value)}
-                onBlur={handleIrdBlur}
-                aria-invalid={Boolean(errors.irdNumber)}
-                className={cn(
-                  errors.irdNumber
-                    ? "border-destructive focus:border-destructive focus:ring-destructive/50"
-                    : "",
-                )}
-                placeholder="123-456-789"
-                inputMode="numeric"
-                maxLength={11}
-                disabled={isEmployee && !isPrivileged}
-              />
-              {errors.irdNumber && (
-                <p className="mt-1 text-sm text-destructive">{errors.irdNumber}</p>
-              )}
-              <p className="mt-1 text-xs text-muted-foreground">
-                Format: 12-345-678 or 123-456-789.{" "}
-                <a
-                  href="https://www.ird.govt.nz/tasks/find-your-ird-number"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline"
+        <UnsavedChangesGuard>
+          {/* Banking & Tax Details */}
+          <EmployeeFormCard
+            title="Banking & Tax Details"
+            description="IRD, bank account, and tax code information"
+            icon={Banknote}
+            iconColor="from-amber-500/20 to-orange-500/20"
+            delay={0.1}
+          >
+            <FormSection columns={2}>
+              {/* Bank Account */}
+              <div className="md:col-span-2">
+                <FormField
+                  label="Bank account"
+                  htmlFor="bankAccount"
+                  error={errors.bankAccountNumber}
+                  hint="Format: 00-0000-0000000-000"
                 >
-                  Find IRD guidance
-                </a>
-                .
-              </p>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <label className="block text-sm font-medium" htmlFor="taxCode">
-                  Tax code
-                </label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label="Tax code guidance"
-                    >
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Choose from the standard Inland Revenue tax codes.
-                  </TooltipContent>
-                </Tooltip>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      id="bankAccount"
+                      value={form.bankAccountNumber}
+                      onChange={(e) => handleBankAccountChange(e.target.value)}
+                      onBlur={handleBankAccountBlur}
+                      aria-invalid={Boolean(errors.bankAccountNumber)}
+                      className={cn(
+                        "h-11 pl-10 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                        errors.bankAccountNumber && "border-destructive focus:border-destructive focus:ring-destructive/20"
+                      )}
+                      placeholder="00-0000-0000000-000"
+                      inputMode="numeric"
+                    />
+                  </div>
+                </FormField>
               </div>
-              <Select
-                value={form.taxCode || undefined}
-                onValueChange={(value) =>
-                  setForm((prev) => ({ ...prev, taxCode: value as TaxCodeFormValue }))
-                }
-                disabled={isEmployee && !isPrivileged}
+
+              {/* IRD Number */}
+              <FormField
+                label="IRD number"
+                htmlFor="irdNumber"
+                error={errors.irdNumber}
+                action={<InfoTooltip content="IRD numbers include a check digit. We'll validate them against Inland Revenue rules." />}
               >
-                <SelectTrigger id="taxCode">
-                  <SelectValue placeholder="Select tax code" />
-                </SelectTrigger>
-                <SelectContent>
-                  {NZ_TAX_CODE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                <a
-                  href="https://www.ird.govt.nz/employing-staff/paye-tax/tax-codes"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline"
-                >
-                  Inland Revenue explains each code
-                </a>
-                .
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" htmlFor="kiwiSaverEnrolled">
-                KiwiSaver enrolled
-              </label>
-              <select
-                id="kiwiSaverEnrolled"
-                className="block w-full border rounded-md h-9 px-3 disabled:bg-muted disabled:cursor-not-allowed"
-                value={form.kiwiSaverEnrolled}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    kiwiSaverEnrolled: e.target.value as FormState["kiwiSaverEnrolled"],
-                  }))
-                }
-                disabled={isEmployee && !isPrivileged}
-              >
-                <option value="">Select</option>
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
-              {isEmployee && !isPrivileged && (
-                <p className="mt-1 text-xs text-muted-foreground">Read-only for employees</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" htmlFor="kiwiSaverContribution">
-                KiwiSaver contribution (%)
-              </label>
-              <Input
-                id="kiwiSaverContribution"
-                type="number"
-                min="0"
-                max="100"
-                step="1"
-                value={form.kiwiSaverContribution}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, kiwiSaverContribution: e.target.value }))
-                }
-                disabled={isEmployee && !isPrivileged}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">Legacy field - use employee/employer rates below instead</p>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <label className="block text-sm font-medium" htmlFor="kiwiSaverEmployeeRate">
-                  KiwiSaver employee rate (%)
-                </label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label="KiwiSaver employee rate guidance"
-                    >
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Valid rates: 3%, 4%, 6%, 8%, or 10%. Must be enrolled in KiwiSaver.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Select
-                value={form.kiwiSaverEmployeeRate || undefined}
-                onValueChange={(value) =>
-                  setForm((prev) => ({ ...prev, kiwiSaverEmployeeRate: value }))
-                }
-                disabled={(form.kiwiSaverEnrolled !== "yes") || (isEmployee && !isPrivileged)}
-              >
-                <SelectTrigger id="kiwiSaverEmployeeRate">
-                  <SelectValue placeholder="Select rate" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="3">3%</SelectItem>
-                  <SelectItem value="4">4%</SelectItem>
-                  <SelectItem value="6">6%</SelectItem>
-                  <SelectItem value="8">8%</SelectItem>
-                  <SelectItem value="10">10%</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <label className="block text-sm font-medium" htmlFor="kiwiSaverEmployerRate">
-                  KiwiSaver employer rate (%)
-                </label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label="KiwiSaver employer rate guidance"
-                    >
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Minimum 3% required by law. Can be higher as benefit.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Input
-                id="kiwiSaverEmployerRate"
-                type="number"
-                min="3"
-                max="100"
-                step="0.5"
-                value={form.kiwiSaverEmployerRate}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, kiwiSaverEmployerRate: e.target.value }))
-                }
-                disabled={(form.kiwiSaverEnrolled !== "yes") || (isEmployee && !isPrivileged)}
-                placeholder="3"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1" htmlFor="hasStudentLoan">
-                Has student loan?
-              </label>
-              <select
-                id="hasStudentLoan"
-                className="block w-full border rounded-md h-9 px-3 disabled:bg-muted disabled:cursor-not-allowed"
-                value={form.hasStudentLoan}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    hasStudentLoan: e.target.value as FormState["hasStudentLoan"],
-                  }))
-                }
-                disabled={isEmployee && !isPrivileged}
-              >
-                <option value="">Select</option>
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-              </select>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <label className="block text-sm font-medium" htmlFor="studentLoanRate">
-                  Student loan rate (%)
-                </label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label="Student loan rate guidance"
-                    >
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Standard rate is 12%. Automatically deducted from pay.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <Input
-                id="studentLoanRate"
-                type="number"
-                min="0"
-                max="20"
-                step="0.5"
-                value={form.studentLoanRate}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, studentLoanRate: e.target.value }))
-                }
-                disabled={(form.hasStudentLoan !== "yes") || (isEmployee && !isPrivileged)}
-                placeholder="12"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2">
-                <label className="block text-sm font-medium" htmlFor="specialTaxRate">
-                  Special tax rate (%) - Optional
-                </label>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label="Special tax rate guidance"
-                    >
-                      <Info className="h-4 w-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    For non-standard tax situations. Must provide reason below.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  id="specialTaxRate"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={form.specialTaxRate}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, specialTaxRate: e.target.value }))
+                  id="irdNumber"
+                  value={form.irdNumber}
+                  onChange={(e) => handleIrdChange(e.target.value)}
+                  onBlur={handleIrdBlur}
+                  aria-invalid={Boolean(errors.irdNumber)}
+                  className={cn(
+                    "h-11 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                    errors.irdNumber && "border-destructive focus:border-destructive focus:ring-destructive/20",
+                    (isEmployee && !isPrivileged) && "bg-muted/30"
+                  )}
+                  placeholder="123-456-789"
+                  inputMode="numeric"
+                  maxLength={11}
+                  disabled={isEmployee && !isPrivileged}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  <a
+                    href="https://www.ird.govt.nz/tasks/find-your-ird-number"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    Find IRD guidance <ExternalLink className="w-3 h-3" />
+                  </a>
+                </p>
+              </FormField>
+
+              {/* Tax Code */}
+              <FormField
+                label="Tax code"
+                htmlFor="taxCode"
+                action={<InfoTooltip content="Choose from the standard Inland Revenue tax codes." />}
+              >
+                <Select
+                  value={form.taxCode || undefined}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({ ...prev, taxCode: value as TaxCodeFormValue }))
                   }
                   disabled={isEmployee && !isPrivileged}
-                  placeholder="e.g., 17.5"
-                />
+                >
+                  <SelectTrigger 
+                    id="taxCode" 
+                    className={cn(
+                      "h-11 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                      (isEmployee && !isPrivileged) && "bg-muted/30"
+                    )}
+                  >
+                    <SelectValue placeholder="Select tax code" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NZ_TAX_CODE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  <a
+                    href="https://www.ird.govt.nz/employing-staff/paye-tax/tax-codes"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    Inland Revenue tax code guide <ExternalLink className="w-3 h-3" />
+                  </a>
+                </p>
+              </FormField>
+            </FormSection>
+          </EmployeeFormCard>
+
+          {/* KiwiSaver Details */}
+          <EmployeeFormCard
+            title="KiwiSaver"
+            description="Retirement savings contribution details"
+            icon={GraduationCap}
+            iconColor="from-green-500/20 to-emerald-500/20"
+            delay={0.2}
+          >
+            <FormSection columns={2}>
+              {/* KiwiSaver Enrolled */}
+              <FormField label="KiwiSaver enrolled" htmlFor="kiwiSaverEnrolled">
+                <select
+                  id="kiwiSaverEnrolled"
+                  className={cn(
+                    "flex h-11 w-full rounded-xl border px-3 py-2 text-sm transition-colors",
+                    "bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20 focus:outline-none focus:ring-2",
+                    (isEmployee && !isPrivileged) && "bg-muted/30 cursor-not-allowed"
+                  )}
+                  value={form.kiwiSaverEnrolled}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      kiwiSaverEnrolled: e.target.value as FormState["kiwiSaverEnrolled"],
+                    }))
+                  }
+                  disabled={isEmployee && !isPrivileged}
+                >
+                  <option value="">Select</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </FormField>
+
+              {/* Legacy Contribution */}
+              <FormField 
+                label="KiwiSaver contribution (%)" 
+                htmlFor="kiwiSaverContribution"
+                hint="Legacy field - use employee/employer rates below"
+              >
+                <div className="relative">
+                  <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="kiwiSaverContribution"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={form.kiwiSaverContribution}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, kiwiSaverContribution: e.target.value }))
+                    }
+                    disabled={isEmployee && !isPrivileged}
+                    className={cn(
+                      "h-11 pl-10 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                      (isEmployee && !isPrivileged) && "bg-muted/30"
+                    )}
+                  />
+                </div>
+              </FormField>
+
+              {/* Employee Rate */}
+              <FormField
+                label="Employee rate (%)"
+                htmlFor="kiwiSaverEmployeeRate"
+                action={<InfoTooltip content="Valid rates: 3%, 4%, 6%, 8%, or 10%. Must be enrolled in KiwiSaver." />}
+              >
+                <Select
+                  value={form.kiwiSaverEmployeeRate || undefined}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({ ...prev, kiwiSaverEmployeeRate: value }))
+                  }
+                  disabled={(form.kiwiSaverEnrolled !== "yes") || (isEmployee && !isPrivileged)}
+                >
+                  <SelectTrigger 
+                    id="kiwiSaverEmployeeRate"
+                    className={cn(
+                      "h-11 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                      ((form.kiwiSaverEnrolled !== "yes") || (isEmployee && !isPrivileged)) && "bg-muted/30"
+                    )}
+                  >
+                    <SelectValue placeholder="Select rate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3%</SelectItem>
+                    <SelectItem value="4">4%</SelectItem>
+                    <SelectItem value="6">6%</SelectItem>
+                    <SelectItem value="8">8%</SelectItem>
+                    <SelectItem value="10">10%</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
+
+              {/* Employer Rate */}
+              <FormField
+                label="Employer rate (%)"
+                htmlFor="kiwiSaverEmployerRate"
+                action={<InfoTooltip content="Minimum 3% required by law. Can be higher as benefit." />}
+              >
+                <div className="relative">
+                  <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="kiwiSaverEmployerRate"
+                    type="number"
+                    min="3"
+                    max="100"
+                    step="0.5"
+                    value={form.kiwiSaverEmployerRate}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, kiwiSaverEmployerRate: e.target.value }))
+                    }
+                    disabled={(form.kiwiSaverEnrolled !== "yes") || (isEmployee && !isPrivileged)}
+                    placeholder="3"
+                    className={cn(
+                      "h-11 pl-10 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                      ((form.kiwiSaverEnrolled !== "yes") || (isEmployee && !isPrivileged)) && "bg-muted/30"
+                    )}
+                  />
+                </div>
+              </FormField>
+            </FormSection>
+          </EmployeeFormCard>
+
+          {/* Student Loan & Special Tax */}
+          <EmployeeFormCard
+            title="Student Loan & Special Tax"
+            description="Student loan and special tax rate information"
+            icon={Calculator}
+            iconColor="from-blue-500/20 to-indigo-500/20"
+            delay={0.3}
+          >
+            <FormSection columns={2}>
+              {/* Has Student Loan */}
+              <FormField label="Has student loan?" htmlFor="hasStudentLoan">
+                <select
+                  id="hasStudentLoan"
+                  className={cn(
+                    "flex h-11 w-full rounded-xl border px-3 py-2 text-sm transition-colors",
+                    "bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20 focus:outline-none focus:ring-2",
+                    (isEmployee && !isPrivileged) && "bg-muted/30 cursor-not-allowed"
+                  )}
+                  value={form.hasStudentLoan}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      hasStudentLoan: e.target.value as FormState["hasStudentLoan"],
+                    }))
+                  }
+                  disabled={isEmployee && !isPrivileged}
+                >
+                  <option value="">Select</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </FormField>
+
+              {/* Student Loan Rate */}
+              <FormField
+                label="Student loan rate (%)"
+                htmlFor="studentLoanRate"
+                action={<InfoTooltip content="Standard rate is 12%. Automatically deducted from pay." />}
+              >
+                <div className="relative">
+                  <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="studentLoanRate"
+                    type="number"
+                    min="0"
+                    max="20"
+                    step="0.5"
+                    value={form.studentLoanRate}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, studentLoanRate: e.target.value }))
+                    }
+                    disabled={(form.hasStudentLoan !== "yes") || (isEmployee && !isPrivileged)}
+                    placeholder="12"
+                    className={cn(
+                      "h-11 pl-10 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                      ((form.hasStudentLoan !== "yes") || (isEmployee && !isPrivileged)) && "bg-muted/30"
+                    )}
+                  />
+                </div>
+              </FormField>
+
+              {/* Special Tax Rate */}
+              <FormField
+                label="Special tax rate (%) - Optional"
+                htmlFor="specialTaxRate"
+                action={<InfoTooltip content="For non-standard tax situations. Must provide reason." />}
+              >
+                <div className="relative">
+                  <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="specialTaxRate"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={form.specialTaxRate}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, specialTaxRate: e.target.value }))
+                    }
+                    disabled={isEmployee && !isPrivileged}
+                    placeholder="e.g., 17.5"
+                    className={cn(
+                      "h-11 pl-10 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                      (isEmployee && !isPrivileged) && "bg-muted/30"
+                    )}
+                  />
+                </div>
+              </FormField>
+
+              {/* Tax Exemption Reason */}
+              <FormField label="Reason for special rate" htmlFor="taxExemptionReason">
                 <Input
                   id="taxExemptionReason"
                   value={form.taxExemptionReason}
@@ -829,118 +838,123 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                     setForm((f) => ({ ...f, taxExemptionReason: e.target.value }))
                   }
                   disabled={isEmployee && !isPrivileged}
-                  placeholder="Reason for special rate (required if rate set)"
+                  placeholder="Required if special rate is set"
+                  className={cn(
+                    "h-11 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                    (isEmployee && !isPrivileged) && "bg-muted/30"
+                  )}
                 />
-              </div>
-            </div>
-          </div>
-        </Card>
-        </TooltipProvider>
+              </FormField>
+            </FormSection>
+          </EmployeeFormCard>
 
-        <TooltipProvider>
-          <Card className="mt-6">
-            <div className="border-b p-4">
-              <h2 className="text-lg font-semibold">Compensation</h2>
-            </div>
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <label className="block text-sm font-medium" htmlFor="hourlyRate">
-                    Hourly rate
-                  </label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground"
-                        aria-label="Hourly rate guidance"
-                      >
-                        <Info className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Enter the hourly rate. Annual salary will auto-calculate based on working pattern.
-                    </TooltipContent>
-                  </Tooltip>
+          {/* Compensation */}
+          <EmployeeFormCard
+            title="Compensation"
+            description="Salary and hourly rate information"
+            icon={DollarSign}
+            iconColor="from-purple-500/20 to-violet-500/20"
+            delay={0.4}
+          >
+            <FormSection columns={2}>
+              {/* Hourly Rate */}
+              <FormField
+                label="Hourly rate"
+                htmlFor="hourlyRate"
+                hint={workingPattern ? `Working pattern: ${workingPattern.name}` : undefined}
+                action={<InfoTooltip content="Enter the hourly rate. Annual salary will auto-calculate based on working pattern." />}
+              >
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="hourlyRate"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.hourlyRate}
+                    onChange={(e) => {
+                      setForm((f) => ({ ...f, hourlyRate: e.target.value }));
+                      setLastEditedField('hourly');
+                      setHasManuallyEditedHourlyRate(false);
+                    }}
+                    disabled={isEmployee && !isPrivileged}
+                    placeholder="0.00"
+                    className={cn(
+                      "h-11 pl-10 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                      (isEmployee && !isPrivileged) && "bg-muted/30"
+                    )}
+                  />
                 </div>
-                <Input
-                  id="hourlyRate"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.hourlyRate}
-                  onChange={(e) => {
-                    setForm((f) => ({ ...f, hourlyRate: e.target.value }));
-                    setLastEditedField('hourly');
-                    setHasManuallyEditedHourlyRate(false);
-                  }}
-                  disabled={isEmployee && !isPrivileged}
-                  placeholder="0.00"
-                />
                 {hourlyRateMessage && (
-                  <p className="mt-1 text-xs text-muted-foreground">{hourlyRateMessage}</p>
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">{hourlyRateMessage}</p>
                 )}
                 {calculatedHourlyRate && !hourlyRateMessage && lastEditedField === 'salary' && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     Calculated: ${calculatedHourlyRate.toFixed(2)}/hr
                   </p>
                 )}
-                {workingPattern && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Working pattern: {workingPattern.name}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1" htmlFor="salaryAmount">
-                  Annual salary
-                </label>
-                <Input
-                  id="salaryAmount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.salaryAmount}
-                  onChange={(e) => {
-                    setForm((f) => ({ ...f, salaryAmount: e.target.value }));
-                    setLastEditedField('salary');
-                    setHasManuallyEditedSalary(false);
-                  }}
-                  disabled={isEmployee && !isPrivileged}
-                  placeholder="0.00"
-                />
+              </FormField>
+
+              {/* Annual Salary */}
+              <FormField label="Annual salary" htmlFor="salaryAmount">
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    id="salaryAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={form.salaryAmount}
+                    onChange={(e) => {
+                      setForm((f) => ({ ...f, salaryAmount: e.target.value }));
+                      setLastEditedField('salary');
+                      setHasManuallyEditedSalary(false);
+                    }}
+                    disabled={isEmployee && !isPrivileged}
+                    placeholder="0.00"
+                    className={cn(
+                      "h-11 pl-10 rounded-xl bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20",
+                      (isEmployee && !isPrivileged) && "bg-muted/30"
+                    )}
+                  />
+                </div>
                 {salaryMessage && (
-                  <p className="mt-1 text-xs text-muted-foreground">{salaryMessage}</p>
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">{salaryMessage}</p>
                 )}
                 {calculatedSalary && !salaryMessage && lastEditedField === 'hourly' && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     Calculated: ${calculatedSalary.toFixed(2)}/year
                   </p>
                 )}
-              </div>
-            </div>
-          </Card>
-        </TooltipProvider>
+              </FormField>
+            </FormSection>
+          </EmployeeFormCard>
 
-        <div className="flex items-center justify-between">
-          <Link
-            href={`/employees/${employeeId}/documents`}
-            className="text-sm underline"
+          {/* Footer Actions */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="flex items-center justify-between pt-4"
           >
-            View payslip history
-          </Link>
-          <EmployeeSaveButton
-            employeeId={employeeId}
-            endpoint="bank-payroll"
-            initialValues={initialValues}
-            currentValues={getCurrentValues()}
-            onSaveSuccess={handleSaveSuccess}
-            disabled={disableSave}
-          />
-        </div>
-      </UnsavedChangesGuard>
-    </div>
+            <Link
+              href={`/employees/${employeeId}/documents`}
+              className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+            >
+              <FileText className="w-4 h-4" />
+              View payslip history
+            </Link>
+            <EmployeeSaveButton
+              employeeId={employeeId}
+              endpoint="bank-payroll"
+              initialValues={initialValues}
+              currentValues={getCurrentValues()}
+              onSaveSuccess={handleSaveSuccess}
+              disabled={disableSave}
+            />
+          </motion.div>
+        </UnsavedChangesGuard>
+      </div>
+    </TooltipProvider>
   );
 }
-
-

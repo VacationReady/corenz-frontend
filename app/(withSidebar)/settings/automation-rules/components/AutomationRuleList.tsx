@@ -128,7 +128,7 @@ const itemVariants = {
     y: 0,
     scale: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 300,
       damping: 25,
     },
@@ -449,15 +449,15 @@ function WorkflowCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+              <DropdownMenuItem onSelect={() => onEdit()}>
                 <Edit className="w-4 h-4 mr-2" />
                 Edit Workflow
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTest(); }}>
+              <DropdownMenuItem onSelect={() => onTest()}>
                 <TestTube className="w-4 h-4 mr-2" />
                 Test Run
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleStatus(); }}>
+              <DropdownMenuItem onSelect={() => onToggleStatus()}>
                 {rule.isActive ? (
                   <>
                     <Pause className="w-4 h-4 mr-2" />
@@ -471,15 +471,14 @@ function WorkflowCard({
                 )}
               </DropdownMenuItem>
               {onDuplicate && (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+                <DropdownMenuItem onSelect={() => onDuplicate()}>
                   <Copy className="w-4 h-4 mr-2" />
                   Duplicate
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
+                onSelect={() => { 
                   if (confirm("Are you sure you want to delete this workflow?")) {
                     onDelete(); 
                   }

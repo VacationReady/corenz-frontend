@@ -93,7 +93,7 @@ const items: PaletteItem[] = [
 function DraggablePaletteItem({ item, index }: { item: PaletteItem; index: number }) {
   const [isDragging, setIsDragging] = useState(false);
   
-  const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleNativeDragStart = (event: React.DragEvent<HTMLDivElement>) => {
     event.dataTransfer.setData("application/reactflow", item.id);
     event.dataTransfer.effectAllowed = "move";
     setIsDragging(true);
@@ -111,7 +111,7 @@ function DraggablePaletteItem({ item, index }: { item: PaletteItem; index: numbe
     setTimeout(() => document.body.removeChild(dragPreview), 0);
   };
   
-  const handleDragEnd = () => {
+  const handleNativeDragEnd = () => {
     setIsDragging(false);
   };
 
@@ -122,10 +122,10 @@ function DraggablePaletteItem({ item, index }: { item: PaletteItem; index: numbe
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 25 }}
+            transition={{ delay: index * 0.05, type: "spring" as const, stiffness: 300, damping: 25 }}
             draggable
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
+            onDragStart={handleNativeDragStart as unknown as React.DragEventHandler}
+            onDragEnd={handleNativeDragEnd as unknown as React.DragEventHandler}
             whileHover={{ scale: 1.02, x: 4 }}
             whileTap={{ scale: 0.98 }}
             className={cn(

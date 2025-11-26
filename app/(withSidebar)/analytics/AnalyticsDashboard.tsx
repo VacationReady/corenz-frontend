@@ -967,8 +967,8 @@ export default function AnalyticsDashboard() {
             {/* Breakdown Cards Grid */}
             <div className="grid gap-6 xl:grid-cols-3 items-start">
               {/* Department Breakdown */}
-              <motion.div variants={itemVariants}>
-                <Card className="h-[380px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+              <motion.div variants={itemVariants} className="h-[380px]">
+                <Card className="h-full flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
                   <CardHeader className="pb-2 flex-shrink-0">
                     <SectionHeader
                       icon={Building2}
@@ -1002,8 +1002,8 @@ export default function AnalyticsDashboard() {
               </motion.div>
 
               {/* Location & Employment Mix */}
-              <motion.div variants={itemVariants}>
-                <Card className="h-[380px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+              <motion.div variants={itemVariants} className="h-[380px]">
+                <Card className="h-full flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
                   <CardHeader className="pb-2 flex-shrink-0">
                     <SectionHeader
                       icon={MapPin}
@@ -1119,8 +1119,8 @@ export default function AnalyticsDashboard() {
               </motion.div>
 
               {/* Job Roles */}
-              <motion.div variants={itemVariants}>
-                <Card className="h-[380px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+              <motion.div variants={itemVariants} className="h-[380px]">
+                <Card className="h-full flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
                   <CardHeader className="pb-2 flex-shrink-0">
                     <SectionHeader
                       icon={Briefcase}

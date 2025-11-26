@@ -89,11 +89,13 @@ export default function BlackoutManagementModal({
   const addBlackoutDay = async () => {
     try {
       setLoading(true);
+      // Send date as YYYY-MM-DD to preserve local date (avoid timezone shifts)
+      const localDateStr = `${newBlackoutDate.getFullYear()}-${String(newBlackoutDate.getMonth() + 1).padStart(2, "0")}-${String(newBlackoutDate.getDate()).padStart(2, "0")}`;
       const response = await fetch("/api/blackout-days/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          date: newBlackoutDate.toISOString(),
+          date: localDateStr,
           allEvents: allEventsBlackout,
           eventCategoryIds: allEventsBlackout ? [] : newBlackoutCategories,
         }),

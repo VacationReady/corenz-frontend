@@ -108,6 +108,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [locationOptions, setLocationOptions] = useState<{ label: string; value: string }[]>([]);
   const [blackoutDateKeys, setBlackoutDateKeys] = useState<Set<string>>(new Set());
   const [blackoutIdsByDay, setBlackoutIdsByDay] = useState<Record<string, string[]>>({});
+  const [newlyCreatedBlackoutKeys, setNewlyCreatedBlackoutKeys] = useState<Set<string>>(new Set());
   const calendarRef = useRef<FullCalendar | null>(null);
   const eventsCacheRef = useRef<{ key: string; data: any[] } | null>(null);
   const blackoutKeyHashRef = useRef<string>("");
@@ -424,8 +425,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       const idMap: Record<string, string[]> = {};
       const blackoutEvents = blackoutData.map((b: any) => {
         const d = new Date(b.date);
-        // Use local date key to match dayCellContent logic
-        const key = dateKey(d);
+        // Use UTC date key since blackout dates are stored at noon UTC
+        const key = utcDateKey(d);
         const startDate = key;
         keys.add(key);
         if (!idMap[key]) idMap[key] = [];
@@ -445,12 +446,26 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         };
       });
       const nextHash = Array.from(keys).sort().join(",");
+      
+      // Detect newly created blackout days for animation
+      if (blackoutKeyHashRef.current && nextHash !== blackoutKeyHashRef.current) {
+        const oldKeys = new Set(blackoutKeyHashRef.current.split(",").filter(Boolean));
+        const newKeys = new Set<string>();
+        keys.forEach(key => {
+          if (!oldKeys.has(key)) {
+            newKeys.add(key);
+          }
+        });
+        if (newKeys.size > 0) {
+          setNewlyCreatedBlackoutKeys(newKeys);
+          // Clear animation state after animation completes
+          setTimeout(() => setNewlyCreatedBlackoutKeys(new Set()), 700);
+        }
+      }
+      
       setBlackoutDateKeys(keys);
       setBlackoutIdsByDay(idMap);
-      if (nextHash !== blackoutKeyHashRef.current) {
-        blackoutKeyHashRef.current = nextHash;
-        // Blackout keys changed - day cells will re-render automatically via state update
-      }
+      blackoutKeyHashRef.current = nextHash;
       successCallback(blackoutEvents);
     } catch (error) {
       console.error("Blackout fetch error", error);
@@ -538,16 +553,19 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const dayCellClassNames = (arg: any) => {
     const d = arg.date as Date;
-    const key = dateKey(d);
-    const count = dailyCounts[key] || 0;
+    const key = utcDateKey(d);
+    const count = dailyCounts[dateKey(d)] || 0;
     const level = getHeatLevel(count);
     const today = new Date();
     const isToday = today.toDateString() === d.toDateString();
     const isSelected = selectedDay && selectedDay.toDateString() === d.toDateString();
     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+    const isBlackout = blackoutDateKeys.has(key);
+    const isNewBlackout = newlyCreatedBlackoutKeys.has(key);
     return ([
       "cz-daycell",
-      blackoutDateKeys.has(key) && "cz-daycell--blackout",
+      isBlackout && "cz-daycell--blackout",
+      isBlackout && isNewBlackout && "cz-daycell--blackout-animate",
       level > 0 && `cz-daycell--heat-${level}`,
       isToday && "cz-daycell--today",
       isSelected && "cz-daycell--selected",
@@ -557,43 +575,18 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const dayCellContent = (arg: any) => {
     const d = arg.date as Date;
-    const key = dateKey(d);
-    const count = dailyCounts[key] || 0;
+    const key = utcDateKey(d);
     const isBlackout = blackoutDateKeys.has(key);
-    const cats = dailyCategoryCounts[key] || {};
-    const entries = Object.entries(cats).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    const more = Object.keys(cats).length - entries.length;
+    const isNewBlackout = newlyCreatedBlackoutKeys.has(key);
     return (
       <div className="cz-daycell__inner">
         {isBlackout ? (
-          <div className="cz-badge-modern cz-badge-modern--blocked">
+          <div className={`cz-badge-modern cz-badge-modern--blocked${isNewBlackout ? " cz-badge-modern--animate" : ""}`}>
             <ShieldBan className="h-3 w-3" />
             <span>Blocked</span>
           </div>
         ) : null}
         <div className="cz-daycell__date">{arg.dayNumberText}</div>
-        {count > 0 ? (
-          <div className="mt-5 space-y-1">
-            {entries.map(([label, n]) => {
-              const catObj = presentCategories.find((c) => c.name === label);
-              const Icon = getEventCategoryIcon(catObj?.iconKey);
-              return (
-                <div key={label} className="w-full text-[11px]">
-                  <span className={`cz-chip-modern ${getCategoryColor(label)}`}>
-                    <span className="flex items-center gap-1.5">
-                      <Icon className="h-3 w-3" />
-                      <span className="font-semibold">{label}</span>
-                    </span>
-                    <span className="cz-chip-modern__count">{n}</span>
-                  </span>
-                </div>
-              );
-            })}
-            {more > 0 ? (
-              <div className="text-[10px] text-muted-foreground font-medium">+{more} more</div>
-            ) : null}
-          </div>
-        ) : null}
       </div>
     );
   };

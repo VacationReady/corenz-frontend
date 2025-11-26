@@ -30,9 +30,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing date" }, { status: 400 });
     }
 
-    // 🚩 Force blackout date to 00:01 UTC on the selected date to prevent previous day blocking
-    const blackoutDate = new Date(date);
-    blackoutDate.setUTCHours(0, 1, 0, 0); // 00:01 UTC
+    // Parse the date string (expected format: YYYY-MM-DD)
+    // Create date at noon UTC to avoid any timezone boundary issues
+    let blackoutDate: Date;
+    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      // Date-only string: parse as noon UTC on that date
+      blackoutDate = new Date(`${date}T12:00:00.000Z`);
+    } else {
+      // Fallback: parse ISO string and extract date components, then set to noon UTC
+      const parsed = new Date(date);
+      if (isNaN(parsed.getTime())) {
+        return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+      }
+      // Extract the local date from the parsed value (in case it's still an ISO string)
+      const year = parsed.getUTCFullYear();
+      const month = String(parsed.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(parsed.getUTCDate()).padStart(2, "0");
+      blackoutDate = new Date(`${year}-${month}-${day}T12:00:00.000Z`);
+    }
+    
     if (isNaN(blackoutDate.getTime())) {
       return NextResponse.json({ error: "Invalid date" }, { status: 400 });
     }

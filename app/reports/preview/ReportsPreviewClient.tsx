@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
   type ReactNode,
 } from "react";
 import { useSession } from "next-auth/react";
@@ -27,6 +28,8 @@ import { useToast } from "@/hooks/use-toast";
 import { hrReportFields } from "@/lib/hrReportFields";
 import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
+import { ReportErrorBoundary } from "@/components/reports/ReportErrorBoundary";
+import { resilientPost, ResilientFetchError, createAbortController } from "@/lib/resilientFetch";
 import { 
   ArrowLeft, 
   X, 
@@ -44,13 +47,16 @@ import {
   Sparkles,
   ChevronRight,
   FileSpreadsheet,
-  Send
+  Send,
+  Clock,
+  Wifi
 } from "lucide-react";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import Papa from "papaparse";
 import { exportTableToPdf } from "@/lib/pdfExport";
 import { SendReportModal } from "@/components/reports/SendReportModal";
 import { SendHistoryModal } from "@/components/reports/SendHistoryModal";
+import { ReportPreviewSkeleton, ReportTableSkeleton, ProgressOverlay } from "@/components/reports/ReportSkeleton";
 import { cn } from "@/lib/utils";
 
 type ColumnDefinition = { header: string; accessorKey: string };
@@ -123,6 +129,21 @@ function parseFieldsParam(value: string | null | undefined): string[] {
     .filter((field) => field.length > 0);
 }
 
+function formatTimeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  
+  if (seconds < 10) return "just now";
+  if (seconds < 60) return `${seconds}s ago`;
+  
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  
+  return date.toLocaleDateString();
+}
+
 function downloadCSV(data: any[], columns: ColumnDefinition[]) {
   if (!data || data.length === 0) return;
 
@@ -151,7 +172,7 @@ function downloadCSV(data: any[], columns: ColumnDefinition[]) {
   document.body.removeChild(link);
 }
 
-export default function ReportsPreviewClient() {
+function ReportsPreviewClientInner() {
   const { data: session } = useSession();
   const REQUIRED_FIELDS_USER = ["User.firstName", "User.lastName"];
   const searchParams = useSearchParams();
@@ -276,7 +297,14 @@ export default function ReportsPreviewClient() {
   const [pageSize, setPageSize] = useState(50);
   const [total, setTotal] = useState<number>(0);
   const [exportingFull, setExportingFull] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   const [tableLoading, setTableLoading] = useState(false);
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  
+  // Refs for request cancellation
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const fetchIdRef = useRef(0);
 
   const effectiveReportId = useMemo(() => {
     if (reportIdParam) return reportIdParam;
@@ -571,7 +599,7 @@ export default function ReportsPreviewClient() {
   );
 
   const fetchReportPage = useCallback(
-    async (pageToFetch: number, limitToFetch: number) => {
+    async (pageToFetch: number, limitToFetch: number, signal?: AbortSignal) => {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (session?.user?.companyId) {
         headers["x-company-id"] = session.user.companyId;
@@ -592,24 +620,39 @@ export default function ReportsPreviewClient() {
           }),
         );
 
-        const res = await fetch("/api/reports/generate", {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
+        const result = await resilientPost<{ data: unknown[]; error?: string }>(
+          "/api/reports/generate",
+          {
             reportType: reportTypeParam,
             filters: transformedFilters,
             pagination: { page: pageToFetch, limit: limitToFetch, sortBy: activeSort?.field, sortOrder: activeSort?.direction },
-          }),
-        });
-        const json = await res.json();
+          },
+          {
+            signal,
+            timeout: 30000,
+            retries: 3,
+            headers,
+            onRetry: (attempt) => {
+              setRetryCount(attempt);
+              console.log(`[Report] Retry attempt ${attempt} for custom report`);
+            },
+          }
+        );
         
         // Check for API errors
-        if (!res.ok || json.error) {
-          console.error("Report API error:", json.error || `HTTP ${res.status}`);
-          throw new Error(json.error || `Failed to generate report (${res.status})`);
+        if (result.error) {
+          console.error("Report API error:", result.error.message);
+          throw result.error;
         }
         
-        const results = Array.isArray(json.data) ? json.data : [];
+        if (result.data?.error) {
+          throw new ResilientFetchError({
+            message: result.data.error,
+            status: result.status,
+          });
+        }
+        
+        const results = Array.isArray(result.data?.data) ? result.data.data : [];
         return { results, totalCount: results.length };
       }
 
@@ -618,23 +661,38 @@ export default function ReportsPreviewClient() {
           ? { field: activeSort.field, direction: activeSort.direction || "asc" }
           : defaultSort || undefined;
 
-      const res = await fetch("/api/reports/query", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
+      const result = await resilientPost<{ data: unknown[]; total: number; error?: string }>(
+        "/api/reports/query",
+        {
           selectedFields: effectiveSelectedFields,
           filters: Array.isArray(activeFilters) ? activeFilters : [],
           pagination: { page: pageToFetch, limit: limitToFetch },
           sort: sortToSend,
-        }),
-      });
-      const json = await res.json();
-      const results = Array.isArray(json.data) ? json.data : [];
+        },
+        {
+          signal,
+          timeout: 30000,
+          retries: 3,
+          headers,
+          onRetry: (attempt) => {
+            setRetryCount(attempt);
+            console.log(`[Report] Retry attempt ${attempt} for dynamic report`);
+          },
+        }
+      );
+      
+      if (result.error) {
+        throw result.error;
+      }
+      
+      const json = result.data;
+      const results = Array.isArray(json?.data) ? json.data : [];
       const totalCount =
-        typeof json.total === "number" ? json.total : results.length;
+        typeof json?.total === "number" ? json.total : results.length;
       return { results, totalCount };
     },
     [
+      session?.user?.companyId,
       effectiveSelectedFields,
       activeFilters,
       activeSort,
@@ -650,34 +708,86 @@ export default function ReportsPreviewClient() {
     if (effectiveSelectedFields.length === 0) return;
     if (reportIdParam && !reportConfig) return;
 
-    let cancelled = false;
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const { controller, cleanup } = createAbortController(35000);
+    abortControllerRef.current = controller;
+    const fetchId = ++fetchIdRef.current;
+
     const load = async () => {
       setLoading(true);
       setFetchError(null);
+      setRetryCount(0);
+      
       try {
-        const { results, totalCount } = await fetchReportPage(page, pageSize);
-        if (cancelled) return;
+        const { results, totalCount } = await fetchReportPage(page, pageSize, controller.signal);
+        
+        // Check if this request is still current
+        if (fetchId !== fetchIdRef.current) return;
+        
         setData([...results]);
         setFilteredData([...results]);
         setTotal(totalCount);
+        setLastFetched(new Date());
+        setRetryCount(0);
       } catch (error) {
-        console.error("❌ Error fetching report data:", error);
-        if (!cancelled) {
-          const errorMessage = error instanceof Error ? error.message : "Failed to fetch report data";
-          setFetchError(errorMessage);
-          toast({
-            title: "Report Error",
-            description: errorMessage,
-            variant: "destructive",
-          });
+        // Check if this request is still current
+        if (fetchId !== fetchIdRef.current) return;
+        
+        // Don't show error for cancelled requests
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
         }
+        
+        console.error("❌ Error fetching report data:", error);
+        
+        const errorMessage = error instanceof ResilientFetchError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Failed to fetch report data";
+        
+        setFetchError(errorMessage);
+        
+        // Provide more helpful error messages based on error type
+        let toastTitle = "Report Error";
+        let toastDescription = errorMessage;
+        
+        if (error instanceof ResilientFetchError) {
+          if (error.isTimeout) {
+            toastTitle = "Request Timed Out";
+            toastDescription = "The report is taking too long. Try reducing filters or date range.";
+          } else if (error.isNetworkError) {
+            toastTitle = "Connection Problem";
+            toastDescription = "Please check your internet connection and try again.";
+          } else if (error.status === 401) {
+            toastTitle = "Session Expired";
+            toastDescription = "Please sign in again to continue.";
+          } else if (error.status && error.status >= 500) {
+            toastTitle = "Server Error";
+            toastDescription = "Something went wrong on our end. Please try again.";
+          }
+        }
+        
+        toast({
+          title: toastTitle,
+          description: toastDescription,
+          variant: "destructive",
+        });
       } finally {
-        if (!cancelled) setLoading(false);
+        if (fetchId === fetchIdRef.current) {
+          setLoading(false);
+        }
       }
     };
+    
     load();
+    
     return () => {
-      cancelled = true;
+      cleanup();
     };
   }, [
     effectiveSelectedFields,
@@ -903,25 +1013,68 @@ export default function ReportsPreviewClient() {
       return;
     }
     if (exportingFull || tableLoading) return;
+    
+    // Create abort controller for export
+    const { controller, cleanup } = createAbortController(120000); // 2 minute timeout for full export
+    
     setExportingFull(true);
+    setExportProgress(0);
+    
     try {
       const combined: any[] = [];
       const pagesToFetch = Math.max(1, Math.ceil(total / pageSize));
+      
       for (let currentPage = 1; currentPage <= pagesToFetch; currentPage++) {
-        const { results } = await fetchReportPage(currentPage, pageSize);
+        // Check if aborted
+        if (controller.signal.aborted) {
+          throw new DOMException("Export cancelled", "AbortError");
+        }
+        
+        const { results } = await fetchReportPage(currentPage, pageSize, controller.signal);
         combined.push(...results);
+        
+        // Update progress
+        const progress = Math.round((currentPage / pagesToFetch) * 100);
+        setExportProgress(progress);
       }
+      
       downloadCSV(combined, columns);
       logAndToastPII(combined.length);
+      
+      toast({
+        title: "Export complete",
+        description: `Successfully exported ${combined.length.toLocaleString()} records.`,
+      });
     } catch (error) {
+      // Don't show error for cancelled exports
+      if (error instanceof DOMException && error.name === "AbortError") {
+        toast({
+          title: "Export cancelled",
+          description: "The export was cancelled.",
+        });
+        return;
+      }
+      
       console.error("❌ Error exporting full report:", error);
+      
+      let errorMessage = "We couldn't export the full report. Please try again.";
+      if (error instanceof ResilientFetchError) {
+        if (error.isTimeout) {
+          errorMessage = "Export timed out. Try exporting in smaller batches or reducing the date range.";
+        } else if (error.isNetworkError) {
+          errorMessage = "Connection lost during export. Please check your internet and try again.";
+        }
+      }
+      
       toast({
         title: "Export failed",
-        description: "We couldn't export the full report. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setExportingFull(false);
+      setExportProgress(0);
+      cleanup();
     }
   };
 
@@ -1021,23 +1174,7 @@ export default function ReportsPreviewClient() {
   );
 
   if (loadingReport) {
-    return renderShell(
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-premium rounded-3xl p-12 text-center shadow-premium max-w-xl mx-auto mt-20"
-      >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary mx-auto mb-6"
-        />
-        <h3 className="text-xl font-bold mb-2">Loading Report</h3>
-        <p className="text-muted-foreground">
-          We're fetching your saved filters and columns...
-        </p>
-      </motion.div>
-    );
+    return <ReportPreviewSkeleton />;
   }
 
   if (!selectedFields.length && !loadingReport) {
@@ -1079,22 +1216,37 @@ export default function ReportsPreviewClient() {
   }
 
   if (loading) {
-    return renderShell(
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-premium rounded-3xl p-12 text-center shadow-premium max-w-xl mx-auto mt-20"
-      >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary mx-auto mb-6"
-        />
-        <h3 className="text-xl font-bold mb-2">Building Your Preview</h3>
-        <p className="text-muted-foreground">
-          We're running the report with your selected filters...
-        </p>
-      </motion.div>
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+        {header}
+        <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-6 space-y-6">
+          {/* Stats skeleton */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card rounded-2xl p-5 shadow-depth-2"
+          >
+            <div className="flex flex-wrap items-center gap-4 mb-5 pb-5 border-b border-border/50">
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-muted/50 animate-pulse">
+                <div className="w-4 h-4 rounded bg-muted-foreground/20" />
+                <div className="w-16 h-4 rounded bg-muted-foreground/20" />
+              </div>
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-muted/50 animate-pulse">
+                <div className="w-4 h-4 rounded bg-muted-foreground/20" />
+                <div className="w-20 h-4 rounded bg-muted-foreground/20" />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="w-32 h-10 rounded-xl bg-muted/50 animate-pulse" />
+              <div className="w-28 h-10 rounded-xl bg-muted/50 animate-pulse" />
+              <div className="ml-auto w-28 h-10 rounded-xl bg-muted/50 animate-pulse" />
+            </div>
+          </motion.div>
+          
+          {/* Table skeleton */}
+          <ReportTableSkeleton columns={columns.length || 6} rows={10} />
+        </main>
+      </div>
     );
   }
 
@@ -1182,6 +1334,22 @@ export default function ReportsPreviewClient() {
               </span>
             </div>
           )}
+          {lastFetched && (
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-muted/50 text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span className="text-xs font-medium">
+                Updated {formatTimeAgo(lastFetched)}
+              </span>
+            </div>
+          )}
+          {retryCount > 0 && (
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+              <Wifi className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                Retry {retryCount}/3
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Actions Row */}
@@ -1215,12 +1383,20 @@ export default function ReportsPreviewClient() {
                 disabled={exportingFull || tableLoading} 
                 onClick={handleFullExport}
                 variant="outline"
-                className="glass-subtle border-white/30 rounded-xl h-10 px-5"
+                className="glass-subtle border-white/30 rounded-xl h-10 px-5 relative overflow-hidden"
               >
-                <FileDown className="w-4 h-4 mr-2" />
-                {exportingFull
-                  ? "Exporting..."
-                  : `Full Export (${total.toLocaleString()})`}
+                {exportingFull && exportProgress > 0 && (
+                  <div 
+                    className="absolute inset-0 bg-primary/20 transition-all duration-300"
+                    style={{ width: `${exportProgress}%` }}
+                  />
+                )}
+                <span className="relative flex items-center">
+                  <FileDown className={cn("w-4 h-4 mr-2", exportingFull && "animate-pulse")} />
+                  {exportingFull
+                    ? `Exporting... ${exportProgress}%`
+                    : `Full Export (${total.toLocaleString()})`}
+                </span>
               </Button>
             </motion.div>
           )}
@@ -1378,6 +1554,32 @@ export default function ReportsPreviewClient() {
           />
         </>
       )}
+      
+      {/* Export Progress Overlay */}
+      <ProgressOverlay
+        isVisible={exportingFull && exportProgress > 0}
+        progress={exportProgress}
+        message="Exporting full report..."
+      />
     </>
+  );
+}
+
+/**
+ * ReportsPreviewClient wrapped with error boundary for enterprise-grade reliability
+ */
+export default function ReportsPreviewClient() {
+  const router = useRouter();
+  
+  return (
+    <ReportErrorBoundary
+      onExit={() => router.push("/reports")}
+      onRetry={() => {
+        // Trigger a page refresh on retry
+        window.location.reload();
+      }}
+    >
+      <ReportsPreviewClientInner />
+    </ReportErrorBoundary>
   );
 }

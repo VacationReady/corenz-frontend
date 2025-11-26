@@ -128,7 +128,7 @@ const asStringArray = (value: unknown): string[] =>
 const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
   "acknowledge-document": {
     defaults: () => ({
-      acknowledgementText: "I have read and acknowledge this document",
+      acknowledgementText: "I have read, understood, and agree to comply with the contents of this document.",
     }),
     normalize: (value: unknown) => {
       const base = (typeof value === "object" && value) || {};
@@ -259,8 +259,9 @@ const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
   "training-assignment": {
     defaults: () => ({
       modules: [
-        { id: "module-1", label: "Health & Safety", required: true },
-        { id: "module-2", label: "Code of Conduct", required: true },
+        { id: "hs-induction", label: "Health & Safety Induction", required: true, url: "https://worksafe.govt.nz/managing-health-and-safety/getting-started/worker-engagement-and-participation/" },
+        { id: "code-of-conduct", label: "Code of Conduct", required: true },
+        { id: "privacy-act", label: "Privacy Act 2020 Basics", required: false },
       ],
     }),
     normalize: (value: unknown) => {
@@ -304,8 +305,10 @@ const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
   "equipment-checklist": {
     defaults: () => ({
       items: [
-        { id: "laptop", label: "Laptop", required: true },
-        { id: "access-card", label: "Access card", required: true },
+        { id: "laptop", label: "Laptop/Computer", required: true, notes: "Including charger and any docking station" },
+        { id: "access-card", label: "Building access card/key", required: true },
+        { id: "phone", label: "Mobile phone (if applicable)", required: false },
+        { id: "ppe", label: "PPE - Personal Protective Equipment", required: false, notes: "As required for role - safety glasses, hi-vis, etc." },
       ],
     }),
     normalize: (value: unknown) => {
@@ -474,8 +477,10 @@ const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
   "compliance-training": {
     defaults: () => ({
       courses: [
-        { id: "compliance-1", label: "GDPR essentials", required: true },
-        { id: "compliance-2", label: "Health & Safety", required: true },
+        { id: "hswa-2015", label: "Health & Safety at Work Act 2015 - Worker Responsibilities", required: true, url: "https://worksafe.govt.nz/laws-and-regulations/acts/hswa/" },
+        { id: "privacy-2020", label: "Privacy Act 2020 Awareness", required: true },
+        { id: "harassment-prevention", label: "Harassment Prevention & Workplace Conduct", required: true },
+        { id: "first-aid", label: "First Aid Awareness", required: false },
       ],
     }),
     normalize: (value: unknown) => {
@@ -519,7 +524,7 @@ const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
   "payroll-setup": {
     defaults: () => ({
       instructions:
-        "Collect bank details, IRD information, and KiwiSaver preferences.",
+        "Please complete your payroll details below. Your IRD number is required for tax purposes under New Zealand law. If you're unsure about your tax code, the most common is 'M' for main income with no student loan, or 'M SL' if you have a student loan. Visit ird.govt.nz for more information.",
       fields: [
         {
           id: "bankAccountNumber",
@@ -538,7 +543,7 @@ const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
         {
           id: "taxCode",
           label: "Tax code",
-          placeholder: "e.g. M SL",
+          placeholder: "e.g. M, M SL, S, S SL, SH, SH SL",
           required: true,
           fieldType: "text",
         },

@@ -2,6 +2,77 @@
 // Creates visual branching logic in the workflow builder
 
 export const conditionTypes = [
+  // CONDITION GROUP - combine multiple conditions
+  {
+    id: "condition_group",
+    name: "Condition Group (AND/OR)",
+    description: "Combine multiple conditions with AND or OR logic",
+    category: "Advanced",
+    icon: "GitMerge",
+    isGroup: true,
+    fields: [
+      { key: "logic", label: "Logic", type: "select", required: true, options: [
+        { value: "AND", label: "ALL conditions must match (AND)" },
+        { value: "OR", label: "ANY condition must match (OR)" }
+      ]},
+      { key: "conditions", label: "Conditions", type: "condition_list", required: true, helpText: "Add conditions to this group" },
+    ],
+  },
+
+  // QUICK PRESETS - common combinations
+  {
+    id: "preset_new_hire",
+    name: "New Hire (First 90 Days)",
+    description: "Employee started within the last 90 days",
+    category: "Quick Filters",
+    icon: "UserPlus",
+    isPreset: true,
+    presetConfig: {
+      conditionType: "days_since_start",
+      conditionData: { operator: "less_than", days: 90 }
+    },
+    fields: [],
+  },
+  {
+    id: "preset_probation_ending",
+    name: "Probation Ending Soon",
+    description: "Employee's probation period ends within 14 days",
+    category: "Quick Filters",
+    icon: "AlertTriangle",
+    isPreset: true,
+    presetConfig: {
+      conditionType: "probation_status",
+      conditionData: { status: "probation_ending_soon" }
+    },
+    fields: [],
+  },
+  {
+    id: "preset_permanent_staff",
+    name: "Permanent Staff Only",
+    description: "Only permanent employees (not contractors/casual)",
+    category: "Quick Filters",
+    icon: "Users",
+    isPreset: true,
+    presetConfig: {
+      conditionType: "employee_contract_type",
+      conditionData: { operator: "is", contractTypes: ["permanent"] }
+    },
+    fields: [],
+  },
+  {
+    id: "preset_has_manager",
+    name: "Has Manager Assigned",
+    description: "Employee has a reporting manager",
+    category: "Quick Filters",
+    icon: "UserCheck",
+    isPreset: true,
+    presetConfig: {
+      conditionType: "has_manager",
+      conditionData: { hasManager: "yes" }
+    },
+    fields: [],
+  },
+
   // WHO - Employee filters
   {
     id: "employee_department",
@@ -137,6 +208,44 @@ export const conditionTypes = [
         { value: "probation_ending_soon", label: "Probation Ending Soon (within 14 days)" },
         { value: "past_probation", label: "Past Probation" }
       ]},
+    ],
+  },
+  {
+    id: "work_anniversary",
+    name: "Work Anniversary",
+    description: "Check if employee's work anniversary is approaching",
+    category: "Time Filters",
+    icon: "Gift",
+    fields: [
+      { key: "condition", label: "Condition", type: "select", required: true, options: [
+        { value: "upcoming_7_days", label: "Anniversary within 7 days" },
+        { value: "upcoming_30_days", label: "Anniversary within 30 days" },
+        { value: "today", label: "Anniversary is today" },
+        { value: "specific_year", label: "Specific Year Anniversary" }
+      ]},
+      { key: "years", label: "Years", type: "number", conditional: "condition=specific_year", placeholder: "5", helpText: "e.g., 1, 5, 10 years" },
+    ],
+  },
+  {
+    id: "tenure",
+    name: "Filter by Tenure",
+    description: "Check how long employee has been with the company",
+    category: "Time Filters",
+    icon: "TrendingUp",
+    fields: [
+      { key: "operator", label: "Operator", type: "select", required: true, options: [
+        { value: "greater_than", label: "More Than" },
+        { value: "less_than", label: "Less Than" },
+        { value: "equals", label: "Exactly" },
+        { value: "between", label: "Between" }
+      ]},
+      { key: "unit", label: "Unit", type: "select", required: true, options: [
+        { value: "days", label: "Days" },
+        { value: "months", label: "Months" },
+        { value: "years", label: "Years" }
+      ]},
+      { key: "value", label: "Value", type: "number", required: true, placeholder: "1" },
+      { key: "valueMax", label: "Max Value", type: "number", conditional: "operator=between", placeholder: "2" },
     ],
   },
   

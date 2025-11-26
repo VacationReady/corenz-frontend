@@ -1,13 +1,16 @@
 "use client";
 
-import { useMemo, type ReactElement } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 import Button from "@/components/ui/Button";
 import Checkbox from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/Badge";
 import { JourneyTemplatePicker } from "@/components/onboarding/JourneyTemplatePicker";
 import { ContextualHelpButton } from "@/components/onboarding/ContextualHelpOverlay";
+import { Zap, Check, ChevronDown, Star, Settings2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import {
   ChecklistItem,
@@ -528,6 +531,267 @@ function EditablePayrollFields({
   );
 }
 
+// Payroll field presets
+const PAYROLL_PRESETS = {
+  "nz-standard": {
+    name: "NZ Standard",
+    description: "Complete NZ payroll setup with IRD, tax code, bank details, and KiwiSaver",
+    badge: "Recommended",
+    instructions: "Please complete your payroll details below. Your IRD number is required for tax purposes under New Zealand law. If you're unsure about your tax code, the most common is 'M' for main income with no student loan, or 'M SL' if you have a student loan.",
+    fields: [
+      {
+        id: "bankAccountNumber",
+        label: "Bank account number",
+        placeholder: "00-0000-0000000-00",
+        required: true,
+        fieldType: "text" as PayrollFieldType,
+      },
+      {
+        id: "irdNumber",
+        label: "IRD number",
+        placeholder: "123-456-789",
+        required: true,
+        fieldType: "irdNumber" as PayrollFieldType,
+      },
+      {
+        id: "taxCode",
+        label: "Tax code",
+        placeholder: "e.g. M, M SL, S, S SL, SH, SH SL",
+        required: true,
+        fieldType: "text" as PayrollFieldType,
+      },
+      {
+        id: "kiwiSaverStatus",
+        label: "KiwiSaver status",
+        required: true,
+        defaultValue: DEFAULT_KIWISAVER_STATUS_OPTIONS[0],
+        fieldType: "kiwiSaverStatus" as PayrollFieldType,
+        options: Array.from(DEFAULT_KIWISAVER_STATUS_OPTIONS),
+      },
+      {
+        id: "kiwiSaverEmployeeRate",
+        label: "KiwiSaver employee contribution rate",
+        required: false,
+        defaultValue: DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS[0],
+        fieldType: "kiwiSaverEmployeeRate" as PayrollFieldType,
+        options: Array.from(DEFAULT_KIWISAVER_EMPLOYEE_RATE_OPTIONS),
+      },
+    ],
+  },
+  "minimal": {
+    name: "Minimal",
+    description: "Just bank account details - for contractors or when IRD is collected separately",
+    instructions: "Please enter your bank account details for payment.",
+    fields: [
+      {
+        id: "bankAccountNumber",
+        label: "Bank account number",
+        placeholder: "00-0000-0000000-00",
+        required: true,
+        fieldType: "text" as PayrollFieldType,
+      },
+    ],
+  },
+  "ird-only": {
+    name: "IRD & Tax Only",
+    description: "IRD number and tax code without KiwiSaver - for employees who've already opted out",
+    instructions: "Please enter your IRD number and tax code.",
+    fields: [
+      {
+        id: "irdNumber",
+        label: "IRD number",
+        placeholder: "123-456-789",
+        required: true,
+        fieldType: "irdNumber" as PayrollFieldType,
+      },
+      {
+        id: "taxCode",
+        label: "Tax code",
+        placeholder: "e.g. M, M SL, S, S SL",
+        required: true,
+        fieldType: "text" as PayrollFieldType,
+      },
+    ],
+  },
+  "custom": {
+    name: "Custom",
+    description: "Build your own payroll field configuration",
+    instructions: "",
+    fields: [],
+  },
+};
+
+type PayrollPresetKey = keyof typeof PAYROLL_PRESETS;
+
+function PayrollSetupEditor({
+  value,
+  onChange,
+}: MetadataEditorProps<{ instructions: string; fields: PayrollField[] }>) {
+  const [selectedPreset, setSelectedPreset] = useState<PayrollPresetKey | null>(null);
+  const [showCustomEditor, setShowCustomEditor] = useState(false);
+
+  // Detect current preset based on fields
+  const detectPreset = (): PayrollPresetKey | null => {
+    const fieldIds = new Set(value.fields.map((f) => f.id));
+    
+    if (fieldIds.has("irdNumber") && fieldIds.has("kiwiSaverStatus") && fieldIds.has("bankAccountNumber")) {
+      return "nz-standard";
+    }
+    if (fieldIds.size === 1 && fieldIds.has("bankAccountNumber")) {
+      return "minimal";
+    }
+    if (fieldIds.has("irdNumber") && fieldIds.has("taxCode") && !fieldIds.has("kiwiSaverStatus")) {
+      return "ird-only";
+    }
+    if (fieldIds.size > 0) {
+      return "custom";
+    }
+    return null;
+  };
+
+  const applyPreset = (presetKey: PayrollPresetKey) => {
+    const preset = PAYROLL_PRESETS[presetKey];
+    if (presetKey === "custom") {
+      setShowCustomEditor(true);
+      setSelectedPreset("custom");
+      return;
+    }
+    
+    onChange({
+      instructions: preset.instructions,
+      fields: preset.fields.map((f) => ({
+        ...f,
+        id: f.id || randomId(),
+      })),
+    });
+    setSelectedPreset(presetKey);
+    setShowCustomEditor(false);
+  };
+
+  const currentPreset = selectedPreset || detectPreset();
+
+  return (
+    <div className="space-y-4">
+      {/* Preset Selection */}
+      <div>
+        <Label className="text-sm font-medium mb-2 block">Quick Setup</Label>
+        <div className="grid grid-cols-2 gap-2">
+          {(Object.keys(PAYROLL_PRESETS) as PayrollPresetKey[]).map((key) => {
+            const preset = PAYROLL_PRESETS[key];
+            const isSelected = currentPreset === key;
+            
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => applyPreset(key)}
+                className={cn(
+                  "relative p-3 rounded-lg border text-left transition-all",
+                  isSelected
+                    ? "border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20"
+                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                )}
+              >
+                {preset.badge && (
+                  <Badge className="absolute top-2 right-2 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 text-[9px] px-1 py-0">
+                    <Star className="w-2 h-2 mr-0.5" />
+                    {preset.badge}
+                  </Badge>
+                )}
+                <div className="flex items-center gap-2 mb-1">
+                  {isSelected && (
+                    <div className="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5 text-white" />
+                    </div>
+                  )}
+                  <span className={cn(
+                    "text-sm font-medium",
+                    isSelected ? "text-indigo-700 dark:text-indigo-300" : "text-slate-700 dark:text-slate-300"
+                  )}>
+                    {preset.name}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2">
+                  {preset.description}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Current fields summary */}
+      {value.fields.length > 0 && !showCustomEditor && currentPreset !== "custom" && (
+        <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+              Fields included ({value.fields.length})
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowCustomEditor(true)}
+              className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+            >
+              <Settings2 className="w-3 h-3" />
+              Customize
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {value.fields.map((field) => (
+              <Badge key={field.id} variant="secondary" className="text-[10px]">
+                {field.label}
+                {field.required && <span className="text-red-500 ml-0.5">*</span>}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Custom Editor */}
+      {(showCustomEditor || currentPreset === "custom") && (
+        <div className="space-y-4 pt-2 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Custom Fields</Label>
+            {currentPreset !== "custom" && (
+              <button
+                type="button"
+                onClick={() => setShowCustomEditor(false)}
+                className="text-xs text-slate-500 hover:text-slate-700"
+              >
+                Hide editor
+              </button>
+            )}
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Instructions</Label>
+            <Textarea
+              rows={3}
+              value={value.instructions}
+              onChange={(e) => onChange({ ...value, instructions: e.target.value })}
+              placeholder="Instructions shown to the employee..."
+            />
+          </div>
+          
+          <EditablePayrollFields
+            fields={value.fields}
+            onChange={(fields) => onChange({ ...value, fields })}
+          />
+        </div>
+      )}
+
+      {/* NZ Compliance tip */}
+      {currentPreset !== "nz-standard" && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+          <Zap className="w-4 h-4 text-amber-600 flex-none mt-0.5" />
+          <div className="text-xs text-amber-700 dark:text-amber-300">
+            <span className="font-medium">NZ Compliance Tip:</span> The NZ Standard preset includes all fields required for IRD payday filing and KiwiSaver enrollment.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const metadataConfigs: Record<string, MetadataConfig<any>> = {
   "acknowledge-document": {
@@ -799,20 +1063,7 @@ const metadataConfigs: Record<string, MetadataConfig<any>> = {
       normalizeStepMetadataBase("payroll-setup", value),
     schema: onboardingStepMetadataSchemas["payroll-setup"],
     Editor: ({ value, onChange }) => (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Instructions</Label>
-          <Textarea
-            rows={3}
-            value={value.instructions}
-            onChange={(e) => onChange({ ...value, instructions: e.target.value })}
-          />
-        </div>
-        <EditablePayrollFields
-          fields={value.fields}
-          onChange={(fields) => onChange({ ...value, fields })}
-        />
-      </div>
+      <PayrollSetupEditor value={value} onChange={onChange} />
     ),
   },
   "benefits-enrollment": {

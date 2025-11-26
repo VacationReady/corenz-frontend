@@ -80,10 +80,15 @@ import { OnboardingSimulator } from "./OnboardingSimulator";
 import { EnhancedStepPalette } from "./EnhancedStepPalette";
 import { EnhancedStepCard } from "./EnhancedStepCard";
 import { LivePreviewPane } from "./LivePreviewPane";
+import { QuickAddCompliance, ComplianceSummaryBadge } from "./QuickAddCompliance";
 import { 
   getDefaultMetadataForStep, 
   normalizeStepMetadata 
 } from "./MetadataPanel";
+import {
+  NZ_ONBOARDING_PRESETS,
+  type NzOnboardingPreset,
+} from "@/lib/onboarding/nzPresets";
 
 // Step Types with beautiful icons and colors
 export const STEP_TYPES = [
@@ -379,6 +384,84 @@ export function OnboardingBuilderEnhanced({
     setSelectedStepIndex(toIndex);
   }, []);
 
+  // Apply NZ compliance preset
+  const applyPreset = useCallback((preset: NzOnboardingPreset) => {
+    if (!preset) return;
+
+    let added = 0;
+    const createdSteps: any[] = [];
+
+    setSteps((prev) => {
+      const next = [...prev];
+      preset.steps.forEach((presetStep) => {
+        const slug = presetStep.slug;
+        const metadataPayload = {
+          ...(presetStep.metadata || {}),
+          presetSlug: slug,
+        };
+
+        // Check if step already exists
+        const existingIndex = next.findIndex(
+          (step) => step?.metadata?.presetSlug === slug
+        );
+
+        if (existingIndex >= 0) {
+          // Already exists, skip
+          return;
+        }
+
+        const baseStep = createStep(presetStep.type);
+        const hydratedMetadata = normalizeStepMetadata(
+          presetStep.type,
+          metadataPayload
+        );
+        const newStep = {
+          ...baseStep,
+          title: presetStep.title,
+          description: presetStep.description,
+          required: presetStep.required ?? baseStep.required,
+          documentId: presetStep.documentId ?? baseStep.documentId,
+          uploadType: presetStep.uploadType ?? baseStep.uploadType,
+          formId: presetStep.formId ?? baseStep.formId,
+          formFields: presetStep.formFields ?? baseStep.formFields,
+          metadata: hydratedMetadata,
+        };
+        next.push(newStep);
+        createdSteps.push(newStep);
+        added += 1;
+      });
+      return next;
+    });
+
+    if (added === 0) {
+      toast.info("Preset already applied", {
+        description: "All steps from this preset are already in your template.",
+      });
+      return;
+    }
+
+    setSelectedStepIndex(steps.length + createdSteps.length - 1);
+    toast.success(`Added ${added} NZ compliance step${added === 1 ? "" : "s"}`, {
+      description: preset.name,
+    });
+  }, [steps.length]);
+
+  // Track applied presets
+  const appliedPresets = useMemo(() => {
+    const applied = new Set<string>();
+    steps.forEach((step) => {
+      const slug = step?.metadata?.presetSlug;
+      if (slug) {
+        NZ_ONBOARDING_PRESETS.forEach((preset) => {
+          if (preset.steps.some((s) => s.slug === slug)) {
+            applied.add(preset.id);
+          }
+        });
+      }
+    });
+    return applied;
+  }, [steps]);
+
   // Drag and drop handler
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
@@ -548,8 +631,17 @@ export function OnboardingBuilderEnhanced({
             </div>
           </div>
 
+          {/* Compliance Summary */}
+          <ComplianceSummaryBadge steps={steps} />
+
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {/* Quick Add Compliance */}
+            <QuickAddCompliance
+              onApplyPreset={applyPreset}
+              appliedPresets={appliedPresets}
+              steps={steps}
+            />
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 variant="outline"

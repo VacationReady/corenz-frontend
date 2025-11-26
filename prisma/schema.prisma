@@ -217,6 +217,9 @@ model Company {
   SSOConfiguration                    SSOConfiguration?
   SavedReport                         SavedReport[]
   ReportSendHistory                   ReportSendHistory[]
+  ReportFilterPreset                  ReportFilterPreset[]
+  ReportSchedule                      ReportSchedule[]
+  ReportShare                         ReportShare[]
   TrainingProvider                    TrainingProvider[]
   Surveys                             Survey[]
   SurveyAutomations                   SurveyAutomation[]
@@ -275,6 +278,7 @@ model Department {
   Document                           Document[]                    @relation("DocumentDepartments")
   OnboardingTemplate                 OnboardingTemplate[]          @relation("OnboardingTemplateDepartments")
   RotaGroups                         RotaGroup[]
+  ReportShare                        ReportShare[]
 
   @@unique([companyId, name])
   @@unique([companyId, code])
@@ -1756,8 +1760,36 @@ model SavedReport {
   Company           Company             @relation(fields: [companyId], references: [id])
   User              User                @relation(fields: [createdBy], references: [id])
   ReportSendHistory ReportSendHistory[]
+  ReportSchedule    ReportSchedule[]
+  ReportShare       ReportShare[]
 
   @@unique([name, companyId])
+}
+
+model ReportShare {
+  id           Int       @id @default(autoincrement())
+  reportId     Int
+  shareType    String    // "user", "team", "department", "company", "link"
+  permission   String    @default("view") // "view", "edit", "admin"
+  userId       String?   // For user shares
+  departmentId String?   // For department shares
+  teamId       String?   // For team shares
+  shareToken   String?   @unique // For link shares
+  expiresAt    DateTime? // For link expiration
+  createdById  String
+  createdAt    DateTime  @default(now())
+  companyId    String
+  SavedReport  SavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  User         User?       @relation("ReportShareUser", fields: [userId], references: [id])
+  Department   Department? @relation(fields: [departmentId], references: [id])
+  CreatedBy    User        @relation("ReportShareCreator", fields: [createdById], references: [id])
+  Company      Company     @relation(fields: [companyId], references: [id])
+
+  @@unique([reportId, shareType, userId])
+  @@unique([reportId, shareType, departmentId])
+  @@index([reportId])
+  @@index([userId])
+  @@index([shareToken])
 }
 
 model ReportSendHistory {
@@ -1782,6 +1814,75 @@ model ReportSendHistory {
   @@index([reportId])
   @@index([companyId, sentAt])
   @@index([sentBy])
+}
+
+model ReportFilterPreset {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  filterGroup Json     // FilterGroup structure
+  scope       String   @default("personal") // "personal", "team", "company"
+  category    String?  // Optional category for organizing presets
+  isDefault   Boolean  @default(false)
+  companyId   String
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  Company     Company  @relation(fields: [companyId], references: [id])
+  createdBy   User     @relation(fields: [userId], references: [id])
+
+  @@unique([name, companyId, userId])
+  @@index([companyId, scope])
+  @@index([userId])
+}
+
+model ReportSchedule {
+  id              Int       @id @default(autoincrement())
+  reportId        Int
+  name            String
+  description     String?
+  frequency       String    // "daily", "weekly", "monthly", "quarterly"
+  dayOfWeek       Int?      // 0-6 for weekly (0 = Sunday)
+  dayOfMonth      Int?      // 1-31 for monthly
+  timeOfDay       String    // "HH:mm" format
+  timezone        String    @default("Pacific/Auckland")
+  format          String    @default("PDF") // "PDF", "EXCEL", "CSV"
+  recipients      Json      // Array of email addresses or user IDs
+  recipientType   String    @default("custom") // "custom", "department", "job_role"
+  departmentIds   String[]  @default([])
+  jobRoleIds      String[]  @default([])
+  includeMessage  Boolean   @default(false)
+  customMessage   String?
+  isActive        Boolean   @default(true)
+  nextRunAt       DateTime?
+  lastRunAt       DateTime?
+  lastRunStatus   String?   // "success", "failed", "skipped"
+  lastRunError    String?
+  companyId       String
+  createdById     String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  SavedReport     SavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  Company         Company     @relation(fields: [companyId], references: [id])
+  CreatedBy       User        @relation("ReportScheduleCreator", fields: [createdById], references: [id])
+  RunHistory      ReportScheduleRunHistory[]
+
+  @@unique([reportId, name])
+  @@index([companyId, isActive])
+  @@index([nextRunAt])
+}
+
+model ReportScheduleRunHistory {
+  id              String    @id @default(uuid())
+  scheduleId      Int
+  runAt           DateTime  @default(now())
+  status          String    // "success", "failed", "skipped"
+  recipientCount  Int       @default(0)
+  errorMessage    String?
+  duration        Int?      // in milliseconds
+  Schedule        ReportSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, runAt])
 }
 
 model TrainingProvider {
@@ -1877,6 +1978,10 @@ model User {
   PersonalInfoAudit_PersonalInfoAudit_subjectUserIdToUser                  PersonalInfoAudit[]             @relation("PersonalInfoAudit_subjectUserIdToUser")
   SavedReport                                                              SavedReport[]
   ReportSendHistory                                                        ReportSendHistory[]
+  ReportFilterPreset                                                       ReportFilterPreset[]
+  ReportSchedule                                                           ReportSchedule[]                @relation("ReportScheduleCreator")
+  ReportSharesReceived                                                     ReportShare[]                   @relation("ReportShareUser")
+  ReportSharesCreated                                                      ReportShare[]                   @relation("ReportShareCreator")
   Company                                                                  Company                         @relation(fields: [companyId], references: [id])
   Department_User_departmentIdToDepartment                                 Department?                     @relation("User_departmentIdToDepartment", fields: [departmentId], references: [id])
   GenderOption                                                             GenderOption?                   @relation(fields: [genderOptionId], references: [id])

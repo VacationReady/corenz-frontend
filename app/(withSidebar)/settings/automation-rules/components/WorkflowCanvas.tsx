@@ -29,6 +29,7 @@ import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Download, Maximize2, Minimize2, TestTube, Save } from "lucide-react";
 import { WorkflowPalette } from "./WorkflowPalette";
 import { NodePropertiesPanel } from "./NodePropertiesPanel";
+import { useWorkflowReferenceData } from "@/hooks/useWorkflowReferenceData";
 import { WorkflowTemplateGallery } from "./WorkflowTemplateGallery";
 import { TriggerNode as RealTriggerNode } from "./nodes/TriggerNode";
 import { ConditionNode as RealConditionNode } from "./nodes/ConditionNode";
@@ -102,6 +103,9 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   const [showTemplates, setShowTemplates] = useState(false);
   const [activeDragType, setActiveDragType] = useState<string | null>(null);
   const [activeDragLabel, setActiveDragLabel] = useState<string | null>(null);
+
+  // Load reference data once at the canvas level (prevents duplicate fetches)
+  const referenceData = useWorkflowReferenceData();
 
   // Track loaded workflow to prevent overwriting local state on every render
   const loadedWorkflowId = useRef<string | undefined>(undefined);
@@ -382,6 +386,7 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                   setNodes((nds) => nds.map((n) => (n.id === selectedNode.id ? { ...n, data: { ...n.data, ...updates } } : n)));
                 }}
                 onClose={() => setShowProperties(false)}
+                referenceData={referenceData}
               />
             ) : (
               <Button variant="ghost" size="sm" onClick={() => setShowProperties(true)} className="w-full h-12 rounded-none">

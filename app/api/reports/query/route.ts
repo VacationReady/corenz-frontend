@@ -8,6 +8,7 @@ import { z } from "zod";
 import { resolveReportingTimeConfig } from "@/lib/reportingTimeConfig";
 import { deserializeFilterGroup, normalizeFilterGroupInput, addRuleToGroup, createFilterRule } from "@/lib/reportFilters";
 import type { FilterGroup } from "@/lib/reportFilters";
+import { reportQueryCache, cachedReportQuery } from "@/lib/reportCache";
 
 export const runtime = "nodejs";
 
@@ -602,7 +603,7 @@ export async function POST(req: Request) {
 
                 const timeConfig = await resolveReportingTimeConfig(session.user.id, companyId);
 
-        // Build and execute the constrained query
+        // Build and execute the constrained query with caching
                 const { queries } = buildDynamicQuery({
                         selectedFields: sanitizedSelectedFields,
                         filters: enforcedFilterGroup,
@@ -618,22 +619,50 @@ export async function POST(req: Request) {
                 const primary = queries[0];
                 const model = primary.model as keyof typeof prisma;
 
-                const countArgs = primary.prismaQuery.where
-                        ? { where: primary.prismaQuery.where }
-                        : {};
+                // Generate cache key for this specific query
+                const cacheParams = {
+                        selectedFields: sanitizedSelectedFields,
+                        filters: enforcedFilterGroup,
+                        pagination,
+                        sort: translatedSort,
+                        companyId,
+                };
 
-                // @ts-ignore dynamic access
-		const total = await (prisma[model] as any).count(countArgs);
-		// @ts-ignore dynamic access
-		let results = await (prisma[model] as any).findMany(primary.prismaQuery);
-                results = await attachComputedFields(results, sanitizedSelectedFields, primary.model);
+                // Use caching for query results
+                const { data: queryResult, cached, responseTimeMs } = await cachedReportQuery<{ results: any[]; total: number }>(
+                        cacheParams,
+                        async () => {
+                                const countArgs = primary.prismaQuery.where
+                                        ? { where: primary.prismaQuery.where }
+                                        : {};
+
+                                // @ts-ignore dynamic access
+                                const total = await (prisma[model] as any).count(countArgs);
+                                // @ts-ignore dynamic access
+                                let results = await (prisma[model] as any).findMany(primary.prismaQuery);
+                                results = await attachComputedFields(results, sanitizedSelectedFields, primary.model);
+                                
+                                return { results, total };
+                        }
+                );
+
+                // Add cache headers for debugging/monitoring
+                const headers = new Headers();
+                headers.set("X-Cache-Status", cached ? "HIT" : "MISS");
+                headers.set("X-Response-Time", `${responseTimeMs}ms`);
+                headers.set("X-Cache-Hit-Rate", `${reportQueryCache.getHitRate()}%`);
 
                 return NextResponse.json({
                         status: "success",
                         message: "Report generated successfully",
-                        data: results,
-                        total,
-                });
+                        data: queryResult.results,
+                        total: queryResult.total,
+                        _meta: {
+                                cached,
+                                responseTimeMs,
+                                cacheHitRate: reportQueryCache.getHitRate(),
+                        },
+                }, { headers });
 	} catch (error: any) {
 		console.error("🔥 Error in report query API:", error);
 		if (error instanceof z.ZodError) {

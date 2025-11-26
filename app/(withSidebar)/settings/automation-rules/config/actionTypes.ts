@@ -44,15 +44,35 @@ export const actionTypes = [
     fields: [
       { key: "title", label: "Task Title", type: "text", required: true, placeholder: "Complete probation review" },
       { key: "description", label: "Description", type: "textarea", placeholder: "Review performance and confirm continuation" },
+      { key: "taskCategory", label: "Category", type: "select", options: [
+        { value: "general", label: "General" },
+        { value: "hr_admin", label: "HR Admin" },
+        { value: "compliance", label: "Compliance" },
+        { value: "onboarding", label: "Onboarding" },
+        { value: "offboarding", label: "Offboarding" },
+        { value: "training", label: "Training" },
+        { value: "performance", label: "Performance" },
+        { value: "documents", label: "Documents" }
+      ]},
+      { key: "priority", label: "Priority", type: "select", options: [
+        { value: "low", label: "Low" },
+        { value: "normal", label: "Normal" },
+        { value: "high", label: "High" },
+        { value: "urgent", label: "Urgent" }
+      ]},
       { key: "assigneeType", label: "Assign To", type: "select", required: true, options: [
         { value: "employee", label: "Employee (trigger subject)" },
         { value: "manager", label: "Employee's Manager" },
         { value: "hr", label: "HR Team" },
+        { value: "it", label: "IT Team" },
+        { value: "finance", label: "Finance Team" },
         { value: "specific", label: "Specific User" }
       ]},
       { key: "assigneeId", label: "Specific User", type: "select", conditional: "assigneeType=specific" },
       { key: "dueDays", label: "Due in (days)", type: "number", placeholder: "7" },
-      { key: "urgent", label: "Mark as urgent", type: "boolean", default: false },
+      { key: "addChecklist", label: "Add subtasks checklist", type: "boolean", default: false },
+      { key: "checklistItems", label: "Subtasks (one per line)", type: "textarea", conditional: "addChecklist=true", placeholder: "Review documents\nSchedule meeting\nComplete form" },
+      { key: "sendNotification", label: "Send email notification", type: "boolean", default: true },
     ],
   },
   
@@ -60,13 +80,43 @@ export const actionTypes = [
   {
     id: "assign_form",
     name: "Assign Form",
-    description: "Assign a form → appears in Action Items until completed",
+    description: "Assign a form, survey, or data table → appears in Action Items until completed",
     category: "Forms & Documents",
     icon: "FileText",
     fields: [
+      { key: "formType", label: "Form Type", type: "select", options: [
+        { value: "all", label: "All Types" },
+        { value: "FORM", label: "Forms (single-record)" },
+        { value: "TABLE", label: "Data Tables (multi-record)" },
+        { value: "SURVEY", label: "Surveys (one-time)" },
+        { value: "DATA_SCREEN", label: "Data Screens" }
+      ], helpText: "Filter which type of form to show" },
       { key: "formId", label: "Form", type: "select", required: true },
+      { key: "assignTo", label: "Assign To", type: "select", options: [
+        { value: "employee", label: "Employee (trigger subject)" },
+        { value: "manager", label: "Employee's Manager" },
+        { value: "hr", label: "HR Team" },
+        { value: "specific", label: "Specific User" }
+      ]},
+      { key: "assigneeId", label: "Specific User", type: "select", conditional: "assignTo=specific" },
       { key: "dueDays", label: "Due in (days)", type: "number", placeholder: "7" },
       { key: "sendReminder", label: "Send email reminder", type: "boolean", default: true },
+      { key: "reminderDays", label: "Reminder before due (days)", type: "number", placeholder: "1", conditional: "sendReminder=true" },
+      { key: "notifyManager", label: "CC Manager on assignment", type: "boolean", default: false },
+    ],
+  },
+  {
+    id: "assign_onboarding_checklist",
+    name: "Assign Onboarding Checklist",
+    description: "Start an onboarding journey with a template checklist",
+    category: "Forms & Documents",
+    icon: "ListChecks",
+    fields: [
+      { key: "templateId", label: "Onboarding Template", type: "select", required: true, helpText: "Select which onboarding checklist to assign" },
+      { key: "startImmediately", label: "Start Immediately", type: "boolean", default: true },
+      { key: "startDate", label: "Start Date", type: "date", conditional: "startImmediately=false" },
+      { key: "notifyEmployee", label: "Notify Employee", type: "boolean", default: true },
+      { key: "notifyManager", label: "Notify Manager", type: "boolean", default: true },
     ],
   },
   {

@@ -28,6 +28,7 @@ import {
   Layers
 } from "lucide-react";
 import ReportWizard, { ReportConfig } from "@/components/reports/ReportWizard";
+import QuickReportBuilder, { QuickReportConfig } from "@/components/reports/QuickReportBuilder";
 import TemplateGallery from "../../components/reports/TemplateGallery";
 import Button from "@/components/ui/button";
 import { PageShell } from "@/components/ui/PageShell";
@@ -92,18 +93,24 @@ const categoryConfig: Record<string, { icon: React.ReactNode; color: string; bgC
   },
 };
 
+type WizardType = "quick" | "full" | null;
+
 export default function NewReportBuilderPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  const [showWizard, setShowWizard] = useState(false);
+  const [activeWizard, setActiveWizard] = useState<WizardType>(null);
   const [wizardInitialConfig, setWizardInitialConfig] = useState<Partial<ReportConfig> | undefined>(undefined);
   const [recentReports, setRecentReports] = useState<RecentReport[]>([]);
   const [loadingReports, setLoadingReports] = useState<boolean>(true);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // For backwards compatibility
+  const showWizard = activeWizard !== null;
+  const setShowWizard = (show: boolean) => setActiveWizard(show ? "quick" : null);
 
   const breadcrumbs = useBreadcrumbs(
     undefined,
@@ -256,8 +263,66 @@ export default function NewReportBuilderPage() {
   };
 
   const handleCancelWizard = () => {
-    setShowWizard(false);
+    setActiveWizard(null);
     setWizardInitialConfig(undefined);
+  };
+
+  const handleQuickReportComplete = async (config: QuickReportConfig) => {
+    try {
+      const requestBody = {
+        name: config.name,
+        category: "custom",
+        selectedFields: config.selectedFields,
+        filterGroup: config.filterGroup,
+        sort: config.sorts?.[0],
+        sorts: config.sorts,
+      };
+
+      const response = await fetch("/api/reports/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast({
+          title: "Report saved",
+          description: "Your new report has been saved successfully.",
+        });
+
+        const reportId = result.id || result.data?.id;
+        const params = new URLSearchParams();
+        params.set("returnTo", "/reports/builder-new");
+
+        if (reportId) {
+          params.set("reportId", String(reportId));
+          router.push(`/reports/preview?${params.toString()}`);
+        } else {
+          params.set("fields", config.selectedFields.join(","));
+          router.push(`/reports/preview?${params.toString()}`);
+        }
+
+        void fetchRecentReports();
+      } else {
+        toast({
+          title: "Failed to save report",
+          description: result.error || result.details || "Unknown error",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("💥 Error saving report:", error);
+      toast({
+        title: "Error saving report",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred while saving the report.",
+        variant: "destructive",
+      });
+    }
+    setActiveWizard(null);
   };
 
   const handleTemplateExecute = useCallback((template: ReportLibraryEntry) => {
@@ -279,7 +344,11 @@ export default function NewReportBuilderPage() {
 
   const handleCustomReportStart = useCallback(() => {
     setWizardInitialConfig(undefined);
-    setShowWizard(true);
+    setActiveWizard("full");
+  }, []);
+
+  const handleQuickReportStart = useCallback(() => {
+    setActiveWizard("quick");
   }, []);
 
   useEffect(() => {
@@ -310,7 +379,16 @@ export default function NewReportBuilderPage() {
     }
   };
 
-  if (showWizard) {
+  if (activeWizard === "quick") {
+    return (
+      <QuickReportBuilder
+        onComplete={handleQuickReportComplete}
+        onCancel={handleCancelWizard}
+      />
+    );
+  }
+
+  if (activeWizard === "full") {
     return (
       <ReportWizard 
         onComplete={handleCreateReport} 
@@ -327,15 +405,27 @@ export default function NewReportBuilderPage() {
       icon={<BarChart3 className="h-6 w-6" />}
       breadcrumbs={breadcrumbs}
       action={
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button 
-            onClick={() => setShowWizard(true)} 
-            className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/25 h-10 px-5 rounded-xl flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Custom Report
-          </Button>
-        </motion.div>
+        <div className="flex items-center gap-2">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              variant="outline"
+              onClick={() => setActiveWizard("full")} 
+              className="h-10 px-4 rounded-xl flex items-center gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Advanced
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              onClick={() => setActiveWizard("quick")} 
+              className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/25 h-10 px-5 rounded-xl flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Quick Report
+            </Button>
+          </motion.div>
+        </div>
       }
     >
       <div className="space-y-8">
@@ -346,21 +436,27 @@ export default function NewReportBuilderPage() {
           transition={{ duration: 0.4 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-4"
         >
-          {/* Custom Report Card */}
+          {/* Quick Report Builder Card - Primary/Default Option */}
           <motion.div
             whileHover={{ scale: 1.02, y: -4 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleCustomReportStart}
+            onClick={() => setActiveWizard("quick")}
             className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-blue-600 p-6 shadow-depth-3 group"
           >
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
             <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute top-3 right-3">
+              <Badge className="bg-white/20 text-white text-[10px] border-0">
+                <Zap className="w-3 h-3 mr-1" />
+                Quick
+              </Badge>
+            </div>
             <div className="relative">
               <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Build Custom Report</h3>
-              <p className="text-white/80 text-sm mb-4">Create a tailored report with exactly the fields and filters you need.</p>
+              <h3 className="text-xl font-bold text-white mb-2">Quick Report Builder</h3>
+              <p className="text-white/80 text-sm mb-4">2-step wizard with templates. Best for everyday HR reports.</p>
               <div className="flex items-center text-white/90 text-sm font-medium group-hover:translate-x-1 transition-transform">
                 Start building
                 <ArrowRight className="w-4 h-4 ml-2" />

@@ -108,10 +108,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [locationOptions, setLocationOptions] = useState<{ label: string; value: string }[]>([]);
   const [blackoutDateKeys, setBlackoutDateKeys] = useState<Set<string>>(new Set());
   const [blackoutIdsByDay, setBlackoutIdsByDay] = useState<Record<string, string[]>>({});
-  const [newlyCreatedBlackoutKeys, setNewlyCreatedBlackoutKeys] = useState<Set<string>>(new Set());
   const calendarRef = useRef<FullCalendar | null>(null);
   const eventsCacheRef = useRef<{ key: string; data: any[] } | null>(null);
-  const blackoutKeyHashRef = useRef<string>("");
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
   const [holidayDefaultDate, setHolidayDefaultDate] = useState<Date | null>(null);
   const { data: session } = useSession();
@@ -445,27 +443,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           },
         };
       });
-      const nextHash = Array.from(keys).sort().join(",");
-      
-      // Detect newly created blackout days for animation
-      if (blackoutKeyHashRef.current && nextHash !== blackoutKeyHashRef.current) {
-        const oldKeys = new Set(blackoutKeyHashRef.current.split(",").filter(Boolean));
-        const newKeys = new Set<string>();
-        keys.forEach(key => {
-          if (!oldKeys.has(key)) {
-            newKeys.add(key);
-          }
-        });
-        if (newKeys.size > 0) {
-          setNewlyCreatedBlackoutKeys(newKeys);
-          // Clear animation state after animation completes
-          setTimeout(() => setNewlyCreatedBlackoutKeys(new Set()), 700);
-        }
-      }
-      
       setBlackoutDateKeys(keys);
       setBlackoutIdsByDay(idMap);
-      blackoutKeyHashRef.current = nextHash;
       successCallback(blackoutEvents);
     } catch (error) {
       console.error("Blackout fetch error", error);
@@ -561,11 +540,9 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     const isSelected = selectedDay && selectedDay.toDateString() === d.toDateString();
     const isWeekend = d.getDay() === 0 || d.getDay() === 6;
     const isBlackout = blackoutDateKeys.has(key);
-    const isNewBlackout = newlyCreatedBlackoutKeys.has(key);
     return ([
       "cz-daycell",
       isBlackout && "cz-daycell--blackout",
-      isBlackout && isNewBlackout && "cz-daycell--blackout-animate",
       level > 0 && `cz-daycell--heat-${level}`,
       isToday && "cz-daycell--today",
       isSelected && "cz-daycell--selected",
@@ -574,18 +551,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   };
 
   const dayCellContent = (arg: any) => {
-    const d = arg.date as Date;
-    const key = dateKey(d); // Use local date for calendar cells
-    const isBlackout = blackoutDateKeys.has(key);
-    const isNewBlackout = newlyCreatedBlackoutKeys.has(key);
     return (
       <div className="cz-daycell__inner">
-        {isBlackout ? (
-          <div className={`cz-badge-modern cz-badge-modern--blocked${isNewBlackout ? " cz-badge-modern--animate" : ""}`}>
-            <ShieldBan className="h-3 w-3" />
-            <span>Blocked</span>
-          </div>
-        ) : null}
         <div className="cz-daycell__date">{arg.dayNumberText}</div>
       </div>
     );

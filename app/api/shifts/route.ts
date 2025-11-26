@@ -37,15 +37,15 @@ const shiftInclude = {
 type ShiftWithRelations = Prisma.ShiftGetPayload<{ include: typeof shiftInclude }>;
 
 const createShiftSchema = z.object({
-  employeeId: z.string().optional(),
-  templateId: z.string().optional(),
-  departmentId: z.string().optional(),
-  locationId: z.string().optional(),
+  employeeId: z.string().nullable().optional(),
+  templateId: z.string().nullable().optional(),
+  departmentId: z.string().nullable().optional(),
+  locationId: z.string().nullable().optional(),
   startTime: z.string().datetime(),
   endTime: z.string().datetime(),
   breakDuration: z.number().default(0),
-  notes: z.string().optional(),
-  role: z.string().optional(),
+  notes: z.string().nullable().optional(),
+  role: z.string().nullable().optional(),
   requiredSkills: z.array(z.string()).default([]),
   requiresConfirmation: z.boolean().default(false),
 });

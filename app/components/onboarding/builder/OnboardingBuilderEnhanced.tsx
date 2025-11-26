@@ -11,8 +11,13 @@ import {
   MouseSensor,
   TouchSensor,
   KeyboardSensor,
+  useDroppable,
 } from "@dnd-kit/core";
-import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { 
+  sortableKeyboardCoordinates,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Button from "@/components/ui/Button";
@@ -123,6 +128,117 @@ interface OnboardingBuilderEnhancedProps {
   template?: any;
   onSaved: () => void;
   onCancel: () => void;
+}
+
+// Droppable Canvas Component
+function StepsCanvas({
+  canvasRef,
+  steps,
+  selectedStepIndex,
+  setSelectedStepIndex,
+  updateStep,
+  removeStep,
+  duplicateStep,
+  addStep,
+  setShowPalette,
+}: {
+  canvasRef: React.RefObject<HTMLDivElement>;
+  steps: any[];
+  selectedStepIndex: number | null;
+  setSelectedStepIndex: (index: number | null) => void;
+  updateStep: (index: number, data: any) => void;
+  removeStep: (index: number) => void;
+  duplicateStep: (index: number) => void;
+  addStep: (type: string) => void;
+  setShowPalette: (show: boolean) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: "steps-canvas" });
+
+  return (
+    <div 
+      ref={canvasRef}
+      className="flex-1 overflow-y-auto px-6 py-6"
+    >
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "min-h-full rounded-2xl transition-all duration-300",
+          isOver && "bg-indigo-50/50 dark:bg-indigo-900/20 ring-2 ring-indigo-300 dark:ring-indigo-700 ring-dashed"
+        )}
+      >
+        {steps.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="h-full flex items-center justify-center py-20"
+          >
+            <div className="text-center max-w-lg">
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 mb-6"
+              >
+                <Layers className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
+              </motion.div>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
+                Start Building Your Journey
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-8">
+                Drag steps from the palette on the left to create an amazing onboarding experience for your new hires.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                {STEP_TYPES.slice(0, 4).map((type) => (
+                  <motion.button
+                    key={type.value}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => addStep(type.value)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all"
+                  >
+                    <div className={cn("w-6 h-6 rounded-lg bg-gradient-to-br flex items-center justify-center", type.color)}>
+                      <type.icon className="w-3 h-3 text-white" />
+                    </div>
+                    <span className="text-sm font-medium">{type.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <SortableContext items={steps.map(s => s.key)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3 max-w-4xl mx-auto">
+              <AnimatePresence mode="popLayout">
+                {steps.map((step, index) => (
+                  <EnhancedStepCard
+                    key={step.key}
+                    step={step}
+                    index={index}
+                    isSelected={selectedStepIndex === index}
+                    onSelect={() => setSelectedStepIndex(index)}
+                    onUpdate={(data) => updateStep(index, data)}
+                    onRemove={() => removeStep(index)}
+                    onDuplicate={() => duplicateStep(index)}
+                    stepType={STEP_TYPES.find((t) => t.value === step.type)}
+                  />
+                ))}
+              </AnimatePresence>
+
+              {/* Add Step Button */}
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => setShowPalette(true)}
+                className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all flex items-center justify-center gap-2 text-slate-500 hover:text-indigo-600"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="font-medium">Add another step</span>
+              </motion.button>
+            </div>
+          </SortableContext>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function OnboardingBuilderEnhanced({
@@ -275,6 +391,17 @@ export function OnboardingBuilderEnhanced({
     // Adding from palette
     if (dragged?.source === "step-palette" && dragged?.type) {
       const newStep = createStep(dragged.type);
+      
+      // Check if dropped on the canvas itself (empty area or canvas drop zone)
+      if (over.id === "steps-canvas") {
+        // Add to the end of the list
+        setSteps((prev) => [...prev, newStep]);
+        setSelectedStepIndex(steps.length);
+        toast.success(`Added "${STEP_TYPES.find(t => t.value === dragged.type)?.label}" step`);
+        return;
+      }
+      
+      // Dropped over an existing step - insert at that position
       const overIndex = steps.findIndex((s) => s.key === over.id);
       const insertIndex = overIndex === -1 ? steps.length : overIndex;
       
@@ -288,7 +415,12 @@ export function OnboardingBuilderEnhanced({
       return;
     }
 
-    // Reordering
+    // Reordering existing steps
+    if (over.id === "steps-canvas") {
+      // Dropped on canvas but not over a specific step - no reorder needed
+      return;
+    }
+    
     const activeIndex = steps.findIndex((s) => s.key === active.id);
     const overIndex = steps.findIndex((s) => s.key === over.id);
     
@@ -501,79 +633,17 @@ export function OnboardingBuilderEnhanced({
           </button>
 
           {/* Canvas */}
-          <div 
-            ref={canvasRef}
-            className="flex-1 overflow-y-auto px-6 py-6"
-          >
-            {steps.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="h-full flex items-center justify-center"
-              >
-                <div className="text-center max-w-lg">
-                  <motion.div
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 mb-6"
-                  >
-                    <Layers className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
-                  </motion.div>
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
-                    Start Building Your Journey
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-400 mb-8">
-                    Drag steps from the palette on the left to create an amazing onboarding experience for your new hires.
-                  </p>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {STEP_TYPES.slice(0, 4).map((type) => (
-                      <motion.button
-                        key={type.value}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => addStep(type.value)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all"
-                      >
-                        <div className={cn("w-6 h-6 rounded-lg bg-gradient-to-br flex items-center justify-center", type.color)}>
-                          <type.icon className="w-3 h-3 text-white" />
-                        </div>
-                        <span className="text-sm font-medium">{type.label}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <div className="space-y-3 max-w-4xl mx-auto">
-                <AnimatePresence mode="popLayout">
-                  {steps.map((step, index) => (
-                    <EnhancedStepCard
-                      key={step.key}
-                      step={step}
-                      index={index}
-                      isSelected={selectedStepIndex === index}
-                      onSelect={() => setSelectedStepIndex(index)}
-                      onUpdate={(data) => updateStep(index, data)}
-                      onRemove={() => removeStep(index)}
-                      onDuplicate={() => duplicateStep(index)}
-                      stepType={STEP_TYPES.find((t) => t.value === step.type)}
-                    />
-                  ))}
-                </AnimatePresence>
-
-                {/* Add Step Button */}
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  onClick={() => setShowPalette(true)}
-                  className="w-full py-4 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all flex items-center justify-center gap-2 text-slate-500 hover:text-indigo-600"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span className="font-medium">Add another step</span>
-                </motion.button>
-              </div>
-            )}
-          </div>
+          <StepsCanvas 
+            canvasRef={canvasRef}
+            steps={steps}
+            selectedStepIndex={selectedStepIndex}
+            setSelectedStepIndex={setSelectedStepIndex}
+            updateStep={updateStep}
+            removeStep={removeStep}
+            duplicateStep={duplicateStep}
+            addStep={addStep}
+            setShowPalette={setShowPalette}
+          />
 
           {/* Toggle Preview Button */}
           <button
@@ -680,5 +750,6 @@ export function OnboardingBuilderEnhanced({
 }
 
 export default OnboardingBuilderEnhanced;
+
 
 

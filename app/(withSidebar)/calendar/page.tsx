@@ -553,8 +553,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const dayCellClassNames = (arg: any) => {
     const d = arg.date as Date;
-    const key = utcDateKey(d);
-    const count = dailyCounts[dateKey(d)] || 0;
+    const key = dateKey(d); // Use local date for calendar cells
+    const count = dailyCounts[key] || 0;
     const level = getHeatLevel(count);
     const today = new Date();
     const isToday = today.toDateString() === d.toDateString();
@@ -575,7 +575,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const dayCellContent = (arg: any) => {
     const d = arg.date as Date;
-    const key = utcDateKey(d);
+    const key = dateKey(d); // Use local date for calendar cells
     const isBlackout = blackoutDateKeys.has(key);
     const isNewBlackout = newlyCreatedBlackoutKeys.has(key);
     return (

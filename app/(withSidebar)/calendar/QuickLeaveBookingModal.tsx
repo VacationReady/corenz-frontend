@@ -1,13 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,11 +13,25 @@ import {
 } from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
-import { Calendar, UserPlus } from "lucide-react";
+import {
+  Calendar,
+  CalendarDays,
+  UserPlus,
+  Users,
+  X,
+  Search,
+  Sparkles,
+  Check,
+  Clock,
+  Palmtree,
+  CalendarCheck,
+  ChevronDown,
+  Building2,
+  Info,
+} from "lucide-react";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
-import { Avatar } from "@/components/ui/Avatar";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
+import { cn } from "@/lib/utils";
 
 interface Employee {
   id: string;
@@ -42,6 +50,7 @@ interface EventCategory {
   id: string;
   name: string;
   iconKey?: string | null;
+  color?: string;
 }
 
 interface QuickLeaveBookingModalProps {
@@ -51,6 +60,31 @@ interface QuickLeaveBookingModalProps {
   defaultEndDate: Date | null;
   onSubmitted: () => void;
 }
+
+// Stagger animation variants for children
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 24,
+    },
+  },
+};
 
 export default function QuickLeaveBookingModal({
   open,
@@ -67,7 +101,9 @@ export default function QuickLeaveBookingModal({
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -78,6 +114,11 @@ export default function QuickLeaveBookingModal({
       if (defaultEndDate) {
         setEndDate(defaultEndDate.toISOString().split("T")[0]);
       }
+    } else {
+      // Reset state when closing
+      setEmployeeSearchOpen(false);
+      setEmployeeSearch("");
+      setShowSuccess(false);
     }
   }, [open, defaultStartDate, defaultEndDate]);
 
@@ -91,29 +132,24 @@ export default function QuickLeaveBookingModal({
       if (empRes.ok) {
         const empData = await empRes.json();
         const employeeList = empData.data || [];
-        console.log("Loaded employees:", employeeList.length);
-        // Map to the expected format with nested user object
         const mappedEmployees = employeeList.map((emp: any) => ({
           id: emp.id,
           user: {
             firstName: emp.firstName,
             lastName: emp.lastName,
-            name: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || null,
+            name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || null,
             profileImageUrl: emp.profileImageUrl,
           },
           department: emp.departmentName ? { name: emp.departmentName } : null,
         }));
         setEmployees(mappedEmployees);
       } else {
-        console.error("Failed to fetch employees:", empRes.status);
         toast.error("Failed to load employees");
       }
 
       if (catRes.ok) {
         const catData = await catRes.json();
         setCategories(catData);
-      } else {
-        console.error("Failed to fetch categories:", catRes.status);
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -132,6 +168,11 @@ export default function QuickLeaveBookingModal({
     }
     if (!startDate || !endDate) {
       toast.error("Please select start and end dates");
+      return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      toast.error("Start date cannot be after end date");
       return;
     }
 
@@ -155,10 +196,16 @@ export default function QuickLeaveBookingModal({
         return;
       }
 
-      toast.success("Leave booked successfully");
-      setOpen(false);
-      resetForm();
-      onSubmitted();
+      // Show success animation
+      setShowSuccess(true);
+      toast.success("Leave booked successfully!");
+      
+      // Close after success animation
+      setTimeout(() => {
+        setOpen(false);
+        resetForm();
+        onSubmitted();
+      }, 1500);
     } catch (error) {
       console.error(error);
       toast.error("An unexpected error occurred");
@@ -173,176 +220,502 @@ export default function QuickLeaveBookingModal({
     setStartDate("");
     setEndDate("");
     setReason("");
+    setEmployeeSearch("");
+    setShowSuccess(false);
   };
 
   const selectedEmp = employees.find((e) => e.id === selectedEmployee);
+  const selectedCat = categories.find((c) => c.id === selectedCategory);
+
   const getEmployeeName = (emp: Employee) => {
     return emp.user?.name || `${emp.user?.firstName || ""} ${emp.user?.lastName || ""}`.trim() || "Unknown";
   };
 
-  // Command component handles filtering internally, we just need all employees
-  const filteredEmployees = employees;
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const filteredEmployees = useMemo(() => {
+    const term = employeeSearch.toLowerCase().trim();
+    if (!term) return employees;
+    return employees.filter((emp) => {
+      const name = getEmployeeName(emp).toLowerCase();
+      const dept = emp.department?.name?.toLowerCase() || "";
+      return name.includes(term) || dept.includes(term);
+    });
+  }, [employees, employeeSearch]);
+
+  // Calculate days between dates
+  const daysDiff = useMemo(() => {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return Math.max(0, diff);
+  }, [startDate, endDate]);
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleDateString("en-NZ", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const isFormValid = selectedEmployee && selectedCategory && startDate && endDate && daysDiff > 0;
+
+  if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="w-5 h-5" />
-            Book Leave for Employee
-          </DialogTitle>
-          <DialogDescription>
-            Quickly book time off for any employee
-          </DialogDescription>
-        </DialogHeader>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          {/* Backdrop */}
+          <motion.div
+            className="fixed inset-0 bg-slate-950/70 backdrop-blur-md"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => !loading && setOpen(false)}
+          />
 
-        <div className="space-y-4 mt-4">
-          <div>
-            <Label>Employee *</Label>
-            <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  className="w-full justify-between"
+          {/* Modal */}
+          <motion.div
+            className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden"
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Success Overlay */}
+            <AnimatePresence>
+              {showSuccess && (
+                <motion.div
+                  className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 >
-                  {selectedEmp ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar
-                        src={selectedEmp.user?.profileImageUrl || null}
-                        name={getEmployeeName(selectedEmp)}
-                        size={20}
-                      />
-                      <span>{getEmployeeName(selectedEmp)}</span>
-                      {selectedEmp.department && (
-                        <span className="text-xs text-muted-foreground">
-                          ({selectedEmp.department.name})
-                        </span>
-                      )}
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.1 }}
+                    className="p-4 bg-white/20 rounded-full backdrop-blur-sm mb-4"
+                  >
+                    <Check className="w-12 h-12 text-white" strokeWidth={3} />
+                  </motion.div>
+                  <motion.h3
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-2xl font-bold text-white mb-2"
+                  >
+                    Leave Booked!
+                  </motion.h3>
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-white/90 text-sm"
+                  >
+                    {daysDiff} {daysDiff === 1 ? "day" : "days"} of leave scheduled
+                  </motion.p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Header */}
+            <div className="relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iNCIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+              
+              <div className="relative px-6 py-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+                      className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm shadow-lg"
+                    >
+                      <Palmtree className="w-7 h-7 text-white" />
+                    </motion.div>
+                    <div>
+                      <motion.h2
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.15 }}
+                        className="text-2xl font-bold text-white"
+                      >
+                        Book Leave
+                      </motion.h2>
+                      <motion.p
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="text-white/80 text-sm"
+                      >
+                        Schedule time off for an employee
+                      </motion.p>
                     </div>
+                  </div>
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    onClick={() => !loading && setOpen(false)}
+                    disabled={loading}
+                    className="p-2.5 hover:bg-white/20 rounded-xl transition-all duration-200 disabled:opacity-50"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5 text-white" />
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+
+            {/* Form Content */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="p-6 space-y-5"
+            >
+              {/* Employee Selection */}
+              <motion.div variants={itemVariants} className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-violet-500" />
+                  Employee <span className="text-rose-500">*</span>
+                </Label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setEmployeeSearchOpen(!employeeSearchOpen)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 transition-all duration-200",
+                      "bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800",
+                      employeeSearchOpen
+                        ? "border-violet-500 ring-4 ring-violet-500/20"
+                        : "border-slate-200 dark:border-slate-700 hover:border-violet-300",
+                      selectedEmployee && "border-violet-200 bg-violet-50/50 dark:bg-violet-900/20"
+                    )}
+                  >
+                    {selectedEmp ? (
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <Avatar className="w-10 h-10 border-2 border-white shadow-md">
+                            <AvatarImage src={selectedEmp.user?.profileImageUrl || undefined} />
+                            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-white text-sm font-semibold">
+                              {getInitials(getEmployeeName(selectedEmp))}
+                            </AvatarFallback>
+                          </Avatar>
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center"
+                          >
+                            <Check className="w-2.5 h-2.5 text-white" />
+                          </motion.div>
+                        </div>
+                        <div className="text-left">
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            {getEmployeeName(selectedEmp)}
+                          </div>
+                          {selectedEmp.department && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              {selectedEmp.department.name}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-slate-500 dark:text-slate-400">
+                        Search for an employee...
+                      </span>
+                    )}
+                    <ChevronDown
+                      className={cn(
+                        "w-5 h-5 text-slate-400 transition-transform duration-200",
+                        employeeSearchOpen && "rotate-180"
+                      )}
+                    />
+                  </button>
+
+                  {/* Employee Dropdown */}
+                  <AnimatePresence>
+                    {employeeSearchOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+                      >
+                        <div className="p-3 border-b border-slate-100 dark:border-slate-700">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                              type="text"
+                              value={employeeSearch}
+                              onChange={(e) => setEmployeeSearch(e.target.value)}
+                              placeholder="Search by name or department..."
+                              autoFocus
+                              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border-0 text-sm focus:ring-2 focus:ring-violet-500/30 outline-none transition-all"
+                            />
+                          </div>
+                        </div>
+                        <div className="max-h-64 overflow-y-auto p-2">
+                          {filteredEmployees.length === 0 ? (
+                            <div className="text-center py-8 text-slate-500">
+                              <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                              <p className="text-sm">No employees found</p>
+                            </div>
+                          ) : (
+                            filteredEmployees.slice(0, 50).map((emp) => (
+                              <button
+                                key={emp.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedEmployee(emp.id);
+                                  setEmployeeSearchOpen(false);
+                                  setEmployeeSearch("");
+                                }}
+                                className={cn(
+                                  "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-150",
+                                  selectedEmployee === emp.id
+                                    ? "bg-violet-100 dark:bg-violet-900/40"
+                                    : "hover:bg-slate-100 dark:hover:bg-slate-700/50"
+                                )}
+                              >
+                                <Avatar className="w-9 h-9 border border-slate-200 dark:border-slate-600">
+                                  <AvatarImage src={emp.user?.profileImageUrl || undefined} />
+                                  <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-500 text-white text-xs font-semibold">
+                                    {getInitials(getEmployeeName(emp))}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 text-left min-w-0">
+                                  <div className="font-medium text-slate-900 dark:text-white truncate">
+                                    {getEmployeeName(emp)}
+                                  </div>
+                                  {emp.department && (
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                      {emp.department.name}
+                                    </div>
+                                  )}
+                                </div>
+                                {selectedEmployee === emp.id && (
+                                  <Check className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                                )}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+
+              {/* Leave Type */}
+              <motion.div variants={itemVariants} className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-violet-500" />
+                  Leave Type <span className="text-rose-500">*</span>
+                </Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger
+                    className={cn(
+                      "h-auto py-3.5 px-4 rounded-2xl border-2 transition-all duration-200",
+                      "bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800",
+                      selectedCategory
+                        ? "border-violet-200 bg-violet-50/50 dark:bg-violet-900/20"
+                        : "border-slate-200 dark:border-slate-700"
+                    )}
+                  >
+                    <SelectValue placeholder="Choose leave type..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-xl">
+                    {categories.map((cat) => {
+                      const Icon = getEventCategoryIcon(cat.iconKey);
+                      return (
+                        <SelectItem
+                          key={cat.id}
+                          value={cat.id}
+                          className="py-3 px-4 cursor-pointer rounded-xl my-1 focus:bg-violet-50 dark:focus:bg-violet-900/30"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="p-2 rounded-lg"
+                              style={{
+                                backgroundColor: cat.color ? `${cat.color}20` : "#8b5cf620",
+                              }}
+                            >
+                              <Icon
+                                className="w-4 h-4"
+                                style={{ color: cat.color || "#8b5cf6" }}
+                              />
+                            </div>
+                            <span className="font-medium">{cat.name}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </motion.div>
+
+              {/* Date Range */}
+              <motion.div variants={itemVariants} className="space-y-3">
+                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-violet-500" />
+                  Date Range <span className="text-rose-500">*</span>
+                </Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Start Date
+                    </span>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-violet-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      End Date
+                    </span>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      min={startDate}
+                      className="h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-violet-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 transition-all"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Duration Preview Card */}
+              <AnimatePresence>
+                {daysDiff > 0 && selectedEmp && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                    animate={{ opacity: 1, height: "auto", marginTop: 20 }}
+                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/30 dark:to-indigo-900/30 border border-violet-200 dark:border-violet-800">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-violet-100 dark:bg-violet-800/50 rounded-xl">
+                            <CalendarCheck className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-violet-900 dark:text-violet-100">
+                              {formatDate(startDate)} → {formatDate(endDate)}
+                            </p>
+                            <p className="text-xs text-violet-600 dark:text-violet-300">
+                              {selectedCat?.name || "Leave"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <motion.p
+                            key={daysDiff}
+                            initial={{ scale: 1.2 }}
+                            animate={{ scale: 1 }}
+                            className="text-2xl font-bold text-violet-700 dark:text-violet-300"
+                          >
+                            {daysDiff}
+                          </motion.p>
+                          <p className="text-xs text-violet-600 dark:text-violet-400">
+                            {daysDiff === 1 ? "day" : "days"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Reason */}
+              <motion.div variants={itemVariants} className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-slate-400" />
+                  Reason <span className="text-slate-400 font-normal">(optional)</span>
+                </Label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Add any notes about this leave..."
+                  rows={2}
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-violet-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 transition-all resize-none text-sm placeholder:text-slate-400"
+                />
+              </motion.div>
+
+              {/* Action Buttons */}
+              <motion.div
+                variants={itemVariants}
+                className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-800"
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={loading}
+                  className="flex-1 h-12 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold transition-all duration-200"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={loading || !isFormValid}
+                  className={cn(
+                    "flex-1 h-12 rounded-2xl font-semibold transition-all duration-300",
+                    "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600",
+                    "hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500",
+                    "text-white shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40",
+                    "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                  )}
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                      />
+                      Booking...
+                    </span>
                   ) : (
-                    "Select employee..."
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" />
+                      Book Leave
+                    </span>
                   )}
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="start">
-                <Command shouldFilter={true}>
-                  <CommandInput
-                    placeholder="Search employees..."
-                  />
-                  <CommandList>
-                    <CommandEmpty>No employee found.</CommandEmpty>
-                    <CommandGroup>
-                      {filteredEmployees.slice(0, 100).map((emp) => {
-                        const empName = getEmployeeName(emp);
-                        const searchValue = `${empName} ${emp.department?.name || ""}`.toLowerCase();
-                        return (
-                        <CommandItem
-                          key={emp.id}
-                          value={searchValue}
-                          onSelect={() => {
-                            setSelectedEmployee(emp.id);
-                            setSearchOpen(false);
-                          }}
-                        >
-                          <div className="flex items-center gap-2 w-full">
-                            <Avatar
-                              src={emp.user?.profileImageUrl || null}
-                              name={getEmployeeName(emp)}
-                              size={24}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">
-                                {getEmployeeName(emp)}
-                              </div>
-                              {emp.department && (
-                                <div className="text-xs text-muted-foreground truncate">
-                                  {emp.department.name}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div>
-            <Label>Leave Type *</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select leave type" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => {
-                  const Icon = getEventCategoryIcon(cat.iconKey);
-                  return (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        <span>{cat.name}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Start Date *</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>End Date *</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label>Reason (optional)</Label>
-            <Input
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Optional reason for this leave"
-            />
-          </div>
-
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setOpen(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={loading}
-              loading={loading}
-              className="flex-1"
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Book Leave
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
-

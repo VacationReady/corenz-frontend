@@ -351,7 +351,7 @@ export default function NewReportBuilderPage() {
             whileHover={{ scale: 1.02, y: -4 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleCustomReportStart}
-            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-blue-600/90 p-6 shadow-depth-3 group"
+            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-blue-600 p-6 shadow-depth-3 group"
           >
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
             <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-white/10 blur-2xl" />
@@ -373,7 +373,7 @@ export default function NewReportBuilderPage() {
             whileHover={{ scale: 1.02, y: -4 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => router.push("/reports/library")}
-            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-blue-600/90 p-6 shadow-depth-3 group"
+            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-blue-600 p-6 shadow-depth-3 group"
           >
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
             <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-white/10 blur-2xl" />
@@ -395,7 +395,7 @@ export default function NewReportBuilderPage() {
             whileHover={{ scale: 1.02, y: -4 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => router.push("/reports")}
-            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-blue-600/90 p-6 shadow-depth-3 group"
+            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-blue-600 p-6 shadow-depth-3 group"
           >
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
             <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-white/10 blur-2xl" />

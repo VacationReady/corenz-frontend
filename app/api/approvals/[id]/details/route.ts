@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
+import { batchSignProfileUrlsAsMap } from "@/app/lib/storage/signProfiles";
 
 export const runtime = "nodejs";
 
@@ -164,7 +165,7 @@ export async function GET(
           leave.Employee.User.name ||
           `${leave.Employee.User.firstName || ""} ${leave.Employee.User.lastName || ""}`.trim() ||
           "Employee",
-        profileImageUrl: leave.Employee.User.profileImageUrl,
+        profileImagePath: leave.Employee.User.profileImageUrl,
         startDate: leave.startDate,
         endDate: leave.endDate,
         leaveType: leave.EventCategory.name,
@@ -179,6 +180,18 @@ export async function GET(
       user.email ||
       "Employee";
 
+    // Batch sign profile image URLs
+    const profilesToSign = [];
+    if (user.profileImageUrl) {
+      profilesToSign.push({ id: user.id, path: user.profileImageUrl });
+    }
+    for (const colleague of departmentColleagues) {
+      if (colleague.profileImagePath) {
+        profilesToSign.push({ id: colleague.id, path: colleague.profileImagePath });
+      }
+    }
+    const signedUrlMap = await batchSignProfileUrlsAsMap(profilesToSign);
+
     const response = {
       id: decision.id,
       leaveRequestId: leaveRequest.id,
@@ -186,7 +199,7 @@ export async function GET(
         id: employee.id,
         name: displayName,
         email: user.email,
-        profileImageUrl: user.profileImageUrl,
+        profileImageUrl: user.profileImageUrl ? signedUrlMap.get(user.id) ?? null : null,
         department: employee.Department?.name,
       },
       leaveType: {
@@ -207,7 +220,15 @@ export async function GET(
             remainingAfterApproval: remainingDaysIfApproved,
           }
         : null,
-      departmentColleagues,
+      departmentColleagues: departmentColleagues.map((colleague) => ({
+        id: colleague.id,
+        name: colleague.name,
+        profileImageUrl: colleague.profileImagePath ? signedUrlMap.get(colleague.id) ?? null : null,
+        startDate: colleague.startDate,
+        endDate: colleague.endDate,
+        leaveType: colleague.leaveType,
+        leaveColor: colleague.leaveColor,
+      })),
       reason: leaveRequest.reason,
       dayType: leaveRequest.dayType,
     };

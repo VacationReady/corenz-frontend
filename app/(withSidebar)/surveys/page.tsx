@@ -243,14 +243,14 @@ export default function SurveysDashboard() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <Button asChild size="sm" variant="secondary" className="bg-white text-slate-800 hover:bg-slate-50 border border-slate-200 shadow-sm text-xs h-8">
-                  <Link href="/surveys/send">
-                    <Send className="mr-1.5 h-3 w-3" />
+                  <Link href="/surveys/send" className="flex items-center">
+                    <Send className="h-3 w-3 mr-1.5" />
                     Send a survey
                   </Link>
                 </Button>
                 <Button asChild size="sm" variant="ghost" className="text-slate-600 hover:bg-white/60 text-xs h-8">
-                  <Link href="/settings/surveys">
-                    <Settings className="mr-1.5 h-3 w-3" />
+                  <Link href="/settings/surveys" className="flex items-center">
+                    <Settings className="h-3 w-3 mr-1.5" />
                     Refine templates
                   </Link>
                 </Button>

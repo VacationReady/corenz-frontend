@@ -9,9 +9,11 @@ import {
 } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import FilterableDataTable from "@/components/reports/FilterableDataTable";
 import Button from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Badge } from "@/components/ui/Badge";
 import {
   Dialog,
   DialogContent,
@@ -25,12 +27,31 @@ import { useToast } from "@/hooks/use-toast";
 import { hrReportFields } from "@/lib/hrReportFields";
 import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
-import { ArrowLeft, X, Mail, History } from "lucide-react";
+import { 
+  ArrowLeft, 
+  X, 
+  Mail, 
+  History, 
+  Download, 
+  FileText, 
+  Save, 
+  RefreshCw, 
+  Table, 
+  BarChart3,
+  FileDown,
+  Shield,
+  AlertTriangle,
+  Sparkles,
+  ChevronRight,
+  FileSpreadsheet,
+  Send
+} from "lucide-react";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import Papa from "papaparse";
 import { exportTableToPdf } from "@/lib/pdfExport";
 import { SendReportModal } from "@/components/reports/SendReportModal";
 import { SendHistoryModal } from "@/components/reports/SendHistoryModal";
+import { cn } from "@/lib/utils";
 
 type ColumnDefinition = { header: string; accessorKey: string };
 type FieldMetadata = { label: string; isPII?: boolean };
@@ -145,11 +166,9 @@ export default function ReportsPreviewClient() {
 
   const initialFields = useMemo(() => {
     const parsed = parseFieldsParam(fieldsParam);
-    // Don't add required fields for custom engine reports - they already have correct structure
     if (engineParam === "custom") {
       return parsed;
     }
-    // Only enforce User required fields if we're not in a Timesheet context
     const hasTimesheetFields = parsed.some((field: string) => field.startsWith("Timesheet."));
     const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
     const withRequired = Array.from(new Set([...requiredFields, ...parsed]));
@@ -161,12 +180,9 @@ export default function ReportsPreviewClient() {
     if (templateIdParam) {
       const template = reportLibrary.find((entry) => entry.id === templateIdParam);
       if (template) {
-        // Custom engine reports already have the correct field structure in their templates
-        // Don't add REQUIRED_FIELDS_USER as it will create duplicates
         if (template.engine === "custom") {
           return [...template.defaultFields];
         }
-        // For dynamic reports, don't force User fields for timesheet or other non-User primary model reports
         const hasTimesheetFields = template.defaultFields.some((field: string) => field.startsWith("Timesheet."));
         const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
         return Array.from(new Set([...requiredFields, ...template.defaultFields]));
@@ -174,6 +190,7 @@ export default function ReportsPreviewClient() {
     }
     return initialFields;
   });
+  
   useEffect(() => {
     if (reportIdParam) return;
 
@@ -182,11 +199,9 @@ export default function ReportsPreviewClient() {
       if (template) {
         setLibraryTemplate(template);
         
-        // Custom engine reports already have the correct field structure
         if (template.engine === "custom") {
           setSelectedFields([...template.defaultFields]);
         } else {
-          // For dynamic reports, add required fields if not timesheet
           const hasTimesheetFields = template.defaultFields.some((field: string) => field.startsWith("Timesheet."));
           const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
           setSelectedFields(Array.from(new Set([...requiredFields, ...template.defaultFields])));
@@ -209,7 +224,6 @@ export default function ReportsPreviewClient() {
     }
 
     setSelectedFields((current) => {
-      // For custom engine reports, don't add required fields
       if (engineParam === "custom") {
         return initialFields.length > 0 ? initialFields : current;
       }
@@ -227,6 +241,7 @@ export default function ReportsPreviewClient() {
       return next;
     });
   }, [initialFields, reportIdParam, templateIdParam, engineParam]);
+  
   const [reportConfig, setReportConfig] = useState<any>(null);
   const [, setLibraryTemplate] = useState<ReportLibraryEntry | null>(null);
 
@@ -235,7 +250,6 @@ export default function ReportsPreviewClient() {
   const [loading, setLoading] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
 
-  // PII-aware field metadata (label + isPII)
   const [fieldMetadata, setFieldMetadata] = useState<
     Record<string, FieldMetadata>
   >(() => {
@@ -252,33 +266,28 @@ export default function ReportsPreviewClient() {
   const [showSendModal, setShowSendModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  // Client-side filters/sort config from saved reports
   const [activeFilters, setActiveFilters] = useState<any[]>([]);
   const [activeSort, setActiveSort] = useState<{
     field: string;
     direction?: "asc" | "desc";
   } | null>(null);
 
-  // Server pagination + totals + full export
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [total, setTotal] = useState<number>(0);
   const [exportingFull, setExportingFull] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
 
-  // Generate a stable, meaningful reportId for localStorage persistence
   const effectiveReportId = useMemo(() => {
     if (reportIdParam) return reportIdParam;
     if (templateIdParam) return `template_${templateIdParam}`;
-    // Hash selected fields for a deterministic key when no reportId/templateId
     if (selectedFields.length > 0) {
       const sorted = [...selectedFields].sort().join(",");
-      // Simple hash function for consistent key generation
       let hash = 0;
       for (let i = 0; i < sorted.length; i++) {
         const char = sorted.charCodeAt(i);
         hash = (hash << 5) - hash + char;
-        hash = hash & hash; // Convert to 32bit integer
+        hash = hash & hash;
       }
       return `fields_${Math.abs(hash).toString(36)}`;
     }
@@ -335,7 +344,6 @@ export default function ReportsPreviewClient() {
     return { field: selectedFields[0], direction: "asc" as const };
   }, [selectedFields]);
 
-  // Build field metadata map from server (includes dynamic Forms)
   useEffect(() => {
     const load = async () => {
       try {
@@ -360,7 +368,7 @@ export default function ReportsPreviewClient() {
           });
         }
       } catch {
-        // Ignore label loading errors – fallback metadata already seeded from hrReportFields
+        // Ignore label loading errors
       }
     };
     load();
@@ -406,7 +414,6 @@ export default function ReportsPreviewClient() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [handleExit, showPIIModal]);
 
-  // Load report configuration if reportId is provided
   useEffect(() => {
     if (reportIdParam) {
       const loadReport = async () => {
@@ -435,8 +442,6 @@ export default function ReportsPreviewClient() {
           setPage(savedPagination.page ?? 1);
           setPageSize(savedPagination.limit ?? 50);
 
-          // Handle both new sorts array and legacy single sort
-          // Prefer sorts array if available, otherwise fall back to single sort
           const savedSort = 
             (Array.isArray(report?.sorts) && report.sorts.length > 0 && report.sorts[0]?.field)
               ? {
@@ -451,7 +456,6 @@ export default function ReportsPreviewClient() {
               : null;
           setActiveSort(savedSort);
 
-          // Force include required fields for saved reports as well
           const saved = Array.isArray(report.fields) ? report.fields : [];
           const hasTimesheetFields = saved.some((field: string) => field.startsWith("Timesheet."));
           const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
@@ -465,12 +469,8 @@ export default function ReportsPreviewClient() {
       void loadReport();
       return;
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reportIdParam, session?.user?.companyId]);
 
-
-  // ensure sort remains valid when fields change
   useEffect(() => {
     if (!selectedFields.length) return;
     setActiveSort((prev) => {
@@ -481,22 +481,18 @@ export default function ReportsPreviewClient() {
     });
   }, [defaultSort, selectedFields]);
 
-  // reset to page 1 when selected fields change
   useEffect(() => {
     setPage((prev) => (prev === 1 ? prev : 1));
   }, [selectedFields.join(",")]);
 
-  // --- Field rewrite for Leave context (merged functionality) ---
   const rewriteFieldsForLeaveContext = useCallback((fields: string[]) => {
     const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
     const result: string[] = [];
     for (const f of fields) {
       if (f === "User.JobRole.name" || f === "Employee.JobRole.name") {
-        // Always include a single computed column for display
         if (!result.includes("_computed.jobRoleName")) {
           result.push("_computed.jobRoleName");
         }
-        // Ensure underlying relation is selected so computed can resolve
         const dep = hasLeave
           ? "LeaveRequest.Employee.JobRole.name"
           : "Employee.JobRole.name";
@@ -505,9 +501,7 @@ export default function ReportsPreviewClient() {
         }
         continue;
       }
-      // Normalise Working Pattern to live under Employee so we don't split models
       if (!hasLeave && f === "WorkingPattern.name") {
-        // Include computed fallback so the name renders even if the relation is missing
         result.push("Employee.WorkingPattern.name");
         if (!result.includes("_computed.workingPatternName")) {
           result.push("_computed.workingPatternName");
@@ -576,7 +570,6 @@ export default function ReportsPreviewClient() {
     [selectedFields, rewriteFieldsForLeaveContext],
   );
 
-  // Helper to fetch a specific page (used by both initial load and full export)
   const fetchReportPage = useCallback(
     async (pageToFetch: number, limitToFetch: number) => {
       const headers: HeadersInit = { "Content-Type": "application/json" };
@@ -585,11 +578,8 @@ export default function ReportsPreviewClient() {
       }
 
       if (engineParam === "custom" && reportTypeParam) {
-        // Transform filters for custom reports: extract the last part of nested field names
-        // e.g., "Employee.isActive" -> "isActive", "Employee.departmentId" -> "departmentId"
         const transformedFilters = Object.fromEntries(
           (Array.isArray(activeFilters) ? activeFilters : []).map((filter: any) => {
-            // Extract the simple key from nested paths (e.g., Employee.isActive -> isActive)
             const filterKey = filter.field.includes('.') 
               ? filter.field.split('.').pop() 
               : filter.field;
@@ -647,7 +637,6 @@ export default function ReportsPreviewClient() {
     ],
   );
 
-  // Load report data when fields are available
   useEffect(() => {
     if (effectiveSelectedFields.length === 0) return;
     if (reportIdParam && !reportConfig) return;
@@ -687,12 +676,10 @@ export default function ReportsPreviewClient() {
       "User.Department.name":
         "User.Department_User_departmentIdToDepartment.name",
       "User.jobRole.name": "User.JobRole.name",
-      // Map Employee-anchored selections to canonical label keys so headers are correct
       "Employee.Department.name":
         "User.Department_User_departmentIdToDepartment.name",
       "Employee.WorkingPattern.name": "WorkingPattern.name",
       "Employee.JobRole.name": "User.JobRole.name",
-      // Map Employee.User.* fields to User.* for label lookup
       "Employee.User.firstName": "User.firstName",
       "Employee.User.lastName": "User.lastName",
       "Employee.User.email": "User.email",
@@ -703,7 +690,6 @@ export default function ReportsPreviewClient() {
 
   const visibleFields = useMemo(() => {
     let fields = [...effectiveSelectedFields];
-    // If using computed Working Pattern, hide base relation columns to avoid duplicates
     if (fields.includes("_computed.workingPatternName")) {
       const hide = new Set([
         "WorkingPattern.name",
@@ -712,7 +698,6 @@ export default function ReportsPreviewClient() {
       ]);
       fields = fields.filter((f) => !hide.has(f));
     }
-    // If using computed Job Role, hide base relation columns to avoid duplicates
     if (fields.includes("_computed.jobRoleName")) {
       const hideJR = new Set([
         "User.JobRole.name",
@@ -730,22 +715,18 @@ export default function ReportsPreviewClient() {
       const keys = field.split(".");
       let headerFallback: string;
 
-      // Normalise Job Role into a single computed accessor across contexts
       if (field === "_computed.jobRoleName") {
         return { header: "Job Role", accessorKey: "_computed.jobRoleName" };
       }
-      // Working Pattern via computed fallback
       if (field === "_computed.workingPatternName") {
         return { header: "Working Pattern", accessorKey: "_computed.workingPatternName" };
       }
-      // Start Date computed fallback (only used if real value is missing)
       if (field === "_computed.effectiveStartDate") {
         return { header: "Start Date", accessorKey: "_computed.effectiveStartDate" };
       }
 
       headerFallback = keys[keys.length - 1];
 
-      // Build candidate accessor paths to be resilient across engines
       const candidates: string[] = [];
       appendUnique(candidates, field);
       if (keys.length > 1) {
@@ -768,13 +749,11 @@ export default function ReportsPreviewClient() {
         appendUnique(candidates, asUser.slice("User.".length));
       }
 
-      // Handle Employee.Department.*, Employee.JobRole.*, etc.
       if (field.startsWith("Employee.") && !field.startsWith("Employee.User.")) {
         const withoutEmployee = field.slice("Employee.".length);
         appendUnique(candidates, withoutEmployee);
       }
 
-      // Handle LeaveEntitlement.* fields
       if (field.startsWith("LeaveEntitlement.")) {
         const withoutPrefix = field.slice("LeaveEntitlement.".length);
         appendUnique(candidates, withoutPrefix);
@@ -804,7 +783,6 @@ export default function ReportsPreviewClient() {
 
       (COLUMN_FALLBACKS[field] || []).forEach((candidate) => appendUnique(candidates, candidate));
 
-      // Choose the first candidate that resolves for any fetched row
       let accessorKey = candidates[0] || field;
       if (data.length > 0) {
         const found = candidates.find((candidate) =>
@@ -855,7 +833,6 @@ export default function ReportsPreviewClient() {
   };
 
   const buildPrintableRows = useCallback(() => {
-    // Flatten rows keyed by accessorKey so the PDF renderer can read them
     return filteredData.map((row) => {
       const obj: Record<string, any> = {};
       columns.forEach((col) => {
@@ -966,58 +943,80 @@ export default function ReportsPreviewClient() {
     }
   };
 
+  // Modern styled header
   const header = (
-    <FullScreenHeader
-      backSlot={
-        <button
-          type="button"
-          onClick={handleExit}
-          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground"
-          aria-label={exitLabel}
-        >
-          <ArrowLeft aria-hidden className="h-4 w-4" />
-          <span>{exitLabel}</span>
-        </button>
-      }
-      title={
-        <h1 className="text-base font-semibold text-foreground sm:text-lg">
-          Report preview
-        </h1>
-      }
-      helpSlot={
-        <button
-          type="button"
-          onClick={handleExit}
-          className="inline-flex items-center gap-2"
-          aria-label="Close preview"
-        >
-          <X aria-hidden className="h-4 w-4" />
-          <span className="hidden text-sm font-medium sm:inline">Close</span>
-        </button>
-      }
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50"
     >
-      <p className="text-sm text-muted-foreground">
-        Review your selected fields, apply filters, and export data without
-        leaving the builder.
-      </p>
-    </FullScreenHeader>
+      <div className="mx-auto max-w-7xl px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left - Back button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleExit}
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg hover:bg-muted/50"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">{exitLabel}</span>
+          </motion.button>
+
+          {/* Center - Title */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/20">
+              <BarChart3 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-base font-semibold text-foreground">
+                {reportConfig?.name || "Report Preview"}
+              </h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">
+                {total > 0 ? `${total.toLocaleString()} records` : "Loading..."}
+              </p>
+            </div>
+          </div>
+
+          {/* Right - Close button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleExit}
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg hover:bg-muted/50"
+          >
+            <X className="h-4 w-4" />
+            <span className="hidden sm:inline">Close</span>
+          </motion.button>
+        </div>
+      </div>
+    </motion.div>
   );
 
   const renderShell = (body: ReactNode) => (
-    <div className="min-h-screen bg-muted/10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {header}
-      <main className="mx-auto w-full max-w-6xl px-4 pb-10 pt-6">{body}</main>
+      <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-6">{body}</main>
     </div>
   );
 
   if (loadingReport) {
     return renderShell(
-      <EmptyState
-        tone="brand"
-        title="Loading report configuration"
-        description="We’re fetching your saved filters and columns."
-        className="max-w-xl mx-auto mt-20"
-      />,
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="glass-premium rounded-3xl p-12 text-center shadow-premium max-w-xl mx-auto mt-20"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary mx-auto mb-6"
+        />
+        <h3 className="text-xl font-bold mb-2">Loading Report</h3>
+        <p className="text-muted-foreground">
+          We're fetching your saved filters and columns...
+        </p>
+      </motion.div>
     );
   }
 
@@ -1032,157 +1031,268 @@ export default function ReportsPreviewClient() {
         : "People Analytics Starter";
 
     return renderShell(
-      <EmptyState
-        tone="brand"
-        title="Choose at least one column"
-        description="No fields are selected yet, so there’s nothing to preview."
-        className="max-w-xl mx-auto mt-20"
-        guidance={[
-          `Load the ${templateLabel} template in the builder for a quick start.`,
-          "Include first and last name so your export stays easy to read.",
-        ]}
-        action={{
-          label: "Go back",
-          variant: "outline",
-          onClick: handleExit,
-        }}
-      />,
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="glass-premium rounded-3xl p-12 text-center shadow-premium max-w-xl mx-auto mt-20"
+      >
+        <div className="w-20 h-20 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-6">
+          <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-400" />
+        </div>
+        <h3 className="text-xl font-bold mb-2">No Columns Selected</h3>
+        <p className="text-muted-foreground mb-6">
+          No fields are selected yet, so there's nothing to preview.
+        </p>
+        <div className="flex flex-col gap-3 text-sm text-muted-foreground mb-6">
+          <p>💡 Load the {templateLabel} template in the builder for a quick start.</p>
+          <p>💡 Include first and last name so your export stays easy to read.</p>
+        </div>
+        <Button
+          onClick={handleExit}
+          variant="outline"
+          className="rounded-xl h-11 px-6"
+        >
+          Go Back
+        </Button>
+      </motion.div>
     );
   }
 
   if (loading) {
     return renderShell(
-      <EmptyState
-        tone="brand"
-        title="Building your preview"
-        description="We’re running the report with your selected filters."
-        className="max-w-xl mx-auto mt-20"
-      />,
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="glass-premium rounded-3xl p-12 text-center shadow-premium max-w-xl mx-auto mt-20"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary mx-auto mb-6"
+        />
+        <h3 className="text-xl font-bold mb-2">Building Your Preview</h3>
+        <p className="text-muted-foreground">
+          We're running the report with your selected filters...
+        </p>
+      </motion.div>
     );
   }
 
   if (!loading && data.length === 0) {
     return renderShell(
-      <EmptyState
-        tone="warning"
-        title="No matching rows"
-        description="We didn’t find any records that meet your criteria."
-        className="max-w-xl mx-auto mt-20"
-        guidance={[
-          template === "NZ"
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="glass-premium rounded-3xl p-12 text-center shadow-premium max-w-xl mx-auto mt-20"
+      >
+        <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-6">
+          <Table className="w-10 h-10 text-muted-foreground" />
+        </div>
+        <h3 className="text-xl font-bold mb-2">No Matching Records</h3>
+        <p className="text-muted-foreground mb-6">
+          We didn't find any records that meet your criteria.
+        </p>
+        <div className="flex flex-col gap-3 text-sm text-muted-foreground mb-6">
+          <p>💡 {template === "NZ"
             ? "Check the pay period dates against the NZ payroll template you used."
             : template === "AU"
             ? "Verify the award and allowance filters match your AU template."
             : template === "UK"
             ? "Confirm the pay run selection matches your UK payroll starter template."
-            : "Review your filters or try widening the date range.",
-          regionName
-            ? `If you’re filtering by location, make sure it includes all ${regionName} sites.`
-            : "If you’re filtering by location, make sure it includes every site you need.",
-        ]}
-        action={{
-          label: "Adjust filters",
-          variant: "outline",
-          onClick: handleExit,
-        }}
-      />,
+            : "Review your filters or try widening the date range."}</p>
+          <p>💡 {regionName
+            ? `If you're filtering by location, make sure it includes all ${regionName} sites.`
+            : "If you're filtering by location, make sure it includes every site you need."}</p>
+        </div>
+        <Button
+          onClick={handleExit}
+          variant="outline"
+          className="rounded-xl h-11 px-6"
+        >
+          Adjust Filters
+        </Button>
+      </motion.div>
     );
   }
 
   const body = (
-    <div className="rounded-3xl border border-border/60 bg-background p-6 shadow-sm">
-      <div className="mb-6 space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Your custom report is displayed below. Sort, filter, and export as
-          needed.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={handleDownloadClick} disabled={tableLoading}>
-            Download CSV ({filteredData.length} rows)
-          </Button>
-          <Button onClick={handlePdfClick} disabled={tableLoading}>Export to PDF</Button>
-          {total > data.length ? (
-            <Button disabled={exportingFull || tableLoading} onClick={handleFullExport}>
-              {exportingFull
-                ? "Exporting full report..."
-                : tableLoading
-                ? `Preparing export... (${total} rows)`
-                : `Download Full CSV (${total} rows)`}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+    >
+      {/* Action Bar */}
+      <div className="glass-card rounded-2xl p-5 shadow-depth-2">
+        {/* Stats Row */}
+        <div className="flex flex-wrap items-center gap-4 mb-5 pb-5 border-b border-border/50">
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-primary/10">
+            <Table className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-primary">{filteredData.length} rows</span>
+          </div>
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-muted/50">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">{columns.length} columns</span>
+          </div>
+          {total > data.length && (
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+              <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                {total.toLocaleString()} total records
+              </span>
+            </div>
+          )}
+          {hasPIISelected && (
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-rose-100 dark:bg-rose-900/30">
+              <Shield className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              <span className="text-sm font-medium text-rose-700 dark:text-rose-300">
+                Contains PII data
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions Row */}
+        <div className="flex flex-wrap items-center gap-3">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              onClick={handleDownloadClick} 
+              disabled={tableLoading}
+              className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/20 rounded-xl h-10 px-5"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Download CSV
             </Button>
-          ) : null}
+          </motion.div>
+          
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              onClick={handlePdfClick} 
+              disabled={tableLoading}
+              variant="outline"
+              className="glass-subtle border-white/30 rounded-xl h-10 px-5"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Export PDF
+            </Button>
+          </motion.div>
+          
+          {total > data.length && (
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button 
+                disabled={exportingFull || tableLoading} 
+                onClick={handleFullExport}
+                variant="outline"
+                className="glass-subtle border-white/30 rounded-xl h-10 px-5"
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                {exportingFull
+                  ? "Exporting..."
+                  : `Full Export (${total.toLocaleString()})`}
+              </Button>
+            </motion.div>
+          )}
+          
           {reportIdParam && (
             <>
-              <Button 
-                onClick={() => setShowSendModal(true)}
-                className="flex items-center gap-2"
-              >
-                <Mail className="w-4 h-4" />
-                Send Report
-              </Button>
-              <Button 
-                onClick={() => setShowHistoryModal(true)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <History className="w-4 h-4" />
-                View Send History
-              </Button>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button 
+                  onClick={() => setShowSendModal(true)}
+                  variant="outline"
+                  className="glass-subtle border-white/30 rounded-xl h-10 px-5"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Email Report
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button 
+                  onClick={() => setShowHistoryModal(true)}
+                  variant="ghost"
+                  className="rounded-xl h-10 px-4"
+                >
+                  <History className="w-4 h-4 mr-2" />
+                  History
+                </Button>
+              </motion.div>
             </>
           )}
-          <Button onClick={handleSaveReport}>Save Report</Button>
+          
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="ml-auto">
+            <Button 
+              onClick={handleSaveReport}
+              className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20 rounded-xl h-10 px-5"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save Report
+            </Button>
+          </motion.div>
         </div>
       </div>
-      <div className="min-h-[200px]">
-        {tableLoading && (
-          <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
-            <ArrowPathIcon className="h-4 w-4 animate-spin" />
-            <span>Applying filters...</span>
-          </div>
-        )}
-        <FilterableDataTable
-          columns={columns}
-          data={data}
-          total={total}
-          page={page}
-          pageSize={pageSize}
-          reportId={effectiveReportId}
-          onFilteredDataChange={setFilteredData}
-          onPageChange={setPage}
-          onPageSizeChange={(size: number) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-          onTableLoadingChange={setTableLoading}
-        />
+
+      {/* Data Table */}
+      <div className="glass-premium rounded-2xl shadow-premium overflow-hidden">
+        <div className="p-5">
+          {tableLoading && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-4 flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/5 border border-primary/10"
+            >
+              <RefreshCw className="w-4 h-4 text-primary animate-spin" />
+              <span className="text-sm font-medium text-primary">Applying filters...</span>
+            </motion.div>
+          )}
+          <FilterableDataTable
+            columns={columns}
+            data={data}
+            total={total}
+            page={page}
+            pageSize={pageSize}
+            reportId={effectiveReportId}
+            onFilteredDataChange={setFilteredData}
+            onPageChange={setPage}
+            onPageSizeChange={(size: number) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+            onTableLoadingChange={setTableLoading}
+          />
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 
   return (
     <>
       {renderShell(body)}
+      
+      {/* PII Modal */}
       <Dialog open={showPIIModal} onOpenChange={setShowPIIModal}>
-        <DialogContent>
+        <DialogContent className="glass-premium border-0 rounded-2xl shadow-depth-4 max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirm export of personal data</DialogTitle>
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4">
+              <Shield className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+            </div>
+            <DialogTitle className="text-xl">Personal Data Export</DialogTitle>
             <DialogDescription>
-              You&apos;re about to download a report that contains personal or
+              You're about to download a report that contains personal or
               sensitive information. Please confirm you are authorised to export
               this data and will handle it securely.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             {piiFieldLabels.length > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  This export includes the following fields flagged as
-                  personally identifiable information:
+              <div className="rounded-xl bg-muted/50 p-4">
+                <p className="text-sm font-medium text-foreground mb-2">
+                  Sensitive fields included:
                 </p>
-                <ul className="list-disc list-inside text-sm text-foreground mt-2 space-y-1">
+                <div className="flex flex-wrap gap-2">
                   {piiFieldLabels.map((label) => (
-                    <li key={label}>{label}</li>
+                    <Badge key={label} variant="secondary" className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-0">
+                      {label}
+                    </Badge>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
             <p className="text-sm text-muted-foreground">
@@ -1191,21 +1301,25 @@ export default function ReportsPreviewClient() {
               safeguarding sensitive data.
             </p>
           </div>
-          <DialogFooter className="mt-6">
+          <DialogFooter className="gap-3">
             <Button
-              type="button"
-              variant="secondary"
+              variant="outline"
               onClick={handleCancelPIIExport}
+              className="rounded-xl"
             >
               Cancel
             </Button>
-            <Button type="button" onClick={handleConfirmPIIExport}>
-              Confirm &amp; Download
+            <Button 
+              onClick={handleConfirmPIIExport}
+              className="bg-gradient-to-r from-primary to-blue-600 rounded-xl"
+            >
+              Confirm & Download
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Send & History Modals */}
       {reportIdParam && reportConfig && (
         <>
           <SendReportModal

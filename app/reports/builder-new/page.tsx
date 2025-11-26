@@ -3,7 +3,30 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { BarChart3, FileText, Plus, SortAsc, SortDesc } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  BarChart3, 
+  FileText, 
+  Plus, 
+  SortAsc, 
+  SortDesc, 
+  Sparkles,
+  Clock,
+  User,
+  ArrowRight,
+  ChevronRight,
+  Search,
+  X,
+  Zap,
+  TrendingUp,
+  Users,
+  Building2,
+  Calendar,
+  Star,
+  BookOpen,
+  Filter,
+  Layers
+} from "lucide-react";
 import ReportWizard, { ReportConfig } from "@/components/reports/ReportWizard";
 import TemplateGallery from "../../components/reports/TemplateGallery";
 import Button from "@/components/ui/button";
@@ -11,12 +34,15 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardContent } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
 import { useToast } from "@/hooks/use-toast";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import { formatLondon } from "@/lib/time";
 import { useSearchParams } from "next/navigation";
 import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import type { BreadcrumbConfig } from "@/types/breadcrumb";
+import { cn } from "@/lib/utils";
 
 interface RecentReport {
   id: number;
@@ -26,6 +52,45 @@ interface RecentReport {
   createdBy: { email: string };
   fields?: string[];
 }
+
+// Category configs with icons and colors
+const categoryConfig: Record<string, { icon: React.ReactNode; color: string; bgColor: string }> = {
+  "People": { 
+    icon: <Users className="w-4 h-4" />, 
+    color: "text-blue-600 dark:text-blue-400",
+    bgColor: "bg-blue-100 dark:bg-blue-900/30"
+  },
+  "Compliance": { 
+    icon: <FileText className="w-4 h-4" />, 
+    color: "text-emerald-600 dark:text-emerald-400",
+    bgColor: "bg-emerald-100 dark:bg-emerald-900/30"
+  },
+  "Leave": { 
+    icon: <Calendar className="w-4 h-4" />, 
+    color: "text-violet-600 dark:text-violet-400",
+    bgColor: "bg-violet-100 dark:bg-violet-900/30"
+  },
+  "Time & Attendance": { 
+    icon: <Clock className="w-4 h-4" />, 
+    color: "text-amber-600 dark:text-amber-400",
+    bgColor: "bg-amber-100 dark:bg-amber-900/30"
+  },
+  "Payroll": { 
+    icon: <TrendingUp className="w-4 h-4" />, 
+    color: "text-teal-600 dark:text-teal-400",
+    bgColor: "bg-teal-100 dark:bg-teal-900/30"
+  },
+  "Organisation": { 
+    icon: <Building2 className="w-4 h-4" />, 
+    color: "text-indigo-600 dark:text-indigo-400",
+    bgColor: "bg-indigo-100 dark:bg-indigo-900/30"
+  },
+  "custom": { 
+    icon: <Sparkles className="w-4 h-4" />, 
+    color: "text-pink-600 dark:text-pink-400",
+    bgColor: "bg-pink-100 dark:bg-pink-900/30"
+  },
+};
 
 export default function NewReportBuilderPage() {
   const { data: session } = useSession();
@@ -38,13 +103,14 @@ export default function NewReportBuilderPage() {
   const [loadingReports, setLoadingReports] = useState<boolean>(true);
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const breadcrumbs = useBreadcrumbs(
     undefined,
     {
       items: [
         { label: "Reports", href: "/reports" },
-        { label: "New Builder", isCurrentPage: true },
+        { label: "Report Builder", isCurrentPage: true },
       ],
     } satisfies BreadcrumbConfig,
   );
@@ -59,7 +125,7 @@ export default function NewReportBuilderPage() {
       const res = await fetch("/api/reports", { cache: "no-store", headers });
       if (!res.ok) throw new Error("Failed to load reports");
       const data = await res.json();
-      setRecentReports(Array.isArray(data) ? data.slice(0, 5) : []);
+      setRecentReports(Array.isArray(data) ? data.slice(0, 8) : []);
     } catch (error) {
       console.error("Failed to fetch recent reports", error);
       toast({
@@ -105,10 +171,22 @@ export default function NewReportBuilderPage() {
   const filteredReports = useMemo(() => {
     let results = [...recentReports];
 
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      results = results.filter(
+        (report) =>
+          report.name.toLowerCase().includes(query) ||
+          report.category.toLowerCase().includes(query)
+      );
+    }
+
+    // Category filter
     if (categoryFilter !== "all") {
       results = results.filter((report) => report.category === categoryFilter);
     }
 
+    // Sort
     results.sort((a, b) => {
       const first = new Date(a.createdAt).getTime();
       const second = new Date(b.createdAt).getTime();
@@ -116,7 +194,7 @@ export default function NewReportBuilderPage() {
     });
 
     return results;
-  }, [categoryFilter, recentReports, sortOrder]);
+  }, [categoryFilter, recentReports, sortOrder, searchQuery]);
 
   const handleCreateReport = async (config: ReportConfig) => {
     try {
@@ -125,8 +203,8 @@ export default function NewReportBuilderPage() {
         category: config.template?.category || "custom",
         selectedFields: config.selectedFields,
         filterGroup: config.filterGroup,
-        sort: config.sorts?.[0], // Legacy single sort (first sort in array)
-        sorts: config.sorts, // New multi-sort array
+        sort: config.sorts?.[0],
+        sorts: config.sorts,
         templateId: config.template?.id,
       };
 
@@ -182,16 +260,12 @@ export default function NewReportBuilderPage() {
     setWizardInitialConfig(undefined);
   };
 
-  /**
-   * Execute a template report immediately - navigates directly to preview without saving
-   */
   const handleTemplateExecute = useCallback((template: ReportLibraryEntry) => {
     const params = new URLSearchParams();
     
     if (template.engine === "custom" && template.reportType) {
       params.set("reportType", template.reportType);
       params.set("engine", "custom");
-      // Custom reports still need fields for column display
       params.set("fields", JSON.stringify(template.defaultFields));
     } else {
       params.set("fields", JSON.stringify(template.defaultFields));
@@ -203,9 +277,6 @@ export default function NewReportBuilderPage() {
     router.push(`/reports/preview?${params.toString()}`);
   }, [router]);
 
-  /**
-   * Open wizard for custom report building
-   */
   const handleCustomReportStart = useCallback(() => {
     setWizardInitialConfig(undefined);
     setShowWizard(true);
@@ -220,6 +291,25 @@ export default function NewReportBuilderPage() {
     }
   }, [searchParams]);
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.06 }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1,
+      transition: { type: "spring" as const, stiffness: 300, damping: 25 }
+    }
+  };
+
   if (showWizard) {
     return (
       <ReportWizard 
@@ -232,139 +322,331 @@ export default function NewReportBuilderPage() {
 
   return (
     <PageShell
-      title="HR Report Builder"
-      description="Create insightful reports from your HR data"
+      title="Report Builder"
+      description="Create powerful HR analytics with our intuitive report builder"
       icon={<BarChart3 className="h-6 w-6" />}
       breadcrumbs={breadcrumbs}
       action={
-        <Button onClick={() => setShowWizard(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create report
-        </Button>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Button 
+            onClick={() => setShowWizard(true)} 
+            className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/25 h-10 px-5 rounded-xl flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Custom Report
+          </Button>
+        </motion.div>
       }
     >
-      <div className="grid gap-6">
-        <Card className="overflow-visible">
-          <CardContent className="p-6 overflow-visible">
-            <TemplateGallery
-              onSelectTemplate={handleTemplateExecute}
-              onStartCustom={handleCustomReportStart}
-              showCustomOptions
-            />
-          </CardContent>
-        </Card>
-
-        <Card
-          title="Recent reports"
-          action={
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant={sortOrder === "desc" ? "secondary" : "ghost"}
-                className="flex items-center gap-1"
-                onClick={() => setSortOrder("desc")}
-              >
-                <SortDesc className="h-4 w-4" />
-                Newest
-              </Button>
-              <Button
-                size="sm"
-                variant={sortOrder === "asc" ? "secondary" : "ghost"}
-                className="flex items-center gap-1"
-                onClick={() => setSortOrder("asc")}
-              >
-                <SortAsc className="h-4 w-4" />
-                Oldest
-              </Button>
-            </div>
-          }
+      <div className="space-y-8">
+        {/* Hero Section - Quick Actions */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
         >
-          <CardContent className="space-y-6">
-            {categoryOptions.length > 1 && (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant={categoryFilter === "all" ? "secondary" : "ghost"}
-                  onClick={() => setCategoryFilter("all")}
-                >
-                  All categories
-                </Button>
-                {categoryOptions.map((category) => (
-                  <Button
-                    key={category}
-                    size="sm"
-                    variant={categoryFilter === category ? "secondary" : "ghost"}
-                    onClick={() => setCategoryFilter(category)}
-                  >
-                    {category}
-                  </Button>
-                ))}
+          {/* Custom Report Card */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleCustomReportStart}
+            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-blue-600/90 p-6 shadow-depth-3 group"
+          >
+            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+            <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-white/10 blur-2xl" />
+            <div className="relative">
+              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
+                <Sparkles className="w-6 h-6 text-white" />
               </div>
-            )}
+              <h3 className="text-xl font-bold text-white mb-2">Build Custom Report</h3>
+              <p className="text-white/80 text-sm mb-4">Create a tailored report with exactly the fields and filters you need.</p>
+              <div className="flex items-center text-white/90 text-sm font-medium group-hover:translate-x-1 transition-transform">
+                Start building
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </div>
+            </div>
+          </motion.div>
 
-            {loadingReports ? (
-              <RecentReportsSkeleton />
-            ) : recentReports.length === 0 ? (
-              <EmptyState
-                icon={FileText}
-                title="No reports yet"
-                description="Create your first report to see it listed here."
-                action={{
-                  label: "Create report",
-                  onClick: () => setShowWizard(true),
-                }}
-              />
-            ) : filteredReports.length === 0 ? (
-              <EmptyState
-                icon={FileText}
-                title="No reports match the filters"
-                description="Try adjusting the category filter or sorting to see more saved reports."
-              />
-            ) : (
-              <ul className="space-y-3">
-                {filteredReports.map((report) => {
-                  const createdBy = report.createdBy?.email || "Unknown";
-                  const formattedDate = formatLondon(
-                    report.createdAt,
-                    "dd MMM yyyy, HH:mm",
-                  );
+          {/* Browse Templates Card */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push("/reports/library")}
+            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500/90 to-purple-600/90 p-6 shadow-depth-3 group"
+          >
+            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+            <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-white/10 blur-2xl" />
+            <div className="relative">
+              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
+                <BookOpen className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Template Library</h3>
+              <p className="text-white/80 text-sm mb-4">Browse pre-built templates designed for NZ HR compliance and analytics.</p>
+              <div className="flex items-center text-white/90 text-sm font-medium group-hover:translate-x-1 transition-transform">
+                Explore templates
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </div>
+            </div>
+          </motion.div>
 
-                  return (
-                    <li
-                      key={report.id}
-                      className="flex items-center justify-between gap-4 rounded-2xl border border-glass p-4 transition hover:border-primary/40 hover:shadow-glass"
-                    >
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-foreground">
-                          {report.name}
-                        </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                          <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-primary">
-                            {report.category}
-                          </span>
-                          <span>Created by {createdBy}</span>
-                          <span>on {formattedDate}</span>
-                        </div>
-                      </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          const params = new URLSearchParams();
-                          params.set("reportId", String(report.id));
-                          params.set("returnTo", "/reports/builder-new");
-                          router.push(`/reports/preview?${params.toString()}`);
-                        }}
+          {/* View Reports Card */}
+          <motion.div
+            whileHover={{ scale: 1.02, y: -4 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push("/reports")}
+            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/90 to-teal-600/90 p-6 shadow-depth-3 group"
+          >
+            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+            <div className="absolute top-0 right-0 w-32 h-32 -mr-10 -mt-10 rounded-full bg-white/10 blur-2xl" />
+            <div className="relative">
+              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
+                <Layers className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Saved Reports</h3>
+              <p className="text-white/80 text-sm mb-4">Access and manage your previously created reports.</p>
+              <div className="flex items-center text-white/90 text-sm font-medium group-hover:translate-x-1 transition-transform">
+                View all reports
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Template Gallery */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <Card className="glass-premium rounded-2xl shadow-premium overflow-visible border-0">
+            <CardContent className="p-6 overflow-visible">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center">
+                  <Star className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">Popular Templates</h3>
+                  <p className="text-sm text-muted-foreground">Quick-start with pre-configured report templates</p>
+                </div>
+              </div>
+              <TemplateGallery
+                onSelectTemplate={handleTemplateExecute}
+                onStartCustom={handleCustomReportStart}
+                showCustomOptions
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Recent Reports Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <Card className="glass-premium rounded-2xl shadow-premium border-0">
+            <CardContent className="p-6">
+              {/* Section Header */}
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">Recent Reports</h3>
+                    <p className="text-sm text-muted-foreground">Your recently created and viewed reports</p>
+                  </div>
+                </div>
+                
+                {/* Controls */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Search */}
+                  <div className="relative min-w-[180px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="pl-9 h-9 w-full rounded-lg glass-subtle border-white/20 text-sm"
+                      placeholder="Search..."
+                      value={searchQuery}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted/50 rounded-full"
                       >
-                        Open
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                        <X className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Sort Buttons */}
+                  <div className="flex items-center rounded-lg glass-subtle border border-white/20 p-0.5">
+                    <button
+                      onClick={() => setSortOrder("desc")}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                        sortOrder === "desc" 
+                          ? "bg-white dark:bg-card shadow-sm text-foreground" 
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <SortDesc className="h-3.5 w-3.5" />
+                      Newest
+                    </button>
+                    <button
+                      onClick={() => setSortOrder("asc")}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                        sortOrder === "asc" 
+                          ? "bg-white dark:bg-card shadow-sm text-foreground" 
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <SortAsc className="h-3.5 w-3.5" />
+                      Oldest
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Filters */}
+              {categoryOptions.length > 1 && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <button
+                    onClick={() => setCategoryFilter("all")}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                      categoryFilter === "all"
+                        ? "bg-primary text-white shadow-sm"
+                        : "glass-subtle hover:bg-white/50 text-muted-foreground"
+                    )}
+                  >
+                    All
+                  </button>
+                  {categoryOptions.map((category) => {
+                    const config = categoryConfig[category] || categoryConfig.custom;
+                    return (
+                      <button
+                        key={category}
+                        onClick={() => setCategoryFilter(category)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                          categoryFilter === category
+                            ? `${config.bgColor} ${config.color} shadow-sm`
+                            : "glass-subtle hover:bg-white/50 text-muted-foreground"
+                        )}
+                      >
+                        {config.icon}
+                        {category}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Reports Grid */}
+              {loadingReports ? (
+                <RecentReportsSkeleton />
+              ) : recentReports.length === 0 ? (
+                <EmptyState
+                  icon={FileText}
+                  title="No reports yet"
+                  description="Create your first report to see it listed here."
+                  action={{
+                    label: "Create report",
+                    onClick: () => setShowWizard(true),
+                  }}
+                />
+              ) : filteredReports.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">No matching reports</h3>
+                  <p className="text-sm text-muted-foreground">Try adjusting your search or filter criteria.</p>
+                </div>
+              ) : (
+                <motion.div 
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
+                >
+                  <AnimatePresence mode="popLayout">
+                    {filteredReports.map((report) => {
+                      const createdBy = report.createdBy?.email || "Unknown";
+                      const formattedDate = formatLondon(
+                        report.createdAt,
+                        "dd MMM yyyy",
+                      );
+                      const config = categoryConfig[report.category] || categoryConfig.custom;
+
+                      return (
+                        <motion.div
+                          key={report.id}
+                          variants={cardVariants}
+                          layout
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          onClick={() => {
+                            const params = new URLSearchParams();
+                            params.set("reportId", String(report.id));
+                            params.set("returnTo", "/reports/builder-new");
+                            router.push(`/reports/preview?${params.toString()}`);
+                          }}
+                          className="group cursor-pointer"
+                        >
+                          <div className="glass-card rounded-xl p-4 h-full border border-white/30 hover:border-primary/30 hover:shadow-depth-3 transition-all duration-300">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className={cn(
+                                "w-9 h-9 rounded-lg flex items-center justify-center",
+                                config.bgColor
+                              )}>
+                                <BarChart3 className={cn("w-4 h-4", config.color)} />
+                              </div>
+                              <Badge 
+                                variant="secondary"
+                                className={cn(
+                                  "text-[10px] font-medium border-0",
+                                  config.bgColor,
+                                  config.color
+                                )}
+                              >
+                                {report.category}
+                              </Badge>
+                            </div>
+                            
+                            <h4 className="font-semibold text-foreground text-sm mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                              {report.name}
+                            </h4>
+                            
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <User className="w-3 h-3" />
+                                <span className="truncate">{createdBy}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Clock className="w-3 h-3" />
+                                <span>{formattedDate}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-end mt-3 pt-3 border-t border-white/20">
+                              <span className="text-xs text-primary font-medium flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                Open
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     </PageShell>
   );
@@ -372,17 +654,21 @@ export default function NewReportBuilderPage() {
 
 function RecentReportsSkeleton() {
   return (
-    <div className="space-y-3">
-      {Array.from({ length: 3 }).map((_, index) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      {Array.from({ length: 4 }).map((_, index) => (
         <div
           key={index}
-          className="flex items-center justify-between gap-4 rounded-2xl border border-dashed border-glass/70 p-4"
+          className="glass-card rounded-xl p-4 border border-white/20"
         >
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-1/3" />
-            <Skeleton className="h-3 w-1/4" />
+          <div className="flex items-start justify-between mb-3">
+            <Skeleton className="h-9 w-9 rounded-lg" />
+            <Skeleton className="h-5 w-16 rounded-full" />
           </div>
-          <Skeleton className="h-9 w-24 rounded-2xl" />
+          <Skeleton className="h-4 w-3/4 mb-4" />
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-1/2" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
         </div>
       ))}
     </div>

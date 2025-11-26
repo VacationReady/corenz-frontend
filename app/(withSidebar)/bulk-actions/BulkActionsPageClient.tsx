@@ -72,11 +72,11 @@ export default function BulkActionsPageClient() {
         fetch("/api/courses/list", { cache: "no-store" }), fetch("/api/providers/list", { cache: "no-store" }),
         fetch("/api/event-categories", { cache: "no-store" }),
       ]);
-      if (deptRes.ok) { const data = await deptRes.json(); setDepartments((Array.isArray(data) ? data : []).map((d: any) => ({ value: String(d.id), label: d.name })).sort((a, b) => a.label.localeCompare(b.label))); }
-      if (jobRoleRes.ok) { const data = await jobRoleRes.json(); const roles = Array.isArray(data) ? data : data?.jobRoles ?? []; setJobRoles(roles.map((r: any) => ({ value: String(r.id), label: r.name })).sort((a, b) => a.label.localeCompare(b.label))); }
-      if (courseRes.ok) { const data = await courseRes.json(); setCourses((Array.isArray(data) ? data : []).map((c: any) => ({ value: String(c.id), label: c.name })).sort((a, b) => a.label.localeCompare(b.label))); }
-      if (providerRes.ok) { const data = await providerRes.json(); setProviders((Array.isArray(data) ? data : []).map((p: any) => ({ value: String(p.id), label: p.name })).sort((a, b) => a.label.localeCompare(b.label))); }
-      if (categoryRes.ok) { const data = await categoryRes.json(); setEventCategories((Array.isArray(data) ? data : []).filter((c: any) => c.categoryType !== "WORKING_EVENT").map((c: any) => ({ value: String(c.id), label: c.name })).sort((a, b) => a.label.localeCompare(b.label))); }
+      if (deptRes.ok) { const data = await deptRes.json(); setDepartments((Array.isArray(data) ? data : []).map((d: any) => ({ value: String(d.id), label: d.name })).sort((a: Option, b: Option) => a.label.localeCompare(b.label))); }
+      if (jobRoleRes.ok) { const data = await jobRoleRes.json(); const roles = Array.isArray(data) ? data : data?.jobRoles ?? []; setJobRoles(roles.map((r: any) => ({ value: String(r.id), label: r.name })).sort((a: Option, b: Option) => a.label.localeCompare(b.label))); }
+      if (courseRes.ok) { const data = await courseRes.json(); setCourses((Array.isArray(data) ? data : []).map((c: any) => ({ value: String(c.id), label: c.name })).sort((a: Option, b: Option) => a.label.localeCompare(b.label))); }
+      if (providerRes.ok) { const data = await providerRes.json(); setProviders((Array.isArray(data) ? data : []).map((p: any) => ({ value: String(p.id), label: p.name })).sort((a: Option, b: Option) => a.label.localeCompare(b.label))); }
+      if (categoryRes.ok) { const data = await categoryRes.json(); setEventCategories((Array.isArray(data) ? data : []).filter((c: any) => c.categoryType !== "WORKING_EVENT").map((c: any) => ({ value: String(c.id), label: c.name })).sort((a: Option, b: Option) => a.label.localeCompare(b.label))); }
     } catch (error) { console.error(error); setMetadataError("Unable to load supporting data."); }
   }, []);
 

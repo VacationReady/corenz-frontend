@@ -91,7 +91,7 @@ async function processCompany(companyId: string) {
       );
 
       const employeeName =
-        `${item.employee.user?.firstName ?? "Unknown"} ${item.employee.user?.lastName ?? ""}`.trim();
+        `${item.employee.User?.firstName ?? "Unknown"} ${item.employee.User?.lastName ?? ""}`.trim();
       const recipients: string[] = [];
 
       if (rule.notifyAdmin) {
@@ -111,8 +111,8 @@ async function processCompany(companyId: string) {
         if (manager?.email) recipients.push(manager.email);
       }
 
-      if (rule.notifyEmployee && item.employee.user?.email) {
-        recipients.push(item.employee.user.email);
+      if (rule.notifyEmployee && item.employee.User?.email) {
+        recipients.push(item.employee.User.email);
       }
 
       for (const recipient of recipients) {

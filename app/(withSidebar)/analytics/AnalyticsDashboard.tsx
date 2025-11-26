@@ -977,8 +977,8 @@ export default function AnalyticsDashboard() {
                       iconColor="text-violet-500"
                     />
                   </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-hidden p-4">
-                    <ScrollArea className="h-full">
+                  <CardContent className="flex-1 min-h-0 overflow-hidden p-4 flex flex-col">
+                    <ScrollArea className="flex-1 min-h-0">
                       <div className="space-y-2 pr-4">
                         {(data.breakdowns.byDepartment ?? []).map((dept, index) => (
                           <BreakdownListItem
@@ -1129,8 +1129,8 @@ export default function AnalyticsDashboard() {
                       iconColor="text-amber-500"
                     />
                   </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-hidden p-4">
-                    <ScrollArea className="h-full">
+                  <CardContent className="flex-1 min-h-0 overflow-hidden p-4 flex flex-col">
+                    <ScrollArea className="flex-1 min-h-0">
                       <div className="space-y-2 pr-4">
                         {(data.breakdowns.byJobRole ?? []).length === 0 ? (
                           <p className="text-sm text-muted-foreground text-center py-4">

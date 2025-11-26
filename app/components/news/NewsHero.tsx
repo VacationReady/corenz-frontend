@@ -157,7 +157,7 @@ export default function NewsHero({
       opacity: 1,
       scale: 1,
       transition: {
-        x: { type: "spring", stiffness: 300, damping: 30 },
+        x: { type: "spring" as const, stiffness: 300, damping: 30 },
         opacity: { duration: 0.4 },
         scale: { duration: 0.5 },
       },
@@ -181,7 +181,7 @@ export default function NewsHero({
       transition: {
         delay: 0.2,
         duration: 0.5,
-        ease: [0.22, 1, 0.36, 1],
+        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
       },
     },
     exit: {

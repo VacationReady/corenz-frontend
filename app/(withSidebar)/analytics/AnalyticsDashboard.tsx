@@ -211,20 +211,20 @@ const itemVariants = {
     opacity: 1, 
     y: 0, 
     scale: 1,
-    transition: { type: "spring", stiffness: 300, damping: 25 }
+    transition: { type: "spring" as const, stiffness: 300, damping: 25 }
   }
 };
 
 const cardHoverVariants = {
   rest: { scale: 1, y: 0 },
-  hover: { scale: 1.02, y: -4, transition: { type: "spring", stiffness: 400, damping: 25 } }
+  hover: { scale: 1.02, y: -4, transition: { type: "spring" as const, stiffness: 400, damping: 25 } }
 };
 
 const pulseVariants = {
   animate: {
     scale: [1, 1.05, 1],
     opacity: [0.7, 1, 0.7],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" as const }
   }
 };
 

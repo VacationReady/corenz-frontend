@@ -105,7 +105,7 @@ const itemVariants = {
     y: 0,
     scale: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 300,
       damping: 24,
     },
@@ -120,7 +120,7 @@ const statCardVariants = {
     scale: 1,
     transition: {
       delay: i * 0.1,
-      type: "spring",
+      type: "spring" as const,
       stiffness: 260,
       damping: 20,
     },

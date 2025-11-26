@@ -1063,15 +1063,12 @@ export default function AddEmployeeModal({
   };
 
   const nextStep = () => {
-    // Validate step 1 fields
+    // Validate step 1 fields (onboarding template is optional - can be "none")
     if (
       !formData.firstName ||
       !formData.lastName ||
       !formData.email ||
-      !formData.startDate ||
-      !formData.onboardingTemplateId ||
-      formData.onboardingTemplateId === "" ||
-      formData.onboardingTemplateId === "none"
+      !formData.startDate
     ) {
       toast.error("Please fill in all required fields");
       return;
@@ -1143,11 +1140,7 @@ export default function AddEmployeeModal({
         return;
       }
 
-      if (!formData.onboardingTemplateId || formData.onboardingTemplateId === "none") {
-        toast.error("Please select an onboarding template");
-        setIsSubmitting(false);
-        return;
-      }
+      // onboardingTemplateId is optional - "none" means skip onboarding
 
       // Validate step 2 fields
       if (holidayYearError) {
@@ -1359,14 +1352,13 @@ export default function AddEmployeeModal({
   );
 
   // Compute form validity for Step 1
+  // Note: onboardingTemplateId is optional - "none" means skip onboarding
   const isStep1Valid = useMemo(() => {
     return (
       formData.firstName?.trim() &&
       formData.lastName?.trim() &&
       formData.email?.trim() &&
       formData.startDate &&
-      formData.onboardingTemplateId &&
-      formData.onboardingTemplateId !== "none" &&
       !emailError &&
       !duplicateEmailError &&
       !phoneError &&
@@ -1379,7 +1371,6 @@ export default function AddEmployeeModal({
     formData.lastName,
     formData.email,
     formData.startDate,
-    formData.onboardingTemplateId,
     emailError,
     duplicateEmailError,
     phoneError,
@@ -1935,7 +1926,7 @@ export default function AddEmployeeModal({
                     <FormSection title="Onboarding" icon={FileText} accentColor="violet" defaultOpen={true}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-foreground/80">
-                          Onboarding Template <span className="text-primary">*</span>
+                          Onboarding Template <span className="text-muted-foreground text-xs">(optional)</span>
                         </Label>
                         <Select
                           open={isTemplateSelectOpen}
@@ -1966,6 +1957,9 @@ export default function AddEmployeeModal({
                                 placeholder="Search templates..."
                               />
                             )}
+                            <SelectItem value="none">
+                              <span className="text-muted-foreground italic">None - Skip onboarding</span>
+                            </SelectItem>
                             {templateOptions.map((t) => (
                               <SelectItem key={t.id} value={t.id}>
                                 {t.name}

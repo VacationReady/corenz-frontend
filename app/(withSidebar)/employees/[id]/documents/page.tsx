@@ -218,18 +218,18 @@ const DocumentCard = ({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+                <DropdownMenuItem onClick={() => onEdit()}>
                   <Settings className="w-4 h-4 mr-2" />
                   Edit Access
                 </DropdownMenuItem>
                 {doc.requiresAck && (
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onViewAck(); }}>
+                  <DropdownMenuItem onClick={() => onViewAck()}>
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     View Acknowledgements
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-600 dark:text-red-400">
+                <DropdownMenuItem onClick={() => onDelete()} className="text-red-600 dark:text-red-400">
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete
                 </DropdownMenuItem>

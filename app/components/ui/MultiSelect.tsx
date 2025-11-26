@@ -23,7 +23,10 @@ interface MultiSelectProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   autoOpen?: boolean;
+  className?: string;
 }
+
+export type { MultiSelectProps };
 
 export function MultiSelect({
   options,
@@ -36,6 +39,7 @@ export function MultiSelect({
   searchable = false,
   searchPlaceholder = "Search...",
   autoOpen = false,
+  className,
 }: MultiSelectProps) {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const [query, setQuery] = useState("");
@@ -127,7 +131,7 @@ export function MultiSelect({
     .map((opt) => opt.label);
 
   return (
-    <Menu as="div" className="relative w-full">
+    <Menu as="div" className={cn("relative w-full", className)}>
       <Menu.Button
         ref={menuButtonRef}
         as={Button}

@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/Badge";
 import {
   Dialog,
@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/Switch";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistance, addDays } from "date-fns";

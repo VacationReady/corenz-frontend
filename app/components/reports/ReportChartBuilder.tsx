@@ -17,7 +17,7 @@ import {
   RefreshCcw,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { Label } from "@/components/ui/Label";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/Badge";
 import {
   Select,

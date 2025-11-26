@@ -147,7 +147,7 @@ function StepsCanvas({
   addStep,
   setShowPalette,
 }: {
-  canvasRef: React.RefObject<HTMLDivElement>;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
   steps: any[];
   selectedStepIndex: number | null;
   setSelectedStepIndex: (index: number | null) => void;

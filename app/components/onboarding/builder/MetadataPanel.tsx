@@ -532,7 +532,23 @@ function EditablePayrollFields({
 }
 
 // Payroll field presets
-const PAYROLL_PRESETS = {
+type PayrollPreset = {
+  name: string;
+  description: string;
+  badge?: string;
+  instructions: string;
+  fields: Array<{
+    id: string;
+    label: string;
+    placeholder?: string;
+    required: boolean;
+    fieldType: PayrollFieldType;
+    defaultValue?: string;
+    options?: string[];
+  }>;
+};
+
+const PAYROLL_PRESETS: Record<string, PayrollPreset> = {
   "nz-standard": {
     name: "NZ Standard",
     description: "Complete NZ payroll setup with IRD, tax code, bank details, and KiwiSaver",
@@ -621,7 +637,7 @@ const PAYROLL_PRESETS = {
   },
 };
 
-type PayrollPresetKey = keyof typeof PAYROLL_PRESETS;
+type PayrollPresetKey = "nz-standard" | "minimal" | "ird-only" | "custom";
 
 function PayrollSetupEditor({
   value,

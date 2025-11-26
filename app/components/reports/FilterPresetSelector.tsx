@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/Badge";
 import {
   Dialog,
@@ -36,7 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Textarea } from "@/components/ui/Textarea";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import type { FilterGroup } from "@/lib/reportFilters";
@@ -401,7 +401,7 @@ export function FilterPresetSelector({
                 id="preset-description"
                 placeholder="Describe what this filter does..."
                 value={presetDescription}
-                onChange={(e) => setPresetDescription(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPresetDescription(e.target.value)}
                 rows={2}
               />
             </div>

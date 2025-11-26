@@ -27,7 +27,7 @@ import {
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
-import { Label } from "@/components/ui/Label";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -40,7 +40,8 @@ import {
   hrReportFields,
   hrCategories,
   getFieldsByCategory,
-  type ReportFieldDefinition,
+  type HRReportField,
+  type HRCategory,
 } from "@/lib/hrReportFields";
 import type { FilterGroup, SortConfig } from "@/lib/reportFilters";
 import {
@@ -222,7 +223,7 @@ export default function QuickReportBuilder({
         const matchingFields = fields.filter(
           (field) =>
             field.label.toLowerCase().includes(searchLower) ||
-            field.key.toLowerCase().includes(searchLower) ||
+            field.field.toLowerCase().includes(searchLower) ||
             (field.description?.toLowerCase().includes(searchLower) ?? false)
         );
         return matchingFields.length > 0 ? { ...category, fields: matchingFields } : null;
@@ -307,7 +308,7 @@ export default function QuickReportBuilder({
   const getSelectedCount = useCallback(
     (categoryId: string) => {
       const fields = getFieldsByCategory(categoryId);
-      return fields.filter((f) => config.selectedFields.includes(f.key)).length;
+      return fields.filter((f) => config.selectedFields.includes(f.field)).length;
     },
     [config.selectedFields]
   );
@@ -455,7 +456,7 @@ export default function QuickReportBuilder({
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {recentFields.map((fieldKey) => {
-                          const field = hrReportFields.find((f) => f.key === fieldKey);
+                          const field = hrReportFields.find((f) => f.field === fieldKey);
                           if (!field) return null;
                           const isSelected = config.selectedFields.includes(fieldKey);
                           
@@ -497,7 +498,7 @@ export default function QuickReportBuilder({
                           >
                             <div className="flex items-center gap-3">
                               <span className="text-lg">{category.icon}</span>
-                              <span className="font-medium">{category.label}</span>
+                              <span className="font-medium">{category.name}</span>
                               {selectedCount > 0 && (
                                 <Badge variant="default" className="text-xs">
                                   {selectedCount}
@@ -520,13 +521,13 @@ export default function QuickReportBuilder({
                                 className="overflow-hidden"
                               >
                                 <div className="p-3 grid grid-cols-2 md:grid-cols-3 gap-2">
-                                  {fields.map((field) => {
-                                    const isSelected = config.selectedFields.includes(field.key);
-                                    const isRequired = REQUIRED_FIELDS.includes(field.key);
+                                  {fields.map((field: HRReportField) => {
+                                    const isSelected = config.selectedFields.includes(field.field);
+                                    const isRequired = REQUIRED_FIELDS.includes(field.field);
 
                                     return (
                                       <motion.label
-                                        key={field.key}
+                                        key={field.field}
                                         className={cn(
                                           "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all",
                                           isSelected
@@ -537,7 +538,7 @@ export default function QuickReportBuilder({
                                       >
                                         <Checkbox
                                           checked={isSelected}
-                                          onCheckedChange={() => toggleField(field.key)}
+                                          onCheckedChange={() => toggleField(field.field)}
                                           disabled={isRequired}
                                         />
                                         <span className={cn(
@@ -613,7 +614,7 @@ export default function QuickReportBuilder({
                   <div className="bg-muted/50 rounded-xl p-4">
                     <div className="flex flex-wrap gap-2">
                       {config.selectedFields.map((fieldKey) => {
-                        const field = hrReportFields.find((f) => f.key === fieldKey);
+                        const field = hrReportFields.find((f) => f.field === fieldKey);
                         const isRequired = REQUIRED_FIELDS.includes(fieldKey);
                         
                         return (

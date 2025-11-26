@@ -624,7 +624,9 @@ export async function POST(req: Request) {
                         selectedFields: sanitizedSelectedFields,
                         filters: enforcedFilterGroup,
                         pagination,
-                        sort: translatedSort,
+                        sort: translatedSort?.field 
+                                ? { field: translatedSort.field, direction: translatedSort.direction ?? "asc" }
+                                : null,
                         companyId,
                 };
 

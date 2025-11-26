@@ -23,8 +23,8 @@ import {
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
-import { Textarea } from "@/components/ui/Textarea";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/Badge";
 import {
   Dialog,
@@ -41,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/Switch";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistance } from "date-fns";
@@ -404,7 +404,7 @@ export function ScheduleReportModal({
               id="recipients"
               placeholder="email@example.com, another@example.com"
               value={recipientEmails}
-              onChange={(e) => setRecipientEmails(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRecipientEmails(e.target.value)}
               rows={2}
             />
             <p className="text-xs text-muted-foreground">
@@ -432,7 +432,7 @@ export function ScheduleReportModal({
                   <Textarea
                     placeholder="Add a custom message to include in the email..."
                     value={customMessage}
-                    onChange={(e) => setCustomMessage(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCustomMessage(e.target.value)}
                     rows={3}
                   />
                 </motion.div>

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
-import { batchSignProfileUrlsAsMap } from "@/app/lib/storage/signProfiles";
+import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
 
 export const runtime = "nodejs";
 

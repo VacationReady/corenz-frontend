@@ -20,10 +20,15 @@ import {
   CheckCircle,
   AlertCircle,
   Eye,
+  EyeOff,
   TrendingUp,
   Pause,
   Play,
   RefreshCw,
+  Shield,
+  Lock,
+  Building,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +43,7 @@ interface ActiveSurvey {
   responseRate: number;
   status: "active" | "paused" | "completed" | "expired";
   daysRemaining: number | null;
+  anonymizationLevel?: "public" | "department" | "location" | "full";
 }
 
 export default function ActiveSurveysPage() {
@@ -67,11 +73,15 @@ export default function ActiveSurveysPage() {
                 ? Math.max(0, Math.ceil((deadlineDate.getTime() - now.getTime()) / MS_PER_DAY))
                 : null;
 
+              // Extract anonymization level from metadata
+              const anonymizationLevel = survey.metadata?.anonymizationLevel || "public";
+              
               acc.push({
                 ...survey,
                 status: (survey.status || "").toLowerCase(),
                 deadline: deadlineValue,
                 daysRemaining,
+                anonymizationLevel,
               });
 
               return acc;
@@ -105,6 +115,34 @@ export default function ActiveSurveysPage() {
         return <Badge variant="destructive">Expired</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getAnonymizationBadge = (level?: string) => {
+    switch (level) {
+      case "full":
+        return (
+          <Badge className="bg-slate-700 text-white flex items-center gap-1">
+            <Lock className="h-3 w-3" />
+            Anonymous
+          </Badge>
+        );
+      case "department":
+        return (
+          <Badge className="bg-blue-600 text-white flex items-center gap-1">
+            <Building className="h-3 w-3" />
+            Dept. Anonymous
+          </Badge>
+        );
+      case "location":
+        return (
+          <Badge className="bg-violet-600 text-white flex items-center gap-1">
+            <Globe className="h-3 w-3" />
+            Location Anonymous
+          </Badge>
+        );
+      default:
+        return null; // Don't show badge for public surveys
     }
   };
 
@@ -302,6 +340,7 @@ export default function ActiveSurveysPage() {
                       <div className="flex items-center gap-3 mb-2">
                         <CardTitle className="text-lg">{survey.name}</CardTitle>
                         {getStatusBadge(survey.status)}
+                        {getAnonymizationBadge(survey.anonymizationLevel)}
                       </div>
                       <CardDescription className="mb-3">
                         Template: {survey.templateName}

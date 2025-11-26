@@ -123,6 +123,8 @@ export async function GET(
       responseRate: survey._count.SurveyRecipients > 0 
         ? (survey._count.SurveyResponses / survey._count.SurveyRecipients) * 100 
         : 0,
+      // Include anonymization level so frontend can display privacy info
+      anonymizationLevel: getAnonymizationLevel(survey.metadata),
       // When includeFullDetails is true, return raw employee data for admin view
       // Otherwise apply anonymization as normal
       SurveyResponses: includeFullDetails 

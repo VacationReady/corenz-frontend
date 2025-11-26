@@ -48,12 +48,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { cn } from "@/lib/utils";
 
-// Step configuration
-const STEPS = [
-  { id: 1, title: "Build Screen", description: "Design your screen structure", icon: Layers },
-  { id: 2, title: "Preview", description: "Review your screen", icon: Eye },
-  { id: 3, title: "Set Audience", description: "Control visibility", icon: Users },
-];
+// Step icons imported at top - actual STEPS config is inside component for dynamic labels
 
 function useSlug(initialName: string, initialSlug: string) {
   const [name, setName] = useState(initialName);
@@ -114,19 +109,37 @@ interface FormBuilderWizardProps {
     transactionalEnabled?: boolean;
     autoSave?: boolean;
   };
+  /** When set, locks the form type and hides the selector */
+  lockedFormType?: "SURVEY" | "FORM" | "TABLE";
+  /** Custom cancel URL - defaults to /settings/forms */
+  cancelUrl?: string;
+  /** Custom labels for UI elements */
+  labels?: {
+    title?: string;
+    namePlaceholder?: string;
+    step1Title?: string;
+    step1Description?: string;
+    step2Title?: string;
+    step2Description?: string;
+    step3Title?: string;
+    step3Description?: string;
+    saveButton?: string;
+  };
 }
 
 // Step indicator component - clean and numbered
 function StepIndicator({ 
   currentStep, 
-  onStepClick 
+  onStepClick,
+  steps
 }: { 
   currentStep: number; 
   onStepClick: (step: number) => void;
+  steps: Array<{ id: number; title: string; description: string; icon: React.ComponentType<{ className?: string }> }>;
 }) {
   return (
     <div className="flex items-center justify-center gap-2 md:gap-6">
-      {STEPS.map((step, index) => {
+      {steps.map((step, index) => {
         const isActive = currentStep === step.id;
         const isCompleted = currentStep > step.id;
         const isClickable = currentStep >= step.id;
@@ -181,7 +194,7 @@ function StepIndicator({
             </motion.button>
 
             {/* Connector line */}
-            {index < STEPS.length - 1 && (
+            {index < steps.length - 1 && (
               <div className="hidden sm:block w-8 md:w-12 h-0.5 mx-1">
                 <div
                   className={cn(
@@ -200,9 +213,38 @@ function StepIndicator({
   );
 }
 
-export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWizardProps) {
+export default function FormBuilderWizard({ 
+  onSave, 
+  initialData, 
+  lockedFormType,
+  cancelUrl = "/settings/forms",
+  labels = {}
+}: FormBuilderWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState(0); // -1 for back, 1 for forward
+
+  // Build dynamic step configuration based on mode
+  const isSurveyMode = lockedFormType === "SURVEY";
+  const STEPS = [
+    { 
+      id: 1, 
+      title: labels.step1Title || (isSurveyMode ? "Design Survey" : "Build Screen"), 
+      description: labels.step1Description || (isSurveyMode ? "Create your survey questions" : "Design your screen structure"), 
+      icon: Layers 
+    },
+    { 
+      id: 2, 
+      title: labels.step2Title || "Preview", 
+      description: labels.step2Description || (isSurveyMode ? "See how your survey looks" : "Review your screen"), 
+      icon: Eye 
+    },
+    { 
+      id: 3, 
+      title: labels.step3Title || (isSurveyMode ? "Target Audience" : "Set Audience"), 
+      description: labels.step3Description || (isSurveyMode ? "Who should receive this survey" : "Control visibility"), 
+      icon: Users 
+    },
+  ];
 
   // Normalize incoming schema into sections
   const initialSections: FormSection[] = (() => {
@@ -235,7 +277,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
     initialData?.description || "",
   );
   const [formType, setFormType] = useState<"SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN">(
-    initialData?.formType === "DATA_SCREEN" ? "FORM" : (initialData?.formType || "FORM"),
+    lockedFormType || (initialData?.formType === "DATA_SCREEN" ? "FORM" : (initialData?.formType || "FORM")),
   );
   const autoSave = formType === "FORM" ? true : Boolean(initialData?.autoSave);
   const [transactionalEnabled, setTransactionalEnabled] = useState<boolean>(
@@ -396,7 +438,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
   };
 
   const goToForms = () => {
-    window.location.href = "/settings/forms";
+    window.location.href = cancelUrl;
   };
 
   // Animation variants for step transitions
@@ -425,58 +467,65 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
       >
         {/* Step Indicator */}
         <div className="mb-6">
-          <StepIndicator currentStep={currentStep} onStepClick={goToStep} />
+          <StepIndicator currentStep={currentStep} onStepClick={goToStep} steps={STEPS} />
         </div>
 
         {/* Form Details Bar - Always visible */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <div className={cn(
+          "grid gap-4 items-end",
+          lockedFormType ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 md:grid-cols-3"
+        )}>
           <div className="space-y-1.5">
-            <Label className="text-sm font-semibold text-slate-700">Screen Name</Label>
+            <Label className="text-sm font-semibold text-slate-700">
+              {isSurveyMode ? "Survey Name" : "Screen Name"}
+            </Label>
             <Input
               value={formName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNameChange(e.target.value)}
-              placeholder="Enter screen name"
+              placeholder={labels.namePlaceholder || (isSurveyMode ? "Enter survey name" : "Enter screen name")}
               className="bg-white border-slate-200 focus:border-primary/50 transition-all h-11"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              Screen Type
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-slate-900 text-white max-w-xs p-3">
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <strong className="text-emerald-400">Data Screen:</strong>
-                        <p className="text-slate-300 text-xs mt-0.5">Single editable screen within employee profile. Changes saved with full audit trail.</p>
+          {!lockedFormType && (
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                Screen Type
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-slate-900 text-white max-w-xs p-3">
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <strong className="text-emerald-400">Data Screen:</strong>
+                          <p className="text-slate-300 text-xs mt-0.5">Single editable screen within employee profile. Changes saved with full audit trail.</p>
+                        </div>
+                        <div>
+                          <strong className="text-blue-400">Table:</strong>
+                          <p className="text-slate-300 text-xs mt-0.5">Multiple rows of the same fields. For lists like certifications, dependents, etc.</p>
+                        </div>
+                        <div>
+                          <strong className="text-amber-400">Survey:</strong>
+                          <p className="text-slate-300 text-xs mt-0.5">One-time submission form. For collecting feedback or responses.</p>
+                        </div>
                       </div>
-                      <div>
-                        <strong className="text-blue-400">Table:</strong>
-                        <p className="text-slate-300 text-xs mt-0.5">Multiple rows of the same fields. For lists like certifications, dependents, etc.</p>
-                      </div>
-                      <div>
-                        <strong className="text-amber-400">Survey:</strong>
-                        <p className="text-slate-300 text-xs mt-0.5">One-time submission form. For collecting feedback or responses.</p>
-                      </div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Label>
-            <Select value={formType} onValueChange={(value: string) => setFormType(value as "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN")}>
-              <SelectTrigger className="bg-white border-slate-200 focus:border-primary/50 h-11">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-white border-slate-200">
-                <SelectItem value="FORM">Data Screen</SelectItem>
-                <SelectItem value="TABLE">Table</SelectItem>
-                <SelectItem value="SURVEY">Survey</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+              <Select value={formType} onValueChange={(value: string) => setFormType(value as "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN")}>
+                <SelectTrigger className="bg-white border-slate-200 focus:border-primary/50 h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-slate-200">
+                  <SelectItem value="FORM">Data Screen</SelectItem>
+                  <SelectItem value="TABLE">Table</SelectItem>
+                  <SelectItem value="SURVEY">Survey</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex items-center gap-2 justify-end">
             <Button variant="outline" onClick={goToForms} className="h-11 border-slate-200">
               Cancel
@@ -488,7 +537,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                 className="bg-primary hover:bg-primary/90 shadow-sm h-11 px-6"
               >
                 <Save className="mr-2 h-4 w-4" />
-                Save Screen
+                {labels.saveButton || (isSurveyMode ? "Save Survey" : "Save Screen")}
               </Button>
             ) : (
               <Button
@@ -660,10 +709,13 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                     </div>
                     <div>
                       <h3 className="text-xl font-semibold text-foreground">
-                        Screen Preview
+                        {isSurveyMode ? "Survey Preview" : "Screen Preview"}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        This is how your screen will appear within employee profiles
+                        {isSurveyMode 
+                          ? "This is how your survey will appear to employees"
+                          : "This is how your screen will appear within employee profiles"
+                        }
                       </p>
                     </div>
                   </div>
@@ -672,7 +724,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                     onClick={goToForms}
                     className="glass-subtle border-white/20 hover:border-primary/50"
                   >
-                    View All Screens
+                    {isSurveyMode ? "View All Surveys" : "View All Screens"}
                   </Button>
                 </div>
                 
@@ -703,10 +755,13 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold text-foreground">
-                      Visibility Settings
+                      {isSurveyMode ? "Target Audience" : "Visibility Settings"}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Control who can see and access this screen
+                      {isSurveyMode 
+                        ? "Define who should receive this survey"
+                        : "Control who can see and access this screen"
+                      }
                     </p>
                   </div>
                 </div>
@@ -766,7 +821,7 @@ export default function FormBuilderWizard({ onSave, initialData }: FormBuilderWi
               className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-lg h-11 px-8"
             >
               <Save className="mr-2 h-4 w-4" />
-              Save & Publish
+              {labels.saveButton || (isSurveyMode ? "Save Survey" : "Save & Publish")}
             </Button>
           ) : (
             <Button

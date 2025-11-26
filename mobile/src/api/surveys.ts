@@ -10,6 +10,7 @@ export interface Survey {
   startDate?: string;
   endDate?: string;
   createdAt: string;
+  anonymizationLevel?: 'public' | 'department' | 'location' | 'full';
 }
 
 export interface SurveyResponse {

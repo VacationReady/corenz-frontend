@@ -126,6 +126,12 @@ export default function SurveysScreen() {
                     <Text style={styles.surveyTitle}>{survey.title}</Text>
                     <Text style={styles.surveyType}>{survey.type}</Text>
                   </View>
+                  {survey.anonymizationLevel && survey.anonymizationLevel !== 'public' && (
+                    <View style={styles.anonymousBadge}>
+                      <Ionicons name="shield-checkmark" size={14} color="#475569" />
+                      <Text style={styles.anonymousBadgeText}>Anonymous</Text>
+                    </View>
+                  )}
                 </View>
 
                 {survey.description && (
@@ -193,6 +199,47 @@ export default function SurveysScreen() {
             </View>
 
             <ScrollView style={styles.modalContent}>
+              {/* Privacy Notice */}
+              {selectedSurvey.anonymizationLevel && selectedSurvey.anonymizationLevel !== 'public' && (
+                <View style={styles.privacyNotice}>
+                  <View style={styles.privacyIcon}>
+                    <Ionicons name="shield-checkmark" size={24} color="#fff" />
+                  </View>
+                  <View style={styles.privacyTextContainer}>
+                    <Text style={styles.privacyTitle}>
+                      {selectedSurvey.anonymizationLevel === 'full' && 'This survey is fully anonymous'}
+                      {selectedSurvey.anonymizationLevel === 'department' && 'Anonymous by department'}
+                      {selectedSurvey.anonymizationLevel === 'location' && 'Anonymous by location'}
+                    </Text>
+                    <Text style={styles.privacyText}>
+                      {selectedSurvey.anonymizationLevel === 'full' && 
+                        'Your identity is protected. Management cannot see who submitted which response.'
+                      }
+                      {selectedSurvey.anonymizationLevel === 'department' && 
+                        'Your name is protected, but department may be visible in aggregated reports.'
+                      }
+                      {selectedSurvey.anonymizationLevel === 'location' && 
+                        'Your name is protected, but location may be visible in aggregated reports.'
+                      }
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {selectedSurvey.anonymizationLevel === 'public' && (
+                <View style={[styles.privacyNotice, styles.publicNotice]}>
+                  <View style={[styles.privacyIcon, styles.publicIcon]}>
+                    <Ionicons name="eye" size={24} color="#fff" />
+                  </View>
+                  <View style={styles.privacyTextContainer}>
+                    <Text style={[styles.privacyTitle, styles.publicTitle]}>Public survey</Text>
+                    <Text style={[styles.privacyText, styles.publicText]}>
+                      Your response will be visible to management with your name attached.
+                    </Text>
+                  </View>
+                </View>
+              )}
+
               {selectedSurvey.description && (
                 <Text style={styles.modalDescription}>{selectedSurvey.description}</Text>
               )}
@@ -334,6 +381,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748b',
   },
+  anonymousBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  anonymousBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+    marginLeft: 4,
+  },
   surveyDescription: {
     fontSize: 14,
     color: '#475569',
@@ -448,5 +510,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 32,
     marginBottom: 16,
+  },
+  privacyNotice: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  privacyIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#475569',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  privacyTextContainer: {
+    flex: 1,
+  },
+  privacyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  privacyText: {
+    fontSize: 13,
+    color: '#64748b',
+    lineHeight: 18,
+  },
+  publicNotice: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
+  },
+  publicIcon: {
+    backgroundColor: '#10b981',
+  },
+  publicTitle: {
+    color: '#065f46',
+  },
+  publicText: {
+    color: '#047857',
   },
 });

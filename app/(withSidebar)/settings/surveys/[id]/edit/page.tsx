@@ -3,9 +3,8 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
-import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
-import FormBuilder from "@/components/forms/FormBuilder/FormBuilder";
-import { FileText } from "lucide-react";
+import FormBuilderWizard from "@/components/forms/FormBuilder/FormBuilderWizard";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { AnyFormSchema } from "@/api/forms/[id]/types";
 
@@ -80,7 +79,7 @@ export default function EditSurveyPage() {
       });
 
       if (res.ok) {
-        toast.success("Survey updated successfully");
+        toast.success("Survey updated successfully!");
         router.push("/settings/surveys");
       } else {
         const errorData = await res.json().catch(() => ({}));
@@ -91,23 +90,26 @@ export default function EditSurveyPage() {
     }
   };
 
+  const breadcrumbItems = [
+    { label: 'Settings', href: '/settings' },
+    { label: 'Surveys', href: '/settings/surveys' },
+    { label: survey?.name || 'Edit Survey', isCurrentPage: true }
+  ];
+
   if (loading) {
     return (
       <PageShell
         title="Edit Survey"
         description="Loading survey data..."
-        icon={<FileText className="w-6 h-6" />}
-        breadcrumbs={{
-          items: [
-            { label: "Dashboard", href: "/dashboard" },
-            { label: "Settings", href: "/settings" },
-            { label: "Surveys", href: "/settings/surveys" },
-            { label: "Edit Survey", isCurrentPage: true },
-          ],
-        }}
+        breadcrumbs={{ items: breadcrumbItems }}
+        showHomeIcon={false}
       >
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 rounded-full border-4 border-primary/20 border-t-primary"
+          />
         </div>
       </PageShell>
     );
@@ -119,20 +121,17 @@ export default function EditSurveyPage() {
 
   return (
     <PageShell
-      title={`Edit Survey: ${survey.name}`}
-      description="Update survey configuration and fields"
-      icon={<FileText className="w-6 h-6" />}
-      breadcrumbs={{
-        items: [
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Settings", href: "/settings" },
-          { label: "Surveys", href: "/settings/surveys" },
-          { label: survey.name, isCurrentPage: true },
-        ],
-      }}
+      title={`Edit: ${survey.name}`}
+      description="Update your survey questions, preview, and audience settings"
+      breadcrumbs={{ items: breadcrumbItems }}
+      showHomeIcon={false}
     >
-      <FormBuilder onSave={handleSave} initialData={survey} />
+      <FormBuilderWizard 
+        onSave={handleSave} 
+        initialData={survey}
+        lockedFormType="SURVEY"
+        cancelUrl="/settings/surveys"
+      />
     </PageShell>
   );
 }
-

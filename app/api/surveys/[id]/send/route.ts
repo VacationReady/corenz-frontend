@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { sendSurveyNotification } from "@/lib/email/surveyNotification";
+import { getAnonymizationLevel, MINIMUM_ANONYMOUS_RECIPIENTS, requiresMinimumRecipients } from "@/lib/survey-anonymization";
 
 const sendSurveySchema = z.object({
   targetAudience: z.object({
@@ -125,6 +126,20 @@ export async function POST(
         { error: "No employees found matching criteria" },
         { status: 400 }
       );
+    }
+
+    // Check if survey is anonymous and validate minimum recipients
+    const anonymizationLevel = getAnonymizationLevel(survey.metadata);
+    if (requiresMinimumRecipients(anonymizationLevel)) {
+      if (employees.length < MINIMUM_ANONYMOUS_RECIPIENTS) {
+        return NextResponse.json(
+          { 
+            error: `Anonymous surveys require at least ${MINIMUM_ANONYMOUS_RECIPIENTS} recipients to ensure privacy. Currently only ${employees.length} employee${employees.length === 1 ? '' : 's'} selected.`,
+            code: "INSUFFICIENT_RECIPIENTS_FOR_ANONYMOUS"
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Create action items for each employee

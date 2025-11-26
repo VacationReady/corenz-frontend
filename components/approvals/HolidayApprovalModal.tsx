@@ -185,8 +185,6 @@ export function HolidayApprovalModal({
                         {getInitials(details.employee.name)}
                       </AvatarFallback>
                     </Avatar>
-                    {/* Online indicator */}
-                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-emerald-400 rounded-full border-3 border-white dark:border-slate-900 shadow-lg" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-bold text-slate-800 dark:text-white truncate">

@@ -583,10 +583,11 @@ export default function AddEmployeeModal({
     [contractTypes, contractTypeSearch, shouldShowContractTypeSearch],
   );
 
-  const shouldShowManagerSearch = employees.length > 10;
+  // Always show search for managers to make it easier to find employees
+  const shouldShowManagerSearch = employees.length > 0;
   const managerOptions = useMemo<EmployeeSummary[]>(
     () =>
-      shouldShowManagerSearch
+      shouldShowManagerSearch && managerSearch.trim()
         ? filterBySearch(employees, (emp) => getEmployeeDisplayName(emp), managerSearch)
         : employees,
     [employees, managerSearch, shouldShowManagerSearch],
@@ -1909,16 +1910,37 @@ export default function AddEmployeeModal({
                               <SelectSearchInput
                                 value={managerSearch}
                                 onChange={setManagerSearch}
-                                placeholder="Search managers..."
+                                placeholder="Search employees..."
                               />
                             )}
-                            {managerOptions.map((emp) => (
-                              <SelectItem key={emp.id} value={emp.id}>
-                                {getEmployeeDisplayName(emp)}
-                              </SelectItem>
-                            ))}
+                            {modalData.employees.isLoading ? (
+                              <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                Loading employees...
+                              </div>
+                            ) : modalData.employees.error ? (
+                              <div className="px-2 py-6 text-center text-sm text-destructive">
+                                Error loading employees: {modalData.employees.error.message}
+                              </div>
+                            ) : managerOptions.length === 0 ? (
+                              <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                                {managerSearch.trim() ? "No employees found matching your search" : "No employees available"}
+                              </div>
+                            ) : (
+                              managerOptions.map((emp) => (
+                                <SelectItem key={emp.id} value={emp.id}>
+                                  {getEmployeeDisplayName(emp)}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
+                        {employees.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {managerSearch.trim() 
+                              ? `Showing ${managerOptions.length} of ${employees.length} employees`
+                              : `Showing all ${employees.length} employees`}
+                          </p>
+                        )}
                       </div>
                     </FormSection>
 

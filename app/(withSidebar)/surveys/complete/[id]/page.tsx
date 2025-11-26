@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { FormRenderer } from "@/components/forms/FormRenderer";
-import { CheckCircle, ArrowLeft, Clock } from "lucide-react";
+import { CheckCircle, ArrowLeft, Clock, Shield, Lock, Eye, Building, Globe } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 import { toast } from "sonner";
 import { SurveyCompletionSuccessAnimation } from "@/components/animations";
 
@@ -21,6 +22,7 @@ interface Survey {
   name: string;
   description?: string;
   deadline?: string;
+  anonymizationLevel?: "public" | "department" | "location" | "full";
   Form: {
     id: string;
     name: string;
@@ -216,20 +218,75 @@ export default function SurveyCompletePage({ params }: SurveyCompletePageProps) 
           {/* Survey Info */}
           <Card>
             <CardHeader>
-              <CardTitle>{survey.name}</CardTitle>
-              {survey.description && (
-                <CardDescription>{survey.description}</CardDescription>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle>{survey.name}</CardTitle>
+                  {survey.description && (
+                    <CardDescription>{survey.description}</CardDescription>
+                  )}
+                  {survey.deadline && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                      <Clock className="h-4 w-4" />
+                      <span>
+                        Due: {new Date(survey.deadline).toLocaleDateString("en-NZ", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Privacy Notice */}
+              {survey.anonymizationLevel && survey.anonymizationLevel !== "public" && (
+                <div className="mt-4 p-4 bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center flex-shrink-0">
+                      <Shield className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-slate-900">
+                          {survey.anonymizationLevel === "full" && "This survey is fully anonymous"}
+                          {survey.anonymizationLevel === "department" && "This survey is anonymous by department"}
+                          {survey.anonymizationLevel === "location" && "This survey is anonymous by location"}
+                        </h4>
+                        <Badge className="bg-slate-700 text-white text-xs">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Protected
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-1">
+                        {survey.anonymizationLevel === "full" && 
+                          "Your identity is completely protected. Management will not be able to see who submitted which response."
+                        }
+                        {survey.anonymizationLevel === "department" && 
+                          "Your name is protected, but your department may be visible in aggregated reports (only when 3+ responses per department)."
+                        }
+                        {survey.anonymizationLevel === "location" && 
+                          "Your name is protected, but your location may be visible in aggregated reports (only when 3+ responses per location)."
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
-              {survey.deadline && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>
-                    Due: {new Date(survey.deadline).toLocaleDateString("en-NZ", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </span>
+              
+              {survey.anonymizationLevel === "public" && (
+                <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+                      <Eye className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-emerald-900">This is a public survey</h4>
+                      <p className="text-sm text-emerald-700 mt-1">
+                        Your response will be visible to management with your name attached.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardHeader>

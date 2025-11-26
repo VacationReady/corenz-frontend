@@ -236,6 +236,28 @@ export async function GET(
     // Get anonymization level from survey metadata
     const anonymizationLevel = getAnonymizationLevel(survey.metadata);
 
+    // For anonymous surveys, we need to shuffle the order to prevent 
+    // identification through submission order
+    const isAnonymousSurvey = anonymizationLevel !== "public";
+    
+    // For anonymous surveys, don't show department breakdown with individual response data
+    // as this could be used to identify respondents
+    const safeQuestionAnalytics = questionAnalytics;
+    const safeDepartmentAnalytics = isAnonymousSurvey 
+      ? Object.entries(departmentAnalytics)
+          // Only include departments with 3+ responses to maintain anonymity
+          .filter(([_, data]) => data.responses >= 3)
+          .map(([dept, data]) => ({
+            department: dept,
+            responses: data.responses,
+            average: data.average,
+          }))
+      : Object.entries(departmentAnalytics).map(([dept, data]) => ({
+          department: dept,
+          responses: data.responses,
+          average: data.average,
+        }));
+
     const analytics = {
       id: survey.id,
       name: survey.name,
@@ -248,24 +270,20 @@ export async function GET(
       keyInsights: survey.keyInsights || [],
       sentimentScore: sentimentAnalysis.overallScore,
       topThemes: survey.topThemes || [],
-      questionAnalytics,
-      departmentAnalytics: Object.entries(departmentAnalytics).map(([dept, data]) => ({
-        department: dept,
-        responses: data.responses,
-        average: data.average,
-      })),
+      questionAnalytics: safeQuestionAnalytics,
+      departmentAnalytics: safeDepartmentAnalytics,
       anonymizationLevel, // Include level so frontend knows what to expect
-      responses: survey.SurveyResponses.map(response => ({
+      responses: survey.SurveyResponses.map((response, index) => ({
         id: response.id,
-        employee: anonymizeEmployeeData(response.Employee, anonymizationLevel),
-        submittedAt: response.submittedAt,
+        employee: anonymizeEmployeeData(response.Employee, anonymizationLevel, index, "Respondent"),
+        submittedAt: isAnonymousSurvey ? null : response.submittedAt, // Hide submission time for anonymous surveys
         responseData: response.responseData,
       })),
-      recipients: survey.SurveyRecipients.map(recipient => ({
+      recipients: survey.SurveyRecipients.map((recipient, index) => ({
         id: recipient.id,
-        employee: anonymizeEmployeeData(recipient.Employee, anonymizationLevel),
+        employee: anonymizeEmployeeData(recipient.Employee, anonymizationLevel, index, "Recipient"),
         status: recipient.status,
-        sentAt: recipient.sentAt,
+        sentAt: isAnonymousSurvey ? null : recipient.sentAt, // Hide sent time for anonymous surveys
       })),
     };
 

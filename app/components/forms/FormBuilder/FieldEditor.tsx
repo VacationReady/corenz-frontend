@@ -51,6 +51,25 @@ export function FieldEditor({
     onChange({ ...field, options: newOptions });
   };
 
+  // Option items for chips/multiselect
+  const optionItems = field.optionItems || [];
+
+  const addOptionItem = () => {
+    const newItems = [...optionItems, { label: `Option ${optionItems.length + 1}`, value: `option-${optionItems.length + 1}` }];
+    onChange({ ...field, optionItems: newItems });
+  };
+
+  const removeOptionItem = (index: number) => {
+    const newItems = optionItems.filter((_, i) => i !== index);
+    onChange({ ...field, optionItems: newItems });
+  };
+
+  const updateOptionItem = (index: number, key: 'label' | 'value', value: string) => {
+    const newItems = [...optionItems];
+    newItems[index] = { ...newItems[index], [key]: value };
+    onChange({ ...field, optionItems: newItems });
+  };
+
   // Get friendly type name
   const getTypeName = (type: string) => {
     const names: Record<string, string> = {
@@ -64,6 +83,8 @@ export function FieldEditor({
       select: "Dropdown",
       radio: "Radio Buttons",
       checkbox: "Checkboxes",
+      chips: "Choice Buttons",
+      multiselect: "Multi-select",
       switch: "Toggle",
       file: "File Upload",
       signature: "Signature",
@@ -141,6 +162,119 @@ export function FieldEditor({
               placeholder="Example: Enter your name"
               className="bg-white border-slate-200"
             />
+          </div>
+        )}
+
+        {/* Appearance selector for chips/multiselect */}
+        {(field.type === "chips" || field.type === "multiselect") && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Display Style
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => onChange({ ...field, appearance: "buttons" })}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all",
+                  field.appearance === "buttons"
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-slate-200 hover:border-slate-300 text-slate-600"
+                )}
+              >
+                <div className="flex gap-1">
+                  <span className="px-2 py-0.5 text-xs rounded bg-current/10">😀</span>
+                  <span className="px-2 py-0.5 text-xs rounded bg-current/10">😐</span>
+                </div>
+                <span className="text-xs font-medium">Cards</span>
+                <span className="text-[10px] text-slate-400">Best for surveys</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange({ ...field, appearance: "chips" })}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all",
+                  (!field.appearance || field.appearance === "chips")
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-slate-200 hover:border-slate-300 text-slate-600"
+                )}
+              >
+                <div className="flex gap-1">
+                  <span className="px-2 py-0.5 text-[10px] rounded-full bg-current/10">Tag</span>
+                  <span className="px-2 py-0.5 text-[10px] rounded-full bg-current/10">Tag</span>
+                </div>
+                <span className="text-xs font-medium">Pills</span>
+                <span className="text-[10px] text-slate-400">Compact tags</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Option items for chips/multiselect (with label + value) */}
+        {(field.type === "chips" || field.type === "multiselect") && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-slate-700">
+                Options <span className="text-red-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={addOptionItem}
+                className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1"
+              >
+                <Plus className="h-3 w-3" /> Add
+              </button>
+            </div>
+
+            {optionItems.length < 2 && (
+              <p className="text-xs text-amber-600 mb-2 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" /> Add at least 2 options
+              </p>
+            )}
+
+            <div className="space-y-2">
+              {optionItems.map((item, index) => (
+                <div key={index} className="p-2 bg-slate-50 rounded-lg space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      value={item.label}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateOptionItem(index, 'label', e.target.value)}
+                      placeholder="Display text (e.g. 😀 Great)"
+                      className="flex-1 h-8 bg-white border-slate-200 text-sm"
+                    />
+                    {optionItems.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeOptionItem(index)}
+                        className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    value={item.value}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateOptionItem(index, 'value', e.target.value)}
+                    placeholder="Value (e.g. great)"
+                    className="h-7 bg-white border-slate-200 text-xs font-mono"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {optionItems.length === 0 && (
+              <button
+                type="button"
+                onClick={addOptionItem}
+                className="w-full py-3 border-2 border-dashed border-slate-200 rounded-lg text-sm text-slate-500 hover:border-slate-300 hover:text-slate-600 transition-colors"
+              >
+                Click to add your first option
+              </button>
+            )}
+
+            <p className="text-xs text-slate-400 mt-2">
+              💡 Add emojis to labels for mood/rating style options
+            </p>
           </div>
         )}
 

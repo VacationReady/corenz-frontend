@@ -26,6 +26,7 @@ import {
   Download,
   Filter,
   Eye,
+  EyeOff,
   MessageSquare,
   Target,
   CheckCircle,
@@ -40,6 +41,9 @@ import {
   Mail,
   Clock,
   RefreshCw,
+  Shield,
+  Lock,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 import { 
@@ -76,6 +80,7 @@ interface IndividualSurveyAnalytics {
   keyInsights: string[];
   sentimentScore: number;
   topThemes: string[];
+  anonymizationLevel?: "public" | "department" | "location" | "full";
   questionAnalytics: Array<{
     question: string;
     totalResponses: number;
@@ -90,26 +95,30 @@ interface IndividualSurveyAnalytics {
   responses: Array<{
     id: string;
     employee: {
-      id: string;
-      name: string;
-      email: string;
-      department: string;
-      position: string;
+      id?: string;
+      name?: string;
+      email?: string;
+      department?: string;
+      position?: string;
+      location?: string;
+      isAnonymized?: boolean;
     } | null;
-    submittedAt: string;
+    submittedAt: string | null;
     responseData: any;
   }>;
   recipients: Array<{
     id: string;
     employee: {
-      id: string;
-      name: string;
-      email: string;
-      department: string;
-      position: string;
+      id?: string;
+      name?: string;
+      email?: string;
+      department?: string;
+      position?: string;
+      location?: string;
+      isAnonymized?: boolean;
     } | null;
     status: string;
-    sentAt: string;
+    sentAt: string | null;
   }>;
 }
 
@@ -190,6 +199,21 @@ export default function IndividualSurveyAnalyticsPage() {
     if (score >= 0.4) return "Neutral";
     return "Negative";
   };
+
+  const getAnonymizationInfo = (level?: string) => {
+    switch (level) {
+      case "full":
+        return { label: "Fully Anonymous", icon: Lock, color: "bg-slate-700 text-white" };
+      case "department":
+        return { label: "Anonymous by Department", icon: Building, color: "bg-blue-600 text-white" };
+      case "location":
+        return { label: "Anonymous by Location", icon: Globe, color: "bg-violet-600 text-white" };
+      default:
+        return { label: "Public", icon: Eye, color: "bg-emerald-600 text-white" };
+    }
+  };
+  
+  const isAnonymousSurvey = analytics?.anonymizationLevel && analytics.anonymizationLevel !== "public";
 
   const handleDownloadCSV = () => {
     if (!analytics) return;
@@ -386,6 +410,9 @@ export default function IndividualSurveyAnalyticsPage() {
     );
   }
 
+  const anonymizationInfo = getAnonymizationInfo(analytics.anonymizationLevel);
+  const AnonymizationIcon = anonymizationInfo.icon;
+
   return (
     <PageShell
       title={`${analytics.name} - Analytics`}
@@ -400,7 +427,12 @@ export default function IndividualSurveyAnalyticsPage() {
         ],
       }}
       action={
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Privacy Level Badge */}
+          <Badge className={`${anonymizationInfo.color} flex items-center gap-1.5 px-3 py-1.5`}>
+            <AnonymizationIcon className="w-3.5 h-3.5" />
+            {anonymizationInfo.label}
+          </Badge>
           <Button asChild variant="outline">
             <Link href="/surveys/analytics">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -619,7 +651,10 @@ export default function IndividualSurveyAnalyticsPage() {
                   Department Breakdown
                 </CardTitle>
                 <CardDescription>
-                  Response rates and scores by department
+                  {isAnonymousSurvey 
+                    ? "Only departments with 3+ responses are shown to protect privacy"
+                    : "Response rates and scores by department"
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -691,13 +726,26 @@ export default function IndividualSurveyAnalyticsPage() {
         {/* Individual Responses */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Individual Responses
-            </CardTitle>
-            <CardDescription>
-              Detailed view of each survey response
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Individual Responses
+                </CardTitle>
+                <CardDescription>
+                  {isAnonymousSurvey 
+                    ? "Responses are anonymized to protect employee privacy"
+                    : "Detailed view of each survey response"
+                  }
+                </CardDescription>
+              </div>
+              {isAnonymousSurvey && (
+                <Badge variant="secondary" className="bg-slate-100 text-slate-700 flex items-center gap-1.5">
+                  <Shield className="w-3 h-3" />
+                  Protected
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -705,23 +753,42 @@ export default function IndividualSurveyAnalyticsPage() {
                 <div key={response.id} className="border rounded-lg p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary" />
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        response.employee?.isAnonymized 
+                          ? "bg-slate-200" 
+                          : "bg-primary/10"
+                      }`}>
+                        {response.employee?.isAnonymized ? (
+                          <EyeOff className="h-5 w-5 text-slate-500" />
+                        ) : (
+                          <User className="h-5 w-5 text-primary" />
+                        )}
                       </div>
                       <div>
                         <div className="font-medium">
                           {response.employee?.name || "Anonymous"}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {response.employee?.department} • {response.employee?.position}
+                          {response.employee?.department && `${response.employee.department}`}
+                          {response.employee?.department && response.employee?.position && " • "}
+                          {response.employee?.position && `${response.employee.position}`}
+                          {response.employee?.location && !response.employee?.department && `${response.employee.location}`}
+                          {!response.employee?.department && !response.employee?.position && !response.employee?.location && response.employee?.isAnonymized && "Identity protected"}
                         </div>
                       </div>
                     </div>
                     <div className="text-right text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {new Date(response.submittedAt).toLocaleDateString()}
-                      </div>
+                      {response.submittedAt ? (
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(response.submittedAt).toLocaleDateString()}
+                        </div>
+                      ) : isAnonymousSurvey ? (
+                        <div className="flex items-center gap-1 text-slate-400">
+                          <Lock className="h-3 w-3" />
+                          <span>Time hidden</span>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   

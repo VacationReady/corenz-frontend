@@ -28,17 +28,37 @@ export interface AnonymizedEmployee {
   department?: string;
   position?: string;
   location?: string;
+  isAnonymized?: boolean;
+}
+
+/**
+ * Minimum number of recipients required for anonymous surveys
+ * This prevents identification through small sample sizes
+ */
+export const MINIMUM_ANONYMOUS_RECIPIENTS = 3;
+
+/**
+ * Checks if a survey requires minimum recipients validation
+ * @param level - The anonymization level
+ * @returns Whether minimum recipients validation is required
+ */
+export function requiresMinimumRecipients(level: AnonymizationLevel): boolean {
+  return level !== "public";
 }
 
 /**
  * Anonymizes employee data based on the specified anonymization level
  * @param employee - The employee data to anonymize
  * @param level - The anonymization level (public, department, location, full)
+ * @param index - Optional index for generating labels like "Recipient 1"
+ * @param labelPrefix - Optional prefix for anonymous labels (default: "Respondent")
  * @returns Anonymized employee data object
  */
 export function anonymizeEmployeeData(
   employee: EmployeeData | null | undefined,
-  level: AnonymizationLevel = "public"
+  level: AnonymizationLevel = "public",
+  index?: number,
+  labelPrefix: string = "Respondent"
 ): AnonymizedEmployee | null {
   if (!employee) return null;
 
@@ -51,6 +71,9 @@ export function anonymizeEmployeeData(
   const position = employee.JobRole?.name || "Unknown";
   const location = employee.locationName || "Unknown";
 
+  // Generate anonymous label if index is provided
+  const anonymousLabel = index !== undefined ? `${labelPrefix} ${index + 1}` : "Anonymous";
+
   switch (level) {
     case "public":
       // Show all details
@@ -61,26 +84,32 @@ export function anonymizeEmployeeData(
         department,
         position,
         location,
+        isAnonymized: false,
       };
 
     case "department":
       // Show department but anonymize individual identity
       return {
+        name: anonymousLabel,
         department,
         position,
+        isAnonymized: true,
       };
 
     case "location":
       // Show location but anonymize individual identity
       return {
+        name: anonymousLabel,
         location,
         position,
+        isAnonymized: true,
       };
 
     case "full":
-      // Fully anonymous - only show position (job role) for context
+      // Fully anonymous - only show anonymous label
       return {
-        position,
+        name: anonymousLabel,
+        isAnonymized: true,
       };
 
     default:
@@ -92,6 +121,7 @@ export function anonymizeEmployeeData(
         department,
         position,
         location,
+        isAnonymized: false,
       };
   }
 }

@@ -444,6 +444,13 @@ export default function SendSurveyPage() {
     }
   };
 
+  // Minimum recipients for anonymous surveys
+  const MINIMUM_ANONYMOUS_RECIPIENTS = 3;
+  
+  const isAnonymousSurvey = anonymizationLevel !== "public";
+  const targetCount = getTargetEmployeeCount();
+  const hasInsufficientRecipientsForAnonymous = isAnonymousSurvey && targetCount < MINIMUM_ANONYMOUS_RECIPIENTS && targetCount > 0;
+
   const canProceed = useMemo(() => {
     if (step === 1) return selectedTemplate && surveyName.trim().length > 0;
     if (step === 2) {
@@ -452,10 +459,12 @@ export default function SendSurveyPage() {
       if (targetType === "roles" && selectedRoles.length === 0) return false;
       if (targetType === "locations" && selectedLocations.length === 0) return false;
       if (targetType === "individuals" && selectedEmployees.length === 0) return false;
+      // For anonymous surveys, require minimum recipients
+      if (isAnonymousSurvey && getTargetEmployeeCount() < MINIMUM_ANONYMOUS_RECIPIENTS) return false;
       return true;
     }
     return true;
-  }, [step, selectedTemplate, surveyName, targetType, selectedDepartments, selectedRoles, selectedLocations, selectedEmployees, employees, excludedEmployees]);
+  }, [step, selectedTemplate, surveyName, targetType, selectedDepartments, selectedRoles, selectedLocations, selectedEmployees, employees, excludedEmployees, isAnonymousSurvey]);
 
   const selectedTemplateData = getSelectedTemplate();
   const selectedTemplateMeta = findTemplateMetaBySlug(selectedTemplateData?.slug);
@@ -1298,6 +1307,31 @@ export default function SendSurveyPage() {
                         )}
                       </AnimatePresence>
                     </div>
+
+                    {/* Minimum Recipients Warning for Anonymous Surveys */}
+                    {hasInsufficientRecipientsForAnonymous && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+                            <AlertCircle className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-amber-900">Minimum Recipients Required</h4>
+                            <p className="text-sm text-amber-700 mt-1">
+                              Anonymous surveys require at least <span className="font-bold">{MINIMUM_ANONYMOUS_RECIPIENTS} recipients</span> to ensure privacy. 
+                              You currently have <span className="font-bold">{targetCount}</span> selected.
+                            </p>
+                            <p className="text-xs text-amber-600 mt-2">
+                              This prevents individual responses from being identified in small groups.
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
 
                     {/* Mobile Summary */}
                     <div className="sm:hidden">

@@ -2,20 +2,25 @@
 
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
-import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
-import FormBuilder from "@/components/forms/FormBuilder/FormBuilder";
-import { FileText } from "lucide-react";
+import FormBuilderWizard from "@/components/forms/FormBuilder/FormBuilderWizard";
 import { toast } from "sonner";
+import { AnyFormSchema } from "@/api/forms/[id]/types";
 
 export default function NewSurveyPage() {
   const router = useRouter();
+
+  const breadcrumbItems = [
+    { label: 'Settings', href: '/settings' },
+    { label: 'Surveys', href: '/settings/surveys' },
+    { label: 'Create New Survey', isCurrentPage: true }
+  ];
 
   const handleSave = async (data: {
     name: string;
     slug: string;
     description?: string;
     formType: "SURVEY" | "FORM" | "TABLE" | "DATA_SCREEN";
-    schema: any;
+    schema: AnyFormSchema;
     visibleToRoles?: string[];
     visibleToDepartments?: string[];
     visibleToJobRoles?: string[];
@@ -23,45 +28,42 @@ export default function NewSurveyPage() {
     // Force formType to SURVEY
     const surveyData = { ...data, formType: "SURVEY" as const };
     
-    const res = await fetch("/api/forms", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(surveyData),
-    });
+    try {
+      const res = await fetch("/api/forms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(surveyData),
+      });
 
-    if (res.ok) {
-      const created = await res.json();
-      toast.success("Survey created successfully");
-      router.push(`/settings/surveys`);
-    } else {
-      const errorData = await res.json().catch(() => ({}));
-      toast.error(errorData.error || "Failed to create survey");
+      if (res.ok) {
+        toast.success("Survey created successfully!");
+        router.push("/settings/surveys");
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        toast.error(errorData.error || "Failed to create survey");
+      }
+    } catch {
+      toast.error("Failed to create survey");
     }
   };
 
   return (
     <PageShell
-      title="Create Survey"
-      description="Build a one-time survey for distribution through action items"
-      icon={<FileText className="w-6 h-6" />}
-      breadcrumbs={{
-        items: [
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Settings", href: "/settings" },
-          { label: "Surveys", href: "/settings/surveys" },
-          { label: "Create Survey", isCurrentPage: true },
-        ],
-      }}
+      title="Create New Survey"
+      description="Design a survey in three easy steps: build questions, preview, and set your audience"
+      breadcrumbs={{ items: breadcrumbItems }}
+      showHomeIcon={false}
     >
-      <FormBuilder 
-        onSave={handleSave} 
+      <FormBuilderWizard 
+        onSave={handleSave}
+        lockedFormType="SURVEY"
+        cancelUrl="/settings/surveys"
         initialData={{
           name: "",
           formType: "SURVEY",
-          schema: [],
+          schema: { version: 2, sections: [] } as AnyFormSchema,
         }}
       />
     </PageShell>
   );
 }
-

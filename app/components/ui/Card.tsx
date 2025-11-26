@@ -66,16 +66,18 @@ export function Card({
   );
 }
 
+interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+  className?: string;
+  transparent?: boolean;
+}
+
 export function CardHeader({
   children,
   className,
   transparent,
   ...props
-}: {
-  children: React.ReactNode;
-  className?: string;
-  transparent?: boolean;
-}) {
+}: CardHeaderProps) {
   return (
     <div
       className={clsx(
@@ -92,18 +94,20 @@ export function CardHeader({
   );
 }
 
+interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+  className?: string;
+  transparent?: boolean;
+  noPadding?: boolean;
+}
+
 export function CardContent({
   children,
   className,
   transparent,
   noPadding,
   ...props
-}: {
-  children: React.ReactNode;
-  className?: string;
-  transparent?: boolean;
-  noPadding?: boolean;
-}) {
+}: CardContentProps) {
   return (
     <div
       className={clsx(
@@ -149,16 +153,18 @@ export function CardDescription({
   );
 }
 
+interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+  className?: string;
+  transparent?: boolean;
+}
+
 export function CardFooter({
   children,
   className,
   transparent,
   ...props
-}: {
-  children: React.ReactNode;
-  className?: string;
-  transparent?: boolean;
-}) {
+}: CardFooterProps) {
   return (
     <div
       className={clsx(

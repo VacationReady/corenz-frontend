@@ -23,3 +23,4 @@ CollapsibleContent.displayName = CollapsiblePrimitive.CollapsibleContent.display
 
 export { Collapsible, CollapsibleTrigger, CollapsibleContent };
 
+

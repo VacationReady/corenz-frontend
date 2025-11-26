@@ -108,13 +108,13 @@ const itemVariants = {
     opacity: 1, 
     y: 0, 
     scale: 1,
-    transition: { type: "spring", stiffness: 300, damping: 25 }
+    transition: { type: "spring" as const, stiffness: 300, damping: 25 }
   }
 };
 
 const cardHoverVariants = {
   initial: { scale: 1 },
-  hover: { scale: 1.02, transition: { type: "spring", stiffness: 400, damping: 25 } }
+  hover: { scale: 1.02, transition: { type: "spring" as const, stiffness: 400, damping: 25 } }
 };
 
 export interface PerformancePageProps {

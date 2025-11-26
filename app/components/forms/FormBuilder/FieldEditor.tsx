@@ -253,7 +253,7 @@ export function FieldEditor({
                     )}
                   </div>
                   <Input
-                    value={item.value}
+                    value={String(item.value)}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateOptionItem(index, 'value', e.target.value)}
                     placeholder="Value (e.g. great)"
                     className="h-7 bg-white border-slate-200 text-xs font-mono"

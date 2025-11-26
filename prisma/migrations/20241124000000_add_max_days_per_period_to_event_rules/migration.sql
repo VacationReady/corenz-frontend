@@ -10,3 +10,4 @@ ALTER TABLE "EventRule" ADD COLUMN "periodMonths" INTEGER;
 
 
 
+

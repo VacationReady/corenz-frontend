@@ -14,7 +14,7 @@ import NewsContentTipTapRenderer from "@/components/news/NewsContentTipTapRender
 import AudienceCampaignPanel from "@/components/news/AudienceCampaignPanel";
 import NewsChip from "@/components/ui/NewsChip";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import FileDropzone, {
   FileDropzoneItem,
@@ -33,6 +33,19 @@ import {
   Clock,
   AlertCircle,
   Trash2,
+  Image as ImageIcon,
+  FileText,
+  Settings2,
+  Users,
+  Pin,
+  Star,
+  Mail,
+  Save,
+  Zap,
+  ChevronDown,
+  ChevronUp,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 /** ---------------- Draft management types & helpers ---------------- */
@@ -154,7 +167,7 @@ export default function CreateNewsPostPage() {
   const [coverImage, setCoverImage] = useState("");
   const [coverStoragePath, setCoverStoragePath] = useState<string | null>(null);
   const [coverFit, setCoverFit] = useState<"cover" | "contain">("cover");
-  const [coverHeightPx, setCoverHeightPx] = useState<number>(192);
+  const [coverHeightPx, setCoverHeightPx] = useState<number>(280);
   const [coverObjectPositionX, setCoverObjectPositionX] = useState<number>(50);
   const [coverObjectPositionY, setCoverObjectPositionY] = useState<number>(50);
   const [videoUrl, setVideoUrl] = useState("");
@@ -182,6 +195,13 @@ export default function CreateNewsPostPage() {
     "draft" | "publish" | null
   >(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    cover: true,
+    content: true,
+    media: false,
+    settings: true,
+  });
+  const [isFullscreenEditor, setIsFullscreenEditor] = useState(false);
 
   // Draft refs
   const coverFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -197,7 +217,7 @@ export default function CreateNewsPostPage() {
     audience: { type: "all" },
     isDraft: false,
     coverFit: "cover",
-    coverHeightPx: 192,
+    coverHeightPx: 280,
     coverObjectPositionX: 50,
     coverObjectPositionY: 50,
   });
@@ -206,6 +226,10 @@ export default function CreateNewsPostPage() {
   const autosaveKey = session?.user
     ? `news:create:${session.user.companyId}:${session.user.id}`
     : null;
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   const clearDraftStorage = (resetState = false) => {
     if (typeof window !== "undefined" && autosaveKey) {
@@ -220,7 +244,7 @@ export default function CreateNewsPostPage() {
       setContent(null);
       setCoverImage("");
       setCoverFit("cover");
-      setCoverHeightPx(192);
+      setCoverHeightPx(280);
       setCoverObjectPositionX(50);
       setCoverObjectPositionY(50);
       setVideoUrl("");
@@ -330,10 +354,8 @@ export default function CreateNewsPostPage() {
 
     if (!validateForm()) return;
 
-    // Retain draft flag
     setIsDraft(asDraft);
 
-    // Ensure uploads are complete/healthy
     const hasUploadingAttachments = attachmentItems.some(
       (item) => item.status === "uploading",
     );
@@ -406,7 +428,6 @@ export default function CreateNewsPostPage() {
 
   function normalizeCoverForSave(input: string | null | undefined) {
     if (!input) return "";
-    // If this is a Supabase signed URL, extract the object path after "documents/"
     try {
       if (
         input.startsWith("http") &&
@@ -533,7 +554,7 @@ export default function CreateNewsPostPage() {
         setCoverHeightPx(
           typeof (parsed as any)?.coverHeightPx === "number"
             ? Math.min(600, Math.max(120, (parsed as any).coverHeightPx))
-            : 192,
+            : 280,
         );
         setCoverObjectPositionX(
           typeof (parsed as any)?.coverObjectPositionX === "number"
@@ -572,23 +593,75 @@ export default function CreateNewsPostPage() {
     handleAudienceRefresh();
   }, []);
 
+  // Section Header Component
+  const SectionHeader = ({ 
+    title, 
+    icon: Icon, 
+    section, 
+    badge 
+  }: { 
+    title: string; 
+    icon: React.ElementType; 
+    section: string;
+    badge?: string;
+  }) => (
+    <button
+      type="button"
+      onClick={() => toggleSection(section)}
+      className={cn(
+        "w-full flex items-center justify-between p-4 rounded-xl transition-all",
+        "hover:bg-muted/50",
+        expandedSections[section] ? "bg-muted/30" : ""
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <div className={cn(
+          "p-2 rounded-lg",
+          expandedSections[section] 
+            ? "bg-primary/10 text-primary" 
+            : "bg-muted text-muted-foreground"
+        )}>
+          <Icon className="w-4 h-4" />
+        </div>
+        <span className="font-semibold text-foreground">{title}</span>
+        {badge && (
+          <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">
+            {badge}
+          </span>
+        )}
+      </div>
+      {expandedSections[section] ? (
+        <ChevronUp className="w-4 h-4 text-muted-foreground" />
+      ) : (
+        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+      )}
+    </button>
+  );
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-card/80 backdrop-blur-md border-b border-border">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      {/* Premium Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border/50"
+      >
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => router.push("/news")}
-                className="p-2 hover:bg-muted rounded-lg transition-all"
+                className="p-2.5 hover:bg-muted rounded-xl transition-all"
                 type="button"
               >
                 <ArrowLeft className="w-5 h-5" />
-              </button>
+              </motion.button>
               <div>
-                <h1 className="text-xl font-bold text-foreground">
-                  Create News Post
+                <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-violet-500" />
+                  Create Story
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   Share updates with your organization
@@ -597,53 +670,79 @@ export default function CreateNewsPostPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleDiscardDraft}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
-                  "border border-destructive/60 text-destructive hover:bg-destructive/10",
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                  "text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/20",
                 )}
                 type="button"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>Discard Draft</span>
-              </button>
-              <Button
-                type="button"
-                variant="outline"
-                icon={<Eye className="w-4 h-4" />}
-                className={cn(showPreview && "bg-muted")}
+                <span className="hidden sm:inline">Discard</span>
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setShowPreview(!showPreview)}
-              >
-                Preview
-              </Button>
-              <Button
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                  showPreview 
+                    ? "bg-primary/10 text-primary border border-primary/30" 
+                    : "bg-muted/50 hover:bg-muted"
+                )}
                 type="button"
-                variant="secondary"
-                icon={<Clock className="w-4 h-4" />}
+              >
+                <Eye className="w-4 h-4" />
+                <span className="hidden sm:inline">Preview</span>
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={(e) => handleSubmit(e, true)}
-                loading={isSubmitting && submittingAction === "draft"}
-                loadingText="Saving draft..."
-                disabled={isSubmitting && submittingAction !== "draft"}
-              >
-                Save Draft
-              </Button>
-              <Button
+                disabled={isSubmitting}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                  "bg-muted/50 hover:bg-muted disabled:opacity-50"
+                )}
                 type="button"
-                variant="primary"
-                icon={<Send className="w-4 h-4" />}
-                onClick={(e) => handleSubmit(e, false)}
-                loading={isSubmitting && submittingAction === "publish"}
-                loadingText="Publishing..."
-                disabled={isSubmitting && submittingAction !== "publish"}
-                className="bg-gradient-to-r from-editorial-purple to-editorial-blue text-white shadow-lg hover:shadow-xl hover:scale-105 disabled:scale-100"
               >
-                Publish Now
-              </Button>
+                {isSubmitting && submittingAction === "draft" ? (
+                  <div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">Save Draft</span>
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={(e) => handleSubmit(e, false)}
+                disabled={isSubmitting}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all",
+                  "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 text-white",
+                  "shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+                type="button"
+              >
+                {isSubmitting && submittingAction === "publish" ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Zap className="w-4 h-4" />
+                )}
+                <span>Publish</span>
+              </motion.button>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <form
         onSubmit={(e) => handleSubmit(e, false)}
@@ -657,168 +756,179 @@ export default function CreateNewsPostPage() {
           }
         }}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr,380px] gap-8">
           {/* Main Content Area */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6">
             {/* Title Input */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-2"
+              className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/50 p-6"
             >
-              <label className="block text-sm font-medium text-foreground">
-                Title <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Headline <span className="text-destructive">*</span>
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter a compelling title for your news..."
+                placeholder="Write a compelling headline that captures attention..."
                 className={cn(
-                  "w-full px-4 py-3 text-lg font-semibold",
-                  "bg-card border border-border rounded-xl",
-                  "focus:outline-none focus:ring-2 focus:ring-primary",
-                  "placeholder:text-muted-foreground",
+                  "w-full px-0 py-2 text-2xl lg:text-3xl font-bold",
+                  "bg-transparent border-none",
+                  "focus:outline-none focus:ring-0",
+                  "placeholder:text-muted-foreground/50",
                 )}
                 required
               />
+              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <span className={title.length > 100 ? "text-amber-500" : ""}>
+                  {title.length} characters
+                </span>
+                {title.length > 100 && (
+                  <span className="text-amber-500">• Consider a shorter title for better engagement</span>
+                )}
+              </div>
             </motion.div>
 
-            {/* Cover Image */}
+            {/* Cover Image Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="space-y-2"
+              className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden"
             >
-              <label className="block text-sm font-medium text-foreground">
-                Cover Image
-              </label>
-              <div className="space-y-3">
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input
-                    type="url"
-                    value={coverImage}
-                    onChange={(e) => {
-                      setCoverImage(e.target.value);
-                      setCoverStoragePath(null);
-                      if (coverItems.length) setCoverItems([]);
-                    }}
-                    placeholder="https://example.com/image.jpg"
-                    className={cn(
-                      "flex-1 px-4 py-2",
-                      "bg-card border border-border rounded-lg",
-                      "focus:outline-none focus:ring-2 focus:ring-primary",
-                    )}
-                  />
-                  {coverImage && (
-                    <button
-                      type="button"
-                      onClick={clearCover}
-                      className="h-10 rounded-lg border border-border px-4 text-sm font-medium transition hover:bg-muted"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-                <FileDropzone
-                  files={coverItems}
-                  onFilesChange={setCoverItems}
-                  onUpload={handleCoverUpload}
-                  multiple={false}
-                  accept="image/*"
-                  description="Upload a hero image for this post"
-                  helperText="Images are stored securely in your tenant bucket."
-                />
-                {coverImage && (
-                  <div className="space-y-3">
-                    <div
-                      className="relative mt-2 rounded-lg overflow-hidden bg-muted"
-                      style={{ height: `${coverHeightPx}px` }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={coverImage}
-                        alt="Cover"
-                        className="w-full h-full"
-                        style={{
-                          objectFit: coverFit,
-                          objectPosition: `${coverObjectPositionX}% ${coverObjectPositionY}%`,
-                        }}
-                      />
-                      <button
-                        onClick={clearCover}
-                        className="absolute top-2 right-2 rounded-full bg-black/50 p-1 text-white transition hover:bg-black/70"
-                        type="button"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* Cover controls */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="flex items-center gap-3">
-                        <label className="text-xs text-muted-foreground w-24">Fit</label>
-                        <select
-                          value={coverFit}
-                          onChange={(e) => setCoverFit(e.target.value as any)}
-                          className={cn(
-                            "px-2 py-1 text-sm bg-card border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary",
-                          )}
+              <SectionHeader title="Cover Image" icon={ImageIcon} section="cover" />
+              
+              <AnimatePresence>
+                {expandedSections.cover && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="px-6 pb-6 space-y-4"
+                  >
+                    {coverImage ? (
+                      <div className="space-y-4">
+                        <div
+                          className="relative rounded-xl overflow-hidden bg-muted group"
+                          style={{ height: `${coverHeightPx}px` }}
                         >
-                          <option value="cover">Cover (crop)</option>
-                          <option value="contain">Contain (fit)</option>
-                        </select>
-                      </div>
+                          <img
+                            src={coverImage}
+                            alt="Cover"
+                            className="w-full h-full transition-transform duration-500 group-hover:scale-105"
+                            style={{
+                              objectFit: coverFit,
+                              objectPosition: `${coverObjectPositionX}% ${coverObjectPositionY}%`,
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={clearCover}
+                            className="absolute top-3 right-3 p-2 rounded-xl bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 transition-colors"
+                            type="button"
+                          >
+                            <X className="w-4 h-4" />
+                          </motion.button>
+                        </div>
 
-                      <div className="flex items-center gap-3">
-                        <label className="text-xs text-muted-foreground w-24">Height</label>
-                        <input
-                          type="range"
-                          min={120}
-                          max={600}
-                          step={4}
-                          value={coverHeightPx}
-                          onChange={(e) => setCoverHeightPx(parseInt(e.target.value, 10))}
-                          className="flex-1"
+                        {/* Cover Controls */}
+                        <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-xl">
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-muted-foreground">Fit Mode</label>
+                            <select
+                              value={coverFit}
+                              onChange={(e) => setCoverFit(e.target.value as any)}
+                              className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            >
+                              <option value="cover">Cover (Crop)</option>
+                              <option value="contain">Contain (Fit)</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-muted-foreground">
+                              Height: {coverHeightPx}px
+                            </label>
+                            <input
+                              type="range"
+                              min={120}
+                              max={500}
+                              step={10}
+                              value={coverHeightPx}
+                              onChange={(e) => setCoverHeightPx(parseInt(e.target.value, 10))}
+                              className="w-full accent-primary"
+                            />
+                          </div>
+
+                          {coverFit === "cover" && (
+                            <>
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-muted-foreground">
+                                  Position X: {coverObjectPositionX}%
+                                </label>
+                                <input
+                                  type="range"
+                                  min={0}
+                                  max={100}
+                                  value={coverObjectPositionX}
+                                  onChange={(e) => setCoverObjectPositionX(parseInt(e.target.value, 10))}
+                                  className="w-full accent-primary"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-muted-foreground">
+                                  Position Y: {coverObjectPositionY}%
+                                </label>
+                                <input
+                                  type="range"
+                                  min={0}
+                                  max={100}
+                                  value={coverObjectPositionY}
+                                  onChange={(e) => setCoverObjectPositionY(parseInt(e.target.value, 10))}
+                                  className="w-full accent-primary"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex gap-3">
+                          <input
+                            type="url"
+                            value={coverImage}
+                            onChange={(e) => {
+                              setCoverImage(e.target.value);
+                              setCoverStoragePath(null);
+                              if (coverItems.length) setCoverItems([]);
+                            }}
+                            placeholder="Paste image URL or upload below..."
+                            className={cn(
+                              "flex-1 px-4 py-3 text-sm",
+                              "bg-background border border-border rounded-xl",
+                              "focus:outline-none focus:ring-2 focus:ring-primary",
+                            )}
+                          />
+                        </div>
+                        <FileDropzone
+                          files={coverItems}
+                          onFilesChange={setCoverItems}
+                          onUpload={handleCoverUpload}
+                          multiple={false}
+                          accept="image/*"
+                          description="Drag & drop a hero image or click to browse"
+                          helperText="Recommended: 1200x630px for best social sharing"
                         />
-                        <span className="text-xs tabular-nums w-12 text-right">{coverHeightPx}px</span>
                       </div>
-
-                      {coverFit === "cover" && (
-                        <>
-                          <div className="flex items-center gap-3">
-                            <label className="text-xs text-muted-foreground w-24">Position X</label>
-                            <input
-                              type="range"
-                              min={0}
-                              max={100}
-                              step={1}
-                              value={coverObjectPositionX}
-                              onChange={(e) => setCoverObjectPositionX(parseInt(e.target.value, 10))}
-                              className="flex-1"
-                            />
-                            <span className="text-xs tabular-nums w-12 text-right">{coverObjectPositionX}%</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <label className="text-xs text-muted-foreground w-24">Position Y</label>
-                            <input
-                              type="range"
-                              min={0}
-                              max={100}
-                              step={1}
-                              value={coverObjectPositionY}
-                              onChange={(e) => setCoverObjectPositionY(parseInt(e.target.value, 10))}
-                              className="flex-1"
-                            />
-                            <span className="text-xs tabular-nums w-12 text-right">{coverObjectPositionY}%</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                    )}
+                  </motion.div>
                 )}
-              </div>
+              </AnimatePresence>
             </motion.div>
 
             {/* Content Editor */}
@@ -826,97 +936,121 @@ export default function CreateNewsPostPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="space-y-2"
+              className={cn(
+                "bg-card/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden",
+                isFullscreenEditor && "fixed inset-4 z-50 bg-card"
+              )}
             >
-              <label className="block text-sm font-medium text-foreground">
-                Content <span className="text-red-500">*</span>
-              </label>
-              <div className="border border-border rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-border/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <span className="font-semibold text-foreground">Content</span>
+                  <span className="text-destructive">*</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreenEditor(!isFullscreenEditor)}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                >
+                  {isFullscreenEditor ? (
+                    <Minimize2 className="w-4 h-4" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              <div className={cn(
+                "overflow-hidden",
+                isFullscreenEditor ? "h-[calc(100%-60px)]" : ""
+              )}>
                 <NewsEditor
                   value={content}
                   onChange={setContent}
-                  placeholder="Write your news content here. Type / for commands..."
-                  minHeight="500px"
+                  placeholder="Start writing your story... Type / for commands"
+                  minHeight={isFullscreenEditor ? "100%" : "500px"}
                 />
               </div>
             </motion.div>
 
-            {/* Video Embed */}
+            {/* Media Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="space-y-2"
+              className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden"
             >
-              <label className="block text-sm font-medium text-foreground">
-                Video Embed URL
-              </label>
-              <div className="flex gap-3">
-                <input
-                  type="url"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder="https://youtube.com/embed/..."
-                  className={cn(
-                    "flex-1 px-4 py-2",
-                    "bg-card border border-border rounded-lg",
-                    "focus:outline-none focus:ring-2 focus:ring-primary",
-                  )}
-                />
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-all flex items-center gap-2"
-                  onClick={() => setShowPreview(true)}
-                >
-                  <Video className="w-4 h-4" />
-                  Preview
-                </button>
-              </div>
-            </motion.div>
+              <SectionHeader title="Media & Attachments" icon={Video} section="media" />
+              
+              <AnimatePresence>
+                {expandedSections.media && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="px-6 pb-6 space-y-6"
+                  >
+                    {/* Video Embed */}
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-foreground">Video Embed</label>
+                      <div className="flex gap-3">
+                        <input
+                          type="url"
+                          value={videoUrl}
+                          onChange={(e) => setVideoUrl(e.target.value)}
+                          placeholder="Paste YouTube or Vimeo URL..."
+                          className={cn(
+                            "flex-1 px-4 py-3 text-sm",
+                            "bg-background border border-border rounded-xl",
+                            "focus:outline-none focus:ring-2 focus:ring-primary",
+                          )}
+                        />
+                      </div>
+                    </div>
 
-            {/* Attachments */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="space-y-2"
-            >
-              <label className="block text-sm font-medium text-foreground">
-                Attachments
-              </label>
-              <FileDropzone
-                files={attachmentItems}
-                onFilesChange={setAttachmentItems}
-                onUpload={handleAttachmentUpload}
-                accept={[
-                  ".pdf",
-                  ".doc",
-                  ".docx",
-                  ".xls",
-                  ".xlsx",
-                  ".ppt",
-                  ".pptx",
-                  "image/*",
-                ]}
-                description="Upload supporting documents or images"
-                helperText="Files are uploaded to your tenant's secure storage bucket."
-              />
+                    {/* Attachments */}
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-foreground">File Attachments</label>
+                      <FileDropzone
+                        files={attachmentItems}
+                        onFilesChange={setAttachmentItems}
+                        onUpload={handleAttachmentUpload}
+                        accept={[
+                          ".pdf",
+                          ".doc",
+                          ".docx",
+                          ".xls",
+                          ".xlsx",
+                          ".ppt",
+                          ".pptx",
+                          "image/*",
+                        ]}
+                        description="Drag & drop files or click to browse"
+                        helperText="PDF, Word, Excel, PowerPoint, or images"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Tags */}
+            {/* Tags Section */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-card rounded-xl p-6 border border-border"
+              className="bg-card/60 backdrop-blur-sm rounded-2xl p-6 border border-border/50"
             >
-              <div className="flex items-center gap-2 mb-4">
-                <Hash className="w-5 h-5 text-editorial-purple" />
-                <h3 className="font-semibold">Tags & Categories</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-lg bg-violet-500/10 text-violet-500">
+                  <Hash className="w-4 h-4" />
+                </div>
+                <h3 className="font-semibold text-foreground">Tags</h3>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -930,31 +1064,35 @@ export default function CreateNewsPostPage() {
                     }}
                     placeholder="Add a tag..."
                     className={cn(
-                      "flex-1 px-3 py-2 text-sm",
-                      "bg-background border border-border rounded-lg",
+                      "flex-1 px-4 py-2.5 text-sm",
+                      "bg-background border border-border rounded-xl",
                       "focus:outline-none focus:ring-2 focus:ring-primary",
                     )}
                   />
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={handleAddTag}
                     type="button"
-                    className="px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                    className="px-4 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90"
                   >
                     <Plus className="w-4 h-4" />
-                  </button>
+                  </motion.button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <NewsChip
-                      key={tag}
-                      onRemove={() => removeTag(tag)}
-                      variant="primary"
-                      size="sm"
-                    >
-                      {tag}
-                    </NewsChip>
-                  ))}
-                </div>
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag) => (
+                      <NewsChip
+                        key={tag}
+                        onRemove={() => removeTag(tag)}
+                        variant="primary"
+                        size="sm"
+                      >
+                        {tag}
+                      </NewsChip>
+                    ))}
+                  </div>
+                )}
               </div>
             </motion.div>
 
@@ -963,44 +1101,67 @@ export default function CreateNewsPostPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-card rounded-xl p-6 border border-border"
+              className="bg-card/60 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden"
             >
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-5 h-5 text-editorial-yellow" />
-                <h3 className="font-semibold">Post Settings</h3>
-              </div>
-              <div className="space-y-4">
-                <label className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">📌 Pin Post</p>
-                    <p className="text-xs text-muted-foreground">
-                      Keep at the top of the feed
-                    </p>
-                  </div>
-                  <Switch checked={pinned} onChange={setPinned} />
-                </label>
-                <label className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">⭐ Feature Post</p>
-                    <p className="text-xs text-muted-foreground">
-                      Highlight in the hero section
-                    </p>
-                  </div>
-                  <Switch checked={featured} onChange={setFeatured} />
-                </label>
-                <label className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">📧 Send Email</p>
-                    <p className="text-xs text-muted-foreground">
-                      Notify audience via email
-                    </p>
-                  </div>
-                  <Switch checked={sendEmail} onChange={setSendEmail} />
-                </label>
-              </div>
+              <SectionHeader 
+                title="Settings" 
+                icon={Settings2} 
+                section="settings"
+                badge={(pinned || featured || sendEmail) ? "Active" : undefined}
+              />
+              
+              <AnimatePresence>
+                {expandedSections.settings && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="px-6 pb-6 space-y-4"
+                  >
+                    <label className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+                          <Pin className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-foreground">Pin Post</p>
+                          <p className="text-xs text-muted-foreground">Keep at top of feed</p>
+                        </div>
+                      </div>
+                      <Switch checked={pinned} onChange={setPinned} />
+                    </label>
+
+                    <label className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-fuchsia-500/10 text-fuchsia-500">
+                          <Star className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-foreground">Feature Post</p>
+                          <p className="text-xs text-muted-foreground">Show in hero section</p>
+                        </div>
+                      </div>
+                      <Switch checked={featured} onChange={setFeatured} />
+                    </label>
+
+                    <label className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                          <Mail className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-foreground">Email Notification</p>
+                          <p className="text-xs text-muted-foreground">Send to audience</p>
+                        </div>
+                      </div>
+                      <Switch checked={sendEmail} onChange={setSendEmail} />
+                    </label>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
 
-            {/* Audience Campaign Panel */}
+            {/* Audience Panel */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -1017,22 +1178,27 @@ export default function CreateNewsPostPage() {
           </div>
         </div>
 
-        {/* Form Validation Warning */}
-        {(!title || !content) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30"
-          >
-            <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-full backdrop-blur-sm">
-              <AlertCircle className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm text-yellow-700 dark:text-yellow-300">
-                Please fill in required fields
-              </span>
-            </div>
-          </motion.div>
-        )}
+        {/* Validation Warning */}
+        <AnimatePresence>
+          {(!title.trim() || !content) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
+            >
+              <div className="flex items-center gap-3 px-5 py-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl backdrop-blur-sm shadow-lg">
+                <AlertCircle className="w-5 h-5 text-amber-500" />
+                <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                  {!title.trim() ? "Add a headline" : "Add some content"} to publish
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </form>
+
+      {/* Preview Modal */}
       <Modal
         isOpen={showPreview}
         onClose={() => setShowPreview(false)}
@@ -1040,11 +1206,9 @@ export default function CreateNewsPostPage() {
         size="xl"
         variant="glass"
       >
-        <div className="space-y-6">
-          {/* Cover Image */}
-          {coverImage ? (
-            <div className="rounded-xl overflow-hidden border border-border bg-muted" style={{ height: `${coverHeightPx}px` }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+        <div className="space-y-6 max-h-[70vh] overflow-y-auto">
+          {coverImage && (
+            <div className="rounded-xl overflow-hidden" style={{ height: `${coverHeightPx}px` }}>
               <img
                 src={coverImage}
                 alt="Cover"
@@ -1055,62 +1219,52 @@ export default function CreateNewsPostPage() {
                 }}
               />
             </div>
-          ) : null}
+          )}
 
-          {/* Title and Meta */}
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-foreground">{title || "Untitled post"}</h2>
-            {(pinned || featured || tags.length > 0) && (
-              <div className="flex flex-wrap gap-2">
-                {pinned && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">📌 Pinned</span>
-                )}
-                {featured && (
-                  <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/10 text-yellow-600 dark:text-yellow-300 border border-yellow-500/20">✨ Featured</span>
-                )}
-                {tags.map((tag) => (
-                  <NewsChip key={tag} size="sm" variant="outline">{tag}</NewsChip>
-                ))}
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {pinned && (
+                <span className="px-3 py-1 bg-amber-500/10 text-amber-600 text-xs font-medium rounded-full">
+                  📌 Pinned
+                </span>
+              )}
+              {featured && (
+                <span className="px-3 py-1 bg-fuchsia-500/10 text-fuchsia-600 text-xs font-medium rounded-full">
+                  ✨ Featured
+                </span>
+              )}
+              {tags.map((tag) => (
+                <span key={tag} className="px-3 py-1 bg-muted text-muted-foreground text-xs rounded-full">
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            <h2 className="text-2xl font-bold text-foreground">
+              {title || "Untitled Post"}
+            </h2>
+
+            {content ? (
+              <NewsContentTipTapRenderer
+                content={content}
+                className="prose dark:prose-invert"
+              />
+            ) : (
+              <p className="text-muted-foreground italic">
+                Start writing to see your content here...
+              </p>
+            )}
+
+            {videoUrl && (
+              <div className="rounded-xl overflow-hidden">
+                <iframe
+                  src={videoUrl}
+                  className="w-full aspect-video"
+                  allowFullScreen
+                />
               </div>
             )}
           </div>
-
-          {/* Content */}
-          {content ? (
-            <NewsContentTipTapRenderer content={content} className="bg-card rounded-xl p-4 border border-border" minHeight="300px" />
-          ) : (
-            <div className="p-4 text-sm text-muted-foreground bg-card rounded-xl border border-border">
-              Start writing content to see a live preview here.
-            </div>
-          )}
-
-          {/* Video */}
-          {videoUrl && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3">📹 Video</h3>
-              <div className="relative rounded-xl overflow-hidden shadow-lg border border-border">
-                <iframe src={videoUrl} className="w-full aspect-video" allowFullScreen />
-              </div>
-            </div>
-          )}
-
-          {/* Attachments */}
-          {attachmentItems.filter((i) => i.status === "success" && i.meta?.url).length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3">📎 Attachments</h3>
-              <ul className="list-disc list-inside text-sm text-foreground/90 space-y-1">
-                {attachmentItems
-                  .filter((i) => i.status === "success" && i.meta?.url)
-                  .map((i, idx) => (
-                    <li key={idx}>
-                      <a className="text-primary hover:underline" href={(i.meta as any)?.url ?? "#"} target="_blank" rel="noreferrer">
-                        {(i.meta as any)?.name || (i.meta as any)?.path || `Attachment ${idx + 1}`}
-                      </a>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          )}
         </div>
       </Modal>
     </div>

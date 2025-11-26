@@ -27,6 +27,10 @@ export async function GET(
     }
 
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    
+    // Allow admins to view full details without anonymization
+    const includeFullDetails = searchParams.get("includeFullDetails") === "true";
 
     const survey = await prisma.survey.findFirst({
       where: {
@@ -106,27 +110,36 @@ export async function GET(
     }
 
     // Get anonymization level from survey metadata
-    const anonymizationLevel = getAnonymizationLevel(survey.metadata);
+    // When admin is viewing from dashboard, allow bypassing anonymization
+    const anonymizationLevel = includeFullDetails 
+      ? "public" as const
+      : getAnonymizationLevel(survey.metadata);
 
-    // Apply anonymization to responses and recipients
-    const anonymizedSurvey = {
+    // Prepare survey data with computed fields
+    const surveyData = {
       ...survey,
       totalRecipients: survey._count.SurveyRecipients,
       responses: survey._count.SurveyResponses,
       responseRate: survey._count.SurveyRecipients > 0 
         ? (survey._count.SurveyResponses / survey._count.SurveyRecipients) * 100 
         : 0,
-      SurveyResponses: survey.SurveyResponses.map(response => ({
-        ...response,
-        Employee: anonymizeEmployeeData(response.Employee, anonymizationLevel),
-      })),
-      SurveyRecipients: survey.SurveyRecipients.map(recipient => ({
-        ...recipient,
-        Employee: anonymizeEmployeeData(recipient.Employee, anonymizationLevel),
-      })),
+      // When includeFullDetails is true, return raw employee data for admin view
+      // Otherwise apply anonymization as normal
+      SurveyResponses: includeFullDetails 
+        ? survey.SurveyResponses
+        : survey.SurveyResponses.map(response => ({
+            ...response,
+            Employee: anonymizeEmployeeData(response.Employee, anonymizationLevel),
+          })),
+      SurveyRecipients: includeFullDetails
+        ? survey.SurveyRecipients
+        : survey.SurveyRecipients.map(recipient => ({
+            ...recipient,
+            Employee: anonymizeEmployeeData(recipient.Employee, anonymizationLevel),
+          })),
     };
 
-    return NextResponse.json(anonymizedSurvey);
+    return NextResponse.json(surveyData);
   } catch (error) {
     console.error("Error fetching survey:", error);
     return NextResponse.json(

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
 import NewsTag from "../ui/NewsTag";
 import {
   ChevronLeft,
@@ -13,6 +13,11 @@ import {
   User,
   Share2,
   Bookmark,
+  Eye,
+  ArrowRight,
+  Pause,
+  Play,
+  Sparkles,
 } from "lucide-react";
 
 interface HeroPost {
@@ -47,6 +52,47 @@ interface NewsHeroProps {
   onShare?: (post: HeroPost) => Promise<void> | void;
 }
 
+// Progress bar animation
+function ProgressBar({ 
+  isActive, 
+  duration, 
+  isPaused 
+}: { 
+  isActive: boolean; 
+  duration: number; 
+  isPaused: boolean;
+}) {
+  const progress = useMotionValue(0);
+
+  useEffect(() => {
+    if (!isActive) {
+      progress.set(0);
+      return;
+    }
+
+    if (isPaused) return;
+
+    const controls = animate(progress, 100, {
+      duration: duration / 1000,
+      ease: "linear",
+    });
+
+    return () => controls.stop();
+  }, [isActive, isPaused, duration, progress]);
+
+  return (
+    <div className="h-1 bg-white/20 rounded-full overflow-hidden">
+      <motion.div
+        className="h-full bg-gradient-to-r from-white to-white/80 rounded-full"
+        style={{ width: progress.get() + "%" }}
+        initial={{ width: "0%" }}
+        animate={{ width: isActive && !isPaused ? "100%" : "0%" }}
+        transition={{ duration: duration / 1000, ease: "linear" }}
+      />
+    </div>
+  );
+}
+
 export default function NewsHero({
   posts,
   autoPlayInterval = 7000,
@@ -55,253 +101,432 @@ export default function NewsHero({
 }: NewsHeroProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [direction, setDirection] = useState(0);
 
   const featuredPosts = posts.filter((post) => post.pinned || post.featured).slice(0, 5);
 
   useEffect(() => {
-    if (!isHovered && featuredPosts.length > 1) {
-      const timer = setInterval(() => {
-        setCurrentIndex((prev) => (prev + 1) % featuredPosts.length);
-      }, autoPlayInterval);
-      return () => clearInterval(timer);
-    }
-  }, [currentIndex, isHovered, featuredPosts.length, autoPlayInterval]);
-  
+    if (isPaused || isHovered || featuredPosts.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setDirection(1);
+      setCurrentIndex((prev) => (prev + 1) % featuredPosts.length);
+    }, autoPlayInterval);
+
+    return () => clearInterval(timer);
+  }, [currentIndex, isHovered, isPaused, featuredPosts.length, autoPlayInterval]);
+
+  const goToSlide = useCallback((index: number) => {
+    setDirection(index > currentIndex ? 1 : -1);
+    setCurrentIndex(index);
+  }, [currentIndex]);
+
+  const nextSlide = useCallback(() => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev + 1) % featuredPosts.length);
+  }, [featuredPosts.length]);
+
+  const prevSlide = useCallback(() => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + featuredPosts.length) % featuredPosts.length);
+  }, [featuredPosts.length]);
+
   if (featuredPosts.length === 0) return null;
 
   const currentPost = featuredPosts[currentIndex];
 
-  const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % featuredPosts.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentIndex(
-      (prev) => (prev - 1 + featuredPosts.length) % featuredPosts.length
-    );
-  };
-
   const getTimeOfDayGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return { greeting: "Good morning", emoji: "☀️" };
-    if (hour < 17) return { greeting: "Good afternoon", emoji: "🌤️" };
-    if (hour < 21) return { greeting: "Good evening", emoji: "🌅" };
-    return { greeting: "Good night", emoji: "🌙" };
+    if (hour < 12) return { greeting: "Good morning", emoji: "☀️", subtext: "Start your day informed" };
+    if (hour < 17) return { greeting: "Good afternoon", emoji: "🌤️", subtext: "Stay in the loop" };
+    if (hour < 21) return { greeting: "Good evening", emoji: "🌅", subtext: "Catch up on today" };
+    return { greeting: "Good night", emoji: "🌙", subtext: "Quick updates before bed" };
   };
 
-  const { greeting, emoji } = getTimeOfDayGreeting();
+  const { greeting, emoji, subtext } = getTimeOfDayGreeting();
+
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? "100%" : "-100%",
+      opacity: 0,
+      scale: 1.1,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+      scale: 1,
+      transition: {
+        x: { type: "spring", stiffness: 300, damping: 30 },
+        opacity: { duration: 0.4 },
+        scale: { duration: 0.5 },
+      },
+    },
+    exit: (direction: number) => ({
+      x: direction < 0 ? "100%" : "-100%",
+      opacity: 0,
+      scale: 0.95,
+      transition: {
+        x: { type: "spring", stiffness: 300, damping: 30 },
+        opacity: { duration: 0.3 },
+      },
+    }),
+  };
+
+  const contentVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: 0.2,
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1],
+      },
+    },
+    exit: {
+      opacity: 0,
+      y: -20,
+      transition: { duration: 0.2 },
+    },
+  };
 
   return (
-    <div className="relative w-full overflow-hidden rounded-3xl mb-8">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-editorial-purple/10 via-editorial-blue/10 to-editorial-teal/10 animate-pulse" />
-      
-      {/* Mesh pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-
-      <div
-        className="relative"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {/* Header with greeting */}
-        <div className="absolute top-0 left-0 right-0 z-20 p-6 bg-gradient-to-b from-black/50 to-transparent">
-          <div className="flex items-center justify-between">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2"
-            >
-              <span className="text-2xl" role="img" aria-label="greeting emoji">
-                {emoji}
-              </span>
-              <span className="text-white font-medium text-lg">
-                {greeting}, here&apos;s what&apos;s happening
-              </span>
-            </motion.div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-white text-sm">
-                📰 {featuredPosts.length} Featured
-              </span>
-            </div>
-          </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="relative w-full overflow-hidden rounded-3xl"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Main Container */}
+      <div className="relative h-[520px] lg:h-[480px]">
+        {/* Background Layer */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" />
+        
+        {/* Animated gradient overlay */}
+        <div className="absolute inset-0 opacity-60">
+          <div className="absolute inset-0 bg-gradient-to-r from-violet-500/30 via-fuchsia-500/20 to-cyan-500/30 animate-gradient" />
         </div>
 
-        <AnimatePresence mode="wait">
+        {/* Image Carousel */}
+        <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={currentIndex}
-            initial={{ opacity: 0, x: 100 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 0.5 }}
-            className="relative"
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="absolute inset-0"
           >
-            <div className="flex flex-col lg:flex-row">
-              {/* Image Section */}
-              <div className="relative lg:w-2/3 h-[400px] lg:h-[500px] overflow-hidden">
-                {currentPost.coverImage ? (
-                  <img
-                    src={currentPost.coverImage}
-                    alt={currentPost.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-editorial-purple via-editorial-blue to-editorial-teal opacity-80" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            {currentPost.coverImage ? (
+              <>
+                <img
+                  src={currentPost.coverImage}
+                  alt={currentPost.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/70 to-black/40" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
+              </>
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-fuchsia-600 to-pink-600">
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.05\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50" />
               </div>
-
-              {/* Content Section */}
-              <div className="relative lg:w-1/3 p-8 bg-card/95 backdrop-blur-xl flex flex-col justify-center">
-                <div className="space-y-4">
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-2">
-                    {currentPost.pinned && (
-                      <NewsTag label="Pinned" type="featured" size="sm" />
-                    )}
-                    {currentPost.tags.slice(0, 2).map((tag) => (
-                      <NewsTag key={tag} label={tag} type="topic" size="sm" />
-                    ))}
-                  </div>
-
-                  {/* Title */}
-                  <h1 className="text-3xl lg:text-4xl font-bold text-foreground leading-tight">
-                    {currentPost.title}
-                  </h1>
-
-                  {/* Excerpt */}
-                  {currentPost.excerpt && (
-                    <p className="text-muted-foreground line-clamp-3">
-                      {currentPost.excerpt}
-                    </p>
-                  )}
-
-                  {/* Meta Information */}
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <User className="w-4 h-4" />
-                      <span>{currentPost.author.name || currentPost.author.email}</span>
-                    </div>
-                    {currentPost.publishedAt && (
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{format(new Date(currentPost.publishedAt), "MMM dd")}</span>
-                      </div>
-                    )}
-                    {currentPost.readTime && (
-                      <div className="flex items-center gap-1">
-                        <span>{currentPost.readTime} min read</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 pt-4">
-                    <Link
-                      href={`/news/${currentPost.slug}`}
-                      className={cn(
-                        "px-6 py-3 bg-primary text-primary-foreground rounded-full",
-                        "font-medium hover:scale-105 transition-all duration-200",
-                        "shadow-lg shadow-primary/25"
-                      )}
-                    >
-                      Read Story →
-                    </Link>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (onShare) {
-                          void onShare(currentPost);
-                        }
-                      }}
-                      className={cn(
-                        "p-3 rounded-full bg-muted/80 hover:bg-muted",
-                        "transition-all duration-200 hover:scale-105"
-                      )}
-                      aria-label="Share"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (onBookmark) {
-                          void onBookmark(currentPost);
-                        }
-                      }}
-                      className={cn(
-                        "p-3 rounded-full bg-muted/80 hover:bg-muted",
-                        "transition-all duration-200 hover:scale-105",
-                        currentPost.isBookmarked && "bg-primary/20 text-primary"
-                      )}
-                      aria-label="Bookmark"
-                    >
-                      <Bookmark className={cn(
-                        "w-4 h-4",
-                        currentPost.isBookmarked && "fill-current"
-                      )} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
           </motion.div>
         </AnimatePresence>
 
+        {/* Content Grid */}
+        <div className="absolute inset-0 flex flex-col lg:flex-row">
+          {/* Left Content */}
+          <div className="flex-1 flex flex-col justify-between p-6 lg:p-10 z-10">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex items-center gap-3"
+              >
+                <span className="text-3xl">{emoji}</span>
+                <div>
+                  <h2 className="text-white font-semibold text-lg">{greeting}</h2>
+                  <p className="text-white/60 text-sm">{subtext}</p>
+                </div>
+              </motion.div>
+
+              {/* Pause/Play Button */}
+              {featuredPosts.length > 1 && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsPaused(!isPaused)}
+                  className="p-2.5 rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-all"
+                >
+                  {isPaused ? (
+                    <Play className="w-4 h-4" />
+                  ) : (
+                    <Pause className="w-4 h-4" />
+                  )}
+                </motion.button>
+              )}
+            </div>
+
+            {/* Main Content */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentPost.id}
+                variants={contentVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="space-y-5 max-w-2xl"
+              >
+                {/* Tags */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {currentPost.pinned && (
+                    <span className="px-3 py-1.5 bg-amber-500/90 text-amber-950 text-xs font-bold rounded-full shadow-lg shadow-amber-500/30">
+                      📌 PINNED
+                    </span>
+                  )}
+                  {currentPost.featured && (
+                    <span className="px-3 py-1.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-xs font-bold rounded-full shadow-lg shadow-violet-500/30">
+                      <Sparkles className="w-3 h-3 inline mr-1" />
+                      FEATURED
+                    </span>
+                  )}
+                  {currentPost.tags.slice(0, 2).map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-3 py-1.5 bg-white/10 backdrop-blur-sm text-white/90 text-xs font-medium rounded-full border border-white/20"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Title */}
+                <h1 className="text-3xl lg:text-5xl font-bold text-white leading-tight tracking-tight">
+                  {currentPost.title}
+                </h1>
+
+                {/* Excerpt */}
+                {currentPost.excerpt && (
+                  <p className="text-white/70 text-lg line-clamp-2 leading-relaxed">
+                    {currentPost.excerpt}
+                  </p>
+                )}
+
+                {/* Meta */}
+                <div className="flex flex-wrap items-center gap-4 text-white/60 text-sm">
+                  <div className="flex items-center gap-2">
+                    {currentPost.author.avatar ? (
+                      <img
+                        src={currentPost.author.avatar}
+                        alt=""
+                        className="w-7 h-7 rounded-full border-2 border-white/20"
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
+                        <User className="w-4 h-4 text-white/70" />
+                      </div>
+                    )}
+                    <span className="text-white/80 font-medium">
+                      {currentPost.author.name || currentPost.author.email}
+                    </span>
+                  </div>
+                  <span className="w-1 h-1 rounded-full bg-white/30" />
+                  {currentPost.publishedAt && (
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4" />
+                      {formatDistanceToNow(new Date(currentPost.publishedAt), { addSuffix: true })}
+                    </span>
+                  )}
+                  {currentPost.views !== undefined && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-white/30" />
+                      <span className="flex items-center gap-1.5">
+                        <Eye className="w-4 h-4" />
+                        {currentPost.views.toLocaleString()} views
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-3 pt-2">
+                  <Link href={`/news/${currentPost.slug}`}>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={cn(
+                        "group flex items-center gap-2 px-6 py-3.5",
+                        "bg-white text-slate-900 font-semibold rounded-xl",
+                        "shadow-xl shadow-white/20",
+                        "hover:shadow-2xl hover:shadow-white/30",
+                        "transition-all duration-300"
+                      )}
+                    >
+                      Read Story
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </motion.button>
+                  </Link>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onShare?.(currentPost);
+                    }}
+                    className="p-3 rounded-xl bg-white/10 backdrop-blur-md text-white hover:bg-white/20 border border-white/10 transition-all"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onBookmark?.(currentPost);
+                    }}
+                    className={cn(
+                      "p-3 rounded-xl backdrop-blur-md transition-all border",
+                      currentPost.isBookmarked
+                        ? "bg-amber-500/90 text-amber-950 border-amber-400"
+                        : "bg-white/10 text-white hover:bg-white/20 border-white/10"
+                    )}
+                  >
+                    <Bookmark className={cn("w-5 h-5", currentPost.isBookmarked && "fill-current")} />
+                  </motion.button>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Progress Indicators */}
+            {featuredPosts.length > 1 && (
+              <div className="flex gap-2 mt-4">
+                {featuredPosts.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => goToSlide(index)}
+                    className={cn(
+                      "h-1 rounded-full transition-all duration-300",
+                      index === currentIndex ? "w-12 bg-white" : "w-6 bg-white/30 hover:bg-white/50"
+                    )}
+                  >
+                    {index === currentIndex && (
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-violet-400 to-fuchsia-400 rounded-full"
+                        initial={{ width: "0%" }}
+                        animate={{ width: isPaused || isHovered ? "0%" : "100%" }}
+                        transition={{ duration: autoPlayInterval / 1000, ease: "linear" }}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right Side - Thumbnail Navigation */}
+          {featuredPosts.length > 1 && (
+            <div className="hidden lg:flex flex-col justify-center gap-3 p-6 w-80">
+              <p className="text-white/50 text-xs font-medium uppercase tracking-wider mb-2">
+                More Featured
+              </p>
+              {featuredPosts.slice(0, 4).map((post, index) => (
+                <motion.button
+                  key={post.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                  onClick={() => goToSlide(index)}
+                  className={cn(
+                    "group flex items-center gap-3 p-3 rounded-xl text-left transition-all duration-300",
+                    index === currentIndex
+                      ? "bg-white/20 backdrop-blur-md border border-white/30"
+                      : "bg-white/5 hover:bg-white/10 border border-transparent"
+                  )}
+                >
+                  {post.coverImage && (
+                    <img
+                      src={post.coverImage}
+                      alt=""
+                      className="w-14 h-14 rounded-lg object-cover"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className={cn(
+                      "font-medium text-sm line-clamp-2 transition-colors",
+                      index === currentIndex ? "text-white" : "text-white/70 group-hover:text-white"
+                    )}>
+                      {post.title}
+                    </p>
+                    {post.publishedAt && (
+                      <p className="text-xs text-white/40 mt-1">
+                        {format(new Date(post.publishedAt), "MMM dd")}
+                      </p>
+                    )}
+                  </div>
+                  {index === currentIndex && (
+                    <div className="w-1.5 h-8 bg-gradient-to-b from-violet-400 to-fuchsia-400 rounded-full" />
+                  )}
+                </motion.button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Navigation Arrows */}
         {featuredPosts.length > 1 && (
-          <>
-            <button
-              onClick={prevSlide}
-              className={cn(
-                "absolute left-4 top-1/2 -translate-y-1/2 z-30",
-                "p-3 rounded-full bg-white/20 backdrop-blur-md",
-                "text-white hover:bg-white/30 transition-all duration-200",
-                "hover:scale-110"
-              )}
-              aria-label="Previous slide"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <button
-              onClick={nextSlide}
-              className={cn(
-                "absolute right-4 top-1/2 -translate-y-1/2 z-30",
-                "p-3 rounded-full bg-white/20 backdrop-blur-md",
-                "text-white hover:bg-white/30 transition-all duration-200",
-                "hover:scale-110"
-              )}
-              aria-label="Next slide"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-          </>
+          <AnimatePresence>
+            {isHovered && (
+              <>
+                <motion.button
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={prevSlide}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-all border border-white/10"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </motion.button>
+                <motion.button
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={nextSlide}
+                  className="absolute right-4 lg:right-[340px] top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-all border border-white/10"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </motion.button>
+              </>
+            )}
+          </AnimatePresence>
         )}
 
-        {/* Slide Indicators */}
-        {featuredPosts.length > 1 && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
-            {featuredPosts.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentIndex(index)}
-                className={cn(
-                  "transition-all duration-300",
-                  index === currentIndex
-                    ? "w-8 h-2 bg-white rounded-full"
-                    : "w-2 h-2 bg-white/50 rounded-full hover:bg-white/70"
-                )}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
+        {/* Slide Counter Badge */}
+        <div className="absolute bottom-6 right-6 lg:bottom-6 lg:right-[340px] z-20">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20"
+          >
+            <span className="text-white font-semibold">{currentIndex + 1}</span>
+            <span className="text-white/50 mx-1">/</span>
+            <span className="text-white/70">{featuredPosts.length}</span>
+          </motion.div>
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

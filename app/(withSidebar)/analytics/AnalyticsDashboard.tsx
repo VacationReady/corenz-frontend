@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bar,
   BarChart,
@@ -18,6 +19,8 @@ import {
   XAxis,
   YAxis,
   Cell,
+  Area,
+  AreaChart,
 } from "recharts";
 import {
   Brain,
@@ -28,10 +31,26 @@ import {
   MapPin,
   Sparkles,
   TrendingUp,
+  TrendingDown,
   Users,
   UserMinus,
   UserPlus,
   Wrench,
+  ChevronRight,
+  Activity,
+  BarChart3,
+  PieChart as PieChartIcon,
+  Zap,
+  Target,
+  Lightbulb,
+  RefreshCw,
+  Filter,
+  Download,
+  ArrowUpRight,
+  Briefcase,
+  X,
+  Plus,
+  Check,
 } from "lucide-react";
 
 import { PageShell } from "@/components/ui/PageShell";
@@ -41,7 +60,6 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  MetricCard,
 } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -72,7 +90,14 @@ const RANGE_OPTIONS = [
   { label: "18 months", value: 18 },
 ];
 
-const COLORS = ["#2563eb", "#10b981", "#f97316", "#9333ea", "#14b8a6", "#facc15"];
+// Premium color palette
+const CHART_COLORS = {
+  primary: ["#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899"],
+  success: ["#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6", "#6366f1"],
+  warm: ["#f97316", "#f59e0b", "#eab308", "#84cc16", "#22c55e", "#10b981"],
+  gradient: ["#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899", "#f43f5e"],
+};
+
 const ALT_COLORS = ["#0ea5e9", "#f472b6", "#22d3ee", "#facc15", "#34d399", "#c084fc"];
 
 type VisualizationType = "bar" | "pie" | "line";
@@ -171,11 +196,213 @@ interface CustomWidgetDefinition {
   topN: number;
 }
 
-const PRIORITY_BADGES: Record<AnalyticsInsight["priority"], string> = {
-  high: "bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200",
-  medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200",
-  low: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200",
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+  }
 };
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    transition: { type: "spring", stiffness: 300, damping: 25 }
+  }
+};
+
+const cardHoverVariants = {
+  rest: { scale: 1, y: 0 },
+  hover: { scale: 1.02, y: -4, transition: { type: "spring", stiffness: 400, damping: 25 } }
+};
+
+const pulseVariants = {
+  animate: {
+    scale: [1, 1.05, 1],
+    opacity: [0.7, 1, 0.7],
+    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+  }
+};
+
+const PRIORITY_STYLES: Record<AnalyticsInsight["priority"], { bg: string; text: string; border: string; icon: string }> = {
+  high: { bg: "bg-rose-500/10", text: "text-rose-600 dark:text-rose-400", border: "border-rose-500/30", icon: "text-rose-500" },
+  medium: { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/30", icon: "text-amber-500" },
+  low: { bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/30", icon: "text-emerald-500" },
+};
+
+// Beautiful Metric Card Component
+function MetricCardEnhanced({
+  title,
+  value,
+  change,
+  trend,
+  icon: Icon,
+  iconColor = "text-primary",
+  bgGradient = "from-primary/5 to-primary/10",
+  onClick,
+  delay = 0,
+}: {
+  title: string;
+  value: string | number;
+  change?: string;
+  trend?: "up" | "down" | "neutral";
+  icon: React.ElementType;
+  iconColor?: string;
+  bgGradient?: string;
+  onClick?: () => void;
+  delay?: number;
+}) {
+  const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Activity;
+  const trendColor = trend === "up" ? "text-emerald-500" : trend === "down" ? "text-rose-500" : "text-slate-400";
+
+  return (
+    <motion.div
+      variants={itemVariants}
+      initial="hidden"
+      animate="visible"
+      whileHover={onClick ? "hover" : undefined}
+      custom={delay}
+      transition={{ delay: delay * 0.1 }}
+    >
+      <motion.div
+        variants={onClick ? cardHoverVariants : undefined}
+        initial="rest"
+        whileHover="hover"
+        onClick={onClick}
+        className={`
+          relative overflow-hidden rounded-2xl p-5
+          bg-gradient-to-br ${bgGradient}
+          border border-white/50 dark:border-white/10
+          backdrop-blur-xl shadow-lg shadow-black/5
+          ${onClick ? "cursor-pointer" : ""}
+          transition-all duration-300
+        `}
+      >
+        {/* Background decoration */}
+        <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 opacity-20">
+          <div className={`w-full h-full rounded-full bg-gradient-to-br ${bgGradient}`} />
+        </div>
+
+        <div className="relative flex items-start justify-between">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-3xl font-bold text-foreground tracking-tight">{value}</p>
+            {change && (
+              <div className="flex items-center gap-1.5">
+                <TrendIcon className={`w-4 h-4 ${trendColor}`} />
+                <span className={`text-sm font-semibold ${trendColor}`}>{change}</span>
+                <span className="text-xs text-muted-foreground">vs last period</span>
+              </div>
+            )}
+          </div>
+          <div className={`p-3 rounded-xl bg-white/60 dark:bg-white/10 shadow-inner`}>
+            <Icon className={`w-6 h-6 ${iconColor}`} />
+          </div>
+        </div>
+
+        {onClick && (
+          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Section Header Component
+function SectionHeader({ 
+  icon: Icon, 
+  title, 
+  description,
+  iconColor = "text-primary",
+  action,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description?: string;
+  iconColor?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 mb-4">
+      <div className="flex items-start gap-3">
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+          <Icon className={`w-5 h-5 ${iconColor}`} />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+          {description && (
+            <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+          )}
+        </div>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+// Interactive List Item Component
+function BreakdownListItem({
+  name,
+  active,
+  total,
+  onClick,
+  index = 0,
+}: {
+  name: string;
+  active: number;
+  total: number;
+  onClick: () => void;
+  index?: number;
+}) {
+  const percentage = total > 0 ? Math.round((active / total) * 100) : 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }}
+      onClick={onClick}
+      className="group relative flex items-center justify-between p-4 rounded-xl
+        bg-white/60 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10
+        border border-transparent hover:border-primary/20
+        cursor-pointer transition-all duration-200
+        hover:shadow-lg hover:shadow-primary/5"
+    >
+      {/* Progress bar background */}
+      <div 
+        className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-transparent"
+        style={{ width: `${percentage}%` }}
+      />
+      
+      <div className="relative flex items-center gap-3">
+        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+        <div>
+          <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+            {name}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {active.toLocaleString()} active · {total.toLocaleString()} total
+          </p>
+        </div>
+      </div>
+      
+      <div className="relative flex items-center gap-3">
+        <div className="text-right">
+          <p className="text-lg font-bold text-foreground">{active}</p>
+          <p className="text-xs text-muted-foreground">{percentage}%</p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 
+          group-hover:translate-x-1 transition-all duration-200" />
+      </div>
+    </motion.div>
+  );
+}
 
 export default function AnalyticsDashboard() {
   const { data: session } = useSession();
@@ -225,7 +452,7 @@ export default function AnalyticsDashboard() {
     () =>
       (data?.breakdowns.byEmploymentType ?? []).map((item, index) => ({
         ...item,
-        fill: COLORS[index % COLORS.length],
+        fill: CHART_COLORS.gradient[index % CHART_COLORS.gradient.length],
       })),
     [data?.breakdowns.byEmploymentType],
   );
@@ -362,373 +589,461 @@ export default function AnalyticsDashboard() {
 
   return (
     <PageShell
-      title="People analytics"
-      description="Live, multi-tenant workforce intelligence connected to your people data platform."
+      title="People Analytics"
+      description="Live workforce intelligence with AI-powered insights"
       icon={<LineChartIcon className="h-6 w-6" />}
       breadcrumbs={breadcrumbConfigs.analytics}
       action={
-        <Button variant="secondary" size="sm" onClick={() => mutate()}>
-          Refresh data
-        </Button>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={() => mutate()}
+            className="gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+        </motion.div>
       }
     >
-      <div className="space-y-6">
-        <Card variant="gradient" className="overflow-hidden">
-          <CardContent className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-2">
-              <Badge variant="outline" className="bg-primary/10 text-primary">
-                Updated {data ? new Date(data.generatedAt).toLocaleString() : "just now"}
-              </Badge>
-              <h2 className="text-2xl font-semibold text-foreground">
-                Understand your workforce trends at a glance
-              </h2>
-              <p className="max-w-2xl text-sm text-muted-foreground">
-                Filter by department or location to surface precise headcount, hiring velocity, attrition and contract signals across every tenant.
-              </p>
-              {typeof data?.metrics.activeRatio === "number" && (
-                <p className="text-sm text-foreground/80">
-                  Active workforce: <span className="font-semibold text-foreground">{data.metrics.activeRatio}%</span>
+      <motion.div 
+        className="space-y-8"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Hero Section with Filters */}
+        <motion.div variants={itemVariants}>
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-violet-500/5 to-cyan-500/10 border border-white/50 dark:border-white/10 p-6 md:p-8">
+            {/* Animated background elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <motion.div
+                animate={{ 
+                  rotate: [0, 360],
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                className="absolute -top-1/2 -right-1/2 w-full h-full opacity-30"
+              >
+                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl" />
+              </motion.div>
+              <motion.div
+                animate={{ 
+                  rotate: [360, 0],
+                  scale: [1.2, 1, 1.2],
+                }}
+                transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                className="absolute -bottom-1/2 -left-1/2 w-full h-full opacity-20"
+              >
+                <div className="w-full h-full bg-gradient-to-tr from-violet-500/20 to-transparent rounded-full blur-3xl" />
+              </motion.div>
+            </div>
+
+            <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <motion.div variants={pulseVariants} animate="animate">
+                    <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 px-3 py-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
+                      Live Data
+                    </Badge>
+                  </motion.div>
+                  <Badge variant="outline" className="bg-white/50 dark:bg-white/10">
+                    {data ? new Date(data.generatedAt).toLocaleTimeString() : "—"}
+                  </Badge>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+                  Workforce Intelligence Dashboard
+                </h2>
+                <p className="text-muted-foreground max-w-xl">
+                  Real-time analytics powered by your people data. Filter by department, location, or timeframe to uncover actionable workforce insights.
                 </p>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Select
-                value={selectedDepartment ?? "all"}
-                onValueChange={(value) =>
-                  setSelectedDepartment(value === "all" ? undefined : value)
-                }
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All departments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All departments</SelectItem>
-                  {(data?.filters.departments ?? []).map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={selectedLocation ?? "all"}
-                onValueChange={(value) =>
-                  setSelectedLocation(value === "all" ? undefined : value)
-                }
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All locations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All locations</SelectItem>
-                  {(data?.filters.locations ?? []).map((loc) => (
-                    <SelectItem key={loc.id} value={loc.id}>
-                      {loc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={String(rangeInMonths)}
-                onValueChange={(value) => setRangeInMonths(Number(value))}
-              >
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {RANGE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={String(option.value)}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {error && (
-          <Card variant="flat" className="border border-destructive/40 bg-destructive/5">
-            <CardContent className="flex items-start gap-3 text-destructive">
-              <TrendingUp className="mt-0.5 h-5 w-5" />
-              <div>
-                <p className="font-semibold">Unable to load analytics</p>
-                <p className="text-sm text-destructive/80">{error.message}</p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => mutate()}
-                >
-                  Try again
-                </Button>
+                {typeof data?.metrics.activeRatio === "number" && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Activity className="w-4 h-4 text-primary" />
+                    <span className="text-sm text-foreground">
+                      Active Workforce: <span className="font-bold text-primary">{data.metrics.activeRatio}%</span>
+                    </span>
+                  </div>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        )}
 
+              <div className="flex flex-wrap items-center gap-3">
+                <Select
+                  value={selectedDepartment ?? "all"}
+                  onValueChange={(value) =>
+                    setSelectedDepartment(value === "all" ? undefined : value)
+                  }
+                >
+                  <SelectTrigger className="w-48 bg-white/70 dark:bg-white/10 border-white/50 dark:border-white/20 rounded-xl">
+                    <Building2 className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="All departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All departments</SelectItem>
+                    {(data?.filters.departments ?? []).map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={selectedLocation ?? "all"}
+                  onValueChange={(value) =>
+                    setSelectedLocation(value === "all" ? undefined : value)
+                  }
+                >
+                  <SelectTrigger className="w-48 bg-white/70 dark:bg-white/10 border-white/50 dark:border-white/20 rounded-xl">
+                    <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="All locations" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All locations</SelectItem>
+                    {(data?.filters.locations ?? []).map((loc) => (
+                      <SelectItem key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={String(rangeInMonths)}
+                  onValueChange={(value) => setRangeInMonths(Number(value))}
+                >
+                  <SelectTrigger className="w-36 bg-white/70 dark:bg-white/10 border-white/50 dark:border-white/20 rounded-xl">
+                    <CalendarClock className="w-4 h-4 mr-2 text-muted-foreground" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RANGE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={String(option.value)}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Error State */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-xl bg-rose-500/20">
+                    <TrendingDown className="w-5 h-5 text-rose-500" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-rose-600 dark:text-rose-400">Unable to load analytics</p>
+                    <p className="text-sm text-rose-600/80 dark:text-rose-400/80 mt-1">{error.message}</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-4 border-rose-500/30 text-rose-600 hover:bg-rose-500/10"
+                      onClick={() => mutate()}
+                    >
+                      Try again
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Loading State */}
         {isLoading && (
-          <div className="grid gap-6">
-            <Skeleton className="h-32 w-full rounded-3xl" />
+          <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <Skeleton key={index} className="h-32 w-full rounded-3xl" />
+              {Array.from({ length: 8 }).map((_, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Skeleton className="h-32 w-full rounded-2xl" />
+                </motion.div>
               ))}
             </div>
-            <Skeleton className="h-96 w-full rounded-3xl" />
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Skeleton className="h-80 w-full rounded-3xl" />
-              <Skeleton className="h-80 w-full rounded-3xl" />
+            <Skeleton className="h-96 w-full rounded-2xl" />
+            <div className="grid gap-6 lg:grid-cols-3">
+              <Skeleton className="h-80 w-full rounded-2xl" />
+              <Skeleton className="h-80 w-full rounded-2xl" />
+              <Skeleton className="h-80 w-full rounded-2xl" />
             </div>
           </div>
         )}
 
-        {isEmptyState && (
-          <Card variant="flat" className="border-dashed border-primary/40">
-            <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-              <Users className="h-10 w-10 text-primary" />
-              <div className="space-y-2">
-                <CardTitle className="text-2xl">No people data available yet</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Add employees, departments, or onboarding data to unlock tenant-level analytics.
+        {/* Empty State */}
+        <AnimatePresence>
+          {isEmptyState && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div className="rounded-3xl border-2 border-dashed border-primary/30 bg-primary/5 p-12 text-center">
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                    <Users className="w-8 h-8 text-primary" />
+                  </div>
+                </motion.div>
+                <h3 className="text-2xl font-bold text-foreground mb-2">No people data yet</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Add employees to your organization to unlock powerful workforce analytics and insights.
                 </p>
+                <Button asChild className="bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90">
+                  <Link href="/employees/new">
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Add your first employee
+                  </Link>
+                </Button>
               </div>
-              <Button asChild variant="primary">
-                <Link href="/employees/new">Add your first employee</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
+        {/* Main Content */}
         {!isLoading && !isEmptyState && data && (
-          <div className="space-y-6">
+          <motion.div 
+            className="space-y-8"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {/* Metric Cards Grid */}
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <MetricCard
-                title="Active headcount"
+              <MetricCardEnhanced
+                title="Active Headcount"
                 value={latestHeadcount.toLocaleString()}
                 change={formattedHeadcountChange}
                 trend={headcountTrend}
-                icon={<Users className="h-5 w-5" />}
-                hoverable
-                onClick={() => handleDrillDown(
-                  "all",
-                  "all",
-                  "All Active Employees",
-                  "Complete list of all active employees in your organization"
-                )}
+                icon={Users}
+                iconColor="text-primary"
+                bgGradient="from-primary/10 to-primary/5"
+                onClick={() => handleDrillDown("all", "all", "All Active Employees", "Complete list of all active employees")}
+                delay={0}
               />
-              <MetricCard
-                title="New hires (30d)"
+              <MetricCardEnhanced
+                title="New Hires (30d)"
                 value={data.metrics.newHiresLast30Days.toLocaleString()}
-                icon={<UserPlus className="h-5 w-5 text-emerald-500" />}
-                hoverable
-                onClick={() => handleDrillDown(
-                  "newHires",
-                  "newHires",
-                  "New Hires (Last 30 Days)",
-                  "Employees who started in the last 30 days"
-                )}
+                icon={UserPlus}
+                iconColor="text-emerald-500"
+                bgGradient="from-emerald-500/10 to-emerald-500/5"
+                onClick={() => handleDrillDown("newHires", "newHires", "New Hires (Last 30 Days)", "Employees who started recently")}
+                delay={1}
               />
-              <MetricCard
+              <MetricCardEnhanced
                 title="Departures (30d)"
                 value={data.metrics.departuresLast30Days.toLocaleString()}
-                icon={<UserMinus className="h-5 w-5 text-rose-500" />}
-                hoverable
-                onClick={() => handleDrillDown(
-                  "departures",
-                  "departures",
-                  "Recent Departures (Last 30 Days)",
-                  "Employees who left in the last 30 days"
-                )}
+                icon={UserMinus}
+                iconColor="text-rose-500"
+                bgGradient="from-rose-500/10 to-rose-500/5"
+                onClick={() => handleDrillDown("departures", "departures", "Recent Departures", "Employees who left recently")}
+                delay={2}
               />
-              <MetricCard
-                title="Average tenure"
-                value={
-                  data.metrics.averageTenureMonths !== null
-                    ? `${data.metrics.averageTenureMonths} months`
-                    : "—"
-                }
-                icon={<Clock3 className="h-5 w-5 text-sky-500" />}
+              <MetricCardEnhanced
+                title="Avg Tenure"
+                value={data.metrics.averageTenureMonths !== null ? `${data.metrics.averageTenureMonths}mo` : "—"}
+                icon={Clock3}
+                iconColor="text-sky-500"
+                bgGradient="from-sky-500/10 to-sky-500/5"
+                delay={3}
               />
-              <MetricCard
-                title="Attrition (90d)"
-                value={
-                  data.metrics.attritionRate90d !== null
-                    ? `${data.metrics.attritionRate90d.toFixed(1)}%`
-                    : "—"
-                }
-                icon={<TrendingUp className="h-5 w-5 text-rose-500" />}
+              <MetricCardEnhanced
+                title="Attrition Rate (90d)"
+                value={data.metrics.attritionRate90d !== null ? `${data.metrics.attritionRate90d.toFixed(1)}%` : "—"}
+                icon={TrendingDown}
+                iconColor="text-rose-500"
+                bgGradient="from-rose-500/10 to-rose-500/5"
+                delay={4}
               />
-              <MetricCard
-                title="Retention (90d)"
-                value={
-                  data.metrics.retentionRate90d !== null
-                    ? `${data.metrics.retentionRate90d.toFixed(1)}%`
-                    : "—"
-                }
-                icon={<Brain className="h-5 w-5 text-emerald-500" />}
+              <MetricCardEnhanced
+                title="Retention Rate (90d)"
+                value={data.metrics.retentionRate90d !== null ? `${data.metrics.retentionRate90d.toFixed(1)}%` : "—"}
+                icon={Target}
+                iconColor="text-emerald-500"
+                bgGradient="from-emerald-500/10 to-emerald-500/5"
+                delay={5}
               />
-              <MetricCard
-                title="Contracts expiring (60d)"
+              <MetricCardEnhanced
+                title="Contracts Expiring (60d)"
                 value={data.metrics.upcomingContractEndings60d.toLocaleString()}
-                icon={<CalendarClock className="h-5 w-5 text-amber-500" />}
-                hoverable
-                onClick={() => handleDrillDown(
-                  "contractsExpiring",
-                  "contractsExpiring",
-                  "Contracts Expiring (Next 60 Days)",
-                  "Employees with contracts expiring in the next 60 days"
-                )}
+                icon={CalendarClock}
+                iconColor="text-amber-500"
+                bgGradient="from-amber-500/10 to-amber-500/5"
+                onClick={() => handleDrillDown("contractsExpiring", "contractsExpiring", "Contracts Expiring", "Contracts expiring in next 60 days")}
+                delay={6}
               />
             </div>
 
-            <Card className="shadow-depth-2">
-              <CardHeader className="flex flex-col gap-2 border-none bg-transparent">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <CardTitle className="text-xl font-semibold">Headcount momentum</CardTitle>
-                  <Badge variant="outline" className="bg-white/40 dark:bg-slate-900/40">
-                    {rangeInMonths} month range
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Headcount tracked alongside hires and departures from your live people dataset.
-                </p>
-              </CardHeader>
-              <CardContent className="h-[360px] p-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={trendData} margin={{ top: 16, right: 24, left: 8, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-                    <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
-                      formatter={(value: number | string) => Number(value).toLocaleString()}
-                    />
-                    <Legend wrapperStyle={{ paddingTop: 8 }} />
-                    <Bar dataKey="hires" name="Hires" fill="#10b981" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="departures" name="Departures" fill="#ef4444" radius={[8, 8, 0, 0]} />
-                    <Line
-                      type="monotone"
-                      dataKey="headcount"
-                      name="Headcount"
-                      stroke="#2563eb"
-                      strokeWidth={3}
-                      dot={false}
-                      activeDot={{ r: 6 }}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <div className="grid gap-6 xl:grid-cols-3">
-              {/* Headcount by department */}
-              <Card className="flex flex-col h-[550px] max-h-[550px] overflow-hidden">
-                <CardHeader className="border-none bg-transparent pb-2 flex-shrink-0">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Building2 className="h-5 w-5 text-primary" />
-                    Headcount by department
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Active employees by department with total records alongside live HR data.
-                  </p>
+            {/* Headcount Momentum Chart */}
+            <motion.div variants={itemVariants}>
+              <Card className="overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                <CardHeader className="pb-2">
+                  <SectionHeader
+                    icon={BarChart3}
+                    title="Headcount Momentum"
+                    description={`Tracking workforce changes over ${rangeInMonths} months`}
+                    action={
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                        {rangeInMonths} month range
+                      </Badge>
+                    }
+                  />
                 </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4 overflow-hidden">
-                  <ScrollArea className="flex-1 min-h-0 pr-4">
-                    <div className="space-y-3">
-                      {(data.breakdowns.byDepartment ?? []).map((dept) => (
-                        <div
-                          key={dept.id ?? dept.name}
-                          className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
-                          onClick={() => handleDrillDown(
-                            "department",
-                            dept.id || "unassigned",
-                            `${dept.name} Department`,
-                            `All employees in the ${dept.name} department`
-                          )}
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{dept.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {dept.active.toLocaleString()} active · {dept.total.toLocaleString()} total
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
-                            {dept.active}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                <CardContent className="h-[380px] pt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={trendData} margin={{ top: 20, right: 30, left: 0, bottom: 10 }}>
+                      <defs>
+                        <linearGradient id="headcountGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="hiresGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity={0.8}/>
+                          <stop offset="100%" stopColor="#10b981" stopOpacity={0.4}/>
+                        </linearGradient>
+                        <linearGradient id="departuresGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8}/>
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0.4}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                      <XAxis 
+                        dataKey="label" 
+                        tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                        axisLine={{ stroke: "hsl(var(--border))" }}
+                      />
+                      <YAxis 
+                        allowDecimals={false} 
+                        tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                        axisLine={{ stroke: "hsl(var(--border))" }}
+                      />
+                      <Tooltip
+                        contentStyle={{ 
+                          borderRadius: 16, 
+                          border: "none",
+                          boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+                          backgroundColor: "hsl(var(--card))",
+                        }}
+                        formatter={(value: number | string) => Number(value).toLocaleString()}
+                      />
+                      <Legend 
+                        wrapperStyle={{ paddingTop: 20 }}
+                        formatter={(value) => <span style={{ color: "hsl(var(--foreground))" }}>{value}</span>}
+                      />
+                      <Bar dataKey="hires" name="Hires" fill="url(#hiresGradient)" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="departures" name="Departures" fill="url(#departuresGradient)" radius={[6, 6, 0, 0]} />
+                      <Area
+                        type="monotone"
+                        dataKey="headcount"
+                        name="Headcount"
+                        fill="url(#headcountGradient)"
+                        stroke="#6366f1"
+                        strokeWidth={3}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
+            </motion.div>
 
-              {/* Location & employment mix */}
-              <Card className="flex flex-col h-[550px] max-h-[550px] overflow-hidden">
-                <CardHeader className="border-none bg-transparent pb-2 flex-shrink-0">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    Location & employment mix
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Compare where your people work today and how their employment agreements are distributed.
-                  </p>
-                </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col gap-4 !space-y-0 pb-4 xl:flex-row xl:items-stretch">
-                  <ScrollArea className="h-full xl:max-h-full pr-4">
-                    <div className="space-y-3">
-                      {locationData.length === 0 ? (
-                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                          No location data yet. Add locations to your company profile to unlock this view.
-                        </div>
-                      ) : (
-                        locationData.map((location) => (
-                          <div
-                            key={location.id ?? location.name}
-                            className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
+            {/* Breakdown Cards Grid */}
+            <div className="grid gap-6 xl:grid-cols-3">
+              {/* Department Breakdown */}
+              <motion.div variants={itemVariants}>
+                <Card className="h-[520px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <CardHeader className="pb-2 flex-shrink-0">
+                    <SectionHeader
+                      icon={Building2}
+                      title="By Department"
+                      description="Active headcount distribution"
+                      iconColor="text-violet-500"
+                    />
+                  </CardHeader>
+                  <CardContent className="flex-1 overflow-hidden p-4">
+                    <ScrollArea className="h-full pr-4">
+                      <div className="space-y-2">
+                        {(data.breakdowns.byDepartment ?? []).map((dept, index) => (
+                          <BreakdownListItem
+                            key={dept.id ?? dept.name}
+                            name={dept.name}
+                            active={dept.active}
+                            total={dept.total}
+                            index={index}
                             onClick={() => handleDrillDown(
-                              "location",
-                              location.id || "unassigned",
-                              `${location.name} Location`,
-                              `All employees at the ${location.name} location`
+                              "department",
+                              dept.id || "unassigned",
+                              `${dept.name} Department`,
+                              `All employees in ${dept.name}`
                             )}
-                          >
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{location.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {location.active.toLocaleString()} active · {location.total.toLocaleString()} total
-                              </p>
-                            </div>
-                            <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
-                              {location.active}
-                            </Badge>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
+                          />
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-                  <div className="flex w-full min-h-0 flex-col gap-4 xl:w-1/2">
-                    <div className="flex-1 min-h-[180px] xl:min-h-[180px]">
+              {/* Location & Employment Mix */}
+              <motion.div variants={itemVariants}>
+                <Card className="h-[520px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <CardHeader className="pb-2 flex-shrink-0">
+                    <SectionHeader
+                      icon={MapPin}
+                      title="Location & Employment"
+                      description="Geographic and contract distribution"
+                      iconColor="text-cyan-500"
+                    />
+                  </CardHeader>
+                  <CardContent className="flex-1 overflow-hidden p-4 flex flex-col">
+                    {/* Pie Chart */}
+                    <div className="h-48 flex-shrink-0">
                       {employmentData.length === 0 ? (
-                        <div className="flex h-full items-center justify-center rounded-2xl bg-white/60 text-sm text-muted-foreground dark:bg-slate-900/40">
-                          Add employment types to view mix insights
+                        <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                          Add employment types to see distribution
                         </div>
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
+                            <defs>
+                              {employmentData.map((entry, index) => (
+                                <linearGradient key={`grad-${index}`} id={`pieGrad-${index}`} x1="0" y1="0" x2="1" y2="1">
+                                  <stop offset="0%" stopColor={CHART_COLORS.gradient[index % CHART_COLORS.gradient.length]} stopOpacity={1}/>
+                                  <stop offset="100%" stopColor={CHART_COLORS.gradient[(index + 1) % CHART_COLORS.gradient.length]} stopOpacity={0.8}/>
+                                </linearGradient>
+                              ))}
+                            </defs>
                             <Pie
                               data={employmentData}
-                              innerRadius={60}
-                              outerRadius={90}
-                              paddingAngle={4}
+                              innerRadius={50}
+                              outerRadius={75}
+                              paddingAngle={3}
                               dataKey="value"
                               nameKey="label"
                             >
-                              {employmentData.map((entry) => (
-                                <Cell key={entry.label} fill={entry.fill} stroke="transparent" />
+                              {employmentData.map((entry, index) => (
+                                <Cell 
+                                  key={entry.label} 
+                                  fill={`url(#pieGrad-${index})`}
+                                  stroke="transparent"
+                                />
                               ))}
                             </Pie>
                             <Tooltip
@@ -736,261 +1051,385 @@ export default function AnalyticsDashboard() {
                                 `${Number(value).toLocaleString()} active`,
                                 label,
                               ]}
-                              contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
+                              contentStyle={{ 
+                                borderRadius: 12, 
+                                border: "none",
+                                boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                              }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
                       )}
                     </div>
 
-                    <ScrollArea className="flex-1 min-h-0 pr-4">
-                      <div className="space-y-2">
+                    {/* Employment type legend */}
+                    <div className="py-3 border-t border-b border-muted/30 my-3">
+                      <div className="flex flex-wrap gap-3">
                         {(data.breakdowns.byEmploymentType ?? []).map((item, index) => (
-                          <div
+                          <button
                             key={item.label}
-                            className="flex items-center justify-between hover:bg-white/60 dark:hover:bg-slate-900/40 rounded-lg px-2 py-1 cursor-pointer transition-colors"
                             onClick={() => handleDrillDown(
                               "employmentType",
                               item.label.toLowerCase(),
                               `${item.label} Employees`,
-                              `All employees with ${item.label} employment type`
+                              `All ${item.label} employees`
                             )}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 dark:bg-white/5 
+                              hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer"
                           >
-                            <div className="flex items-center gap-3">
-                              <span
-                                className="h-3 w-3 rounded-full"
-                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                              />
-                              <span className="text-sm text-foreground">{item.label}</span>
-                            </div>
-                            <span className="text-sm font-medium text-muted-foreground">
-                              {item.value.toLocaleString()} active
-                            </span>
-                          </div>
+                            <span
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: CHART_COLORS.gradient[index % CHART_COLORS.gradient.length] }}
+                            />
+                            <span className="text-xs font-medium text-foreground">{item.label}</span>
+                            <span className="text-xs text-muted-foreground">({item.value})</span>
+                          </button>
                         ))}
                       </div>
-                    </ScrollArea>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Job role coverage */}
-              <Card className="flex flex-col h-[550px] max-h-[550px] overflow-hidden">
-                <CardHeader className="border-none bg-transparent pb-2 flex-shrink-0">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Users className="h-5 w-5 text-primary" />
-                    Job role coverage
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Understand which job families hold the majority of active talent.
-                  </p>
-                </CardHeader>
-                <CardContent className="flex flex-1 min-h-0 flex-col !space-y-0 pb-4 overflow-hidden">
-                  <ScrollArea className="flex-1 min-h-0 pr-4">
-                    <div className="space-y-3">
-                      {(data.breakdowns.byJobRole ?? []).length === 0 ? (
-                        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                          Assign job roles to employees to view this breakdown.
-                        </div>
-                      ) : (
-                        (data.breakdowns.byJobRole ?? []).map((role) => (
-                          <div
-                            key={role.id ?? role.name}
-                            className="flex items-center justify-between rounded-2xl bg-white/60 px-4 py-3 shadow-inner dark:bg-slate-900/40 hover:bg-white/80 dark:hover:bg-slate-900/60 cursor-pointer transition-colors"
-                            onClick={() => handleDrillDown(
-                              "jobRole",
-                              role.id || "unassigned",
-                              `${role.name} Job Role`,
-                              `All employees with the ${role.name} job role`
-                            )}
-                          >
-                            <div>
-                              <p className="text-sm font-medium text-foreground">{role.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {role.active.toLocaleString()} active · {role.total.toLocaleString()} total
-                              </p>
-                            </div>
-                            <Badge variant="outline" className="rounded-full border-primary/30 text-primary">
-                              {role.active}
-                            </Badge>
-                          </div>
-                        ))
-                      )}
                     </div>
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+
+                    {/* Locations list */}
+                    <ScrollArea className="flex-1 pr-4">
+                      <div className="space-y-2">
+                        {locationData.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            No location data available
+                          </p>
+                        ) : (
+                          locationData.map((location, index) => (
+                            <BreakdownListItem
+                              key={location.id ?? location.name}
+                              name={location.name}
+                              active={location.active}
+                              total={location.total}
+                              index={index}
+                              onClick={() => handleDrillDown(
+                                "location",
+                                location.id || "unassigned",
+                                `${location.name} Location`,
+                                `All employees at ${location.name}`
+                              )}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Job Roles */}
+              <motion.div variants={itemVariants}>
+                <Card className="h-[520px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <CardHeader className="pb-2 flex-shrink-0">
+                    <SectionHeader
+                      icon={Briefcase}
+                      title="Job Roles"
+                      description="Talent distribution by role"
+                      iconColor="text-amber-500"
+                    />
+                  </CardHeader>
+                  <CardContent className="flex-1 overflow-hidden p-4">
+                    <ScrollArea className="h-full pr-4">
+                      <div className="space-y-2">
+                        {(data.breakdowns.byJobRole ?? []).length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            Assign job roles to see breakdown
+                          </p>
+                        ) : (
+                          (data.breakdowns.byJobRole ?? []).map((role, index) => (
+                            <BreakdownListItem
+                              key={role.id ?? role.name}
+                              name={role.name}
+                              active={role.active}
+                              total={role.total}
+                              index={index}
+                              onClick={() => handleDrillDown(
+                                "jobRole",
+                                role.id || "unassigned",
+                                `${role.name} Role`,
+                                `All employees with ${role.name} role`
+                              )}
+                            />
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
 
+            {/* Insights & Tenure Row */}
             <div className="grid gap-6 xl:grid-cols-2">
-              <Card>
-                <CardHeader className="border-none bg-transparent pb-2">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    Strategic insights
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Tailored recommendations rooted in your tenant data. Layer AI commentary for a board-ready narrative.
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    {data.supportsAIInsights && (
+              {/* Strategic Insights */}
+              <motion.div variants={itemVariants}>
+                <Card className="overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <CardHeader className="pb-2">
+                    <SectionHeader
+                      icon={Lightbulb}
+                      title="Strategic Insights"
+                      description="AI-powered recommendations for your workforce"
+                      iconColor="text-amber-500"
+                      action={
+                        data.supportsAIInsights && (
+                          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <Button
+                              size="sm"
+                              onClick={handleGenerateAI}
+                              disabled={isGeneratingAI}
+                              className="bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 shadow-lg shadow-violet-500/25"
+                            >
+                              {isGeneratingAI ? (
+                                <>
+                                  <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                  >
+                                    <Sparkles className="w-4 h-4 mr-2" />
+                                  </motion.div>
+                                  Generating...
+                                </>
+                              ) : (
+                                <>
+                                  <Brain className="w-4 h-4 mr-2" />
+                                  Generate AI Insights
+                                </>
+                              )}
+                            </Button>
+                          </motion.div>
+                        )
+                      }
+                    />
+                  </CardHeader>
+                  <CardContent className="space-y-4 max-h-[400px] overflow-auto">
+                    {aiError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400"
+                      >
+                        {aiError}
+                      </motion.div>
+                    )}
+
+                    {aiInsights.length > 0 && (
                       <Button
                         size="sm"
-                        variant="primary"
-                        onClick={handleGenerateAI}
-                        disabled={isGeneratingAI}
-                        className="flex items-center gap-2"
+                        variant="ghost"
+                        onClick={() => setAiInsights([])}
+                        className="text-muted-foreground hover:text-foreground"
                       >
-                        <Brain className="h-4 w-4" />
-                        {isGeneratingAI ? "Generating" : "Generate AI recommendations"}
+                        <X className="w-4 h-4 mr-2" />
+                        Clear AI insights
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => setAiInsights([])}>
-                      Clear AI layer
-                    </Button>
-                  </div>
-                  {aiError && (
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-800/60 dark:bg-amber-900/30 dark:text-amber-200">
-                      {aiError}
-                    </div>
-                  )}
-                  <InsightsList insights={combinedInsights} />
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader className="border-none bg-transparent pb-2">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    Tenure distribution
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Spot where experience is concentrated to inform succession planning and workforce design.
-                  </p>
-                </CardHeader>
-                <CardContent className="h-72">
-                  {tenureBands.length === 0 ? (
-                    <div className="flex h-full items-center justify-center rounded-2xl bg-white/60 text-sm text-muted-foreground dark:bg-slate-900/40">
-                      Tenure data will appear once employees have confirmed start dates.
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={tenureBands}>
-                        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-                        <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                        <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                        <Tooltip
-                          formatter={(value: number) => [`${value.toLocaleString()} employees`, "Employees"]}
-                          contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
-                        />
-                        <Bar
-                          dataKey="value"
-                          radius={[8, 8, 0, 0]}
-                          fill="#6366f1"
-                          onClick={(_, index) => {
-                            const chartData = tenureBands[index];
-                            if (chartData && chartData.label) {
-                              const tenureBandMap: Record<string, string> = {
-                                "Under 1 year": "under_1",
-                                "1 - 3 years": "1_to_3",
-                                "3 - 5 years": "3_to_5",
-                                "5+ years": "5_plus"
-                              };
-                              const bandKey =
-                                tenureBandMap[chartData.label] ||
-                                chartData.label.toLowerCase().replace(/\s+/g, "_");
-                              handleDrillDown(
-                                "tenureBand",
-                                bandKey,
-                                `${chartData.label} Tenure Band`,
-                                `Employees with ${chartData.label} tenure`
-                              );
-                            }
-                          }}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
+                    <InsightsList insights={combinedInsights} />
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Tenure Distribution */}
+              <motion.div variants={itemVariants}>
+                <Card className="overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <CardHeader className="pb-2">
+                    <SectionHeader
+                      icon={Clock3}
+                      title="Tenure Distribution"
+                      description="Experience levels across your organization"
+                      iconColor="text-indigo-500"
+                    />
+                  </CardHeader>
+                  <CardContent className="h-80">
+                    {tenureBands.length === 0 ? (
+                      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                        Tenure data appears once employees have start dates
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={tenureBands}>
+                          <defs>
+                            <linearGradient id="tenureGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#6366f1" stopOpacity={1}/>
+                              <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.6}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                          <XAxis 
+                            dataKey="label" 
+                            tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                            axisLine={{ stroke: "hsl(var(--border))" }}
+                          />
+                          <YAxis 
+                            allowDecimals={false} 
+                            tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                            axisLine={{ stroke: "hsl(var(--border))" }}
+                          />
+                          <Tooltip
+                            formatter={(value: number) => [`${value.toLocaleString()} employees`, "Count"]}
+                            contentStyle={{ 
+                              borderRadius: 12, 
+                              border: "none",
+                              boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                            }}
+                          />
+                          <Bar
+                            dataKey="value"
+                            radius={[8, 8, 0, 0]}
+                            fill="url(#tenureGradient)"
+                            cursor="pointer"
+                            onClick={(_, index) => {
+                              const chartData = tenureBands[index];
+                              if (chartData && chartData.label) {
+                                const tenureBandMap: Record<string, string> = {
+                                  "Under 1 year": "under_1",
+                                  "1 - 3 years": "1_to_3",
+                                  "3 - 5 years": "3_to_5",
+                                  "5+ years": "5_plus"
+                                };
+                                const bandKey = tenureBandMap[chartData.label] || chartData.label.toLowerCase().replace(/\s+/g, "_");
+                                handleDrillDown(
+                                  "tenureBand",
+                                  bandKey,
+                                  `${chartData.label} Tenure`,
+                                  `Employees with ${chartData.label} tenure`
+                                );
+                              }
+                            }}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
 
+            {/* Templates & Custom Builder */}
             <div className="grid gap-6 xl:grid-cols-2">
               <TemplateGallery templates={data.templates} onApply={handleApplyTemplate} />
 
-              <Card>
-                <CardHeader className="border-none bg-transparent pb-2">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Wrench className="h-5 w-5 text-primary" />
-                    Custom analytics workspace
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Assemble bespoke charts across any demographic, contract type, or geography in seconds.
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button size="sm" variant="outline" onClick={() => setIsBuilderOpen((open) => !open)}>
-                    {isBuilderOpen ? "Close builder" : "Add custom widget"}
-                  </Button>
-                  {isBuilderOpen && (
-                    <CustomWidgetBuilder
-                      dimensions={data.explorer.dimensionOptions}
-                      metrics={data.explorer.metricOptions}
-                      onCreate={handleAddWidget}
-                      onCancel={() => setIsBuilderOpen(false)}
+              <motion.div variants={itemVariants}>
+                <Card className="overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <CardHeader className="pb-2">
+                    <SectionHeader
+                      icon={Wrench}
+                      title="Custom Analytics Builder"
+                      description="Create personalized charts and visualizations"
+                      iconColor="text-emerald-500"
                     />
-                  )}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button
+                        size="sm"
+                        variant={isBuilderOpen ? "secondary" : "outline"}
+                        onClick={() => setIsBuilderOpen((open) => !open)}
+                        className="gap-2"
+                      >
+                        {isBuilderOpen ? (
+                          <>
+                            <X className="w-4 h-4" />
+                            Close builder
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4" />
+                            Add custom widget
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
 
-                  {customWidgets.length === 0 && !isBuilderOpen && (
-                    <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-4 py-6 text-sm text-muted-foreground">
-                      Build your first widget or pull from the template gallery to extend the dashboard.
-                    </div>
-                  )}
+                    <AnimatePresence>
+                      {isBuilderOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <CustomWidgetBuilder
+                            dimensions={data.explorer.dimensionOptions}
+                            metrics={data.explorer.metricOptions}
+                            onCreate={handleAddWidget}
+                            onCancel={() => setIsBuilderOpen(false)}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
-                  {customWidgets.length > 0 && (
-                    <div className="space-y-4">
-                      {customWidgets.map((widget) => (
-                        <CustomWidgetCard
+                    {customWidgets.length === 0 && !isBuilderOpen && (
+                      <div className="rounded-2xl border-2 border-dashed border-primary/20 bg-primary/5 px-6 py-8 text-center">
+                        <PieChartIcon className="w-10 h-10 text-primary/40 mx-auto mb-3" />
+                        <p className="text-sm text-muted-foreground">
+                          Build custom widgets or use templates to extend your dashboard
+                        </p>
+                      </div>
+                    )}
+
+                    {customWidgets.length > 0 && (
+                      <div className="space-y-3">
+                        {customWidgets.map((widget, index) => (
+                          <motion.div
+                            key={widget.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                          >
+                            <CustomWidgetCard
+                              widget={widget}
+                              dataset={data.explorer.datasets[widget.dimensionKey] ?? []}
+                              metric={metricLookup.get(widget.metricId)}
+                              onRemove={() => handleRemoveWidget(widget.id)}
+                            />
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+
+            {/* Custom Visualizations */}
+            <AnimatePresence>
+              {customWidgets.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  variants={itemVariants}
+                >
+                  <Card className="overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                    <CardHeader className="pb-2">
+                      <SectionHeader
+                        icon={BarChart3}
+                        title="Custom Visualizations"
+                        description="Your personalized analytics widgets"
+                        iconColor="text-violet-500"
+                      />
+                    </CardHeader>
+                    <CardContent className="grid gap-6 lg:grid-cols-2">
+                      {customWidgets.map((widget, index) => (
+                        <CustomWidgetVisualization
                           key={widget.id}
                           widget={widget}
                           dataset={data.explorer.datasets[widget.dimensionKey] ?? []}
                           metric={metricLookup.get(widget.metricId)}
-                          onRemove={() => handleRemoveWidget(widget.id)}
+                          colors={index % 2 === 0 ? CHART_COLORS.gradient : ALT_COLORS}
+                          formatMetric={formatMetricValue}
                         />
                       ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {customWidgets.length > 0 && (
-              <Card>
-                <CardHeader className="border-none bg-transparent pb-2">
-                  <CardTitle className="text-lg">Custom visualisations</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    These charts update live with your tenant data and respect the filters applied above.
-                  </p>
-                </CardHeader>
-                <CardContent className="grid gap-6 lg:grid-cols-2">
-                  {customWidgets.map((widget, index) => (
-                    <CustomWidgetVisualization
-                      key={widget.id}
-                      widget={widget}
-                      dataset={data.explorer.datasets[widget.dimensionKey] ?? []}
-                      metric={metricLookup.get(widget.metricId)}
-                      colors={index % 2 === 0 ? COLORS : ALT_COLORS}
-                      formatMetric={formatMetricValue}
-                    />
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
       <EmployeeListModal
         isOpen={drillDownModal.isOpen}
@@ -1016,7 +1455,6 @@ function CustomWidgetBuilder({ dimensions, metrics, onCreate, onCancel }: Custom
   const defaultDimension = dimensions[0];
   const defaultMetric = metrics[0];
   
-  // Initialize hooks before any conditional returns (React rules)
   const [dimensionKey, setDimensionKey] = useState<string>(defaultDimension?.key ?? "");
   const [metricId, setMetricId] = useState<string>(defaultMetric?.id ?? "");
   const [visualization, setVisualization] = useState<VisualizationType>(
@@ -1031,8 +1469,9 @@ function CustomWidgetBuilder({ dimensions, metrics, onCreate, onCancel }: Custom
   
   if (!defaultDimension || !defaultMetric) {
     return (
-      <div className="rounded-2xl border border-dashed border-muted px-4 py-6 text-sm text-muted-foreground">
-        Add more people data to unlock custom dimensions and metrics.
+      <div className="rounded-2xl border-2 border-dashed border-muted p-6 text-sm text-muted-foreground text-center">
+        <Zap className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+        Add more people data to unlock custom dimensions and metrics
       </div>
     );
   }
@@ -1052,18 +1491,23 @@ function CustomWidgetBuilder({ dimensions, metrics, onCreate, onCancel }: Custom
   const selectedDimension = dimensions.find((dimension) => dimension.key === dimensionKey);
 
   return (
-    <div className="rounded-2xl border border-primary/20 bg-white/70 p-4 shadow-inner dark:bg-slate-900/40">
+    <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-violet-500/5 p-5">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Widget title
-          </p>
-          <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Attrition by department" />
+          </label>
+          <Input 
+            value={title} 
+            onChange={(event) => setTitle(event.target.value)} 
+            placeholder="e.g. Attrition by department"
+            className="bg-white/70 dark:bg-white/10 border-white/50 dark:border-white/20"
+          />
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Dimension
-          </p>
+          </label>
           <Select
             value={dimensionKey}
             onValueChange={(value) => {
@@ -1074,7 +1518,7 @@ function CustomWidgetBuilder({ dimensions, metrics, onCreate, onCancel }: Custom
               }
             }}
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-white/70 dark:bg-white/10 border-white/50 dark:border-white/20">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1087,11 +1531,11 @@ function CustomWidgetBuilder({ dimensions, metrics, onCreate, onCancel }: Custom
           </Select>
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Metric
-          </p>
+          </label>
           <Select value={metricId} onValueChange={(value) => setMetricId(value)}>
-            <SelectTrigger>
+            <SelectTrigger className="bg-white/70 dark:bg-white/10 border-white/50 dark:border-white/20">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1104,43 +1548,56 @@ function CustomWidgetBuilder({ dimensions, metrics, onCreate, onCancel }: Custom
           </Select>
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Visualisation
-          </p>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Visualization
+          </label>
           <Select
             value={visualization}
             onValueChange={(value: VisualizationType) => setVisualization(value)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="bg-white/70 dark:bg-white/10 border-white/50 dark:border-white/20">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {(selectedDimension?.supportedVisualizations ?? ["bar"]).map((option) => (
                 <SelectItem key={option} value={option}>
-                  {option.toUpperCase()}
+                  <span className="flex items-center gap-2">
+                    {option === "bar" && <BarChart3 className="w-4 h-4" />}
+                    {option === "pie" && <PieChartIcon className="w-4 h-4" />}
+                    {option === "line" && <Activity className="w-4 h-4" />}
+                    {option.charAt(0).toUpperCase() + option.slice(1)}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Data points
-          </p>
+          </label>
           <Input
             type="number"
             min={3}
             max={12}
             value={topN}
             onChange={(event) => setTopN(Number(event.target.value))}
+            className="bg-white/70 dark:bg-white/10 border-white/50 dark:border-white/20"
           />
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
-        <Button size="sm" onClick={handleSubmit}>
-          Save widget
-        </Button>
+      <div className="mt-5 flex items-center gap-3">
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Button 
+            size="sm" 
+            onClick={handleSubmit}
+            className="bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90"
+          >
+            <Check className="w-4 h-4 mr-2" />
+            Save widget
+          </Button>
+        </motion.div>
         <Button size="sm" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
@@ -1158,19 +1615,28 @@ interface CustomWidgetCardProps {
 
 function CustomWidgetCard({ widget, dataset, metric, onRemove }: CustomWidgetCardProps) {
   return (
-    <div className="rounded-2xl border border-muted bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-      <div className="flex items-start justify-between gap-4">
+    <div className="rounded-xl border border-muted/50 bg-white/50 dark:bg-white/5 p-4 flex items-center justify-between group hover:border-primary/30 transition-colors">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-primary/10">
+          {widget.visualization === "bar" && <BarChart3 className="w-4 h-4 text-primary" />}
+          {widget.visualization === "pie" && <PieChartIcon className="w-4 h-4 text-primary" />}
+          {widget.visualization === "line" && <Activity className="w-4 h-4 text-primary" />}
+        </div>
         <div>
-          <p className="font-medium text-foreground">{widget.title}</p>
-          {metric && <p className="text-xs text-muted-foreground">Metric: {metric.label}</p>}
-          <p className="mt-2 text-xs text-muted-foreground">
-            Previewing top {widget.topN} results across {dataset.length} segments.
+          <p className="font-semibold text-foreground">{widget.title}</p>
+          <p className="text-xs text-muted-foreground">
+            {metric?.label} · Top {widget.topN} · {dataset.length} segments
           </p>
         </div>
-        <Button size="sm" variant="ghost" onClick={onRemove}>
-          Remove
-        </Button>
       </div>
+      <Button 
+        size="sm" 
+        variant="ghost" 
+        onClick={onRemove}
+        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-rose-500"
+      >
+        <X className="w-4 h-4" />
+      </Button>
     </div>
   );
 }
@@ -1200,26 +1666,30 @@ function CustomWidgetVisualization({
   }));
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="border-none bg-transparent pb-2">
-        <CardTitle className="text-base font-semibold">{widget.title}</CardTitle>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="rounded-2xl border border-muted/50 bg-white/50 dark:bg-white/5 overflow-hidden"
+    >
+      <div className="p-4 border-b border-muted/30">
+        <h4 className="font-semibold text-foreground">{widget.title}</h4>
         {metric && (
-          <p className="text-xs text-muted-foreground">Metric: {metric.label}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Metric: {metric.label}</p>
         )}
-      </CardHeader>
-      <CardContent className="h-72">
+      </div>
+      <div className="h-72 p-4">
         {dataPoints.length === 0 ? (
-          <div className="flex h-full items-center justify-center rounded-2xl bg-white/60 text-sm text-muted-foreground dark:bg-slate-900/40">
-            No data available for this widget.
+          <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+            No data available
           </div>
         ) : widget.visualization === "pie" ? (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={dataPoints}
-                innerRadius={60}
-                outerRadius={90}
-                paddingAngle={4}
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={3}
                 dataKey="value"
                 nameKey="label"
               >
@@ -1229,35 +1699,27 @@ function CustomWidgetVisualization({
               </Pie>
               <Tooltip
                 formatter={(value: number | string, name: string, payload) => {
-                  const numericValue =
-                    typeof value === "number" ? value : Number(value ?? 0);
-                  return [
-                    formatMetric(metricKey, numericValue),
-                    payload?.payload?.label ?? name,
-                  ];
+                  const numericValue = typeof value === "number" ? value : Number(value ?? 0);
+                  return [formatMetric(metricKey, numericValue), payload?.payload?.label ?? name];
                 }}
-                contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
+                contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}
               />
             </PieChart>
           </ResponsiveContainer>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={dataPoints}>
-              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} interval={0} angle={-20} textAnchor="end" height={70} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.5} />
+              <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
               <Tooltip
                 formatter={(value: number | string, name: string, payload) => {
-                  const numericValue =
-                    typeof value === "number" ? value : Number(value ?? 0);
-                  return [
-                    formatMetric(metricKey, numericValue),
-                    payload?.payload?.label ?? name,
-                  ];
+                  const numericValue = typeof value === "number" ? value : Number(value ?? 0);
+                  return [formatMetric(metricKey, numericValue), payload?.payload?.label ?? name];
                 }}
-                contentStyle={{ borderRadius: 16, borderColor: "#e2e8f0" }}
+                contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}
               />
-              <Bar dataKey="value" radius={[8, 8, 0, 0]} fill="#2563eb">
+              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                 {dataPoints.map((entry, index) => (
                   <Cell key={entry.key} fill={colors[index % colors.length]} />
                 ))}
@@ -1265,8 +1727,8 @@ function CustomWidgetVisualization({
             </BarChart>
           </ResponsiveContainer>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </motion.div>
   );
 }
 
@@ -1277,80 +1739,130 @@ interface TemplateGalleryProps {
 
 function TemplateGallery({ templates, onApply }: TemplateGalleryProps) {
   return (
-    <Card>
-      <CardHeader className="border-none bg-transparent pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Sparkles className="h-5 w-5 text-primary" />
-          Template gallery
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Launch ready-made charts curated for mid-market HR leaders. Customise after adding to your workspace.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {templates.map((template) => (
-          <div
-            key={template.id}
-            className="rounded-2xl border border-muted bg-muted/20 px-4 py-4"
-          >
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p className="font-medium text-foreground">{template.name}</p>
-                <p className="text-sm text-muted-foreground">{template.description}</p>
-                {template.insight && (
-                  <p className="mt-2 text-xs text-primary/80">{template.insight}</p>
-                )}
-              </div>
-              <Button size="sm" variant="secondary" onClick={() => onApply(template)}>
-                Use template
-              </Button>
+    <motion.div variants={itemVariants}>
+      <Card className="overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+        <CardHeader className="pb-2">
+          <SectionHeader
+            icon={Sparkles}
+            title="Template Gallery"
+            description="Pre-built analytics for HR leaders"
+            iconColor="text-violet-500"
+          />
+        </CardHeader>
+        <CardContent className="space-y-3 max-h-[400px] overflow-auto">
+          {templates.length === 0 ? (
+            <div className="rounded-xl border-2 border-dashed border-muted p-6 text-center">
+              <Sparkles className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">
+                Templates will appear once configured
+              </p>
             </div>
-          </div>
-        ))}
-        {templates.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Templates will appear once seeded for this tenant.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+          ) : (
+            templates.map((template, index) => (
+              <motion.div
+                key={template.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="group rounded-xl border border-muted/50 bg-white/50 dark:bg-white/5 p-4 hover:border-primary/30 transition-all"
+              >
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-foreground">{template.name}</h4>
+                      <Badge variant="outline" className="text-xs">
+                        {template.visualization}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
+                    {template.insight && (
+                      <p className="text-xs text-primary/80 mt-2 flex items-start gap-1">
+                        <Lightbulb className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        {template.insight}
+                      </p>
+                    )}
+                  </div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => onApply(template)}
+                      className="opacity-70 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Use
+                    </Button>
+                  </motion.div>
+                </div>
+              </motion.div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
 function InsightsList({ insights }: { insights: AnalyticsInsight[] }) {
   if (insights.length === 0) {
-    return <p className="text-sm text-muted-foreground">Insights will populate as data flows in.</p>;
+    return (
+      <div className="rounded-xl border-2 border-dashed border-muted p-6 text-center">
+        <Lightbulb className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+        <p className="text-sm text-muted-foreground">
+          Insights will populate as more data flows in
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      {insights.map((insight) => (
-        <div
-          key={insight.id}
-          className="rounded-2xl border border-muted bg-muted/20 px-4 py-4"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="font-medium text-foreground">{insight.title}</p>
-            <span className={`rounded-full px-3 py-1 text-xs font-medium ${PRIORITY_BADGES[insight.priority]}`}>
-              {insight.priority.toUpperCase()}
-            </span>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">{insight.summary}</p>
-          {insight.action && (
-            <p className="mt-3 text-xs text-primary/80">
-              Recommended action: {insight.action}
-            </p>
-          )}
-          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="bg-white/60 text-muted-foreground">
-              {insight.source === "ai" ? "AI" : "Heuristic"}
-            </Badge>
-            {insight.impactedMetrics && insight.impactedMetrics.length > 0 && (
-              <span>Key metrics: {insight.impactedMetrics.join(", ")}</span>
-            )}
-          </div>
-        </div>
-      ))}
+    <div className="space-y-3">
+      {insights.map((insight, index) => {
+        const styles = PRIORITY_STYLES[insight.priority];
+        return (
+          <motion.div
+            key={insight.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className={`rounded-xl border ${styles.border} ${styles.bg} p-4`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-semibold text-foreground">{insight.title}</h4>
+                  <Badge className={`${styles.bg} ${styles.text} border ${styles.border} text-xs`}>
+                    {insight.priority.toUpperCase()}
+                  </Badge>
+                  {insight.source === "ai" && (
+                    <Badge className="bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/30 text-xs">
+                      <Brain className="w-3 h-3 mr-1" />
+                      AI
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">{insight.summary}</p>
+                {insight.action && (
+                  <p className="text-xs text-primary mt-3 flex items-start gap-1">
+                    <Target className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                    <span><strong>Recommended:</strong> {insight.action}</span>
+                  </p>
+                )}
+                {insight.impactedMetrics && insight.impactedMetrics.length > 0 && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-xs text-muted-foreground">Impacts:</span>
+                    {insight.impactedMetrics.map((metric) => (
+                      <Badge key={metric} variant="outline" className="text-xs">
+                        {metric}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
     </div>
   );
 }

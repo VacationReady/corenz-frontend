@@ -1,17 +1,11 @@
 "use client";
 
 import { useMemo, useState, useCallback, useEffect } from "react";
+import { motion } from "framer-motion";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -19,19 +13,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
-import { Checkbox } from "@/components/ui/Checkbox";
-import { MultiSelect } from "@/components/ui/MultiSelect";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowDownToLine, ChevronDown, ChevronRight } from "lucide-react";
-import * as Collapsible from "@radix-ui/react-collapsible";
+import { cn } from "@/lib/utils";
+import {
+  Building2,
+  Coins,
+  GraduationCap,
+  PlaneTakeoff,
+  Megaphone,
+  ArrowDownToLine,
+  ArrowUpRight,
+  ArrowDownRight,
+  TrendingUp,
+  Calendar,
+  Clock,
+  FileText,
+  Send,
+  AlertCircle,
+  CheckCircle2,
+  Sparkles,
+  Users,
+  DollarSign,
+  Percent,
+  Mail,
+  MessageSquare,
+  Link2,
+  TestTube,
+  Info,
+} from "lucide-react";
 
-export interface Option {
-  value: string;
-  label: string;
-}
+import { EmployeeSelector, type Option, type EmployeeRow } from "./EmployeeSelector";
+import { BulkActionDialogWrapper, ActionButtons } from "./BulkActionDialogWrapper";
 
-const KEEP_EXISTING_DEPARTMENT = "__keep-existing-department__";
-const KEEP_EXISTING_JOB_ROLE = "__keep-existing-job-role__";
+export type { Option };
 
 export interface SelectedEmployeeSummary {
   id: string;
@@ -44,21 +59,17 @@ export interface BulkActionResult {
   failures: Array<{ employeeId: string; error: string }>;
 }
 
-interface BaseDialogProps {}
+const KEEP_EXISTING_DEPARTMENT = "__keep-existing-department__";
+const KEEP_EXISTING_JOB_ROLE = "__keep-existing-job-role__";
 
-interface MessagingEmployee {
-  id: string;
-  name: string;
-  email: string;
-  departmentId: string | null;
-  jobRoleId: string | null;
-  isActive: boolean;
-}
+// ============================================================================
+// DEPARTMENT BULK ACTION DIALOG
+// ============================================================================
 
 interface DepartmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  allEmployees: MessagingEmployee[];
+  allEmployees: EmployeeRow[];
   departments: Option[];
   jobRoles: Option[];
   onCompleted?: (result: BulkActionResult) => void;
@@ -76,117 +87,18 @@ export function DepartmentBulkActionDialog({
   const [jobRoleId, setJobRoleId] = useState<string>(KEEP_EXISTING_JOB_ROLE);
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
-
-  const [filters, setFilters] = useState<{
-    query: string;
-    status: "all" | "active" | "inactive";
-    departments: string[];
-    jobRoles: string[];
-  }>({ query: "", status: "active", departments: ["all"], jobRoles: ["all"] });
-
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const filteredEmployees = useMemo(() => {
-    const query = filters.query.trim().toLowerCase();
-    return allEmployees.filter((employee) => {
-      if (filters.status === "active" && !employee.isActive) return false;
-      if (filters.status === "inactive" && employee.isActive) return false;
-
-      if (!filters.departments.includes("all")) {
-        if (!employee.departmentId) return false;
-        if (!filters.departments.includes(employee.departmentId)) return false;
-      }
-
-      if (!filters.jobRoles.includes("all")) {
-        if (!employee.jobRoleId) return false;
-        if (!filters.jobRoles.includes(employee.jobRoleId)) return false;
-      }
-
-      if (query.length > 0) {
-        const haystack = `${employee.name} ${employee.email}`
-          .toLowerCase()
-          .trim();
-        if (!haystack.includes(query)) return false;
-      }
-
-      return true;
-    });
-  }, [allEmployees, filters]);
-
-  const allFilteredSelected = useMemo(
-    () =>
-      filteredEmployees.length > 0 &&
-      filteredEmployees.every((employee) => selectedIds.has(employee.id)),
-    [filteredEmployees, selectedIds],
-  );
-
-  const someFilteredSelected = useMemo(
-    () => filteredEmployees.some((employee) => selectedIds.has(employee.id)),
-    [filteredEmployees, selectedIds],
-  );
-
-  const selectionState = allFilteredSelected
-    ? true
-    : someFilteredSelected
-    ? "indeterminate"
-    : false;
-
-  const toggleSelectAllFiltered = useCallback(() => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allFilteredSelected) {
-        filteredEmployees.forEach((employee) => next.delete(employee.id));
-      } else {
-        filteredEmployees.forEach((employee) => next.add(employee.id));
-      }
-      return next;
-    });
-  }, [allFilteredSelected, filteredEmployees]);
-
-  const toggleEmployeeSelection = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectedSummaries: SelectedEmployeeSummary[] = useMemo(
-    () =>
-      allEmployees
-        .filter((employee) => selectedIds.has(employee.id))
-        .map((employee) => ({ id: employee.id, name: employee.name, email: employee.email })),
-    [allEmployees, selectedIds],
-  );
-
-  const employeeIds = useMemo(() => selectedSummaries.map((e) => e.id), [selectedSummaries]);
-
+  const employeeIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
   const hasDepartmentChange = departmentId !== KEEP_EXISTING_DEPARTMENT;
   const hasJobRoleChange = jobRoleId !== KEEP_EXISTING_JOB_ROLE;
+  const canSubmit = employeeIds.length > 0 && (hasDepartmentChange || hasJobRoleChange) && reason.trim().length > 3 && !submitting;
 
-  const canSubmit =
-    employeeIds.length > 0 &&
-    (hasDepartmentChange || hasJobRoleChange) &&
-    reason.trim().length > 3 &&
-    !submitting;
+  const selectedDepartmentLabel = departments.find(d => d.value === departmentId)?.label;
+  const selectedJobRoleLabel = jobRoles.find(r => r.value === jobRoleId)?.label;
 
-  const employeePreview = useMemo(() => {
-    const preview = selectedSummaries.slice(0, 3).map((emp) => emp.name || emp.email);
-    const remaining = employeeIds.length - preview.length;
-    if (remaining > 0) {
-      preview.push(`+${remaining} more`);
-    }
-    return preview.join(", ");
-  }, [selectedSummaries, employeeIds.length]);
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
     if (!canSubmit) return;
-
     setSubmitting(true);
     try {
       const res = await fetch("/api/bulk-actions/department", {
@@ -199,23 +111,16 @@ export function DepartmentBulkActionDialog({
           reason,
         }),
       });
-
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
         throw new Error(payload?.error || "Failed to apply department changes");
       }
-
       const payload = (await res.json()) as BulkActionResult;
-      toast.success("Department updates queued", {
-        description: `${payload.processed - payload.failures.length} updated${
-          payload.failures.length ? `, ${payload.failures.length} failed` : ""
-        }`,
+      toast.success("Team realignment complete", {
+        description: `${payload.processed - payload.failures.length} updated`,
       });
       onCompleted?.(payload);
-      setDepartmentId(KEEP_EXISTING_DEPARTMENT);
-      setJobRoleId(KEEP_EXISTING_JOB_ROLE);
-      setReason("");
-      setSelectedIds(new Set());
+      resetForm();
       onOpenChange(false);
     } catch (error: any) {
       toast.error(error?.message || "Unable to update departments");
@@ -224,191 +129,133 @@ export function DepartmentBulkActionDialog({
     }
   };
 
+  const resetForm = () => {
+    setDepartmentId(KEEP_EXISTING_DEPARTMENT);
+    setJobRoleId(KEEP_EXISTING_JOB_ROLE);
+    setReason("");
+    setSelectedIds(new Set());
+  };
+
+  useEffect(() => {
+    if (!open) resetForm();
+  }, [open]);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Change department or job role">
-        <DialogHeader>
-          <DialogTitle>Change department or job role</DialogTitle>
-          <DialogDescription>
-            {employeeIds.length} employees selected. {employeePreview}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-3">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Search</label>
-                <Input
-                  placeholder="Search by name or email"
-                  value={filters.query}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Employment status</label>
-                <Select
-                  value={filters.status}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, status: value as typeof prev.status }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active employees</SelectItem>
-                    <SelectItem value="inactive">Inactive employees</SelectItem>
-                    <SelectItem value="all">All employees</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+    <BulkActionDialogWrapper
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Realign Teams"
+      description="Move employees between departments or job roles"
+      icon={<Building2 className="h-5 w-5" />}
+      iconGradient="bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500"
+      selectedCount={selectedIds.size}
+      size="xl"
+      footer={
+        <ActionButtons
+          onCancel={() => onOpenChange(false)}
+          onSubmit={handleSubmit}
+          submitLabel={`Apply to ${employeeIds.length} employee${employeeIds.length !== 1 ? "s" : ""}`}
+          submitDisabled={!canSubmit}
+          loading={submitting}
+          submitGradient="from-sky-500 to-blue-600"
+        />
+      }
+    >
+      <div className="space-y-6">
+        <EmployeeSelector
+          employees={allEmployees}
+          departments={departments}
+          jobRoles={jobRoles}
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+        />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Departments</label>
-                <MultiSelect
-                  options={departments}
-                  value={filters.departments}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, departments: value }))}
-                  placeholder="Filter departments"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Job roles</label>
-                <MultiSelect
-                  options={jobRoles}
-                  value={filters.jobRoles}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, jobRoles: value }))}
-                  placeholder="Filter job roles"
-                />
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-glass">
-              <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted/40">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      <Checkbox
-                        checked={selectionState}
-                        onCheckedChange={() => toggleSelectAllFiltered()}
-                        aria-label="Select all filtered employees"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Employee
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="max-h-64 divide-y divide-border/60 overflow-y-auto bg-background">
-                  {filteredEmployees.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-6 text-center text-sm">
-                        No employees match your filters yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredEmployees.map((employee) => {
-                      const isSelected = selectedIds.has(employee.id);
-                      return (
-                        <tr key={employee.id} className={isSelected ? "bg-primary/5" : undefined}>
-                          <td className="px-4 py-3">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleEmployeeSelection(employee.id)}
-                              aria-label={`Select ${employee.name}`}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium text-foreground">
-                            <div>{employee.name}</div>
-                            <div className="text-xs text-muted-foreground">{employee.email}</div>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {employee.isActive ? "Active" : "Inactive"}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              New department
-            </label>
-            <Select value={departmentId} onValueChange={setDepartmentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Keep existing departments" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={KEEP_EXISTING_DEPARTMENT}>Keep existing departments</SelectItem>
-                {departments.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="space-y-5 p-5 rounded-2xl bg-gradient-to-br from-sky-50/50 to-blue-50/30 dark:from-sky-900/10 dark:to-blue-900/5 border border-sky-200/30">
+          <div className="flex items-center gap-2 text-sky-700 dark:text-sky-400">
+            <Sparkles className="h-4 w-4" />
+            <h3 className="font-semibold">Configure Changes</h3>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              New job role
-            </label>
-            <Select value={jobRoleId} onValueChange={setJobRoleId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Keep existing job roles" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={KEEP_EXISTING_JOB_ROLE}>Keep existing job roles</SelectItem>
-                {jobRoles.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-sky-500" />
+                New Department
+              </Label>
+              <Select value={departmentId} onValueChange={setDepartmentId}>
+                <SelectTrigger className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50">
+                  <SelectValue placeholder="Keep existing" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={KEEP_EXISTING_DEPARTMENT}>Keep existing</SelectItem>
+                  {departments.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-500" />
+                New Job Role
+              </Label>
+              <Select value={jobRoleId} onValueChange={setJobRoleId}>
+                <SelectTrigger className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50">
+                  <SelectValue placeholder="Keep existing" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={KEEP_EXISTING_JOB_ROLE}>Keep existing</SelectItem>
+                  {jobRoles.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
+          {(hasDepartmentChange || hasJobRoleChange) && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl bg-white/60 dark:bg-white/5 border border-sky-200/30">
+              <p className="text-sm font-medium text-foreground mb-2">Changes to be applied:</p>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                {hasDepartmentChange && (
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-sky-500" />
+                    Move to <span className="font-medium text-foreground">{selectedDepartmentLabel}</span>
+                  </li>
+                )}
+                {hasJobRoleChange && (
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-blue-500" />
+                    Assign role <span className="font-medium text-foreground">{selectedJobRoleLabel}</span>
+                  </li>
+                )}
+              </ul>
+            </motion.div>
+          )}
+
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Reason for change
-            </label>
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              Reason for Change
+            </Label>
             <Textarea
               value={reason}
-              onChange={(event) => setReason(event.target.value)}
+              onChange={(e) => setReason(e.target.value)}
               placeholder="Explain why these changes are required"
-              rows={4}
-              required
+              rows={3}
+              className="rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50 resize-none"
             />
           </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!canSubmit} loading={submitting}>
-              Apply changes
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </BulkActionDialogWrapper>
   );
 }
 
-interface CompensationDialogProps extends BaseDialogProps {}
+// ============================================================================
+// COMPENSATION BULK ACTION DIALOG
+// ============================================================================
 
 interface EmployeeCompensation {
   id: string;
@@ -418,6 +265,15 @@ interface EmployeeCompensation {
   hourlyRate: number | null;
 }
 
+interface CompensationDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  allEmployees: EmployeeRow[];
+  departments: Option[];
+  jobRoles: Option[];
+  onCompleted?: (result: BulkActionResult) => void;
+}
+
 export function CompensationBulkActionDialog({
   open,
   onOpenChange,
@@ -425,53 +281,31 @@ export function CompensationBulkActionDialog({
   departments,
   jobRoles,
   onCompleted,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  allEmployees: MessagingEmployee[];
-  departments: Option[];
-  jobRoles: Option[];
-  onCompleted?: (result: BulkActionResult) => void;
-}) {
+}: CompensationDialogProps) {
   const [mode, setMode] = useState<"percent" | "flat">("percent");
   const [amount, setAmount] = useState<string>("");
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [compensationData, setCompensationData] = useState<Map<string, EmployeeCompensation>>(new Map());
   const [loadingCompensation, setLoadingCompensation] = useState(false);
-  const [employeeListExpanded, setEmployeeListExpanded] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const parsedAmount = Number(amount);
   const amountIsValid = !Number.isNaN(parsedAmount) && amount.trim() !== "";
+  const employeeIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
 
-  const [filters, setFilters] = useState<{
-    query: string;
-    status: "all" | "active" | "inactive";
-    departments: string[];
-    jobRoles: string[];
-  }>({ query: "", status: "active", departments: ["all"], jobRoles: ["all"] });
-
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  // Fetch compensation data when selected employees change
-  const fetchCompensationData = useCallback(async (employeeIds: string[]) => {
-    if (employeeIds.length === 0) {
-      setCompensationData(new Map());
-      return;
-    }
-
+  const fetchCompensationData = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) { setCompensationData(new Map()); return; }
     setLoadingCompensation(true);
     try {
       const response = await fetch("/api/bulk-actions/compensation/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeIds }),
+        body: JSON.stringify({ employeeIds: ids }),
       });
-
       if (response.ok) {
         const data: EmployeeCompensation[] = await response.json();
-        const dataMap = new Map(data.map((emp) => [emp.id, emp]));
-        setCompensationData(dataMap);
+        setCompensationData(new Map(data.map((emp) => [emp.id, emp])));
       }
     } catch (error) {
       console.error("Failed to fetch compensation data:", error);
@@ -480,224 +314,66 @@ export function CompensationBulkActionDialog({
     }
   }, []);
 
-  const filteredEmployees = useMemo(() => {
-    const query = filters.query.trim().toLowerCase();
-    return allEmployees.filter((employee) => {
-      if (filters.status === "active" && !employee.isActive) return false;
-      if (filters.status === "inactive" && employee.isActive) return false;
-      if (!filters.departments.includes("all")) {
-        if (!employee.departmentId) return false;
-        if (!filters.departments.includes(employee.departmentId)) return false;
-      }
-      if (!filters.jobRoles.includes("all")) {
-        if (!employee.jobRoleId) return false;
-        if (!filters.jobRoles.includes(employee.jobRoleId)) return false;
-      }
-      if (query.length > 0) {
-        const haystack = `${employee.name} ${employee.email}`.toLowerCase().trim();
-        if (!haystack.includes(query)) return false;
-      }
-      return true;
-    });
-  }, [allEmployees, filters]);
-
-  // Prefetch current compensation for all filtered employees so current values are visible
   useEffect(() => {
     if (!open) return;
-    if (filteredEmployees.length === 0) {
-      setCompensationData(new Map());
-      return;
-    }
-    fetchCompensationData(filteredEmployees.map((e) => e.id));
-  }, [open, filteredEmployees, fetchCompensationData]);
+    const visibleIds = allEmployees.filter(e => e.isActive).map(e => e.id);
+    fetchCompensationData(visibleIds);
+  }, [open, allEmployees, fetchCompensationData]);
 
-  const allFilteredSelected = useMemo(
-    () =>
-      filteredEmployees.length > 0 &&
-      filteredEmployees.every((employee) => selectedIds.has(employee.id)),
-    [filteredEmployees, selectedIds],
+  const calculateNewCompensation = useCallback(
+    (comp: EmployeeCompensation | undefined) => {
+      if (!comp || !amountIsValid) return { newSalary: null, newHourly: null };
+      let newSalary: number | null = null;
+      let newHourly: number | null = null;
+      if (comp.salaryAmount !== null) {
+        newSalary = mode === "percent" ? comp.salaryAmount * (1 + parsedAmount / 100) : comp.salaryAmount + parsedAmount;
+        newHourly = newSalary / 2080;
+      } else if (comp.hourlyRate !== null) {
+        newHourly = mode === "percent" ? comp.hourlyRate * (1 + parsedAmount / 100) : comp.hourlyRate + parsedAmount;
+        newSalary = newHourly * 2080;
+      }
+      return { newSalary, newHourly };
+    },
+    [mode, parsedAmount, amountIsValid]
   );
 
-  const someFilteredSelected = useMemo(
-    () => filteredEmployees.some((employee) => selectedIds.has(employee.id)),
-    [filteredEmployees, selectedIds],
-  );
-
-  const selectionState = allFilteredSelected
-    ? true
-    : someFilteredSelected
-    ? "indeterminate"
-    : false;
-
-  const toggleSelectAllFiltered = useCallback(() => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allFilteredSelected) {
-        filteredEmployees.forEach((employee) => next.delete(employee.id));
-      } else {
-        filteredEmployees.forEach((employee) => next.add(employee.id));
-      }
-      return next;
-    });
-  }, [allFilteredSelected, filteredEmployees]);
-
-  const toggleEmployeeSelection = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectedSummaries: SelectedEmployeeSummary[] = useMemo(
-    () =>
-      allEmployees
-        .filter((employee) => selectedIds.has(employee.id))
-        .map((employee) => ({ id: employee.id, name: employee.name, email: employee.email })),
-    [allEmployees, selectedIds],
-  );
-
-  const employeeIds = useMemo(() => selectedSummaries.map((e) => e.id), [selectedSummaries]);
-
-  // Fetch compensation data when selection changes
-  useEffect(() => {
-    if (open && employeeIds.length > 0) {
-      fetchCompensationData(employeeIds);
-    }
-  }, [open, employeeIds, fetchCompensationData]);
-
-  // Calculate new salary and hourly rate together
-  // Returns { newSalary, newHourly } where hourly is calculated from salary
-  const calculateNewCompensation = useCallback((comp: EmployeeCompensation | undefined): { newSalary: number | null; newHourly: number | null } => {
-    if (!comp || !amountIsValid) {
-      return { newSalary: null, newHourly: null };
-    }
-    
-    let newSalary: number | null = null;
-    let newHourly: number | null = null;
-
-    // If employee has a salary, adjust it and calculate hourly from it
-    if (comp.salaryAmount !== null) {
-      if (mode === "percent") {
-        newSalary = comp.salaryAmount * (1 + parsedAmount / 100);
-      } else {
-        newSalary = comp.salaryAmount + parsedAmount;
-      }
-      // Calculate hourly from annual salary (2080 working hours per year)
-      newHourly = newSalary / 2080;
-    } 
-    // If employee only has hourly rate, adjust it and calculate salary from it
-    else if (comp.hourlyRate !== null) {
-      if (mode === "percent") {
-        newHourly = comp.hourlyRate * (1 + parsedAmount / 100);
-      } else {
-        newHourly = comp.hourlyRate + parsedAmount;
-      }
-      // Calculate annual salary from hourly (2080 working hours per year)
-      newSalary = newHourly * 2080;
-    }
-
-    return { newSalary, newHourly };
-  }, [mode, parsedAmount, amountIsValid]);
-
-  // Calculate total cost impact (unified - no double counting)
-  const totalCostImpact = useMemo(() => {
-    let totalImpact = 0;
-    let affectedEmployees = 0;
-
-    employeeIds.forEach((id) => {
-      const comp = compensationData.get(id);
-      if (!comp) return;
-
-      const { newSalary, newHourly } = calculateNewCompensation(comp);
-      
-      // Use salary-based calculation if available, otherwise hourly
-      if (newSalary !== null && comp.salaryAmount !== null) {
-        const impact = newSalary - comp.salaryAmount;
-        totalImpact += impact;
-        if (impact !== 0) affectedEmployees++;
-      } else if (newHourly !== null && comp.hourlyRate !== null) {
-        // Convert hourly impact to annual
-        const impact = (newHourly - comp.hourlyRate) * 2080;
-        totalImpact += impact;
-        if (impact !== 0) affectedEmployees++;
-      }
-    });
-
-    return { totalImpact, affectedEmployees };
-  }, [employeeIds, compensationData, calculateNewCompensation]);
-
-  // Calculate total payroll (old and new) - unified calculation
   const payrollTotals = useMemo(() => {
     let oldTotal = 0;
     let newTotal = 0;
-    let employeesWithSalary = 0;
-    let employeesWithHourly = 0;
-
     employeeIds.forEach((id) => {
       const comp = compensationData.get(id);
       if (!comp) return;
-
       const { newSalary, newHourly } = calculateNewCompensation(comp);
-
-      // If employee has salary, use that for calculations
       if (comp.salaryAmount !== null) {
         oldTotal += comp.salaryAmount;
         newTotal += newSalary ?? comp.salaryAmount;
-        employeesWithSalary++;
-      } 
-      // Otherwise use hourly converted to annual
-      else if (comp.hourlyRate !== null) {
+      } else if (comp.hourlyRate !== null) {
         const oldAnnual = comp.hourlyRate * 2080;
         const newAnnual = newHourly ? newHourly * 2080 : oldAnnual;
         oldTotal += oldAnnual;
         newTotal += newAnnual;
-        employeesWithHourly++;
       }
     });
-
-    return {
-      oldTotal,
-      newTotal,
-      difference: newTotal - oldTotal,
-      employeesWithSalary,
-      employeesWithHourly,
-      totalEmployees: employeesWithSalary + employeesWithHourly,
-    };
+    return { oldTotal, newTotal, difference: newTotal - oldTotal };
   }, [employeeIds, compensationData, calculateNewCompensation]);
 
-  // Export to CSV
-  const exportToCSV = useCallback(() => {
-    const rows = [
-      ["Name", "Email", "Current Annual Salary", "New Annual Salary", "Current Hourly Rate", "New Hourly Rate", "Annual Change"],
-    ];
+  const canSubmit = employeeIds.length > 0 && amountIsValid && reason.trim().length > 3 && !submitting;
 
+  const formatCurrency = (value: number | null) => {
+    if (value === null) return "—";
+    return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+  };
+
+  const exportToCSV = useCallback(() => {
+    const rows = [["Name", "Email", "Current Salary", "New Salary", "Change"]];
     employeeIds.forEach((id) => {
       const comp = compensationData.get(id);
       if (!comp) return;
-
-      const { newSalary, newHourly } = calculateNewCompensation(comp);
-      
+      const { newSalary } = calculateNewCompensation(comp);
       const currentSalary = comp.salaryAmount ?? 0;
-      const currentHourly = comp.hourlyRate ?? 0;
       const finalNewSalary = newSalary ?? currentSalary;
-      const finalNewHourly = newHourly ?? currentHourly;
-
-      rows.push([
-        comp.name,
-        comp.email,
-        currentSalary.toFixed(2),
-        finalNewSalary.toFixed(2),
-        currentHourly.toFixed(2),
-        finalNewHourly.toFixed(2),
-        (finalNewSalary - currentSalary).toFixed(2),
-      ]);
+      rows.push([comp.name, comp.email, currentSalary.toFixed(2), finalNewSalary.toFixed(2), (finalNewSalary - currentSalary).toFixed(2)]);
     });
-
     const csvContent = rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -706,57 +382,26 @@ export function CompensationBulkActionDialog({
     link.download = `compensation-bulk-action-${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    toast.success("CSV exported successfully");
+    toast.success("CSV exported");
   }, [employeeIds, compensationData, calculateNewCompensation]);
 
-  const canSubmit =
-    employeeIds.length > 0 &&
-    amountIsValid &&
-    reason.trim().length > 3 &&
-    !submitting;
-
-  const employeePreview = useMemo(() => {
-    const preview = selectedSummaries.slice(0, 3).map((emp) => emp.name || emp.email);
-    const remaining = employeeIds.length - preview.length;
-    if (remaining > 0) {
-      preview.push(`+${remaining} more`);
-    }
-    return preview.join(", ");
-  }, [selectedSummaries, employeeIds.length]);
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
     if (!canSubmit) return;
-
     setSubmitting(true);
     try {
       const res = await fetch("/api/bulk-actions/compensation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeIds,
-          mode,
-          amount: parsedAmount,
-          reason,
-        }),
+        body: JSON.stringify({ employeeIds, mode, amount: parsedAmount, reason }),
       });
-
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
         throw new Error(payload?.error || "Failed to apply compensation changes");
       }
-
       const payload = (await res.json()) as BulkActionResult;
-      toast.success("Compensation updated", {
-        description: `${payload.processed - payload.failures.length} updated${
-          payload.failures.length ? `, ${payload.failures.length} failed` : ""
-        }`,
-      });
+      toast.success("Compensation updated", { description: `${payload.processed - payload.failures.length} updated` });
       onCompleted?.(payload);
-      setAmount("");
-      setReason("");
-      setSelectedIds(new Set());
-      setCompensationData(new Map());
+      resetForm();
       onOpenChange(false);
     } catch (error: any) {
       toast.error(error?.message || "Unable to update compensation");
@@ -765,334 +410,132 @@ export function CompensationBulkActionDialog({
     }
   };
 
-  const formatCurrency = (value: number | null) => {
-    if (value === null) return "—";
-    return new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: "GBP",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+  const resetForm = () => {
+    setMode("percent");
+    setAmount("");
+    setReason("");
+    setSelectedIds(new Set());
+    setCompensationData(new Map());
   };
 
+  useEffect(() => { if (!open) resetForm(); }, [open]);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Adjust compensation" className="max-w-7xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl">Adjust compensation</DialogTitle>
-          <DialogDescription className="text-base">
-            {employeeIds.length === 0
-              ? "Select employees below to preview compensation changes"
-              : `${employeeIds.length} employee${employeeIds.length !== 1 ? "s" : ""} selected. ${employeePreview}`}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Filters */}
-          <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Search</label>
-                <Input
-                  placeholder="Search by name or email"
-                  value={filters.query}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Employment status</label>
-                <Select
-                  value={filters.status}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, status: value as typeof prev.status }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active employees</SelectItem>
-                    <SelectItem value="inactive">Inactive employees</SelectItem>
-                    <SelectItem value="all">All employees</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Departments</label>
-                <MultiSelect
-                  options={departments}
-                  value={filters.departments}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, departments: value }))}
-                  placeholder="Filter departments"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Job roles</label>
-                <MultiSelect
-                  options={jobRoles}
-                  value={filters.jobRoles}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, jobRoles: value }))}
-                  placeholder="Filter job roles"
-                />
+    <BulkActionDialogWrapper
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Adjust Compensation"
+      description="Apply salary or hourly rate adjustments"
+      icon={<Coins className="h-5 w-5" />}
+      iconGradient="bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500"
+      selectedCount={selectedIds.size}
+      size="full"
+      footer={
+        <div className="flex items-center justify-between">
+          <Button type="button" variant="outline" onClick={exportToCSV} disabled={employeeIds.length === 0 || loadingCompensation} className="rounded-xl">
+            <ArrowDownToLine className="h-4 w-4 mr-2" />Export CSV
+          </Button>
+          <div className="flex items-center gap-3">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting} className="rounded-xl">Cancel</Button>
+            <Button type="button" onClick={handleSubmit} disabled={!canSubmit} className="rounded-xl font-semibold text-white shadow-lg bg-gradient-to-r from-sky-500 to-blue-600">
+              Apply to {employeeIds.length} employee{employeeIds.length !== 1 ? "s" : ""}
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <div className="space-y-6">
+        <EmployeeSelector
+          employees={allEmployees}
+          departments={departments}
+          jobRoles={jobRoles}
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          maxHeight="240px"
+          extraColumnHeaders={
+            <>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">Current</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">New</th>
+            </>
+          }
+          renderExtraColumns={(employee) => {
+            const comp = compensationData.get(employee.id);
+            const { newSalary } = calculateNewCompensation(comp);
+            const currentSalary = comp?.salaryAmount ?? null;
+            const hasChange = newSalary !== null && currentSalary !== null && newSalary !== currentSalary;
+            return (
+              <>
+                <td className="px-4 py-3 text-sm">{loadingCompensation ? <span className="text-muted-foreground">Loading...</span> : <span className="font-medium">{formatCurrency(currentSalary)}</span>}</td>
+                <td className="px-4 py-3 text-sm">{hasChange ? <span className={cn("font-semibold", newSalary! > currentSalary! ? "text-sky-600" : "text-rose-600")}>{formatCurrency(newSalary)}</span> : <span className="text-muted-foreground">—</span>}</td>
+              </>
+            );
+          }}
+        />
+
+        <div className="space-y-5 p-5 rounded-2xl bg-gradient-to-br from-sky-50/50 to-blue-50/30 dark:from-sky-900/10 dark:to-blue-900/5 border border-sky-200/30">
+          <div className="flex items-center gap-2 text-sky-700 dark:text-sky-400">
+            <TrendingUp className="h-4 w-4" />
+            <h3 className="font-semibold">Adjustment Configuration</h3>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2"><DollarSign className="h-4 w-4 text-sky-500" />Adjustment Type</Label>
+              <div className="flex rounded-xl overflow-hidden border border-sky-200/50">
+                <button type="button" onClick={() => setMode("percent")} className={cn("flex-1 px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors", mode === "percent" ? "bg-blue-500 text-white" : "bg-white/80 dark:bg-white/5 text-foreground hover:bg-sky-50")}>
+                  <Percent className="h-4 w-4" />Percentage
+                </button>
+                <button type="button" onClick={() => setMode("flat")} className={cn("flex-1 px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-colors", mode === "flat" ? "bg-blue-500 text-white" : "bg-white/80 dark:bg-white/5 text-foreground hover:bg-sky-50")}>
+                  <DollarSign className="h-4 w-4" />Fixed Amount
+                </button>
               </div>
             </div>
 
-            {/* Employee Selection Table - Collapsible */}
-            <Collapsible.Root open={employeeListExpanded} onOpenChange={setEmployeeListExpanded}>
-              <div className="flex items-center justify-between mb-3">
-                <Collapsible.Trigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="flex items-center gap-2 text-base font-semibold hover:text-primary"
-                  >
-                    {employeeListExpanded ? (
-                      <ChevronDown className="h-5 w-5" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5" />
-                    )}
-                    <span>
-                      Employee Selection
-                      {selectedIds.size > 0 && (
-                        <span className="ml-2 text-sm font-normal text-muted-foreground">
-                          ({selectedIds.size} selected)
-                        </span>
-                      )}
-                    </span>
-                  </Button>
-                </Collapsible.Trigger>
-              </div>
-
-              <Collapsible.Content>
-                <div className="overflow-hidden rounded-xl border border-glass shadow-sm">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-border">
-                      <thead className="bg-gradient-to-r from-muted/60 to-muted/40">
-                        <tr>
-                          <th className="px-4 py-3 text-left">
-                            <Checkbox
-                              checked={selectionState}
-                              onCheckedChange={() => toggleSelectAllFiltered()}
-                              aria-label="Select all filtered employees"
-                            />
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Employee
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Current Annual
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            New Annual
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Current Hourly
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            New Hourly
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/60 bg-background">
-                        {filteredEmployees.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                              No employees match your filters yet.
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredEmployees.map((employee) => {
-                            const isSelected = selectedIds.has(employee.id);
-                            const comp = compensationData.get(employee.id);
-                            const { newSalary, newHourly } = calculateNewCompensation(comp);
-
-                            return (
-                              <tr 
-                                key={employee.id} 
-                                className={`${isSelected ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/20"} transition-colors`}
-                              >
-                                <td className="px-4 py-3">
-                                  <Checkbox
-                                    checked={isSelected}
-                                    onCheckedChange={() => toggleEmployeeSelection(employee.id)}
-                                    aria-label={`Select ${employee.name}`}
-                                  />
-                                </td>
-                                <td className="px-4 py-3">
-                                  <div className="font-medium text-foreground">{employee.name}</div>
-                                  <div className="text-xs text-muted-foreground">{employee.email}</div>
-                                </td>
-                                <td className="px-4 py-3 text-sm">
-                                  {loadingCompensation ? (
-                                    <span className="text-muted-foreground">Loading...</span>
-                                  ) : (
-                                    <span className="font-medium">{formatCurrency(comp?.salaryAmount ?? null)}</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3 text-sm">
-                                  {loadingCompensation ? (
-                                    <span className="text-muted-foreground">—</span>
-                                  ) : comp && newSalary !== null && comp.salaryAmount !== null && newSalary !== comp.salaryAmount ? (
-                                    <span className={`font-semibold ${newSalary > comp.salaryAmount ? "text-green-600" : "text-red-600"}`}>
-                                      {formatCurrency(newSalary)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3 text-sm">
-                                  {loadingCompensation ? (
-                                    <span className="text-muted-foreground">Loading...</span>
-                                  ) : (
-                                    <span className="font-medium">{formatCurrency(comp?.hourlyRate ?? null)}</span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3 text-sm">
-                                  {loadingCompensation ? (
-                                    <span className="text-muted-foreground">—</span>
-                                  ) : comp && newHourly !== null && comp.hourlyRate !== null && newHourly !== comp.hourlyRate ? (
-                                    <span className={`font-semibold ${newHourly > comp.hourlyRate ? "text-green-600" : "text-red-600"}`}>
-                                      {formatCurrency(newHourly)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </Collapsible.Content>
-            </Collapsible.Root>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Amount {mode === "percent" ? "(%)" : "(£)"}</Label>
+              <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={mode === "percent" ? "e.g. 5" : "e.g. 1500"} type="number" step="0.01" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" />
+              <p className="text-xs text-muted-foreground">{mode === "percent" ? "Use negative values to decrease" : "Enter amount to add or subtract"}</p>
+            </div>
           </div>
 
-          {/* Adjustment Configuration */}
-          <div className="space-y-4 rounded-xl border border-glass bg-gradient-to-br from-muted/20 to-muted/5 p-6">
-            <h3 className="text-lg font-semibold text-foreground">Adjustment Configuration</h3>
-            
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Adjustment type</label>
-                <Select value={mode} onValueChange={(value) => setMode(value as "percent" | "flat")}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select adjustment type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percent">Percentage (%)</SelectItem>
-                    <SelectItem value="flat">Fixed amount (£)</SelectItem>
-                  </SelectContent>
-                </Select>
+          {employeeIds.length > 0 && amountIsValid && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="grid gap-4 sm:grid-cols-3 p-4 rounded-xl bg-white/60 dark:bg-white/5 border border-sky-200/30">
+              <div className="text-center p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Current Payroll</p>
+                <p className="text-2xl font-bold text-foreground">{formatCurrency(payrollTotals.oldTotal)}</p>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Amount</label>
-                <Input
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                  placeholder={mode === "percent" ? "e.g. 5" : "e.g. 1500"}
-                  type="number"
-                  step="0.01"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  {mode === "percent"
-                    ? "Use negative values to decrease compensation."
-                    : "Enter the currency amount to add or subtract."}
+              <div className="text-center p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">New Payroll</p>
+                <p className="text-2xl font-bold text-foreground">{formatCurrency(payrollTotals.newTotal)}</p>
+              </div>
+              <div className="text-center p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Total Impact</p>
+                <p className={cn("text-2xl font-bold flex items-center justify-center gap-1", payrollTotals.difference >= 0 ? "text-sky-600" : "text-rose-600")}>
+                  {payrollTotals.difference >= 0 ? <ArrowUpRight className="h-5 w-5" /> : <ArrowDownRight className="h-5 w-5" />}
+                  {formatCurrency(Math.abs(payrollTotals.difference))}
                 </p>
               </div>
-            </div>
-
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
-              <p className="text-sm text-blue-900">
-                <strong>Note:</strong> Adjustments will be applied to both annual salary and hourly rate. 
-                Hourly rates are automatically calculated from annual salaries (annual ÷ 2,080 hours).
-              </p>
-            </div>
-          </div>
-
-          {/* Unified Payroll Summary */}
-          {employeeIds.length > 0 && payrollTotals.totalEmployees > 0 && (
-            <div className="rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-primary/20 p-6 shadow-md">
-              <h3 className="mb-4 text-lg font-semibold text-foreground">Annual Payroll Impact</h3>
-              <div className="grid gap-6 sm:grid-cols-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Current Total Payroll</p>
-                  <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.oldTotal)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {payrollTotals.employeesWithSalary > 0 && `${payrollTotals.employeesWithSalary} salaried`}
-                    {payrollTotals.employeesWithSalary > 0 && payrollTotals.employeesWithHourly > 0 && ", "}
-                    {payrollTotals.employeesWithHourly > 0 && `${payrollTotals.employeesWithHourly} hourly`}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">New Total Payroll</p>
-                  <p className="text-3xl font-bold text-foreground">{formatCurrency(payrollTotals.newTotal)}</p>
-                  <p className="text-xs text-muted-foreground">After adjustment</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-muted-foreground">Total Cost Impact</p>
-                  <p className={`text-3xl font-bold ${payrollTotals.difference >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {payrollTotals.difference >= 0 ? "+" : ""}
-                    {formatCurrency(payrollTotals.difference)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {payrollTotals.difference !== 0 && payrollTotals.oldTotal > 0
-                      ? `${((payrollTotals.difference / payrollTotals.oldTotal) * 100).toFixed(2)}% change`
-                      : "No change"}
-                  </p>
-                </div>
-              </div>
-            </div>
+            </motion.div>
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Reason for adjustment</label>
-            <Textarea
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="Explain the rationale for this compensation adjustment (e.g., annual review, promotion, market adjustment)"
-              rows={4}
-              required
-              className="resize-none"
-            />
+            <Label className="text-sm font-medium flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" />Reason for Adjustment</Label>
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Annual review, promotion, market adjustment" rows={3} className="rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50 resize-none" />
           </div>
-
-          <DialogFooter className="gap-2 sm:gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={exportToCSV}
-              disabled={employeeIds.length === 0 || loadingCompensation}
-              className="gap-2"
-            >
-              <ArrowDownToLine className="h-4 w-4" />
-              Export CSV
-            </Button>
-            <div className="flex-1" />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!canSubmit} loading={submitting}>
-              Apply to {employeeIds.length} employee{employeeIds.length !== 1 ? "s" : ""}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </BulkActionDialogWrapper>
   );
 }
+
+// ============================================================================
+// TRAINING BULK ACTION DIALOG
+// ============================================================================
 
 interface TrainingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  allEmployees: MessagingEmployee[];
+  allEmployees: EmployeeRow[];
   departments: Option[];
   jobRoles: Option[];
   courses: Option[];
@@ -1100,371 +543,84 @@ interface TrainingDialogProps {
   onCompleted?: (result: BulkActionResult) => void;
 }
 
-export function TrainingBulkActionDialog({
-  open,
-  onOpenChange,
-  allEmployees,
-  departments,
-  jobRoles,
-  courses,
-  providers,
-  onCompleted,
-}: TrainingDialogProps) {
+export function TrainingBulkActionDialog({ open, onOpenChange, allEmployees, departments, jobRoles, courses, providers, onCompleted }: TrainingDialogProps) {
   const [courseId, setCourseId] = useState<string>("");
   const [providerId, setProviderId] = useState<string>("");
   const [dateCompleted, setDateCompleted] = useState<string>("");
   const [expiryDate, setExpiryDate] = useState<string>("");
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
-
-  const [filters, setFilters] = useState<{
-    query: string;
-    status: "all" | "active" | "inactive";
-    departments: string[];
-    jobRoles: string[];
-  }>({ query: "", status: "active", departments: ["all"], jobRoles: ["all"] });
-
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const filteredEmployees = useMemo(() => {
-    const query = filters.query.trim().toLowerCase();
-    return allEmployees.filter((employee) => {
-      if (filters.status === "active" && !employee.isActive) return false;
-      if (filters.status === "inactive" && employee.isActive) return false;
-      if (!filters.departments.includes("all")) {
-        if (!employee.departmentId) return false;
-        if (!filters.departments.includes(employee.departmentId)) return false;
-      }
-      if (!filters.jobRoles.includes("all")) {
-        if (!employee.jobRoleId) return false;
-        if (!filters.jobRoles.includes(employee.jobRoleId)) return false;
-      }
-      if (query.length > 0) {
-        const haystack = `${employee.name} ${employee.email}`.toLowerCase().trim();
-        if (!haystack.includes(query)) return false;
-      }
-      return true;
-    });
-  }, [allEmployees, filters]);
+  const employeeIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
+  const canSubmit = employeeIds.length > 0 && courseId !== "" && providerId !== "" && dateCompleted !== "" && reason.trim().length > 3 && !submitting;
 
-  const allFilteredSelected = useMemo(
-    () =>
-      filteredEmployees.length > 0 &&
-      filteredEmployees.every((employee) => selectedIds.has(employee.id)),
-    [filteredEmployees, selectedIds],
-  );
-
-  const someFilteredSelected = useMemo(
-    () => filteredEmployees.some((employee) => selectedIds.has(employee.id)),
-    [filteredEmployees, selectedIds],
-  );
-
-  const selectionState = allFilteredSelected
-    ? true
-    : someFilteredSelected
-    ? "indeterminate"
-    : false;
-
-  const toggleSelectAllFiltered = useCallback(() => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allFilteredSelected) {
-        filteredEmployees.forEach((employee) => next.delete(employee.id));
-      } else {
-        filteredEmployees.forEach((employee) => next.add(employee.id));
-      }
-      return next;
-    });
-  }, [allFilteredSelected, filteredEmployees]);
-
-  const toggleEmployeeSelection = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectedSummaries: SelectedEmployeeSummary[] = useMemo(
-    () =>
-      allEmployees
-        .filter((employee) => selectedIds.has(employee.id))
-        .map((employee) => ({ id: employee.id, name: employee.name, email: employee.email })),
-    [allEmployees, selectedIds],
-  );
-
-  const employeeIds = useMemo(() => selectedSummaries.map((e) => e.id), [selectedSummaries]);
-
-  const canSubmit =
-    employeeIds.length > 0 &&
-    courseId !== "" &&
-    providerId !== "" &&
-    dateCompleted !== "" &&
-    reason.trim().length > 3 &&
-    !submitting;
-
-  const employeePreview = useMemo(() => {
-    const preview = selectedSummaries.slice(0, 3).map((emp) => emp.name || emp.email);
-    const remaining = employeeIds.length - preview.length;
-    if (remaining > 0) {
-      preview.push(`+${remaining} more`);
-    }
-    return preview.join(", ");
-  }, [selectedSummaries, employeeIds.length]);
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
     if (!canSubmit) return;
-
     setSubmitting(true);
     try {
-      const res = await fetch("/api/bulk-actions/training", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeIds,
-          courseId,
-          providerId,
-          dateCompleted,
-          expiryDate: expiryDate || undefined,
-          reason,
-        }),
-      });
-
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.error || "Failed to add training records");
-      }
-
+      const res = await fetch("/api/bulk-actions/training", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeIds, courseId, providerId, dateCompleted, expiryDate: expiryDate || undefined, reason }) });
+      if (!res.ok) { const payload = await res.json().catch(() => ({})); throw new Error(payload?.error || "Failed"); }
       const payload = (await res.json()) as BulkActionResult;
-      toast.success("Training records created", {
-        description: `${payload.processed - payload.failures.length} added${
-          payload.failures.length ? `, ${payload.failures.length} failed` : ""
-        }`,
-      });
+      toast.success("Training records created", { description: `${payload.processed - payload.failures.length} added` });
       onCompleted?.(payload);
-      setCourseId("");
-      setProviderId("");
-      setDateCompleted("");
-      setExpiryDate("");
-      setReason("");
-      setSelectedIds(new Set());
+      resetForm();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(error?.message || "Unable to add training records");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (error: any) { toast.error(error?.message || "Unable to add training"); } finally { setSubmitting(false); }
   };
 
+  const resetForm = () => { setCourseId(""); setProviderId(""); setDateCompleted(""); setExpiryDate(""); setReason(""); setSelectedIds(new Set()); };
+  useEffect(() => { if (!open) resetForm(); }, [open]);
+
+  const selectedCourseLabel = courses.find(c => c.value === courseId)?.label;
+  const selectedProviderLabel = providers.find(p => p.value === providerId)?.label;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Add training records">
-        <DialogHeader>
-          <DialogTitle>Add training records</DialogTitle>
-          <DialogDescription>
-            {employeeIds.length} employees selected. {employeePreview}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-3">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Search</label>
-                <Input
-                  placeholder="Search by name or email"
-                  value={filters.query}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Employment status</label>
-                <Select
-                  value={filters.status}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, status: value as typeof prev.status }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active employees</SelectItem>
-                    <SelectItem value="inactive">Inactive employees</SelectItem>
-                    <SelectItem value="all">All employees</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-glass">
-              <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted/40">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      <Checkbox
-                        checked={selectionState}
-                        onCheckedChange={() => toggleSelectAllFiltered()}
-                        aria-label="Select all filtered employees"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Employee
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="max-h-64 divide-y divide-border/60 overflow-y-auto bg-background">
-                  {filteredEmployees.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-6 text-center text-sm">
-                        No employees match your filters yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredEmployees.map((employee) => {
-                      const isSelected = selectedIds.has(employee.id);
-                      return (
-                        <tr key={employee.id} className={isSelected ? "bg-primary/5" : undefined}>
-                          <td className="px-4 py-3">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleEmployeeSelection(employee.id)}
-                              aria-label={`Select ${employee.name}`}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium text-foreground">
-                            <div>{employee.name}</div>
-                            <div className="text-xs text-muted-foreground">{employee.email}</div>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {employee.isActive ? "Active" : "Inactive"}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Training course
-            </label>
-            <Select value={courseId} onValueChange={setCourseId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a course" />
-              </SelectTrigger>
-              <SelectContent enableSearch>
-                {courses.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Training provider
-            </label>
-            <Select value={providerId} onValueChange={setProviderId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a provider" />
-              </SelectTrigger>
-              <SelectContent enableSearch>
-                {providers.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
+    <BulkActionDialogWrapper open={open} onOpenChange={onOpenChange} title="Assign Training" description="Create training records" icon={<GraduationCap className="h-5 w-5" />} iconGradient="bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500" selectedCount={selectedIds.size} size="xl"
+      footer={<ActionButtons onCancel={() => onOpenChange(false)} onSubmit={handleSubmit} submitLabel={`Add records for ${employeeIds.length}`} submitDisabled={!canSubmit} loading={submitting} submitGradient="from-sky-500 to-blue-600" />}
+    >
+      <div className="space-y-6">
+        <EmployeeSelector employees={allEmployees} departments={departments} jobRoles={jobRoles} selectedIds={selectedIds} onSelectionChange={setSelectedIds} />
+        <div className="space-y-5 p-5 rounded-2xl bg-gradient-to-br from-sky-50/50 to-blue-50/30 dark:from-sky-900/10 dark:to-blue-900/5 border border-sky-200/30">
+          <div className="flex items-center gap-2 text-sky-700 dark:text-sky-400"><GraduationCap className="h-4 w-4" /><h3 className="font-semibold">Training Details</h3></div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Date completed
-              </label>
-              <Input
-                type="date"
-                value={dateCompleted}
-                onChange={(event) => setDateCompleted(event.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Expiry date (optional)
-              </label>
-              <Input
-                type="date"
-                value={expiryDate}
-                onChange={(event) => setExpiryDate(event.target.value)}
-              />
-            </div>
+            <div className="space-y-2"><Label className="text-sm font-medium">Training Course</Label><Select value={courseId} onValueChange={setCourseId}><SelectTrigger className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50"><SelectValue placeholder="Select a course" /></SelectTrigger><SelectContent>{courses.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label className="text-sm font-medium">Training Provider</Label><Select value={providerId} onValueChange={setProviderId}><SelectTrigger className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50"><SelectValue placeholder="Select a provider" /></SelectTrigger><SelectContent>{providers.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><Calendar className="h-4 w-4 text-sky-500" />Date Completed</Label><Input type="date" value={dateCompleted} onChange={(e) => setDateCompleted(e.target.value)} className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
+            <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><Clock className="h-4 w-4 text-blue-500" />Expiry Date (optional)</Label><Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Reason for assignment
-            </label>
-            <Textarea
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="Explain why this training is being assigned"
-              rows={4}
-              required
-            />
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!canSubmit} loading={submitting}>
-              Add records
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          {courseId && providerId && dateCompleted && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl bg-white/60 dark:bg-white/5 border border-sky-200/30">
+              <p className="text-sm font-medium text-foreground mb-2">Training record summary:</p>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-sky-500" />Course: <span className="font-medium text-foreground">{selectedCourseLabel}</span></li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-blue-500" />Provider: <span className="font-medium text-foreground">{selectedProviderLabel}</span></li>
+                {expiryDate && <li className="flex items-center gap-2"><AlertCircle className="h-4 w-4 text-amber-500" />Expires: <span className="font-medium text-foreground">{expiryDate}</span></li>}
+              </ul>
+            </motion.div>
+          )}
+          <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" />Reason</Label><Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why is this training being assigned" rows={3} className="rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50 resize-none" /></div>
+        </div>
+      </div>
+    </BulkActionDialogWrapper>
   );
 }
+
+// ============================================================================
+// LEAVE BULK ACTION DIALOG
+// ============================================================================
 
 interface LeaveDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  allEmployees: MessagingEmployee[];
+  allEmployees: EmployeeRow[];
   departments: Option[];
   jobRoles: Option[];
   eventCategories: Option[];
   onCompleted?: (result: BulkActionResult) => void;
 }
 
-export function LeaveBulkActionDialog({
-  open,
-  onOpenChange,
-  allEmployees,
-  departments,
-  jobRoles,
-  eventCategories,
-  onCompleted,
-}: LeaveDialogProps) {
+export function LeaveBulkActionDialog({ open, onOpenChange, allEmployees, departments, jobRoles, eventCategories, onCompleted }: LeaveDialogProps) {
   const [eventCategoryId, setEventCategoryId] = useState<string>("");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -1472,391 +628,76 @@ export function LeaveBulkActionDialog({
   const [reason, setReason] = useState<string>("");
   const [forceApprove, setForceApprove] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState(false);
-
-  const [filters, setFilters] = useState<{
-    query: string;
-    status: "all" | "active" | "inactive";
-    departments: string[];
-    jobRoles: string[];
-  }>({ query: "", status: "active", departments: ["all"], jobRoles: ["all"] });
-
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const filteredEmployees = useMemo(() => {
-    const query = filters.query.trim().toLowerCase();
-    return allEmployees.filter((employee) => {
-      if (filters.status === "active" && !employee.isActive) return false;
-      if (filters.status === "inactive" && employee.isActive) return false;
-      if (!filters.departments.includes("all")) {
-        if (!employee.departmentId) return false;
-        if (!filters.departments.includes(employee.departmentId)) return false;
-      }
-      if (!filters.jobRoles.includes("all")) {
-        if (!employee.jobRoleId) return false;
-        if (!filters.jobRoles.includes(employee.jobRoleId)) return false;
-      }
-      if (query.length > 0) {
-        const haystack = `${employee.name} ${employee.email}`.toLowerCase().trim();
-        if (!haystack.includes(query)) return false;
-      }
-      return true;
-    });
-  }, [allEmployees, filters]);
+  const employeeIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
+  const canSubmit = employeeIds.length > 0 && eventCategoryId !== "" && startDate !== "" && endDate !== "" && reason.trim().length > 3 && !submitting;
 
-  const allFilteredSelected = useMemo(
-    () =>
-      filteredEmployees.length > 0 &&
-      filteredEmployees.every((employee) => selectedIds.has(employee.id)),
-    [filteredEmployees, selectedIds],
-  );
-
-  const someFilteredSelected = useMemo(
-    () => filteredEmployees.some((employee) => selectedIds.has(employee.id)),
-    [filteredEmployees, selectedIds],
-  );
-
-  const selectionState = allFilteredSelected
-    ? true
-    : someFilteredSelected
-    ? "indeterminate"
-    : false;
-
-  const toggleSelectAllFiltered = useCallback(() => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allFilteredSelected) {
-        filteredEmployees.forEach((employee) => next.delete(employee.id));
-      } else {
-        filteredEmployees.forEach((employee) => next.add(employee.id));
-      }
-      return next;
-    });
-  }, [allFilteredSelected, filteredEmployees]);
-
-  const toggleEmployeeSelection = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectedSummaries: SelectedEmployeeSummary[] = useMemo(
-    () =>
-      allEmployees
-        .filter((employee) => selectedIds.has(employee.id))
-        .map((employee) => ({ id: employee.id, name: employee.name, email: employee.email })),
-    [allEmployees, selectedIds],
-  );
-
-  const employeeIds = useMemo(() => selectedSummaries.map((e) => e.id), [selectedSummaries]);
-
-  const canSubmit =
-    employeeIds.length > 0 &&
-    eventCategoryId !== "" &&
-    startDate !== "" &&
-    endDate !== "" &&
-    reason.trim().length > 3 &&
-    !submitting;
-
-  const employeePreview = useMemo(() => {
-    const preview = selectedSummaries.slice(0, 3).map((emp) => emp.name || emp.email);
-    const remaining = employeeIds.length - preview.length;
-    if (remaining > 0) {
-      preview.push(`+${remaining} more`);
-    }
-    return preview.join(", ");
-  }, [selectedSummaries, employeeIds.length]);
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
     if (!canSubmit) return;
-
     setSubmitting(true);
     try {
-      const res = await fetch("/api/bulk-actions/leave", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeIds,
-          eventCategoryId,
-          startDate,
-          endDate,
-          dayType,
-          reason,
-          forceApprove,
-        }),
-      });
-
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.error || "Failed to book leave");
-      }
-
+      const res = await fetch("/api/bulk-actions/leave", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeIds, eventCategoryId, startDate, endDate, dayType, reason, forceApprove }) });
+      if (!res.ok) { const payload = await res.json().catch(() => ({})); throw new Error(payload?.error || "Failed"); }
       const payload = (await res.json()) as BulkActionResult;
-      toast.success("Leave booked", {
-        description: `${payload.processed - payload.failures.length} created${
-          payload.failures.length ? `, ${payload.failures.length} failed` : ""
-        }`,
-      });
+      toast.success("Leave booked", { description: `${payload.processed - payload.failures.length} created` });
       onCompleted?.(payload);
-      setEventCategoryId("");
-      setStartDate("");
-      setEndDate("");
-      setReason("");
-      setForceApprove(false);
-      setSelectedIds(new Set());
+      resetForm();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(error?.message || "Unable to book leave");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (error: any) { toast.error(error?.message || "Unable to book leave"); } finally { setSubmitting(false); }
   };
 
+  const resetForm = () => { setEventCategoryId(""); setStartDate(""); setEndDate(""); setDayType("FULL_DAY"); setReason(""); setForceApprove(false); setSelectedIds(new Set()); };
+  useEffect(() => { if (!open) resetForm(); }, [open]);
+
+  const selectedCategoryLabel = eventCategories.find(c => c.value === eventCategoryId)?.label;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Book leave">
-        <DialogHeader>
-          <DialogTitle>Book leave in bulk</DialogTitle>
-          <DialogDescription>
-            {employeeIds.length} employees selected. {employeePreview}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-3">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Search</label>
-                <Input
-                  placeholder="Search by name or email"
-                  value={filters.query}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Employment status</label>
-                <Select
-                  value={filters.status}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, status: value as typeof prev.status }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active employees</SelectItem>
-                    <SelectItem value="inactive">Inactive employees</SelectItem>
-                    <SelectItem value="all">All employees</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Departments</label>
-                <MultiSelect
-                  options={departments}
-                  value={filters.departments}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, departments: value }))}
-                  placeholder="Filter departments"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Job roles</label>
-                <MultiSelect
-                  options={jobRoles}
-                  value={filters.jobRoles}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, jobRoles: value }))}
-                  placeholder="Filter job roles"
-                />
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-glass">
-              <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted/40">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      <Checkbox
-                        checked={selectionState}
-                        onCheckedChange={() => toggleSelectAllFiltered()}
-                        aria-label="Select all filtered employees"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Employee
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="max-h-64 divide-y divide-border/60 overflow-y-auto bg-background">
-                  {filteredEmployees.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-6 text-center text-sm">
-                        No employees match your filters yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredEmployees.map((employee) => {
-                      const isSelected = selectedIds.has(employee.id);
-                      return (
-                        <tr key={employee.id} className={isSelected ? "bg-primary/5" : undefined}>
-                          <td className="px-4 py-3">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleEmployeeSelection(employee.id)}
-                              aria-label={`Select ${employee.name}`}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium text-foreground">
-                            <div>{employee.name}</div>
-                            <div className="text-xs text-muted-foreground">{employee.email}</div>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {employee.isActive ? "Active" : "Inactive"}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Leave category
-            </label>
-            <Select value={eventCategoryId} onValueChange={setEventCategoryId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a leave category" />
-              </SelectTrigger>
-              <SelectContent enableSearch>
-                {eventCategories.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
+    <BulkActionDialogWrapper open={open} onOpenChange={onOpenChange} title="Book Leave" description="Book time off for multiple employees" icon={<PlaneTakeoff className="h-5 w-5" />} iconGradient="bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500" selectedCount={selectedIds.size} size="xl"
+      footer={<ActionButtons onCancel={() => onOpenChange(false)} onSubmit={handleSubmit} submitLabel={`Book for ${employeeIds.length}`} submitDisabled={!canSubmit} loading={submitting} submitGradient="from-sky-500 to-blue-600" />}
+    >
+      <div className="space-y-6">
+        <EmployeeSelector employees={allEmployees} departments={departments} jobRoles={jobRoles} selectedIds={selectedIds} onSelectionChange={setSelectedIds} />
+        <div className="space-y-5 p-5 rounded-2xl bg-gradient-to-br from-sky-50/50 to-blue-50/30 dark:from-sky-900/10 dark:to-blue-900/5 border border-sky-200/30">
+          <div className="flex items-center gap-2 text-sky-700 dark:text-sky-400"><Calendar className="h-4 w-4" /><h3 className="font-semibold">Leave Details</h3></div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Start date
-              </label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                End date
-              </label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-                required
-              />
-            </div>
+            <div className="space-y-2 sm:col-span-2"><Label className="text-sm font-medium">Leave Category</Label><Select value={eventCategoryId} onValueChange={setEventCategoryId}><SelectTrigger className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50"><SelectValue placeholder="Select a leave category" /></SelectTrigger><SelectContent>{eventCategories.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><Calendar className="h-4 w-4 text-sky-500" />Start Date</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
+            <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><Calendar className="h-4 w-4 text-blue-500" />End Date</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
+            <div className="space-y-2"><Label className="text-sm font-medium">Day Type</Label><Select value={dayType} onValueChange={setDayType}><SelectTrigger className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="FULL_DAY">Full day</SelectItem><SelectItem value="HALF_DAY_AM">Half day (AM)</SelectItem><SelectItem value="HALF_DAY_PM">Half day (PM)</SelectItem></SelectContent></Select></div>
+            <div className="space-y-2 flex items-end"><label className="flex items-center gap-3 p-3 rounded-xl bg-white/60 dark:bg-white/5 border border-sky-200/30 cursor-pointer hover:bg-sky-50/50 transition-colors w-full"><Switch checked={forceApprove} onCheckedChange={setForceApprove} /><div><span className="text-sm font-medium text-foreground">Auto-approve</span><p className="text-xs text-muted-foreground">Skip approval workflow</p></div></label></div>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Day type
-            </label>
-            <Select value={dayType} onValueChange={setDayType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="FULL_DAY">Full day</SelectItem>
-                <SelectItem value="HALF_DAY_AM">Half day (AM)</SelectItem>
-                <SelectItem value="HALF_DAY_PM">Half day (PM)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Reason for booking
-            </label>
-            <Textarea
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="Provide context for these bookings"
-              rows={4}
-              required
-            />
-          </div>
-
-          <label className="inline-flex items-center gap-3 text-sm">
-            <Checkbox
-              checked={forceApprove}
-              onCheckedChange={(checked) => setForceApprove(!!checked)}
-            />
-            Approve immediately (skip approval workflow)
-          </label>
-
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!canSubmit} loading={submitting}>
-              Book leave
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          {eventCategoryId && startDate && endDate && (
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 rounded-xl bg-white/60 dark:bg-white/5 border border-sky-200/30">
+              <p className="text-sm font-medium text-foreground mb-2">Leave summary:</p>
+              <ul className="space-y-1.5 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-sky-500" />Type: <span className="font-medium text-foreground">{selectedCategoryLabel}</span></li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-blue-500" />Period: <span className="font-medium text-foreground">{startDate} to {endDate}</span></li>
+                {forceApprove && <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-500" /><span className="font-medium text-emerald-600">Will be auto-approved</span></li>}
+              </ul>
+            </motion.div>
+          )}
+          <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" />Reason</Label><Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Provide context for these bookings" rows={3} className="rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50 resize-none" /></div>
+        </div>
+      </div>
+    </BulkActionDialogWrapper>
   );
 }
 
-interface MessagingEmployee {
-  id: string;
-  name: string;
-  email: string;
-  departmentId: string | null;
-  jobRoleId: string | null;
-  isActive: boolean;
-}
+// ============================================================================
+// MESSAGING BULK ACTION DIALOG
+// ============================================================================
 
 interface MessagingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  allEmployees: MessagingEmployee[];
+  allEmployees: EmployeeRow[];
   departments: Option[];
   jobRoles: Option[];
   onCompleted?: (result: BulkActionResult) => void;
 }
 
-export function MessagingBulkActionDialog({
-  open,
-  onOpenChange,
-  allEmployees,
-  departments,
-  jobRoles,
-  onCompleted,
-}: MessagingDialogProps) {
+export function MessagingBulkActionDialog({ open, onOpenChange, allEmployees, departments, jobRoles, onCompleted }: MessagingDialogProps) {
   const [subject, setSubject] = useState<string>("");
   const [previewText, setPreviewText] = useState<string>("");
   const [body, setBody] = useState<string>("");
@@ -1865,375 +706,49 @@ export function MessagingBulkActionDialog({
   const [sendTestTo, setSendTestTo] = useState<string>("");
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
-
-  const [filters, setFilters] = useState<{
-    query: string;
-    status: "all" | "active" | "inactive";
-    departments: string[];
-    jobRoles: string[];
-  }>({ query: "", status: "active", departments: ["all"], jobRoles: ["all"] });
-
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const filteredEmployees = useMemo(() => {
-    const query = filters.query.trim().toLowerCase();
-    return allEmployees.filter((employee) => {
-      if (filters.status === "active" && !employee.isActive) return false;
-      if (filters.status === "inactive" && employee.isActive) return false;
+  const employeeIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
+  const canSubmit = employeeIds.length > 0 && subject.trim().length > 3 && body.trim().length > 5 && reason.trim().length > 3 && !submitting;
 
-      if (!filters.departments.includes("all")) {
-        if (!employee.departmentId) return false;
-        if (!filters.departments.includes(employee.departmentId)) return false;
-      }
-
-      if (!filters.jobRoles.includes("all")) {
-        if (!employee.jobRoleId) return false;
-        if (!filters.jobRoles.includes(employee.jobRoleId)) return false;
-      }
-
-      if (query.length > 0) {
-        const haystack = `${employee.name} ${employee.email}`
-          .toLowerCase()
-          .trim();
-        if (!haystack.includes(query)) return false;
-      }
-
-      return true;
-    });
-  }, [allEmployees, filters]);
-
-  const allFilteredSelected = useMemo(
-    () =>
-      filteredEmployees.length > 0 &&
-      filteredEmployees.every((employee) => selectedIds.has(employee.id)),
-    [filteredEmployees, selectedIds],
-  );
-
-  const someFilteredSelected = useMemo(
-    () => filteredEmployees.some((employee) => selectedIds.has(employee.id)),
-    [filteredEmployees, selectedIds],
-  );
-
-  const selectionState = allFilteredSelected
-    ? true
-    : someFilteredSelected
-    ? "indeterminate"
-    : false;
-
-  const toggleSelectAllFiltered = useCallback(() => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allFilteredSelected) {
-        filteredEmployees.forEach((employee) => next.delete(employee.id));
-      } else {
-        filteredEmployees.forEach((employee) => next.add(employee.id));
-      }
-      return next;
-    });
-  }, [allFilteredSelected, filteredEmployees]);
-
-  const toggleEmployeeSelection = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const selectedSummaries: SelectedEmployeeSummary[] = useMemo(
-    () =>
-      allEmployees
-        .filter((employee) => selectedIds.has(employee.id))
-        .map((employee) => ({ id: employee.id, name: employee.name, email: employee.email })),
-    [allEmployees, selectedIds],
-  );
-
-  const employeeIds = useMemo(() => selectedSummaries.map((e) => e.id), [selectedSummaries]);
-
-  const canSubmit =
-    employeeIds.length > 0 &&
-    subject.trim().length > 3 &&
-    body.trim().length > 5 &&
-    reason.trim().length > 3 &&
-    !submitting;
-
-  const employeePreview = useMemo(() => {
-    const preview = selectedSummaries.slice(0, 3).map((emp) => emp.name || emp.email);
-    const remaining = employeeIds.length - preview.length;
-    if (remaining > 0) {
-      preview.push(`+${remaining} more`);
-    }
-    return preview.join(", ");
-  }, [selectedSummaries, employeeIds.length]);
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async () => {
     if (!canSubmit) return;
-
     setSubmitting(true);
     try {
-      const res = await fetch("/api/bulk-actions/messaging", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          employeeIds,
-          subject,
-          previewText: previewText || undefined,
-          body,
-          ctaLabel: ctaLabel || undefined,
-          ctaUrl: ctaUrl || undefined,
-          sendTestTo: sendTestTo || undefined,
-          reason,
-        }),
-      });
-
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.error || "Failed to send messages");
-      }
-
+      const res = await fetch("/api/bulk-actions/messaging", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeIds, subject, previewText: previewText || undefined, body, ctaLabel: ctaLabel || undefined, ctaUrl: ctaUrl || undefined, sendTestTo: sendTestTo || undefined, reason }) });
+      if (!res.ok) { const payload = await res.json().catch(() => ({})); throw new Error(payload?.error || "Failed"); }
       const payload = (await res.json()) as BulkActionResult;
-      toast.success("Messages sent", {
-        description: `${payload.processed - payload.failures.length} sent${
-          payload.failures.length ? `, ${payload.failures.length} failed` : ""
-        }`,
-      });
+      toast.success("Messages sent", { description: `${payload.processed - payload.failures.length} sent` });
       onCompleted?.(payload);
-      setSubject("");
-      setPreviewText("");
-      setBody("");
-      setCtaLabel("");
-      setCtaUrl("");
-      setSendTestTo("");
-      setReason("");
-      setSelectedIds(new Set());
+      resetForm();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(error?.message || "Unable to send messages");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (error: any) { toast.error(error?.message || "Unable to send"); } finally { setSubmitting(false); }
   };
 
+  const resetForm = () => { setSubject(""); setPreviewText(""); setBody(""); setCtaLabel(""); setCtaUrl(""); setSendTestTo(""); setReason(""); setSelectedIds(new Set()); };
+  useEffect(() => { if (!open) resetForm(); }, [open]);
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title="Send announcement">
-        <DialogHeader>
-          <DialogTitle>Send a bulk announcement</DialogTitle>
-          <DialogDescription>
-            {employeeIds.length} employees selected. {employeePreview}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-3">
+    <BulkActionDialogWrapper open={open} onOpenChange={onOpenChange} title="Send Announcement" description="Craft and send messages" icon={<Megaphone className="h-5 w-5" />} iconGradient="bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500" selectedCount={selectedIds.size} size="xl"
+      footer={<ActionButtons onCancel={() => onOpenChange(false)} onSubmit={handleSubmit} submitLabel={`Send to ${employeeIds.length}`} submitDisabled={!canSubmit} loading={submitting} submitIcon={<Send className="h-4 w-4" />} submitGradient="from-sky-500 to-blue-600" />}
+    >
+      <div className="space-y-6">
+        <EmployeeSelector employees={allEmployees} departments={departments} jobRoles={jobRoles} selectedIds={selectedIds} onSelectionChange={setSelectedIds} />
+        <div className="space-y-5 p-5 rounded-2xl bg-gradient-to-br from-sky-50/50 to-blue-50/30 dark:from-sky-900/10 dark:to-blue-900/5 border border-sky-200/30">
+          <div className="flex items-center gap-2 text-sky-700 dark:text-sky-400"><MessageSquare className="h-4 w-4" /><h3 className="font-semibold">Message Content</h3></div>
+          <div className="space-y-4">
+            <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><Mail className="h-4 w-4 text-sky-500" />Subject Line</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Enter a compelling subject line" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
+            <div className="space-y-2"><Label className="text-sm font-medium flex items-center justify-between"><span className="flex items-center gap-2"><Info className="h-4 w-4 text-blue-500" />Preview Text</span><span className="text-xs text-muted-foreground font-normal">Optional</span></Label><Input value={previewText} onChange={(e) => setPreviewText(e.target.value)} placeholder="Short summary for inbox previews" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
+            <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><MessageSquare className="h-4 w-4 text-sky-500" />Message Body</Label><Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Write your message here..." className="rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50 resize-none" /><p className="text-xs text-muted-foreground">Links will be automatically detected</p></div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Search</label>
-                <Input
-                  placeholder="Search by name or email"
-                  value={filters.query}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, query: event.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Employment status</label>
-                <Select
-                  value={filters.status}
-                  onValueChange={(value) =>
-                    setFilters((prev) => ({ ...prev, status: value as typeof prev.status }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active employees</SelectItem>
-                    <SelectItem value="inactive">Inactive employees</SelectItem>
-                    <SelectItem value="all">All employees</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <div className="space-y-2"><Label className="text-sm font-medium flex items-center justify-between"><span>CTA Button Label</span><span className="text-xs text-muted-foreground font-normal">Optional</span></Label><Input value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="e.g. View Policy" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
+              <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><Link2 className="h-4 w-4 text-muted-foreground" />CTA URL</Label><Input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://..." type="url" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
             </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Departments</label>
-                <MultiSelect
-                  options={departments}
-                  value={filters.departments}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, departments: value }))}
-                  placeholder="Filter departments"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Job roles</label>
-                <MultiSelect
-                  options={jobRoles}
-                  value={filters.jobRoles}
-                  onValueChange={(value) => setFilters((prev) => ({ ...prev, jobRoles: value }))}
-                  placeholder="Filter job roles"
-                />
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-2xl border border-glass">
-              <table className="min-w-full divide-y divide-border">
-                <thead className="bg-muted/40">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      <Checkbox
-                        checked={selectionState}
-                        onCheckedChange={() => toggleSelectAllFiltered()}
-                        aria-label="Select all filtered employees"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Employee
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="max-h-64 divide-y divide-border/60 overflow-y-auto bg-background">
-                  {filteredEmployees.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-6 text-center text-sm">
-                        No employees match your filters yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredEmployees.map((employee) => {
-                      const isSelected = selectedIds.has(employee.id);
-                      return (
-                        <tr key={employee.id} className={isSelected ? "bg-primary/5" : undefined}>
-                          <td className="px-4 py-3">
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleEmployeeSelection(employee.id)}
-                              aria-label={`Select ${employee.name}`}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-sm font-medium text-foreground">
-                            <div>{employee.name}</div>
-                            <div className="text-xs text-muted-foreground">{employee.email}</div>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {employee.isActive ? "Active" : "Inactive"}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><TestTube className="h-4 w-4 text-blue-500" />Send Test Email<span className="text-xs text-muted-foreground font-normal ml-auto">Optional</span></Label><Input value={sendTestTo} onChange={(e) => setSendTestTo(e.target.value)} placeholder="your-email@example.com" type="email" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Subject</label>
-            <Input
-              value={subject}
-              onChange={(event) => setSubject(event.target.value)}
-              placeholder="Subject line"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Preview text (optional)
-            </label>
-            <Input
-              value={previewText}
-              onChange={(event) => setPreviewText(event.target.value)}
-              placeholder="Short summary that appears in inbox previews"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Message body
-            </label>
-            <Textarea
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              rows={8}
-              placeholder="Share the full message you want to send"
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              Use paragraphs to keep the message readable. Links will be automatically detected.
-            </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Call-to-action label (optional)
-              </label>
-              <Input
-                value={ctaLabel}
-                onChange={(event) => setCtaLabel(event.target.value)}
-                placeholder="e.g. View policy"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Call-to-action URL (optional)
-              </label>
-              <Input
-                value={ctaUrl}
-                onChange={(event) => setCtaUrl(event.target.value)}
-                placeholder="https://..."
-                type="url"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Send a test copy first (optional)
-            </label>
-            <Input
-              value={sendTestTo}
-              onChange={(event) => setSendTestTo(event.target.value)}
-              placeholder="email@example.com"
-              type="email"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Reason for communication
-            </label>
-            <Textarea
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="Explain why this communication is being sent"
-              rows={4}
-              required
-            />
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!canSubmit} loading={submitting}>
-              Send message
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          <div className="space-y-2 pt-2 border-t border-sky-200/30"><Label className="text-sm font-medium flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" />Reason for Communication</Label><Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="For audit purposes" rows={2} className="rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50 resize-none" /></div>
+        </div>
+      </div>
+    </BulkActionDialogWrapper>
   );
 }

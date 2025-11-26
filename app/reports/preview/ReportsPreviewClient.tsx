@@ -602,6 +602,13 @@ export default function ReportsPreviewClient() {
           }),
         });
         const json = await res.json();
+        
+        // Check for API errors
+        if (!res.ok || json.error) {
+          console.error("Report API error:", json.error || `HTTP ${res.status}`);
+          throw new Error(json.error || `Failed to generate report (${res.status})`);
+        }
+        
         const results = Array.isArray(json.data) ? json.data : [];
         return { results, totalCount: results.length };
       }
@@ -637,6 +644,8 @@ export default function ReportsPreviewClient() {
     ],
   );
 
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   useEffect(() => {
     if (effectiveSelectedFields.length === 0) return;
     if (reportIdParam && !reportConfig) return;
@@ -644,6 +653,7 @@ export default function ReportsPreviewClient() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
+      setFetchError(null);
       try {
         const { results, totalCount } = await fetchReportPage(page, pageSize);
         if (cancelled) return;
@@ -652,6 +662,15 @@ export default function ReportsPreviewClient() {
         setTotal(totalCount);
       } catch (error) {
         console.error("❌ Error fetching report data:", error);
+        if (!cancelled) {
+          const errorMessage = error instanceof Error ? error.message : "Failed to fetch report data";
+          setFetchError(errorMessage);
+          toast({
+            title: "Report Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -667,6 +686,7 @@ export default function ReportsPreviewClient() {
     reportIdParam,
     reportConfig,
     fetchReportPage,
+    toast,
   ]);
 
   const translateLegacy = useCallback((f: string) => {
@@ -1085,31 +1105,44 @@ export default function ReportsPreviewClient() {
         animate={{ opacity: 1, scale: 1 }}
         className="glass-premium rounded-3xl p-12 text-center shadow-premium max-w-xl mx-auto mt-20"
       >
-        <div className="w-20 h-20 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-6">
-          <Table className="w-10 h-10 text-muted-foreground" />
+        <div className={cn(
+          "w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6",
+          fetchError ? "bg-destructive/10" : "bg-muted/50"
+        )}>
+          {fetchError ? (
+            <AlertTriangle className="w-10 h-10 text-destructive" />
+          ) : (
+            <Table className="w-10 h-10 text-muted-foreground" />
+          )}
         </div>
-        <h3 className="text-xl font-bold mb-2">No Matching Records</h3>
+        <h3 className="text-xl font-bold mb-2">
+          {fetchError ? "Report Error" : "No Matching Records"}
+        </h3>
         <p className="text-muted-foreground mb-6">
-          We didn't find any records that meet your criteria.
+          {fetchError 
+            ? fetchError 
+            : "We didn't find any records that meet your criteria."}
         </p>
-        <div className="flex flex-col gap-3 text-sm text-muted-foreground mb-6">
-          <p>💡 {template === "NZ"
-            ? "Check the pay period dates against the NZ payroll template you used."
-            : template === "AU"
-            ? "Verify the award and allowance filters match your AU template."
-            : template === "UK"
-            ? "Confirm the pay run selection matches your UK payroll starter template."
-            : "Review your filters or try widening the date range."}</p>
-          <p>💡 {regionName
-            ? `If you're filtering by location, make sure it includes all ${regionName} sites.`
-            : "If you're filtering by location, make sure it includes every site you need."}</p>
-        </div>
+        {!fetchError && (
+          <div className="flex flex-col gap-3 text-sm text-muted-foreground mb-6">
+            <p>💡 {template === "NZ"
+              ? "Check the pay period dates against the NZ payroll template you used."
+              : template === "AU"
+              ? "Verify the award and allowance filters match your AU template."
+              : template === "UK"
+              ? "Confirm the pay run selection matches your UK payroll starter template."
+              : "Review your filters or try widening the date range."}</p>
+            <p>💡 {regionName
+              ? `If you're filtering by location, make sure it includes all ${regionName} sites.`
+              : "If you're filtering by location, make sure it includes every site you need."}</p>
+          </div>
+        )}
         <Button
           onClick={handleExit}
           variant="outline"
           className="rounded-xl h-11 px-6"
         >
-          Adjust Filters
+          {fetchError ? "Go Back" : "Adjust Filters"}
         </Button>
       </motion.div>
     );

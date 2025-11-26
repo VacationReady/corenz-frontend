@@ -70,22 +70,24 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
   annualLeaveBalances: {
     name: "Annual Leave Balances",
     description: "Current leave balances by employee and category",
-    allowedFilters: ["departmentId", "jobRoleId", "eventCategoryId", "remainingLT"],
+    allowedFilters: ["departmentId", "jobRoleId", "eventCategoryId", "remainingLT", "isActive"],
     allowedSort: ["_computed.remainingEntitlement", "Employee.User.lastName"],
     query: async (filters, pagination, context) => {
       const { page, limit, skip, sortBy, sortOrder } = normalizePagination(pagination);
-      const where = enforceCompanyId(
-        {
-          ...(filters.eventCategoryId && { eventCategoryId: filters.eventCategoryId }),
-          Employee: {
-            ...(filters.departmentId && { departmentId: filters.departmentId }),
-            ...(filters.jobRoleId && { jobRoleId: filters.jobRoleId }),
-            ...(filters.isActive === false ? { isActive: false } : { isActive: true }),
-            companyId: context.companyId,
-          },
-        },
-        context.companyId,
-      );
+      
+      // Build the Employee filter only if there are actual conditions
+      const employeeConditions: Record<string, any> = {};
+      if (filters.departmentId) employeeConditions.departmentId = filters.departmentId;
+      if (filters.jobRoleId) employeeConditions.jobRoleId = filters.jobRoleId;
+      // Default to showing active employees unless explicitly set to false
+      employeeConditions.isActive = filters.isActive === false ? false : true;
+      
+      const where: Record<string, any> = {
+        companyId: context.companyId,
+        // Only filter on Employee if we have conditions to apply
+        ...(Object.keys(employeeConditions).length > 0 && { Employee: employeeConditions }),
+        ...(filters.eventCategoryId && { eventCategoryId: filters.eventCategoryId }),
+      };
 
       const entitlements = await prisma.leaveEntitlement.findMany({
         where,
@@ -170,20 +172,21 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
       const { page, limit, skip, sortBy, sortOrder } = normalizePagination(pagination);
       const startOfYear = dayjs().startOf("year").toDate();
 
+      // Build Employee filter only when needed
+      const employeeConditions: Record<string, any> = {};
+      if (filters.departmentId) employeeConditions.departmentId = filters.departmentId;
+      if (filters.jobRoleId) employeeConditions.jobRoleId = filters.jobRoleId;
+
       const leave = await prisma.leaveRequest.findMany({
         where: {
           companyId: context.companyId,
           startDate: { gte: startOfYear },
           approvalStatus: "APPROVED",
           EventCategory: {
-            companyId: context.companyId,
             name: { in: ["Sick", "Sick Leave", "Sick Leave (Paid)"] },
           },
-          Employee: {
-            companyId: context.companyId,
-            ...(filters.departmentId && { departmentId: filters.departmentId }),
-            ...(filters.jobRoleId && { jobRoleId: filters.jobRoleId }),
-          },
+          // Only add Employee filter if there are conditions
+          ...(Object.keys(employeeConditions).length > 0 && { Employee: employeeConditions }),
         },
         include: {
           Employee: { include: { User: true, Department: true, JobRole: true } },

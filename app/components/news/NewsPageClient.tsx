@@ -33,6 +33,8 @@ import {
   Zap,
   ArrowUpRight,
   Bookmark,
+  Flame,
+  AlertCircle,
 } from "lucide-react";
 import { FilterOption } from "@/types/filter";
 import { formatDistanceToNow } from "date-fns";
@@ -73,11 +75,11 @@ interface NewsPageClientProps {
 
 // Quick filter categories with modern design
 const quickFilters = [
-  { id: "all", label: "All Stories", emoji: "📰", gradient: "from-slate-500 to-slate-700" },
-  { id: "trending", label: "Trending", emoji: "🔥", gradient: "from-orange-500 to-red-500" },
-  { id: "recent", label: "Fresh", emoji: "✨", gradient: "from-emerald-500 to-teal-500" },
-  { id: "featured", label: "Featured", emoji: "⭐", gradient: "from-amber-500 to-yellow-500" },
-  { id: "announcements", label: "Important", emoji: "📢", gradient: "from-rose-500 to-pink-500" },
+  { id: "all", label: "All Stories", icon: Newspaper, gradient: "from-blue-500 to-blue-600" },
+  { id: "trending", label: "Trending", icon: Flame, gradient: "from-blue-500 to-blue-600" },
+  { id: "recent", label: "Fresh", icon: Sparkles, gradient: "from-blue-500 to-blue-600" },
+  { id: "featured", label: "Featured", icon: Star, gradient: "from-blue-500 to-blue-600" },
+  { id: "announcements", label: "Important", icon: AlertCircle, gradient: "from-blue-500 to-blue-600" },
 ];
 
 // View modes with icons
@@ -478,29 +480,29 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
       label: "Total Stories", 
       value: stats.total, 
       icon: Newspaper, 
-      gradient: "from-violet-500 to-purple-600",
-      shadowColor: "shadow-violet-500/25"
+      gradient: "from-blue-500 to-blue-600",
+      shadowColor: "shadow-blue-500/25"
     },
     { 
       label: "This Week", 
       value: stats.thisWeek, 
       icon: Zap, 
-      gradient: "from-emerald-500 to-teal-600",
-      shadowColor: "shadow-emerald-500/25"
+      gradient: "from-blue-500 to-blue-600",
+      shadowColor: "shadow-blue-500/25"
     },
     { 
       label: "Featured", 
       value: stats.featured, 
       icon: Star, 
-      gradient: "from-amber-500 to-orange-600",
-      shadowColor: "shadow-amber-500/25"
+      gradient: "from-blue-500 to-blue-600",
+      shadowColor: "shadow-blue-500/25"
     },
     { 
       label: "Total Views", 
       value: stats.totalViews.toLocaleString(), 
       icon: Eye, 
-      gradient: "from-cyan-500 to-blue-600",
-      shadowColor: "shadow-cyan-500/25"
+      gradient: "from-blue-500 to-blue-600",
+      shadowColor: "shadow-blue-500/25"
     },
   ];
 
@@ -514,9 +516,9 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
         className="relative overflow-hidden"
       >
         {/* Ambient Background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-violet-500/5 via-fuchsia-500/5 to-cyan-500/5" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-blue-400/5 to-blue-500/5" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl" />
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6">
           {/* Title Section */}
@@ -529,8 +531,8 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
                 className="flex items-center gap-3"
               >
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-2xl blur-lg opacity-50" />
-                  <div className="relative p-3 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-2xl shadow-lg">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl blur-lg opacity-50" />
+                  <div className="relative p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
                     <Megaphone className="w-7 h-7 text-white" />
                   </div>
                 </div>
@@ -556,15 +558,15 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
                   <button
                     className={cn(
                       "group relative flex items-center gap-3 px-6 py-3.5",
-                      "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600",
+                      "bg-gradient-to-r from-blue-500 via-blue-600 to-blue-500",
                       "text-white font-semibold rounded-2xl",
-                      "shadow-xl shadow-violet-500/30",
-                      "hover:shadow-2xl hover:shadow-violet-500/40",
+                      "shadow-xl shadow-blue-500/30",
+                      "hover:shadow-2xl hover:shadow-blue-500/40",
                       "hover:scale-[1.02] active:scale-[0.98]",
                       "transition-all duration-300 ease-out"
                     )}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300" />
                     <Plus className="w-5 h-5 relative z-10 group-hover:rotate-90 transition-transform duration-300" />
                     <span className="relative z-10">Create Story</span>
                     <ArrowUpRight className="w-4 h-4 relative z-10 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
@@ -650,35 +652,38 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
           {/* Quick Filters */}
           <div className="flex items-center justify-between gap-4 overflow-hidden">
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {quickFilters.map((filter, index) => (
-                <motion.button
-                  key={filter.id}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.1 * index }}
-                  onClick={() => setActiveQuickFilter(filter.id)}
-                  className={cn(
-                    "relative flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm",
-                    "whitespace-nowrap transition-all duration-300",
-                    activeQuickFilter === filter.id
-                      ? cn(
-                          "bg-gradient-to-r text-white shadow-lg",
-                          filter.gradient
-                        )
-                      : "bg-card/60 backdrop-blur-sm border border-border/50 text-muted-foreground hover:text-foreground hover:bg-card hover:border-border"
-                  )}
-                >
-                  <span className="text-base">{filter.emoji}</span>
-                  <span>{filter.label}</span>
-                  {activeQuickFilter === filter.id && (
-                    <motion.div
-                      layoutId="activeFilter"
-                      className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </motion.button>
-              ))}
+              {quickFilters.map((filter, index) => {
+                const Icon = filter.icon;
+                return (
+                  <motion.button
+                    key={filter.id}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 * index }}
+                    onClick={() => setActiveQuickFilter(filter.id)}
+                    className={cn(
+                      "relative flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm",
+                      "whitespace-nowrap transition-all duration-300",
+                      activeQuickFilter === filter.id
+                        ? cn(
+                            "bg-gradient-to-r text-white shadow-lg shadow-blue-500/25",
+                            filter.gradient
+                          )
+                        : "bg-card/60 backdrop-blur-sm border border-border/50 text-muted-foreground hover:text-foreground hover:bg-card hover:border-border"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{filter.label}</span>
+                    {activeQuickFilter === filter.id && (
+                      <motion.div
+                        layoutId="activeFilter"
+                        className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 rounded-xl"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                  </motion.button>
+                );
+              })}
             </div>
             
             {/* View Mode Toggle */}
@@ -750,7 +755,7 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
             className="flex flex-col items-center justify-center py-20 text-center"
           >
             <div className="relative mb-6">
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 rounded-full blur-2xl" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-blue-400/20 rounded-full blur-2xl" />
               <div className="relative p-6 bg-gradient-to-br from-muted to-muted/50 rounded-3xl">
                 <Newspaper className="w-16 h-16 text-muted-foreground/50" />
               </div>

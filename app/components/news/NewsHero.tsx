@@ -207,7 +207,7 @@ export default function NewsHero({
         
         {/* Animated gradient overlay */}
         <div className="absolute inset-0 opacity-60">
-          <div className="absolute inset-0 bg-gradient-to-r from-violet-500/30 via-fuchsia-500/20 to-cyan-500/30 animate-gradient" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/30 via-blue-400/20 to-blue-500/30 animate-gradient" />
         </div>
 
         {/* Image Carousel */}

@@ -6,39 +6,38 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
 import { PrismaClient } from '@prisma/client';
 import { calculatePayroll, PayrollCalculationInput } from '@/lib/payroll/payroll-calculation-service';
 import { PayFrequency } from '@/lib/payroll/paye-calculator';
+import { getRequestContext } from '@/lib/request-context';
 
 const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const ctx = await getRequestContext();
+    if (!ctx) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
-    const { companyId, periodStart, periodEnd, paymentDate, employeeIds } = body;
+    const { periodStart, periodEnd, paymentDate, employeeIds } = body;
 
     // Validate required fields
-    if (!companyId || !periodStart || !periodEnd || !paymentDate) {
+    if (!periodStart || !periodEnd || !paymentDate) {
       return NextResponse.json(
-        { error: 'Missing required fields: companyId, periodStart, periodEnd, paymentDate' },
+        { error: 'Missing required fields: periodStart, periodEnd, paymentDate' },
         { status: 400 }
       );
     }
 
     // Verify user has access to company
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: ctx.userId, companyId: ctx.companyId },
       select: { companyId: true, role: true },
     });
 
-    if (!user || user.companyId !== companyId) {
+    if (!user) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -53,7 +52,7 @@ export async function POST(req: NextRequest) {
     // Fetch approved timesheets for the period
     const timesheets = await prisma.timesheet.findMany({
       where: {
-        companyId,
+        companyId: ctx.companyId,
         periodStart: { gte: new Date(periodStart) },
         periodEnd: { lte: new Date(periodEnd) },
         approvalStatus: 'APPROVED',
@@ -128,7 +127,7 @@ export async function POST(req: NextRequest) {
         const input: PayrollCalculationInput = {
           timesheetId: timesheet.id,
           employeeId: employee.id,
-          companyId,
+          companyId: ctx.companyId,
           payPeriodStart: timesheet.periodStart,
           payPeriodEnd: timesheet.periodEnd,
           paymentDate: new Date(paymentDate),
@@ -139,7 +138,7 @@ export async function POST(req: NextRequest) {
           overtimeRate: overtimeHours > 0 ? hourlyRate * 1.5 : undefined,
           publicHolidayHours: publicHolidayHours > 0 ? publicHolidayHours : undefined,
           publicHolidayRate: publicHolidayHours > 0 ? hourlyRate * 2.0 : undefined,
-          calculatedBy: session.user.id,
+          calculatedBy: ctx.userId,
         };
 
         const result = await calculatePayroll(input);

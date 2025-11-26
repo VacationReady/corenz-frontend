@@ -1,12 +1,42 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { UploadCloud, FileText, Eye, Upload, X, Shield, PenLine, CheckCircle2, Clock, FileUp, Building2 } from "lucide-react";
+import { 
+  UploadCloud, 
+  FileText, 
+  Eye, 
+  Upload, 
+  X, 
+  Shield, 
+  PenLine, 
+  CheckCircle2, 
+  Clock, 
+  FileUp, 
+  Building2,
+  Search,
+  Filter,
+  Download,
+  MoreHorizontal,
+  Trash2,
+  Settings,
+  Users,
+  FileSignature,
+  AlertCircle,
+  FolderOpen,
+  Grid3X3,
+  List,
+  ArrowUpDown,
+  ChevronDown,
+  Sparkles,
+  TrendingUp,
+  Calendar,
+  Eye as EyeIcon
+} from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { apiClient } from "@/lib/apiClient";
 import { usePostMutation, useDeleteMutation } from "@/hooks/useMutationWithRefresh";
@@ -41,7 +71,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import EditAccessModal from "@/components/documents/EditAccessModal";
-import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
 import ViewSignaturesModal from "@/components/documents/ViewSignaturesModal";
 import FieldPlacementModal from "@/components/documents/FieldPlacementModal";
@@ -56,6 +86,7 @@ import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import { FilterOption } from "@/types/filter";
+import { Badge } from "@/components/ui/Badge";
 
 type Document = {
   id: string;
@@ -69,7 +100,6 @@ type Document = {
   canViewAdmin: boolean;
   canViewManager: boolean;
   canViewEmployee: boolean;
-  // For backward compatibility we support both flattened and relation-based shapes
   departments?: { id: string; name: string }[];
   Department?: { id: string; name: string }[];
   jobRoles?: { id: string; name: string }[];
@@ -85,13 +115,309 @@ type Document = {
   ackOutstandingCount?: number;
 };
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 24,
+    },
+  },
+};
+
+const cardHoverVariants = {
+  rest: { scale: 1, y: 0 },
+  hover: { 
+    scale: 1.02, 
+    y: -4,
+    transition: {
+      type: "spring",
+      stiffness: 400,
+      damping: 25,
+    }
+  },
+};
+
+// Stats Card Component
+const StatsCard = ({ 
+  title, 
+  value, 
+  subtitle, 
+  icon: Icon, 
+  gradient, 
+  delay = 0 
+}: { 
+  title: string; 
+  value: string | number; 
+  subtitle?: string; 
+  icon: React.ElementType; 
+  gradient: string;
+  delay?: number;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ delay, type: "spring", stiffness: 300, damping: 24 }}
+    whileHover={{ scale: 1.02, y: -2 }}
+    className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50"
+  >
+    <div className={`absolute inset-0 opacity-[0.03] bg-gradient-to-br ${gradient}`} />
+    <div className="relative p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
+          <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{value}</p>
+          {subtitle && (
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{subtitle}</p>
+          )}
+        </div>
+        <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} shadow-lg`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+      </div>
+    </div>
+  </motion.div>
+);
+
+// Document Card Component for Grid View
+const DocumentCard = ({ 
+  doc, 
+  onOpen, 
+  onEdit, 
+  onDelete, 
+  onViewAck, 
+  onViewSig, 
+  onPlaceFields,
+  isAdmin,
+  index
+}: { 
+  doc: Document; 
+  onOpen: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onViewAck: () => void;
+  onViewSig: () => void;
+  onPlaceFields: () => void;
+  isAdmin: boolean;
+  index: number;
+}) => {
+  const formatFileSize = (size: number) =>
+    size < 1024 * 1024
+      ? `${(size / 1024).toFixed(1)} KB`
+      : `${(size / 1024 / 1024).toFixed(1)} MB`;
+
+  const getFileIcon = (type: string) => {
+    if (type?.includes('pdf')) return '📄';
+    if (type?.includes('image')) return '🖼️';
+    if (type?.includes('word') || type?.includes('doc')) return '📝';
+    if (type?.includes('excel') || type?.includes('sheet')) return '📊';
+    return '📁';
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, type: "spring", stiffness: 300, damping: 24 }}
+      whileHover={{ y: -4, scale: 1.01 }}
+      className="group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-300 overflow-hidden cursor-pointer"
+      onClick={onOpen}
+    >
+      {/* Gradient accent line */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+      
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-2xl shadow-inner">
+              {getFileIcon(doc.type)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                {doc.name}
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                {doc.category || "Uncategorized"}
+              </p>
+            </div>
+          </div>
+          
+          {isAdmin && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <button className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-all">
+                  <MoreHorizontal className="w-4 h-4 text-slate-400" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Edit Access
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onViewAck(); }}>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  View Acknowledgements
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onViewSig(); }}>
+                  <FileSignature className="w-4 h-4 mr-2" />
+                  View Signatures
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPlaceFields(); }}>
+                  <PenLine className="w-4 h-4 mr-2" />
+                  Place Signature Fields
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-red-600 dark:text-red-400">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
+        {/* Status badges */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {doc.requiresAck && (
+            <Badge 
+              variant="secondary"
+              className={`text-xs px-2.5 py-1 rounded-full ${
+                doc.ackCompletedCount === doc.ackTargetCount && doc.ackTargetCount && doc.ackTargetCount > 0
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                  : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+              }`}
+            >
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              {doc.ackCompletedCount || 0}/{doc.ackTargetCount || 0} Acknowledged
+            </Badge>
+          )}
+          {doc.requiresSignature && (
+            <Badge 
+              variant="secondary"
+              className={`text-xs px-2.5 py-1 rounded-full ${
+                doc.signatureCompletedCount === doc.signatureTargetCount && doc.signatureTargetCount && doc.signatureTargetCount > 0
+                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                  : "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
+              }`}
+            >
+              <FileSignature className="w-3 h-3 mr-1" />
+              {doc.signatureCompletedCount || 0}/{doc.signatureTargetCount || 0} Signed
+            </Badge>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" />
+              {new Date(doc.createdAt).toLocaleDateString("en-NZ", { month: "short", day: "numeric", year: "numeric" })}
+            </span>
+            <span>{formatFileSize(doc.size)}</span>
+          </div>
+          <motion.span 
+            whileHover={{ scale: 1.1 }}
+            className="flex items-center gap-1 text-blue-500 dark:text-blue-400 font-medium"
+          >
+            <EyeIcon className="w-3.5 h-3.5" />
+            View
+          </motion.span>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Empty State Component
+const EmptyState = ({ 
+  hasFilters, 
+  onUpload, 
+  isAdmin 
+}: { 
+  hasFilters: boolean; 
+  onUpload: () => void;
+  isAdmin: boolean;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="flex flex-col items-center justify-center py-16 px-4"
+  >
+    <div className="relative">
+      <motion.div
+        animate={{ 
+          scale: [1, 1.1, 1],
+          rotate: [0, 5, -5, 0],
+        }}
+        transition={{ 
+          duration: 4,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+        className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center shadow-xl shadow-blue-500/10"
+      >
+        <FolderOpen className="w-12 h-12 text-blue-500 dark:text-blue-400" />
+      </motion.div>
+      <motion.div
+        animate={{ y: [0, -8, 0] }}
+        transition={{ duration: 2, repeat: Infinity }}
+        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg"
+      >
+        <Sparkles className="w-4 h-4 text-white" />
+      </motion.div>
+    </div>
+    
+    <h3 className="mt-6 text-xl font-bold text-slate-900 dark:text-white">
+      {hasFilters ? "No documents match your filters" : "No documents yet"}
+    </h3>
+    <p className="mt-2 text-slate-500 dark:text-slate-400 text-center max-w-md">
+      {hasFilters 
+        ? "Try adjusting your search or filter criteria to find what you're looking for."
+        : "Upload your first document to get started. Documents can be shared with your entire organisation or specific teams."}
+    </p>
+    
+    {isAdmin && !hasFilters && (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mt-6"
+      >
+        <Button
+          onClick={onUpload}
+          size="lg"
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25"
+        >
+          <UploadCloud className="w-5 h-5 mr-2" />
+          Upload Your First Document
+        </Button>
+      </motion.div>
+    )}
+  </motion.div>
+);
+
 function DocumentsContent() {
   const tenantFetch = useTenantFetch();
-  // Fetch documents using API hook
   const { data: documentsData, error: documentsError, isLoading: loading, mutate: refetchDocuments } = useApi<Document[]>('/api/documents/list');
   const documents = documentsData || [];
 
-  // Fetch departments and job roles
   const { data: departmentsData } = useApi<Array<{ id: string; name: string }>>('/api/departments/active');
   const { data: jobRolesData } = useApi<Array<{ id: string; name: string }>>('/api/job-roles/active');
 
@@ -99,8 +425,7 @@ function DocumentsContent() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [requiresAck, setRequiresAck] = useState(false);
-  const [requireAckFromNewStarters, setRequireAckFromNewStarters] =
-    useState(false);
+  const [requireAckFromNewStarters, setRequireAckFromNewStarters] = useState(false);
   const [requiresSignature, setRequiresSignature] = useState(false);
   const [signatureDueAt, setSignatureDueAt] = useState("");
   const [newCategory, setNewCategory] = useState("");
@@ -108,6 +433,8 @@ function DocumentsContent() {
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
   const [uploadPreviewOpen, setUploadPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (file) {
@@ -118,6 +445,7 @@ function DocumentsContent() {
       setPreviewUrl(null);
     }
   }, [file]);
+
   const [newCategoryName, setNewCategoryName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -126,9 +454,7 @@ function DocumentsContent() {
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [isEditAccessOpen, setIsEditAccessOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<Document | null>(null);
-  const [userRole, setUserRole] = useState<
-    "ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN" | null
-  >(null);
+  const [userRole, setUserRole] = useState<"ADMIN" | "MANAGER" | "EMPLOYEE" | "SUPER_ADMIN" | null>(null);
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
   const [ackDocId, setAckDocId] = useState<string | null>(null);
   const [ackDocName, setAckDocName] = useState<string | null>(null);
@@ -150,19 +476,16 @@ function DocumentsContent() {
   const [showCapture, setShowCapture] = useState(false);
   const [activeFieldIdx, setActiveFieldIdx] = useState<number | null>(null);
   
-  // Access permissions state for upload
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(true);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
   
-  // Placement pending state
   const [placementPendingDocId, setPlacementPendingDocId] = useState<string | null>(null);
   const [placementPendingDocName, setPlacementPendingDocName] = useState<string | null>(null);
   const [sendingNotifications, setSendingNotifications] = useState(false);
 
   const isAdminUser = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
 
-  // Build dropdown lists from fetched data
   const departmentsList = useMemo(() => {
     if (!departmentsData) return [];
     return [
@@ -179,7 +502,6 @@ function DocumentsContent() {
     ];
   }, [jobRolesData]);
 
-  // Initialize upload filters
   useEffect(() => {
     if (departmentsList.length && !uploadDepartments.length) {
       setUploadDepartments(["all"]);
@@ -189,7 +511,6 @@ function DocumentsContent() {
     }
   }, [departmentsList, jobRolesList, uploadDepartments.length, uploadJobRoles.length]);
 
-  // Handle document fetch errors
   useEffect(() => {
     if (documentsError) {
       console.error("Failed to load documents", documentsError);
@@ -235,12 +556,10 @@ function DocumentsContent() {
     }
   }, [selectedDoc, tenantFetch]);
 
-  // Initial data fetch on mount
   useEffect(() => {
     fetchUserRole();
   }, []);
 
-  // Handle auto-open from query param after documents load
   useEffect(() => {
     if (loading || documents.length === 0) return;
     
@@ -252,12 +571,10 @@ function DocumentsContent() {
       if (doc) {
         setSelectedDoc(doc);
         setIsPreviewModalOpen(true);
-        // Clean up query param after opening
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete("open");
         window.history.replaceState({}, "", newUrl.toString());
       } else {
-        // Handle stale ID gracefully
         console.warn(`Document with ID ${openId} not found or not accessible`);
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete("open");
@@ -267,6 +584,20 @@ function DocumentsContent() {
   }, [documents, loading]);
 
   const { filters } = useFilters();
+
+  // Calculate statistics
+  const stats = useMemo(() => {
+    const totalDocs = documents.length;
+    const pendingAck = documents.reduce((sum, doc) => sum + (doc.ackOutstandingCount || 0), 0);
+    const pendingSig = documents.reduce((sum, doc) => sum + (doc.signatureOutstandingCount || 0), 0);
+    const thisMonth = documents.filter(doc => {
+      const date = new Date(doc.createdAt);
+      const now = new Date();
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }).length;
+
+    return { totalDocs, pendingAck, pendingSig, thisMonth };
+  }, [documents]);
 
   const documentTypeOptions: FilterOption[] = useMemo(() => {
     const types = documents
@@ -305,6 +636,18 @@ function DocumentsContent() {
 
   const filteredDocuments = useMemo(() => {
     let filtered = [...documents];
+    
+    // Apply local search query
+    if (searchQuery) {
+      const search = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (doc) =>
+          doc.name.toLowerCase().includes(search) ||
+          doc.category?.toLowerCase().includes(search) ||
+          doc.type.toLowerCase().includes(search),
+      );
+    }
+    
     if (filters.search) {
       const search = filters.search.toLowerCase();
       filtered = filtered.filter(
@@ -314,23 +657,13 @@ function DocumentsContent() {
           doc.type.toLowerCase().includes(search),
       );
     }
-    if (
-      filters.documentTypes.length > 0 &&
-      !filters.documentTypes.includes("all")
-    ) {
-      filtered = filtered.filter((doc) =>
-        filters.documentTypes.includes(doc.type),
-      );
+    if (filters.documentTypes.length > 0 && !filters.documentTypes.includes("all")) {
+      filtered = filtered.filter((doc) => filters.documentTypes.includes(doc.type));
     }
     if (filters.categories.length > 0 && !filters.categories.includes("all")) {
-      filtered = filtered.filter(
-        (doc) => doc.category && filters.categories.includes(doc.category),
-      );
+      filtered = filtered.filter((doc) => doc.category && filters.categories.includes(doc.category));
     }
-    if (
-      filters.departments.length > 0 &&
-      !filters.departments.includes("all")
-    ) {
+    if (filters.departments.length > 0 && !filters.departments.includes("all")) {
       filtered = filtered.filter((doc) => {
         const docDepartments: Array<{ id: string; name: string }> = Array.isArray(doc.departments)
           ? (doc.departments as Array<{ id: string; name: string }>)
@@ -342,36 +675,26 @@ function DocumentsContent() {
     }
     if (filters.sortBy) {
       filtered.sort((a, b) => {
-        let aVal = "",
-          bVal = "";
+        let aVal = "", bVal = "";
         switch (filters.sortBy) {
-          case "name":
-            aVal = a.name;
-            bVal = b.name;
-            break;
-          case "date":
-            aVal = a.createdAt;
-            bVal = b.createdAt;
-            break;
-          case "size":
-            return filters.sortOrder === "desc"
-              ? b.size - a.size
-              : a.size - b.size;
-          case "type":
-            aVal = a.type;
-            bVal = b.type;
-            break;
-          case "category":
-            aVal = a.category || "";
-            bVal = b.category || "";
-            break;
+          case "name": aVal = a.name; bVal = b.name; break;
+          case "date": aVal = a.createdAt; bVal = b.createdAt; break;
+          case "size": return filters.sortOrder === "desc" ? b.size - a.size : a.size - b.size;
+          case "type": aVal = a.type; bVal = b.type; break;
+          case "category": aVal = a.category || ""; bVal = b.category || ""; break;
         }
         const comp = aVal.localeCompare(bVal);
         return filters.sortOrder === "desc" ? -comp : comp;
       });
     }
     return filtered;
-  }, [documents, filters]);
+  }, [documents, filters, searchQuery]);
+
+  const hasActiveFilters = filters.search || 
+    (filters.documentTypes.length > 0 && !filters.documentTypes.includes("all")) ||
+    (filters.categories.length > 0 && !filters.categories.includes("all")) ||
+    (filters.departments.length > 0 && !filters.departments.includes("all")) ||
+    searchQuery;
 
   const handleExport = () => {
     const csv = [
@@ -401,23 +724,14 @@ function DocumentsContent() {
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!file || !name || !category)
-      return toast("Please fill in all fields and select a file.");
+    if (!file || !name || !category) return toast("Please fill in all fields and select a file.");
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("name", name);
     formData.append("category", category);
-    formData.append(
-      "departments",
-      JSON.stringify(
-        uploadDepartments.includes("all") ? [] : uploadDepartments,
-      ),
-    );
-    formData.append(
-      "jobRoles",
-      JSON.stringify(uploadJobRoles.includes("all") ? [] : uploadJobRoles),
-    );
+    formData.append("departments", JSON.stringify(uploadDepartments.includes("all") ? [] : uploadDepartments));
+    formData.append("jobRoles", JSON.stringify(uploadJobRoles.includes("all") ? [] : uploadJobRoles));
     formData.append("canViewAdmin", canViewAdmin.toString());
     formData.append("canViewManager", canViewManager.toString());
     formData.append("canViewEmployee", canViewEmployee.toString());
@@ -425,27 +739,19 @@ function DocumentsContent() {
     formData.append("requiresSignature", requiresSignature.toString());
     if (signatureDueAt) formData.append("signatureDueAt", signatureDueAt);
     formData.append("deferNotifications", requiresSignature ? "true" : "false");
-    formData.append(
-      "requireAckFromNewStarters",
-      requireAckFromNewStarters.toString(),
-    );
+    formData.append("requireAckFromNewStarters", requireAckFromNewStarters.toString());
     try {
-      const res = await tenantFetch("/api/documents/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await tenantFetch("/api/documents/upload", { method: "POST", body: formData });
       if (res.ok) {
         const payload = await res.json();
         toast.success("Document uploaded successfully!");
         if (requiresSignature && payload?.Document?.id) {
-          // Set placement pending state
           setPlacementPendingDocId(payload.Document.id);
           setPlacementPendingDocName(payload.Document.name);
           setSigDocId(payload.Document.id);
           setSigDocName(payload.Document.name);
           setIsPlacementBeforeSendOpen(true);
         } else {
-          // Normal upload flow - close modal and refresh
           resetUploadForm();
           setIsUploadModalOpen(false);
           refetchDocuments();
@@ -462,7 +768,6 @@ function DocumentsContent() {
     }
   };
 
-  // Mutation for acknowledging documents
   const { trigger: acknowledgeDocument } = usePostMutation<any, { documentId: string }>(
     '/api/documents/acknowledge',
     {
@@ -480,7 +785,6 @@ function DocumentsContent() {
     }
   );
 
-  // Mutation for deleting documents
   const { trigger: deleteDocument } = usePostMutation<any, { documentId: string }>(
     '/api/documents/delete',
     {
@@ -507,6 +811,7 @@ function DocumentsContent() {
     size < 1024 * 1024
       ? `${(size / 1024).toFixed(1)} KB`
       : `${(size / 1024 / 1024).toFixed(1)} MB`;
+
   const handleRowClick = (doc: Document) => {
     setSelectedDoc(doc);
     setIsPreviewModalOpen(true);
@@ -529,7 +834,6 @@ function DocumentsContent() {
 
   const handlePlacementComplete = async () => {
     if (!placementPendingDocId) return;
-    
     setSendingNotifications(true);
     try {
       const res = await tenantFetch("/api/documents/send-notifications", {
@@ -537,11 +841,9 @@ function DocumentsContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ documentId: placementPendingDocId }),
       });
-      
       if (res.ok) {
         const data = await res.json();
         toast.success(data.message || "Notifications sent successfully!");
-        // Clear pending state
         setPlacementPendingDocId(null);
         setPlacementPendingDocName(null);
         setIsPlacementBeforeSendOpen(false);
@@ -550,11 +852,11 @@ function DocumentsContent() {
         refetchDocuments();
       } else {
         const errorData = await res.json().catch(() => ({}));
-        toast.error(errorData?.error || "Failed to send notifications. You can retry from the document actions menu.");
+        toast.error(errorData?.error || "Failed to send notifications.");
       }
     } catch (error) {
       console.error("Send notifications error:", error);
-      toast.error("Network error sending notifications. You can retry from the document actions menu.");
+      toast.error("Network error sending notifications.");
     } finally {
       setSendingNotifications(false);
     }
@@ -562,10 +864,7 @@ function DocumentsContent() {
 
   const handlePlacementCancel = () => {
     if (placementPendingDocId) {
-      toast.warning(
-        "Field placement not completed. The document is uploaded but notifications have not been sent. You can complete placement later from the document actions menu.",
-        { duration: 6000 }
-      );
+      toast.warning("Field placement not completed. You can complete it later from the document actions menu.", { duration: 6000 });
     }
     setIsPlacementBeforeSendOpen(false);
     resetUploadForm();
@@ -603,17 +902,12 @@ function DocumentsContent() {
         const payload = await res.json();
         setSigned(true);
         setAckDate(payload?.signature?.signedAt ? new Date(payload.signature.signedAt) : new Date());
-        // Refresh the signed URL
         try {
           const u = await tenantFetch(`/api/documents/signed-url/${selectedDoc.id}`).then((r) => r.json());
-          if (u?.url) {
-            setSelectedDoc({ ...selectedDoc, url: u.url });
-          }
+          if (u?.url) setSelectedDoc({ ...selectedDoc, url: u.url });
         } catch {}
         setIsPreviewModalOpen(false);
-        // Show success animation
         setShowSignSuccess(true);
-        // Refresh documents list
         refetchDocuments();
       } else {
         toast("Failed to submit signature");
@@ -627,6 +921,26 @@ function DocumentsContent() {
 
   const breadcrumbs = useBreadcrumbs();
 
+  // Loading state
+  if (loading) {
+    return (
+      <PageShell
+        title="Documents"
+        description="Manage and organise your company documents"
+        icon={<FileText className="w-6 h-6" />}
+        breadcrumbs={breadcrumbs || undefined}
+      >
+        <div className="flex items-center justify-center h-96">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full"
+          />
+        </div>
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell
       title="Documents"
@@ -635,597 +949,630 @@ function DocumentsContent() {
       breadcrumbs={breadcrumbs || undefined}
       action={
         isAdminUser ? (
-          <Button onClick={() => setIsUploadModalOpen(true)}>
-            <UploadCloud className="w-4 h-4 mr-2" /> Add Document
-          </Button>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              onClick={() => setIsUploadModalOpen(true)}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25"
+            >
+              <UploadCloud className="w-4 h-4 mr-2" /> 
+              Upload Document
+            </Button>
+          </motion.div>
         ) : undefined
       }
     >
       <TooltipProvider>
-        <div className="mb-6">
-          <FilterBar
-            config={{
-              searchPlaceholder: "Search documents by name, category, type...",
-              showDocumentTypeFilter: true,
-              showCategoryFilter: true,
-              showDepartmentFilter: true,
-            }}
-            documentTypeOptions={documentTypeOptions}
-            categoryOptions={categoryOptions}
-            departmentOptions={departmentsList}
-            sortOptions={sortOptions}
-            onExport={handleExport}
-          />
-        </div>
-        {loading ? (
-          <p>Loading documents...</p>
-        ) : filteredDocuments.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            {filters.search ||
-            filters.documentTypes.length > 0 ||
-            filters.categories.length > 0 ||
-            filters.departments.length > 0
-              ? "No documents match your current filters."
-              : "No documents found."}
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Job Role</TableHead>
-                <TableHead>Access</TableHead>
-                <TableHead>Read Receipt</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Size</TableHead>
-                {isAdminUser && (
-                  <TableHead className="w-[50px] text-right">Actions</TableHead>
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredDocuments.map((doc) => {
-                const docDepartments: Array<{ id: string; name: string }> = Array.isArray((doc as any).departments)
-                  ? ((doc as any).departments as Array<{ id: string; name: string }>)
-                  : Array.isArray((doc as any).Department)
-                    ? ((doc as any).Department as Array<{ id: string; name: string }>)
-                    : [];
-                const docJobRoles: Array<{ id: string; name: string }> = Array.isArray((doc as any).jobRoles)
-                  ? ((doc as any).jobRoles as Array<{ id: string; name: string }>)
-                  : Array.isArray((doc as any).JobRole)
-                    ? ((doc as any).JobRole as Array<{ id: string; name: string }>)
-                    : [];
-                const accessList = [
-                  doc.canViewAdmin ? "Admin" : null,
-                  doc.canViewManager ? "Manager" : null,
-                  doc.canViewEmployee ? "Employee" : null,
-                  ...docDepartments.map((d) => d.name),
-                  ...docJobRoles.map((jr) => jr.name),
-                ].filter(Boolean);
-                return (
-                  <TableRow
-                    key={doc.id}
-                    onClick={() => handleRowClick(doc)}
-                    className="cursor-pointer hover:bg-muted transition"
-                  >
-                    <TableCell className="text-blue-600 underline">
-                      {doc.name}
-                    </TableCell>
-                    <TableCell>{doc.category ?? "Uncategorized"}</TableCell>
-                    <TableCell>
-                      {docDepartments.length > 0
-                        ? docDepartments.map((d) => d.name).join(", ")
-                        : "All Departments"}
-                    </TableCell>
-                    <TableCell>
-                      {docJobRoles.length > 0
-                        ? docJobRoles.map((jr) => jr.name).join(", ")
-                        : "All Job Roles"}
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="underline cursor-pointer">
-                            {docDepartments.length === 0 &&
-                            docJobRoles.length === 0
-                              ? "All"
-                              : accessList.join(", ")}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-xs max-w-xs">
-                          {docDepartments.length === 0 &&
-                          docJobRoles.length === 0
-                            ? "All (Unrestricted)"
-                            : accessList.map((item, idx) => (
-                                <div key={idx}>{item}</div>
-                              ))}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>
-                      {doc.requiresAck ? (
-                        typeof doc.ackCompletedCount === "number" &&
-                        typeof doc.ackTargetCount === "number" ? (
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={
-                                doc.ackCompletedCount === doc.ackTargetCount
-                                  ? "text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs font-medium"
-                                  : doc.ackCompletedCount > 0
-                                  ? "text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-xs font-medium"
-                                  : "text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-xs font-medium"
-                              }
-                            >
-                              {doc.ackCompletedCount}/{doc.ackTargetCount}
-                            </span>
-                            {doc.ackOutstandingCount && doc.ackOutstandingCount > 0 ? (
-                              <span className="text-xs text-muted-foreground">
-                                ({doc.ackOutstandingCount} pending)
-                              </span>
-                            ) : (
-                              <span className="text-xs text-green-600">✓ Complete</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs">✓ Required</span>
-                        )
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(doc.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{formatFileSize(doc.size)}</TableCell>
-                    {isAdminUser && (
-                      <TableCell
-                        className="text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="sm" variant="ghost">
-                              ⋮
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setEditingDoc(doc);
-                              setIsEditAccessOpen(true);
-                            }}
-                          >
-                            Edit Access
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setAckDocId(doc.id);
-                              setAckDocName(doc.name);
-                              setIsViewAckOpen(true);
-                            }}
-                          >
-                            View Acknowledgements
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSigDocId(doc.id);
-                              setSigDocName(doc.name);
-                              setIsViewSignaturesOpen(true);
-                            }}
-                          >
-                            View Signatures
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSigDocId(doc.id);
-                              setSigDocName(doc.name);
-                              setIsFieldPlacementOpen(true);
-                            }}
-                          >
-                            Place Signature Fields
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(doc.id)}
-                            className="text-destructive"
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
+        <div className="space-y-6">
+          {/* Stats Cards */}
+          {documents.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatsCard
+                title="Total Documents"
+                value={stats.totalDocs}
+                subtitle="In your library"
+                icon={FileText}
+                gradient="from-blue-500 to-blue-600"
+                delay={0}
+              />
+              <StatsCard
+                title="Pending Acknowledgements"
+                value={stats.pendingAck}
+                subtitle="Awaiting response"
+                icon={CheckCircle2}
+                gradient="from-amber-500 to-orange-500"
+                delay={0.1}
+              />
+              <StatsCard
+                title="Pending Signatures"
+                value={stats.pendingSig}
+                subtitle="Need attention"
+                icon={FileSignature}
+                gradient="from-indigo-500 to-violet-500"
+                delay={0.2}
+              />
+              <StatsCard
+                title="Added This Month"
+                value={stats.thisMonth}
+                subtitle={new Date().toLocaleDateString("en-NZ", { month: "long" })}
+                icon={TrendingUp}
+                gradient="from-emerald-500 to-teal-500"
+                delay={0.3}
+              />
+            </div>
+          )}
 
-        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-          <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-2xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
-              {/* Header */}
-              <div className="px-8 pt-8 pb-6 flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
-                    <FileUp className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground">
-                      Upload Company Document
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      Share documents with your organisation
-                    </p>
-                  </div>
-                </div>
+          {/* Search and Filter Bar */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 p-4 shadow-sm"
+          >
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Search documents..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {/* View Toggle */}
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 rounded-md transition-all ${
+                    viewMode === "grid" 
+                      ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" 
+                      : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 rounded-md transition-all ${
+                    viewMode === "list" 
+                      ? "bg-white dark:bg-slate-700 shadow-sm text-blue-600" 
+                      : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Content Area */}
-              <form onSubmit={handleUpload} className="px-8 pb-8 space-y-5 flex-1 overflow-y-auto">
-                {/* Document Details */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="space-y-4"
+              {/* Export */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleExport} className="rounded-lg">
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Export to CSV</TooltipContent>
+              </Tooltip>
+            </div>
+          </motion.div>
+
+          {/* Documents Display */}
+          <AnimatePresence mode="wait">
+            {filteredDocuments.length === 0 ? (
+              <EmptyState
+                hasFilters={!!hasActiveFilters}
+                onUpload={() => setIsUploadModalOpen(true)}
+                isAdmin={isAdminUser}
+              />
+            ) : viewMode === "grid" ? (
+              <motion.div
+                key="grid"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+              >
+                {filteredDocuments.map((doc, index) => (
+                  <DocumentCard
+                    key={doc.id}
+                    doc={doc}
+                    index={index}
+                    isAdmin={isAdminUser}
+                    onOpen={() => handleRowClick(doc)}
+                    onEdit={() => {
+                      setEditingDoc(doc);
+                      setIsEditAccessOpen(true);
+                    }}
+                    onDelete={() => handleDelete(doc.id)}
+                    onViewAck={() => {
+                      setAckDocId(doc.id);
+                      setAckDocName(doc.name);
+                      setIsViewAckOpen(true);
+                    }}
+                    onViewSig={() => {
+                      setSigDocId(doc.id);
+                      setSigDocName(doc.name);
+                      setIsViewSignaturesOpen(true);
+                    }}
+                    onPlaceFields={() => {
+                      setSigDocId(doc.id);
+                      setSigDocName(doc.name);
+                      setSelectedDoc(doc);
+                      setIsFieldPlacementOpen(true);
+                    }}
+                  />
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-sm overflow-hidden"
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <TableHead className="font-semibold">Name</TableHead>
+                      <TableHead className="font-semibold">Category</TableHead>
+                      <TableHead className="font-semibold">Department</TableHead>
+                      <TableHead className="font-semibold">Status</TableHead>
+                      <TableHead className="font-semibold">Date</TableHead>
+                      <TableHead className="font-semibold">Size</TableHead>
+                      {isAdminUser && <TableHead className="w-[50px] text-right font-semibold">Actions</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDocuments.map((doc, index) => {
+                      const docDepartments = Array.isArray(doc.departments) ? doc.departments : Array.isArray(doc.Department) ? doc.Department : [];
+                      return (
+                        <motion.tr
+                          key={doc.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          onClick={() => handleRowClick(doc)}
+                          className="cursor-pointer hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors group border-b border-slate-100 dark:border-slate-800"
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center text-lg shadow-inner">
+                                📄
+                              </div>
+                              <span className="font-medium text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                {doc.name}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full">
+                              {doc.category || "Uncategorized"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-500 dark:text-slate-400">
+                            {docDepartments.length > 0 ? docDepartments.map((d) => d.name).join(", ") : "All"}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1.5">
+                              {doc.requiresAck && (
+                                <Badge className={`text-xs ${
+                                  doc.ackCompletedCount === doc.ackTargetCount && doc.ackTargetCount && doc.ackTargetCount > 0
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}>
+                                  {doc.ackCompletedCount || 0}/{doc.ackTargetCount || 0}
+                                </Badge>
+                              )}
+                              {doc.requiresSignature && (
+                                <Badge className={`text-xs ${
+                                  doc.signatureCompletedCount === doc.signatureTargetCount && doc.signatureTargetCount && doc.signatureTargetCount > 0
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-indigo-100 text-indigo-700"
+                                }`}>
+                                  {doc.signatureCompletedCount || 0}/{doc.signatureTargetCount || 0}
+                                </Badge>
+                              )}
+                              {!doc.requiresAck && !doc.requiresSignature && (
+                                <span className="text-slate-400 text-sm">—</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-slate-500 dark:text-slate-400">
+                            {new Date(doc.createdAt).toLocaleDateString("en-NZ", { month: "short", day: "numeric", year: "numeric" })}
+                          </TableCell>
+                          <TableCell className="text-slate-500 dark:text-slate-400">
+                            {formatFileSize(doc.size)}
+                          </TableCell>
+                          {isAdminUser && (
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => { setEditingDoc(doc); setIsEditAccessOpen(true); }}>
+                                    <Settings className="w-4 h-4 mr-2" />
+                                    Edit Access
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { setAckDocId(doc.id); setAckDocName(doc.name); setIsViewAckOpen(true); }}>
+                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                    View Acknowledgements
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { setSigDocId(doc.id); setSigDocName(doc.name); setIsViewSignaturesOpen(true); }}>
+                                    <FileSignature className="w-4 h-4 mr-2" />
+                                    View Signatures
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { setSigDocId(doc.id); setSigDocName(doc.name); setSelectedDoc(doc); setIsFieldPlacementOpen(true); }}>
+                                    <PenLine className="w-4 h-4 mr-2" />
+                                    Place Signature Fields
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleDelete(doc.id)} className="text-red-600">
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          )}
+                        </motion.tr>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Upload Modal */}
+        <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
+          <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-2xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="px-8 pt-8 pb-6 flex-shrink-0 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-4">
+                <motion.div 
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30"
                 >
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-primary" />
-                    <span className="font-medium text-sm">Document Details</span>
+                  <FileUp className="w-6 h-6 text-white" />
+                </motion.div>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    Upload Company Document
+                  </h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Share documents with your organisation
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <form onSubmit={handleUpload} className="px-8 pb-8 space-y-6 flex-1 overflow-y-auto">
+              {/* Document Details */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="space-y-4 pt-6"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <FileText className="w-4 h-4 text-blue-500" />
+                  Document Details
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Document Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter document name"
+                      className="h-11 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-blue-500/20"
+                      required
+                    />
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground/80">
-                        Document Name <span className="text-primary">*</span>
-                      </Label>
-                      <Input
-                        id="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Enter document name"
-                        className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground/80">
-                        Category <span className="text-primary">*</span>
-                      </Label>
-                      <Select value={category} onValueChange={(v) => {
-                        if (v === "__new__") {
-                          setManageCategoriesOpen(true);
-                        } else {
-                          setCategory(v);
-                          setNewCategory("");
-                        }
-                      }}>
-                        <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categoryOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                          <div className="border-t border-muted/30 mt-1 pt-1">
-                            <SelectItem value="__new__">
-                              <span className="text-primary">+ Add new category</span>
-                            </SelectItem>
-                          </div>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      Category <span className="text-red-500">*</span>
+                    </Label>
+                    <Select value={category} onValueChange={(v) => {
+                      if (v === "__new__") setManageCategoriesOpen(true);
+                      else setCategory(v);
+                    }}>
+                      <SelectTrigger className="h-11 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoryOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                        <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
+                          <SelectItem value="__new__">
+                            <span className="text-blue-600 dark:text-blue-400">+ Add new category</span>
+                          </SelectItem>
+                        </div>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </motion.div>
+                </div>
+              </motion.div>
 
-                {/* Target Audience */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="space-y-4"
-                >
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="font-medium text-sm">Target Audience</span>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground/80">Departments</Label>
-                      <MultiSelect
-                        options={departmentsList}
-                        selected={uploadDepartments}
-                        onChange={(values) =>
-                          values.includes("all")
-                            ? setUploadDepartments(["all"])
-                            : setUploadDepartments(values)
-                        }
-                        placeholder="Select department(s)"
-                        searchable
-                        searchPlaceholder="Search departments..."
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground/80">Job Roles</Label>
-                      <MultiSelect
-                        options={jobRolesList}
-                        selected={uploadJobRoles}
-                        onChange={(values) =>
-                          values.includes("all")
-                            ? setUploadJobRoles(["all"])
-                            : setUploadJobRoles(values)
-                        }
-                        placeholder="Select job role(s)"
-                        searchable
-                        searchPlaceholder="Search job roles..."
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Visibility Settings */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="space-y-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="font-medium text-sm">Access Permissions</span>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                      <Switch id="canViewAdmin" checked={canViewAdmin} onChange={setCanViewAdmin} />
-                      <Label htmlFor="canViewAdmin" className="text-sm font-medium">Admins</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch id="canViewManager" checked={canViewManager} onChange={setCanViewManager} />
-                      <Label htmlFor="canViewManager" className="text-sm font-medium">Managers</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch id="canViewEmployee" checked={canViewEmployee} onChange={setCanViewEmployee} />
-                      <Label htmlFor="canViewEmployee" className="text-sm font-medium">Employees</Label>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Compliance Section */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                  className="space-y-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                    <span className="font-medium text-sm">Compliance Requirements</span>
+              {/* Target Audience */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <Building2 className="w-4 h-4 text-emerald-500" />
+                  Target Audience
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">Departments</Label>
+                    <MultiSelect
+                      options={departmentsList}
+                      selected={uploadDepartments}
+                      onChange={(values) => values.includes("all") ? setUploadDepartments(["all"]) : setUploadDepartments(values)}
+                      placeholder="Select department(s)"
+                      searchable
+                      searchPlaceholder="Search departments..."
+                    />
                   </div>
                   <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">Job Roles</Label>
+                    <MultiSelect
+                      options={jobRolesList}
+                      selected={uploadJobRoles}
+                      onChange={(values) => values.includes("all") ? setUploadJobRoles(["all"]) : setUploadJobRoles(values)}
+                      placeholder="Select job role(s)"
+                      searchable
+                      searchPlaceholder="Search job roles..."
+                    />
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Access & Compliance */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <Shield className="w-4 h-4 text-amber-500" />
+                  Access & Compliance
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-4">
+                  {/* Visibility */}
+                  <div className="flex flex-wrap items-center gap-6">
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400 w-20">Visible to:</span>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
+                      <span className="text-sm">Admins</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Switch checked={canViewManager} onChange={setCanViewManager} />
+                      <span className="text-sm">Managers</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
+                      <span className="text-sm">Employees</span>
+                    </label>
+                  </div>
+
+                  <div className="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-slate-400" />
                         <div>
-                          <Label className="text-sm cursor-pointer">Requires Acknowledgement</Label>
-                          <p className="text-xs text-muted-foreground">Employees must confirm reading</p>
+                          <p className="text-sm font-medium">Requires Acknowledgement</p>
+                          <p className="text-xs text-slate-500">Employees must confirm they've read this</p>
                         </div>
                       </div>
                       <Switch checked={requiresAck} onChange={setRequiresAck} />
                     </div>
+                    
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <PenLine className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex items-center gap-3">
+                        <Users className="w-5 h-5 text-slate-400" />
                         <div>
-                          <Label className="text-sm cursor-pointer">Auto-assign to New Starters</Label>
-                          <p className="text-xs text-muted-foreground">Include in onboarding</p>
+                          <p className="text-sm font-medium">Auto-assign to New Starters</p>
+                          <p className="text-xs text-slate-500">Include in onboarding package</p>
                         </div>
                       </div>
                       <Switch checked={requireAckFromNewStarters} onChange={setRequireAckFromNewStarters} />
                     </div>
                   </div>
+                </div>
+              </motion.div>
+
+              {/* File Upload */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="space-y-2"
+              >
+                <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  Upload File <span className="text-red-500">*</span>
+                </Label>
+                <div
+                  className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                    file 
+                      ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20" 
+                      : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    required
+                  />
                   
-                  {requiresAck && file && (
-                    <div className="pt-3 flex justify-end">
+                  {file ? (
+                    <div className="space-y-3">
+                      <motion.div 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="w-16 h-16 mx-auto rounded-2xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center"
+                      >
+                        <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                      </motion.div>
+                      <p className="font-semibold text-emerald-700 dark:text-emerald-400">{file.name}</p>
+                      <p className="text-sm text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        onClick={() => setUploadPreviewOpen(true)}
-                        className="gap-2 rounded-xl"
+                        onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                        className="text-slate-500 hover:text-red-500"
                       >
-                        <Eye className="w-4 h-4" />
-                        Preview Document
+                        <X className="w-4 h-4 mr-1" /> Remove
                       </Button>
                     </div>
-                  )}
-                </motion.div>
-
-                {/* File Upload */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="space-y-2"
-                >
-                  <Label className="text-sm font-medium text-foreground/80">
-                    Upload File <span className="text-primary">*</span>
-                  </Label>
-                  <div
-                    className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
-                      file 
-                        ? "border-emerald-500 bg-emerald-500/10" 
-                        : "border-muted/50 bg-white/30 dark:bg-white/5 hover:border-primary/50 hover:bg-primary/5"
-                    }`}
-                  >
-                    <input
-                      id="file"
-                      type="file"
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      required
-                    />
-                    
-                    {file ? (
-                      <div className="space-y-2">
-                        <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/20 flex items-center justify-center">
-                          <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <p className="font-medium text-emerald-600 dark:text-emerald-400">{file.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <Upload className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-700 dark:text-slate-300">
+                          Drag & drop or click to upload
                         </p>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="w-4 h-4 mr-1" /> Remove
-                        </Button>
+                        <p className="text-sm text-slate-500">
+                          PDF, Word, Excel, or image files
+                        </p>
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="w-12 h-12 mx-auto rounded-2xl bg-muted/50 flex items-center justify-center">
-                          <Upload className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">
-                            Drag & drop or click to upload
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            PDF, Word, Excel, or image files
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
 
-                {/* Action Buttons */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 }}
-                  className="flex items-center justify-end gap-3 pt-4"
+              {/* Actions */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800"
+              >
+                <Button type="button" variant="ghost" onClick={() => setIsUploadModalOpen(false)} className="rounded-xl">
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  loading={uploading}
+                  loadingText="Uploading..."
+                  disabled={!file || !name || !category}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 rounded-xl px-6"
+                  icon={<UploadCloud className="h-4 w-4" />}
                 >
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setIsUploadModalOpen(false)}
-                    className="h-11 rounded-xl"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    loading={uploading}
-                    loadingText="Uploading..."
-                    disabled={!file || !name || !category}
-                    className="h-11 px-6 rounded-xl bg-gradient-to-r from-violet-500 to-primary hover:from-violet-500/90 hover:to-primary/90 text-white font-semibold shadow-lg shadow-primary/25"
-                    icon={<UploadCloud className="h-4 w-4" />}
-                  >
-                    Upload Document
-                  </Button>
-                </motion.div>
-              </form>
+                  Upload Document
+                </Button>
+              </motion.div>
+            </form>
           </DialogContent>
         </Dialog>
 
         {/* Manage Categories Modal */}
         <Dialog open={manageCategoriesOpen} onOpenChange={setManageCategoriesOpen}>
           <DialogContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-md rounded-2xl overflow-hidden">
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <FileText className="w-5 h-5 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold">Manage Categories</h3>
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/30">
+                  <FolderOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-lg font-semibold">Manage Categories</h3>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="space-y-2 max-h-60 overflow-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                  {categoryOptions.filter((o) => o.value !== "all").map((opt) => (
+                    <div key={opt.value} className="flex items-center justify-between gap-2 p-3 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                      <span className="text-sm font-medium">{opt.label}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 px-3 text-red-500 hover:bg-red-50 hover:text-red-600"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch("/api/document-categories", {
+                              method: "DELETE",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ name: opt.value }),
+                            });
+                            if (!res.ok) throw new Error("Failed to delete category");
+                            setCategoriesList((prev) => prev.filter((x) => x !== opt.value));
+                            if (category === opt.value) setCategory("");
+                          } catch (e: any) {
+                            toast.error(e.message);
+                          }
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  {categoryOptions.filter((o) => o.value !== "all").length === 0 && (
+                    <p className="text-sm text-slate-500 p-4 text-center">No categories yet.</p>
+                  )}
                 </div>
                 
-                <div className="space-y-4">
-                  <div className="space-y-2 max-h-60 overflow-auto rounded-xl border border-muted/30 bg-white/30 dark:bg-white/5">
-                    {categoryOptions
-                      .filter((o) => o.value !== "all")
-                      .map((opt) => (
-                        <div key={opt.value} className="flex items-center justify-between gap-2 p-3 hover:bg-muted/30 transition-colors">
-                          <span className="text-sm font-medium">{opt.label}</span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 px-3 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                            onClick={async () => {
-                              try {
-                                const res = await fetch("/api/document-categories", {
-                                  method: "DELETE",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ name: opt.value }),
-                                });
-                                if (!res.ok) throw new Error("Failed to delete category");
-                                setCategoriesList((prev) => prev.filter((x) => x !== opt.value));
-                                if (category === opt.value) setCategory("");
-                              } catch (e: any) {
-                                toast.error(e.message);
-                              }
-                            }}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    {categoryOptions.filter((o) => o.value !== "all").length === 0 && (
-                      <p className="text-sm text-muted-foreground p-4 text-center">No categories yet.</p>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="New category name"
-                      className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5"
-                    />
-                    <Button
-                      className="h-11 px-5 rounded-xl"
-                      onClick={async () => {
-                        const name = newCategoryName.trim();
-                        if (!name) return;
-                        try {
-                          const res = await fetch("/api/document-categories", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ name }),
-                          });
-                          if (!res.ok) throw new Error("Failed to add category");
-                          setCategoriesList((prev) => (prev.includes(name) ? prev : [...prev, name]));
-                          setCategory(name);
-                          setNewCategoryName("");
-                        } catch (e: any) {
-                          toast.error(e.message);
-                        }
-                      }}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-muted/30 flex justify-end">
-                  <Button variant="ghost" onClick={() => setManageCategoriesOpen(false)} className="rounded-xl">
-                    Done
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="New category name"
+                    className="h-11 rounded-xl"
+                  />
+                  <Button
+                    className="h-11 px-5 rounded-xl"
+                    onClick={async () => {
+                      const catName = newCategoryName.trim();
+                      if (!catName) return;
+                      try {
+                        const res = await fetch("/api/document-categories", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ name: catName }),
+                        });
+                        if (!res.ok) throw new Error("Failed to add category");
+                        setCategoriesList((prev) => (prev.includes(catName) ? prev : [...prev, catName]));
+                        setCategory(catName);
+                        setNewCategoryName("");
+                      } catch (e: any) {
+                        toast.error(e.message);
+                      }
+                    }}
+                  >
+                    Add
                   </Button>
                 </div>
               </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+                <Button variant="ghost" onClick={() => setManageCategoriesOpen(false)} className="rounded-xl">
+                  Done
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
-        {/* Place before send (post-upload) */}
+        {/* Placement Modal */}
         <FieldPlacementModal
           isOpen={isPlacementBeforeSendOpen}
           onClose={handlePlacementCancel}
@@ -1237,7 +1584,7 @@ function DocumentsContent() {
           onDiscard={handlePlacementDiscard}
         />
 
-        {/* Modern Document Preview Panel */}
+        {/* Document Preview */}
         {selectedDoc && (
           <ModernDocumentPreview
             isOpen={isPreviewModalOpen}
@@ -1303,14 +1650,8 @@ function DocumentsContent() {
             <DialogHeader>
               <DialogTitle>Preview: {file?.name}</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 bg-gray-100 rounded-md overflow-hidden border relative">
-              {previewUrl && (
-                <iframe
-                  src={previewUrl}
-                  className="w-full h-full"
-                  title="Preview"
-                />
-              )}
+            <div className="flex-1 bg-slate-100 rounded-xl overflow-hidden border relative">
+              {previewUrl && <iframe src={previewUrl} className="w-full h-full" title="Preview" />}
             </div>
             <DialogFooter>
               <Button onClick={() => setUploadPreviewOpen(false)}>Close</Button>
@@ -1324,11 +1665,7 @@ function DocumentsContent() {
 
 export default function DocumentsPageClient() {
   return (
-    <FilterProvider
-      persistenceKey="documents-filters"
-      enableUrlSync={true}
-      enableLocalStorage={true}
-    >
+    <FilterProvider persistenceKey="documents-filters" enableUrlSync={true} enableLocalStorage={true}>
       <DocumentsContent />
     </FilterProvider>
   );

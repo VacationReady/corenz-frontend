@@ -244,7 +244,7 @@ export default function SendSurveyPage() {
           fetch("/api/departments"),
           fetch("/api/job-roles"),
           fetch("/api/locations"),
-          fetch("/api/employees"),
+          fetch("/api/employees?limit=all&status=active"),
         ]);
 
         if (departmentsRes.ok) {
@@ -264,9 +264,10 @@ export default function SendSurveyPage() {
 
         if (employeesRes.ok) {
           const employeesData = await employeesRes.json();
-          setEmployees(Array.isArray(employeesData) ? employeesData : []);
-          setFilteredEmployees(Array.isArray(employeesData) ? employeesData : []);
-          setFilteredExcludedEmployees(Array.isArray(employeesData) ? employeesData : []);
+          const employeesList = Array.isArray(employeesData) ? employeesData : (employeesData?.data || []);
+          setEmployees(employeesList);
+          setFilteredEmployees(employeesList);
+          setFilteredExcludedEmployees(employeesList);
         }
       } catch (error) {
         console.error("Failed to load data:", error);

@@ -738,22 +738,57 @@ async function handleDataQuery(
   } 
   // If it's a list of employees
   else if (Array.isArray(result.data)) {
-    // Check if it's leave requests
-    if (result.data.length > 0 && result.data[0].startDate && result.data[0].Employee) {
-      // Format leave requests
-      answer = `${result.data.length} ${result.data.length === 1 ? 'person is' : 'people are'} on leave:\n\n`;
+    // Check if it's leave requests (has Employee relation and is a leave record)
+    const isLeaveData = result.data.length > 0 && 
+                        result.data[0].Employee && 
+                        (result.data[0].startDate !== undefined || result.data[0].EventCategory);
+    
+    if (isLeaveData) {
+      // Format leave requests with safe date handling
+      const validLeaves = result.data.filter((leave: any) => leave.Employee?.User);
       
-      result.data.slice(0, 10).forEach((leave: any, index: number) => {
-        const name = `${leave.Employee.User.firstName} ${leave.Employee.User.lastName}`;
-        const dept = leave.Employee.Department?.name ? ` (${leave.Employee.Department.name})` : '';
-        const leaveType = leave.EventCategory?.name || 'Leave';
-        const start = new Date(leave.startDate).toLocaleDateString();
-        const end = new Date(leave.endDate).toLocaleDateString();
-        answer += `${index + 1}. ${name}${dept}\n   ${leaveType}: ${start} to ${end}\n\n`;
-      });
-      
-      if (result.data.length > 10) {
-        answer += `...and ${result.data.length - 10} more\n`;
+      if (validLeaves.length === 0) {
+        answer = "No one is scheduled to be off during that period.";
+      } else {
+        answer = `${validLeaves.length} ${validLeaves.length === 1 ? 'person is' : 'people are'} off:\n\n`;
+        
+        validLeaves.slice(0, 10).forEach((leave: any, index: number) => {
+          const firstName = leave.Employee?.User?.firstName || '';
+          const lastName = leave.Employee?.User?.lastName || '';
+          const name = `${firstName} ${lastName}`.trim() || 'Unknown';
+          const dept = leave.Employee?.Department?.name ? ` (${leave.Employee.Department.name})` : '';
+          const leaveType = leave.EventCategory?.name || 'Leave';
+          
+          // Safe date formatting - handle null/undefined dates
+          let dateRange = '';
+          if (leave.startDate) {
+            const startDate = new Date(leave.startDate);
+            if (!Number.isNaN(startDate.getTime())) {
+              const startStr = startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+              if (leave.endDate) {
+                const endDate = new Date(leave.endDate);
+                if (!Number.isNaN(endDate.getTime())) {
+                  const endStr = endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                  dateRange = `${startStr} to ${endStr}`;
+                } else {
+                  dateRange = `from ${startStr}`;
+                }
+              } else {
+                dateRange = `from ${startStr}`;
+              }
+            }
+          }
+          
+          if (dateRange) {
+            answer += `${index + 1}. **${name}**${dept}\n   📅 ${leaveType}: ${dateRange}\n\n`;
+          } else {
+            answer += `${index + 1}. **${name}**${dept}\n   📅 ${leaveType}\n\n`;
+          }
+        });
+        
+        if (validLeaves.length > 10) {
+          answer += `...and ${validLeaves.length - 10} more\n`;
+        }
       }
     }
     // Check if it's a single person lookup (email query)

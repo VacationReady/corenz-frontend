@@ -124,13 +124,22 @@ SALARY & COMPENSATION:
 - "What's our monthly payroll?" → employee model, aggregate, SUM salaryAmount / 12
 
 LEAVE & ABSENCE:
-- "Who is on leave next week?" → leaveRequest model, findMany, date filter, status APPROVED
+NOTE: "off" is SYNONYMOUS with "on leave". Interpret "off", "away", "out" as leave-related queries!
+- "Who is on leave next week?" → leaveRequest model, findMany, date filter next week, status APPROVED
 - "Who is on leave today?" → leaveRequest model, findMany, date=today, status APPROVED
+- "Who is off next month?" → leaveRequest model, findMany, date filter next month, status APPROVED ("off" = on leave!)
+- "Is anyone in sales off next month?" → leaveRequest model, findMany, Department=sales, date filter next month ("off" = on leave!)
+- "Who in engineering is off this week?" → leaveRequest model, findMany, Department=engineering, date filter this week
+- "Anyone away next week?" → leaveRequest model, findMany, date filter next week ("away" = on leave!)
+- "Who is out today?" → leaveRequest model, findMany, date=today ("out" = on leave!)
+- "Show me who's off in December" → leaveRequest model, findMany, date filter December
 - "When is the next annual leave?" → leaveRequest model, findMany, date filter upcoming, EventCategory "Annual"
 - "How much leave does John have left?" → leaveEntitlement model, findMany, employee=John
 - "Who has taken the most leave?" → leaveRequest model, aggregate, count by employeeId
 - "Show pending leave requests" → leaveRequest model, findMany, approvalStatus=PENDING
 - "Who is sick today?" → leaveRequest model, findMany, date=today, category=Sick
+- "Is anyone from marketing on leave?" → leaveRequest model, findMany, Department=marketing
+- "Who's off in the sales team?" → leaveRequest model, findMany, Department=sales
 
 REPORTING STRUCTURE:
 - "Who reports into [name]?" → user model, findMany, filter by managerId (direct reports)
@@ -219,6 +228,10 @@ User: "List individuals in sales" → {queryType: "findMany", model: "employee",
 User: "Show sales team salaries" → {queryType: "findMany", model: "employee", operation: "Department filter sales"}
 User: "Who reports into John?" → {queryType: "findMany", model: "user", operation: "managerId = John's userId"}
 User: "Who is on leave today?" → {queryType: "findMany", model: "leaveRequest", operation: "startDate <= today AND endDate >= today AND approvalStatus = APPROVED"}
+User: "Is anyone in sales off next month?" → {queryType: "findMany", model: "leaveRequest", operation: "Department sales next month approvalStatus = APPROVED"}
+User: "Who is off next week?" → {queryType: "findMany", model: "leaveRequest", operation: "next week approvalStatus = APPROVED"}
+User: "Anyone away in engineering?" → {queryType: "findMany", model: "leaveRequest", operation: "Department engineering approvalStatus = APPROVED"}
+User: "Who's out today?" → {queryType: "findMany", model: "leaveRequest", operation: "today approvalStatus = APPROVED"}
 User: "Total payroll cost?" → {queryType: "aggregate", model: "employee", operation: "SUM salaryAmount WHERE isActive = true"}
 User: "Who earns over $100k?" → {queryType: "findMany", model: "employee", operation: "salaryAmount > 100000"}
 User: "Contracts expiring soon?" → {queryType: "findMany", model: "employee", operation: "contractEndDate BETWEEN now AND 30 days"}
@@ -241,7 +254,7 @@ Important Rules:
 4. For name lookups, use firstName/lastName in User relation
 5. For leave, use approvalStatus: "APPROVED" for confirmed leave
 6. For dates, use gte/lte operators
-7. Handle null values safely
+7. Handle null values safely - ALWAYS check if dates are null before using them
 8. Return JSON-serializable results
 9. For salary totals/costs/sums, use aggregate with _sum.salaryAmount
 10. When filtering context is unclear (e.g., "their salaries"), default to all active employees
@@ -253,6 +266,8 @@ Important Rules:
 16. Leave type should be included in operation (e.g., "Annual", "Sick") for category filtering
 17. CRITICAL: For "who reports into/to [name]" queries, use USER model (not employee), filter by managerId to find direct reports
 18. Reporting structure queries must identify the manager by name first, then find users with managerId = manager's userId
+19. CRITICAL: "off", "away", "out" are SYNONYMS for "on leave" - always use leaveRequest model for these queries
+20. For leave queries with department (e.g., "sales off next month"), include department name in operation string
 `;
 
 export async function generateQuery(
@@ -925,50 +940,128 @@ async function executeQueryByType(
 
     case "leaverequest":
       if (queryType === "count") {
+        const countWhere: any = {
+          companyId,
+          approvalStatus: "PENDING",
+        };
+        
+        // Handle department filtering for count queries
+        const countDeptMatch = operation.match(/(?:Department|department|team|in).*?["']?(\w+)["']?/i);
+        if (countDeptMatch) {
+          const deptName = countDeptMatch[1];
+          const dept = await prisma.department.findFirst({
+            where: {
+              companyId,
+              name: { contains: deptName, mode: 'insensitive' },
+            },
+          });
+          if (dept) {
+            countWhere.Employee = { departmentId: dept.id };
+          }
+        }
+        
         return await prisma.leaveRequest.count({
-          where: {
-            companyId,
-            approvalStatus: "PENDING",
-          },
+          where: countWhere,
         });
       }
 
       if (queryType === "findMany") {
         const where: any = { companyId, approvalStatus: "APPROVED" };
         
+        // Handle department filtering for leave requests (e.g., "sales off next month", "engineering on leave")
+        // Extract department from operation string
+        const deptPatterns = [
+          /(?:in|from|for)\s+(?:the\s+)?["']?(\w+)["']?\s+(?:team|department|dept)?/i,
+          /["']?(\w+)["']?\s+(?:team|department|dept)\s+/i,
+          /(?:Department|department).*?["'](\w+)["']/i,
+          /\b(sales|marketing|engineering|hr|finance|operations|it|product|design|legal|support|admin)\b/i,
+        ];
+        
+        let departmentName: string | null = null;
+        for (const pattern of deptPatterns) {
+          const match = operation.match(pattern);
+          if (match) {
+            departmentName = match[1];
+            break;
+          }
+        }
+        
+        if (departmentName) {
+          const department = await prisma.department.findFirst({
+            where: {
+              companyId,
+              name: { contains: departmentName, mode: 'insensitive' },
+            },
+          });
+          if (department) {
+            where.Employee = { departmentId: department.id };
+          }
+        }
+        
         // Handle date filtering for "next", "upcoming", "this week", etc.
         const hasDateFilter = operation.includes("next") || 
                             operation.includes("upcoming") || 
                             operation.includes("startDate") ||
-                            operation.includes("future");
+                            operation.includes("future") ||
+                            operation.includes("today") ||
+                            operation.includes("this week") ||
+                            operation.includes("this month");
         
         if (hasDateFilter) {
           const now = new Date();
+          now.setHours(0, 0, 0, 0); // Start of today
           const futureDate = new Date();
           
           // Determine the time range based on the query
-          if (operation.includes("next week") || operation.includes("this week")) {
-            futureDate.setDate(now.getDate() + 7);
+          if (operation.includes("today")) {
+            futureDate.setHours(23, 59, 59, 999);
+          } else if (operation.includes("this week")) {
+            // End of current week (Sunday)
+            const daysUntilSunday = 7 - now.getDay();
+            futureDate.setDate(now.getDate() + daysUntilSunday);
+            futureDate.setHours(23, 59, 59, 999);
+          } else if (operation.includes("next week")) {
+            // Next week (Monday to Sunday)
+            const daysUntilNextMonday = (8 - now.getDay()) % 7 || 7;
+            now.setDate(now.getDate() + daysUntilNextMonday);
+            futureDate.setDate(now.getDate() + 6);
+            futureDate.setHours(23, 59, 59, 999);
+          } else if (operation.includes("this month")) {
+            // End of current month
+            futureDate.setMonth(now.getMonth() + 1, 0);
+            futureDate.setHours(23, 59, 59, 999);
           } else if (operation.includes("next month")) {
-            futureDate.setMonth(now.getMonth() + 1);
+            // Next month (1st to last day)
+            now.setMonth(now.getMonth() + 1, 1);
+            now.setHours(0, 0, 0, 0);
+            futureDate.setMonth(now.getMonth() + 1, 0);
+            futureDate.setHours(23, 59, 59, 999);
           } else {
             // Default: next 90 days for "upcoming" or "next"
             futureDate.setDate(now.getDate() + 90);
+            futureDate.setHours(23, 59, 59, 999);
           }
           
           where.OR = [
-            // Starts within the range
+            // Leave starts within the range
             {
               startDate: {
                 gte: now,
                 lte: futureDate,
               },
             },
-            // Ongoing (started before, ends after now)
+            // Leave ends within the range
+            {
+              endDate: {
+                gte: now,
+                lte: futureDate,
+              },
+            },
+            // Leave spans the entire range (started before, ends after)
             {
               AND: [
                 { startDate: { lte: now } },
-                { endDate: { gte: now } },
+                { endDate: { gte: futureDate } },
               ],
             },
           ];

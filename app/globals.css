@@ -171,6 +171,8 @@ html,
   /* 6 */
   -webkit-tap-highlight-color: transparent;
   /* 7 */
+  /* Critical: Prevent white flash during hydration by setting immediate background */
+  background-color: #f8f9fc;
 }
 
 /*
@@ -183,6 +185,8 @@ body {
   /* 1 */
   line-height: inherit;
   /* 2 */
+  /* Critical: Prevent white flash - fallback background that matches theme */
+  background-color: #f8f9fc;
 }
 
 /*
@@ -1928,7 +1932,12 @@ video {
         hsl(var(--gradient-end)) 70%,
         hsl(var(--background)) 100%);
     background-size: 200% 200%;
-    animation: morphBackground 8s ease infinite;
+    /* Disable animation by default to prevent scroll flash */
+    /* animation: morphBackground 8s ease infinite; */
+    /* Use contain to prevent layout/paint issues */
+    contain: strict;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 
   .bg-aurora {
@@ -1941,6 +1950,22 @@ video {
     animation: aurora 22s ease-in-out infinite;
   }
 
+  /* Scroll-optimized aurora - no transforms to prevent repaint issues during scroll */
+  .bg-aurora-stable {
+    background: linear-gradient(-45deg,
+        hsl(var(--sunset-1) / 0.12),
+        hsl(var(--sunset-2) / 0.18),
+        hsl(var(--primary) / 0.08),
+        hsl(var(--sunset-3) / 0.16));
+    background-size: 320% 320%;
+    animation: aurora-stable 22s ease-in-out infinite;
+    /* Prevent scroll-related paint issues */
+    contain: strict;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* Original aurora animation with transforms - can cause scroll flash */
   @keyframes aurora {
     0% {
       background-position: 0% 50%;
@@ -1965,6 +1990,25 @@ video {
     100% {
       background-position: 0% 50%;
       transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  /* Stable aurora animation - background-position only, no transforms */
+  @keyframes aurora-stable {
+    0% {
+      background-position: 0% 50%;
+    }
+    25% {
+      background-position: 50% 60%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    75% {
+      background-position: 50% 40%;
+    }
+    100% {
+      background-position: 0% 50%;
     }
   }
 

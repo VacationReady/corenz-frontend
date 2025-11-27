@@ -69,7 +69,15 @@ export default function WithSidebarLayout({
         <aside className="hidden lg:flex lg:shrink-0">
           {getSidebar("desktop")}
         </aside>
-        <main className="flex-1 overflow-y-auto bg-background/80 backdrop-blur-sm">
+        {/* Use solid background to prevent flash during scroll - backdrop-blur on a separate layer */}
+        <main 
+          className="flex-1 overflow-y-auto bg-background"
+          style={{
+            /* Optimize scroll performance */
+            contain: 'layout style',
+            willChange: 'scroll-position',
+          }}
+        >
           {children}
         </main>
       </div>

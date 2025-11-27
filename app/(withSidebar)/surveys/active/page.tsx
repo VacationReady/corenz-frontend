@@ -238,7 +238,7 @@ export default function ActiveSurveysPage() {
       }}
       action={
         <Button asChild variant="primary">
-          <Link href="/surveys/send">
+          <Link href="/surveys/send" className="flex items-center">
             <Send className="w-4 h-4 mr-2" />
             Send New Survey
           </Link>
@@ -320,7 +320,7 @@ export default function ActiveSurveysPage() {
                 You don't have any surveys currently running. Create a template and send your first survey to get started.
               </p>
               <Button asChild variant="primary">
-                <Link href="/surveys/send">
+                <Link href="/surveys/send" className="flex items-center">
                   <Send className="w-4 h-4 mr-2" />
                   Send Your First Survey
                 </Link>

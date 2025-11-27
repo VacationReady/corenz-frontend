@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, ReactNode, useEffect, useState } from "react";
+import { CSSProperties, ReactNode } from "react";
 import { useTenantTheme } from "../lib/tenant-theme";
 import { createTenantCssVariables } from "../lib/tenant-theme-config";
 
@@ -13,26 +13,25 @@ export function AppBody({
 }) {
   const { palette } = useTenantTheme();
   const cssVariables = createTenantCssVariables(palette) as CSSProperties;
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   return (
     <body
-      className={`${fontClassName} min-h-screen font-sans text-foreground antialiased relative overflow-x-hidden`}
+      className={`${fontClassName} min-h-screen font-sans text-foreground antialiased relative overflow-x-hidden bg-background`}
       style={cssVariables}
     >
-      {/* Layered background system for depth and richness */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        {/* Base gradient layer */}
+      {/* Layered background system - all layers render immediately to prevent flash */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{ 
+          contain: 'strict',
+          willChange: 'auto',
+        }}
+      >
+        {/* Base gradient layer - immediate render */}
         <div className="absolute inset-0 bg-gradient-landscape opacity-60" />
 
-        {/* Aurora overlay for color richness */}
-        {mounted && (
-          <div className="absolute inset-0 bg-aurora" />
-        )}
+        {/* Aurora overlay - renders immediately, animation is CSS-only */}
+        <div className="absolute inset-0 bg-aurora-stable" />
 
         {/* Subtle noise texture for depth */}
         <div
@@ -50,16 +49,14 @@ export function AppBody({
           }}
         />
 
-        {/* Top light accent */}
-        {mounted && (
-          <div
-            className="absolute -top-1/2 left-1/2 -translate-x-1/2 w-[200%] h-[100%] opacity-40"
-            style={{
-              background: `radial-gradient(ellipse at center, hsl(var(--primary) / 0.1) 0%, transparent 50%)`,
-              filter: 'blur(100px)',
-            }}
-          />
-        )}
+        {/* Top light accent - static, no animation */}
+        <div
+          className="absolute -top-1/2 left-1/2 -translate-x-1/2 w-[200%] h-[100%] opacity-40"
+          style={{
+            background: `radial-gradient(ellipse at center, hsl(var(--primary) / 0.1) 0%, transparent 50%)`,
+            filter: 'blur(100px)',
+          }}
+        />
       </div>
 
       {/* Main content layer */}

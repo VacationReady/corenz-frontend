@@ -32,7 +32,15 @@ export default async function SectionLayout({
       <div className="flex-shrink-0">
         {Sidebar}
       </div>
-      <main className="flex-1 overflow-y-auto overflow-x-hidden bg-content-panel">
+      {/* Use solid background to prevent flash during scroll */}
+      <main 
+        className="flex-1 overflow-y-auto overflow-x-hidden bg-background"
+        style={{
+          /* Optimize scroll performance */
+          contain: 'layout style',
+          willChange: 'scroll-position',
+        }}
+      >
         {children}
       </main>
     </div>

@@ -14,6 +14,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Info } from "lucide-react";
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
 interface LeaveEntitlement extends PrismaEntitlement {
   eventCategory: EventCategory;
@@ -55,9 +56,11 @@ export default function LeaveBalancePanel({
       <div className="space-y-2">
         {entitlements && entitlements.length > 0 ? (
           entitlements.map((entitlement) => {
-            const remainingDays = entitlement.totalDays - entitlement.usedDays;
-            const carryoverDays = entitlement.carryoverDays ?? 0;
-            const standardEntitlement = entitlement.totalDays - carryoverDays;
+            // Round to 2 decimal places for display (NZ HRIS requirement)
+            const remainingDays = roundToTwoDecimals(entitlement.totalDays - entitlement.usedDays);
+            const carryoverDays = roundToTwoDecimals(entitlement.carryoverDays ?? 0);
+            const standardEntitlement = roundToTwoDecimals(entitlement.totalDays - carryoverDays);
+            const usedDays = roundToTwoDecimals(entitlement.usedDays);
 
             return (
               <p key={entitlement.id} className="flex items-center gap-1">
@@ -70,7 +73,7 @@ export default function LeaveBalancePanel({
                   <HoverCardContent className="text-xs">
                     <div>Standard Entitlement: {standardEntitlement} days</div>
                     <div>Carryover: {carryoverDays} days</div>
-                    <div>Used: {entitlement.usedDays} days</div>
+                    <div>Used: {usedDays} days</div>
                     <div>Remaining: {remainingDays} days</div>
                   </HoverCardContent>
                 </HoverCard>

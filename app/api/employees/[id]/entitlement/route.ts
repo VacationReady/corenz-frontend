@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
 // ✅ Handle GET requests
 export async function GET(
@@ -36,11 +37,12 @@ export async function GET(
     });
 
     // ✅ Shape response to match client expectations (eventCategory, not EventCategory)
+    // Round all values to 2 decimal places for consistent display
     const serialized = entitlements.map((entitlement) => ({
       id: entitlement.id,
-      totalDays: entitlement.totalDays,
-      usedDays: entitlement.usedDays,
-      carryoverDays: entitlement.carryoverDays ?? 0,
+      totalDays: roundToTwoDecimals(entitlement.totalDays),
+      usedDays: roundToTwoDecimals(entitlement.usedDays),
+      carryoverDays: roundToTwoDecimals(entitlement.carryoverDays ?? 0),
       eventCategory: {
         id: entitlement.EventCategory.id,
         name: entitlement.EventCategory.name,
@@ -91,6 +93,10 @@ export async function POST(
         );
       }
 
+      // Round all entitlement values to 2 decimal places (NZ HRIS requirement)
+      const roundedTotalDays = roundToTwoDecimals((entitlement as any).totalDays);
+      const roundedDaysAllocated = roundToTwoDecimals((entitlement as any).daysAllocated ?? 0);
+
       await prisma.leaveEntitlement.upsert({
         where: {
           employeeId_eventCategoryId: {
@@ -99,15 +105,15 @@ export async function POST(
           },
         },
         update: {
-          totalDays: (entitlement as any).totalDays,
+          totalDays: roundedTotalDays,
         },
         create: {
           id: crypto.randomUUID(),
           employeeId,
           eventCategoryId,
-          totalDays: (entitlement as any).totalDays,
+          totalDays: roundedTotalDays,
           usedDays: 0, // adjust if needed
-          daysAllocated: (entitlement as any).daysAllocated ?? 0,
+          daysAllocated: roundedDaysAllocated,
           companyId,
           updatedAt: new Date(),
         },

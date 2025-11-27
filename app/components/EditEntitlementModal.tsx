@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { useState, useEffect } from "react";
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
 interface EventCategory {
   id: string;
@@ -71,19 +72,32 @@ export default function EditEntitlementModal({
   }, [open, currentEntitlements]);
 
   const handleChange = (categoryId: string, value: string) => {
+    // Round to 2 decimal places as user types (NZ HRIS requirement)
+    let roundedValue = value;
+    if (value !== '') {
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        // Only round if there are more than 2 decimal places
+        const decimalPlaces = (value.split('.')[1] || '').length;
+        if (decimalPlaces > 2) {
+          roundedValue = roundToTwoDecimals(num).toString();
+        }
+      }
+    }
     setEntitlements((prev) => ({
       ...prev,
-      [categoryId]: value,
+      [categoryId]: roundedValue,
     }));
   };
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
+      // Round all values to 2 decimal places before submission (NZ HRIS requirement)
       const payload = Object.entries(entitlements).map(
         ([categoryId, totalDays]) => ({
           eventCategoryId: categoryId,
-          totalDays: parseInt(totalDays) || 0,
+          totalDays: roundToTwoDecimals(parseFloat(totalDays) || 0),
         }),
       );
 
@@ -119,8 +133,10 @@ export default function EditEntitlementModal({
               <Input
                 type="number"
                 min={0}
+                step={0.01}
                 value={entitlements[category.id] ?? ""}
                 onChange={(e) => handleChange(category.id, e.target.value)}
+                title="Maximum 2 decimal places allowed"
               />
             </label>
           ))}

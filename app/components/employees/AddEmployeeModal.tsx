@@ -35,6 +35,7 @@ import type {
 import { fetchWithCsrf } from "@/lib/csrf";
 import { prepareSensitiveDataForTransmission } from "@/lib/crypto";
 import { AddEmployeeModalErrorBoundary } from "./AddEmployeeModalErrorBoundary";
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 import { RefreshCw, User, Briefcase, Calendar, Shield, Building2, MapPin, FileText, DollarSign, Phone, Heart, CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
 
 // 👇 Toggle
@@ -731,7 +732,21 @@ export default function AddEmployeeModal({
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    let value = e.target.value;
+    
+    // For entitlement fields, enforce 2 decimal places (NZ HRIS requirement)
+    const entitlementFields = ['entitlementDays', 'sickLeaveDays', 'alternativeHolidayDays'];
+    if (entitlementFields.includes(e.target.name) && value !== '') {
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        const decimalPlaces = (value.split('.')[1] || '').length;
+        if (decimalPlaces > 2) {
+          value = roundToTwoDecimals(num).toString();
+        }
+      }
+    }
+    
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   // Validate NZ IRD number (8 or 9 digits with optional dashes)
@@ -1178,10 +1193,11 @@ export default function AddEmployeeModal({
         role: isAdminAccess ? "ADMIN" : "EMPLOYEE",
         companyId: session?.user?.companyId,
         sendInviteNow,
-        entitlementDays: parseFloat(formData.entitlementDays),
-        // NZ leave entitlements
-        sickLeaveDays: parseFloat(formData.sickLeaveDays || "10"),
-        alternativeHolidayDays: parseFloat(formData.alternativeHolidayDays || "0"),
+        // Round all entitlement values to 2 decimal places (NZ HRIS requirement)
+        entitlementDays: roundToTwoDecimals(parseFloat(formData.entitlementDays)),
+        // NZ leave entitlements (rounded to 2 decimal places)
+        sickLeaveDays: roundToTwoDecimals(parseFloat(formData.sickLeaveDays || "10")),
+        alternativeHolidayDays: roundToTwoDecimals(parseFloat(formData.alternativeHolidayDays || "0")),
         publicHolidayEntitlement: parseFloat(formData.publicHolidayEntitlement || "11"),
         // Convert undefined values to empty strings for backend
         departmentId: formData.departmentId || "",

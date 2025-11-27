@@ -965,11 +965,11 @@ export default function AnalyticsDashboard() {
             </motion.div>
 
             {/* Breakdown Cards Grid */}
-            <div className="grid gap-6 xl:grid-cols-3 items-start">
+            <div className="grid gap-6 xl:grid-cols-3">
               {/* Department Breakdown */}
-              <motion.div variants={itemVariants} className="h-[380px]">
-                <Card className="h-full flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
-                  <CardHeader className="pb-2 flex-shrink-0">
+              <motion.div variants={itemVariants}>
+                <Card className="h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <CardHeader className="pb-3 flex-shrink-0 border-b border-muted/20">
                     <SectionHeader
                       icon={Building2}
                       title="By Department"
@@ -977,137 +977,31 @@ export default function AnalyticsDashboard() {
                       iconColor="text-violet-500"
                     />
                   </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-hidden p-4 flex flex-col">
-                    <ScrollArea className="flex-1 min-h-0">
-                      <div className="space-y-2 pr-4">
-                        {(data.breakdowns.byDepartment ?? []).map((dept, index) => (
-                          <BreakdownListItem
-                            key={dept.id ?? dept.name}
-                            name={dept.name}
-                            active={dept.active}
-                            total={dept.total}
-                            index={index}
-                            onClick={() => handleDrillDown(
-                              "department",
-                              dept.id || "unassigned",
-                              `${dept.name} Department`,
-                              `All employees in ${dept.name}`
-                            )}
-                          />
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Location & Employment Mix */}
-              <motion.div variants={itemVariants} className="h-[380px]">
-                <Card className="h-full flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
-                  <CardHeader className="pb-2 flex-shrink-0">
-                    <SectionHeader
-                      icon={MapPin}
-                      title="Location & Employment"
-                      description="Geographic and contract distribution"
-                      iconColor="text-cyan-500"
-                    />
-                  </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-hidden p-4 flex flex-col">
-                    {/* Pie Chart */}
-                    <div className="h-48 flex-shrink-0">
-                      {employmentData.length === 0 ? (
-                        <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-                          Add employment types to see distribution
-                        </div>
-                      ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <defs>
-                              {employmentData.map((entry, index) => (
-                                <linearGradient key={`grad-${index}`} id={`pieGrad-${index}`} x1="0" y1="0" x2="1" y2="1">
-                                  <stop offset="0%" stopColor={CHART_COLORS.gradient[index % CHART_COLORS.gradient.length]} stopOpacity={1}/>
-                                  <stop offset="100%" stopColor={CHART_COLORS.gradient[(index + 1) % CHART_COLORS.gradient.length]} stopOpacity={0.8}/>
-                                </linearGradient>
-                              ))}
-                            </defs>
-                            <Pie
-                              data={employmentData}
-                              innerRadius={50}
-                              outerRadius={75}
-                              paddingAngle={3}
-                              dataKey="value"
-                              nameKey="label"
-                            >
-                              {employmentData.map((entry, index) => (
-                                <Cell 
-                                  key={entry.label} 
-                                  fill={`url(#pieGrad-${index})`}
-                                  stroke="transparent"
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              formatter={(value: number, label: string) => [
-                                `${Number(value).toLocaleString()} active`,
-                                label,
-                              ]}
-                              contentStyle={{ 
-                                borderRadius: 12, 
-                                border: "none",
-                                boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-                              }}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
-
-                    {/* Employment type legend */}
-                    <div className="py-3 border-t border-b border-muted/30 my-3">
-                      <div className="flex flex-wrap gap-3">
-                        {(data.breakdowns.byEmploymentType ?? []).map((item, index) => (
-                          <button
-                            key={item.label}
-                            onClick={() => handleDrillDown(
-                              "employmentType",
-                              item.label.toLowerCase(),
-                              `${item.label} Employees`,
-                              `All ${item.label} employees`
-                            )}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/50 dark:bg-white/5 
-                              hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer"
-                          >
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: CHART_COLORS.gradient[index % CHART_COLORS.gradient.length] }}
-                            />
-                            <span className="text-xs font-medium text-foreground">{item.label}</span>
-                            <span className="text-xs text-muted-foreground">({item.value})</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Locations list */}
-                    <ScrollArea className="flex-1 min-h-0">
-                      <div className="space-y-2 pr-4">
-                        {locationData.length === 0 ? (
-                          <p className="text-sm text-muted-foreground text-center py-4">
-                            No location data available
-                          </p>
+                  <CardContent className="flex-1 overflow-hidden p-0">
+                    <ScrollArea className="h-full">
+                      <div className="p-4 space-y-2">
+                        {(data.breakdowns.byDepartment ?? []).length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-3">
+                              <Building2 className="w-6 h-6 text-violet-500/50" />
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              No department data available
+                            </p>
+                          </div>
                         ) : (
-                          locationData.map((location, index) => (
+                          (data.breakdowns.byDepartment ?? []).map((dept, index) => (
                             <BreakdownListItem
-                              key={location.id ?? location.name}
-                              name={location.name}
-                              active={location.active}
-                              total={location.total}
+                              key={dept.id ?? dept.name}
+                              name={dept.name}
+                              active={dept.active}
+                              total={dept.total}
                               index={index}
                               onClick={() => handleDrillDown(
-                                "location",
-                                location.id || "unassigned",
-                                `${location.name} Location`,
-                                `All employees at ${location.name}`
+                                "department",
+                                dept.id || "unassigned",
+                                `${dept.name} Department`,
+                                `All employees in ${dept.name}`
                               )}
                             />
                           ))
@@ -1118,10 +1012,164 @@ export default function AnalyticsDashboard() {
                 </Card>
               </motion.div>
 
+              {/* Location & Employment Mix */}
+              <motion.div variants={itemVariants}>
+                <Card className="h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <CardHeader className="pb-3 flex-shrink-0 border-b border-muted/20">
+                    <SectionHeader
+                      icon={MapPin}
+                      title="Location & Employment"
+                      description="Geographic and contract distribution"
+                      iconColor="text-cyan-500"
+                    />
+                  </CardHeader>
+                  <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
+                    {/* Pie Chart with Employment Legend */}
+                    <div className="flex-shrink-0 p-4 pb-0">
+                      <div className="flex items-center gap-4">
+                        {/* Pie Chart */}
+                        <div className="w-32 h-32 flex-shrink-0">
+                          {employmentData.length === 0 ? (
+                            <div className="h-full flex items-center justify-center">
+                              <div className="w-20 h-20 rounded-full border-4 border-dashed border-muted/30 flex items-center justify-center">
+                                <PieChartIcon className="w-6 h-6 text-muted-foreground/30" />
+                              </div>
+                            </div>
+                          ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <defs>
+                                  {employmentData.map((entry, index) => (
+                                    <linearGradient key={`grad-${index}`} id={`pieGrad-${index}`} x1="0" y1="0" x2="1" y2="1">
+                                      <stop offset="0%" stopColor={CHART_COLORS.gradient[index % CHART_COLORS.gradient.length]} stopOpacity={1}/>
+                                      <stop offset="100%" stopColor={CHART_COLORS.gradient[(index + 1) % CHART_COLORS.gradient.length]} stopOpacity={0.8}/>
+                                    </linearGradient>
+                                  ))}
+                                </defs>
+                                <Pie
+                                  data={employmentData}
+                                  innerRadius={30}
+                                  outerRadius={50}
+                                  paddingAngle={3}
+                                  dataKey="value"
+                                  nameKey="label"
+                                >
+                                  {employmentData.map((entry, index) => (
+                                    <Cell 
+                                      key={entry.label} 
+                                      fill={`url(#pieGrad-${index})`}
+                                      stroke="transparent"
+                                    />
+                                  ))}
+                                </Pie>
+                                <Tooltip
+                                  formatter={(value: number, label: string) => [
+                                    `${Number(value).toLocaleString()} active`,
+                                    label,
+                                  ]}
+                                  contentStyle={{ 
+                                    borderRadius: 12, 
+                                    border: "none",
+                                    boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+                                  }}
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          )}
+                        </div>
+
+                        {/* Employment type legend - vertical layout */}
+                        <div className="flex-1 space-y-2">
+                          {(data.breakdowns.byEmploymentType ?? []).length === 0 ? (
+                            <p className="text-xs text-muted-foreground">
+                              No employment types configured
+                            </p>
+                          ) : (
+                            (data.breakdowns.byEmploymentType ?? []).map((item, index) => (
+                              <button
+                                key={item.label}
+                                onClick={() => handleDrillDown(
+                                  "employmentType",
+                                  item.label.toLowerCase(),
+                                  `${item.label} Employees`,
+                                  `All ${item.label} employees`
+                                )}
+                                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg 
+                                  bg-white/50 dark:bg-white/5 hover:bg-white dark:hover:bg-white/10 
+                                  border border-transparent hover:border-primary/20
+                                  transition-all duration-200 cursor-pointer group"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-slate-800"
+                                    style={{ backgroundColor: CHART_COLORS.gradient[index % CHART_COLORS.gradient.length] }}
+                                  />
+                                  <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">
+                                    {item.label}
+                                  </span>
+                                </div>
+                                <span className="text-xs font-semibold text-muted-foreground">
+                                  {item.value}
+                                </span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Divider with label */}
+                    <div className="flex-shrink-0 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-muted/50 to-transparent" />
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          Locations
+                        </span>
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-muted/50 to-transparent" />
+                      </div>
+                    </div>
+
+                    {/* Locations list */}
+                    <div className="flex-1 overflow-hidden">
+                      <ScrollArea className="h-full">
+                        <div className="px-4 pb-4 space-y-2">
+                          {locationData.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-2">
+                                <MapPin className="w-5 h-5 text-cyan-500/50" />
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                No location data available
+                              </p>
+                            </div>
+                          ) : (
+                            locationData.map((location, index) => (
+                              <BreakdownListItem
+                                key={location.id ?? location.name}
+                                name={location.name}
+                                active={location.active}
+                                total={location.total}
+                                index={index}
+                                onClick={() => handleDrillDown(
+                                  "location",
+                                  location.id || "unassigned",
+                                  `${location.name} Location`,
+                                  `All employees at ${location.name}`
+                                )}
+                              />
+                            ))
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
               {/* Job Roles */}
-              <motion.div variants={itemVariants} className="h-[380px]">
-                <Card className="h-full flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
-                  <CardHeader className="pb-2 flex-shrink-0">
+              <motion.div variants={itemVariants}>
+                <Card className="h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <CardHeader className="pb-3 flex-shrink-0 border-b border-muted/20">
                     <SectionHeader
                       icon={Briefcase}
                       title="Job Roles"
@@ -1129,13 +1177,18 @@ export default function AnalyticsDashboard() {
                       iconColor="text-amber-500"
                     />
                   </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-hidden p-4 flex flex-col">
-                    <ScrollArea className="flex-1 min-h-0">
-                      <div className="space-y-2 pr-4">
+                  <CardContent className="flex-1 overflow-hidden p-0">
+                    <ScrollArea className="h-full">
+                      <div className="p-4 space-y-2">
                         {(data.breakdowns.byJobRole ?? []).length === 0 ? (
-                          <p className="text-sm text-muted-foreground text-center py-4">
-                            Assign job roles to see breakdown
-                          </p>
+                          <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3">
+                              <Briefcase className="w-6 h-6 text-amber-500/50" />
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Assign job roles to see breakdown
+                            </p>
+                          </div>
                         ) : (
                           (data.breakdowns.byJobRole ?? []).map((role, index) => (
                             <BreakdownListItem

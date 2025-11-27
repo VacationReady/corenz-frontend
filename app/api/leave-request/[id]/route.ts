@@ -6,6 +6,7 @@ import { sendLeaveStatusUpdate } from "@/lib/sendLeaveStatusUpdate";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { z } from "zod";
 import { processDecision } from "@/lib/advanceLeaveApproval";
+import { roundToTwoDecimals, addWithPrecision } from "@/lib/decimalPrecision";
 
 const leaveRequestActionSchema = z.object({
   action: z.enum(["approve", "decline"], {
@@ -201,7 +202,8 @@ export async function PATCH(
           currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        const totalDeduction = totalDays.reduce((sum, val) => sum + val, 0);
+        // Round total deduction to 2 decimal places (NZ HRIS requirement)
+        const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
 
         updatedLeaveRequest = await prisma.$transaction(async (tx) => {
           const entitlement = await tx.leaveEntitlement.findFirst({
@@ -215,9 +217,10 @@ export async function PATCH(
             throw new Error("Insufficient leave balance.");
           }
 
+          // Round usedDays to 2 decimal places (NZ HRIS requirement)
           await tx.leaveEntitlement.update({
             where: { id: entitlement.id },
-            data: { usedDays: entitlement.usedDays + totalDeduction },
+            data: { usedDays: addWithPrecision(entitlement.usedDays, totalDeduction) },
           });
 
           return tx.leaveRequest.update({

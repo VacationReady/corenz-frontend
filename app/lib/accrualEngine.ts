@@ -6,6 +6,7 @@ import {
   startOfYear,
   endOfYear,
 } from "date-fns";
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
 interface ServiceLengthTier {
   minYears: number;
@@ -130,9 +131,10 @@ export async function calculateLeaveEntitlement({
     });
   }
 
+  // Round all entitlement values to 2 decimal places (NZ HRIS requirement)
   return {
-    baseEntitlement,
-    proRatedEntitlement,
+    baseEntitlement: roundToTwoDecimals(baseEntitlement),
+    proRatedEntitlement: roundToTwoDecimals(proRatedEntitlement),
     serviceLengthTier: applicableTier,
     calculationMethod: "leave_policy",
     effectivePolicy: {
@@ -244,26 +246,27 @@ function calculateProRatedEntitlement({
     return 0;
   }
 
+  // All proration calculations rounded to 2 decimal places (NZ HRIS requirement)
   switch (prorationMethod) {
     case "DAILY":
       const remainingDays = differenceInDays(yearEnd, startDate) + 1;
-      return (baseEntitlement * remainingDays) / totalDaysInYear;
+      return roundToTwoDecimals((baseEntitlement * remainingDays) / totalDaysInYear);
 
     case "WEEKLY":
       const remainingWeeks = Math.ceil(
         differenceInDays(yearEnd, startDate) / 7,
       );
       const totalWeeks = 52;
-      return (baseEntitlement * remainingWeeks) / totalWeeks;
+      return roundToTwoDecimals((baseEntitlement * remainingWeeks) / totalWeeks);
 
     case "MONTHLY":
       const startMonth = startDate.getMonth();
       const remainingMonths = 12 - startMonth;
-      return (baseEntitlement * remainingMonths) / 12;
+      return roundToTwoDecimals((baseEntitlement * remainingMonths) / 12);
 
     case "NONE":
     default:
-      return baseEntitlement;
+      return roundToTwoDecimals(baseEntitlement);
   }
 }
 

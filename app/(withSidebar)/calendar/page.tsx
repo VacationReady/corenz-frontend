@@ -1055,7 +1055,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
         {/* Main Calendar Card */}
         <motion.div variants={fadeInScale}>
-          <Card className="overflow-hidden border-border/50 shadow-xl shadow-black/5">
+          <Card className="border-border/50 shadow-xl shadow-black/5">
             {/* Card Header with Controls - Compact */}
             <div className="p-3 border-b border-border/50 bg-gradient-to-r from-card via-card to-muted/10">
               <div className="flex flex-col gap-3">
@@ -1231,7 +1231,10 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                     dayCellContent={dayCellContent}
                     fixedWeekCount={false}
                     weekNumbers={false}
+                    nowIndicator={false}
                     height="auto"
+                    contentHeight="auto"
+                    expandRows={true}
                     key={`${tenantTimeSettings.timeZone}`}
                     timeZone={tenantTimeSettings.timeZone}
                   />

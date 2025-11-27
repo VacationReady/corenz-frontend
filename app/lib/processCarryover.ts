@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import dayjs from "dayjs";
+import { roundToTwoDecimals, addWithPrecision, subtractWithPrecision } from "@/lib/decimalPrecision";
 
 /**
  * Processes annual carryover for leave entitlements across all employees.
@@ -69,8 +70,9 @@ export async function processCarryover() {
         continue;
       }
 
-      const remainingDays = entitlement.totalDays - entitlement.usedDays;
-      const carryoverDays = Math.min(remainingDays, eventRule.maxCarryoverDays);
+      // Round all calculations to 2 decimal places (NZ HRIS requirement)
+      const remainingDays = roundToTwoDecimals(subtractWithPrecision(entitlement.totalDays, entitlement.usedDays));
+      const carryoverDays = roundToTwoDecimals(Math.min(remainingDays, eventRule.maxCarryoverDays));
 
       console.log({
         entitlementId: entitlement.id,
@@ -98,20 +100,21 @@ export async function processCarryover() {
           .toDate();
       }
 
+      // Round new totalDays to 2 decimal places (NZ HRIS requirement)
+      const newTotalDays = addWithPrecision(entitlement.totalDays, carryoverDays);
+
       await prisma.leaveEntitlement.update({
         where: { id: entitlement.id },
         data: {
           carryoverDays: carryoverDays,
           carryoverExpiry: carryoverExpiry,
           usedDays: 0,
-          totalDays: entitlement.totalDays + carryoverDays,
+          totalDays: newTotalDays,
         },
       });
 
       console.log(
-        `✅ Processed ${entitlement.id}: +${carryoverDays} carryover, new total: ${
-          entitlement.totalDays + carryoverDays
-        }, expires ${carryoverExpiry ?? "never"}.`,
+        `✅ Processed ${entitlement.id}: +${carryoverDays} carryover, new total: ${newTotalDays}, expires ${carryoverExpiry ?? "never"}.`,
       );
     } catch (error) {
       console.error(`❌ Error on entitlement ${entitlement.id}:`, error);

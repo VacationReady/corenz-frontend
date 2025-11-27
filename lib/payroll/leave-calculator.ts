@@ -4,14 +4,18 @@
  * Calculates annual leave and sick leave accruals
  * in compliance with NZ Holidays Act 2003
  * 
+ * All calculations are rounded to 2 decimal places as per NZ HRIS requirements.
+ * 
  * References:
  * - Holidays Act 2003
  * - https://www.employment.govt.nz/leave-and-holidays/annual-holidays/
  * - https://www.employment.govt.nz/leave-and-holidays/sick-leave/
  * 
- * @version 1.0
+ * @version 1.1
  * @date 2024-11-08
  */
+
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
 // ============================================
 // LEAVE CONSTANTS (Holidays Act 2003)
@@ -202,14 +206,14 @@ function calculateAnnualLeaveAccrual(
     const estimatedHourlyRate = hoursWorked > 0 ? grossEarnings / hoursWorked : 0;
     const accrualInDollars = grossEarnings * ANNUAL_LEAVE_RATE;
     const accrualInHours = estimatedHourlyRate > 0 ? accrualInDollars / estimatedHourlyRate : 0;
-    return Math.round(accrualInHours * 100) / 100;
+    return roundToTwoDecimals(accrualInHours);
   } else {
     // Weeks method: 4 weeks per 52 weeks worked
     // Annual entitlement: contractedWeeklyHours × 4
     // Accrual per hour worked: (contractedWeeklyHours × 4) / (52 × contractedWeeklyHours)
     const accrualRatePerHour = (contractedWeeklyHours * ANNUAL_LEAVE_WEEKS) / (52 * contractedWeeklyHours);
     const accrualInHours = hoursWorked * accrualRatePerHour;
-    return Math.round(accrualInHours * 100) / 100;
+    return roundToTwoDecimals(accrualInHours);
   }
 }
 
@@ -225,8 +229,8 @@ function calculateSickLeaveAccrual(
   const accrualRatePerHour = SICK_LEAVE_HOURS / (52 * contractedWeeklyHours);
   const accrualInHours = hoursWorked * accrualRatePerHour;
   
-  // Cap sick leave balance at 80 hours (10 days)
-  return Math.round(accrualInHours * 100) / 100;
+  // Cap sick leave balance at 80 hours (10 days), rounded to 2 decimal places
+  return roundToTwoDecimals(accrualInHours);
 }
 
 // ============================================
@@ -254,7 +258,7 @@ export function getEmploymentDurationYears(
   currentDate: Date
 ): number {
   const months = getEmploymentDurationMonths(startDate, currentDate);
-  return Math.round((months / 12) * 100) / 100;
+  return roundToTwoDecimals(months / 12);
 }
 
 /**
@@ -266,7 +270,7 @@ export function calculateExpectedAnnualLeaveBalance(
 ): number {
   // 4 weeks per year
   const annualEntitlement = contractedWeeklyHours * ANNUAL_LEAVE_WEEKS;
-  return Math.round(annualEntitlement * employmentYears * 100) / 100;
+  return roundToTwoDecimals(annualEntitlement * employmentYears);
 }
 
 /**
@@ -295,7 +299,7 @@ export function calculateLeavePayout(
   leaveBalance: number,
   hourlyRate: number
 ): number {
-  return Math.round(leaveBalance * hourlyRate * 100) / 100;
+  return roundToTwoDecimals(leaveBalance * hourlyRate);
 }
 
 /**
@@ -309,7 +313,7 @@ export function daysToHours(days: number): number {
  * Convert hours to days (assumes 8-hour days)
  */
 export function hoursToDays(hours: number): number {
-  return Math.round((hours / 8) * 100) / 100;
+  return roundToTwoDecimals(hours / 8);
 }
 
 /**
@@ -414,9 +418,9 @@ export function calculateAnniversaryBasedEntitlement(
   // Calculate annual entitlement for this employee (pro-rated for part-time)
   const annualEntitlement = (daysPerWeek / 5) * fullTimeEntitlement;
   
-  // If current date is past first anniversary, use full entitlement
+  // If current date is past first anniversary, use full entitlement (rounded to 2 decimal places)
   if (currentDate >= anniversaryDate) {
-    return Math.round(annualEntitlement * 2) / 2; // Round to nearest 0.5 days
+    return roundToTwoDecimals(annualEntitlement);
   }
   
   // Calculate days remaining from current date to first anniversary
@@ -426,11 +430,10 @@ export function calculateAnniversaryBasedEntitlement(
     Math.ceil((anniversaryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
   );
   
-  // Calculate pro-rated entitlement
+  // Calculate pro-rated entitlement, rounded to 2 decimal places (NZ HRIS requirement)
   const proratedEntitlement = annualEntitlement * (daysRemaining / totalDaysToAnniversary);
   
-  // Round to nearest 0.5 days
-  return Math.round(proratedEntitlement * 2) / 2;
+  return roundToTwoDecimals(proratedEntitlement);
 }
 
 /**
@@ -487,8 +490,8 @@ export function calculateDaysPerWeek(workingPattern: {
     return 5; // Default to full-time
   }
   
-  // Return average days per week
-  return Math.round((totalDays / weekCount) * 2) / 2; // Round to nearest 0.5
+  // Return average days per week, rounded to 2 decimal places (NZ HRIS requirement)
+  return roundToTwoDecimals(totalDays / weekCount);
 }
 
 /**

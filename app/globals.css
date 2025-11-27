@@ -2877,3 +2877,83 @@ video {
   background: transparent !important;
 }
 
+
+/* Calendar container - ensure no cutoff */
+.calendar-wrapper {
+  overflow: visible !important;
+  width: 100% !important;
+}
+
+.calendar-wrapper .fc {
+  overflow: visible !important;
+}
+
+/* Ensure the card containing calendar doesn't clip */
+.calendar-wrapper,
+.calendar-wrapper > div,
+.fc-view-harness,
+.fc-view,
+.fc-daygrid,
+.fc-scrollgrid,
+.fc-scrollgrid-liquid {
+  overflow: visible !important;
+}
+
+/* Fix table layout to prevent cutoff */
+.fc .fc-scrollgrid {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.fc .fc-scrollgrid-section,
+.fc .fc-scrollgrid-section > td,
+.fc .fc-scrollgrid-section-body {
+  overflow: visible !important;
+}
+
+/* Ensure daygrid body fills width */
+.fc .fc-daygrid-body {
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+.fc .fc-daygrid-body-balanced {
+  width: 100% !important;
+}
+
+.fc table {
+  width: 100% !important;
+}
+
+/* Remove any max-height constraints */
+.fc-view-harness {
+  height: auto !important;
+  min-height: 400px;
+}
+
+
+/* Card containing calendar should not clip */
+.fc-media-screen {
+  overflow: visible !important;
+}
+
+/* Ensure the bg-card parent doesn't clip */
+[class*="bg-card"] .calendar-wrapper {
+  overflow: visible !important;
+}
+
+/* Fix any potential padding/margin issues on calendar container */
+.fc .fc-daygrid-day-frame {
+  overflow: visible !important;
+}
+
+/* Ensure events are fully visible */
+.fc .fc-daygrid-day-events {
+  overflow: visible !important;
+  position: relative;
+}
+
+.fc .fc-daygrid-event-harness {
+  overflow: visible !important;
+}
+

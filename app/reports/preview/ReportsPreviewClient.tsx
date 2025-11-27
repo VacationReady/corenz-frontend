@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { hrReportFields } from "@/lib/hrReportFields";
 import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
+import { deserializeFilterGroup, flattenFilterRules } from "@/lib/reportFilters";
 import { ReportErrorBoundary } from "@/components/reports/ReportErrorBoundary";
 import { resilientPost, ResilientFetchError, createAbortController } from "@/lib/resilientFetch";
 import { 
@@ -456,11 +457,22 @@ function ReportsPreviewClientInner() {
           const report = await res.json();
           setReportConfig(report);
 
-          const savedFilters = Array.isArray(report?.filters)
-            ? report.filters
-            : report?.filters
-            ? [report.filters]
-            : [];
+          // Handle both legacy flat filter arrays and new FilterGroup structure
+          let savedFilters: any[] = [];
+          if (report?.filters) {
+            // Check if it's a FilterGroup structure (has type: "group")
+            if (report.filters.type === "group") {
+              // Deserialize and flatten the FilterGroup to get filter rules
+              const filterGroup = deserializeFilterGroup(report.filters);
+              savedFilters = flattenFilterRules(filterGroup);
+            } else if (Array.isArray(report.filters)) {
+              // Legacy flat array of filters
+              savedFilters = report.filters;
+            } else {
+              // Single filter object - wrap in array
+              savedFilters = [report.filters];
+            }
+          }
           setActiveFilters(savedFilters);
 
           const savedPagination =
@@ -1097,7 +1109,10 @@ function ReportsPreviewClientInner() {
           sort: activeSort || undefined,
         }),
       });
-      if (!res.ok) throw new Error("Failed to save report");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: "Failed to save report" }));
+        throw new Error(errorData.error || "Failed to save report");
+      }
       toast({
         title: "Report saved",
         description: "Your report has been saved successfully.",

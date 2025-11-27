@@ -7,6 +7,7 @@ import { parse } from "csv-parse/sync";
 import { auditLog } from "@/lib/audit";
 import { Prisma, Role } from "@prisma/client";
 import { employeeDomainConfig } from "@/lib/csv-import/domains/employees";
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
 const EMPLOYEE_TEMPLATE_HEADERS = [
   "firstName",
@@ -1180,11 +1181,13 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          const totalDays = holidayTotalBalance ?? holidayCurrentBalance ?? 0;
+          // Round all leave values to 2 decimal places (NZ HRIS requirement)
+          const totalDays = roundToTwoDecimals(holidayTotalBalance ?? holidayCurrentBalance ?? 0);
           const usedDays =
             holidayTotalBalance !== undefined && holidayCurrentBalance !== undefined
-              ? Math.max(holidayTotalBalance - holidayCurrentBalance, 0)
+              ? roundToTwoDecimals(Math.max(holidayTotalBalance - holidayCurrentBalance, 0))
               : 0;
+          const carryoverDaysRounded = roundToTwoDecimals(holidayCarryover ?? 0);
 
           await prisma.leaveEntitlement.upsert({
             where: {
@@ -1196,7 +1199,7 @@ export async function POST(request: NextRequest) {
             update: {
               totalDays,
               usedDays,
-              carryoverDays: holidayCarryover ?? 0,
+              carryoverDays: carryoverDaysRounded,
               daysAllocated: totalDays,
               carryoverExpiry: holidayCarryoverExpiry ?? null,
               updatedAt: new Date(),
@@ -1208,7 +1211,7 @@ export async function POST(request: NextRequest) {
               eventCategoryId: annualCategory.id,
               totalDays,
               usedDays,
-              carryoverDays: holidayCarryover ?? 0,
+              carryoverDays: carryoverDaysRounded,
               daysAllocated: totalDays,
               carryoverExpiry: holidayCarryoverExpiry ?? null,
               updatedAt: new Date(),

@@ -10,6 +10,7 @@ import supabase from "@/lib/supabase-admin";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
 const optionalTrimmedString = z.preprocess(
   (val) => {
@@ -67,16 +68,18 @@ const createEmployeeSchema = z.object({
       }
       if (typeof val === "string") {
         const parsed = Number(val);
-        return Number.isFinite(parsed) ? parsed : undefined;
+        // Round to 2 decimal places (NZ HRIS requirement)
+        return Number.isFinite(parsed) ? roundToTwoDecimals(parsed) : undefined;
       }
       if (typeof val === "number") {
-        return Number.isFinite(val) ? val : undefined;
+        // Round to 2 decimal places (NZ HRIS requirement)
+        return Number.isFinite(val) ? roundToTwoDecimals(val) : undefined;
       }
       return undefined;
     },
     z.number().nonnegative().optional(),
   ),
-  // NZ Leave Compliance Fields
+  // NZ Leave Compliance Fields (all rounded to 2 decimal places per HRIS requirements)
   sickLeaveDays: z.preprocess(
     (val) => {
       if (val === null || val === undefined || val === "") {
@@ -84,10 +87,10 @@ const createEmployeeSchema = z.object({
       }
       if (typeof val === "string") {
         const parsed = Number(val);
-        return Number.isFinite(parsed) && parsed >= 0 ? parsed : 10;
+        return Number.isFinite(parsed) && parsed >= 0 ? roundToTwoDecimals(parsed) : 10;
       }
       if (typeof val === "number") {
-        return Number.isFinite(val) && val >= 0 ? val : 10;
+        return Number.isFinite(val) && val >= 0 ? roundToTwoDecimals(val) : 10;
       }
       return 10;
     },
@@ -100,10 +103,10 @@ const createEmployeeSchema = z.object({
       }
       if (typeof val === "string") {
         const parsed = Number(val);
-        return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+        return Number.isFinite(parsed) && parsed >= 0 ? roundToTwoDecimals(parsed) : 0;
       }
       if (typeof val === "number") {
-        return Number.isFinite(val) && val >= 0 ? val : 0;
+        return Number.isFinite(val) && val >= 0 ? roundToTwoDecimals(val) : 0;
       }
       return 0;
     },
@@ -720,7 +723,7 @@ export async function POST(req: NextRequest) {
             id: crypto.randomUUID(),
             employeeId: employee.id,
             eventCategoryId: annualCategory.id,
-            totalDays: entitlementDays,
+            totalDays: roundToTwoDecimals(entitlementDays),
             usedDays: 0,
             companyId,
             updatedAt: new Date(),

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ApprovalStatus, ApprovalStageMode } from "@prisma/client";
 import { notifyApproversForStage, notifyRequesterStatusChange } from "./approvalNotifications";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
+import { roundToTwoDecimals, addWithPrecision } from "@/lib/decimalPrecision";
 
 async function _activateNextApproverSequential(stageId: string) {
   const next = await prisma.leaveApprovalDecision.findFirst({
@@ -234,7 +235,8 @@ export async function processDecision({
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      const totalDeduction = totalDays.reduce((sum, val) => sum + val, 0);
+      // Round total deduction to 2 decimal places (NZ HRIS requirement)
+      const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
 
       if (totalDeduction > 0) {
         const entitlement = await tx.leaveEntitlement.findFirst({
@@ -248,9 +250,10 @@ export async function processDecision({
           throw new Error("Insufficient leave balance.");
         }
 
+        // Round usedDays to 2 decimal places (NZ HRIS requirement)
         await tx.leaveEntitlement.update({
           where: { id: entitlement.id },
-          data: { usedDays: entitlement.usedDays + totalDeduction },
+          data: { usedDays: addWithPrecision(entitlement.usedDays, totalDeduction) },
         });
       }
     } else if (!enforceEntitlement) {

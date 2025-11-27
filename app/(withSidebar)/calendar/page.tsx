@@ -1228,13 +1228,11 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                     eventClick={handleEventClick}
                     eventContent={renderEventContent}
                     dayCellClassNames={dayCellClassNames}
-                    dayCellContent={dayCellContent}
                     fixedWeekCount={false}
                     weekNumbers={false}
                     nowIndicator={false}
+                    dayMaxEvents={3}
                     height="auto"
-                    contentHeight="auto"
-                    expandRows={true}
                     key={`${tenantTimeSettings.timeZone}`}
                     timeZone={tenantTimeSettings.timeZone}
                   />

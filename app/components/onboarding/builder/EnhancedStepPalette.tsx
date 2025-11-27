@@ -396,7 +396,7 @@ export function EnhancedStepPalette({ stepTypes, onAddStep }: EnhancedStepPalett
                       >
                         <div
                           className={cn(
-                            "w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center",
+                            "w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center",
                             category.color
                           )}
                         >
@@ -483,8 +483,9 @@ function DraggableStepItem({
   });
 
   const style: React.CSSProperties = {
-    transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.5 : 1,
+    // Don't apply transform when dragging - let DragOverlay handle the visual
+    transform: isDragging ? undefined : CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.4 : 1,
   };
 
   const Icon = type.icon;

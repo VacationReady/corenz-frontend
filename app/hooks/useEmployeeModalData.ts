@@ -136,14 +136,16 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     }
   );
 
-  // Employees
+  // Employees - fetch all for line manager dropdown (no pagination limit)
+  // Use status=all to include all employees regardless of isActive status
+  // This ensures system admins and other users appear in the manager dropdown
   const {
     data: employeesData,
     error: employeesError,
     isLoading: employeesLoading,
     mutate: revalidateEmployees,
-  } = useSWRImmutable<EmployeeSummary[]>(
-    enabled ? `/api/employees?_v=${manualRevalidate}` : null,
+  } = useSWRImmutable<{ data: EmployeeSummary[] } | EmployeeSummary[]>(
+    enabled ? `/api/employees?limit=all&status=all&_v=${manualRevalidate}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -251,7 +253,9 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   const jobRoles = Array.isArray(jobRolesData)
     ? jobRolesData
     : (jobRolesData as any)?.jobRoles || [];
-  const employees = Array.isArray(employeesData) ? employeesData : [];
+  const employees = Array.isArray(employeesData)
+    ? employeesData
+    : (employeesData as any)?.data || [];
   const locations = Array.isArray(locationsData) ? locationsData : [];
   const contractTypes = Array.isArray(contractTypesData) ? contractTypesData : [];
   const templates = Array.isArray(templatesData)
@@ -259,6 +263,17 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     : (templatesData as any)?.templates || [];
   const workingPatterns = Array.isArray(workingPatternsData) ? workingPatternsData : [];
   const permissionProfiles = Array.isArray(permissionProfilesData) ? permissionProfilesData : [];
+
+  // Debug logging for employees data
+  if (enabled && !employeesLoading && !employeesError) {
+    console.log("[useEmployeeModalData] Employees loaded:", {
+      rawDataType: typeof employeesData,
+      isArray: Array.isArray(employeesData),
+      hasDataProp: !!(employeesData as any)?.data,
+      normalizedCount: employees.length,
+      companyId,
+    });
+  }
 
   // Normalize templates
   const normalizedTemplates: OnboardingTemplate[] = templates.map((t: any) => ({

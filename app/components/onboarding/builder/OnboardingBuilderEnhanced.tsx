@@ -13,6 +13,7 @@ import {
   KeyboardSensor,
   useDroppable,
 } from "@dnd-kit/core";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { 
   sortableKeyboardCoordinates,
   SortableContext,
@@ -769,7 +770,7 @@ export function OnboardingBuilderEnhanced({
           </AnimatePresence>
 
           {/* Drag Overlay */}
-          <DragOverlay>
+          <DragOverlay modifiers={[snapCenterToCursor]}>
             {activeDragStep ? (
               <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-2xl border border-indigo-200 dark:border-indigo-800">
                 <div className="flex items-center gap-3">

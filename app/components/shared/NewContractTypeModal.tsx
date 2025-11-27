@@ -11,7 +11,7 @@ export default function NewContractTypeModal({
   onAdded,
 }: {
   onClose: () => void;
-  onAdded?: () => void;
+  onAdded?: (created?: { id: string; label: string }) => void;
 }) {
   const [label, setLabel] = useState("");
   const [error, setError] = useState("");
@@ -52,8 +52,9 @@ export default function NewContractTypeModal({
         setError(data.error || "Failed to create option.");
         return;
       }
+      const created = await res.json();
       mutate("/api/audience");
-      onAdded?.();
+      onAdded?.(created);
       setLabel("");
       await load();
       setError("");

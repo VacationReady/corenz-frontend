@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-
-const COOKIE_NAME = "tenant_admin_session";
+import { TENANT_ADMIN_COOKIE_NAME } from "@/lib/tenant-admin-auth";
 
 export async function POST() {
   try {
     const cookieStore = await cookies();
-    cookieStore.delete(COOKIE_NAME);
+    cookieStore.delete(TENANT_ADMIN_COOKIE_NAME);
 
     return NextResponse.json({ success: true });
   } catch (error) {

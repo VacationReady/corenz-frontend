@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { randomBytes } from "crypto";
-
-const COOKIE_NAME = "tenant_admin_session";
+import { verifySignedToken, TENANT_ADMIN_COOKIE_NAME } from "@/lib/tenant-admin-auth";
 
 async function isAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
-  const session = cookieStore.get(COOKIE_NAME);
-  return session?.value === "authenticated";
+  const session = cookieStore.get(TENANT_ADMIN_COOKIE_NAME);
+  if (!session?.value) return false;
+  const { valid } = verifySignedToken(session.value);
+  return valid;
 }
 
 export async function POST(request: NextRequest) {

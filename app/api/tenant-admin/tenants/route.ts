@@ -7,13 +7,14 @@ import { randomBytes, randomUUID } from "crypto";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 import { seedTenantReferenceData } from "@/lib/tenant-seed";
-
-const COOKIE_NAME = "tenant_admin_session";
+import { verifySignedToken, TENANT_ADMIN_COOKIE_NAME } from "@/lib/tenant-admin-auth";
 
 async function isAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
-  const session = cookieStore.get(COOKIE_NAME);
-  return session?.value === "authenticated";
+  const session = cookieStore.get(TENANT_ADMIN_COOKIE_NAME);
+  if (!session?.value) return false;
+  const { valid } = verifySignedToken(session.value);
+  return valid;
 }
 
 const createTenantSchema = z.object({
@@ -368,9 +369,197 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete the company (cascade deletes will handle related records)
-    await prisma.company.delete({
+    // Verify company exists
+    const company = await prisma.company.findUnique({
       where: { id: companyId },
+    });
+
+    if (!company) {
+      return NextResponse.json(
+        { error: "Company not found" },
+        { status: 404 }
+      );
+    }
+
+    // Delete all related records in the correct order within a transaction
+    // Many relations don't have onDelete: Cascade, so we must delete manually
+    await prisma.$transaction(async (tx) => {
+      // Delete user-related records first (depends on User)
+      await tx.activationToken.deleteMany({ where: { user: { companyId } } });
+      await tx.newsBookmark.deleteMany({ where: { companyId } });
+      await tx.newsReaction.deleteMany({ where: { companyId } });
+      
+      // Delete tenant switch tokens
+      await tx.tenantSwitchToken.deleteMany({ where: { companyId } });
+
+      // Delete approval workflow related records
+      await tx.leaveApprovalAction.deleteMany({ where: { stage: { leaveRequest: { companyId } } } });
+      await tx.leaveApprovalStage.deleteMany({ where: { leaveRequest: { companyId } } });
+      await tx.approvalWorkflowAction.deleteMany({ where: { stage: { workflow: { companyId } } } });
+      await tx.approvalWorkflowStage.deleteMany({ where: { workflow: { companyId } } });
+      await tx.approvalWorkflow.deleteMany({ where: { companyId } });
+
+      // Delete leave-related records
+      await tx.leaveRequest.deleteMany({ where: { companyId } });
+      await tx.leaveEntitlement.deleteMany({ where: { companyId } });
+      await tx.leavePolicyAssignment.deleteMany({ where: { companyId } });
+      await tx.leavePolicyRule.deleteMany({ where: { policy: { companyId } } });
+      await tx.leavePolicy.deleteMany({ where: { companyId } });
+
+      // Delete onboarding related records
+      await tx.onboardingReminder.deleteMany({ where: { companyId } });
+      await tx.onboardingStepAuditLog.deleteMany({ where: { companyId } });
+      await tx.onboardingTemplateTelemetryEvent.deleteMany({ where: { companyId } });
+      await tx.onboardingStepInstance.deleteMany({ where: { instance: { employee: { companyId } } } });
+      await tx.onboardingInstance.deleteMany({ where: { employee: { companyId } } });
+      await tx.onboardingStep.deleteMany({ where: { version: { template: { companyId } } } });
+      await tx.templateVersion.deleteMany({ where: { template: { companyId } } });
+      await tx.onboardingTemplate.deleteMany({ where: { companyId } });
+
+      // Delete employee offboarding records
+      await tx.offboardingTask.deleteMany({ where: { offboarding: { employee: { companyId } } } });
+      await tx.exitInterviewResponse.deleteMany({ where: { offboarding: { employee: { companyId } } } });
+      await tx.employeeOffboarding.deleteMany({ where: { employee: { companyId } } });
+      await tx.exitInterviewFormTemplate.deleteMany({ where: { companyId } });
+
+      // Delete document related records
+      await tx.documentSignatureDepartment.deleteMany({ where: { document: { companyId } } });
+      await tx.documentSignatureField.deleteMany({ where: { document: { companyId } } });
+      await tx.documentSignature.deleteMany({ where: { document: { companyId } } });
+      await tx.documentHistory.deleteMany({ where: { document: { companyId } } });
+      await tx.document.deleteMany({ where: { companyId } });
+
+      // Delete form related records
+      await tx.formSubmission.deleteMany({ where: { form: { companyId } } });
+      await tx.form.deleteMany({ where: { companyId } });
+
+      // Delete survey related records
+      await tx.surveyResponse.deleteMany({ where: { survey: { companyId } } });
+      await tx.surveyAutomationExecution.deleteMany({ where: { automation: { companyId } } });
+      await tx.surveyAutomation.deleteMany({ where: { companyId } });
+      await tx.survey.deleteMany({ where: { companyId } });
+
+      // Delete training related records
+      await tx.employeeTraining.deleteMany({ where: { employee: { companyId } } });
+      await tx.course.deleteMany({ where: { companyId } });
+      await tx.trainingProvider.deleteMany({ where: { companyId } });
+
+      // Delete news records
+      await tx.newsPost.deleteMany({ where: { companyId } });
+
+      // Delete automation records
+      await tx.automationExecutionLog.deleteMany({ where: { execution: { companyId } } });
+      await tx.automationExecution.deleteMany({ where: { companyId } });
+      await tx.automationCondition.deleteMany({ where: { rule: { companyId } } });
+      await tx.automationAction.deleteMany({ where: { rule: { companyId } } });
+      await tx.automationJob.deleteMany({ where: { companyId } });
+      await tx.automationRule.deleteMany({ where: { companyId } });
+
+      // Delete event related records
+      await tx.eventRuleOverride.deleteMany({ where: { companyId } });
+      await tx.eventSubcategory.deleteMany({ where: { companyId } });
+      await tx.eventCategory.deleteMany({ where: { companyId } });
+      await tx.expiryRule.deleteMany({ where: { companyId } });
+
+      // Delete saved reports
+      await tx.reportSendHistory.deleteMany({ where: { companyId } });
+      await tx.savedReport.deleteMany({ where: { companyId } });
+
+      // Delete working pattern records
+      await tx.workingPatternDay.deleteMany({ where: { week: { pattern: { companyId } } } });
+      await tx.workingPatternWeek.deleteMany({ where: { pattern: { companyId } } });
+      await tx.workingPattern.deleteMany({ where: { companyId } });
+
+      // Delete notification records
+      await tx.transactionalNotificationPreference.deleteMany({ where: { companyId } });
+      await tx.transactionalChangeRequest.deleteMany({ where: { companyId } });
+      await tx.notificationChannel.deleteMany({ where: { companyId } });
+      await tx.notificationSettings.deleteMany({ where: { companyId } });
+
+      // Delete performance review records
+      await tx.employeePerformanceReview.deleteMany({ where: { companyId } });
+
+      // Delete action items
+      await tx.actionItem.deleteMany({ where: { companyId } });
+
+      // Delete journey related records
+      await tx.journeyComment.deleteMany({ where: { journeyTemplate: { companyId } } });
+      await tx.journeyCollaborator.deleteMany({ where: { journeyTemplate: { companyId } } });
+      await tx.journeyVersion.deleteMany({ where: { journeyTemplate: { companyId } } });
+      await tx.journeyInstance.deleteMany({ where: { journeyTemplate: { companyId } } });
+      await tx.journeyPhase.deleteMany({ where: { journeyTemplate: { companyId } } });
+      await tx.journeyTemplate.deleteMany({ where: { companyId } });
+
+      // Delete persona profiles
+      await tx.personaProfile.deleteMany({ where: { companyId } });
+
+      // Delete company objectives
+      await tx.companyObjective.deleteMany({ where: { companyId } });
+
+      // Delete shift/rota records
+      await tx.shiftSwapRequest.deleteMany({ where: { shift: { companyId } } });
+      await tx.shiftRequirement.deleteMany({ where: { RotaGroup: { companyId } } });
+      await tx.shift.deleteMany({ where: { companyId } });
+      await tx.shiftTemplate.deleteMany({ where: { companyId } });
+      await tx.rotaGroupMember.deleteMany({ where: { RotaGroup: { companyId } } });
+      await tx.rotaGroup.deleteMany({ where: { companyId } });
+
+      // Delete timesheet and payroll records
+      await tx.timesheetEntryAudit.deleteMany({ where: { companyId } });
+      await tx.timesheetApprovalDecision.deleteMany({ where: { stage: { Timesheet: { companyId } } } });
+      await tx.timesheetApprovalStage.deleteMany({ where: { Timesheet: { companyId } } });
+      await tx.timesheetEntry.deleteMany({ where: { Timesheet: { companyId } } });
+      await tx.clockEntry.deleteMany({ where: { companyId } });
+      await tx.timesheet.deleteMany({ where: { companyId } });
+      await tx.overtimeAuditLog.deleteMany({ where: { companyId } });
+      await tx.payrollCalculation.deleteMany({ where: { companyId } });
+
+      // Delete location records
+      await tx.location.deleteMany({ where: { companyId } });
+
+      // Delete global audit logs
+      await tx.globalAuditLog.deleteMany({ where: { companyId } });
+
+      // Delete SSO and SCIM configuration
+      await tx.sCIMConfiguration.deleteMany({ where: { companyId } });
+      await tx.sSOConfiguration.deleteMany({ where: { companyId } });
+
+      // Delete branding configuration
+      await tx.brandingConfiguration.deleteMany({ where: { companyId } });
+
+      // Delete reference data options
+      await tx.contractTypeOption.deleteMany({ where: { companyId } });
+      await tx.employmentTypeOption.deleteMany({ where: { companyId } });
+      await tx.genderOption.deleteMany({ where: { companyId } });
+
+      // Delete employee records (must be before User and Department)
+      await tx.employee.deleteMany({ where: { companyId } });
+
+      // Delete permission profile history before profiles
+      await tx.permissionProfileHistory.deleteMany({ where: { profile: { companyId } } });
+
+      // Clear department head references before deleting users (circular reference)
+      await tx.department.updateMany({ 
+        where: { companyId },
+        data: { headId: null }
+      });
+      
+      // Delete users (after Employee since Employee references User)
+      await tx.user.deleteMany({ where: { companyId } });
+
+      // Delete permission profiles (after User since User references PermissionProfile)
+      await tx.permissionProfile.deleteMany({ where: { companyId } });
+
+      // Delete job roles
+      await tx.jobRole.deleteMany({ where: { companyId } });
+
+      // Delete departments (after User and Employee)
+      await tx.department.deleteMany({ where: { companyId } });
+
+      // Finally delete the company
+      await tx.company.delete({ where: { id: companyId } });
+    }, {
+      timeout: 60000, // 60 second timeout for large tenants
     });
 
     return NextResponse.json({ success: true });

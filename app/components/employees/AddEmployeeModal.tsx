@@ -437,6 +437,7 @@ export default function AddEmployeeModal({
   const [isTaxCodeSelectOpen, setIsTaxCodeSelectOpen] = useState(false);
   const [isHolidayMonthSelectOpen, setIsHolidayMonthSelectOpen] = useState(false);
   const [isWorkingPatternSelectOpen, setIsWorkingPatternSelectOpen] = useState(false);
+  const [isCreatingSelfEmployee, setIsCreatingSelfEmployee] = useState(false);
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -672,6 +673,46 @@ export default function AddEmployeeModal({
   const handleWorkingPatternOpenChange = (open: boolean) => {
     setIsWorkingPatternSelectOpen(open);
     if (!open) setWorkingPatternSearch("");
+  };
+
+  // Create Employee record for the current user (admin) if they don't have one
+  const handleCreateSelfEmployee = async () => {
+    try {
+      setIsCreatingSelfEmployee(true);
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (session?.user?.companyId) {
+        headers["x-company-id"] = session.user.companyId;
+      }
+      
+      const response = await fetch("/api/employees/ensure-self", {
+        method: "POST",
+        headers,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        toast.error(data.error || "Failed to create employee record");
+        return;
+      }
+
+      const result = await response.json();
+      if (result.created) {
+        toast.success("Your employee record has been created! You can now be selected as a manager.");
+      } else if (result.activated) {
+        toast.success("Your employee record has been activated!");
+      } else {
+        toast.info("Your employee record already exists.");
+      }
+
+      // Refresh the employees list
+      modalData.employees.retry();
+    } catch (error) {
+      console.error("Error creating self employee record:", error);
+      toast.error("Failed to create employee record");
+    } finally {
+      setIsCreatingSelfEmployee(false);
+    }
   };
 
   // Data is now fetched via SWR hook - no manual fetchData needed
@@ -1938,8 +1979,32 @@ export default function AddEmployeeModal({
                                 Error loading employees: {modalData.employees.error.message}
                               </div>
                             ) : managerOptions.length === 0 ? (
-                              <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                                {managerSearch.trim() ? "No employees found matching your search" : "No employees available"}
+                              <div className="px-2 py-4 text-center space-y-3">
+                                <p className="text-sm text-muted-foreground">
+                                  {managerSearch.trim() 
+                                    ? "No employees found matching your search" 
+                                    : "No employees available yet."}
+                                </p>
+                                {!managerSearch.trim() && (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN") && (
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-muted-foreground">
+                                      As an admin, you can add yourself as an employee to be available as a manager.
+                                    </p>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCreateSelfEmployee();
+                                      }}
+                                      loading={isCreatingSelfEmployee}
+                                      className="text-xs"
+                                    >
+                                      Add myself as employee
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               managerOptions.map((emp) => (
@@ -2760,8 +2825,12 @@ export default function AddEmployeeModal({
           onClose={() => {
             setContractTypeModalOpen(false);
           }}
-          onAdded={() => {
+          onAdded={(created) => {
             modalData.contractTypes.retry();
+            if (!created) return;
+            setContractTypeModalOpen(false);
+            setFormData((prev) => ({ ...prev, contractType: created.label }));
+            setIsContractTypeSelectOpen(false);
           }}
         />
       )}

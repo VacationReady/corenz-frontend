@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { Role } from "@prisma/client";
 import { resend, PEOPLECORE_FROM_EMAIL } from "@/lib/resend";
 import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
+import { seedTenantReferenceData } from "@/lib/tenant-seed";
 
 const SALT_ROUNDS = 10;
 const ADMIN_ROLE: Role = "ADMIN";
@@ -143,6 +144,16 @@ export async function POST(request: NextRequest) {
     });
     const targetCompanyId = newCompany.id;
     const targetCompanyName = newCompany.name;
+
+    // Seed essential reference data (working patterns, leave types, job roles, etc.)
+    try {
+      await seedTenantReferenceData(prisma, targetCompanyId);
+      console.log(`✅ Tenant reference data seeded for: ${targetCompanyName}`);
+    } catch (seedError) {
+      console.error("Warning: Failed to seed tenant reference data:", seedError);
+      // Don't fail the entire request - admin can still be created
+      // Reference data can be manually added or seeded later
+    }
 
     // Check if admin already exists
     const existingAdmin = await prisma.user.findUnique({

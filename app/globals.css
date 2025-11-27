@@ -2917,7 +2917,7 @@ video {
 .calendar-wrapper .fc .fc-scrollgrid {
   border: 1px solid hsl(var(--border) / 0.4);
   border-radius: 0.5rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .calendar-wrapper .fc .fc-scrollgrid-section > td,
@@ -3168,5 +3168,57 @@ video {
 .calendar-wrapper .fc .fc-daygrid-block-event {
   white-space: nowrap;
   overflow: hidden;
+}
+
+
+/* CRITICAL FIX: Multi-day events MUST span across days */
+/* Override everything with maximum specificity */
+html body .calendar-wrapper .fc .fc-daygrid-body {
+  position: relative !important;
+}
+
+html body .calendar-wrapper .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+html body .calendar-wrapper .fc-daygrid-event-harness {
+  overflow: visible !important;
+}
+
+html body .calendar-wrapper .fc-daygrid-event-harness-abs {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  overflow: visible !important;
+  z-index: 1 !important;
+}
+
+/* The day-events container needs overflow visible for spanning events */
+html body .calendar-wrapper .fc .fc-daygrid-day-frame {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+html body .calendar-wrapper .fc td.fc-daygrid-day {
+  overflow: visible !important;
+  position: relative !important;
+}
+
+/* Ensure scrollgrid allows overflow */
+html body .calendar-wrapper .fc .fc-scrollgrid-sync-inner {
+  overflow: visible !important;
+}
+
+html body .calendar-wrapper .fc .fc-scroller {
+  overflow: visible !important;
+}
+
+html body .calendar-wrapper .fc .fc-scroller-harness {
+  overflow: visible !important;
 }
 

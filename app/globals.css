@@ -3132,3 +3132,41 @@ video {
   min-height: 80px !important;
 }
 
+
+/* FIX: Multi-day events must span across days */
+.calendar-wrapper .fc .fc-daygrid-event-harness {
+  position: relative !important;
+}
+
+.calendar-wrapper .fc .fc-daygrid-event-harness-abs {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+/* Ensure multi-day event bars stretch across days */
+.calendar-wrapper .fc .fc-h-event {
+  display: flex !important;
+  align-items: center;
+}
+
+.calendar-wrapper .fc .fc-event-main {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Fix event rendering in day grid */
+.calendar-wrapper .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
+  position: relative !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure events are not constrained */
+.calendar-wrapper .fc .fc-daygrid-block-event {
+  white-space: nowrap;
+  overflow: hidden;
+}
+

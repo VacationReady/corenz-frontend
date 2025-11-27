@@ -1231,7 +1231,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                     fixedWeekCount={false}
                     weekNumbers={false}
                     nowIndicator={false}
-                    dayMaxEvents={3}
+                    dayMaxEvents={4}
+                    eventDisplay="block"
                     height="auto"
                     key={`${tenantTimeSettings.timeZone}`}
                     timeZone={tenantTimeSettings.timeZone}

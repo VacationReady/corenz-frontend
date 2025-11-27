@@ -8,7 +8,7 @@ import { buildDocumentNotificationEmail } from "@/lib/email/documentNotification
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -32,6 +32,19 @@ export async function PATCH(req: Request) {
   }
 
   try {
+    // ✅ SECURITY: Validate document belongs to requesting user's company before update
+    const existingDoc = await prisma.document.findFirst({
+      where: { 
+        id: documentId,
+        companyId: session.user.companyId 
+      },
+      select: { id: true }
+    });
+
+    if (!existingDoc) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+
     // Update access flags, requiresAck, and reset department/job role M:N relations
     const updatedDoc = await prisma.document.update({
       where: { id: documentId },

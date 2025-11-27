@@ -227,8 +227,12 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      targetEmployee = await prisma.employee.findUnique({
-        where: { id: data.targetEmployeeId },
+      // ✅ SECURITY: Validate company upfront in the query
+      targetEmployee = await prisma.employee.findFirst({
+        where: { 
+          id: data.targetEmployeeId,
+          companyId: requestingEmployee.companyId  // Tenant isolation
+        },
         include: {
           User: {
             select: {
@@ -240,12 +244,8 @@ export async function POST(req: NextRequest) {
       });
 
       if (!targetEmployee) {
+        // Don't reveal if employee exists in another company - return generic 404
         return NextResponse.json({ error: 'Target employee not found' }, { status: 404 });
-      }
-
-      // Check company scoping
-      if (targetEmployee.companyId !== requestingEmployee.companyId) {
-        return NextResponse.json({ error: 'Target employee not in same company' }, { status: 403 });
       }
     }
 
@@ -305,8 +305,14 @@ export async function POST(req: NextRequest) {
         {
           startTime: shift.startTime,
           endTime: shift.endTime,
+          // ✅ SECURITY: Include company validation for defense-in-depth
           location: shift.locationId
-            ? await prisma.location.findUnique({ where: { id: shift.locationId } })
+            ? await prisma.location.findFirst({ 
+                where: { 
+                  id: shift.locationId,
+                  companyId: requestingEmployee.companyId 
+                } 
+              })
             : null,
           notes: shift.notes,
           role: shift.role,

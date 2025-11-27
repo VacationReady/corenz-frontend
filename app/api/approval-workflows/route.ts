@@ -93,7 +93,14 @@ export async function POST(req: Request) {
   }
 
   // Permission: Admin with settings edit
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true, PermissionProfile: true } });
+  // ✅ SECURITY: Include company validation for defense-in-depth
+  const user = await prisma.user.findFirst({ 
+    where: { 
+      id: session.user.id,
+      companyId: session.user.companyId  // Tenant isolation
+    }, 
+    select: { role: true, PermissionProfile: true } 
+  });
   if (!user || user.role !== "ADMIN" || !hasPermission(user as any, "settings", "edit")) {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }

@@ -171,8 +171,8 @@ html,
   /* 6 */
   -webkit-tap-highlight-color: transparent;
   /* 7 */
-  /* Critical: Prevent white flash during hydration by setting immediate background */
-  background-color: #f8f9fc;
+  /* Critical: Prevent white flash - fallback matches original light blue theme (hsl 220 25% 98%) */
+  background-color: #f7f9fb;
 }
 
 /*
@@ -185,8 +185,8 @@ body {
   /* 1 */
   line-height: inherit;
   /* 2 */
-  /* Critical: Prevent white flash - fallback background that matches theme */
-  background-color: #f8f9fc;
+  /* Critical: Prevent white flash - fallback matches original light blue theme (hsl 220 25% 98%) */
+  background-color: #f7f9fb;
 }
 
 /*

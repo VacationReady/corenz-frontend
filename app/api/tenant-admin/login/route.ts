@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "crypto";
-import { rateLimit } from "@/app/lib/rate-limit";
+import { rateLimit } from "@/lib/rate-limit";
 
 const TENANT_ADMIN_PASSWORD = process.env.TENANT_ADMIN_PASSWORD;
 const SECRET = process.env.NEXTAUTH_SECRET || "fallback-secret-change-me";

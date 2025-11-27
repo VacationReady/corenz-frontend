@@ -60,7 +60,6 @@ import { InsightDock } from "./components/InsightDock";
 import { JourneyScopingDialog } from "./components/JourneyScopingDialog";
 import { OnboardingTemplatesTab } from "./components/OnboardingTemplatesTab";
 import { FloatingAIChat } from "./components/FloatingAIChat";
-import { JourneyOnboardingChecklist } from "./components/JourneyOnboardingChecklist";
 import { BlockConfigDrawer } from "./components/BlockConfigDrawer";
 import { AssignJourneyDialog } from "./components/AssignJourneyDialog";
 import { ExperimentWizard } from "./components/ExperimentWizard";
@@ -129,7 +128,6 @@ export default function JourneysPage() {
   const [loading, setLoading] = useState(true);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [showInsightDock, setShowInsightDock] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(true);
   const [analytics, setAnalytics] = useState<any>(null);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showExperimentWizard, setShowExperimentWizard] = useState(false);
@@ -232,9 +230,6 @@ export default function JourneysPage() {
     return null;
   }
 
-  const hasPublishedJourneys = journeys.some(j => j.status === "PUBLISHED");
-  const hasInstances = analytics?.totalInstances > 0;
-
   return (
     <PageShell
       title="Journey Designer"
@@ -248,17 +243,6 @@ export default function JourneysPage() {
       }}
     >
       <div className="space-y-6">
-        {/* Onboarding Checklist */}
-        {showOnboarding && journeys.length < 5 && (
-          <JourneyOnboardingChecklist
-            hasJourneys={journeys.length > 0}
-            hasPublishedJourneys={hasPublishedJourneys}
-            hasInstances={hasInstances}
-            onCreateJourney={handleCreateJourney}
-            onDismiss={() => setShowOnboarding(false)}
-          />
-        )}
-
         {/* Analytics Dashboard - Beautiful Cards */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}

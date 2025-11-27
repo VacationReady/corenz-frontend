@@ -199,6 +199,71 @@ async function main() {
     ],
   );
 
+  // Additional Working Patterns for Production
+  await createWorkingPatternIfMissing(
+    "Compressed Week (Mon-Thu)",
+    "Four 10-hour days Monday to Thursday",
+    [{ weekNumber: 1, days: [
+      { day: "Mon", type: "FULL_DAY" },
+      { day: "Tue", type: "FULL_DAY" },
+      { day: "Wed", type: "FULL_DAY" },
+      { day: "Thu", type: "FULL_DAY" },
+    ]}],
+  );
+
+  await createWorkingPatternIfMissing(
+    "9-Day Fortnight",
+    "Nine days over two weeks with alternate Fridays off",
+    [
+      { weekNumber: 1, days: [
+        { day: "Mon", type: "FULL_DAY" },
+        { day: "Tue", type: "FULL_DAY" },
+        { day: "Wed", type: "FULL_DAY" },
+        { day: "Thu", type: "FULL_DAY" },
+        { day: "Fri", type: "FULL_DAY" },
+      ]},
+      { weekNumber: 2, days: [
+        { day: "Mon", type: "FULL_DAY" },
+        { day: "Tue", type: "FULL_DAY" },
+        { day: "Wed", type: "FULL_DAY" },
+        { day: "Thu", type: "FULL_DAY" },
+      ]},
+    ],
+  );
+
+  await createWorkingPatternIfMissing(
+    "Hybrid (3 Days Office)",
+    "Flexible hybrid working - 3 days in office (Tue-Thu)",
+    [{ weekNumber: 1, days: [
+      { day: "Tue", type: "FULL_DAY" },
+      { day: "Wed", type: "FULL_DAY" },
+      { day: "Thu", type: "FULL_DAY" },
+    ]}],
+  );
+
+  await createWorkingPatternIfMissing(
+    "Weekend Worker",
+    "Saturday and Sunday working pattern",
+    [{ weekNumber: 1, days: [
+      { day: "Sat", type: "FULL_DAY" },
+      { day: "Sun", type: "FULL_DAY" },
+    ]}],
+  );
+
+  await createWorkingPatternIfMissing(
+    "Afternoons Only (Mon-Fri)",
+    "Half-day afternoons Monday to Friday",
+    [{ weekNumber: 1, days: [
+      { day: "Mon", type: "HALF_DAY_PM" },
+      { day: "Tue", type: "HALF_DAY_PM" },
+      { day: "Wed", type: "HALF_DAY_PM" },
+      { day: "Thu", type: "HALF_DAY_PM" },
+      { day: "Fri", type: "HALF_DAY_PM" },
+    ]}],
+  );
+
+  console.log("✅ Working patterns seeded.");
+
   // =============== 5) Permission Profiles ===============
   const adminProfile = await prisma.permissionProfile.upsert({
     where: { companyId_name: { companyId: company.id, name: "Admin" } },
@@ -447,6 +512,15 @@ async function main() {
     { name: "Compassionate Leave", categoryType: "TIME_OFF", requiresApproval: true, adminOnly: false, color: "#8B5CF6", systemDefined: true },
     { name: "Doctor Appointment", categoryType: "TIME_OFF", requiresApproval: false, adminOnly: false, color: "#14B8A6", systemDefined: true },
     { name: "Dentist Appointment", categoryType: "TIME_OFF", requiresApproval: false, adminOnly: false, color: "#0EA5E9", systemDefined: true },
+    // NZ-Compliant Additional Leave Categories
+    { name: "Paternity Leave", categoryType: "TIME_OFF", requiresApproval: true, adminOnly: false, color: "#3B82F6", systemDefined: true },
+    { name: "Bereavement Leave", categoryType: "TIME_OFF", requiresApproval: false, adminOnly: false, color: "#6B7280", systemDefined: true },
+    { name: "Family Violence Leave", categoryType: "TIME_OFF", requiresApproval: false, adminOnly: false, color: "#DC2626", systemDefined: true },
+    { name: "Parental Leave", categoryType: "TIME_OFF", requiresApproval: true, adminOnly: false, color: "#F472B6", systemDefined: true },
+    { name: "Jury Duty", categoryType: "TIME_OFF", requiresApproval: false, adminOnly: false, color: "#78716C", systemDefined: true },
+    { name: "Study Leave", categoryType: "TIME_OFF", requiresApproval: true, adminOnly: false, color: "#A855F7", systemDefined: true },
+    { name: "Time Off in Lieu", categoryType: "TIME_OFF", requiresApproval: true, adminOnly: false, color: "#F59E0B", systemDefined: true },
+    { name: "Long Service Leave", categoryType: "TIME_OFF", requiresApproval: true, adminOnly: false, color: "#10B981", systemDefined: true },
   ];
   for (const cat of systemCategories) {
     const saved = await prisma.eventCategory.upsert({
@@ -1109,6 +1183,1033 @@ async function main() {
   }
 
   */
+
+  // =============== 14) Standard Onboarding Template ===============
+  console.log("📋 Seeding onboarding templates...");
+
+  const existingOnboardingTemplate = await prisma.onboardingTemplate.findFirst({
+    where: { companyId: company.id, name: "Standard New Starter" }
+  });
+
+  if (!existingOnboardingTemplate) {
+    await prisma.onboardingTemplate.create({
+      data: {
+        id: randomUUID(),
+        companyId: company.id,
+        name: "Standard New Starter",
+        description: "Comprehensive onboarding journey for all new employees",
+        isDefault: true,
+        isActive: true,
+        version: 1,
+        OnboardingStep: {
+          create: [
+            {
+              id: randomUUID(),
+              type: "INSTRUCTION",
+              label: "Welcome to the Team",
+              order: 1,
+              instruction: "Welcome! We're excited to have you join us. This onboarding process will guide you through everything you need to get started.",
+              metadata: { category: "Welcome" },
+            },
+            {
+              id: randomUUID(),
+              type: "ACKNOWLEDGE_DOCUMENT",
+              label: "Employee Handbook",
+              order: 2,
+              instruction: "Please read and acknowledge our employee handbook which outlines company policies and procedures.",
+              metadata: { category: "Documentation" },
+            },
+            {
+              id: randomUUID(),
+              type: "UPLOAD_DOCUMENT",
+              label: "Upload ID Photo",
+              order: 3,
+              uploadType: "OTHER",
+              instruction: "Please upload a professional photo for your employee profile and ID badge.",
+              metadata: { category: "Documentation" },
+            },
+            {
+              id: randomUUID(),
+              type: "UPLOAD_DOCUMENT",
+              label: "Right to Work Documentation",
+              order: 4,
+              uploadType: "RIGHT_TO_WORK",
+              instruction: "Please upload documentation proving your right to work (passport, visa, etc.).",
+              metadata: { category: "Compliance" },
+            },
+            {
+              id: randomUUID(),
+              type: "UPLOAD_DOCUMENT",
+              label: "Bank Details",
+              order: 5,
+              uploadType: "OTHER",
+              instruction: "Please upload a bank statement or void cheque for payroll setup.",
+              metadata: { category: "Payroll" },
+            },
+            {
+              id: randomUUID(),
+              type: "INSTRUCTION",
+              label: "Tax Code Declaration",
+              order: 6,
+              instruction: "Please complete your IR330 tax code declaration form for IRD.",
+              metadata: { category: "Payroll" },
+            },
+            {
+              id: randomUUID(),
+              type: "INSTRUCTION",
+              label: "KiwiSaver Enrollment",
+              order: 7,
+              instruction: "Review and confirm your KiwiSaver preferences. You can opt in, opt out, or choose your contribution rate.",
+              metadata: { category: "Payroll" },
+            },
+            {
+              id: randomUUID(),
+              type: "EQUIPMENT_CHECKLIST",
+              label: "IT Equipment Setup",
+              order: 8,
+              instruction: "Your IT equipment will be prepared. Please confirm receipt of all items.",
+              metadata: { 
+                category: "IT Setup",
+                checklist: ["Laptop", "Mouse", "Keyboard", "Monitor", "Headset", "Security Badge"]
+              },
+            },
+            {
+              id: randomUUID(),
+              type: "SYSTEM_ACCESS",
+              label: "System Access & Accounts",
+              order: 9,
+              instruction: "Your accounts for company systems will be created. Please verify access to email, Teams/Slack, and other required systems.",
+              metadata: { category: "IT Setup" },
+            },
+            {
+              id: randomUUID(),
+              type: "COMPLIANCE_TRAINING",
+              label: "Health & Safety Induction",
+              order: 10,
+              instruction: "Complete the mandatory health and safety induction training.",
+              metadata: { category: "Training" },
+            },
+            {
+              id: randomUUID(),
+              type: "MANAGER_CHECKIN",
+              label: "Manager Introduction Meeting",
+              order: 11,
+              instruction: "Your manager will schedule a welcome meeting to discuss your role, expectations, and answer any questions.",
+              metadata: { category: "Orientation" },
+            },
+            {
+              id: randomUUID(),
+              type: "BUDDY_INTRODUCTION",
+              label: "Meet Your Buddy",
+              order: 12,
+              instruction: "You'll be introduced to your onboarding buddy who can help you navigate the company.",
+              metadata: { category: "Orientation" },
+            },
+            {
+              id: randomUUID(),
+              type: "PROBATION_GOALS",
+              label: "Set Probation Goals",
+              order: 13,
+              instruction: "Work with your manager to set clear goals and expectations for your probation period.",
+              metadata: { category: "Performance" },
+            },
+            {
+              id: randomUUID(),
+              type: "WELCOME_SURVEY",
+              label: "First Week Feedback",
+              order: 14,
+              instruction: "Please share your feedback on your first week experience.",
+              metadata: { category: "Feedback" },
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  console.log("✅ Onboarding templates seeded.");
+
+  // =============== 15) Exit Interview Form Template ===============
+  console.log("📝 Seeding exit interview templates...");
+
+  const existingExitTemplate = await prisma.exitInterviewFormTemplate.findFirst({
+    where: { companyId: company.id, name: "Standard Exit Interview" }
+  });
+
+  if (!existingExitTemplate) {
+    await prisma.exitInterviewFormTemplate.create({
+      data: {
+        id: randomUUID(),
+        name: "Standard Exit Interview",
+        description: "Comprehensive exit interview to gather feedback from departing employees",
+        isActive: true,
+        updatedAt: new Date(),
+        Company: { connect: { id: company.id } },
+        schemaJson: {
+          sections: [
+            {
+              title: "Reason for Leaving",
+              questions: [
+                {
+                  id: "reason_primary",
+                  type: "multipleChoice",
+                  question: "What is your primary reason for leaving?",
+                  required: true,
+                  options: [
+                    "Career advancement opportunity",
+                    "Better compensation/benefits",
+                    "Work-life balance",
+                    "Relocation",
+                    "Management/leadership issues",
+                    "Company culture",
+                    "Personal reasons",
+                    "Return to study",
+                    "Retirement",
+                    "Other"
+                  ]
+                },
+                {
+                  id: "reason_details",
+                  type: "textarea",
+                  question: "Please provide more details about your reason for leaving:",
+                  required: false
+                }
+              ]
+            },
+            {
+              title: "Job Satisfaction",
+              questions: [
+                {
+                  id: "job_satisfaction",
+                  type: "rating",
+                  question: "Overall, how satisfied were you with your job?",
+                  required: true,
+                  min: 1,
+                  max: 5,
+                  labels: ["Very Dissatisfied", "Dissatisfied", "Neutral", "Satisfied", "Very Satisfied"]
+                },
+                {
+                  id: "role_clarity",
+                  type: "rating",
+                  question: "How clear were the expectations and responsibilities of your role?",
+                  required: true,
+                  min: 1,
+                  max: 5
+                },
+                {
+                  id: "workload",
+                  type: "rating",
+                  question: "How manageable was your workload?",
+                  required: true,
+                  min: 1,
+                  max: 5
+                }
+              ]
+            },
+            {
+              title: "Management & Leadership",
+              questions: [
+                {
+                  id: "manager_support",
+                  type: "rating",
+                  question: "How would you rate the support received from your direct manager?",
+                  required: true,
+                  min: 1,
+                  max: 5
+                },
+                {
+                  id: "manager_feedback",
+                  type: "rating",
+                  question: "How would you rate the quality and frequency of feedback from your manager?",
+                  required: true,
+                  min: 1,
+                  max: 5
+                },
+                {
+                  id: "leadership_confidence",
+                  type: "rating",
+                  question: "How confident were you in the company's leadership?",
+                  required: true,
+                  min: 1,
+                  max: 5
+                }
+              ]
+            },
+            {
+              title: "Work Environment",
+              questions: [
+                {
+                  id: "team_collaboration",
+                  type: "rating",
+                  question: "How would you rate team collaboration and support?",
+                  required: true,
+                  min: 1,
+                  max: 5
+                },
+                {
+                  id: "company_culture",
+                  type: "rating",
+                  question: "How would you rate the company culture?",
+                  required: true,
+                  min: 1,
+                  max: 5
+                },
+                {
+                  id: "work_life_balance",
+                  type: "rating",
+                  question: "How satisfied were you with work-life balance?",
+                  required: true,
+                  min: 1,
+                  max: 5
+                }
+              ]
+            },
+            {
+              title: "Growth & Development",
+              questions: [
+                {
+                  id: "career_growth",
+                  type: "rating",
+                  question: "How satisfied were you with career growth opportunities?",
+                  required: true,
+                  min: 1,
+                  max: 5
+                },
+                {
+                  id: "training_opportunities",
+                  type: "rating",
+                  question: "How satisfied were you with training and development opportunities?",
+                  required: true,
+                  min: 1,
+                  max: 5
+                }
+              ]
+            },
+            {
+              title: "Final Thoughts",
+              questions: [
+                {
+                  id: "recommend_employer",
+                  type: "rating",
+                  question: "How likely are you to recommend this company as an employer? (0-10)",
+                  required: true,
+                  min: 0,
+                  max: 10
+                },
+                {
+                  id: "return_consideration",
+                  type: "multipleChoice",
+                  question: "Would you consider returning to this company in the future?",
+                  required: true,
+                  options: ["Yes, definitely", "Possibly", "Unlikely", "No"]
+                },
+                {
+                  id: "improvements",
+                  type: "textarea",
+                  question: "What could the company do to improve as an employer?",
+                  required: false
+                },
+                {
+                  id: "positive_aspects",
+                  type: "textarea",
+                  question: "What did you enjoy most about working here?",
+                  required: false
+                },
+                {
+                  id: "additional_comments",
+                  type: "textarea",
+                  question: "Any other comments or feedback you'd like to share?",
+                  required: false
+                }
+              ]
+            }
+          ]
+        },
+      },
+    });
+  }
+
+  console.log("✅ Exit interview templates seeded.");
+
+  // =============== 16) Additional Job Roles ===============
+  console.log("💼 Seeding additional job roles...");
+
+  const additionalJobRoles = [
+    "Chief Executive Officer",
+    "Director",
+    "Team Lead",
+    "Project Manager",
+    "Business Analyst",
+    "Data Analyst",
+    "UX/UI Designer",
+    "Product Manager",
+    "Receptionist",
+    "Office Manager",
+    "Health & Safety Officer",
+    "Training Coordinator",
+    "Accountant",
+    "Payroll Administrator",
+  ];
+  
+  for (const name of additionalJobRoles) {
+    await prisma.jobRole.upsert({
+      where: { companyId_name: { companyId: company.id, name } },
+      update: { updatedAt: new Date() },
+      create: {
+        id: randomUUID(),
+        name,
+        companyId: company.id,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  console.log("✅ Additional job roles seeded.");
+
+  // =============== 17) Training Courses & Provider ===============
+  console.log("🎓 Seeding training courses and providers...");
+
+  const internalProvider = await prisma.trainingProvider.upsert({
+    where: { name: "Internal Training" },
+    update: {},
+    create: {
+      id: randomUUID(),
+      name: "Internal Training",
+      companyId: company.id,
+    },
+  });
+
+  const standardCourses = [
+    "Health & Safety Induction",
+    "First Aid Awareness",
+    "Fire Safety & Evacuation",
+    "Manual Handling",
+    "Privacy & Data Protection",
+    "Anti-Harassment & Bullying",
+    "Cybersecurity Awareness",
+    "New Manager Essentials",
+  ];
+
+  for (const courseName of standardCourses) {
+    await prisma.course.upsert({
+      where: { name: courseName },
+      update: {},
+      create: {
+        id: randomUUID(),
+        name: courseName,
+        companyId: company.id,
+      },
+    });
+  }
+
+  console.log("✅ Training courses and provider seeded.");
+
+  // =============== 18) Gender Options ===============
+  console.log("👤 Seeding gender options...");
+
+  const genderOptions = [
+    { key: "male", label: "Male", order: 1 },
+    { key: "female", label: "Female", order: 2 },
+    { key: "non_binary", label: "Non-binary", order: 3 },
+    { key: "prefer_not_to_say", label: "Prefer not to say", order: 4 },
+    { key: "other", label: "Other", order: 5 },
+  ];
+
+  for (const option of genderOptions) {
+    await prisma.genderOption.upsert({
+      where: { companyId_key: { companyId: company.id, key: option.key } },
+      update: { label: option.label, order: option.order, updatedAt: new Date() },
+      create: {
+        id: randomUUID(),
+        companyId: company.id,
+        key: option.key,
+        label: option.label,
+        order: option.order,
+        active: true,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  console.log("✅ Gender options seeded.");
+
+  // =============== 19) Contract Type Options ===============
+  console.log("📄 Seeding contract type options...");
+
+  const contractTypeOptions = [
+    { label: "Permanent", order: 1 },
+    { label: "Fixed Term", order: 2 },
+    { label: "Casual", order: 3 },
+    { label: "Seasonal", order: 4 },
+  ];
+
+  for (const option of contractTypeOptions) {
+    await prisma.contractTypeOption.upsert({
+      where: { companyId_label: { companyId: company.id, label: option.label } },
+      update: { order: option.order },
+      create: {
+        id: randomUUID(),
+        companyId: company.id,
+        label: option.label,
+        order: option.order,
+      },
+    });
+  }
+
+  console.log("✅ Contract type options seeded.");
+
+  // =============== 20) Approval Workflows ===============
+  console.log("✅ Seeding approval workflows...");
+
+  // Get Annual Leave category for workflows
+  const annualLeaveCategory = await prisma.eventCategory.findFirst({
+    where: { companyId: company.id, name: "Annual Leave" }
+  });
+
+  if (annualLeaveCategory) {
+    // Standard Leave Approval - Manager only
+    const existingStandardWorkflow = await prisma.approvalWorkflow.findFirst({
+      where: { companyId: company.id, name: "Standard Leave Approval" }
+    });
+
+    if (!existingStandardWorkflow) {
+      await prisma.approvalWorkflow.create({
+        data: {
+          id: randomUUID(),
+          companyId: company.id,
+          name: "Standard Leave Approval",
+          eventCategoryId: annualLeaveCategory.id,
+          scopeType: "COMPANY",
+          priority: 0,
+          isActive: true,
+          stages: {
+            create: [
+              {
+                id: randomUUID(),
+                name: "Manager Approval",
+                order: 1,
+                mode: "FIRST_RESPONDER",
+                approvers: {
+                  create: [
+                    {
+                      id: randomUUID(),
+                      type: "MANAGER",
+                      order: 1,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      });
+    }
+
+    // Extended Leave Approval - Manager then HR for leave > 5 days
+    const existingExtendedWorkflow = await prisma.approvalWorkflow.findFirst({
+      where: { companyId: company.id, name: "Extended Leave Approval" }
+    });
+
+    if (!existingExtendedWorkflow) {
+      await prisma.approvalWorkflow.create({
+        data: {
+          id: randomUUID(),
+          companyId: company.id,
+          name: "Extended Leave Approval",
+          eventCategoryId: annualLeaveCategory.id,
+          scopeType: "COMPANY",
+          priority: 1,
+          isActive: false, // Not active by default, companies can enable if needed
+          stages: {
+            create: [
+              {
+                id: randomUUID(),
+                name: "Manager Approval",
+                order: 1,
+                mode: "FIRST_RESPONDER",
+                approvers: {
+                  create: [
+                    {
+                      id: randomUUID(),
+                      type: "MANAGER",
+                      order: 1,
+                    },
+                  ],
+                },
+              },
+              {
+                id: randomUUID(),
+                name: "HR Review",
+                order: 2,
+                mode: "FIRST_RESPONDER",
+                approvers: {
+                  create: [
+                    {
+                      id: randomUUID(),
+                      type: "USER",
+                      userId: adminUser.id,
+                      order: 1,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      });
+    }
+  }
+
+  console.log("✅ Approval workflows seeded.");
+
+  // =============== 21) Additional Performance Templates ===============
+  console.log("🎯 Seeding additional performance templates...");
+
+  // 360 Feedback Review
+  const existing360 = await prisma.performanceTemplate.findFirst({
+    where: { companyId: company.id, name: "360 Feedback Review" }
+  });
+
+  if (!existing360) {
+    await prisma.performanceTemplate.create({
+      data: {
+        id: randomUUID(),
+        companyId: company.id,
+        name: "360 Feedback Review",
+        description: "Multi-rater feedback review gathering input from managers, peers, and direct reports",
+        type: "ANNUAL_REVIEW",
+        icon: "🔄",
+        isDefault: false,
+        isActive: true,
+        tags: ["360", "feedback", "multi-rater"],
+        visibility: "COMPANY",
+        createdBy: superAdmin.id,
+        sections: {
+          create: [
+            {
+              id: randomUUID(),
+              title: "Leadership & Influence",
+              description: "Rate leadership qualities and influence",
+              order: 1,
+              isRequired: true,
+              questions: {
+                create: [
+                  {
+                    id: randomUUID(),
+                    question: "Demonstrates strong leadership skills",
+                    type: "RATING",
+                    order: 1,
+                    isRequired: true,
+                    options: { min: 1, max: 5, labels: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "Inspires and motivates others",
+                    type: "RATING",
+                    order: 2,
+                    isRequired: true,
+                    options: { min: 1, max: 5 },
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "Comments on leadership",
+                    type: "TEXTAREA",
+                    order: 3,
+                    isRequired: false,
+                  },
+                ],
+              },
+            },
+            {
+              id: randomUUID(),
+              title: "Communication",
+              description: "Evaluate communication effectiveness",
+              order: 2,
+              isRequired: true,
+              questions: {
+                create: [
+                  {
+                    id: randomUUID(),
+                    question: "Communicates clearly and effectively",
+                    type: "RATING",
+                    order: 1,
+                    isRequired: true,
+                    options: { min: 1, max: 5 },
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "Listens actively and considers others' viewpoints",
+                    type: "RATING",
+                    order: 2,
+                    isRequired: true,
+                    options: { min: 1, max: 5 },
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "Provides constructive feedback",
+                    type: "RATING",
+                    order: 3,
+                    isRequired: true,
+                    options: { min: 1, max: 5 },
+                  },
+                ],
+              },
+            },
+            {
+              id: randomUUID(),
+              title: "Teamwork & Collaboration",
+              description: "Assess collaboration abilities",
+              order: 3,
+              isRequired: true,
+              questions: {
+                create: [
+                  {
+                    id: randomUUID(),
+                    question: "Works effectively with team members",
+                    type: "RATING",
+                    order: 1,
+                    isRequired: true,
+                    options: { min: 1, max: 5 },
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "Shares knowledge and helps others succeed",
+                    type: "RATING",
+                    order: 2,
+                    isRequired: true,
+                    options: { min: 1, max: 5 },
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "Handles conflict constructively",
+                    type: "RATING",
+                    order: 3,
+                    isRequired: true,
+                    options: { min: 1, max: 5 },
+                  },
+                ],
+              },
+            },
+            {
+              id: randomUUID(),
+              title: "Open Feedback",
+              description: "Provide additional feedback",
+              order: 4,
+              isRequired: false,
+              questions: {
+                create: [
+                  {
+                    id: randomUUID(),
+                    question: "What are this person's greatest strengths?",
+                    type: "TEXTAREA",
+                    order: 1,
+                    isRequired: false,
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "What areas could they improve?",
+                    type: "TEXTAREA",
+                    order: 2,
+                    isRequired: false,
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "Any additional feedback?",
+                    type: "TEXTAREA",
+                    order: 3,
+                    isRequired: false,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  // Goals/OKR Check-in
+  const existingGoalsCheckin = await prisma.performanceTemplate.findFirst({
+    where: { companyId: company.id, name: "Goals/OKR Check-in" }
+  });
+
+  if (!existingGoalsCheckin) {
+    await prisma.performanceTemplate.create({
+      data: {
+        id: randomUUID(),
+        companyId: company.id,
+        name: "Goals/OKR Check-in",
+        description: "Regular check-in on goals and key results progress",
+        type: "ONE_TO_ONE",
+        icon: "🎯",
+        isDefault: false,
+        isActive: true,
+        tags: ["goals", "OKR", "check-in"],
+        visibility: "COMPANY",
+        createdBy: superAdmin.id,
+        sections: {
+          create: [
+            {
+              id: randomUUID(),
+              title: "Goals Review",
+              description: "Review progress on current goals",
+              order: 1,
+              isRequired: true,
+              questions: {
+                create: [
+                  {
+                    id: randomUUID(),
+                    question: "What progress have you made on your goals since our last check-in?",
+                    type: "TEXTAREA",
+                    order: 1,
+                    isRequired: true,
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "Overall goal completion percentage",
+                    type: "RATING",
+                    order: 2,
+                    isRequired: true,
+                    options: { min: 0, max: 100, unit: "%" },
+                  },
+                ],
+              },
+            },
+            {
+              id: randomUUID(),
+              title: "Blockers & Support",
+              description: "Identify obstacles and support needed",
+              order: 2,
+              isRequired: true,
+              questions: {
+                create: [
+                  {
+                    id: randomUUID(),
+                    question: "What blockers or challenges are you facing?",
+                    type: "TEXTAREA",
+                    order: 1,
+                    isRequired: false,
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "What support do you need to achieve your goals?",
+                    type: "TEXTAREA",
+                    order: 2,
+                    isRequired: false,
+                  },
+                ],
+              },
+            },
+            {
+              id: randomUUID(),
+              title: "Next Steps",
+              description: "Plan for the next period",
+              order: 3,
+              isRequired: true,
+              questions: {
+                create: [
+                  {
+                    id: randomUUID(),
+                    question: "What are your priorities for the next check-in period?",
+                    type: "TEXTAREA",
+                    order: 1,
+                    isRequired: true,
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "Do any goals need to be adjusted?",
+                    type: "TEXTAREA",
+                    order: 2,
+                    isRequired: false,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  // Self-Assessment Review
+  const existingSelfAssessment = await prisma.performanceTemplate.findFirst({
+    where: { companyId: company.id, name: "Self-Assessment" }
+  });
+
+  if (!existingSelfAssessment) {
+    await prisma.performanceTemplate.create({
+      data: {
+        id: randomUUID(),
+        companyId: company.id,
+        name: "Self-Assessment",
+        description: "Employee self-reflection and assessment template",
+        type: "ANNUAL_REVIEW",
+        icon: "📝",
+        isDefault: false,
+        isActive: true,
+        tags: ["self-assessment", "review", "reflection"],
+        visibility: "COMPANY",
+        createdBy: superAdmin.id,
+        sections: {
+          create: [
+            {
+              id: randomUUID(),
+              title: "Achievements",
+              description: "Reflect on your accomplishments",
+              order: 1,
+              isRequired: true,
+              questions: {
+                create: [
+                  {
+                    id: randomUUID(),
+                    question: "What are your most significant achievements this review period?",
+                    type: "TEXTAREA",
+                    order: 1,
+                    isRequired: true,
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "How did you contribute to team/company goals?",
+                    type: "TEXTAREA",
+                    order: 2,
+                    isRequired: true,
+                  },
+                ],
+              },
+            },
+            {
+              id: randomUUID(),
+              title: "Skills & Growth",
+              description: "Assess your skills and development",
+              order: 2,
+              isRequired: true,
+              questions: {
+                create: [
+                  {
+                    id: randomUUID(),
+                    question: "What new skills have you developed?",
+                    type: "TEXTAREA",
+                    order: 1,
+                    isRequired: false,
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "What areas would you like to improve?",
+                    type: "TEXTAREA",
+                    order: 2,
+                    isRequired: true,
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "How would you rate your overall performance?",
+                    type: "RATING",
+                    order: 3,
+                    isRequired: true,
+                    options: { min: 1, max: 5, labels: ["Needs Improvement", "Developing", "Meets Expectations", "Exceeds Expectations", "Exceptional"] },
+                  },
+                ],
+              },
+            },
+            {
+              id: randomUUID(),
+              title: "Career Goals",
+              description: "Plan your career development",
+              order: 3,
+              isRequired: true,
+              questions: {
+                create: [
+                  {
+                    id: randomUUID(),
+                    question: "What are your career aspirations?",
+                    type: "TEXTAREA",
+                    order: 1,
+                    isRequired: false,
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "What training or development would help you achieve your goals?",
+                    type: "TEXTAREA",
+                    order: 2,
+                    isRequired: false,
+                  },
+                  {
+                    id: randomUUID(),
+                    question: "How can your manager better support you?",
+                    type: "TEXTAREA",
+                    order: 3,
+                    isRequired: false,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  console.log("✅ Additional performance templates seeded.");
+
+  // =============== 22) Company Settings ===============
+  console.log("⚙️ Seeding company settings...");
+
+  // Update company with NZ public holiday template
+  await prisma.company.update({
+    where: { id: company.id },
+    data: {
+      publicHolidayTemplate: "NZ",
+      publicHolidayRegion: "Auckland",
+    },
+  });
+
+  // Create default notification settings
+  const existingNotificationSettings = await prisma.notificationSettings.findUnique({
+    where: { companyId: company.id }
+  });
+
+  if (!existingNotificationSettings) {
+    await prisma.notificationSettings.create({
+      data: {
+        id: randomUUID(),
+        companyId: company.id,
+        dailyDigestEnabled: false,
+        weeklyDigestEnabled: true,
+        digestRecipients: [],
+        emailTemplateEnabled: true,
+        defaultChannels: {
+          leaveRequests: ["EMAIL"],
+          onboarding: ["EMAIL"],
+          expiryAlerts: ["EMAIL"],
+          performance: ["EMAIL"],
+        },
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  // Create additional expiry rules
+  const additionalExpiryRules = [
+    { category: "Work Visa", daysBefore: 90, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+    { category: "Professional License", daysBefore: 60, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+    { category: "Police Check", daysBefore: 30, notifyAdmin: true, notifyManager: false, notifyEmployee: true },
+    { category: "First Aid Certificate", daysBefore: 45, notifyAdmin: true, notifyManager: true, notifyEmployee: true },
+  ];
+
+  for (const rule of additionalExpiryRules) {
+    await prisma.expiryRule.upsert({
+      where: { category: rule.category },
+      update: {
+        daysBefore: rule.daysBefore,
+        notifyAdmin: rule.notifyAdmin,
+        notifyManager: rule.notifyManager,
+        notifyEmployee: rule.notifyEmployee,
+        updatedAt: new Date(),
+      },
+      create: { id: randomUUID(), companyId: company.id, updatedAt: new Date(), ...rule },
+    });
+  }
+
+  console.log("✅ Company settings seeded.");
 
   console.log("🎉 Seed complete.");
 }

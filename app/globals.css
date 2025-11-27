@@ -1664,7 +1664,7 @@ video {
 
 /* Default leave event background - blue gradient */
 .fc .fc-event:not(.fc-bg-event) {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
 }
 
 .fc .fc-event:hover {

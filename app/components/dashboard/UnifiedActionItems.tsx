@@ -232,6 +232,9 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
     // Don't process if session is still loading
     if (isLoadingSession) return;
 
+    // Track if this effect run is still valid (prevents race conditions)
+    let isStale = false;
+
     const processActions = async () => {
       const items: ActionItem[] = [];
 
@@ -492,6 +495,9 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
         return 0;
       });
 
+      // Only update state if this effect run is still valid (prevents race conditions)
+      if (isStale) return;
+
       setActionItems(items);
       // Mark initial load as complete after first successful processing
       if (!initialLoadComplete) {
@@ -500,7 +506,12 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
     };
 
     processActions();
-  }, [dbActionItems, onboardingData, employeeDocs, companyDocs, loadingEmpDocs, loadingCompanyDocs, txnRequests, approvals, isManager, mutateActionItems, initialLoadComplete, isLoadingSession, tenantFetch]);
+
+    // Cleanup: mark this effect run as stale if dependencies change before async completes
+    return () => {
+      isStale = true;
+    };
+  }, [dbActionItems, onboardingData, employeeDocs, companyDocs, loadingEmpDocs, loadingCompanyDocs, txnRequests, approvals, isManager, mutateActionItems, isLoadingSession, tenantFetch]);
 
   const handleQuickApprove = async () => {
     setProcessing("quick-approve");

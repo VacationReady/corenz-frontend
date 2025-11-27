@@ -1,4 +1,4 @@
-@import "react-day-picker/dist/style.css";
+﻿@import "react-day-picker/dist/style.css";
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&display=swap');
 
 @tailwind base;
@@ -1521,8 +1521,25 @@ video {
   --fc-today-bg-color: hsl(var(--primary) / 0.08);
   --fc-highlight-color: hsl(var(--primary) / 0.1);
   --fc-page-bg-color: transparent;
-  font-family: inherit;
+  --fc-now-indicator-color: transparent;
+  --fc-event-bg-color: #3b82f6;
+  --fc-event-border-color: #2563eb;
+  --fc-event-text-color: #ffffff;
+    font-family: inherit;
 }
+/* Remove any scrollgrid borders that could appear as vertical bars */
+.fc .fc-scrollgrid {
+  border: none !important;
+}
+
+.fc .fc-scrollgrid-section > td {
+  border: none !important;
+}
+
+.fc .fc-scrollgrid-sync-table {
+  border: none !important;
+}
+
 
 /* Header styling */
 .fc .fc-toolbar {
@@ -1566,7 +1583,7 @@ video {
 }
 
 .fc .fc-daygrid-day-frame {
-  min-height: 65px;
+  min-height: 80px;
   padding: 0.125rem;
 }
 
@@ -1643,6 +1660,11 @@ video {
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   margin-bottom: 1px;
+}
+
+/* Default leave event background - blue gradient */
+.fc .fc-event:not(.fc-bg-event) {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
 .fc .fc-event:hover {
@@ -1740,6 +1762,8 @@ video {
   border-radius: 50%;
   width: 10px;
   height: 10px;
+  background: #3b82f6 !important;
+  border-color: #2563eb !important;
 }
 
 /* Scrollbar styling for calendar */
@@ -2175,7 +2199,7 @@ video {
 
   /* Category-specific modern chip colors */
   .cz-chip-modern--annual {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     border: 1px solid rgba(255, 255, 255, 0.15);
   }
 

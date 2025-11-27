@@ -1230,6 +1230,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                     dayCellClassNames={dayCellClassNames}
                     dayCellContent={dayCellContent}
                     fixedWeekCount={false}
+                    weekNumbers={false}
                     height="auto"
                     key={`${tenantTimeSettings.timeZone}`}
                     timeZone={tenantTimeSettings.timeZone}

@@ -1664,7 +1664,7 @@ video {
 
 /* Default leave event background - blue gradient */
 .fc .fc-event:not(.fc-bg-event) {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); !important;
 }
 
 .fc .fc-event:hover {
@@ -2810,3 +2810,70 @@ video {
     /* Firefox */
   }
 }
+
+/* Fix week number showing as 0 - hide completely */
+.fc .fc-daygrid-week-number,
+.fc .fc-col-header-cell.fc-day-other,
+.fc td.fc-daygrid-week-number {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* Ensure calendar body is fully visible without cutoff */
+.fc .fc-daygrid-body {
+  width: 100% !important;
+}
+
+.fc .fc-scrollgrid-section-body > td {
+  padding-bottom: 0 !important;
+}
+
+.fc .fc-view-harness {
+  min-height: auto !important;
+  overflow: visible !important;
+}
+
+/* Ensure all day cells are visible */
+.fc .fc-daygrid-body-unbalanced .fc-daygrid-day-events {
+  min-height: 2em;
+}
+
+
+/* Remove blue vertical bar indicator on today's date */
+.fc .fc-day-today .fc-daygrid-day-frame,
+.fc .fc-day-today .fc-daygrid-day-top,
+.fc .fc-day-today .fc-daygrid-day-events {
+  border-left: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove any vertical indicator lines */
+.fc .fc-daygrid-day-frame::before,
+.fc .fc-daygrid-day-frame::after,
+.fc .fc-day::before,
+.fc .fc-day::after {
+  display: none !important;
+  content: none !important;
+  width: 0 !important;
+  border: none !important;
+}
+
+/* Hide the today indicator bar specifically */
+.fc .fc-day-today {
+  position: relative;
+}
+
+.fc .fc-day-today::before,
+.fc .fc-day-today::after,
+.fc .fc-day-today *::before,
+.fc .fc-day-today *::after {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+

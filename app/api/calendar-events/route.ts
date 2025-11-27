@@ -151,8 +151,10 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // Default color if no category color is set
-        const categoryColor = req.EventCategory?.color || '#3B82F6';
+        // Force blue color for annual leave events
+        const categoryName = req.EventCategory?.name ?? "";
+        const isAnnualLeave = categoryName.toLowerCase().includes("annual") || categoryName.toLowerCase().includes("holiday");
+        const eventColor = isAnnualLeave ? '#3B82F6' : (req.EventCategory?.color || '#3B82F6');
         
         return {
           id: req.id,
@@ -165,8 +167,8 @@ export async function GET(req: NextRequest) {
           categoryName: req.EventCategory?.name ?? null,
           categoryIconKey: req.EventCategory?.iconKey ?? null,
           eventCategoryId: req.EventCategory?.id ?? null,
-          backgroundColor: categoryColor,
-          borderColor: categoryColor,
+          backgroundColor: eventColor,
+          borderColor: eventColor,
           textColor: '#FFFFFF',
           // Provide both employee (camelCase) for UI and Employee (PascalCase) for compatibility
           employee: {

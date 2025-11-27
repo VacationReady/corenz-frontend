@@ -158,28 +158,30 @@ interface StatCardProps {
 function StatCard({ icon, label, value, subtext, gradient, iconBg, delay = 0 }: StatCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, type: "spring", stiffness: 300, damping: 25 }}
       className={cn(
-        "relative overflow-hidden rounded-2xl p-4 border",
+        "relative overflow-hidden rounded-xl p-3 border",
         gradient
       )}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">{label}</p>
-          <motion.p
-            key={value}
-            initial={{ scale: 1.1 }}
-            animate={{ scale: 1 }}
-            className="text-2xl font-bold"
-          >
-            {value}
-          </motion.p>
-          {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium text-muted-foreground/80 uppercase tracking-wide truncate">{label}</p>
+          <div className="flex items-baseline gap-1.5">
+            <motion.p
+              key={value}
+              initial={{ scale: 1.1 }}
+              animate={{ scale: 1 }}
+              className="text-xl font-bold"
+            >
+              {value}
+            </motion.p>
+            {subtext && <p className="text-[10px] text-muted-foreground truncate">{subtext}</p>}
+          </div>
         </div>
-        <div className={cn("p-2.5 rounded-xl", iconBg)}>
+        <div className={cn("p-2 rounded-lg flex-shrink-0", iconBg)}>
           {icon}
         </div>
       </div>
@@ -689,15 +691,15 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     
     if (isBankHoliday) {
       return (
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 px-1.5 py-0.5 rounded-md bg-emerald-50/80 backdrop-blur-sm">
-          <CalendarDays className="h-3 w-3" /> {content.event.title}
+        <div className="flex items-center gap-1 text-[9px] font-medium text-emerald-700 px-1 py-0.5 rounded bg-emerald-50/80">
+          <CalendarDays className="h-2.5 w-2.5" /> {content.event.title}
         </div>
       );
     }
     if (isBlackout) {
       return (
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-red-700 px-1.5 py-0.5 rounded-md bg-red-50/80 backdrop-blur-sm">
-          <Lock className="h-3 w-3" /> Blackout
+        <div className="flex items-center gap-1 text-[9px] font-medium text-red-700 px-1 py-0.5 rounded bg-red-50/80">
+          <Lock className="h-2.5 w-2.5" /> Blackout
         </div>
       );
     }
@@ -705,12 +707,12 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       return (
         <Popover>
           <PopoverTrigger asChild>
-            <div className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-primary/10 cursor-pointer transition-colors">
-              <ClockIcon className="h-3 w-3 flex-shrink-0 text-primary" />
-              <span className="text-[11px] font-medium truncate max-w-[110px]">
+            <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md hover:bg-primary/10 cursor-pointer transition-colors">
+              <ClockIcon className="h-2.5 w-2.5 flex-shrink-0 text-primary" />
+              <span className="text-[10px] font-medium truncate max-w-[80px]">
                 {content.timeText}
               </span>
-              <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={16} />
+              <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={14} />
             </div>
           </PopoverTrigger>
           <PopoverContent align="start" className="w-72 rounded-xl shadow-xl border-border/50">
@@ -761,15 +763,15 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <div className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-primary/10 cursor-pointer transition-all group">
-            <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={20} className="ring-2 ring-white shadow-sm" />
-            <span className="text-[11px] font-medium truncate max-w-[90px] group-hover:text-primary transition-colors">
+          <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md hover:bg-primary/10 cursor-pointer transition-all group">
+            <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={16} className="ring-1 ring-white shadow-sm flex-shrink-0" />
+            <span className="text-[10px] font-medium truncate max-w-[70px] group-hover:text-primary transition-colors">
               {employee?.name || content.event.title}
             </span>
             {categoryName ? (
-              <Badge className="!text-[9px] !px-1.5 !py-0 flex items-center gap-0.5 bg-primary/10 text-primary border-0">
-                <Icon className="h-2.5 w-2.5" />
-              </Badge>
+              <span className="text-[9px] text-white/90 font-medium truncate max-w-[60px]">
+                • {categoryName}
+              </span>
             ) : null}
           </div>
         </PopoverTrigger>
@@ -936,28 +938,27 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="space-y-6"
+        className="space-y-4"
       >
-        {/* Hero Header */}
-        <motion.div variants={itemVariants} className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/5 via-violet-500/5 to-purple-500/5 border border-primary/10">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-50" />
-          <div className="relative px-6 py-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex items-center gap-4">
+        {/* Hero Header - Compact */}
+        <motion.div variants={itemVariants} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/5 via-violet-500/5 to-purple-500/5 border border-primary/10">
+          <div className="relative px-4 py-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-                  className="p-3 bg-gradient-to-br from-primary to-violet-600 rounded-2xl shadow-lg shadow-primary/25"
+                  className="p-2 bg-gradient-to-br from-primary to-violet-600 rounded-xl shadow-md shadow-primary/25"
                 >
-                  <CalendarIcon className="w-7 h-7 text-white" />
+                  <CalendarIcon className="w-5 h-5 text-white" />
                 </motion.div>
                 <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                     Company Calendar
                   </h1>
-                  <p className="text-sm text-muted-foreground">
-                    Track leave, holidays, and team availability at a glance
+                  <p className="text-xs text-muted-foreground">
+                    Track leave, holidays, and team availability
                   </p>
                 </div>
               </div>
@@ -971,9 +972,9 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                       setHolidayDefaultDate(new Date());
                       setHolidayModalOpen(true);
                     }}
-                    className="rounded-xl border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-all"
+                    className="h-8 rounded-lg border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-all text-xs"
                   >
-                    <Plus className="mr-2 h-4 w-4" />
+                    <Plus className="mr-1.5 h-3.5 w-3.5" />
                     Book Leave
                   </Button>
                 )}
@@ -985,10 +986,10 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                       setSelectedDate(null);
                       setBlackoutModalOpen(true);
                     }}
-                    className="rounded-xl bg-red-50/50 hover:bg-red-50 border-red-200/50 text-red-700 hover:text-red-800 hover:border-red-300 transition-all"
+                    className="h-8 rounded-lg bg-red-50/50 hover:bg-red-50 border-red-200/50 text-red-700 hover:text-red-800 hover:border-red-300 transition-all text-xs"
                   >
-                    <ShieldBanIcon className="mr-2 h-4 w-4" />
-                    Blackout Days
+                    <ShieldBanIcon className="mr-1.5 h-3.5 w-3.5" />
+                    Blackouts
                   </Button>
                 )}
                 <Button
@@ -1002,9 +1003,9 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                       toast.error("Failed to copy link");
                     }
                   }}
-                  className="rounded-xl"
+                  className="h-8 rounded-lg text-xs"
                 >
-                  <Share2 className="mr-2 h-4 w-4" />
+                  <Share2 className="mr-1.5 h-3.5 w-3.5" />
                   Share
                 </Button>
               </div>
@@ -1012,40 +1013,40 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           </div>
         </motion.div>
 
-        {/* Stats Grid */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stats Grid - Compact */}
+        <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard
-            icon={<Users className="h-5 w-5 text-white" />}
+            icon={<Users className="h-4 w-4 text-white" />}
             label="Off Today"
             value={stats.offToday}
-            subtext="People away"
+            subtext="away"
             gradient="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200/50"
             iconBg="bg-gradient-to-br from-blue-500 to-blue-600"
             delay={0.1}
           />
           <StatCard
-            icon={<TrendingUp className="h-5 w-5 text-white" />}
+            icon={<TrendingUp className="h-4 w-4 text-white" />}
             label="This Period"
             value={stats.totalLeaveRequests}
-            subtext="Leave requests"
+            subtext="requests"
             gradient="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200/50"
             iconBg="bg-gradient-to-br from-emerald-500 to-emerald-600"
             delay={0.15}
           />
           <StatCard
-            icon={<UserCheck className="h-5 w-5 text-white" />}
+            icon={<UserCheck className="h-4 w-4 text-white" />}
             label="People"
             value={stats.totalPeopleOff}
-            subtext="Unique employees"
+            subtext="unique"
             gradient="bg-gradient-to-br from-violet-50 to-violet-100/50 border-violet-200/50"
             iconBg="bg-gradient-to-br from-violet-500 to-violet-600"
             delay={0.2}
           />
           <StatCard
-            icon={<AlertTriangle className="h-5 w-5 text-white" />}
+            icon={<AlertTriangle className="h-4 w-4 text-white" />}
             label="Blackouts"
             value={stats.totalBlackouts}
-            subtext="Blocked dates"
+            subtext="blocked"
             gradient="bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200/50"
             iconBg="bg-gradient-to-br from-amber-500 to-amber-600"
             delay={0.25}
@@ -1055,27 +1056,27 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         {/* Main Calendar Card */}
         <motion.div variants={fadeInScale}>
           <Card className="overflow-hidden border-border/50 shadow-xl shadow-black/5">
-            {/* Card Header with Controls */}
-            <div className="p-4 border-b border-border/50 bg-gradient-to-r from-card via-card to-muted/10">
-              <div className="flex flex-col gap-4">
+            {/* Card Header with Controls - Compact */}
+            <div className="p-3 border-b border-border/50 bg-gradient-to-r from-card via-card to-muted/10">
+              <div className="flex flex-col gap-3">
                 {/* Top Row - Navigation and View Toggle */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   {/* Left - Navigation */}
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center rounded-xl border border-border/50 bg-background/50 backdrop-blur-sm overflow-hidden">
+                    <div className="flex items-center rounded-lg border border-border/50 bg-background/50 backdrop-blur-sm overflow-hidden">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => calendarRef.current?.getApi().prev()}
-                        className="rounded-none h-9 px-3 hover:bg-muted/80"
+                        className="rounded-none h-7 px-2 hover:bg-muted/80"
                       >
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => calendarRef.current?.getApi().today()}
-                        className="rounded-none h-9 px-4 border-x border-border/30 font-medium hover:bg-muted/80"
+                        className="rounded-none h-7 px-3 border-x border-border/30 font-medium hover:bg-muted/80 text-xs"
                       >
                         Today
                       </Button>
@@ -1083,16 +1084,16 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                         variant="ghost"
                         size="sm"
                         onClick={() => calendarRef.current?.getApi().next()}
-                        className="rounded-none h-9 px-3 hover:bg-muted/80"
+                        className="rounded-none h-7 px-2 hover:bg-muted/80"
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                     <motion.h2 
                       key={currentTitle}
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-lg font-semibold text-foreground"
+                      className="text-sm font-semibold text-foreground"
                     >
                       {currentTitle}
                     </motion.h2>
@@ -1101,17 +1102,17 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                   {/* Right - View Toggle and Filters */}
                   <div className="flex items-center gap-2">
                     {/* View Toggle */}
-                    <div className="flex items-center rounded-xl border border-border/50 bg-background/50 backdrop-blur-sm p-1">
+                    <div className="flex items-center rounded-lg border border-border/50 bg-background/50 backdrop-blur-sm p-0.5">
                       <Button
                         variant={currentView === "dayGridMonth" ? "secondary" : "ghost"}
                         size="sm"
                         onClick={() => handleChangeView("dayGridMonth")}
                         className={cn(
-                          "rounded-lg h-8 px-3 gap-1.5 transition-all",
+                          "rounded-md h-7 px-2.5 gap-1 transition-all text-xs",
                           currentView === "dayGridMonth" && "bg-primary text-primary-foreground shadow-sm"
                         )}
                       >
-                        <Grid3X3 className="h-4 w-4" />
+                        <Grid3X3 className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">Month</span>
                       </Button>
                       <Button
@@ -1119,11 +1120,11 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                         size="sm"
                         onClick={() => handleChangeView("listMonth")}
                         className={cn(
-                          "rounded-lg h-8 px-3 gap-1.5 transition-all",
+                          "rounded-md h-7 px-2.5 gap-1 transition-all text-xs",
                           currentView === "listMonth" && "bg-primary text-primary-foreground shadow-sm"
                         )}
                       >
-                        <List className="h-4 w-4" />
+                        <List className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">List</span>
                       </Button>
                     </div>
@@ -1134,11 +1135,11 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                       size="sm"
                       onClick={() => setShowFilters(!showFilters)}
                       className={cn(
-                        "rounded-xl h-9 gap-1.5 transition-all",
+                        "rounded-lg h-7 gap-1 transition-all text-xs",
                         showFilters && "bg-primary/10 border-primary/30"
                       )}
                     >
-                      <Filter className={cn("h-4 w-4", showFilters && "text-primary")} />
+                      <Filter className={cn("h-3.5 w-3.5", showFilters && "text-primary")} />
                       <span className="hidden sm:inline">Filters</span>
                     </Button>
                   </div>
@@ -1171,17 +1172,17 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                   )}
                 </AnimatePresence>
 
-                {/* Public Holiday Toggle */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/30">
+                {/* Public Holiday Toggle - Compact */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/30">
                   <CalendarLegend
                     categories={legendCategories}
                     showBankHoliday={bankHolidaysAvailable && bankHolidaysOn}
                     bankHolidayLabel={templateLabel}
                   />
                   
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/30 border border-border/30">
-                      <span className="text-xs font-medium text-muted-foreground">Public holidays</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-muted/30 border border-border/30">
+                      <span className="text-[10px] font-medium text-muted-foreground">Holidays</span>
                       <Switch
                         checked={bankHolidaysOn && bankHolidaysAvailable}
                         disabled={!bankHolidaysAvailable}
@@ -1191,9 +1192,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                           calendarRef.current?.getApi().refetchEvents();
                         }}
                       />
-                      {bankHolidaysAvailable && templateLabel ? (
-                        <span className="text-[10px] text-muted-foreground hidden md:inline">({templateLabel})</span>
-                      ) : null}
                     </div>
                   </div>
                 </div>

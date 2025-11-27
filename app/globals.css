@@ -1556,7 +1556,7 @@ video {
   border-top-right-radius: 0.75rem;
 }
 
-/* Day cells */
+/* Day cells - Compact mode */
 .fc .fc-daygrid-day {
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -1566,21 +1566,21 @@ video {
 }
 
 .fc .fc-daygrid-day-frame {
-  min-height: 100px;
-  padding: 0.25rem;
+  min-height: 65px;
+  padding: 0.125rem;
 }
 
 .fc .fc-daygrid-day-top {
   justify-content: flex-end;
-  padding: 0.375rem 0.5rem;
+  padding: 0.25rem 0.375rem;
 }
 
 .fc .fc-daygrid-day-number {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: hsl(var(--muted-foreground));
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.5rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
   transition: all 0.2s ease;
 }
 
@@ -1600,22 +1600,36 @@ video {
   font-weight: 600;
 }
 
+/* Remove the day indicator bar (vertical line) */
+.fc .fc-daygrid-day-events::before,
+.fc .fc-daygrid-day-events::after,
+.fc .fc-daygrid-event-harness::before {
+  display: none !important;
+}
+
+/* Selected day indicator - subtle outline only */
+.fc .fc-highlight {
+  background: hsl(var(--primary) / 0.08) !important;
+  border: none !important;
+}
+
 /* Weekend styling */
 .fc .fc-day-sat,
 .fc .fc-day-sun {
   background: hsl(var(--muted) / 0.2);
 }
 
-/* Events */
+/* Events - Clean horizontal bars */
 .fc .fc-event {
-  border: none;
-  border-radius: 0.5rem;
+  border: none !important;
+  border-left: none !important;
+  border-radius: 0.375rem;
   padding: 0.125rem 0.25rem;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 500;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
-  margin-bottom: 0.125rem;
+  margin-bottom: 1px;
 }
 
 .fc .fc-event:hover {
@@ -1625,15 +1639,48 @@ video {
 }
 
 .fc .fc-daygrid-event {
-  margin: 0.125rem 0.25rem;
+  margin: 1px 2px;
 }
 
 .fc .fc-daygrid-dot-event {
-  padding: 0.25rem 0.375rem;
+  padding: 0.125rem 0.25rem;
 }
 
 .fc .fc-daygrid-event-harness {
-  margin-top: 0.125rem;
+  margin-top: 1px;
+}
+
+/* Remove any event indicator/handle borders */
+.fc .fc-event-main,
+.fc .fc-event-main-frame {
+  border: none !important;
+}
+
+/* Remove resize handles that could look like bars */
+.fc .fc-event-resizer {
+  display: none !important;
+}
+
+/* Remove any now indicator or time marker lines */
+.fc .fc-timegrid-now-indicator-container,
+.fc .fc-timegrid-now-indicator-line,
+.fc .fc-timegrid-now-indicator-arrow,
+.fc .fc-now-indicator {
+  display: none !important;
+}
+
+/* Make multi-day event continuation seamless */
+.fc .fc-daygrid-event-harness-abs {
+  border-left: none !important;
+}
+
+.fc .fc-h-event {
+  border: none !important;
+  background: transparent !important;
+}
+
+.fc .fc-h-event .fc-event-main {
+  border-radius: 0.375rem;
 }
 
 /* More link */
@@ -1751,21 +1798,25 @@ video {
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .fc .fc-daygrid-day-frame {
-    min-height: 70px;
+    min-height: 55px;
   }
   
   .fc .fc-daygrid-day-number {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
   }
   
   .fc .fc-event {
-    font-size: 0.625rem;
+    font-size: 0.5625rem;
     padding: 0.0625rem 0.125rem;
   }
   
   .fc .fc-col-header-cell {
-    font-size: 0.625rem;
-    padding: 0.5rem 0;
+    font-size: 0.5625rem;
+    padding: 0.375rem 0;
+  }
+  
+  .cz-daycell__inner {
+    min-height: 50px;
   }
 }
 
@@ -1916,15 +1967,15 @@ video {
 
   .cz-daycell__inner {
     position: relative;
-    min-height: 82px;
-    padding: 6px 0;
+    min-height: 58px;
+    padding: 4px 0;
   }
 
   .cz-daycell__date {
     position: absolute;
-    top: 6px;
-    right: 8px;
-    font-size: 0.75rem;
+    top: 4px;
+    right: 6px;
+    font-size: 0.6875rem;
     color: hsl(var(--muted-foreground));
   }
 
@@ -1953,7 +2004,9 @@ video {
   }
 
   .cz-daycell--selected {
-    box-shadow: inset 0 0 0 2px rgb(250 204 21 / .6), inset 0 0 0 9999px rgb(254 249 195 / .3);
+    background: hsl(var(--primary) / 0.08);
+    outline: 2px solid hsl(var(--primary) / 0.4);
+    outline-offset: -2px;
   }
 
   .cz-daycell--weekend {

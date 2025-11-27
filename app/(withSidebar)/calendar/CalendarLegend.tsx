@@ -89,7 +89,7 @@ export function CalendarLegend({
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="flex flex-wrap gap-2"
+      className="flex flex-wrap gap-1.5"
     >
       <AnimatePresence mode="popLayout">
         {items.map((item, index) => {
@@ -103,7 +103,7 @@ export function CalendarLegend({
               variants={itemVariants}
               layout
               className={cn(
-                "inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-200",
+                "inline-flex items-center gap-1.5 px-2 py-1 rounded-md transition-all duration-200",
                 "bg-muted/30 hover:bg-muted/50 border border-border/30",
                 "cursor-default select-none"
               )}
@@ -113,31 +113,31 @@ export function CalendarLegend({
               <div className="relative flex items-center justify-center">
                 <span
                   className={cn(
-                    "inline-flex h-3.5 w-3.5 shrink-0 rounded-md shadow-sm",
+                    "inline-flex h-3 w-3 shrink-0 rounded shadow-sm",
                     item.swatchClassName,
                   )}
                   style={item.swatchStyle}
                 />
                 {Icon && item.swatchClassName && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Icon className="h-2 w-2 text-white drop-shadow-sm" />
+                    <Icon className="h-1.5 w-1.5 text-white drop-shadow-sm" />
                   </div>
                 )}
                 {isBlackout && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Lock className="h-2 w-2 text-red-600" />
+                    <Lock className="h-1.5 w-1.5 text-red-600" />
                   </div>
                 )}
                 {isHoliday && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <CalendarDays className="h-2 w-2 text-white drop-shadow-sm" />
+                    <CalendarDays className="h-1.5 w-1.5 text-white drop-shadow-sm" />
                   </div>
                 )}
               </div>
               {Icon && !item.swatchClassName && !item.swatchStyle && (
-                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                <Icon className="h-3 w-3 text-muted-foreground" />
               )}
-              <span className="text-[11px] font-medium text-foreground/80">{item.label}</span>
+              <span className="text-[10px] font-medium text-foreground/80">{item.label}</span>
             </motion.div>
           );
         })}

@@ -156,11 +156,16 @@ export async function GET(req: NextRequest) {
         const isAnnualLeave = categoryName.toLowerCase().includes("annual") || categoryName.toLowerCase().includes("holiday");
         const eventColor = isAnnualLeave ? '#3B82F6' : (req.EventCategory?.color || '#3B82F6');
         
+        // FullCalendar uses exclusive end dates for all-day events
+        // So we need to add 1 day to the end date for proper display
+        const endDate = new Date(req.endDate);
+        endDate.setDate(endDate.getDate() + 1);
+        
         return {
           id: req.id,
           title: `${req.EventCategory?.name ?? "Leave"} - ${displayName}`,
           start: req.startDate,
-          end: req.endDate,
+          end: endDate.toISOString(),
           allDay: true,
           type: "leave",
           reason: req.reason ?? null,

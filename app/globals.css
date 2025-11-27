@@ -3107,3 +3107,28 @@ video {
   width: 100%;
 }
 
+
+/* Consistent row heights - fix first row being taller */
+.calendar-wrapper .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
+  min-height: 2em;
+}
+
+.calendar-wrapper .fc .fc-daygrid-body tr {
+  height: auto;
+}
+
+.calendar-wrapper .fc .fc-daygrid-day-frame {
+  min-height: 80px !important;
+  max-height: none;
+}
+
+/* Ensure first row matches other rows */
+.calendar-wrapper .fc .fc-scrollgrid-sync-table tbody tr:first-child .fc-daygrid-day-frame {
+  min-height: 80px !important;
+}
+
+/* Remove any extra padding on day-other cells (grey previous/next month days) */
+.calendar-wrapper .fc .fc-day-other .fc-daygrid-day-frame {
+  min-height: 80px !important;
+}
+

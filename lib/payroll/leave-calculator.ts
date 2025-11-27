@@ -418,9 +418,10 @@ export function calculateAnniversaryBasedEntitlement(
   // Calculate annual entitlement for this employee (pro-rated for part-time)
   const annualEntitlement = (daysPerWeek / 5) * fullTimeEntitlement;
   
-  // If current date is past first anniversary, use full entitlement (rounded to 2 decimal places)
+  // If current date is past first anniversary, use full entitlement
+  // Round to nearest 0.5 days for display (industry standard for leave balances)
   if (currentDate >= anniversaryDate) {
-    return roundToTwoDecimals(annualEntitlement);
+    return Math.round(annualEntitlement * 2) / 2;
   }
   
   // Calculate days remaining from current date to first anniversary
@@ -430,10 +431,12 @@ export function calculateAnniversaryBasedEntitlement(
     Math.ceil((anniversaryDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24))
   );
   
-  // Calculate pro-rated entitlement, rounded to 2 decimal places (NZ HRIS requirement)
+  // Calculate pro-rated entitlement
   const proratedEntitlement = annualEntitlement * (daysRemaining / totalDaysToAnniversary);
   
-  return roundToTwoDecimals(proratedEntitlement);
+  // Round to nearest 0.5 days for display (industry standard for leave balances)
+  // Note: Storage in database uses 2 decimal places, but display uses 0.5 increments
+  return Math.round(proratedEntitlement * 2) / 2;
 }
 
 /**

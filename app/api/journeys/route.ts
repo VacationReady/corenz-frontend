@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { generateJourneyPhasesAI, type JourneyScopingData } from "@/lib/ai/journey-assistant";
 
 const createJourneySchema = z.object({
   name: z.string().min(1, "Journey name is required"),
@@ -101,7 +102,20 @@ export async function POST(request: NextRequest) {
     const validatedData = createJourneySchema.parse(body);
 
     // Generate AI-powered journey structure based on the scoping data
-    const aiGeneratedPhases = await generateJourneyPhases(validatedData);
+    const scopingData: JourneyScopingData = {
+      name: validatedData.name,
+      description: validatedData.description,
+      persona: validatedData.persona,
+      duration: validatedData.duration,
+      category: validatedData.category,
+      businessGoals: validatedData.businessGoals,
+      geography: validatedData.geography,
+      lifecycleStage: validatedData.lifecycleStage,
+      customGoals: validatedData.customGoals,
+    };
+    
+    // Use AI-powered generation (with fallback to templates if AI fails)
+    const aiGeneratedPhases = await generateJourneyPhasesAI(scopingData);
 
     const journey = await prisma.journeyTemplate.create({
       data: {
@@ -171,168 +185,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Helper function to generate AI-powered journey phases
-async function generateJourneyPhases(scopingData: any) {
-  // This would integrate with the existing AI system
-  // For now, we'll return a template structure based on category
-  
-  const templates: Record<string, any> = {
-    onboarding: [
-      {
-        name: "Pre-boarding",
-        description: "Prepare for the new hire's arrival",
-        duration: 3,
-        phaseType: "SEQUENTIAL",
-        experienceBlocks: [
-          {
-            name: "Welcome Email",
-            description: "Send personalized welcome message",
-            blockType: "COMMUNICATION",
-            estimatedDuration: 1,
-            responsibleRole: "HR",
-            automationConfig: { emailTemplate: "welcome_new_hire" },
-          },
-          {
-            name: "Equipment Setup",
-            description: "Prepare workspace and equipment",
-            blockType: "TASK",
-            estimatedDuration: 4,
-            slaHours: 24,
-            responsibleRole: "IT",
-          },
-          {
-            name: "Access Provisioning",
-            description: "Set up system access and accounts",
-            blockType: "AUTOMATION",
-            estimatedDuration: 2,
-            responsibleRole: "IT",
-          },
-        ],
-      },
-      {
-        name: "First Day",
-        description: "Welcome and initial orientation",
-        duration: 1,
-        phaseType: "SEQUENTIAL",
-        experienceBlocks: [
-          {
-            name: "Office Tour",
-            description: "Introduce to workspace and facilities",
-            blockType: "TASK",
-            estimatedDuration: 2,
-            responsibleRole: "Buddy",
-          },
-          {
-            name: "Team Introductions",
-            description: "Meet immediate team members",
-            blockType: "MEETING",
-            estimatedDuration: 2,
-            responsibleRole: "Manager",
-          },
-          {
-            name: "Company Overview",
-            description: "Learn about company culture and values",
-            blockType: "TRAINING",
-            estimatedDuration: 4,
-            responsibleRole: "HR",
-          },
-        ],
-      },
-      {
-        name: "First Week",
-        description: "Role-specific training and setup",
-        duration: 5,
-        phaseType: "PARALLEL",
-        experienceBlocks: [
-          {
-            name: "Role Training",
-            description: "Learn specific job responsibilities",
-            blockType: "TRAINING",
-            estimatedDuration: 16,
-            responsibleRole: "Manager",
-          },
-          {
-            name: "System Training",
-            description: "Learn required tools and systems",
-            blockType: "TRAINING",
-            estimatedDuration: 8,
-            responsibleRole: "IT",
-          },
-          {
-            name: "First Week Check-in",
-            description: "Assess progress and address concerns",
-            blockType: "SURVEY",
-            estimatedDuration: 1,
-            responsibleRole: "HR",
-          },
-        ],
-      },
-    ],
-    development: [
-      {
-        name: "Assessment",
-        description: "Evaluate current skills and identify gaps",
-        duration: 7,
-        phaseType: "SEQUENTIAL",
-        experienceBlocks: [
-          {
-            name: "Skills Assessment",
-            description: "Complete comprehensive skills evaluation",
-            blockType: "SURVEY",
-            estimatedDuration: 2,
-            responsibleRole: "Manager",
-          },
-          {
-            name: "Career Discussion",
-            description: "Discuss career goals and aspirations",
-            blockType: "MEETING",
-            estimatedDuration: 2,
-            responsibleRole: "Manager",
-          },
-        ],
-      },
-      {
-        name: "Planning",
-        description: "Create personalized development plan",
-        duration: 3,
-        phaseType: "SEQUENTIAL",
-        experienceBlocks: [
-          {
-            name: "Development Plan",
-            description: "Create structured learning path",
-            blockType: "FORM",
-            estimatedDuration: 3,
-            responsibleRole: "Manager",
-          },
-        ],
-      },
-      {
-        name: "Execution",
-        description: "Implement development activities",
-        duration: 60,
-        phaseType: "PARALLEL",
-        experienceBlocks: [
-          {
-            name: "Learning Activities",
-            description: "Complete assigned training and courses",
-            blockType: "TRAINING",
-            estimatedDuration: 40,
-            responsibleRole: "Employee",
-          },
-          {
-            name: "Progress Reviews",
-            description: "Regular check-ins on development progress",
-            blockType: "MEETING",
-            estimatedDuration: 8,
-            responsibleRole: "Manager",
-          },
-        ],
-      },
-    ],
-  };
-
-  return templates[scopingData.category] || templates.onboarding;
-}
+// Note: AI journey generation has been moved to app/lib/ai/journey-assistant.ts
+// The generateJourneyPhasesAI function is imported and used above
 
 // Helper function to generate default metrics based on journey type
 function generateDefaultMetrics(scopingData: any) {

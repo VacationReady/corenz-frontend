@@ -171,8 +171,8 @@ html,
   /* 6 */
   -webkit-tap-highlight-color: transparent;
   /* 7 */
-  /* Critical: Prevent white flash - fallback matches original light blue theme (hsl 220 25% 98%) */
-  background-color: #f7f9fb;
+  /* Critical: Prevent white flash - fallback is a light blue that matches theme */
+  background-color: #f0f4f8;
 }
 
 /*
@@ -185,8 +185,8 @@ body {
   /* 1 */
   line-height: inherit;
   /* 2 */
-  /* Critical: Prevent white flash - fallback matches original light blue theme (hsl 220 25% 98%) */
-  background-color: #f7f9fb;
+  /* Critical: Prevent white flash - fallback is a light blue that matches theme */
+  background-color: #f0f4f8;
 }
 
 /*
@@ -1506,6 +1506,269 @@ video {
   display: none !important;
 }
 
+/* =============================================
+   Premium Calendar Styles
+   ============================================= */
+
+/* Calendar wrapper with smooth transitions */
+.calendar-wrapper {
+  @apply transition-all duration-300;
+}
+
+/* FullCalendar base overrides */
+.fc {
+  --fc-border-color: hsl(var(--border) / 0.5);
+  --fc-today-bg-color: hsl(var(--primary) / 0.08);
+  --fc-highlight-color: hsl(var(--primary) / 0.1);
+  --fc-page-bg-color: transparent;
+  font-family: inherit;
+}
+
+/* Header styling */
+.fc .fc-toolbar {
+  margin-bottom: 0;
+  padding: 1rem 1.5rem;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+/* Day grid header styling */
+.fc .fc-col-header-cell {
+  padding: 0.75rem 0;
+  background: hsl(var(--muted) / 0.3);
+  border: none;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+}
+
+.fc .fc-col-header-cell:first-child {
+  border-top-left-radius: 0.75rem;
+}
+
+.fc .fc-col-header-cell:last-child {
+  border-top-right-radius: 0.75rem;
+}
+
+/* Day cells */
+.fc .fc-daygrid-day {
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fc .fc-daygrid-day:hover {
+  background: hsl(var(--muted) / 0.4);
+}
+
+.fc .fc-daygrid-day-frame {
+  min-height: 100px;
+  padding: 0.25rem;
+}
+
+.fc .fc-daygrid-day-top {
+  justify-content: flex-end;
+  padding: 0.375rem 0.5rem;
+}
+
+.fc .fc-daygrid-day-number {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.fc .fc-daygrid-day:hover .fc-daygrid-day-number {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted) / 0.5);
+}
+
+/* Today styling */
+.fc .fc-day-today {
+  background: hsl(var(--primary) / 0.06) !important;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 600;
+}
+
+/* Weekend styling */
+.fc .fc-day-sat,
+.fc .fc-day-sun {
+  background: hsl(var(--muted) / 0.2);
+}
+
+/* Events */
+.fc .fc-event {
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.125rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  margin-bottom: 0.125rem;
+}
+
+.fc .fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.fc .fc-daygrid-event {
+  margin: 0.125rem 0.25rem;
+}
+
+.fc .fc-daygrid-dot-event {
+  padding: 0.25rem 0.375rem;
+}
+
+.fc .fc-daygrid-event-harness {
+  margin-top: 0.125rem;
+}
+
+/* More link */
+.fc .fc-daygrid-more-link {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: hsl(var(--primary));
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.fc .fc-daygrid-more-link:hover {
+  background: hsl(var(--primary) / 0.1);
+}
+
+/* List view */
+.fc .fc-list {
+  border: none;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.fc .fc-list-day-cushion {
+  background: hsl(var(--muted) / 0.5);
+  padding: 0.75rem 1rem;
+}
+
+.fc .fc-list-day-text,
+.fc .fc-list-day-side-text {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.fc .fc-list-event {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.fc .fc-list-event:hover td {
+  background: hsl(var(--muted) / 0.4);
+}
+
+.fc .fc-list-event-dot {
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+}
+
+/* Scrollbar styling for calendar */
+.fc .fc-scroller::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.fc .fc-scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fc .fc-scroller::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 4px;
+}
+
+.fc .fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* Popover styling */
+.fc .fc-popover {
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.fc .fc-popover-header {
+  background: hsl(var(--muted) / 0.5);
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+.fc .fc-popover-body {
+  padding: 0.5rem;
+}
+
+/* Grid lines */
+.fc td,
+.fc th {
+  border-color: hsl(var(--border) / 0.3);
+}
+
+/* Background events (blackout days) */
+.fc .fc-bg-event {
+  opacity: 0.9;
+  border-radius: 0;
+}
+
+/* Animation for events */
+@keyframes calendarEventSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fc .fc-daygrid-event {
+  animation: calendarEventSlideIn 0.2s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .fc .fc-daygrid-day-frame {
+    min-height: 70px;
+  }
+  
+  .fc .fc-daygrid-day-number {
+    font-size: 0.75rem;
+  }
+  
+  .fc .fc-event {
+    font-size: 0.625rem;
+    padding: 0.0625rem 0.125rem;
+  }
+  
+  .fc .fc-col-header-cell {
+    font-size: 0.625rem;
+    padding: 0.5rem 0;
+  }
+}
+
 @layer base {
   :root {
     --background: var(--tenant-background, 220 25% 98%);
@@ -1951,12 +2214,13 @@ video {
   }
 
   /* Scroll-optimized aurora - no transforms to prevent repaint issues during scroll */
+  /* Uses blue-dominant colors to maintain the original light blue appearance */
   .bg-aurora-stable {
     background: linear-gradient(-45deg,
-        hsl(var(--sunset-1) / 0.12),
-        hsl(var(--sunset-2) / 0.18),
-        hsl(var(--primary) / 0.08),
-        hsl(var(--sunset-3) / 0.16));
+        hsl(217 91% 60% / 0.08),
+        hsl(210 100% 70% / 0.10),
+        hsl(200 90% 65% / 0.08),
+        hsl(220 85% 60% / 0.06));
     background-size: 320% 320%;
     animation: aurora-stable 22s ease-in-out infinite;
     /* Prevent scroll-related paint issues */

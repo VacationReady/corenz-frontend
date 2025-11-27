@@ -102,7 +102,7 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
   const tenantFetch = useTenantFetch();
   const fetcher = createFetcher(session?.user?.companyId);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ActionItem | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<null | { id: string; name: string; url?: string; requiresSignature?: boolean; requiresAck?: boolean }>(null);
@@ -218,10 +218,21 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
     fetcher
   );
 
+  // Determine if we're still in initial loading phase
+  // Only show loading spinner when we haven't completed initial load AND data is still being fetched
+  const isLoadingData = !initialLoadComplete && (
+    isLoadingSession ||
+    (employeeId && !onboardingData && !dbActionItems) ||
+    (!employeeDocs && loadingEmpDocs) ||
+    (!companyDocs && loadingCompanyDocs)
+  );
+
   // Process all data into unified action items
   useEffect(() => {
+    // Don't process if session is still loading
+    if (isLoadingSession) return;
+
     const processActions = async () => {
-      setLoading(true);
       const items: ActionItem[] = [];
 
       // Process action items from database (workflow-generated + AI approvals)
@@ -482,11 +493,14 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
       });
 
       setActionItems(items);
-      setLoading(false);
+      // Mark initial load as complete after first successful processing
+      if (!initialLoadComplete) {
+        setInitialLoadComplete(true);
+      }
     };
 
     processActions();
-  }, [dbActionItems, onboardingData, employeeDocs, companyDocs, loadingEmpDocs, loadingCompanyDocs, txnRequests, approvals, isManager, mutateActionItems]);
+  }, [dbActionItems, onboardingData, employeeDocs, companyDocs, loadingEmpDocs, loadingCompanyDocs, txnRequests, approvals, isManager, mutateActionItems, initialLoadComplete, isLoadingSession, tenantFetch]);
 
   const handleQuickApprove = async () => {
     setProcessing("quick-approve");
@@ -674,7 +688,7 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
           </div>
         }
       >
-        {loading ? (
+        {isLoadingData ? (
           <WidgetLoading />
         ) : pendingCount === 0 ? (
           <div className="py-8 text-center">

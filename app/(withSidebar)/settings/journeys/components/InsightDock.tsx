@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   Select,
   SelectContent,
@@ -17,12 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   X,
   BarChart3,
   Target,
@@ -30,17 +22,12 @@ import {
   Sparkles,
   TrendingUp,
   TrendingDown,
-  Users,
-  Clock,
   AlertTriangle,
   CheckCircle2,
   Play,
   Pause,
-  MoreHorizontal,
   ExternalLink,
   Download,
-  Share,
-  Filter,
   RefreshCw,
   ThumbsUp,
   ThumbsDown,
@@ -50,6 +37,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 interface JourneyTemplate {
   id: string;
@@ -65,130 +53,104 @@ interface InsightDockProps {
   onClose: () => void;
 }
 
+interface Metric {
+  id: string;
+  name: string;
+  type: string;
+  currentValue: number;
+  targetValue: number;
+  trend: number;
+  status: "excellent" | "good" | "warning" | "critical";
+  isKPI: boolean;
+  sampleSize: number;
+}
+
+interface Experiment {
+  name: string;
+  status: string;
+  variants: Array<{ name: string; allocation: number; conversions: number; isControl: boolean }>;
+  confidence: number;
+  startDate: string;
+}
+
+interface Feedback {
+  id: string;
+  content: string;
+  sentiment: string | null;
+  phase: string;
+  block: string;
+  timestamp: string;
+  tags: string[];
+}
+
+interface AISuggestion {
+  id: string;
+  type: "optimization" | "automation" | "content" | "timing";
+  title: string;
+  description: string;
+  confidence: number;
+  impact: "high" | "medium" | "low";
+  effort: "high" | "medium" | "low";
+}
+
+interface AnalyticsData {
+  summary: {
+    totalParticipants: number;
+    activeParticipants: number;
+    completedParticipants: number;
+    completionRate: number;
+    avgProgress: number;
+    avgSatisfaction: number;
+    avgTimeToComplete: number;
+  };
+  metrics: Metric[];
+  experiments: Experiment[];
+  feedback: Feedback[];
+  aiSuggestions: AISuggestion[];
+}
+
 export function InsightDock({ journey, onClose }: InsightDockProps) {
   const [activeTab, setActiveTab] = useState("metrics");
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
 
-  // Mock data
-  const [metrics] = useState([
-    {
-      id: "1",
-      name: "Completion Rate",
-      current: 87.3,
-      target: 85,
-      trend: 2.1,
-      status: "good",
-      sampleSize: 234,
-    },
-    {
-      id: "2", 
-      name: "Satisfaction Score",
-      current: 8.4,
-      target: 8.0,
-      trend: 0.3,
-      status: "excellent",
-      sampleSize: 189,
-    },
-    {
-      id: "3",
-      name: "Time to Complete",
-      current: 12.5,
-      target: 14,
-      trend: -1.2,
-      status: "excellent",
-      sampleSize: 156,
-    },
-  ]);
+  const fetchAnalytics = useCallback(async () => {
+    if (!journey?.id) return;
+    
+    try {
+      setRefreshing(true);
+      const response = await fetch(`/api/journeys/${journey.id}/analytics`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAnalyticsData(data);
+      } else {
+        console.error("Failed to fetch analytics");
+        toast.error("Failed to load analytics");
+      }
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      toast.error("Failed to load analytics");
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
+    }
+  }, [journey?.id]);
 
-  const [experiments] = useState([
-    {
-      id: "1",
-      name: "Mentorship Touchpoint A/B",
-      status: "running",
-      variants: [
-        { name: "Control", allocation: 50, conversions: 78 },
-        { name: "Enhanced", allocation: 50, conversions: 84 },
-      ],
-      confidence: 85,
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: "2",
-      name: "Welcome Email Timing",
-      status: "completed",
-      variants: [
-        { name: "Day 1", allocation: 33, conversions: 72 },
-        { name: "Day 3", allocation: 33, conversions: 81 },
-        { name: "Day 7", allocation: 34, conversions: 69 },
-      ],
-      confidence: 95,
-      startDate: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000),
-    },
-  ]);
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
-  const [feedback] = useState([
-    {
-      id: "1",
-      content: "The onboarding process feels overwhelming with too many tasks in the first week.",
-      sentiment: "negative",
-      phase: "Ramp Up",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      tags: ["pacing", "workload"],
-    },
-    {
-      id: "2",
-      content: "Love the mentor pairing! Really helped me settle in quickly.",
-      sentiment: "positive", 
-      phase: "Growth",
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-      tags: ["mentorship", "support"],
-    },
-    {
-      id: "3",
-      content: "Could use more clarity on role expectations during the first month.",
-      sentiment: "neutral",
-      phase: "Ramp Up",
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      tags: ["clarity", "expectations"],
-    },
-  ]);
-
-  const [aiSuggestions] = useState([
-    {
-      id: "1",
-      type: "optimization",
-      title: "Add pulse survey after Week 4",
-      description: "Based on feedback patterns, participants show engagement dips around week 4. A quick pulse survey could help identify issues early.",
-      confidence: 92,
-      impact: "high",
-      effort: "low",
-    },
-    {
-      id: "2",
-      type: "automation",
-      title: "Automate manager check-ins",
-      description: "Create automated reminders for managers to check in with new hires at key milestones.",
-      confidence: 87,
-      impact: "medium",
-      effort: "medium",
-    },
-    {
-      id: "3",
-      type: "content",
-      title: "Split Week 1 tasks",
-      description: "Feedback indicates Week 1 is overwhelming. Consider spreading initial tasks across the first two weeks.",
-      confidence: 94,
-      impact: "high",
-      effort: "high",
-    },
-  ]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setRefreshing(false);
+  const handleRefresh = () => {
+    fetchAnalytics();
   };
+
+  // Use real data or fallback to empty arrays
+  const metrics = analyticsData?.metrics || [];
+  const experiments = analyticsData?.experiments || [];
+  const feedback = analyticsData?.feedback || [];
+  const aiSuggestions = analyticsData?.aiSuggestions || [];
 
   const getMetricStatusColor = (status: string) => {
     switch (status) {
@@ -205,10 +167,12 @@ export function InsightDock({ journey, onClose }: InsightDockProps) {
     }
   };
 
-  const getSentimentIcon = (sentiment: string) => {
+  const getSentimentIcon = (sentiment: string | null) => {
     switch (sentiment) {
+      case "POSITIVE":
       case "positive":
         return <ThumbsUp className="w-4 h-4 text-green-600" />;
+      case "NEGATIVE":
       case "negative":
         return <ThumbsDown className="w-4 h-4 text-red-600" />;
       default:
@@ -228,6 +192,51 @@ export function InsightDock({ journey, onClose }: InsightDockProps) {
         return "bg-gray-100 text-gray-800";
     }
   };
+
+  const formatMetricValue = (metric: Metric) => {
+    switch (metric.type) {
+      case "SATISFACTION_SCORE":
+        return `${metric.currentValue.toFixed(1)}/10`;
+      case "TIME_TO_COMPLETE":
+        return `${metric.currentValue} days`;
+      default:
+        return `${metric.currentValue}%`;
+    }
+  };
+
+  const formatTargetValue = (metric: Metric) => {
+    switch (metric.type) {
+      case "SATISFACTION_SCORE":
+        return `${metric.targetValue.toFixed(1)}/10`;
+      case "TIME_TO_COMPLETE":
+        return `${metric.targetValue} days`;
+      default:
+        return `${metric.targetValue}%`;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full bg-white">
+        <div className="flex-none p-4 border-b">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-primary" />
+              <h2 className="font-semibold">Journey Insights</h2>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -253,6 +262,22 @@ export function InsightDock({ journey, onClose }: InsightDockProps) {
           </div>
         </div>
       </div>
+
+      {/* Summary Stats */}
+      {analyticsData?.summary && (
+        <div className="flex-none p-4 border-b bg-gray-50">
+          <div className="grid grid-cols-2 gap-2 text-center">
+            <div>
+              <div className="text-lg font-bold text-primary">{analyticsData.summary.totalParticipants}</div>
+              <div className="text-xs text-muted-foreground">Participants</div>
+            </div>
+            <div>
+              <div className="text-lg font-bold text-green-600">{analyticsData.summary.completionRate}%</div>
+              <div className="text-xs text-muted-foreground">Completion</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-hidden">
@@ -282,59 +307,73 @@ export function InsightDock({ journey, onClose }: InsightDockProps) {
             <TabsContent value="metrics" className="h-full m-0">
               <ScrollArea className="h-full">
                 <div className="p-4 space-y-4">
-                  {metrics.map((metric) => (
-                    <Card key={metric.id} className="border-l-4 border-l-primary">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm">{metric.name}</CardTitle>
-                          <Badge className={cn("text-xs", getMetricStatusColor(metric.status))}>
-                            {metric.status}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="text-2xl font-bold">
-                            {metric.name.includes("Score") ? metric.current.toFixed(1) : `${metric.current}%`}
+                  {metrics.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No metrics configured</p>
+                      <p className="text-xs">Add metric bindings to track journey KPIs</p>
+                    </div>
+                  ) : (
+                    metrics.map((metric) => (
+                      <Card key={metric.id} className="border-l-4 border-l-primary">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm">{metric.name}</CardTitle>
+                            <Badge className={cn("text-xs", getMetricStatusColor(metric.status))}>
+                              {metric.status}
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-1 text-sm">
-                            {metric.trend > 0 ? (
-                              <TrendingUp className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <TrendingDown className="w-4 h-4 text-red-600" />
-                            )}
-                            <span className={metric.trend > 0 ? "text-green-600" : "text-red-600"}>
-                              {Math.abs(metric.trend)}%
-                            </span>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="text-2xl font-bold">
+                              {formatMetricValue(metric)}
+                            </div>
+                            <div className="flex items-center gap-1 text-sm">
+                              {metric.trend >= 0 ? (
+                                <TrendingUp className="w-4 h-4 text-green-600" />
+                              ) : (
+                                <TrendingDown className="w-4 h-4 text-red-600" />
+                              )}
+                              <span className={metric.trend >= 0 ? "text-green-600" : "text-red-600"}>
+                                {Math.abs(metric.trend)}%
+                              </span>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Target: {metric.name.includes("Score") ? metric.target.toFixed(1) : `${metric.target}%`}</span>
-                            <span>{metric.sampleSize} participants</span>
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>Target: {formatTargetValue(metric)}</span>
+                              <span>{metric.sampleSize} participants</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className={cn(
+                                  "rounded-full h-2 transition-all",
+                                  metric.status === "excellent" && "bg-green-500",
+                                  metric.status === "good" && "bg-blue-500",
+                                  metric.status === "warning" && "bg-yellow-500",
+                                  metric.status === "critical" && "bg-red-500"
+                                )}
+                                style={{ width: `${Math.min((metric.currentValue / metric.targetValue) * 100, 100)}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-primary rounded-full h-2 transition-all"
-                              style={{ width: `${Math.min((metric.current / metric.target) * 100, 100)}%` }}
-                            />
-                          </div>
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" className="text-xs flex-1">
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            Details
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-xs flex-1">
-                            <Download className="w-3 h-3 mr-1" />
-                            Export
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" className="text-xs flex-1">
+                              <ExternalLink className="w-3 h-3 mr-1" />
+                              Details
+                            </Button>
+                            <Button variant="outline" size="sm" className="text-xs flex-1">
+                              <Download className="w-3 h-3 mr-1" />
+                              Export
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -342,68 +381,100 @@ export function InsightDock({ journey, onClose }: InsightDockProps) {
             <TabsContent value="experiments" className="h-full m-0">
               <ScrollArea className="h-full">
                 <div className="p-4 space-y-4">
-                  {experiments.map((experiment) => (
-                    <Card key={experiment.id}>
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm">{experiment.name}</CardTitle>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={experiment.status === "running" ? "default" : "secondary"} className="text-xs">
-                              {experiment.status === "running" ? <Play className="w-3 h-3 mr-1" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
-                              {experiment.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="space-y-2">
-                          {experiment.variants.map((variant, index) => (
-                            <div key={index} className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-2">
-                                <div className={cn(
-                                  "w-3 h-3 rounded-full",
-                                  index === 0 ? "bg-blue-500" : index === 1 ? "bg-green-500" : "bg-purple-500"
-                                )} />
-                                <span>{variant.name}</span>
-                                <Badge variant="outline" className="text-xs">
-                                  {variant.allocation}%
-                                </Badge>
-                              </div>
-                              <div className="font-medium">{variant.conversions}% conv.</div>
+                  {experiments.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <GitBranch className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No experiments running</p>
+                      <p className="text-xs mb-4">Create A/B tests to optimize your journey</p>
+                      <Button variant="outline" size="sm">
+                        <GitBranch className="w-4 h-4 mr-2" />
+                        Create Experiment
+                      </Button>
+                    </div>
+                  ) : (
+                    experiments.map((experiment, expIndex) => (
+                      <Card key={expIndex}>
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm">{experiment.name}</CardTitle>
+                            <div className="flex items-center gap-2">
+                              <Badge 
+                                variant={experiment.status === "RUNNING" ? "default" : "secondary"} 
+                                className="text-xs"
+                              >
+                                {experiment.status === "RUNNING" ? (
+                                  <Play className="w-3 h-3 mr-1" />
+                                ) : (
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                                )}
+                                {experiment.status.toLowerCase()}
+                              </Badge>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="space-y-2">
+                            {experiment.variants.map((variant, index) => (
+                              <div key={index} className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2">
+                                  <div className={cn(
+                                    "w-3 h-3 rounded-full",
+                                    variant.isControl ? "bg-blue-500" : 
+                                    index === 1 ? "bg-green-500" : "bg-purple-500"
+                                  )} />
+                                  <span>{variant.name}</span>
+                                  {variant.isControl && (
+                                    <Badge variant="outline" className="text-xs">Control</Badge>
+                                  )}
+                                  <Badge variant="outline" className="text-xs">
+                                    {variant.allocation}%
+                                  </Badge>
+                                </div>
+                                <div className="font-medium">{variant.conversions}% conv.</div>
+                              </div>
+                            ))}
+                          </div>
 
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>Confidence: {experiment.confidence}%</span>
-                          <span>Started {formatDistanceToNow(experiment.startDate, { addSuffix: true })}</span>
-                        </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Confidence: {experiment.confidence}%</span>
+                            {experiment.startDate && (
+                              <span>Started {formatDistanceToNow(new Date(experiment.startDate), { addSuffix: true })}</span>
+                            )}
+                          </div>
 
-                        <div className="flex items-center gap-2">
-                          {experiment.status === "running" ? (
+                          <div className="flex items-center gap-2">
+                            {experiment.status === "RUNNING" ? (
+                              <Button variant="outline" size="sm" className="text-xs flex-1">
+                                <Pause className="w-3 h-3 mr-1" />
+                                Pause Test
+                              </Button>
+                            ) : experiment.status === "COMPLETED" ? (
+                              <Button variant="outline" size="sm" className="text-xs flex-1">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Apply Winner
+                              </Button>
+                            ) : (
+                              <Button variant="outline" size="sm" className="text-xs flex-1">
+                                <Play className="w-3 h-3 mr-1" />
+                                Start Test
+                              </Button>
+                            )}
                             <Button variant="outline" size="sm" className="text-xs flex-1">
-                              <Pause className="w-3 h-3 mr-1" />
-                              Pause Test
+                              <BarChart3 className="w-3 h-3 mr-1" />
+                              Results
                             </Button>
-                          ) : (
-                            <Button variant="outline" size="sm" className="text-xs flex-1">
-                              <CheckCircle2 className="w-3 h-3 mr-1" />
-                              Apply Winner
-                            </Button>
-                          )}
-                          <Button variant="outline" size="sm" className="text-xs flex-1">
-                            <BarChart3 className="w-3 h-3 mr-1" />
-                            Results
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
 
-                  <Button variant="outline" className="w-full">
-                    <GitBranch className="w-4 h-4 mr-2" />
-                    Create New Experiment
-                  </Button>
+                  {experiments.length > 0 && (
+                    <Button variant="outline" className="w-full">
+                      <GitBranch className="w-4 h-4 mr-2" />
+                      Create New Experiment
+                    </Button>
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -423,49 +494,59 @@ export function InsightDock({ journey, onClose }: InsightDockProps) {
                         <SelectItem value="negative">Negative</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Select defaultValue="all">
-                      <SelectTrigger className="text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Phases</SelectItem>
-                        <SelectItem value="ramp-up">Ramp Up</SelectItem>
-                        <SelectItem value="growth">Growth</SelectItem>
-                        <SelectItem value="mastery">Mastery</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
 
-                  {feedback.map((item) => (
-                    <Card key={item.id} className="border-l-4 border-l-gray-300">
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start gap-3">
-                            {getSentimentIcon(item.sentiment)}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-900">{item.content}</p>
+                  {feedback.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No feedback collected yet</p>
+                      <p className="text-xs">Feedback will appear as participants complete blocks</p>
+                    </div>
+                  ) : (
+                    feedback.map((item) => (
+                      <Card 
+                        key={item.id} 
+                        className={cn(
+                          "border-l-4",
+                          item.sentiment === "POSITIVE" || item.sentiment === "positive" ? "border-l-green-400" :
+                          item.sentiment === "NEGATIVE" || item.sentiment === "negative" ? "border-l-red-400" :
+                          "border-l-gray-300"
+                        )}
+                      >
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-3">
+                              {getSentimentIcon(item.sentiment)}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-gray-900">{item.content}</p>
+                              </div>
                             </div>
-                          </div>
 
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-xs">
-                                {item.phase}
-                              </Badge>
-                              {item.tags.map((tag) => (
-                                <Badge key={tag} variant="secondary" className="text-xs">
-                                  {tag}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge variant="outline" className="text-xs">
+                                  {item.phase}
                                 </Badge>
-                              ))}
+                                {item.block && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {item.block}
+                                  </Badge>
+                                )}
+                                {item.tags?.map((tag) => (
+                                  <Badge key={tag} variant="secondary" className="text-xs">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}
+                              </span>
                             </div>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(item.timestamp, { addSuffix: true })}
-                            </span>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -473,51 +554,65 @@ export function InsightDock({ journey, onClose }: InsightDockProps) {
             <TabsContent value="ai" className="h-full m-0">
               <ScrollArea className="h-full">
                 <div className="p-4 space-y-4">
-                  {aiSuggestions.map((suggestion) => (
-                    <Card key={suggestion.id} className="border-l-4 border-l-purple-500">
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Zap className="w-4 h-4 text-purple-600" />
-                                <h3 className="font-medium text-sm">{suggestion.title}</h3>
+                  {aiSuggestions.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Sparkles className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No suggestions yet</p>
+                      <p className="text-xs">AI suggestions will appear once we have enough data</p>
+                    </div>
+                  ) : (
+                    aiSuggestions.map((suggestion) => (
+                      <Card key={suggestion.id} className="border-l-4 border-l-purple-500">
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Zap className={cn(
+                                    "w-4 h-4",
+                                    suggestion.type === "optimization" && "text-purple-600",
+                                    suggestion.type === "automation" && "text-blue-600",
+                                    suggestion.type === "content" && "text-green-600",
+                                    suggestion.type === "timing" && "text-orange-600"
+                                  )} />
+                                  <h3 className="font-medium text-sm">{suggestion.title}</h3>
+                                </div>
+                                <p className="text-xs text-muted-foreground">{suggestion.description}</p>
                               </div>
-                              <p className="text-xs text-muted-foreground">{suggestion.description}</p>
+                              <div className="flex items-center gap-1 text-xs">
+                                <Star className="w-3 h-3 text-yellow-500" />
+                                <span>{suggestion.confidence}%</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1 text-xs">
-                              <Star className="w-3 h-3 text-yellow-500" />
-                              <span>{suggestion.confidence}%</span>
-                            </div>
-                          </div>
 
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className={cn("text-xs", getImpactColor(suggestion.impact))}>
-                                {suggestion.impact} impact
-                              </Badge>
-                              <Badge variant="secondary" className="text-xs">
-                                {suggestion.effort} effort
-                              </Badge>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className={cn("text-xs", getImpactColor(suggestion.impact))}>
+                                  {suggestion.impact} impact
+                                </Badge>
+                                <Badge variant="secondary" className="text-xs">
+                                  {suggestion.effort} effort
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                  <ThumbsUp className="w-3 h-3" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                  <ThumbsDown className="w-3 h-3" />
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                <ThumbsUp className="w-3 h-3" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                <ThumbsDown className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
 
-                          <Button variant="outline" size="sm" className="w-full text-xs">
-                            <Zap className="w-3 h-3 mr-1" />
-                            Apply Suggestion
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                            <Button variant="outline" size="sm" className="w-full text-xs">
+                              <Zap className="w-3 h-3 mr-1" />
+                              Apply Suggestion
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>

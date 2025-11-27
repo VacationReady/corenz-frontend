@@ -54,6 +54,7 @@ import { ExperienceBlockNode } from "./nodes/ExperienceBlockNode";
 import { DecisionGatewayNode } from "./nodes/DecisionGatewayNode";
 import { PhaseHeaderNode } from "./nodes/PhaseHeaderNode";
 import { OutcomeTrackerNode } from "./nodes/OutcomeTrackerNode";
+import { JourneyPreviewMode } from "./JourneyPreviewMode";
 
 interface JourneyTemplate {
   id: string;
@@ -130,9 +131,17 @@ const defaultEdgeOptions = {
   markerEnd: { type: MarkerType.ArrowClosed, color: '#6366f1' },
 };
 
+interface BlockAnalytics {
+  blockId: string;
+  engagement: number;
+  completions: number;
+  satisfaction: number | null;
+  feedbackCount: number;
+}
+
 function JourneyCanvasInner({ journey, onJourneyUpdate, showInsightDock, onToggleInsightDock }: JourneyCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { fitView, zoomIn, zoomOut, setViewport } = useReactFlow();
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -141,6 +150,32 @@ function JourneyCanvasInner({ journey, onJourneyUpdate, showInsightDock, onToggl
   const [showMiniMap, setShowMiniMap] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [blockAnalytics, setBlockAnalytics] = useState<Record<string, BlockAnalytics>>({});
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Fetch analytics for blocks
+  useEffect(() => {
+    if (!journey?.id) return;
+
+    const fetchAnalytics = async () => {
+      try {
+        const response = await fetch(`/api/journeys/${journey.id}/analytics`);
+        if (response.ok) {
+          const data = await response.json();
+          // Convert block analytics array to a lookup map
+          const analyticsMap: Record<string, BlockAnalytics> = {};
+          data.blockAnalytics?.forEach((block: BlockAnalytics) => {
+            analyticsMap[block.blockId] = block;
+          });
+          setBlockAnalytics(analyticsMap);
+        }
+      } catch (error) {
+        console.error("Error fetching block analytics:", error);
+      }
+    };
+
+    fetchAnalytics();
+  }, [journey?.id]);
 
   // Convert journey data to ReactFlow nodes and edges
   useEffect(() => {
@@ -185,6 +220,7 @@ function JourneyCanvasInner({ journey, onJourneyUpdate, showInsightDock, onToggl
         .sort((a, b) => a.order - b.order)
         .forEach((block, blockIndex) => {
           const nodeId = `block-${block.id}`;
+          const analytics = blockAnalytics[block.id];
           
           newNodes.push({
             id: nodeId,
@@ -194,23 +230,69 @@ function JourneyCanvasInner({ journey, onJourneyUpdate, showInsightDock, onToggl
               block,
               phase,
               journey,
+              analytics, // Pass real analytics data
               onUpdate: (updatedBlock: ExperienceBlock) => {
-                // Handle block updates
+                // Handle block updates - could be a new block from duplication
+                const existingBlock = phase.experienceBlocks.find(b => b.id === updatedBlock.id);
+                
+                if (existingBlock) {
+                  // Update existing block
+                  const updatedJourney = {
+                    ...journey,
+                    phases: journey.phases.map(p =>
+                      p.id === phase.id
+                        ? {
+                            ...p,
+                            experienceBlocks: p.experienceBlocks.map(b =>
+                              b.id === block.id ? updatedBlock : b
+                            ),
+                          }
+                        : p
+                    ),
+                  };
+                  onJourneyUpdate(updatedJourney);
+                } else {
+                  // New block (from duplication) - add to phase and refresh
+                  const updatedJourney = {
+                    ...journey,
+                    phases: journey.phases.map(p =>
+                      p.id === phase.id
+                        ? {
+                            ...p,
+                            experienceBlocks: [...p.experienceBlocks, updatedBlock].sort((a, b) => a.order - b.order),
+                          }
+                        : p
+                    ),
+                  };
+                  onJourneyUpdate(updatedJourney);
+                }
+                setIsDirty(true);
+              },
+              onDelete: (blockId: string) => {
+                // Remove block from journey state
                 const updatedJourney = {
                   ...journey,
                   phases: journey.phases.map(p =>
                     p.id === phase.id
                       ? {
                           ...p,
-                          experienceBlocks: p.experienceBlocks.map(b =>
-                            b.id === block.id ? updatedBlock : b
-                          ),
+                          experienceBlocks: p.experienceBlocks
+                            .filter(b => b.id !== blockId)
+                            .map((b, idx) => ({ ...b, order: idx })), // Reorder remaining blocks
                         }
                       : p
                   ),
                 };
                 onJourneyUpdate(updatedJourney);
                 setIsDirty(true);
+              },
+              onEdit: (blockToEdit: ExperienceBlock) => {
+                // Emit event for BlockConfigDrawer to handle
+                const event = new CustomEvent("openBlockConfig", { 
+                  detail: { block: blockToEdit, phase, journey },
+                  bubbles: true 
+                });
+                document.dispatchEvent(event);
               },
             },
           });
@@ -272,7 +354,7 @@ function JourneyCanvasInner({ journey, onJourneyUpdate, showInsightDock, onToggl
     setTimeout(() => {
       fitView({ padding: 0.1, duration: 300 });
     }, 100);
-  }, [journey, fitView, onJourneyUpdate, setNodes, setEdges]);
+  }, [journey, fitView, onJourneyUpdate, setNodes, setEdges, blockAnalytics]);
 
   const onConnect = useCallback((params: Connection) => {
     setEdges((eds) => addEdge({ ...params, ...defaultEdgeOptions }, eds));
@@ -369,7 +451,7 @@ function JourneyCanvasInner({ journey, onJourneyUpdate, showInsightDock, onToggl
 
   const handlePreview = () => {
     // Open preview mode
-    toast.info("Preview mode coming soon");
+    setIsPreviewOpen(true);
   };
 
   const nodeColor = useCallback((node: Node) => {
@@ -569,6 +651,13 @@ function JourneyCanvasInner({ journey, onJourneyUpdate, showInsightDock, onToggl
           </Card>
         </div>
       </div>
+
+      {/* Journey Preview Mode */}
+      <JourneyPreviewMode
+        journey={journey}
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+      />
     </div>
   );
 }

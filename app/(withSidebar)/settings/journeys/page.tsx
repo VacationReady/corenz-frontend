@@ -49,6 +49,8 @@ import {
   Star,
   ArrowRight,
   RefreshCcw,
+  UserPlus,
+  Beaker,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -59,6 +61,9 @@ import { JourneyScopingDialog } from "./components/JourneyScopingDialog";
 import { OnboardingTemplatesTab } from "./components/OnboardingTemplatesTab";
 import { FloatingAIChat } from "./components/FloatingAIChat";
 import { JourneyOnboardingChecklist } from "./components/JourneyOnboardingChecklist";
+import { BlockConfigDrawer } from "./components/BlockConfigDrawer";
+import { AssignJourneyDialog } from "./components/AssignJourneyDialog";
+import { ExperimentWizard } from "./components/ExperimentWizard";
 
 interface JourneyTemplate {
   id: string;
@@ -126,6 +131,8 @@ export default function JourneysPage() {
   const [showInsightDock, setShowInsightDock] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [showExperimentWizard, setShowExperimentWizard] = useState(false);
 
   // Check URL parameters for tab selection
   useEffect(() => {
@@ -407,6 +414,26 @@ export default function JourneysPage() {
             </Tabs>
           </div>
           <div className="flex items-center gap-2">
+            {selectedJourney && selectedJourney.phases?.length > 0 && (
+              <Button 
+                variant="outline"
+                onClick={() => setShowExperimentWizard(true)}
+                className="gap-2"
+              >
+                <Beaker className="w-4 h-4" />
+                A/B Test
+              </Button>
+            )}
+            {selectedJourney && selectedJourney.status === "PUBLISHED" && (
+              <Button 
+                variant="outline"
+                onClick={() => setShowAssignDialog(true)}
+                className="gap-2"
+              >
+                <UserPlus className="w-4 h-4" />
+                Assign Employees
+              </Button>
+            )}
             <Button 
               onClick={handleCreateJourney}
               className="gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg shadow-indigo-500/25"
@@ -559,6 +586,53 @@ export default function JourneysPage() {
         journey={selectedJourney}
         onJourneyUpdate={handleJourneyUpdate}
       />
+
+      {/* Block Configuration Drawer */}
+      <BlockConfigDrawer
+        onBlockUpdate={(updatedBlock) => {
+          // Update the journey with the updated block
+          if (selectedJourney) {
+            const updatedJourney = {
+              ...selectedJourney,
+              phases: selectedJourney.phases.map(phase => ({
+                ...phase,
+                experienceBlocks: phase.experienceBlocks.map(block =>
+                  block.id === updatedBlock.id ? { ...block, ...updatedBlock } : block
+                ),
+              })),
+            };
+            handleJourneyUpdate(updatedJourney);
+          }
+        }}
+      />
+
+      {/* Assign Journey Dialog */}
+      {selectedJourney && (
+        <AssignJourneyDialog
+          journey={selectedJourney}
+          isOpen={showAssignDialog}
+          onClose={() => setShowAssignDialog(false)}
+          onAssigned={(count) => {
+            // Refresh analytics after assignment
+            loadAnalytics();
+            toast.success(`Successfully assigned journey to ${count} employee${count !== 1 ? 's' : ''}`);
+          }}
+        />
+      )}
+
+      {/* Experiment Wizard */}
+      {selectedJourney && (
+        <ExperimentWizard
+          journey={selectedJourney}
+          isOpen={showExperimentWizard}
+          onClose={() => setShowExperimentWizard(false)}
+          onCreated={(experiment) => {
+            toast.success(`Experiment "${experiment.name}" created successfully!`);
+            // Refresh journey to show new experiment
+            loadJourneys();
+          }}
+        />
+      )}
     </PageShell>
   );
 }

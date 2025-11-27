@@ -726,3 +726,595 @@ Would you like to create your first journey or learn more about a specific aspec
 }
 
 export const journeyAssistant = new JourneyAssistant();
+
+// ============================================================================
+// AI Journey Generation
+// ============================================================================
+
+export interface JourneyScopingData {
+  name: string;
+  description?: string;
+  persona: string;
+  duration: number;
+  category: string;
+  businessGoals: string[];
+  geography?: string;
+  lifecycleStage?: string;
+  customGoals?: string;
+}
+
+export interface GeneratedPhase {
+  name: string;
+  description: string;
+  duration: number;
+  phaseType: "SEQUENTIAL" | "PARALLEL" | "CONDITIONAL";
+  experienceBlocks: GeneratedBlock[];
+}
+
+export interface GeneratedBlock {
+  name: string;
+  description: string;
+  blockType: "TASK" | "FORM" | "COMMUNICATION" | "TRAINING" | "APPROVAL" | "AUTOMATION" | "MILESTONE" | "SURVEY" | "DOCUMENT" | "MEETING";
+  estimatedDuration: number;
+  slaHours?: number;
+  responsibleRole: string;
+  automationConfig?: Record<string, any>;
+  assets?: Record<string, any>;
+  successCriteria?: Record<string, any>;
+}
+
+// Persona-specific best practices
+const PERSONA_BEST_PRACTICES: Record<string, string> = {
+  "remote_worker": `
+    - Include virtual onboarding sessions and video introductions
+    - Add equipment shipping tracking and home office setup tasks
+    - Schedule regular video check-ins to combat isolation
+    - Include virtual team building activities
+    - Provide async communication guidelines and training
+    - Add time zone coordination tools setup
+  `,
+  "software_engineer": `
+    - Include codebase orientation and development environment setup
+    - Add pair programming sessions with senior engineers
+    - Include code review process training
+    - Add technical architecture documentation review
+    - Schedule 1-on-1s with tech leads
+    - Include access to development tools and repositories
+  `,
+  "manager": `
+    - Include leadership training and management philosophy sessions
+    - Add team introduction and dynamics overview
+    - Include HR policies and people management training
+    - Add budget and resource management orientation
+    - Schedule skip-level meeting with senior leadership
+    - Include performance management system training
+  `,
+  "sales": `
+    - Include product knowledge training and demo practice
+    - Add CRM system training and pipeline management
+    - Include sales methodology and process training
+    - Add call shadowing with top performers
+    - Schedule territory and account planning
+    - Include competitive intelligence and objection handling
+  `,
+  "customer_success": `
+    - Include product deep-dive and feature training
+    - Add customer communication best practices
+    - Include escalation process and support tools training
+    - Add shadowing sessions with senior CSMs
+    - Schedule customer portfolio handoff planning
+    - Include success metrics and health score training
+  `,
+  "executive": `
+    - Include board and investor relations briefing
+    - Add strategic planning and vision alignment sessions
+    - Include leadership team introductions and culture immersion
+    - Add key stakeholder relationship building
+    - Schedule media training if public-facing role
+    - Include confidential strategic initiatives briefing
+  `,
+  "intern": `
+    - Include structured learning paths with clear objectives
+    - Add mentor assignment and regular check-ins
+    - Include project-based learning assignments
+    - Add professional development workshops
+    - Schedule networking events with full-time employees
+    - Include end-of-internship presentation preparation
+  `,
+  "contractor": `
+    - Include project scope and deliverables overview
+    - Add relevant system access and tool training
+    - Include communication protocols and reporting structure
+    - Add compliance and legal requirements briefing
+    - Schedule project kickoff and timeline review
+    - Include handoff and knowledge transfer planning
+  `,
+};
+
+// Category-specific journey patterns
+const CATEGORY_PATTERNS: Record<string, string> = {
+  onboarding: `
+    Typical phases for onboarding journeys:
+    1. Pre-boarding (before start date): Welcome communications, paperwork, equipment ordering
+    2. Day 1: Welcome, office tour/virtual intro, IT setup, HR orientation
+    3. First Week: Team introductions, role overview, initial training
+    4. First Month: Deeper role training, project involvement, first performance touchpoint
+    5. 60/90-day Review: Performance assessment, feedback collection, goal refinement
+    
+    Key success factors:
+    - Front-load administrative tasks before Day 1
+    - Balance information delivery to avoid overload
+    - Include social connection opportunities
+    - Set clear expectations and milestones
+    - Gather feedback at multiple touchpoints
+  `,
+  development: `
+    Typical phases for development journeys:
+    1. Assessment: Skills evaluation, career discussion, goal setting
+    2. Planning: Create personalized development plan, identify resources
+    3. Learning: Training modules, courses, certifications
+    4. Practice: On-the-job application, stretch assignments, projects
+    5. Review: Progress assessment, plan adjustment, next steps
+    
+    Key success factors:
+    - Align development with business needs and career goals
+    - Mix formal training with experiential learning
+    - Include mentorship or coaching components
+    - Set measurable milestones and checkpoints
+    - Celebrate progress and achievements
+  `,
+  performance: `
+    Typical phases for performance journeys:
+    1. Preparation: Self-assessment, goal review, documentation gathering
+    2. Feedback Collection: 360 feedback, peer reviews, manager input
+    3. Review Meeting: Performance discussion, achievement recognition
+    4. Goal Setting: New objectives, development plans, expectations
+    5. Follow-up: Progress check-ins, support resources, course corrections
+    
+    Key success factors:
+    - Ensure objectivity and fairness in assessments
+    - Focus on growth opportunities, not just evaluation
+    - Align individual goals with organizational objectives
+    - Provide actionable feedback and support resources
+    - Document outcomes and next steps clearly
+  `,
+  offboarding: `
+    Typical phases for offboarding journeys:
+    1. Notification: Exit paperwork, transition timeline, communication plan
+    2. Knowledge Transfer: Documentation, training replacements, handoff meetings
+    3. Asset Return: Equipment collection, access revocation, final tasks
+    4. Exit Interview: Feedback collection, alumni network invitation
+    5. Post-departure: Final documentation, reference arrangements, alumni engagement
+    
+    Key success factors:
+    - Maintain positive relationship throughout
+    - Ensure comprehensive knowledge transfer
+    - Protect company assets and information
+    - Gather honest feedback for improvement
+    - Leave door open for boomerang employees
+  `,
+  transition: `
+    Typical phases for transition journeys (promotions, role changes, transfers):
+    1. Announcement: Communication plan, stakeholder notification
+    2. Handoff: Current role transition, knowledge transfer
+    3. Orientation: New role/location/team introduction
+    4. Ramp-up: Training, relationship building, quick wins
+    5. Stabilization: Performance assessment, support adjustment
+    
+    Key success factors:
+    - Communicate changes clearly to all stakeholders
+    - Allow time for proper handoff of current responsibilities
+    - Provide support for learning new skills/relationships
+    - Set realistic expectations for transition period
+    - Celebrate the transition and new opportunity
+  `,
+  compliance: `
+    Typical phases for compliance journeys:
+    1. Notification: Requirements overview, timeline, importance explanation
+    2. Training: Required courses, policy reviews, certifications
+    3. Assessment: Knowledge checks, competency validation
+    4. Attestation: Sign-offs, acknowledgments, documentation
+    5. Verification: Audit trail, reporting, recertification planning
+    
+    Key success factors:
+    - Make requirements clear and accessible
+    - Provide engaging training, not just checkbox exercises
+    - Track completion with automated reminders
+    - Maintain comprehensive audit trails
+    - Plan for ongoing recertification needs
+  `,
+};
+
+/**
+ * Generate AI-powered journey phases based on scoping data
+ */
+export async function generateJourneyPhasesAI(scopingData: JourneyScopingData): Promise<GeneratedPhase[]> {
+  const personaKey = scopingData.persona.toLowerCase().replace(/\s+/g, '_');
+  const personaBestPractices = PERSONA_BEST_PRACTICES[personaKey] || '';
+  const categoryPatterns = CATEGORY_PATTERNS[scopingData.category] || CATEGORY_PATTERNS.onboarding;
+
+  const prompt = `
+You are an expert HR journey designer creating employee lifecycle programs for a modern HRIS system.
+Generate a comprehensive journey structure based on the following requirements.
+
+## Journey Requirements:
+- Name: ${scopingData.name}
+- Description: ${scopingData.description || 'Not provided'}
+- Target Persona: ${scopingData.persona}
+- Duration: ${scopingData.duration} days
+- Category: ${scopingData.category}
+- Business Goals: ${scopingData.businessGoals.join(', ')}
+${scopingData.geography ? `- Geography: ${scopingData.geography}` : ''}
+${scopingData.lifecycleStage ? `- Lifecycle Stage: ${scopingData.lifecycleStage}` : ''}
+${scopingData.customGoals ? `- Additional Goals: ${scopingData.customGoals}` : ''}
+
+## Category Best Practices:
+${categoryPatterns}
+
+${personaBestPractices ? `## Persona-Specific Recommendations (${scopingData.persona}):
+${personaBestPractices}` : ''}
+
+## Block Types Available:
+- TASK: Action items, deliverables, assignments
+- FORM: Data collection, applications, requests
+- COMMUNICATION: Emails, notifications, announcements
+- TRAINING: Learning modules, courses, certifications
+- APPROVAL: Manager sign-offs, stakeholder reviews
+- AUTOMATION: System-triggered actions, integrations
+- MILESTONE: Key achievements, celebrations, checkpoints
+- SURVEY: Feedback collection, pulse checks, assessments
+- DOCUMENT: Policies, handbooks, contracts
+- MEETING: 1-on-1s, team meetings, check-ins
+
+## Response Format:
+Generate a JSON array of phases. Each phase should have:
+- name: Clear, action-oriented phase name
+- description: Brief description of the phase purpose (1-2 sentences)
+- duration: Number of days for this phase
+- phaseType: "SEQUENTIAL" (blocks in order), "PARALLEL" (blocks can happen simultaneously), or "CONDITIONAL" (depends on outcomes)
+- experienceBlocks: Array of blocks within the phase
+
+Each block should have:
+- name: Clear, specific block name
+- description: What the employee should do/receive (1-2 sentences)
+- blockType: One of the available block types
+- estimatedDuration: Hours expected to complete (1-40)
+- slaHours: Optional deadline in hours (only for time-sensitive items)
+- responsibleRole: Who is responsible (e.g., "HR", "Manager", "IT", "Buddy", "Employee", "L&D Team")
+
+## Guidelines:
+1. Create ${Math.max(3, Math.min(6, Math.ceil(scopingData.duration / 20)))} phases that span the ${scopingData.duration}-day journey
+2. Include 2-5 experience blocks per phase
+3. Front-load critical setup tasks
+4. Include feedback touchpoints throughout
+5. End with a clear milestone or review
+6. Make block names specific and actionable
+7. Assign realistic time estimates
+8. Consider the persona's specific needs and work context
+
+Generate the journey structure now as a valid JSON array:
+`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert HR journey designer. Always respond with valid JSON arrays only, no markdown formatting or explanation text. The response should be parseable by JSON.parse().",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 4000,
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) {
+      console.error("No response from OpenAI");
+      return getFallbackTemplate(scopingData);
+    }
+
+    // Parse the JSON response
+    try {
+      // Clean up response - remove markdown code blocks if present
+      let cleanedResponse = response.trim();
+      if (cleanedResponse.startsWith("```json")) {
+        cleanedResponse = cleanedResponse.slice(7);
+      }
+      if (cleanedResponse.startsWith("```")) {
+        cleanedResponse = cleanedResponse.slice(3);
+      }
+      if (cleanedResponse.endsWith("```")) {
+        cleanedResponse = cleanedResponse.slice(0, -3);
+      }
+      cleanedResponse = cleanedResponse.trim();
+
+      const phases: GeneratedPhase[] = JSON.parse(cleanedResponse);
+      
+      // Validate and normalize the response
+      return phases.map((phase, index) => ({
+        name: phase.name || `Phase ${index + 1}`,
+        description: phase.description || "",
+        duration: phase.duration || Math.ceil(scopingData.duration / phases.length),
+        phaseType: validatePhaseType(phase.phaseType),
+        experienceBlocks: (phase.experienceBlocks || []).map((block, blockIndex) => ({
+          name: block.name || `Block ${blockIndex + 1}`,
+          description: block.description || "",
+          blockType: validateBlockType(block.blockType),
+          estimatedDuration: block.estimatedDuration || 2,
+          slaHours: block.slaHours,
+          responsibleRole: block.responsibleRole || "HR",
+          automationConfig: block.automationConfig,
+          assets: block.assets,
+          successCriteria: block.successCriteria,
+        })),
+      }));
+    } catch (parseError) {
+      console.error("Error parsing AI response:", parseError);
+      console.error("Raw response:", response);
+      return getFallbackTemplate(scopingData);
+    }
+  } catch (error) {
+    console.error("Error generating journey with AI:", error);
+    return getFallbackTemplate(scopingData);
+  }
+}
+
+function validatePhaseType(type: string): "SEQUENTIAL" | "PARALLEL" | "CONDITIONAL" {
+  const validTypes = ["SEQUENTIAL", "PARALLEL", "CONDITIONAL"];
+  return validTypes.includes(type?.toUpperCase()) 
+    ? type.toUpperCase() as "SEQUENTIAL" | "PARALLEL" | "CONDITIONAL"
+    : "SEQUENTIAL";
+}
+
+function validateBlockType(type: string): GeneratedBlock["blockType"] {
+  const validTypes = ["TASK", "FORM", "COMMUNICATION", "TRAINING", "APPROVAL", "AUTOMATION", "MILESTONE", "SURVEY", "DOCUMENT", "MEETING"];
+  return validTypes.includes(type?.toUpperCase())
+    ? type.toUpperCase() as GeneratedBlock["blockType"]
+    : "TASK";
+}
+
+/**
+ * Fallback template when AI generation fails
+ */
+function getFallbackTemplate(scopingData: JourneyScopingData): GeneratedPhase[] {
+  const templates: Record<string, GeneratedPhase[]> = {
+    onboarding: [
+      {
+        name: "Pre-boarding",
+        description: "Prepare for the new hire's arrival before their start date",
+        duration: Math.min(7, Math.ceil(scopingData.duration * 0.1)),
+        phaseType: "SEQUENTIAL",
+        experienceBlocks: [
+          {
+            name: "Welcome Email",
+            description: "Send personalized welcome message with first day instructions",
+            blockType: "COMMUNICATION",
+            estimatedDuration: 1,
+            responsibleRole: "HR",
+          },
+          {
+            name: "Equipment Setup",
+            description: "Prepare workspace, laptop, and required equipment",
+            blockType: "TASK",
+            estimatedDuration: 4,
+            slaHours: 48,
+            responsibleRole: "IT",
+          },
+          {
+            name: "Access Provisioning",
+            description: "Set up system access, email, and required accounts",
+            blockType: "AUTOMATION",
+            estimatedDuration: 2,
+            responsibleRole: "IT",
+          },
+        ],
+      },
+      {
+        name: "First Day",
+        description: "Welcome and initial orientation experience",
+        duration: 1,
+        phaseType: "SEQUENTIAL",
+        experienceBlocks: [
+          {
+            name: "Welcome Meeting",
+            description: "Personal welcome from manager and team introduction",
+            blockType: "MEETING",
+            estimatedDuration: 2,
+            responsibleRole: "Manager",
+          },
+          {
+            name: "Company Overview",
+            description: "Learn about company mission, values, and culture",
+            blockType: "TRAINING",
+            estimatedDuration: 3,
+            responsibleRole: "HR",
+          },
+          {
+            name: "Workspace Setup",
+            description: "Set up personal workspace and get oriented",
+            blockType: "TASK",
+            estimatedDuration: 2,
+            responsibleRole: "Buddy",
+          },
+        ],
+      },
+      {
+        name: "First Week",
+        description: "Role-specific training and team integration",
+        duration: Math.min(7, Math.ceil(scopingData.duration * 0.15)),
+        phaseType: "PARALLEL",
+        experienceBlocks: [
+          {
+            name: "Role Training",
+            description: "Learn specific job responsibilities and workflows",
+            blockType: "TRAINING",
+            estimatedDuration: 16,
+            responsibleRole: "Manager",
+          },
+          {
+            name: "System Training",
+            description: "Learn required tools, systems, and processes",
+            blockType: "TRAINING",
+            estimatedDuration: 8,
+            responsibleRole: "IT",
+          },
+          {
+            name: "First Week Check-in",
+            description: "Quick pulse survey to assess initial experience",
+            blockType: "SURVEY",
+            estimatedDuration: 1,
+            responsibleRole: "HR",
+          },
+        ],
+      },
+      {
+        name: "First Month",
+        description: "Deeper integration and initial project work",
+        duration: Math.ceil(scopingData.duration * 0.4),
+        phaseType: "PARALLEL",
+        experienceBlocks: [
+          {
+            name: "Project Assignment",
+            description: "Assign first meaningful project or task",
+            blockType: "TASK",
+            estimatedDuration: 20,
+            responsibleRole: "Manager",
+          },
+          {
+            name: "30-Day Check-in",
+            description: "Formal check-in to review progress and address concerns",
+            blockType: "MEETING",
+            estimatedDuration: 2,
+            responsibleRole: "Manager",
+          },
+          {
+            name: "30-Day Survey",
+            description: "Comprehensive feedback on onboarding experience",
+            blockType: "SURVEY",
+            estimatedDuration: 1,
+            responsibleRole: "HR",
+          },
+        ],
+      },
+      {
+        name: "90-Day Review",
+        description: "Formal performance assessment and goal setting",
+        duration: Math.ceil(scopingData.duration * 0.35),
+        phaseType: "SEQUENTIAL",
+        experienceBlocks: [
+          {
+            name: "Self-Assessment",
+            description: "Complete self-evaluation of progress and goals",
+            blockType: "FORM",
+            estimatedDuration: 2,
+            responsibleRole: "Employee",
+          },
+          {
+            name: "Performance Review",
+            description: "Formal review meeting with manager",
+            blockType: "MEETING",
+            estimatedDuration: 2,
+            responsibleRole: "Manager",
+          },
+          {
+            name: "Onboarding Complete",
+            description: "Celebrate successful completion of onboarding journey",
+            blockType: "MILESTONE",
+            estimatedDuration: 1,
+            responsibleRole: "HR",
+          },
+        ],
+      },
+    ],
+    development: [
+      {
+        name: "Assessment",
+        description: "Evaluate current skills and identify development areas",
+        duration: Math.ceil(scopingData.duration * 0.15),
+        phaseType: "SEQUENTIAL",
+        experienceBlocks: [
+          {
+            name: "Skills Assessment",
+            description: "Complete comprehensive skills evaluation survey",
+            blockType: "SURVEY",
+            estimatedDuration: 2,
+            responsibleRole: "Employee",
+          },
+          {
+            name: "Career Discussion",
+            description: "Discuss career goals and development aspirations",
+            blockType: "MEETING",
+            estimatedDuration: 2,
+            responsibleRole: "Manager",
+          },
+        ],
+      },
+      {
+        name: "Planning",
+        description: "Create personalized development plan",
+        duration: Math.ceil(scopingData.duration * 0.1),
+        phaseType: "SEQUENTIAL",
+        experienceBlocks: [
+          {
+            name: "Development Plan",
+            description: "Create structured learning path and goals",
+            blockType: "FORM",
+            estimatedDuration: 3,
+            responsibleRole: "Manager",
+          },
+        ],
+      },
+      {
+        name: "Learning",
+        description: "Execute development activities and training",
+        duration: Math.ceil(scopingData.duration * 0.6),
+        phaseType: "PARALLEL",
+        experienceBlocks: [
+          {
+            name: "Training Modules",
+            description: "Complete assigned training courses and certifications",
+            blockType: "TRAINING",
+            estimatedDuration: 40,
+            responsibleRole: "Employee",
+          },
+          {
+            name: "Progress Check-ins",
+            description: "Regular progress reviews with manager",
+            blockType: "MEETING",
+            estimatedDuration: 4,
+            responsibleRole: "Manager",
+          },
+        ],
+      },
+      {
+        name: "Review",
+        description: "Assess progress and plan next steps",
+        duration: Math.ceil(scopingData.duration * 0.15),
+        phaseType: "SEQUENTIAL",
+        experienceBlocks: [
+          {
+            name: "Final Assessment",
+            description: "Evaluate development progress and achievements",
+            blockType: "SURVEY",
+            estimatedDuration: 2,
+            responsibleRole: "Manager",
+          },
+          {
+            name: "Development Complete",
+            description: "Celebrate completion and plan next development cycle",
+            blockType: "MILESTONE",
+            estimatedDuration: 1,
+            responsibleRole: "HR",
+          },
+        ],
+      },
+    ],
+  };
+
+  return templates[scopingData.category] || templates.onboarding;
+}

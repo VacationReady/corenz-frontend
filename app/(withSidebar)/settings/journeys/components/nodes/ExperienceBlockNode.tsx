@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useCallback } from "react";
 import { Handle, Position, NodeProps } from "reactflow";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -17,6 +17,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   CheckCircle2,
   Clock,
@@ -39,7 +49,9 @@ import {
   UserCheck,
   Calendar,
   Target,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface ExperienceBlock {
@@ -53,11 +65,22 @@ interface ExperienceBlock {
   responsibleRole?: string;
 }
 
+interface BlockAnalytics {
+  blockId: string;
+  engagement: number;
+  completions: number;
+  satisfaction: number | null;
+  feedbackCount: number;
+}
+
 interface ExperienceBlockNodeData {
   block: ExperienceBlock;
   phase: any;
   journey: any;
+  analytics?: BlockAnalytics;
   onUpdate: (block: ExperienceBlock) => void;
+  onDelete?: (blockId: string) => void;
+  onEdit?: (block: ExperienceBlock) => void;
 }
 
 const BLOCK_TYPE_CONFIG = {
@@ -114,19 +137,27 @@ const BLOCK_TYPE_CONFIG = {
 };
 
 export const ExperienceBlockNode = memo(({ data, selected }: NodeProps<ExperienceBlockNodeData>) => {
-  const { block, phase, journey, onUpdate } = data;
+  const { block, phase, journey, analytics, onUpdate, onDelete, onEdit } = data;
   const [isHovered, setIsHovered] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   
   const config = BLOCK_TYPE_CONFIG[block.blockType as keyof typeof BLOCK_TYPE_CONFIG] || BLOCK_TYPE_CONFIG.TASK;
   
-  // Mock engagement data
-  const engagementScore = Math.floor(Math.random() * 40) + 60; // 60-100
-  const completionRate = Math.floor(Math.random() * 30) + 70; // 70-100
-  const avgTimeToComplete = block.estimatedDuration ? block.estimatedDuration + Math.floor(Math.random() * 10) - 5 : undefined;
+  // Use real analytics data when available, otherwise show defaults
+  const hasAnalytics = !!analytics;
+  const engagementScore = analytics?.engagement ?? 0;
+  const completionRate = hasAnalytics && analytics.completions > 0 ? analytics.engagement : 0;
+  const avgTimeToComplete = block.estimatedDuration;
+  const feedbackCount = analytics?.feedbackCount ?? 0;
   
   const getEngagementTrend = () => {
-    const trend = Math.random() > 0.5 ? "up" : "down";
-    return trend === "up" ? (
+    // Show neutral when no data, otherwise calculate based on engagement threshold
+    if (!hasAnalytics || engagementScore === 0) {
+      return <Minus className="w-3 h-3 text-gray-400" />;
+    }
+    return engagementScore >= 70 ? (
       <TrendingUp className="w-3 h-3 text-green-600" />
     ) : (
       <TrendingDown className="w-3 h-3 text-red-600" />
@@ -134,30 +165,88 @@ export const ExperienceBlockNode = memo(({ data, selected }: NodeProps<Experienc
   };
 
   const getSentimentIndicator = () => {
+    if (!hasAnalytics || engagementScore === 0) return "bg-gray-300";
     if (engagementScore >= 80) return "bg-green-500";
     if (engagementScore >= 60) return "bg-yellow-500";
     return "bg-red-500";
   };
 
-  const handleEdit = () => {
-    // Open edit dialog
-    console.log("Edit block:", block.id);
-  };
+  const handleEdit = useCallback(() => {
+    // Open edit drawer/dialog - call parent handler if provided
+    if (onEdit) {
+      onEdit(block);
+    } else {
+      // Fallback: emit custom event for parent components to handle
+      const event = new CustomEvent("openBlockConfig", { 
+        detail: { block, phase, journey },
+        bubbles: true 
+      });
+      document.dispatchEvent(event);
+    }
+  }, [block, phase, journey, onEdit]);
 
-  const handleDuplicate = () => {
-    const duplicatedBlock = {
-      ...block,
-      id: `${block.id}-copy`,
-      name: `${block.name} (Copy)`,
-      order: block.order + 1,
-    };
-    onUpdate(duplicatedBlock);
-  };
+  const handleDuplicate = useCallback(async () => {
+    setIsDuplicating(true);
+    try {
+      const response = await fetch(`/api/journeys/${journey.id}/blocks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phaseId: phase.id,
+          name: `${block.name} (Copy)`,
+          description: block.description,
+          blockType: block.blockType,
+          order: block.order + 1,
+          estimatedDuration: block.estimatedDuration,
+          slaHours: block.slaHours,
+          responsibleRole: block.responsibleRole,
+        }),
+      });
 
-  const handleDelete = () => {
-    // Handle deletion
-    console.log("Delete block:", block.id);
-  };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to duplicate block");
+      }
+
+      const newBlock = await response.json();
+      toast.success("Block duplicated successfully");
+      
+      // Notify parent to refresh the journey data
+      onUpdate(newBlock);
+    } catch (error) {
+      console.error("Error duplicating block:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to duplicate block");
+    } finally {
+      setIsDuplicating(false);
+    }
+  }, [block, phase.id, journey.id, onUpdate]);
+
+  const handleDelete = useCallback(async () => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/journeys/blocks/${block.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete block");
+      }
+
+      toast.success("Block deleted successfully");
+      setShowDeleteDialog(false);
+      
+      // Notify parent to remove the block from the canvas
+      if (onDelete) {
+        onDelete(block.id);
+      }
+    } catch (error) {
+      console.error("Error deleting block:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete block");
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [block.id, onDelete]);
 
   return (
     <TooltipProvider>
@@ -232,9 +321,13 @@ export const ExperienceBlockNode = memo(({ data, selected }: NodeProps<Experienc
                       <Edit className="w-4 h-4 mr-2" />
                       Edit Block
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDuplicate}>
-                      <Copy className="w-4 h-4 mr-2" />
-                      Duplicate
+                    <DropdownMenuItem onClick={handleDuplicate} disabled={isDuplicating}>
+                      {isDuplicating ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Copy className="w-4 h-4 mr-2" />
+                      )}
+                      {isDuplicating ? "Duplicating..." : "Duplicate"}
                     </DropdownMenuItem>
                     <DropdownMenuItem>
                       <Lock className="w-4 h-4 mr-2" />
@@ -244,7 +337,10 @@ export const ExperienceBlockNode = memo(({ data, selected }: NodeProps<Experienc
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Add Comment
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                    <DropdownMenuItem 
+                      onClick={() => setShowDeleteDialog(true)} 
+                      className="text-red-600"
+                    >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete
                     </DropdownMenuItem>
@@ -292,19 +388,23 @@ export const ExperienceBlockNode = memo(({ data, selected }: NodeProps<Experienc
                   <span className="text-muted-foreground">Engagement</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="font-medium">{engagementScore}%</span>
+                  <span className="font-medium">
+                    {hasAnalytics ? `${engagementScore}%` : "—"}
+                  </span>
                   {getEngagementTrend()}
                 </div>
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Completion</span>
-                <span className="font-medium">{completionRate}%</span>
+                <span className="text-muted-foreground">Completions</span>
+                <span className="font-medium">
+                  {hasAnalytics ? analytics.completions : "—"}
+                </span>
               </div>
 
               {avgTimeToComplete && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Avg Time</span>
+                  <span className="text-muted-foreground">Est. Time</span>
                   <span className="font-medium">{avgTimeToComplete}h</span>
                 </div>
               )}
@@ -354,13 +454,55 @@ export const ExperienceBlockNode = memo(({ data, selected }: NodeProps<Experienc
             <div className="bg-white border rounded-lg shadow-lg p-2 text-xs min-w-48">
               <div className="font-medium mb-1">Block Performance</div>
               <div className="space-y-1 text-muted-foreground">
-                <div>• {Math.floor(Math.random() * 50) + 20} participants this month</div>
-                <div>• {Math.floor(Math.random() * 10) + 1} feedback comments</div>
-                <div>• Last updated {Math.floor(Math.random() * 7) + 1} days ago</div>
+                {hasAnalytics ? (
+                  <>
+                    <div>• {analytics.completions} completions</div>
+                    <div>• {feedbackCount} feedback comments</div>
+                    {analytics.satisfaction !== null && (
+                      <div>• {analytics.satisfaction}/10 satisfaction</div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-gray-400 italic">No analytics data yet</div>
+                )}
               </div>
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Experience Block</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete &quot;{block.name}&quot;? This action cannot be undone.
+                {hasAnalytics && analytics.completions > 0 && (
+                  <span className="block mt-2 text-amber-600">
+                    This block has {analytics.completions} completions recorded.
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );

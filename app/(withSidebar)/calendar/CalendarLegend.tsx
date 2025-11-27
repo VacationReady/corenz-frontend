@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, Lock, CalendarDays } from "lucide-react";
 
 interface LegendItem {
   label: string;
@@ -15,6 +18,37 @@ interface CalendarLegendProps {
   bankHolidayLabel?: string | null;
   showBlackout?: boolean;
 }
+
+const itemVariants = {
+  hidden: { opacity: 0, scale: 0.8, y: 10 },
+  visible: { 
+    opacity: 1, 
+    scale: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 400,
+      damping: 25,
+    }
+  },
+  exit: { 
+    opacity: 0, 
+    scale: 0.8, 
+    y: -5,
+    transition: { duration: 0.15 }
+  }
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04,
+      delayChildren: 0.02,
+    },
+  },
+};
 
 export function CalendarLegend({
   categories,
@@ -34,7 +68,7 @@ export function CalendarLegend({
 
   if (showBankHoliday) {
     items.push({
-      label: bankHolidayLabel ? `Public holiday (${bankHolidayLabel})` : "Public holiday",
+      label: bankHolidayLabel ? `Public holiday` : "Public holiday",
       swatchClassName: "bg-emerald-500",
     });
   }
@@ -51,34 +85,63 @@ export function CalendarLegend({
   }
 
   return (
-    <div className="px-4 pb-2">
-      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-        {items.map((item) => {
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="flex flex-wrap gap-2"
+    >
+      <AnimatePresence mode="popLayout">
+        {items.map((item, index) => {
           const Icon = item.icon;
+          const isBlackout = item.label === "Blackout day";
+          const isHoliday = item.label === "Public holiday";
+          
           return (
-            <div key={item.label} className="inline-flex items-center gap-2">
+            <motion.div
+              key={item.label}
+              variants={itemVariants}
+              layout
+              className={cn(
+                "inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-200",
+                "bg-muted/30 hover:bg-muted/50 border border-border/30",
+                "cursor-default select-none"
+              )}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
               <div className="relative flex items-center justify-center">
-                 <span
+                <span
                   className={cn(
-                    "inline-flex h-3 w-3 shrink-0 rounded-sm border border-border",
+                    "inline-flex h-3.5 w-3.5 shrink-0 rounded-md shadow-sm",
                     item.swatchClassName,
                   )}
                   style={item.swatchStyle}
                 />
-                {Icon && (
+                {Icon && item.swatchClassName && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                     <Icon className="h-2 w-2 text-white drop-shadow-md" />
+                    <Icon className="h-2 w-2 text-white drop-shadow-sm" />
+                  </div>
+                )}
+                {isBlackout && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Lock className="h-2 w-2 text-red-600" />
+                  </div>
+                )}
+                {isHoliday && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <CalendarDays className="h-2 w-2 text-white drop-shadow-sm" />
                   </div>
                 )}
               </div>
               {Icon && !item.swatchClassName && !item.swatchStyle && (
-                 <Icon className="h-3 w-3" />
+                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
               )}
-              <span className="font-medium text-foreground/80">{item.label}</span>
-            </div>
+              <span className="text-[11px] font-medium text-foreground/80">{item.label}</span>
+            </motion.div>
           );
         })}
-      </div>
-    </div>
+      </AnimatePresence>
+    </motion.div>
   );
 }

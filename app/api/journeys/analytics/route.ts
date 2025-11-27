@@ -16,41 +16,67 @@ export async function GET(req: NextRequest) {
 
     const companyId = session.user.companyId;
 
-    // Get all journey templates for the company
+    // Get all journey templates for the company with instance counts
     const templates = await prisma.journeyTemplate.findMany({
       where: { companyId },
       include: {
         metricBindings: true,
+        instances: {
+          select: {
+            id: true,
+            status: true,
+            progress: true,
+            startedAt: true,
+            completedAt: true,
+          },
+        },
         _count: {
           select: {
             comments: true,
+            instances: true,
           },
         },
       },
     });
 
-    // Calculate stats (simplified without instances for now)
+    // Calculate template stats
     const totalTemplates = templates.length;
     const publishedTemplates = templates.filter(t => t.status === "PUBLISHED").length;
     const draftTemplates = templates.filter(t => t.status === "DRAFT").length;
 
-    // Placeholder values - would integrate with actual instance tracking
-    const totalInstances = 0;
-    const activeInstances = 0;
-    const completedInstances = 0;
-    const avgCompletionRate = 0;
+    // Calculate instance stats from actual data
+    const allInstances = templates.flatMap(t => t.instances);
+    const totalInstances = allInstances.length;
+    const activeInstances = allInstances.filter(i => i.status === "IN_PROGRESS").length;
+    const completedInstances = allInstances.filter(i => i.status === "COMPLETED").length;
+    
+    // Calculate average completion rate from completed instances
+    const completedWithProgress = allInstances.filter(i => i.status === "COMPLETED");
+    const avgCompletionRate = completedWithProgress.length > 0
+      ? Math.round(completedWithProgress.reduce((acc, i) => acc + (i.progress || 100), 0) / completedWithProgress.length)
+      : (activeInstances > 0 ? Math.round(allInstances.reduce((acc, i) => acc + (i.progress || 0), 0) / allInstances.length) : 0);
 
-    // Get top performing journeys (based on templates for now)
+    // Get top performing journeys with real instance data
     const topJourneys = templates
       .filter(t => t.status === "PUBLISHED")
-      .slice(0, 5)
-      .map(t => ({
-        id: t.id,
-        name: t.name,
-        instanceCount: 0,
-        avgCompletionRate: 0,
-        status: t.status,
-      }));
+      .map(t => {
+        const instanceCount = t._count.instances;
+        const completed = t.instances.filter(i => i.status === "COMPLETED");
+        const avgProgress = t.instances.length > 0
+          ? Math.round(t.instances.reduce((acc, i) => acc + (i.progress || 0), 0) / t.instances.length)
+          : 0;
+        
+        return {
+          id: t.id,
+          name: t.name,
+          instanceCount,
+          avgCompletionRate: avgProgress,
+          completedCount: completed.length,
+          status: t.status,
+        };
+      })
+      .sort((a, b) => b.instanceCount - a.instanceCount)
+      .slice(0, 5);
 
     // Get journey categories distribution
     const categoryDistribution = templates.reduce((acc, t) => {
@@ -67,6 +93,14 @@ export async function GET(req: NextRequest) {
       new Date(t.createdAt) >= thirtyDaysAgo
     );
 
+    const recentInstances = allInstances.filter(i => 
+      new Date(i.startedAt) >= thirtyDaysAgo
+    );
+
+    const recentCompleted = allInstances.filter(i => 
+      i.completedAt && new Date(i.completedAt) >= thirtyDaysAgo
+    );
+
     return NextResponse.json({
       totalTemplates,
       publishedTemplates,
@@ -79,8 +113,8 @@ export async function GET(req: NextRequest) {
       categoryDistribution,
       recentActivity: {
         last30Days: recentTemplates.length,
-        activeThisMonth: 0,
-        completedThisMonth: 0,
+        activeThisMonth: recentInstances.length,
+        completedThisMonth: recentCompleted.length,
       },
     });
   } catch (error) {

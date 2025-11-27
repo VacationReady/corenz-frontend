@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef, useRef as useMutableRef, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -11,7 +12,35 @@ import { PageShell } from "@/components/ui/PageShell";
 import { Card } from "@/components/ui/Card";
 import { SectionSkeleton } from "@/components/ui/PageSkeleton";
 import Button from "@/components/ui/Button";
-import { List, CalendarDays, Trash2, GraduationCap, Heart, Stethoscope, Smile, Palmtree, ShieldBan, Umbrella, Briefcase, Baby, Users, Coffee } from "lucide-react";
+import { 
+  List, 
+  CalendarDays, 
+  Trash2, 
+  GraduationCap, 
+  Heart, 
+  Stethoscope, 
+  Smile, 
+  Palmtree, 
+  ShieldBan, 
+  Umbrella, 
+  Briefcase, 
+  Baby, 
+  Users, 
+  Coffee,
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Grid3X3,
+  Sparkles,
+  Clock,
+  UserCheck,
+  TrendingUp,
+  AlertTriangle,
+  Eye,
+  Plus,
+  Filter,
+  Share2
+} from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Copy, ShieldBan as ShieldBanIcon } from "lucide-react";
@@ -24,7 +53,7 @@ import type { EventContentArg } from "@fullcalendar/core";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
-import { Lock, Clock } from "lucide-react";
+import { Lock, Clock as ClockIcon } from "lucide-react";
 import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
 import { FilterBar } from "@/components/ui/FilterBar";
 import {
@@ -43,6 +72,7 @@ import {
 } from "@/lib/calendar/timezone";
 import AddHolidayModal from "./AddHolidayModal";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
+import { cn } from "@/lib/utils";
 
 interface Department {
   id: string;
@@ -75,6 +105,87 @@ const PUBLIC_HOLIDAY_REGION_LABELS: Record<string, string> = {
   "GB-SCT": "Scotland",
   "GB-NIR": "Northern Ireland",
 };
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 24,
+    },
+  },
+};
+
+const fadeInScale = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: { 
+    opacity: 1, 
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 25,
+    }
+  },
+};
+
+// Stat card component
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: number | string;
+  subtext?: string;
+  gradient: string;
+  iconBg: string;
+  delay?: number;
+}
+
+function StatCard({ icon, label, value, subtext, gradient, iconBg, delay = 0 }: StatCardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, type: "spring", stiffness: 300, damping: 25 }}
+      className={cn(
+        "relative overflow-hidden rounded-2xl p-4 border",
+        gradient
+      )}
+    >
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground/80 uppercase tracking-wide">{label}</p>
+          <motion.p
+            key={value}
+            initial={{ scale: 1.1 }}
+            animate={{ scale: 1 }}
+            className="text-2xl font-bold"
+          >
+            {value}
+          </motion.p>
+          {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
+        </div>
+        <div className={cn("p-2.5 rounded-xl", iconBg)}>
+          {icon}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -112,6 +223,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const eventsCacheRef = useRef<{ key: string; data: any[] } | null>(null);
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
   const [holidayDefaultDate, setHolidayDefaultDate] = useState<Date | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
   const { data: session } = useSession();
   const role = (session?.user as any)?.role as
     | "ADMIN"
@@ -127,6 +239,18 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const _inspectorHasBlackout = inspectorBlackoutKey
     ? blackoutDateKeys.has(inspectorBlackoutKey)
     : false;
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const totalPeopleOff = new Set(leaveEventsInRange.map((e: any) => e.employee?.id)).size;
+    const today = new Date();
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const offToday = dailyCounts[todayKey] || 0;
+    const totalBlackouts = blackoutDateKeys.size;
+    const totalLeaveRequests = leaveEventsInRange.length;
+    
+    return { totalPeopleOff, offToday, totalBlackouts, totalLeaveRequests };
+  }, [leaveEventsInRange, dailyCounts, blackoutDateKeys]);
 
   const fetchDepartments = async () => {
     try {
@@ -184,7 +308,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     (async () => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         
         const res = await fetch("/api/event-categories", {
           signal: controller.signal,
@@ -250,7 +374,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     updateFilter("departments", dep ? [dep] : []);
     updateFilter("search", query);
     if (view === "list") setCurrentView("listMonth");
-    // If date query is present (YYYY-MM-DD), navigate calendar to that date and highlight it
     if (dateParam) {
       const parts = dateParam.split("-");
       if (parts.length === 3) {
@@ -264,7 +387,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         if (parsed && !isNaN(parsed.getTime())) {
           setSelectedDay(parsed);
           setCurrentCalendarDate(parsed);
-          // Defer until calendar ref is ready
           setTimeout(() => {
             try {
               calendarRef.current?.getApi().gotoDate(parsed);
@@ -286,7 +408,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       if (filters.search) url.searchParams.set("q", filters.search);
       else url.searchParams.delete("q");
       url.searchParams.set("view", currentView === "listMonth" ? "list" : "month");
-      // Preserve the current calendar date in URL if it exists
       if (currentCalendarDate) {
         const dateStr = `${currentCalendarDate.getFullYear()}-${String(currentCalendarDate.getMonth() + 1).padStart(2, "0")}-${String(currentCalendarDate.getDate()).padStart(2, "0")}`;
         url.searchParams.set("date", dateStr);
@@ -423,7 +544,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       const idMap: Record<string, string[]> = {};
       const blackoutEvents = blackoutData.map((b: any) => {
         const d = new Date(b.date);
-        // Use UTC date key since blackout dates are stored at noon UTC
         const key = utcDateKey(d);
         const startDate = key;
         keys.add(key);
@@ -532,7 +652,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const dayCellClassNames = (arg: any) => {
     const d = arg.date as Date;
-    const key = dateKey(d); // Use local date for calendar cells
+    const key = dateKey(d);
     const count = dailyCounts[key] || 0;
     const level = getHeatLevel(count);
     const today = new Date();
@@ -569,15 +689,14 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     
     if (isBankHoliday) {
       return (
-        <div className="flex items-center gap-1 text-[11px] font-medium text-emerald-700">
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 px-1.5 py-0.5 rounded-md bg-emerald-50/80 backdrop-blur-sm">
           <CalendarDays className="h-3 w-3" /> {content.event.title}
         </div>
       );
     }
     if (isBlackout) {
       return (
-        <div className="flex items-center gap-1 text-[11px] font-medium text-red-700">
-          <span className="inline-block w-2 h-2 bg-[repeating-linear-gradient(45deg,#fecaca,#fecaca_4px,#ffffff_4px,#ffffff_8px)] border border-red-400"></span>
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-red-700 px-1.5 py-0.5 rounded-md bg-red-50/80 backdrop-blur-sm">
           <Lock className="h-3 w-3" /> Blackout
         </div>
       );
@@ -586,41 +705,41 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       return (
         <Popover>
           <PopoverTrigger asChild>
-            <div className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-black/5 cursor-pointer">
-              <Clock className="h-3 w-3 flex-shrink-0" />
+            <div className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-primary/10 cursor-pointer transition-colors">
+              <ClockIcon className="h-3 w-3 flex-shrink-0 text-primary" />
               <span className="text-[11px] font-medium truncate max-w-[110px]">
                 {content.timeText}
               </span>
               <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={16} />
             </div>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-72">
+          <PopoverContent align="start" className="w-72 rounded-xl shadow-xl border-border/50">
             <div className="flex items-center gap-3">
               <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={32} />
               <div className="min-w-0">
                 <div className="font-semibold text-sm truncate">{employee?.name || 'Shift'}</div>
                 {employee?.department ? (
-                  <div className="text-xs text-gray-500 truncate">{employee.department}</div>
+                  <div className="text-xs text-muted-foreground truncate">{employee.department}</div>
                 ) : null}
               </div>
             </div>
             <div className="mt-3 space-y-2">
               <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-blue-600" />
+                <ClockIcon className="h-4 w-4 text-primary" />
                 <span className="font-medium">{content.timeText}</span>
               </div>
               {content.event.extendedProps?.duration ? (
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-muted-foreground">
                   Duration: {content.event.extendedProps.duration} hours
                 </div>
               ) : null}
               {content.event.extendedProps?.locationName ? (
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-muted-foreground">
                   Location: {String(content.event.extendedProps.locationName)}
                 </div>
               ) : null}
               {content.event.extendedProps?.notes ? (
-                <div className="text-xs text-gray-700 mt-2 p-2 bg-gray-50 rounded">
+                <div className="text-xs text-muted-foreground mt-2 p-2 bg-muted/50 rounded-lg">
                   {String(content.event.extendedProps.notes)}
                 </div>
               ) : null}
@@ -642,44 +761,59 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <div className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-black/5 cursor-pointer">
-            <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={18} />
-            <span className="text-[11px] font-medium truncate max-w-[110px]">
+          <div className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-primary/10 cursor-pointer transition-all group">
+            <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={20} className="ring-2 ring-white shadow-sm" />
+            <span className="text-[11px] font-medium truncate max-w-[90px] group-hover:text-primary transition-colors">
               {employee?.name || content.event.title}
             </span>
-            {categoryName ? <Badge className="!text-[10px] !px-1.5 !py-0 flex items-center gap-1"><Icon className="h-3 w-3" />{categoryName}</Badge> : null}
+            {categoryName ? (
+              <Badge className="!text-[9px] !px-1.5 !py-0 flex items-center gap-0.5 bg-primary/10 text-primary border-0">
+                <Icon className="h-2.5 w-2.5" />
+              </Badge>
+            ) : null}
           </div>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-72">
-          <div className="flex items-center gap-3">
-            <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={32} />
-            <div className="min-w-0">
-              <div className="font-semibold text-sm truncate">{employee?.name || content.event.title}</div>
-              {employee?.department ? (
-                <div className="text-xs text-gray-500 truncate">{employee.department}</div>
-              ) : null}
+        <PopoverContent align="start" className="w-80 rounded-xl shadow-xl border-border/50 p-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4">
+            <div className="flex items-center gap-3">
+              <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={40} className="ring-2 ring-white shadow-lg" />
+              <div className="min-w-0">
+                <div className="font-semibold text-sm truncate">{employee?.name || content.event.title}</div>
+                {employee?.department ? (
+                  <div className="text-xs text-muted-foreground truncate">{employee.department}</div>
+                ) : null}
+              </div>
             </div>
           </div>
-          <div className="mt-3 space-y-1">
-            {categoryName ? <Badge className="!text-[10px] !px-1.5 !py-0 flex items-center gap-1"><Icon className="h-3 w-3" />{categoryName}</Badge> : null}
-            <div className="text-xs text-gray-600">
-              {formatTenantDate(content.event.start!, tenantTimeSettings, "d MMM yyyy")} –{" "}
-              {formatTenantDate(
-                (content.event.end as any) || content.event.start!,
-                tenantTimeSettings,
-                "d MMM yyyy",
-              )}
+          <div className="p-4 space-y-3">
+            {categoryName ? (
+              <Badge className="!text-xs flex items-center gap-1.5 w-fit">
+                <Icon className="h-3.5 w-3.5" />{categoryName}
+              </Badge>
+            ) : null}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CalendarIcon className="h-4 w-4 text-primary" />
+              <span>
+                {formatTenantDate(content.event.start!, tenantTimeSettings, "d MMM yyyy")} –{" "}
+                {formatTenantDate(
+                  (content.event.end as any) || content.event.start!,
+                  tenantTimeSettings,
+                  "d MMM yyyy",
+                )}
+              </span>
             </div>
             {content.event.extendedProps?.reason ? (
-              <div className="text-xs text-gray-700">{String(content.event.extendedProps.reason)}</div>
+              <div className="text-sm text-muted-foreground p-2.5 bg-muted/50 rounded-lg italic">
+                "{String(content.event.extendedProps.reason)}"
+              </div>
             ) : null}
             {employee?.id ? (
-              <div className="pt-2 flex gap-2">
-                <Button asChild variant="secondary" size="sm">
-                  <a href={`/employees/${employee.id}/leave`}>Open leave tab</a>
+              <div className="pt-2 flex gap-2 border-t border-border/50">
+                <Button asChild variant="secondary" size="sm" className="flex-1">
+                  <a href={`/employees/${employee.id}/leave`}>View Leave</a>
                 </Button>
-                <Button asChild variant="outline" size="sm">
-                  <a href={`/employees/${employee.id}/overview`}>Open profile</a>
+                <Button asChild variant="outline" size="sm" className="flex-1">
+                  <a href={`/employees/${employee.id}/overview`}>Profile</a>
                 </Button>
               </div>
             ) : null}
@@ -717,7 +851,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   const handleDateClick = (arg: any) => {
     if (isEmployeeRole) {
-      // Employees can't perform admin actions on dates
       return;
     }
     setSelectedDate(arg.date);
@@ -747,7 +880,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const refreshCalendar = () => {
     console.log("Refreshing calendar events...");
     eventsCacheRef.current = null;
-    // Preserve the current date when refreshing
     const api = calendarRef.current?.getApi();
     if (api) {
       const currentDate = api.getDate();
@@ -800,166 +932,318 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
 
   return (
     <PageShell title="Calendar">
-      <Card title="Company Calendar">
-        <div className="space-y-4 p-4">
-          <FilterBar
-            config={{
-              searchPlaceholder: "Search people or leave...",
-              showDepartmentFilter: false,
-              showCategoryFilter: categoryOptions.length > 0,
-              showLocationFilter: locationOptions.length > 0,
-            }}
-            departmentOptions={departments.map((dept) => ({ label: dept.name, value: dept.name }))}
-            categoryOptions={categoryOptions}
-            locationOptions={locationOptions}
-          />
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex overflow-hidden rounded-2xl border border-border bg-background/60 backdrop-blur">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={currentView === "dayGridMonth" ? "primary" : "ghost"}
-                  className="rounded-none"
-                  aria-pressed={currentView === "dayGridMonth"}
-                  onClick={() => handleChangeView("dayGridMonth")}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        {/* Hero Header */}
+        <motion.div variants={itemVariants} className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/5 via-violet-500/5 to-purple-500/5 border border-primary/10">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-50" />
+          <div className="relative px-6 py-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+                  className="p-3 bg-gradient-to-br from-primary to-violet-600 rounded-2xl shadow-lg shadow-primary/25"
                 >
-                  <CalendarDays className="mr-2 h-4 w-4" />
-                  Month
-                </Button>
+                  <CalendarIcon className="w-7 h-7 text-white" />
+                </motion.div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    Company Calendar
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Track leave, holidays, and team availability at a glance
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-2">
+                {!isEmployeeRole && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setHolidayDefaultDate(new Date());
+                      setHolidayModalOpen(true);
+                    }}
+                    className="rounded-xl border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-all"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Book Leave
+                  </Button>
+                )}
+                {!isEmployeeRole && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedDate(null);
+                      setBlackoutModalOpen(true);
+                    }}
+                    className="rounded-xl bg-red-50/50 hover:bg-red-50 border-red-200/50 text-red-700 hover:text-red-800 hover:border-red-300 transition-all"
+                  >
+                    <ShieldBanIcon className="mr-2 h-4 w-4" />
+                    Blackout Days
+                  </Button>
+                )}
                 <Button
-                  type="button"
+                  variant="outline"
                   size="sm"
-                  variant={currentView === "listMonth" ? "primary" : "ghost"}
-                  className="rounded-none"
-                  aria-pressed={currentView === "listMonth"}
-                  onClick={() => handleChangeView("listMonth")}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(window.location.href);
+                      toast.success("Link copied to clipboard");
+                    } catch {
+                      toast.error("Failed to copy link");
+                    }
+                  }}
+                  className="rounded-xl"
                 >
-                  <List className="mr-2 h-4 w-4" />
-                  List
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share
                 </Button>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    calendarRef.current?.getApi().today();
-                  }}
-                >
-                  Today
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    calendarRef.current?.getApi().prev();
-                  }}
-                  aria-label="Previous period"
-                >
-                  Prev
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    calendarRef.current?.getApi().next();
-                  }}
-                  aria-label="Next period"
-                >
-                  Next
-                </Button>
-              </div>
-              <span className="text-sm font-medium text-muted-foreground">{currentTitle}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              {!isEmployeeRole && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedDate(null);
-                    setBlackoutModalOpen(true);
-                  }}
-                  className="bg-red-50 hover:bg-red-100 border-red-200 text-red-700 hover:text-red-800"
-                >
-                  <ShieldBanIcon className="mr-2 h-4 w-4" />
-                  Manage Blackout Days
-                </Button>
-              )}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Show public holidays</span>
-                <Switch
-                  checked={bankHolidaysOn && bankHolidaysAvailable}
-                  disabled={!bankHolidaysAvailable}
-                  onChange={(checked) => {
-                    if (!bankHolidaysAvailable) return;
-                    setBankHolidaysOn(checked);
-                    calendarRef.current?.getApi().refetchEvents();
-                  }}
-                />
-                {bankHolidaysAvailable && templateLabel ? (
-                  <span className="text-xs text-muted-foreground">({templateLabel})</span>
-                ) : null}
-                {!bankHolidaysAvailable ? (
-                  <span className="text-xs text-muted-foreground">No feed configured</span>
-                ) : null}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(window.location.href);
-                    toast.success("Link copied");
-                  } catch {
-                    toast.error("Failed to copy link");
-                  }
-                }}
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                Copy link
-              </Button>
             </div>
           </div>
-        </div>
-        <CalendarLegend
-          categories={legendCategories}
-          showBankHoliday={bankHolidaysAvailable && bankHolidaysOn}
-          bankHolidayLabel={templateLabel}
-        />
-        <div className="bg-white rounded-xl overflow-hidden">
-          {loading || dataLoading ? (
-            <SectionSkeleton showContainer={false} rows={1} lineClassName="h-[520px] w-full" />
-          ) : (
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[dayGridPlugin, interactionPlugin, listPlugin]}
-              initialView={initialView}
-              initialDate={currentCalendarDate || undefined}
-              headerToolbar={false}
-              datesSet={(arg: any) => {
-                setCurrentTitle(arg.view?.title || "");
-                // Track the current visible date to preserve navigation state
-                if (arg.view?.currentStart) {
-                  setCurrentCalendarDate(new Date(arg.view.currentStart));
-                }
-              }}
-              eventSources={eventSources}
-              dateClick={handleDateClick}
-              eventClick={handleEventClick}
-              eventContent={renderEventContent}
-              dayCellClassNames={dayCellClassNames}
-              dayCellContent={dayCellContent}
-              fixedWeekCount={false}
-              height="auto"
-              key={`${tenantTimeSettings.timeZone}`}
-              timeZone={tenantTimeSettings.timeZone}
-            />
-          )}
-        </div>
-      </Card>
+        </motion.div>
 
+        {/* Stats Grid */}
+        <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            icon={<Users className="h-5 w-5 text-white" />}
+            label="Off Today"
+            value={stats.offToday}
+            subtext="People away"
+            gradient="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200/50"
+            iconBg="bg-gradient-to-br from-blue-500 to-blue-600"
+            delay={0.1}
+          />
+          <StatCard
+            icon={<TrendingUp className="h-5 w-5 text-white" />}
+            label="This Period"
+            value={stats.totalLeaveRequests}
+            subtext="Leave requests"
+            gradient="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200/50"
+            iconBg="bg-gradient-to-br from-emerald-500 to-emerald-600"
+            delay={0.15}
+          />
+          <StatCard
+            icon={<UserCheck className="h-5 w-5 text-white" />}
+            label="People"
+            value={stats.totalPeopleOff}
+            subtext="Unique employees"
+            gradient="bg-gradient-to-br from-violet-50 to-violet-100/50 border-violet-200/50"
+            iconBg="bg-gradient-to-br from-violet-500 to-violet-600"
+            delay={0.2}
+          />
+          <StatCard
+            icon={<AlertTriangle className="h-5 w-5 text-white" />}
+            label="Blackouts"
+            value={stats.totalBlackouts}
+            subtext="Blocked dates"
+            gradient="bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200/50"
+            iconBg="bg-gradient-to-br from-amber-500 to-amber-600"
+            delay={0.25}
+          />
+        </motion.div>
+
+        {/* Main Calendar Card */}
+        <motion.div variants={fadeInScale}>
+          <Card className="overflow-hidden border-border/50 shadow-xl shadow-black/5">
+            {/* Card Header with Controls */}
+            <div className="p-4 border-b border-border/50 bg-gradient-to-r from-card via-card to-muted/10">
+              <div className="flex flex-col gap-4">
+                {/* Top Row - Navigation and View Toggle */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  {/* Left - Navigation */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center rounded-xl border border-border/50 bg-background/50 backdrop-blur-sm overflow-hidden">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => calendarRef.current?.getApi().prev()}
+                        className="rounded-none h-9 px-3 hover:bg-muted/80"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => calendarRef.current?.getApi().today()}
+                        className="rounded-none h-9 px-4 border-x border-border/30 font-medium hover:bg-muted/80"
+                      >
+                        Today
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => calendarRef.current?.getApi().next()}
+                        className="rounded-none h-9 px-3 hover:bg-muted/80"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <motion.h2 
+                      key={currentTitle}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-lg font-semibold text-foreground"
+                    >
+                      {currentTitle}
+                    </motion.h2>
+                  </div>
+
+                  {/* Right - View Toggle and Filters */}
+                  <div className="flex items-center gap-2">
+                    {/* View Toggle */}
+                    <div className="flex items-center rounded-xl border border-border/50 bg-background/50 backdrop-blur-sm p-1">
+                      <Button
+                        variant={currentView === "dayGridMonth" ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => handleChangeView("dayGridMonth")}
+                        className={cn(
+                          "rounded-lg h-8 px-3 gap-1.5 transition-all",
+                          currentView === "dayGridMonth" && "bg-primary text-primary-foreground shadow-sm"
+                        )}
+                      >
+                        <Grid3X3 className="h-4 w-4" />
+                        <span className="hidden sm:inline">Month</span>
+                      </Button>
+                      <Button
+                        variant={currentView === "listMonth" ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => handleChangeView("listMonth")}
+                        className={cn(
+                          "rounded-lg h-8 px-3 gap-1.5 transition-all",
+                          currentView === "listMonth" && "bg-primary text-primary-foreground shadow-sm"
+                        )}
+                      >
+                        <List className="h-4 w-4" />
+                        <span className="hidden sm:inline">List</span>
+                      </Button>
+                    </div>
+
+                    {/* Filter Toggle */}
+                    <Button
+                      variant={showFilters ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setShowFilters(!showFilters)}
+                      className={cn(
+                        "rounded-xl h-9 gap-1.5 transition-all",
+                        showFilters && "bg-primary/10 border-primary/30"
+                      )}
+                    >
+                      <Filter className={cn("h-4 w-4", showFilters && "text-primary")} />
+                      <span className="hidden sm:inline">Filters</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Expandable Filters */}
+                <AnimatePresence>
+                  {showFilters && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-3 border-t border-border/30">
+                        <FilterBar
+                          config={{
+                            searchPlaceholder: "Search people or leave...",
+                            showDepartmentFilter: false,
+                            showCategoryFilter: categoryOptions.length > 0,
+                            showLocationFilter: locationOptions.length > 0,
+                          }}
+                          departmentOptions={departments.map((dept) => ({ label: dept.name, value: dept.name }))}
+                          categoryOptions={categoryOptions}
+                          locationOptions={locationOptions}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Public Holiday Toggle */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/30">
+                  <CalendarLegend
+                    categories={legendCategories}
+                    showBankHoliday={bankHolidaysAvailable && bankHolidaysOn}
+                    bankHolidayLabel={templateLabel}
+                  />
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/30 border border-border/30">
+                      <span className="text-xs font-medium text-muted-foreground">Public holidays</span>
+                      <Switch
+                        checked={bankHolidaysOn && bankHolidaysAvailable}
+                        disabled={!bankHolidaysAvailable}
+                        onChange={(checked) => {
+                          if (!bankHolidaysAvailable) return;
+                          setBankHolidaysOn(checked);
+                          calendarRef.current?.getApi().refetchEvents();
+                        }}
+                      />
+                      {bankHolidaysAvailable && templateLabel ? (
+                        <span className="text-[10px] text-muted-foreground hidden md:inline">({templateLabel})</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Calendar Content */}
+            <div className="bg-card">
+              {loading || dataLoading ? (
+                <div className="p-8">
+                  <SectionSkeleton showContainer={false} rows={1} lineClassName="h-[520px] w-full rounded-xl" />
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="calendar-wrapper"
+                >
+                  <FullCalendar
+                    ref={calendarRef}
+                    plugins={[dayGridPlugin, interactionPlugin, listPlugin]}
+                    initialView={initialView}
+                    initialDate={currentCalendarDate || undefined}
+                    headerToolbar={false}
+                    datesSet={(arg: any) => {
+                      setCurrentTitle(arg.view?.title || "");
+                      if (arg.view?.currentStart) {
+                        setCurrentCalendarDate(new Date(arg.view.currentStart));
+                      }
+                    }}
+                    eventSources={eventSources}
+                    dateClick={handleDateClick}
+                    eventClick={handleEventClick}
+                    eventContent={renderEventContent}
+                    dayCellClassNames={dayCellClassNames}
+                    dayCellContent={dayCellContent}
+                    fixedWeekCount={false}
+                    height="auto"
+                    key={`${tenantTimeSettings.timeZone}`}
+                    timeZone={tenantTimeSettings.timeZone}
+                  />
+                </motion.div>
+              )}
+            </div>
+          </Card>
+        </motion.div>
+      </motion.div>
+
+      {/* Day Inspector Sheet */}
       <Sheet
         open={Boolean(inspectorDate)}
         onOpenChange={(open) => {
@@ -970,9 +1254,12 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           }
         }}
       >
-        <SheetContent side="right" className="flex h-full flex-col gap-6 overflow-y-auto">
+        <SheetContent side="right" className="flex h-full flex-col gap-6 overflow-y-auto w-full sm:max-w-md">
           <SheetHeader className="space-y-2">
-            <SheetTitle>Day summary</SheetTitle>
+            <SheetTitle className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5 text-primary" />
+              Day Summary
+            </SheetTitle>
             <p className="text-sm text-muted-foreground">
               {inspectorDate
                 ? formatTenantDate(inspectorDate, tenantTimeSettings, "EEEE, d MMMM yyyy")
@@ -984,14 +1271,16 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
             {!isEmployeeRole && (
               <Button
                 size="sm"
-                variant="secondary"
+                variant="outline"
                 onClick={() => {
                   if (inspectorDate) {
                     setSelectedDate(inspectorDate);
                     setBlackoutModalOpen(true);
                   }
                 }}
+                className="rounded-xl"
               >
+                <ShieldBanIcon className="mr-2 h-4 w-4" />
                 Block day
               </Button>
             )}
@@ -1005,7 +1294,9 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                   toast.error("Select a day to add a holiday");
                 }
               }}
+              className="rounded-xl"
             >
+              <Plus className="mr-2 h-4 w-4" />
               Add holiday
             </Button>
             {inspectorDate
@@ -1017,18 +1308,18 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                   return hasBlackout ? (
                     <Button
                       size="sm"
-                      variant="danger"
+                      variant="destructive"
                       onClick={() => deleteBlackoutForDate(inspectorDate)}
-                      aria-label="Delete blackout day"
+                      className="rounded-xl"
                     >
-                      <Trash2 className="mr-1 h-4 w-4" /> Delete blackout
+                      <Trash2 className="mr-2 h-4 w-4" /> Remove blackout
                     </Button>
                   ) : null;
                 })()
               : null}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1">
             <div className="text-sm font-medium text-muted-foreground">People off</div>
             <div className="space-y-2">
               {leaveEventsInRange
@@ -1043,11 +1334,17 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                   return target >= start && target <= end;
                 })
                 .map((ev: any) => (
-                  <div key={ev.id} className="flex items-start gap-3 rounded border p-3">
+                  <motion.div 
+                    key={ev.id} 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-start gap-3 rounded-xl border border-border/50 p-3 bg-muted/20 hover:bg-muted/40 transition-colors"
+                  >
                     <Avatar
                       src={ev.employee?.profileImageUrl ?? null}
                       name={ev.employee?.name ?? null}
-                      size={28}
+                      size={32}
+                      className="ring-2 ring-white shadow-sm"
                     />
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="text-sm font-medium truncate">{ev.employee?.name || ev.title}</div>
@@ -1059,22 +1356,33 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                       </div>
                     </div>
                     {ev.categoryName ? (
-                      <span
-                        className={`text-[10px] text-white px-1.5 py-0.5 rounded ${getCategoryColor(
-                          ev.categoryName,
-                        )}`}
-                      >
+                      <Badge className={cn("text-[10px]", getCategoryColor(ev.categoryName))}>
                         {ev.categoryName}
-                      </span>
+                      </Badge>
                     ) : null}
-                  </div>
+                  </motion.div>
                 ))}
+              {leaveEventsInRange.filter((ev: any) => {
+                if (!inspectorDate) return false;
+                const start = new Date(ev.start);
+                const end = new Date(ev.end || ev.start);
+                start.setHours(0, 0, 0, 0);
+                end.setHours(0, 0, 0, 0);
+                const target = new Date(inspectorDate);
+                target.setHours(0, 0, 0, 0);
+                return target >= start && target <= end;
+              }).length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <UserCheck className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No one is off on this day</p>
+                </div>
+              )}
             </div>
           </div>
 
-          <SheetFooter className="justify-end">
+          <SheetFooter className="justify-end border-t border-border/50 pt-4">
             <SheetClose asChild>
-              <Button variant="ghost" size="sm">
+              <Button variant="outline" size="sm" className="rounded-xl">
                 Close
               </Button>
             </SheetClose>
@@ -1089,9 +1397,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         onBlockDay={() => {
           setBlackoutModalOpen(true);
         }}
-        onBookLeave={() => {
-          // Called after leave is successfully booked
-        }}
+        onBookLeave={() => {}}
         refreshCalendar={refreshCalendar}
       />
       <BlackoutManagementModal

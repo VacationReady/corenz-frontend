@@ -1,4 +1,4 @@
-﻿@import "react-day-picker/dist/style.css";
+@import "react-day-picker/dist/style.css";
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&display=swap');
 
 @tailwind base;
@@ -1525,8 +1525,9 @@ video {
   --fc-event-bg-color: #3b82f6;
   --fc-event-border-color: #2563eb;
   --fc-event-text-color: #ffffff;
-    font-family: inherit;
+  font-family: inherit;
 }
+
 /* Remove any scrollgrid borders that could appear as vertical bars */
 .fc .fc-scrollgrid {
   border: none !important;
@@ -1539,7 +1540,6 @@ video {
 .fc .fc-scrollgrid-sync-table {
   border: none !important;
 }
-
 
 /* Header styling */
 .fc .fc-toolbar {
@@ -1587,6 +1587,25 @@ video {
   padding: 0.125rem;
 }
 
+/* Hide all vertical bars/separators on today's column */
+.fc .fc-day-today::before,
+.fc .fc-day-today > .fc-daygrid-day-frame > *::before,
+.fc td.fc-day::before,
+.fc td.fc-day::after,
+.fc .fc-daygrid-day-frame::before,
+.fc .fc-daygrid-day-frame::after {
+  display: none !important;
+  content: none !important;
+}
+
+/* Remove any left border accents that might appear as vertical bars */
+.fc .fc-day-today,
+.fc td.fc-day,
+.fc .fc-daygrid-day-frame {
+  border-left-color: transparent !important;
+  box-shadow: none !important;
+}
+
 .fc .fc-daygrid-day-top {
   justify-content: flex-end;
   padding: 0.25rem 0.375rem;
@@ -1606,15 +1625,36 @@ video {
   background: hsl(var(--muted) / 0.5);
 }
 
-/* Today styling */
+/* Today styling - clean without vertical bar indicators */
 .fc .fc-day-today {
   background: hsl(var(--primary) / 0.06) !important;
+  border-left: 1px solid hsl(var(--border) / 0.3) !important;
+  position: relative;
+}
+
+/* Ensure no pseudo-element vertical bars on today */
+.fc .fc-day-today::before,
+.fc .fc-day-today::after {
+  display: none !important;
 }
 
 .fc .fc-day-today .fc-daygrid-day-number {
   background: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
   font-weight: 600;
+  border-radius: 50%;
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  line-height: 1;
+  font-size: 0.65rem !important;
 }
 
 /* Remove the day indicator bar (vertical line) */
@@ -1649,7 +1689,7 @@ video {
   background: hsl(var(--muted) / 0.2);
 }
 
-/* Events - Clean horizontal bars */
+/* Events - Clean horizontal bars with blue as default background */
 .fc .fc-event {
   border: none !important;
   border-left: none !important;
@@ -1662,9 +1702,9 @@ video {
   margin-bottom: 1px;
 }
 
-/* Default leave event background - blue gradient */
+/* Default leave event background - blue gradient (inline styles will override this for special events) */
 .fc .fc-event:not(.fc-bg-event) {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
 .fc .fc-event:hover {
@@ -1701,6 +1741,24 @@ video {
 .fc .fc-timegrid-now-indicator-line,
 .fc .fc-timegrid-now-indicator-arrow,
 .fc .fc-now-indicator {
+  display: none !important;
+}
+
+/* Remove any vertical day separator bars */
+.fc .fc-daygrid-day-frame > .fc-daygrid-day-events,
+.fc .fc-daygrid-day-frame > .fc-daygrid-day-bg {
+  border-left: none !important;
+}
+
+/* Ensure no colored left border on any day cell elements */
+.fc .fc-scrollgrid-sync-inner,
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-top {
+  border-left: none !important;
+}
+
+/* Hide week number column if accidentally enabled */
+.fc .fc-daygrid-week-number {
   display: none !important;
 }
 
@@ -1831,10 +1889,29 @@ video {
   animation: calendarEventSlideIn 0.2s ease-out;
 }
 
+/* Ensure events container has proper spacing and no overflow cutting */
+.fc .fc-daygrid-day-events {
+  min-height: auto;
+  padding-bottom: 0.25rem;
+  margin-top: 0 !important;
+}
+
+/* Better event stacking without cutoff */
+.fc .fc-daygrid-event-harness {
+  margin-top: 1px;
+  position: relative;
+}
+
+/* Ensure the day body expands to fit content */
+.fc .fc-daygrid-day-bg,
+.fc .fc-daygrid-day-bottom {
+  position: relative;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .fc .fc-daygrid-day-frame {
-    min-height: 55px;
+    min-height: 65px;
   }
   
   .fc .fc-daygrid-day-number {
@@ -1852,7 +1929,7 @@ video {
   }
   
   .cz-daycell__inner {
-    min-height: 50px;
+    min-height: 55px;
   }
 }
 
@@ -2810,362 +2887,3 @@ video {
     /* Firefox */
   }
 }
-
-/* Fix week number showing as 0 - hide completely */
-.fc .fc-daygrid-week-number,
-.fc .fc-col-header-cell.fc-day-other,
-.fc td.fc-daygrid-week-number {
-  display: none !important;
-  width: 0 !important;
-  min-width: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-}
-
-/* Ensure calendar body is fully visible without cutoff */
-.fc .fc-daygrid-body {
-  width: 100% !important;
-}
-
-.fc .fc-scrollgrid-section-body > td {
-  padding-bottom: 0 !important;
-}
-
-.fc .fc-view-harness {
-  min-height: auto !important;
-  overflow: visible !important;
-}
-
-/* Ensure all day cells are visible */
-.fc .fc-daygrid-body-unbalanced .fc-daygrid-day-events {
-  min-height: 2em;
-}
-
-
-/* Remove blue vertical bar indicator on today's date */
-.fc .fc-day-today .fc-daygrid-day-frame,
-.fc .fc-day-today .fc-daygrid-day-top,
-.fc .fc-day-today .fc-daygrid-day-events {
-  border-left: none !important;
-  box-shadow: none !important;
-}
-
-/* Remove any vertical indicator lines */
-.fc .fc-daygrid-day-frame::before,
-.fc .fc-daygrid-day-frame::after,
-.fc .fc-day::before,
-.fc .fc-day::after {
-  display: none !important;
-  content: none !important;
-  width: 0 !important;
-  border: none !important;
-}
-
-/* Hide the today indicator bar specifically */
-.fc .fc-day-today {
-  position: relative;
-}
-
-.fc .fc-day-today::before,
-.fc .fc-day-today::after,
-.fc .fc-day-today *::before,
-.fc .fc-day-today *::after {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  border: none !important;
-  background: transparent !important;
-}
-
-
-/* Calendar container - ensure no cutoff */
-.calendar-wrapper {
-  overflow: visible !important;
-  width: 100% !important;
-}
-
-.calendar-wrapper .fc {
-  overflow: visible !important;
-}
-
-/* Ensure the card containing calendar doesn't clip */
-.calendar-wrapper,
-.calendar-wrapper > div,
-.fc-view-harness,
-.fc-view,
-.fc-daygrid,
-.fc-scrollgrid,
-.fc-scrollgrid-liquid {
-  overflow: visible !important;
-}
-
-/* Fix table layout to prevent cutoff */
-.fc .fc-scrollgrid {
-  width: 100% !important;
-  table-layout: fixed !important;
-}
-
-.fc .fc-scrollgrid-section,
-.fc .fc-scrollgrid-section > td,
-.fc .fc-scrollgrid-section-body {
-  overflow: visible !important;
-}
-
-/* Ensure daygrid body fills width */
-.fc .fc-daygrid-body {
-  width: 100% !important;
-  overflow: visible !important;
-}
-
-.fc .fc-daygrid-body-balanced {
-  width: 100% !important;
-}
-
-.fc table {
-  width: 100% !important;
-}
-
-/* Remove any max-height constraints */
-.fc-view-harness {
-  height: auto !important;
-  min-height: 400px;
-}
-
-
-/* Card containing calendar should not clip */
-.fc-media-screen {
-  overflow: visible !important;
-}
-
-/* Ensure the bg-card parent doesn't clip */
-[class*="bg-card"] .calendar-wrapper {
-  overflow: visible !important;
-}
-
-/* Fix any potential padding/margin issues on calendar container */
-.fc .fc-daygrid-day-frame {
-  overflow: visible !important;
-}
-
-/* Ensure events are fully visible */
-.fc .fc-daygrid-day-events {
-  overflow: visible !important;
-  position: relative;
-}
-
-.fc .fc-daygrid-event-harness {
-  overflow: visible !important;
-}
-
-
-/* AGGRESSIVE: Remove ALL possible vertical bar indicators */
-.fc .fc-day-today,
-.fc .fc-daygrid-day,
-.fc .fc-daygrid-day-frame,
-.fc td {
-  border-left-width: 1px !important;
-  border-left-color: hsl(var(--border) / 0.3) !important;
-  border-left-style: solid !important;
-}
-
-/* Kill any now indicator elements */
-.fc [class*="now-indicator"],
-.fc [class*="indicator-line"],
-.fc [class*="indicator-arrow"] {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-/* Remove any left border accent on selected/today cells */
-.fc .fc-day-today > *,
-.fc .fc-daygrid-day-frame > * {
-  border-left: none !important;
-}
-
-/* Override any primary-colored borders */
-.fc td[class*="today"],
-.fc td[class*="selected"],
-.fc .fc-day-today {
-  border-left: 1px solid hsl(var(--border) / 0.3) !important;
-}
-
-/* Fix the calendar container width - ensure no clipping */
-.fc-direction-ltr {
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow: visible !important;
-}
-
-.fc .fc-scrollgrid {
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-}
-
-.fc .fc-scrollgrid-section-header > th,
-.fc .fc-scrollgrid-section-body > td {
-  padding: 0 !important;
-}
-
-/* Ensure day grid takes full width */
-.fc-daygrid {
-  width: 100% !important;
-}
-
-.fc-daygrid-body {
-  width: 100% !important;
-}
-
-.fc-col-header {
-  width: 100% !important;
-}
-
-.fc-col-header-cell {
-  width: calc(100% / 7) !important;
-}
-
-
-/* NUCLEAR: Hide any blue/primary colored elements that could be the bar */
-.fc .fc-daygrid-day-frame > div:first-child:not(.fc-daygrid-day-top):not(.fc-daygrid-day-events),
-.fc .fc-day-today .fc-daygrid-day-frame > div:first-child:not(.fc-daygrid-day-top):not(.fc-daygrid-day-events) {
-  display: none !important;
-}
-
-/* Remove any focus indicators */
-.fc *:focus {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-.fc .fc-daygrid-day:focus,
-.fc .fc-daygrid-day:focus-within,
-.fc .fc-daygrid-day:focus-visible {
-  outline: none !important;
-}
-
-/* Remove any bar-like children from day cells */
-.fc .fc-daygrid-day-bg {
-  display: none !important;
-}
-
-/* Ensure popover/selected states don't add bars */
-.fc [data-state="open"],
-.fc [aria-expanded="true"] {
-  border-left: 1px solid hsl(var(--border) / 0.3) !important;
-}
-
-/* Fix calendar scroll container */
-.fc .fc-scroller {
-  overflow: visible !important;
-}
-
-.fc .fc-scroller-liquid-absolute {
-  position: relative !important;
-  overflow: visible !important;
-}
-
-
-/* Target specific FullCalendar day grid elements that might contain the bar */
-.fc-daygrid-day-frame > .fc-daygrid-day-bg,
-.fc-daygrid-day-frame .fc-daygrid-day-bg,
-.fc .fc-bg,
-.fc .fc-daygrid-bg-harness,
-.fc .fc-non-business,
-.fc .fc-bg-event {
-  /* Keep blackout styling but remove any bar elements */
-}
-
-/* Remove any ::before or ::after that creates the bar */
-.fc-daygrid-day-frame::before,
-.fc-daygrid-day-frame::after,
-.fc-daygrid-day-top::before,
-.fc-daygrid-day-top::after,
-.fc-daygrid-day-events::before,
-.fc-daygrid-day-events::after,
-.fc-daygrid-day-bottom::before,
-.fc-daygrid-day-bottom::after,
-.fc-daygrid-event-harness::before,
-.fc-daygrid-event-harness::after {
-  display: none !important;
-  content: none !important;
-  width: 0 !important;
-  border: none !important;
-  background: none !important;
-}
-
-/* Remove indicator from day numbers */
-.fc .fc-daygrid-day-number::before,
-.fc .fc-daygrid-day-number::after {
-  display: none !important;
-}
-
-/* Specifically target the now indicator in daygrid */
-.fc-daygrid .fc-now-indicator,
-.fc-daygrid-day .fc-now-indicator,
-.fc .fc-now-indicator-line,
-.fc .fc-now-indicator-arrow {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-}
-
-
-/* Target any element with primary/blue background in day cells */
-.fc-daygrid-day-frame > div[style*="background"],
-.fc-daygrid-day-frame > div[style*="primary"],
-.fc-daygrid-day-frame > span[style*="background"] {
-  display: none !important;
-}
-
-/* Override any inline styles that might create the bar */
-.fc [style*="background-color: rgb(59, 130, 246)"],
-.fc [style*="background-color:#3b82f6"],
-.fc [style*="background: rgb(59, 130, 246)"],
-.fc [style*="border-color: rgb(59, 130, 246)"] {
-  background-color: transparent !important;
-  border-color: transparent !important;
-}
-
-/* Make sure the day cell interior has no colored elements except events */
-.fc-daygrid-day-frame > *:not(.fc-daygrid-day-top):not(.fc-daygrid-day-events):not(.fc-daygrid-day-bottom) {
-  background: transparent !important;
-  border: none !important;
-}
-
-/* Final calendar container fix */
-.fc-theme-standard .fc-scrollgrid {
-  border: 1px solid hsl(var(--border) / 0.3) !important;
-}
-
-.fc-theme-standard td,
-.fc-theme-standard th {
-  border: 1px solid hsl(var(--border) / 0.3) !important;
-}
-
-
-/* SURGICAL: Only allow known elements, hide everything else */
-.fc-daygrid-day-frame > *:not(.fc-daygrid-day-top):not(.fc-daygrid-day-events):not(.fc-daygrid-day-bottom):not(.fc-daygrid-day-bg):not(.cz-daycell__inner) {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
-  position: absolute !important;
-  left: -9999px !important;
-}
-
-/* Also hide any direct child that's just a div with no specific class */
-.fc-daygrid-day-frame > div:not([class]) {
-  display: none !important;
-}
-
-/* Make sure blackout bg events are still visible */
-.fc-daygrid-day-bg .fc-bg-event {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-

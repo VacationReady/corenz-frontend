@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { PageShell } from "@/components/ui/PageShell";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import { Badge } from "@/components/ui/Badge";
@@ -20,8 +21,20 @@ import {
   AlertCircle,
   Calendar,
   User,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+  Target,
+  Activity,
+  Sparkles,
+  Eye,
+  MoreHorizontal,
+  ChevronRight,
+  CalendarDays,
+  Package,
+  MessageSquare,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import Link from "next/link";
 import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
 import { FilterBar } from "@/components/ui/FilterBar";
@@ -30,6 +43,8 @@ import {
   FilteredListEmpty,
   FilteredListLoading,
 } from "@/components/ui/FilteredListState";
+import Button from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 interface OffboardingRecord {
   id: string;
@@ -75,19 +90,78 @@ interface JobRoleOption {
   name: string;
 }
 
-const statusColors = {
-  IN_PROGRESS: "bg-blue-100 text-blue-800",
-  COMPLETED: "bg-green-100 text-green-800",
-  CANCELLED: "bg-gray-100 text-gray-800",
+const statusConfig = {
+  IN_PROGRESS: {
+    label: "In Progress",
+    color: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
+    icon: Clock,
+    gradient: "from-blue-500 to-indigo-500",
+  },
+  COMPLETED: {
+    label: "Completed",
+    color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300",
+    icon: CheckCircle,
+    gradient: "from-emerald-500 to-green-500",
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    color: "bg-slate-100 text-slate-800 dark:bg-slate-900/50 dark:text-slate-300",
+    icon: AlertCircle,
+    gradient: "from-slate-500 to-gray-500",
+  },
 };
 
-const typeColors = {
-  RESIGNATION: "bg-blue-100 text-blue-800",
-  TERMINATION: "bg-red-100 text-red-800",
-  RETIREMENT: "bg-purple-100 text-purple-800",
-  END_OF_CONTRACT: "bg-orange-100 text-orange-800",
-  REDUNDANCY: "bg-yellow-100 text-yellow-800",
-  OTHER: "bg-gray-100 text-gray-800",
+const typeConfig: Record<string, { label: string; color: string; emoji: string }> = {
+  RESIGNATION: {
+    label: "Resignation",
+    color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+    emoji: "👋",
+  },
+  TERMINATION: {
+    label: "Termination",
+    color: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
+    emoji: "⚠️",
+  },
+  RETIREMENT: {
+    label: "Retirement",
+    color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+    emoji: "🎉",
+  },
+  END_OF_CONTRACT: {
+    label: "End of Contract",
+    color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+    emoji: "📄",
+  },
+  REDUNDANCY: {
+    label: "Redundancy",
+    color: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    emoji: "📉",
+  },
+  OTHER: {
+    label: "Other",
+    color: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300",
+    emoji: "📋",
+  },
+};
+
+// Animation variants
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const cardHover = {
+  rest: { scale: 1 },
+  hover: { scale: 1.01 },
 };
 
 function OffboardingContent() {
@@ -116,13 +190,13 @@ function OffboardingContent() {
           const list = Array.isArray(data)
             ? data
             : Array.isArray(data?.departments)
-              ? data.departments
-              : [];
+            ? data.departments
+            : [];
           setDepartments(
             list.map((dept: any) => ({
               id: dept.id,
               name: dept.name,
-            })),
+            }))
           );
         }
 
@@ -131,13 +205,13 @@ function OffboardingContent() {
           const list = Array.isArray(data)
             ? data
             : Array.isArray(data?.jobRoles)
-              ? data.jobRoles
-              : [];
+            ? data.jobRoles
+            : [];
           setJobRoles(
             list.map((role: any) => ({
               id: role.id,
               name: role.name,
-            })),
+            }))
           );
         }
       } catch (error) {
@@ -158,7 +232,7 @@ function OffboardingContent() {
       { label: "Completed", value: "COMPLETED" },
       { label: "Cancelled", value: "CANCELLED" },
     ],
-    [],
+    []
   );
 
   const departmentOptions: FilterOption[] = useMemo(
@@ -169,7 +243,7 @@ function OffboardingContent() {
         value: dept.id,
       })),
     ],
-    [departments],
+    [departments]
   );
 
   const jobRoleOptions: FilterOption[] = useMemo(
@@ -180,15 +254,18 @@ function OffboardingContent() {
         value: role.id,
       })),
     ],
-    [jobRoles],
+    [jobRoles]
   );
 
   const selectedStatuses = useMemo(
     () => filters.status.filter((value) => value.toLowerCase() !== "all"),
-    [filters.status],
+    [filters.status]
   );
 
-  const statusKey = useMemo(() => selectedStatuses.join(","), [selectedStatuses]);
+  const statusKey = useMemo(
+    () => selectedStatuses.join(","),
+    [selectedStatuses]
+  );
 
   const fetchOffboardingRecords = useCallback(async () => {
     try {
@@ -223,16 +300,21 @@ function OffboardingContent() {
     let results = [...records];
     const query = filters.search.trim().toLowerCase();
     const selectedDepartments = filters.departments.filter(
-      (value) => value !== "all",
+      (value) => value !== "all"
     );
-    const selectedJobRoles = filters.jobRoles.filter((value) => value !== "all");
+    const selectedJobRoles = filters.jobRoles.filter(
+      (value) => value !== "all"
+    );
 
     if (query) {
       results = results.filter((record) => {
-        const employeeName = `${record.employee.user.firstName} ${record.employee.user.lastName}`.toLowerCase();
-        const departmentName = record.employee.department?.name?.toLowerCase() ?? "";
+        const employeeName =
+          `${record.employee.user.firstName} ${record.employee.user.lastName}`.toLowerCase();
+        const departmentName =
+          record.employee.department?.name?.toLowerCase() ?? "";
         const jobRoleName = record.employee.jobRole?.name?.toLowerCase() ?? "";
-        const initiatedBy = `${record.initiatedBy.firstName} ${record.initiatedBy.lastName}`.toLowerCase();
+        const initiatedBy =
+          `${record.initiatedBy.firstName} ${record.initiatedBy.lastName}`.toLowerCase();
         return (
           employeeName.includes(query) ||
           record.employee.user.email.toLowerCase().includes(query) ||
@@ -273,14 +355,18 @@ function OffboardingContent() {
   const statusCounts = useMemo(
     () => ({
       ALL: totalCount,
-      IN_PROGRESS: records.filter((record) => record.status === "IN_PROGRESS").length,
-      COMPLETED: records.filter((record) => record.status === "COMPLETED").length,
-      CANCELLED: records.filter((record) => record.status === "CANCELLED").length,
+      IN_PROGRESS: records.filter((record) => record.status === "IN_PROGRESS")
+        .length,
+      COMPLETED: records.filter((record) => record.status === "COMPLETED")
+        .length,
+      CANCELLED: records.filter((record) => record.status === "CANCELLED")
+        .length,
     }),
-    [records, totalCount],
+    [records, totalCount]
   );
 
-  const activeTab = selectedStatuses.length === 1 ? selectedStatuses[0] : "ALL";
+  const activeTab =
+    selectedStatuses.length === 1 ? selectedStatuses[0] : "ALL";
 
   const handleStatusTabChange = (value: string) => {
     if (value === "ALL") {
@@ -290,18 +376,22 @@ function OffboardingContent() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "IN_PROGRESS":
-        return <Clock className="w-4 h-4" />;
-      case "COMPLETED":
-        return <CheckCircle className="w-4 h-4" />;
-      case "CANCELLED":
-        return <AlertCircle className="w-4 h-4" />;
-      default:
-        return <UserX className="w-4 h-4" />;
-    }
-  };
+  // Calculate stats
+  const averageCompletion = useMemo(() => {
+    if (records.length === 0) return 0;
+    return Math.round(
+      records.reduce((sum, record) => sum + record.completionPercentage, 0) /
+        records.length
+    );
+  }, [records]);
+
+  const upcomingDepartures = useMemo(() => {
+    return records.filter((record) => {
+      const lastDay = new Date(record.lastWorkingDate);
+      const daysUntil = differenceInDays(lastDay, new Date());
+      return daysUntil >= 0 && daysUntil <= 14 && record.status === "IN_PROGRESS";
+    }).length;
+  }, [records]);
 
   return (
     <PageShell
@@ -310,91 +400,229 @@ function OffboardingContent() {
       icon={<UserX className="w-6 h-6" />}
       breadcrumbs={breadcrumbs}
     >
-      <div className="space-y-6">
-        <FilterBar
-          config={{
-            searchPlaceholder: "Search by employee, department, or initiator...",
-            showStatusFilter: true,
-            showDepartmentFilter: true,
-            showJobRoleFilter: true,
-          }}
-          statusOptions={statusOptions}
-          departmentOptions={departmentOptions}
-          jobRoleOptions={jobRoleOptions}
-        />
-
-        <Tabs value={activeTab} onValueChange={handleStatusTabChange} className="mb-2">
-          <TabsList className="grid w-full max-w-xl grid-cols-4">
-            <TabsTrigger value="ALL">All ({statusCounts.ALL})</TabsTrigger>
-            <TabsTrigger value="IN_PROGRESS">
-              In Progress ({statusCounts.IN_PROGRESS})
-            </TabsTrigger>
-            <TabsTrigger value="COMPLETED">
-              Completed ({statusCounts.COMPLETED})
-            </TabsTrigger>
-            <TabsTrigger value="CANCELLED">
-              Cancelled ({statusCounts.CANCELLED})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Offboardings</CardTitle>
-              <UserX className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalCount}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {statusCounts.IN_PROGRESS}
+      <motion.div
+        initial="initial"
+        animate="animate"
+        variants={staggerContainer}
+        className="space-y-6"
+      >
+        {/* Stats Cards */}
+        <motion.div
+          variants={fadeInUp}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+        >
+          {/* Total Offboardings */}
+          <motion.div
+            variants={cardHover}
+            initial="rest"
+            whileHover="hover"
+            className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 p-5"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-slate-500/10 to-transparent rounded-full blur-2xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Total Offboardings
+                </span>
+                <div className="p-2 rounded-xl bg-slate-500/10">
+                  <UserX className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {statusCounts.COMPLETED}
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-foreground">{totalCount}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    All time records
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400">
+                  <Activity className="w-3 h-3" />
+                  <span>Active tracking</span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Completion</CardTitle>
-              <AlertCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {records.length > 0
-                  ? Math.round(
-                      records.reduce(
-                        (sum, record) => sum + record.completionPercentage,
-                        0,
-                      ) / records.length,
-                    )
-                  : 0}
-                %
+          {/* In Progress */}
+          <motion.div
+            variants={cardHover}
+            initial="rest"
+            whileHover="hover"
+            className="relative overflow-hidden rounded-2xl border border-blue-200/50 dark:border-blue-800/50 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-5"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/10 to-transparent rounded-full blur-2xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  In Progress
+                </span>
+                <div className="p-2 rounded-xl bg-blue-500/10">
+                  <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+                    {statusCounts.IN_PROGRESS}
+                  </p>
+                  <p className="text-xs text-blue-600/70 dark:text-blue-400/70 mt-1">
+                    Active processes
+                  </p>
+                </div>
+                {upcomingDepartures > 0 && (
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-500/10 text-xs text-blue-700 dark:text-blue-300">
+                    <CalendarDays className="w-3 h-3" />
+                    <span>{upcomingDepartures} this week</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
 
-        <div className="space-y-4">
+          {/* Completed */}
+          <motion.div
+            variants={cardHover}
+            initial="rest"
+            whileHover="hover"
+            className="relative overflow-hidden rounded-2xl border border-emerald-200/50 dark:border-emerald-800/50 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 p-5"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-emerald-500/10 to-transparent rounded-full blur-2xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  Completed
+                </span>
+                <div className="p-2 rounded-xl bg-emerald-500/10">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">
+                    {statusCounts.COMPLETED}
+                  </p>
+                  <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">
+                    Successfully closed
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                  <TrendingUp className="w-3 h-3" />
+                  <span>On track</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Average Completion */}
+          <motion.div
+            variants={cardHover}
+            initial="rest"
+            whileHover="hover"
+            className="relative overflow-hidden rounded-2xl border border-violet-200/50 dark:border-violet-800/50 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 p-5"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-violet-500/10 to-transparent rounded-full blur-2xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-violet-700 dark:text-violet-300">
+                  Avg. Completion
+                </span>
+                <div className="p-2 rounded-xl bg-violet-500/10">
+                  <Target className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                </div>
+              </div>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl font-bold text-violet-700 dark:text-violet-300">
+                    {averageCompletion}%
+                  </p>
+                  <p className="text-xs text-violet-600/70 dark:text-violet-400/70 mt-1">
+                    Task completion rate
+                  </p>
+                </div>
+                <div className="w-16">
+                  <Progress value={averageCompletion} className="h-1.5" />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Filters */}
+        <motion.div variants={fadeInUp}>
+          <FilterBar
+            config={{
+              searchPlaceholder: "Search by employee, department, or initiator...",
+              showStatusFilter: true,
+              showDepartmentFilter: true,
+              showJobRoleFilter: true,
+            }}
+            statusOptions={statusOptions}
+            departmentOptions={departmentOptions}
+            jobRoleOptions={jobRoleOptions}
+          />
+        </motion.div>
+
+        {/* Status Tabs */}
+        <motion.div variants={fadeInUp}>
+          <Tabs
+            value={activeTab}
+            onValueChange={handleStatusTabChange}
+            className="w-full"
+          >
+            <TabsList className="inline-flex h-12 items-center justify-start rounded-xl bg-muted/50 p-1 gap-1">
+              <TabsTrigger
+                value="ALL"
+                className="relative px-4 py-2 rounded-lg font-medium text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm"
+              >
+                <span className="flex items-center gap-2">
+                  All
+                  <span className="px-2 py-0.5 rounded-md bg-muted text-xs font-semibold">
+                    {statusCounts.ALL}
+                  </span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="IN_PROGRESS"
+                className="relative px-4 py-2 rounded-lg font-medium text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm"
+              >
+                <span className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-blue-500" />
+                  In Progress
+                  <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 text-xs font-semibold">
+                    {statusCounts.IN_PROGRESS}
+                  </span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="COMPLETED"
+                className="relative px-4 py-2 rounded-lg font-medium text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm"
+              >
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-500" />
+                  Completed
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 text-xs font-semibold">
+                    {statusCounts.COMPLETED}
+                  </span>
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="CANCELLED"
+                className="relative px-4 py-2 rounded-lg font-medium text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-sm"
+              >
+                <span className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-slate-500" />
+                  Cancelled
+                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300 text-xs font-semibold">
+                    {statusCounts.CANCELLED}
+                  </span>
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </motion.div>
+
+        {/* Records List */}
+        <motion.div variants={fadeInUp} className="space-y-4">
           {loading ? (
             <FilteredListLoading
               resourceName="Offboarding records"
@@ -414,102 +642,173 @@ function OffboardingContent() {
               jobRoleOptions={jobRoleOptions}
             />
           ) : (
-            filteredRecords.map((record) => (
-              <Card key={record.id} className="transition-shadow hover:shadow-md">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(record.status)}
-                        <div>
-                          <CardTitle className="text-lg">
-                            <Link
-                              href={`/employees/${record.employee.id}/overview`}
-                              className="transition-colors hover:text-primary"
-                            >
-                              {record.employee.user.firstName}{" "}
-                              {record.employee.user.lastName}
-                            </Link>
-                          </CardTitle>
-                          <CardDescription>
-                            {record.employee.jobRole?.name || "No role"} •{" "}
-                            {record.employee.department?.name || "No department"}
-                          </CardDescription>
+            <AnimatePresence mode="popLayout">
+              {filteredRecords.map((record, index) => {
+                const status =
+                  statusConfig[record.status as keyof typeof statusConfig];
+                const type =
+                  typeConfig[record.offboardingType] || typeConfig.OTHER;
+                const daysUntilLastDay = differenceInDays(
+                  new Date(record.lastWorkingDate),
+                  new Date()
+                );
+                const StatusIcon = status?.icon || Clock;
+
+                return (
+                  <motion.div
+                    key={record.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Link href={`/employees/${record.employee.id}/offboarding`}>
+                      <motion.div
+                        whileHover={{ scale: 1.005 }}
+                        whileTap={{ scale: 0.995 }}
+                        className="group relative overflow-hidden rounded-2xl border border-border/50 bg-background/50 backdrop-blur-sm hover:border-border hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+                      >
+                        {/* Status indicator bar */}
+                        <div
+                          className={cn(
+                            "absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b",
+                            status?.gradient || "from-slate-500 to-gray-500"
+                          )}
+                        />
+
+                        <div className="p-5 pl-6">
+                          <div className="flex items-start justify-between gap-4">
+                            {/* Employee Info */}
+                            <div className="flex items-start gap-4 flex-1">
+                              <div className="relative">
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                                  <span className="text-lg font-bold text-primary">
+                                    {record.employee.user.firstName?.charAt(0)}
+                                    {record.employee.user.lastName?.charAt(0)}
+                                  </span>
+                                </div>
+                                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border-2 border-border flex items-center justify-center text-xs">
+                                  {type.emoji}
+                                </div>
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                                    {record.employee.user.firstName}{" "}
+                                    {record.employee.user.lastName}
+                                  </h3>
+                                  <Badge className={cn("text-xs", status?.color)}>
+                                    <StatusIcon className="w-3 h-3 mr-1" />
+                                    {status?.label}
+                                  </Badge>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn("text-xs", type.color)}
+                                  >
+                                    {type.label}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {record.employee.jobRole?.name || "No role"} •{" "}
+                                  {record.employee.department?.name ||
+                                    "No department"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Progress & Actions */}
+                            <div className="flex items-center gap-6">
+                              {/* Last Working Date */}
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  Last Working Day
+                                </p>
+                                <p className="font-semibold">
+                                  {format(
+                                    new Date(record.lastWorkingDate),
+                                    "MMM dd, yyyy"
+                                  )}
+                                </p>
+                                {daysUntilLastDay >= 0 &&
+                                  record.status === "IN_PROGRESS" && (
+                                    <p
+                                      className={cn(
+                                        "text-xs mt-0.5",
+                                        daysUntilLastDay <= 7
+                                          ? "text-amber-600 dark:text-amber-400"
+                                          : "text-muted-foreground"
+                                      )}
+                                    >
+                                      {daysUntilLastDay === 0
+                                        ? "Today"
+                                        : daysUntilLastDay === 1
+                                        ? "Tomorrow"
+                                        : `${daysUntilLastDay} days left`}
+                                    </p>
+                                  )}
+                              </div>
+
+                              {/* Progress */}
+                              <div className="w-32">
+                                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                                  <span>Progress</span>
+                                  <span className="font-medium">
+                                    {record.completedTasks}/{record.totalTasks}
+                                  </span>
+                                </div>
+                                <Progress
+                                  value={record.completionPercentage}
+                                  className="h-2"
+                                />
+                                <p className="text-xs text-right mt-1 font-semibold text-primary">
+                                  {record.completionPercentage}%
+                                </p>
+                              </div>
+
+                              {/* View Button */}
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="p-2 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
+                                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Footer Info */}
+                          <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border/30">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <User className="w-3.5 h-3.5" />
+                              <span>
+                                Initiated by {record.initiatedBy.firstName}{" "}
+                                {record.initiatedBy.lastName}
+                              </span>
+                            </div>
+
+                            {record.status === "COMPLETED" &&
+                              record.completedAt && (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                                  <span>
+                                    Completed{" "}
+                                    {formatDistanceToNow(
+                                      new Date(record.completedAt),
+                                      { addSuffix: true }
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge
-                        className={
-                          statusColors[record.status as keyof typeof statusColors]
-                        }
-                      >
-                        {record.status.replaceAll("_", " ")}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={
-                          typeColors[
-                            record.offboardingType as keyof typeof typeColors
-                          ]
-                        }
-                      >
-                        {record.offboardingType.replaceAll("_", " ")}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4" />
-                        <span>Last Working Date</span>
-                      </div>
-                      <p className="font-medium">
-                        {format(new Date(record.lastWorkingDate), "MMM dd, yyyy")}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <User className="w-4 h-4" />
-                        <span>Initiated By</span>
-                      </div>
-                      <p className="font-medium">
-                        {record.initiatedBy.firstName}{" "}
-                        {record.initiatedBy.lastName}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>Progress</span>
-                        <span>
-                          {record.completedTasks}/{record.totalTasks} tasks
-                        </span>
-                      </div>
-                      <Progress value={record.completionPercentage} className="w-full" />
-                    </div>
-                  </div>
-
-                  {record.status === "COMPLETED" && record.completedAt && (
-                    <div className="mt-4 border-t pt-4">
-                      <p className="text-sm text-muted-foreground">
-                        Completed on{" "}
-                        {format(
-                          new Date(record.completedAt),
-                          "MMM dd, yyyy 'at' h:mm a",
-                        )}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+                      </motion.div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </PageShell>
   );
 }

@@ -170,13 +170,13 @@ export async function GET(req: NextRequest) {
           // Get pending counts for each entitlement
           const entitlementBalances = await Promise.all(
             leaveEntitlements.map(async (entitlement) => {
-              const pendingLeave = await prisma.leaveRequest.aggregate({
+              // Count pending leave requests (each request is typically 1+ days)
+              const pendingLeaveCount = await prisma.leaveRequest.count({
                 where: {
                   employeeId: employee.id,
                   eventCategoryId: entitlement.eventCategoryId,
                   approvalStatus: "PENDING",
                 },
-                _sum: { days: true },
               });
 
               const remaining = entitlement.totalDays + entitlement.carryoverDays - entitlement.usedDays;
@@ -188,7 +188,7 @@ export async function GET(req: NextRequest) {
                 totalAllowance: entitlement.totalDays + entitlement.carryoverDays,
                 used: entitlement.usedDays,
                 remaining: Math.max(0, remaining),
-                pending: pendingLeave._sum.days || 0,
+                pending: pendingLeaveCount,
               };
             })
           );

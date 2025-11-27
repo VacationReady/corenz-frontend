@@ -592,12 +592,14 @@ export default function JourneysPage() {
         onBlockUpdate={(updatedBlock) => {
           // Update the journey with the updated block
           if (selectedJourney) {
-            const updatedJourney = {
+            const updatedJourney: JourneyTemplate = {
               ...selectedJourney,
               phases: selectedJourney.phases.map(phase => ({
                 ...phase,
                 experienceBlocks: phase.experienceBlocks.map(block =>
-                  block.id === updatedBlock.id ? { ...block, ...updatedBlock } : block
+                  block.id === updatedBlock.id 
+                    ? { ...block, ...updatedBlock, blockType: (updatedBlock.blockType || block.blockType) as ExperienceBlock["blockType"] } 
+                    : block
                 ),
               })),
             };

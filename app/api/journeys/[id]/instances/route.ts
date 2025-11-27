@@ -309,7 +309,7 @@ export async function POST(
           entityId: instance.id,
           metadata: {
             journeyName: journey.name,
-            participantName: employee.firstName + " " + employee.lastName,
+            participantName: instance.participant.User?.name || "Unknown",
           },
         },
       });

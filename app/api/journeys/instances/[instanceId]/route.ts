@@ -118,7 +118,13 @@ export async function PUT(
           select: { id: true, name: true, companyId: true },
         },
         participant: {
-          select: { id: true, firstName: true, lastName: true, companyId: true },
+          select: { 
+            id: true, 
+            companyId: true,
+            User: {
+              select: { name: true },
+            },
+          },
         },
       },
     });
@@ -190,7 +196,7 @@ export async function PUT(
           entityId: instanceId,
           metadata: {
             journeyName: existingInstance.journeyTemplate.name,
-            participantName: `${existingInstance.participant.firstName} ${existingInstance.participant.lastName}`,
+            participantName: existingInstance.participant.User?.name || "Unknown",
             previousStatus: existingInstance.status,
             newStatus: validatedData.status,
           },
@@ -245,7 +251,12 @@ export async function DELETE(
           select: { id: true, name: true },
         },
         participant: {
-          select: { id: true, firstName: true, lastName: true },
+          select: { 
+            id: true,
+            User: {
+              select: { name: true },
+            },
+          },
         },
       },
     });
@@ -280,7 +291,7 @@ export async function DELETE(
         entityId: instanceId,
         metadata: {
           journeyName: instance.journeyTemplate.name,
-          participantName: `${instance.participant.firstName} ${instance.participant.lastName}`,
+          participantName: instance.participant.User?.name || "Unknown",
           previousStatus: instance.status,
         },
       },

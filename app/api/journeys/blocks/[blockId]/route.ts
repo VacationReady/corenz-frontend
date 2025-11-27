@@ -89,7 +89,7 @@ export async function GET(
     const [feedbackSignals, analytics] = await Promise.all([
       prisma.feedbackSignal.findMany({
         where: { experienceBlockId: blockId },
-        orderBy: { createdAt: "desc" },
+        orderBy: { collectedAt: "desc" },
         take: 10,
       }),
       // Calculate engagement metrics from journey instances
@@ -100,17 +100,16 @@ export async function GET(
         },
         select: {
           currentBlockId: true,
-          completedBlocks: true,
           status: true,
         },
       }),
     ]);
 
     // Calculate block-specific analytics
-    const completedCount = analytics.filter((instance) => {
-      const completed = instance.completedBlocks as string[] | null;
-      return completed?.includes(blockId);
-    }).length;
+    // Count completed instances as having completed all blocks
+    const completedCount = analytics.filter((instance) => 
+      instance.status === "COMPLETED"
+    ).length;
 
     const currentlyOnBlock = analytics.filter(
       (instance) => instance.currentBlockId === blockId
@@ -225,9 +224,9 @@ export async function PUT(
         isRequired: validatedData.isRequired,
         slaHours: validatedData.slaHours,
         responsibleRole: validatedData.responsibleRole,
-        automationConfig: validatedData.automationConfig,
-        assets: validatedData.assets,
-        successCriteria: validatedData.successCriteria,
+        automationConfig: validatedData.automationConfig ?? undefined,
+        assets: validatedData.assets ?? undefined,
+        successCriteria: validatedData.successCriteria ?? undefined,
       },
     });
 

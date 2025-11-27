@@ -131,6 +131,7 @@ export async function POST(request: NextRequest) {
         tags: generateTags(validatedData),
         phases: {
           create: aiGeneratedPhases.map((phase: any, index: number) => ({
+            id: crypto.randomUUID(),
             name: phase.name,
             description: phase.description,
             order: index + 1,
@@ -138,6 +139,7 @@ export async function POST(request: NextRequest) {
             phaseType: phase.phaseType,
             experienceBlocks: {
               create: phase.experienceBlocks.map((block: any, blockIndex: number) => ({
+                id: crypto.randomUUID(),
                 name: block.name,
                 description: block.description,
                 blockType: block.blockType,

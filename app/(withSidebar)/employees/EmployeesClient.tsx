@@ -32,11 +32,11 @@ import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import NewDepartmentModal from "@/components/shared/NewDepartmentModal";
 import NewJobRoleModal from "@/components/shared/NewJobRoleModal";
 import AddEmployeeModal from "@/components/employees/AddEmployeeModal";
-import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OffboardingModal from "@/components/employees/OffboardingModal";
-import { MoreVertical, Users, UserX, Archive, UserCheck, UserPlus, Download, Filter, Sparkles, TrendingUp, Building2, Clock, CalendarDays, Briefcase, Search, X, ChevronDown, Check } from "lucide-react";
+import { MoreVertical, Users, UserX, Archive, UserCheck, UserPlus, Download, Filter, Sparkles, TrendingUp, Building2, Clock, CalendarDays, Briefcase, Search, X, ChevronDown, Check, Trash2, Mail, Send } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { toast } from "sonner";
 import { deleteEmployeeAction, sendActivationEmailAction, refreshEmployeesAction } from "./actions";
@@ -502,78 +502,87 @@ function EmployeesContent(props: EmployeesClientProps) {
                 <Button 
                   size="sm" 
                   variant="ghost"
-                  className="h-8 w-8 p-0 hover:bg-muted/80 transition-colors duration-200 rounded-lg"
+                  className="h-9 w-9 p-0 hover:bg-primary/10 dark:hover:bg-primary/20 transition-all duration-300 rounded-xl group"
                 >
-                  <MoreVertical className="w-4 h-4" />
+                  <MoreVertical className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-depth-3 border-border/50">
+              <DropdownMenuContent align="end">
+                {/* Send Activation Email */}
                 <DropdownMenuItem
-                onClick={async () => {
-                  if (
-                    !confirm(
-                      "This is a hard delete. All data related to this employee (documents, forms, audits, leave, onboarding, etc.) will be permanently removed. Are you sure you want to proceed?",
-                    )
-                  )
-                    return;
-                  try {
-                    // Optimistic update
-                    setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
-                    
-                    // Use server action
-                    startTransition(async () => {
-                      const result = await deleteEmployeeAction(emp.id);
-                      
-                      if (result.success) {
-                        toast.success("Employee deleted");
-                        // Refresh from server to ensure consistency
-                        router.refresh();
-                      } else {
-                        // Revert optimistic update
-                        fetchData(activeTab, true);
-                        toast.error(result.error || "Failed to delete employee");
-                      }
-                    });
-                  } catch (err) {
-                    // Revert optimistic update
-                    fetchData(activeTab, true);
-                    toast.error(`Error deleting employee: ${(err as Error).message}`);
-                    console.error(err);
-                  }
-                }}
-                className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg"
-              >
-                Delete
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={async () => {
-                  try {
-                    startTransition(async () => {
-                      const result = await sendActivationEmailAction(emp.id);
-                      
-                      if (result.success) {
-                        toast.success(`Activation email sent to ${emp.email}`);
-                      } else {
-                        toast.error(result.error || "Failed to send activation email");
-                      }
-                    });
-                  } catch (e) {
-                    toast.error("Network error sending activation email");
-                  }
-                }}
-                className="rounded-lg"
-              >
-                {emp.isActivated ? "Resend activation email" : "Send activation email"}
-              </DropdownMenuItem>
-              {row.original.isActive && !row.original.offboardingRecord && (
-                <DropdownMenuItem 
-                  onClick={() => handleStartOffboarding(row.original)} 
-                  className="text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-900/20 rounded-lg"
+                  onClick={async () => {
+                    try {
+                      startTransition(async () => {
+                        const result = await sendActivationEmailAction(emp.id);
+                        
+                        if (result.success) {
+                          toast.success(`Activation email sent to ${emp.email}`);
+                        } else {
+                          toast.error(result.error || "Failed to send activation email");
+                        }
+                      });
+                    } catch (e) {
+                      toast.error("Network error sending activation email");
+                    }
+                  }}
+                  icon={<Send className="w-4 h-4 text-blue-500" />}
                 >
-                  <UserX className="w-4 h-4 mr-2" />
-                  Start Offboarding
+                  {emp.isActivated ? "Resend activation email" : "Send activation email"}
                 </DropdownMenuItem>
-              )}
+
+                {/* Start Offboarding - only for active employees without existing offboarding */}
+                {row.original.isActive && !row.original.offboardingRecord && (
+                  <DropdownMenuItem 
+                    onClick={() => handleStartOffboarding(row.original)} 
+                    icon={<UserX className="w-4 h-4 text-amber-500" />}
+                    className="text-amber-600 dark:text-amber-400"
+                  >
+                    Start Offboarding
+                  </DropdownMenuItem>
+                )}
+
+                {/* Separator */}
+                <DropdownMenuSeparator />
+
+                {/* Delete - Destructive action at bottom */}
+                <DropdownMenuItem
+                  onClick={async () => {
+                    if (
+                      !confirm(
+                        "This is a hard delete. All data related to this employee (documents, forms, audits, leave, onboarding, etc.) will be permanently removed. Are you sure you want to proceed?",
+                      )
+                    )
+                      return;
+                    try {
+                      // Optimistic update
+                      setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+                      
+                      // Use server action
+                      startTransition(async () => {
+                        const result = await deleteEmployeeAction(emp.id);
+                        
+                        if (result.success) {
+                          toast.success("Employee deleted");
+                          // Refresh from server to ensure consistency
+                          router.refresh();
+                        } else {
+                          // Revert optimistic update
+                          fetchData(activeTab, true);
+                          toast.error(result.error || "Failed to delete employee");
+                        }
+                      });
+                    } catch (err) {
+                      // Revert optimistic update
+                      fetchData(activeTab, true);
+                      toast.error(`Error deleting employee: ${(err as Error).message}`);
+                      console.error(err);
+                    }
+                  }}
+                  icon={<Trash2 className="w-4 h-4" />}
+                  className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20"
+                >
+                  Delete
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           );

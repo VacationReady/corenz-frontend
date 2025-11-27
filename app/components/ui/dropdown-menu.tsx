@@ -47,17 +47,21 @@ export function DropdownMenu({
             </Menu.Button>
             <Transition
               as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
+              enter="transition ease-out duration-200"
+              enterFrom="transform opacity-0 scale-95 translate-y-1"
+              enterTo="transform opacity-100 scale-100 translate-y-0"
+              leave="transition ease-in duration-150"
+              leaveFrom="transform opacity-100 scale-100 translate-y-0"
+              leaveTo="opacity-0 scale-95 translate-y-1"
             >
               <Portal>
                 <Menu.Items
                   className={cn(
-                    "fixed z-50 w-40 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none",
+                    "fixed z-50 min-w-[200px] p-1.5 rounded-2xl",
+                    "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl",
+                    "shadow-xl shadow-black/10 dark:shadow-black/30",
+                    "border border-border/50 dark:border-slate-700/50",
+                    "focus:outline-none",
                     align === "right" ? "origin-top-right" : "origin-top-left",
                   )}
                   style={positionStyles}
@@ -79,20 +83,25 @@ export function DropdownMenuItem({
   className,
   asChild = false,
   disabled = false,
+  icon,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;
   asChild?: boolean;
   disabled?: boolean;
+  icon?: React.ReactNode;
 }) {
   return (
     <Menu.Item disabled={disabled}>
       {({ active, disabled: itemDisabled }) => {
         const classes = cn(
-          "w-full text-left px-4 py-2 text-sm",
-          active && !itemDisabled ? "bg-gray-100" : "",
-          itemDisabled ? "opacity-50 cursor-not-allowed" : "",
+          "w-full flex items-center gap-3 text-left px-3 py-2.5 text-sm font-medium rounded-xl",
+          "transition-all duration-200 ease-out",
+          active && !itemDisabled 
+            ? "bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 text-foreground" 
+            : "text-foreground/80 hover:text-foreground",
+          itemDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
           className,
         );
         if (asChild && React.isValidElement(children)) {
@@ -110,6 +119,7 @@ export function DropdownMenuItem({
         }
         return (
           <button onClick={itemDisabled ? undefined : onClick} className={classes} disabled={itemDisabled}>
+            {icon && <span className="flex-shrink-0">{icon}</span>}
             {children}
           </button>
         );
@@ -156,7 +166,7 @@ export const DropdownMenuSeparator = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn("my-1 h-px bg-gray-200", className)}
+      className={cn("my-1.5 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent", className)}
       {...props}
     />
   );
@@ -170,7 +180,7 @@ export const DropdownMenuLabel = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn("px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider", className)}
+      className={cn("px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider", className)}
       {...props}
     />
   );
@@ -211,14 +221,26 @@ export function DropdownMenuCheckboxItem({
           onClick={() => !itemDisabled && onCheckedChange?.(!checked)}
           disabled={itemDisabled}
           className={cn(
-            "flex w-full items-center px-4 py-2 text-sm",
-            active && !itemDisabled ? "bg-gray-100" : "",
-            itemDisabled ? "opacity-50 cursor-not-allowed" : "",
+            "flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl",
+            "transition-all duration-200 ease-out",
+            active && !itemDisabled 
+              ? "bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10" 
+              : "",
+            itemDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
             className
           )}
         >
-          <span className={cn("mr-2 h-4 w-4 flex items-center justify-center", checked ? "text-primary" : "text-transparent")}>
-            ✓
+          <span className={cn(
+            "flex items-center justify-center w-4 h-4 rounded border-2 transition-all duration-200",
+            checked 
+              ? "bg-primary border-primary text-white" 
+              : "border-border bg-transparent"
+          )}>
+            {checked && (
+              <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
           </span>
           {children}
         </button>
@@ -243,11 +265,20 @@ export const DropdownMenuSubTrigger = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("flex w-full items-center px-4 py-2 text-sm hover:bg-gray-100", className)}
+      className={cn(
+        "flex w-full items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl",
+        "transition-all duration-200 ease-out",
+        "hover:bg-gradient-to-r hover:from-primary/10 hover:to-primary/5",
+        className
+      )}
       {...props}
     >
       {children}
-      <span className="ml-auto">›</span>
+      <span className="ml-auto text-muted-foreground">
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </span>
     </button>
   );
 });
@@ -260,7 +291,13 @@ export const DropdownMenuSubContent = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn("absolute left-full top-0 min-w-[8rem] rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5", className)}
+      className={cn(
+        "absolute left-full top-0 min-w-[180px] p-1.5 rounded-2xl",
+        "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl",
+        "shadow-xl shadow-black/10 dark:shadow-black/30",
+        "border border-border/50 dark:border-slate-700/50",
+        className
+      )}
       {...props}
     />
   );

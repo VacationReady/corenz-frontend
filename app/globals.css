@@ -171,8 +171,8 @@ html,
   /* 6 */
   -webkit-tap-highlight-color: transparent;
   /* 7 */
-  /* Critical: Prevent white flash - fallback is a light blue that matches theme */
-  background-color: #f0f4f8;
+  /* Critical: Prevent white flash - light turquoise/blue background */
+  background-color: #e8f4f8;
 }
 
 /*
@@ -185,8 +185,8 @@ body {
   /* 1 */
   line-height: inherit;
   /* 2 */
-  /* Critical: Prevent white flash - fallback is a light blue that matches theme */
-  background-color: #f0f4f8;
+  /* Critical: Prevent white flash - light turquoise/blue background */
+  background-color: #e8f4f8;
 }
 
 /*
@@ -2354,10 +2354,10 @@ video {
 
   .bg-gradient-landscape {
     background: linear-gradient(135deg,
-        hsl(var(--gradient-start)) 0%,
-        hsl(var(--gradient-mid)) 35%,
-        hsl(var(--gradient-end)) 70%,
-        hsl(var(--background)) 100%);
+        hsl(190 60% 95%) 0%,
+        hsl(195 70% 93%) 35%,
+        hsl(200 65% 94%) 70%,
+        hsl(190 55% 96%) 100%);
     background-size: 200% 200%;
     /* Disable animation by default to prevent scroll flash */
     /* animation: morphBackground 8s ease infinite; */
@@ -2378,13 +2378,13 @@ video {
   }
 
   /* Scroll-optimized aurora - no transforms to prevent repaint issues during scroll */
-  /* Uses blue-dominant colors to maintain the original light blue appearance */
+  /* Uses turquoise/cyan-dominant colors for a light blue-green tint */
   .bg-aurora-stable {
     background: linear-gradient(-45deg,
-        hsl(217 91% 60% / 0.08),
-        hsl(210 100% 70% / 0.10),
-        hsl(200 90% 65% / 0.08),
-        hsl(220 85% 60% / 0.06));
+        hsl(190 80% 70% / 0.18),
+        hsl(200 85% 65% / 0.22),
+        hsl(185 75% 60% / 0.16),
+        hsl(195 90% 70% / 0.20));
     background-size: 320% 320%;
     animation: aurora-stable 22s ease-in-out infinite;
     /* Prevent scroll-related paint issues */

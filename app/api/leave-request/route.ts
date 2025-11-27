@@ -154,30 +154,83 @@ export async function GET(req: NextRequest) {
         })
       );
 
-      // If no policy assignments found, return basic balances from employee record
+      // If no policy assignments found, try LeaveEntitlement table first
       if (balances.length === 0) {
+        // Check LeaveEntitlement table for the employee
+        const leaveEntitlements = await prisma.leaveEntitlement.findMany({
+          where: { employeeId: employee.id },
+          include: {
+            EventCategory: {
+              select: { id: true, name: true },
+            },
+          },
+        });
+
+        if (leaveEntitlements.length > 0) {
+          // Get pending counts for each entitlement
+          const entitlementBalances = await Promise.all(
+            leaveEntitlements.map(async (entitlement) => {
+              const pendingLeave = await prisma.leaveRequest.aggregate({
+                where: {
+                  employeeId: employee.id,
+                  eventCategoryId: entitlement.eventCategoryId,
+                  approvalStatus: "PENDING",
+                },
+                _sum: { days: true },
+              });
+
+              const remaining = entitlement.totalDays + entitlement.carryoverDays - entitlement.usedDays;
+
+              return {
+                id: entitlement.id,
+                policyId: entitlement.eventCategoryId,
+                policyName: entitlement.EventCategory?.name || "Leave",
+                totalAllowance: entitlement.totalDays + entitlement.carryoverDays,
+                used: entitlement.usedDays,
+                remaining: Math.max(0, remaining),
+                pending: pendingLeave._sum.days || 0,
+              };
+            })
+          );
+
+          return NextResponse.json(entitlementBalances);
+        }
+
+        // Fall back to Employee balance fields (stored in hours, convert to days)
         const basicBalances = [];
+        const HOURS_PER_DAY = 8;
         
         if (employee.annualLeaveBalance !== null) {
+          const balanceInHours = Number(employee.annualLeaveBalance || 0);
+          const remainingDays = Math.round((balanceInHours / HOURS_PER_DAY) * 10) / 10; // 1 decimal place
+          const totalDays = 20; // Default NZ annual leave (4 weeks)
+          const usedDays = Math.max(0, totalDays - remainingDays);
+
           basicBalances.push({
             id: "annual-leave",
             policyId: "annual-leave",
             policyName: "Annual Leave",
-            totalAllowance: 20, // Default NZ annual leave
-            used: 20 - Number(employee.annualLeaveBalance || 0),
-            remaining: Number(employee.annualLeaveBalance || 0),
+            totalAllowance: totalDays,
+            used: usedDays,
+            remaining: remainingDays,
             pending: 0,
           });
         }
         
         if (employee.sickLeaveBalance !== null) {
+          const balanceInHours = Number(employee.sickLeaveBalance || 0);
+          const entitlementInHours = Number(employee.sickLeaveEntitlement || 80); // Default 80 hours = 10 days
+          const remainingDays = Math.round((balanceInHours / HOURS_PER_DAY) * 10) / 10;
+          const totalDays = Math.round((entitlementInHours / HOURS_PER_DAY) * 10) / 10;
+          const usedDays = Math.max(0, totalDays - remainingDays);
+
           basicBalances.push({
             id: "sick-leave",
             policyId: "sick-leave",
             policyName: "Sick Leave",
-            totalAllowance: Number(employee.sickLeaveEntitlement || 10),
-            used: Number(employee.sickLeaveEntitlement || 10) - Number(employee.sickLeaveBalance || 0),
-            remaining: Number(employee.sickLeaveBalance || 0),
+            totalAllowance: totalDays,
+            used: usedDays,
+            remaining: remainingDays,
             pending: 0,
           });
         }

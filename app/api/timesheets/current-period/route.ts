@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { getTimesheetPeriod, calculateHours } from '@/lib/timesheet-calculations';
+import { findNearestGeofence, isWithinGeofence, Geofence } from '@/lib/gps-verification';
 
 export async function GET(req: NextRequest) {
   try {
@@ -66,6 +67,48 @@ export async function GET(req: NextRequest) {
     // So we'll just use an empty array for now
     const manualEntries: any[] = [];
 
+    // Get geofence locations for matching
+    const geofences: Geofence[] = settings?.geofenceLocations
+      ? (settings.geofenceLocations as any[]).map((g: any) => ({
+          lat: g.lat,
+          lng: g.lng,
+          radius: g.radius || 100,
+          name: g.name || 'Unknown Location',
+        }))
+      : [];
+
+    // Helper to get location name from coordinates
+    const getLocationName = (locationData: any): string | null => {
+      if (!locationData || typeof locationData !== 'object') return null;
+      
+      const { lat, lng } = locationData;
+      if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+
+      // If no geofences configured, return coordinates info
+      if (geofences.length === 0) {
+        return 'GPS Recorded';
+      }
+
+      // Check if within any geofence
+      for (const geofence of geofences) {
+        if (isWithinGeofence({ lat, lng }, geofence)) {
+          return geofence.name;
+        }
+      }
+
+      // Find nearest geofence
+      const nearest = findNearestGeofence({ lat, lng }, geofences);
+      if (nearest) {
+        const distanceMeters = Math.round(nearest.distance);
+        if (distanceMeters < 1000) {
+          return `Near ${nearest.geofence.name} (${distanceMeters}m away)`;
+        }
+        return `${(distanceMeters / 1000).toFixed(1)}km from ${nearest.geofence.name}`;
+      }
+
+      return 'Location recorded';
+    };
+
     // Transform clock entries to match TimesheetTable format
     const formattedClockEntries = clockEntries.map((entry: any) => ({
       id: entry.id,
@@ -79,6 +122,9 @@ export async function GET(req: NextRequest) {
       isOvertime: false,
       notes: entry.notes,
       entryType: 'CLOCK',
+      clockInLocation: entry.clockInLocation,
+      clockOutLocation: entry.clockOutLocation,
+      locationName: getLocationName(entry.clockInLocation),
     }));
 
     // Manual entries are already in the correct format

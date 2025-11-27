@@ -1607,10 +1607,23 @@ video {
   display: none !important;
 }
 
-/* Selected day indicator - subtle outline only */
+/* Selected day indicator - hide the default highlight completely */
 .fc .fc-highlight {
-  background: hsl(var(--primary) / 0.08) !important;
-  border: none !important;
+  display: none !important;
+}
+
+/* Hide any day indicator bars */
+.fc .fc-day-today::before,
+.fc .fc-day-today::after,
+.fc .fc-daygrid-day::before,
+.fc .fc-daygrid-day::after {
+  display: none !important;
+}
+
+/* Hide the blue bar indicator on selection */
+.fc td.fc-day-today > .fc-daygrid-day-frame::before,
+.fc td > .fc-daygrid-day-frame::before {
+  display: none !important;
 }
 
 /* Weekend styling */
@@ -1676,7 +1689,6 @@ video {
 
 .fc .fc-h-event {
   border: none !important;
-  background: transparent !important;
 }
 
 .fc .fc-h-event .fc-event-main {
@@ -2004,9 +2016,7 @@ video {
   }
 
   .cz-daycell--selected {
-    background: hsl(var(--primary) / 0.08);
-    outline: 2px solid hsl(var(--primary) / 0.4);
-    outline-offset: -2px;
+    background: hsl(var(--primary) / 0.06);
   }
 
   .cz-daycell--weekend {

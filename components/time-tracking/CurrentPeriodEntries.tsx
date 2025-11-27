@@ -19,6 +19,9 @@ interface Entry {
   isOvertime: boolean;
   notes?: string | null;
   entryType: string;
+  clockInLocation?: { lat: number; lng: number; accuracy?: number } | null;
+  clockOutLocation?: { lat: number; lng: number; accuracy?: number } | null;
+  locationName?: string | null;
 }
 
 interface Summary {

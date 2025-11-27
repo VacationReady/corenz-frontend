@@ -124,6 +124,7 @@ export async function GET(req: NextRequest) {
             name: true,
             id: true,
             iconKey: true,
+            color: true,
           },
         },
       },
@@ -150,6 +151,9 @@ export async function GET(req: NextRequest) {
           }
         }
 
+        // Default color if no category color is set
+        const categoryColor = req.EventCategory?.color || '#3B82F6';
+        
         return {
           id: req.id,
           title: `${req.EventCategory?.name ?? "Leave"} - ${displayName}`,
@@ -161,6 +165,9 @@ export async function GET(req: NextRequest) {
           categoryName: req.EventCategory?.name ?? null,
           categoryIconKey: req.EventCategory?.iconKey ?? null,
           eventCategoryId: req.EventCategory?.id ?? null,
+          backgroundColor: categoryColor,
+          borderColor: categoryColor,
+          textColor: '#FFFFFF',
           // Provide both employee (camelCase) for UI and Employee (PascalCase) for compatibility
           employee: {
             id: req.Employee?.id,

@@ -165,11 +165,13 @@ const DialogContent = React.forwardRef<
           </>
         )}
 
-        {/* Close Button */}
-        <DialogPrimitive.Close className="absolute right-5 top-5 p-2 rounded-xl text-muted-foreground hover:text-foreground bg-white/50 hover:bg-white/80 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
+        {/* Close Button - only show when not using rawContent (rawContent modals provide their own close button) */}
+        {!rawContent && (
+          <DialogPrimitive.Close className="absolute right-5 top-5 p-2 rounded-xl text-muted-foreground hover:text-foreground bg-white/50 hover:bg-white/80 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        )}
       </DialogPrimitive.Content>
     </div>
   </DialogPortal>

@@ -23,6 +23,7 @@ interface TimesheetEntry {
   entryType: string;
   clockInLocation?: LocationData | null;
   clockOutLocation?: LocationData | null;
+  locationName?: string | null;
 }
 
 interface TimesheetTableProps {
@@ -151,13 +152,41 @@ export default function TimesheetTable({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      {(entry.clockInLocation || entry.clockOutLocation) ? (
+                      {entry.locationName ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors cursor-help text-slate-700">
+                                <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                                <span className="text-xs font-medium truncate max-w-[120px]">{entry.locationName}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs max-w-xs">
+                              <div className="space-y-1">
+                                <p className="font-semibold">{entry.locationName}</p>
+                                {entry.clockInLocation && (
+                                  <p className="text-slate-500 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                                    In: {entry.clockInLocation.lat.toFixed(5)}, {entry.clockInLocation.lng.toFixed(5)}
+                                  </p>
+                                )}
+                                {entry.clockOutLocation && (
+                                  <p className="text-slate-500 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-purple-600"></span>
+                                    Out: {entry.clockOutLocation.lat.toFixed(5)}, {entry.clockOutLocation.lng.toFixed(5)}
+                                  </p>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (entry.clockInLocation || entry.clockOutLocation) ? (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className="flex items-center gap-1 px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors cursor-help text-slate-600">
                                 <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                                <span className="text-xs font-medium">GPS</span>
+                                <span className="text-xs font-medium">GPS Recorded</span>
                               </div>
                             </TooltipTrigger>
                             <TooltipContent side="top" className="text-xs max-w-xs">
@@ -179,7 +208,7 @@ export default function TimesheetTable({
                           </Tooltip>
                         </TooltipProvider>
                       ) : (
-                        <span className="text-xs text-slate-400 italic">No data</span>
+                        <span className="text-xs text-slate-400 italic">Location not recorded</span>
                       )}
                     </div>
                   </td>

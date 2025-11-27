@@ -6,22 +6,17 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { getSession } from '../api/auth';
 import { getEmployeeProfile } from '../api/hr-data';
-import { getMyLeaveRequests } from '../api/leave';
 import { getMyActionItems } from '../api/action-items';
 import { getPendingSurveys } from '../api/surveys';
-import { getUpcomingEvents } from '../api/calendar';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import LoadingState from '../components/LoadingState';
 import ClockWidget from '../components/ClockWidget';
-
-const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
@@ -32,8 +27,6 @@ export default function HomeScreen() {
   const [stats, setStats] = useState({
     pendingActions: 0,
     pendingSurveys: 0,
-    leaveRequests: 0,
-    upcomingEvents: 0,
   });
 
   const loadData = async () => {
@@ -53,11 +46,9 @@ export default function HomeScreen() {
       }
 
       // Load stats in parallel
-      const [actions, surveys, leave, events] = await Promise.allSettled([
+      const [actions, surveys] = await Promise.allSettled([
         getMyActionItems(),
         getPendingSurveys(),
-        getMyLeaveRequests(),
-        getUpcomingEvents(),
       ]);
 
       setStats({
@@ -65,10 +56,6 @@ export default function HomeScreen() {
           ? actions.value.filter((a: any) => a.status !== 'COMPLETED').length 
           : 0,
         pendingSurveys: surveys.status === 'fulfilled' ? surveys.value.length : 0,
-        leaveRequests: leave.status === 'fulfilled' 
-          ? leave.value.filter((l: any) => l.status === 'PENDING').length 
-          : 0,
-        upcomingEvents: events.status === 'fulfilled' ? events.value.length : 0,
       });
     } catch (error) {
       console.error('Failed to load home data:', error);
@@ -129,34 +116,6 @@ export default function HomeScreen() {
         {/* Clock In/Out Widget */}
         <ClockWidget />
 
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <StatCard
-            icon="checkmark-done"
-            title="Action Items"
-            value={stats.pendingActions}
-            color="#3b82f6"
-          />
-          <StatCard
-            icon="document-text"
-            title="Surveys"
-            value={stats.pendingSurveys}
-            color="#8b5cf6"
-          />
-          <StatCard
-            icon="calendar"
-            title="Leave Requests"
-            value={stats.leaveRequests}
-            color="#10b981"
-          />
-          <StatCard
-            icon="time"
-            title="Events"
-            value={stats.upcomingEvents}
-            color="#f59e0b"
-          />
-        </View>
-
         {/* Quick Actions */}
         <Card>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -174,10 +133,10 @@ export default function HomeScreen() {
               onPress={() => navigation.navigate('More', { screen: 'Surveys' })}
             />
             <QuickActionButton
-              icon="bar-chart-outline"
-              title="Reviews"
+              icon="folder-outline"
+              title="Documents"
               color="#ef4444"
-              onPress={() => navigation.navigate('More', { screen: 'Performance' })}
+              onPress={() => navigation.navigate('More', { screen: 'Documents' })}
             />
             <QuickActionButton
               icon="people-outline"
@@ -255,21 +214,6 @@ export default function HomeScreen() {
   );
 }
 
-function StatCard({ icon, title, value, color }: any) {
-  return (
-    <TouchableOpacity 
-      style={[styles.statCard, { borderLeftColor: color }]}
-      activeOpacity={0.8}
-    >
-      <View style={[styles.statIconContainer, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={22} color={color} />
-      </View>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statTitle}>{title}</Text>
-    </TouchableOpacity>
-  );
-}
-
 function QuickActionButton({ icon, title, color, onPress }: any) {
   return (
     <TouchableOpacity 
@@ -336,44 +280,6 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 16,
-    marginHorizontal: -6,
-  },
-  statCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 18,
-    width: (width - 44) / 2,
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-    margin: 6,
-  },
-  statIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  statTitle: {
-    fontSize: 13,
-    color: '#64748b',
-    fontWeight: '500',
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
@@ -387,14 +293,14 @@ const styles = StyleSheet.create({
     marginHorizontal: -6,
   },
   quickAction: {
-    width: (width - 32 - 36 - 24) / 2, // screen width - content padding - card padding - margins
+    width: '46%',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    margin: 6,
+    margin: '2%',
   },
   quickActionIcon: {
     width: 64,

@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { verifySignedToken } from "../login/route";
-
-const COOKIE_NAME = "tenant_admin_session";
+import { verifySignedToken, TENANT_ADMIN_COOKIE_NAME } from "@/lib/tenant-admin-auth";
 
 export async function GET() {
   try {
     const cookieStore = await cookies();
-    const session = cookieStore.get(COOKIE_NAME);
+    const session = cookieStore.get(TENANT_ADMIN_COOKIE_NAME);
 
     if (!session?.value) {
       return NextResponse.json({ authenticated: false });
@@ -19,7 +17,7 @@ export async function GET() {
     if (!valid) {
       // Clear invalid/expired cookie
       if (expired) {
-        cookieStore.delete(COOKIE_NAME);
+        cookieStore.delete(TENANT_ADMIN_COOKIE_NAME);
       }
       return NextResponse.json({ 
         authenticated: false,

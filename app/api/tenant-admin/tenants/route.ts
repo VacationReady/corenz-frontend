@@ -462,7 +462,7 @@ export async function DELETE(request: NextRequest) {
       await tx.eventSubcategory.deleteMany({ where: { companyId } });
       await tx.eventCategory.deleteMany({ where: { companyId } });
       await tx.expiryRule.deleteMany({ where: { companyId } });
-      await tx.blackoutDate.deleteMany({ where: { companyId } });
+      await tx.blackoutDay.deleteMany({ where: { companyId } });
 
       // Delete saved reports
       await tx.reportSendHistory.deleteMany({ where: { companyId } });
@@ -481,23 +481,26 @@ export async function DELETE(request: NextRequest) {
       await tx.notificationSettings.deleteMany({ where: { companyId } });
 
       // Delete performance management records
-      await tx.reviewSubmission.deleteMany({ where: { Cycle: { companyId } } });
+      await tx.reviewSubmission.deleteMany({ where: { Participant: { Cycle: { companyId } } } });
       await tx.cycleInsight.deleteMany({ where: { Cycle: { companyId } } });
       await tx.cycleParticipant.deleteMany({ where: { Cycle: { companyId } } });
       await tx.performanceReviewCycle.deleteMany({ where: { companyId } });
       await tx.meetingActionItem.deleteMany({ where: { Meeting: { companyId } } });
-      await tx.meetingAgendaItem.deleteMany({ where: { Meeting: { companyId } } });
+      await tx.meetingNote.deleteMany({ where: { Meeting: { companyId } } });
       await tx.performanceMeeting.deleteMany({ where: { companyId } });
-      await tx.performanceTemplateQuestion.deleteMany({ where: { Section: { Template: { companyId } } } });
-      await tx.performanceTemplateSection.deleteMany({ where: { Template: { companyId } } });
+      await tx.templateQuestion.deleteMany({ where: { Section: { Template: { companyId } } } });
+      await tx.templateSection.deleteMany({ where: { Template: { companyId } } });
       await tx.performanceTemplate.deleteMany({ where: { companyId } });
       await tx.performanceNotificationRule.deleteMany({ where: { companyId } });
       await tx.employeePerformanceReview.deleteMany({ where: { companyId } });
 
-      // Delete personal objectives
-      await tx.personalObjectiveComment.deleteMany({ where: { Objective: { companyId } } });
-      await tx.personalObjectiveMilestone.deleteMany({ where: { Objective: { companyId } } });
-      await tx.personalObjectiveUpdate.deleteMany({ where: { Objective: { companyId } } });
+      // Delete objectives (key results and updates first due to FK constraints)
+      await tx.objectiveUpdate.deleteMany({ where: { PersonalObjective: { companyId } } });
+      await tx.objectiveUpdate.deleteMany({ where: { TeamObjective: { companyId } } });
+      await tx.objectiveUpdate.deleteMany({ where: { CompanyObjective: { companyId } } });
+      await tx.objectiveKeyResult.deleteMany({ where: { PersonalObjective: { companyId } } });
+      await tx.objectiveKeyResult.deleteMany({ where: { TeamObjective: { companyId } } });
+      await tx.objectiveKeyResult.deleteMany({ where: { CompanyObjective: { companyId } } });
       await tx.personalObjective.deleteMany({ where: { companyId } });
 
       // Delete action items
@@ -546,7 +549,7 @@ export async function DELETE(request: NextRequest) {
       await tx.globalAuditLog.deleteMany({ where: { companyId } });
       await tx.employeeAuditLog.deleteMany({ where: { companyId } });
       await tx.personalInfoAudit.deleteMany({ where: { companyId } });
-      await tx.permissionAudit.deleteMany({ where: { Employee: { companyId } } });
+      await tx.permissionAudit.deleteMany({ where: { User_PermissionAudit_employeeIdToUser: { companyId } } });
 
       // Delete SSO and SCIM configuration
       await tx.sCIMConfiguration.deleteMany({ where: { companyId } });

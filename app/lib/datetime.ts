@@ -7,8 +7,9 @@ type DateInput = Date | string | number;
 
 type LocaleInput = string | Locale | null | undefined;
 
-const DEFAULT_TIME_ZONE = "Europe/London";
-const DEFAULT_LOCALE = enGB;
+// NZ HRIS platform - default to Pacific/Auckland timezone
+const DEFAULT_TIME_ZONE = "Pacific/Auckland";
+const DEFAULT_LOCALE = enNZ;
 
 const LOCALE_MAP: Record<string, Locale> = {
   "en": enGB,
@@ -87,4 +88,4 @@ export function getSupportedLocale(locale: LocaleInput): Locale {
 }
 
 export const DEFAULT_TIMEZONE = DEFAULT_TIME_ZONE;
-export const DEFAULT_LOCALE_CODE = "en-GB";
+export const DEFAULT_LOCALE_CODE = "en-NZ";

@@ -5,6 +5,9 @@ import bcrypt from "bcryptjs";
 import { resend } from "@/lib/resend";
 import { renderPeopleCoreEmail } from "@/lib/email/template";
 
+// Token expiry duration: 72 hours (configurable via env)
+const TOKEN_EXPIRY_HOURS = parseInt(process.env.ACTIVATION_TOKEN_EXPIRY_HOURS || "72", 10);
+
 export async function POST(req: NextRequest) {
   try {
     const { token, password, companyId } = await req.json();
@@ -31,10 +34,28 @@ export async function POST(req: NextRequest) {
     });
 
     if (!storedToken) {
-      return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
+      return NextResponse.json({ 
+        error: "Invalid activation token. Please request a new activation email from your administrator." 
+      }, { status: 400 });
     }
 
-    // 2. Get user by token.userId
+    // 2. Check token expiry (based on createdAt + configurable expiry duration)
+    const tokenAgeMs = Date.now() - storedToken.createdAt.getTime();
+    const expiryMs = TOKEN_EXPIRY_HOURS * 60 * 60 * 1000;
+    
+    if (tokenAgeMs > expiryMs) {
+      // Delete expired token
+      await prisma.activationToken.delete({
+        where: { token },
+      });
+      
+      const expiryHours = TOKEN_EXPIRY_HOURS;
+      return NextResponse.json({ 
+        error: `This activation link has expired (valid for ${expiryHours} hours). Please request a new activation email from your administrator.` 
+      }, { status: 410 });
+    }
+
+    // 3. Get user by token.userId
     const user = await prisma.user.findUnique({
       where: { id: storedToken.userId },
     });
@@ -43,12 +64,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // 3. Enforce tenant match if provided (defense-in-depth)
+    // 4. Enforce tenant match if provided (defense-in-depth)
     if (companyId && user.companyId !== companyId) {
       return NextResponse.json({ error: "Activation link is not for this tenant" }, { status: 400 });
     }
 
-    // 4. Get employee linked to user
+    // 5. Get employee linked to user
     const employee = await prisma.employee.findUnique({
       where: { userId: user.id },
     });
@@ -57,10 +78,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Employee not found" }, { status: 404 });
     }
 
-    // 5. Hash new password
+    // 6. Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 6. Update user password and mark employee as active + activated
+    // 7. Update user password and mark employee as active + activated
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -77,12 +98,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 7. Delete the token after use
+    // 8. Delete the token after use
     await prisma.activationToken.delete({
       where: { token },
     });
 
-    // 8. Notify admin that the user has activated/logged in
+    // 9. Notify admin that the user has activated/logged in
     try {
       const adminUsers = await prisma.user.findMany({
         where: { role: "ADMIN", companyId: user.companyId || undefined },

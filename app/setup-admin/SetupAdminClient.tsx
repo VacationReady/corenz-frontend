@@ -82,7 +82,13 @@ const SETUP_STEPS = [
   { id: "finalizing", label: "Finalizing your workspace", icon: Sparkles, duration: 1000 },
 ];
 
-function SetupLoadingAnimation({ companyName }: { companyName: string }) {
+function SetupLoadingAnimation({ 
+  companyName, 
+  onAnimationComplete 
+}: { 
+  companyName: string;
+  onAnimationComplete: () => void;
+}) {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
@@ -97,8 +103,11 @@ function SetupLoadingAnimation({ companyName }: { companyName: string }) {
     if (currentStep < SETUP_STEPS.length) {
       const timer = setTimeout(advanceStep, SETUP_STEPS[currentStep].duration);
       return () => clearTimeout(timer);
+    } else {
+      // All steps complete - notify parent
+      onAnimationComplete();
     }
-  }, [currentStep]);
+  }, [currentStep, onAnimationComplete]);
 
   const progress = ((completedSteps.length) / SETUP_STEPS.length) * 100;
 
@@ -331,9 +340,11 @@ function SetupLoadingAnimation({ companyName }: { companyName: string }) {
 
 export default function SetupAdminClient() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [showSetupAnimation, setShowSetupAnimation] = useState(false);
   const [error, setError] = useState("");
-  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [setupReady, setSetupReady] = useState(false);
+  const [animationComplete, setAnimationComplete] = useState(false);
+  const [redirectTarget, setRedirectTarget] = useState<string | null>(null);
 
   // Form state
   const [email, setEmail] = useState("");
@@ -347,6 +358,18 @@ export default function SetupAdminClient() {
 
   const passwordStrength = evaluatePasswordStrength(password);
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
+
+  // Handle redirect when both animation and setup are complete
+  useEffect(() => {
+    if (setupReady && animationComplete && redirectTarget) {
+      router.push(redirectTarget);
+      router.refresh();
+    }
+  }, [setupReady, animationComplete, redirectTarget, router]);
+
+  const handleAnimationComplete = () => {
+    setAnimationComplete(true);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -367,7 +390,8 @@ export default function SetupAdminClient() {
       return;
     }
 
-    setLoading(true);
+    // Show animation immediately
+    setShowSetupAnimation(true);
     setError("");
 
     try {
@@ -392,13 +416,11 @@ export default function SetupAdminClient() {
 
       if (data.alreadyExists) {
         setError("An account with this email already exists. Please sign in instead.");
-        setLoading(false);
+        setShowSetupAnimation(false);
         return;
       }
 
       // Step 2: Auto-login with the credentials
-      setRegistrationComplete(true);
-      
       const signInResult = await signIn("credentials", {
         redirect: false,
         email,
@@ -406,16 +428,17 @@ export default function SetupAdminClient() {
       });
 
       if (signInResult?.ok) {
-        // Step 3: Redirect to dashboard
-        router.push("/dashboard/admin");
-        router.refresh();
+        // Mark setup as ready and set redirect target
+        setRedirectTarget("/dashboard/admin");
+        setSetupReady(true);
       } else {
         // Login failed but account was created - redirect to login
-        router.push("/login?registered=true");
+        setRedirectTarget("/login?registered=true");
+        setSetupReady(true);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred");
-      setLoading(false);
+      setShowSetupAnimation(false);
     }
   };
 
@@ -495,9 +518,12 @@ export default function SetupAdminClient() {
       {/* Main content */}
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
         <AnimatePresence mode="wait">
-          {registrationComplete ? (
+          {showSetupAnimation ? (
             /* Modern Setup Loading Animation */
-            <SetupLoadingAnimation companyName={companyName} />
+            <SetupLoadingAnimation 
+              companyName={companyName} 
+              onAnimationComplete={handleAnimationComplete}
+            />
           ) : (
             <motion.div
               key="form"
@@ -739,9 +765,7 @@ export default function SetupAdminClient() {
                       background: "linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(139, 92, 246) 100%)",
                       boxShadow: "0 8px 24px rgba(59, 130, 246, 0.35)",
                     }}
-                    loading={loading}
-                    loadingText="Creating your account..."
-                    disabled={loading || !companyName.trim() || !passwordsMatch || passwordStrength.score < 3}
+                    disabled={showSetupAnimation || !companyName.trim() || !passwordsMatch || passwordStrength.score < 3}
                     icon={<Rocket className="w-5 h-5" />}
                   >
                     Create Account & Sign In

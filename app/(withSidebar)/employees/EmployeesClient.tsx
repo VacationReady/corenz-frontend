@@ -39,7 +39,7 @@ import OffboardingModal from "@/components/employees/OffboardingModal";
 import { MoreVertical, Users, UserX, Archive, UserCheck, UserPlus, Download, Filter, Sparkles, TrendingUp, Building2, Clock, CalendarDays, Briefcase, Search, X, ChevronDown, Check, Trash2, Mail, Send } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { toast } from "sonner";
-import { deleteEmployeeAction, sendActivationEmailAction, refreshEmployeesAction } from "./actions";
+import { deleteEmployeeAction, sendActivationEmailAction } from "./actions";
 import { cn } from "@/lib/utils";
 
 // ✅ Inline type definition to avoid import error
@@ -1339,10 +1339,8 @@ function EmployeesContent(props: EmployeesClientProps) {
         open={isModalOpen}
         onClose={() => setModalOpen(false)}
         onSuccess={() => {
-          startTransition(async () => {
-            await refreshEmployeesAction();
-            router.refresh();
-          });
+          // Refresh the local state to show the new employee immediately
+          fetchData(activeTab, true);
         }}
       />
       {isDeptModalOpen && (

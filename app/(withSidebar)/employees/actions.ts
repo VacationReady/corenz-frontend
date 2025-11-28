@@ -16,6 +16,9 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { randomBytes } from "crypto";
+import { resend } from "@/lib/resend";
+import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 
 /**
  * Delete an employee
@@ -58,7 +61,7 @@ export async function deleteEmployeeAction(employeeId: string) {
 
 /**
  * Send activation email to employee
- * Server action that replaces POST /api/employees/[id]/send-invite
+ * Server action that sends activation email directly (no API call needed)
  */
 export async function sendActivationEmailAction(employeeId: string) {
   const session = await getServerSession(authOptions);
@@ -68,7 +71,7 @@ export async function sendActivationEmailAction(employeeId: string) {
   }
 
   try {
-    // Verify employee belongs to company
+    // Verify employee belongs to company and get user data
     const employee = await prisma.employee.findFirst({
       where: {
         id: employeeId,
@@ -79,26 +82,63 @@ export async function sendActivationEmailAction(employeeId: string) {
       },
     });
 
-    if (!employee) {
+    if (!employee?.User) {
       return { success: false, error: "Employee not found" };
     }
 
-    // Call the existing API endpoint for sending email
-    // (keeping this as API call since it involves external email service)
-    const response = await fetch(
-      `${process.env.NEXTAUTH_URL}/api/employees/${employeeId}/send-invite`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    // Create or rotate activation token
+    const activationToken = randomBytes(32).toString("hex");
+    await prisma.activationToken.upsert({
+      where: { userId: employee.User.id },
+      update: { token: activationToken },
+      create: { 
+        id: crypto.randomUUID(), 
+        userId: employee.User.id, 
+        token: activationToken 
+      },
+    });
 
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      return { success: false, error: data.error || "Failed to send email" };
-    }
+    // Build activation link
+    const redirectPath = employee.onboardingTemplateId
+      ? `/${employee.id}/onboarding`
+      : `/dashboard`;
+    const baseUrl = getAppBaseUrl();
+    const activationLink = `${baseUrl}/activate?token=${activationToken}&companyId=${encodeURIComponent(
+      session.user.companyId,
+    )}&redirect=${encodeURIComponent(redirectPath)}`;
+
+    // Get employee name for email
+    const employeeName =
+      `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() ||
+      employee.User.email;
+
+    // Render email template
+    const { html, text } = renderPeopleCoreEmail({
+      preheader: "Activate your PeopleCore account",
+      title: "Activate Your PeopleCore Account",
+      intro: [
+        `Hi ${employeeName},`,
+        "Welcome to PeopleCore! Use the button below to activate your account and get started.",
+      ],
+      ctas: {
+        label: "Activate Account",
+        href: activationLink,
+      },
+      outro: [
+        "If you weren't expecting this email, please ignore it.",
+        "Thank you,",
+        "The PeopleCore Team",
+      ],
+    });
+
+    // Send email via Resend
+    await resend.emails.send({
+      from: "noreply@peoplecore.co.nz",
+      to: employee.User.email,
+      subject: "Activate Your PeopleCore Account",
+      html,
+      text,
+    });
 
     return { success: true };
   } catch (error) {

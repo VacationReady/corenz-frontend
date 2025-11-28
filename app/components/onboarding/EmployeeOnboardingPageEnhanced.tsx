@@ -241,6 +241,17 @@ export default function EmployeeOnboardingPageEnhanced({
     }
   }, [employeeId, canAssignTemplate]);
 
+  // Effect to detect onboarding completion - must be at top level before any early returns
+  const steps = instance?.steps?.sort((a, b) => a.order - b.order) ?? [];
+  const activeStep = steps.find((s) => s.status !== "completed");
+
+  useEffect(() => {
+    if (prevActiveStepRef.current && !activeStep && !loading) {
+      setShowCompleteAnimation(true);
+    }
+    prevActiveStepRef.current = activeStep;
+  }, [activeStep, loading]);
+
   const handleAssignOnboarding = async () => {
     if (!selectedTemplate) {
       setAssignError("Select a template before assigning.");
@@ -285,16 +296,131 @@ export default function EmployeeOnboardingPageEnhanced({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-900/20">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-900/20 overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-64 h-64 rounded-full bg-gradient-to-br from-indigo-400/10 to-purple-400/10 blur-3xl"
+              initial={{ 
+                x: Math.random() * 100 - 50 + "%", 
+                y: Math.random() * 100 - 50 + "%",
+                scale: 0.5,
+                opacity: 0 
+              }}
+              animate={{ 
+                x: [null, Math.random() * 20 - 10 + "%"],
+                y: [null, Math.random() * 20 - 10 + "%"],
+                scale: [0.5, 1, 0.8],
+                opacity: [0, 0.6, 0.4]
+              }}
+              transition={{ 
+                duration: 4 + i * 0.5, 
+                repeat: Infinity, 
+                repeatType: "reverse",
+                delay: i * 0.3 
+              }}
+            />
+          ))}
+        </div>
+
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center"
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="text-center relative z-10"
         >
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-indigo-500/30 animate-pulse">
-            <Rocket className="w-10 h-10 text-white" />
+          {/* Animated rocket with orbit */}
+          <div className="relative w-32 h-32 mx-auto mb-8">
+            {/* Orbital rings */}
+            <motion.div
+              className="absolute inset-0 rounded-full border-2 border-indigo-200/30 dark:border-indigo-700/30"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.div
+              className="absolute inset-2 rounded-full border-2 border-purple-200/40 dark:border-purple-700/40"
+              animate={{ rotate: -360 }}
+              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+            />
+            
+            {/* Orbiting particles */}
+            {[0, 120, 240].map((angle, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-3 h-3 rounded-full bg-gradient-to-r from-indigo-400 to-purple-500"
+                style={{ top: "50%", left: "50%", marginTop: -6, marginLeft: -6 }}
+                animate={{
+                  x: [
+                    Math.cos((angle * Math.PI) / 180) * 50,
+                    Math.cos(((angle + 360) * Math.PI) / 180) * 50,
+                  ],
+                  y: [
+                    Math.sin((angle * Math.PI) / 180) * 50,
+                    Math.sin(((angle + 360) * Math.PI) / 180) * 50,
+                  ],
+                }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear", delay: i * 0.2 }}
+              />
+            ))}
+
+            {/* Central rocket */}
+            <motion.div
+              className="absolute inset-4 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl shadow-indigo-500/40"
+              animate={{ 
+                y: [-4, 4, -4],
+                rotate: [-2, 2, -2]
+              }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                <Rocket className="w-10 h-10 text-white" />
+              </motion.div>
+            </motion.div>
           </div>
-          <GlassSpinner size="lg" showText text="Loading your onboarding journey..." />
+
+          {/* Text content */}
+          <motion.h2
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-3"
+          >
+            Commencing Onboarding
+          </motion.h2>
+          
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-slate-600 dark:text-slate-400 mb-6 flex items-center justify-center gap-2"
+          >
+            <span>Hang tight</span>
+            <motion.span
+              animate={{ opacity: [0, 1, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              ✨
+            </motion.span>
+          </motion.p>
+
+          {/* Loading bar */}
+          <motion.div
+            initial={{ opacity: 0, scaleX: 0 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ delay: 0.6 }}
+            className="w-48 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto overflow-hidden"
+          >
+            <motion.div
+              className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full"
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </motion.div>
         </motion.div>
       </div>
     );
@@ -391,11 +517,10 @@ export default function EmployeeOnboardingPageEnhanced({
     );
   }
 
-  const steps = instance.steps.sort((a, b) => a.order - b.order);
+  // Note: steps and activeStep are computed earlier (before early returns) to satisfy hook rules
   const totalSteps = steps.length;
   const completeCount = steps.filter((s) => s.status === "completed").length;
   const percent = totalSteps ? Math.round((completeCount / totalSteps) * 100) : 0;
-  const activeStep = steps.find((s) => s.status !== "completed");
   const currentIdx = activeStep ? steps.findIndex((s) => s.id === activeStep.id) : totalSteps;
 
   const handleComplete = async (stepId: string, data?: any) => {
@@ -444,14 +569,6 @@ export default function EmployeeOnboardingPageEnhanced({
 
   const activeStepKey = activeStep?.instanceStepId || activeStep?.id;
   const isCompletingActive = !!activeStepKey && completingStepId === activeStepKey;
-
-  // Detect completion
-  useEffect(() => {
-    if (prevActiveStepRef.current && !activeStep && !loading) {
-      setShowCompleteAnimation(true);
-    }
-    prevActiveStepRef.current = activeStep;
-  }, [activeStep, loading]);
 
   const employeeName = session?.user?.name || "there";
   const firstName = employeeName.split(" ")[0];

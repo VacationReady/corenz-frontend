@@ -496,11 +496,14 @@ async function main() {
     "Queenstown","Napier","Palmerston North","London","Manchester",
   ];
   for (const name of locations) {
-    await prisma.location.upsert({
-      where: { name },
-      update: {},
-      create: { id: randomUUID(), name },
+    const existing = await prisma.location.findFirst({
+      where: { name, companyId: null },
     });
+    if (!existing) {
+      await prisma.location.create({
+        data: { id: randomUUID(), name },
+      });
+    }
   }
 
   // =============== 10) Event Categories + Rules ===============

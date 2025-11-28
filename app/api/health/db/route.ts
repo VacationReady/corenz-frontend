@@ -16,31 +16,33 @@ export async function GET(req: NextRequest) {
     const maskedUrl = dbUrl.replace(/:([^@]+)@/, ':****@');
     
     // If a test token was provided, try to look it up
-    let tokenLookup = null;
+    let tokenLookup: Record<string, any> | null = null;
     if (testToken) {
       const found = await prisma.activationToken.findUnique({
         where: { token: testToken },
       });
-      tokenLookup = found ? {
-        found: true,
-        userId: found.userId,
-        createdAt: found.createdAt.toISOString(),
-        tokenLength: found.token.length,
-      } : {
-        found: false,
-        searchedFor: testToken.substring(0, 8) + "...",
-        searchLength: testToken.length,
-      };
       
       // Also list first 8 chars of all tokens for comparison
       const allTokens = await prisma.activationToken.findMany({
         select: { token: true, userId: true },
       });
-      tokenLookup.existingTokens = allTokens.map(t => ({
-        prefix: t.token.substring(0, 8) + "...",
-        length: t.token.length,
-        userId: t.userId,
-      }));
+      
+      tokenLookup = {
+        found: !!found,
+        ...(found ? {
+          userId: found.userId,
+          createdAt: found.createdAt.toISOString(),
+          tokenLength: found.token.length,
+        } : {
+          searchedFor: testToken.substring(0, 8) + "...",
+          searchLength: testToken.length,
+        }),
+        existingTokens: allTokens.map(t => ({
+          prefix: t.token.substring(0, 8) + "...",
+          length: t.token.length,
+          userId: t.userId,
+        })),
+      };
     }
     
     return NextResponse.json({

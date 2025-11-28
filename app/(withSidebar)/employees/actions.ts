@@ -23,6 +23,9 @@ import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 /**
  * Delete an employee
  * Server action that replaces DELETE /api/employees/[id]
+ * 
+ * Uses a transaction to delete all related records before deleting the employee.
+ * This mirrors the comprehensive delete logic in app/api/employees/[id]/route.ts
  */
 export async function deleteEmployeeAction(employeeId: string) {
   const session = await getServerSession(authOptions);
@@ -31,23 +34,191 @@ export async function deleteEmployeeAction(employeeId: string) {
     return { success: false, error: "Unauthorized" };
   }
 
+  // Only ADMIN can delete employees
+  if (session.user.role !== "ADMIN") {
+    return { success: false, error: "Forbidden" };
+  }
+
   try {
-    // Verify employee belongs to company
+    // Verify employee belongs to company and get user data
     const employee = await prisma.employee.findFirst({
       where: {
         id: employeeId,
         companyId: session.user.companyId,
       },
+      include: { User: true },
     });
 
     if (!employee) {
       return { success: false, error: "Employee not found" };
     }
 
-    // Delete employee
-    await prisma.employee.delete({
-      where: { id: employeeId },
-    });
+    const userId = employee.userId;
+    const companyId = employee.companyId ?? employee.User?.companyId ?? undefined;
+
+    // Use a transaction to delete all related records
+    await prisma.$transaction(async (tx) => {
+      // Onboarding instances and nested data
+      await tx.onboardingStepResponse.deleteMany({
+        where: {
+          OnboardingStepInstance: { OnboardingInstance: { employeeId } },
+        },
+      });
+      await tx.onboardingStepInstance.deleteMany({
+        where: { OnboardingInstance: { employeeId } },
+      });
+      await tx.onboardingInstance.deleteMany({ where: { employeeId } });
+
+      // Form related
+      await tx.formDataRecord.deleteMany({ where: { employeeId } });
+      await tx.formSubmission.deleteMany({ where: { employeeId } });
+      await tx.formAssignment.deleteMany({ where: { employeeId } });
+
+      // Employment and compliance
+      await tx.documentAcknowledgement.deleteMany({ where: { employeeId } });
+      await tx.employmentCheck.deleteMany({ where: { employeeId } });
+      await tx.driverLicence.deleteMany({ where: { employeeId } });
+      await tx.trainingRecord.deleteMany({ where: { employeeId } });
+      await tx.emergencyContact.deleteMany({ where: { employeeId } });
+
+      // Document signatures
+      await tx.documentSignatureArtifact.deleteMany({ where: { employeeId } });
+      await tx.documentSignatureEmployee.deleteMany({ where: { employeeId } });
+
+      // Performance reviews
+      await tx.employeePerformanceReview.deleteMany({ where: { employeeId } });
+
+      // Audit logs (include records where this user acted on others)
+      await tx.permissionAudit.deleteMany({
+        where: {
+          OR: [{ employeeId: userId }, { changedById: userId }],
+        },
+      });
+      await tx.employeeAuditLog.deleteMany({
+        where: {
+          OR: [{ employeeId }, { changedById: userId }],
+        },
+      });
+      await tx.personalInfoAudit.deleteMany({
+        where: {
+          OR: [{ subjectUserId: userId }, { changedById: userId }],
+        },
+      });
+      await tx.globalAuditLog.deleteMany({ where: { actorId: userId } });
+      await tx.employeePerformanceReview.updateMany({
+        where: { reviewerId: userId },
+        data: { reviewerId: null },
+      });
+      await tx.user.updateMany({ where: { managerId: userId }, data: { managerId: null } });
+
+      // Leave
+      await tx.leaveEntitlement.deleteMany({ where: { employeeId } });
+      await tx.leaveRequest.deleteMany({
+        where: {
+          OR: [
+            { employeeId },
+            { requesterId: userId },
+            { approvedById: userId },
+          ],
+        },
+      });
+      await tx.leaveApprovalDecision.deleteMany({ where: { approverId: userId } });
+
+      // Offboarding (tasks cascade on offboarding delete)
+      await tx.employeeOffboarding.deleteMany({ where: { employeeId } });
+
+      // Documents: delete records (storage cleanup handled separately if needed)
+      await tx.document.deleteMany({ where: { employeeId } });
+
+      // Onboarding assignments for this user
+      await tx.onboardingAssignment.deleteMany({ where: { userId } });
+
+      // Activation token
+      await tx.activationToken.deleteMany({ where: { userId } });
+
+      // Saved reports and authored news posts
+      await tx.savedReport.deleteMany({ where: { createdBy: userId } });
+      await tx.newsPost.deleteMany({ where: { authorId: userId } });
+
+      // Approvals configuration where user is an approver
+      await tx.approvalWorkflowStageApprover.deleteMany({ where: { userId } });
+
+      // Offboarding tasks assigned to / completed by this user across the company
+      await tx.offboardingTask.updateMany({
+        where: { assignedTo: userId },
+        data: { assignedTo: null },
+      });
+      await tx.offboardingTask.updateMany({
+        where: { completedBy: userId },
+        data: { completedBy: null },
+      });
+
+      // Reassign documents uploaded by this user to a fallback user
+      let fallbackUserId: string | undefined;
+      if (companyId) {
+        const fallbackAdmin = await tx.user.findFirst({
+          where: { companyId, id: { not: userId }, role: "ADMIN" },
+          select: { id: true },
+        });
+        if (fallbackAdmin) {
+          fallbackUserId = fallbackAdmin.id;
+        } else {
+          const fallbackAny = await tx.user.findFirst({
+            where: { companyId, id: { not: userId } },
+            select: { id: true },
+          });
+          fallbackUserId = fallbackAny?.id;
+        }
+      }
+      if (fallbackUserId) {
+        await tx.document.updateMany({ where: { uploaderId: userId }, data: { uploaderId: fallbackUserId } });
+      } else {
+        await tx.document.deleteMany({ where: { uploaderId: userId, employeeId: null } });
+      }
+
+      // Department head ownership -> set to null
+      await tx.department.updateMany({ where: { headId: userId }, data: { headId: null } });
+
+      // Onboarding templates updatedBy -> set to null
+      await tx.onboardingTemplate.updateMany({ where: { updatedById: userId }, data: { updatedById: null } });
+
+      // Offboarding records where this user participated for other employees
+      await tx.employeeOffboarding.updateMany({
+        where: { accessRemovedBy: userId },
+        data: { accessRemovedBy: null },
+      });
+      await tx.employeeOffboarding.updateMany({
+        where: { assetsReturnedTo: userId },
+        data: { assetsReturnedTo: null },
+      });
+      await tx.employeeOffboarding.updateMany({
+        where: { handoverAssignedTo: userId },
+        data: { handoverAssignedTo: null },
+      });
+      await tx.employeeOffboarding.updateMany({
+        where: { hrReviewCompletedBy: userId },
+        data: { hrReviewCompletedBy: null },
+      });
+      await tx.employeeOffboarding.updateMany({
+        where: { interviewerUserId: userId },
+        data: { interviewerUserId: null },
+      });
+      if (fallbackUserId) {
+        await tx.employeeOffboarding.updateMany({
+          where: { initiatedById: userId },
+          data: { initiatedById: fallbackUserId },
+        });
+      }
+
+      // Working pattern assignments
+      await tx.employeeWorkingPatternAssignment.deleteMany({
+        where: { employeeId },
+      });
+
+      // Finally delete employee then user
+      await tx.employee.delete({ where: { id: employeeId } });
+      await tx.user.delete({ where: { id: userId } });
+    }, { timeout: 20000 });
 
     // Revalidate employees page
     revalidatePath("/employees");

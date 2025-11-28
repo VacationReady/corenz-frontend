@@ -25,13 +25,22 @@ export async function POST(
         { status: 404 },
       );
 
-    // Create or rotate activation token
+    // Create or rotate activation token (reset createdAt on update for fresh expiry)
     const activationToken = randomBytes(32).toString("hex");
     await prisma.activationToken.upsert({
       where: { userId: employee.User.id },
-      update: { token: activationToken },
-      create: { id: crypto.randomUUID(), userId: employee.User.id, token: activationToken },
+      update: { 
+        token: activationToken,
+        createdAt: new Date(), // Reset expiry timer
+      },
+      create: { 
+        id: crypto.randomUUID(), 
+        userId: employee.User.id, 
+        token: activationToken,
+      },
     });
+    
+    console.log(`[send-invite] Activation token created/updated for user ${employee.User.id}`);
 
     const redirectPath = employee.onboardingTemplateId
       ? `/${employee.id}/onboarding`

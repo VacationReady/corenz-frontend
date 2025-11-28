@@ -29,29 +29,43 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Validate token
+    console.log(`[set-password] Looking up token: ${token.substring(0, 8)}...`);
+    
     const storedToken = await prisma.activationToken.findUnique({
       where: { token },
     });
 
     if (!storedToken) {
+      // Log for debugging - check if ANY tokens exist
+      const tokenCount = await prisma.activationToken.count();
+      console.log(`[set-password] Token not found. Total tokens in DB: ${tokenCount}`);
+      
       return NextResponse.json({ 
         error: "Invalid activation token. Please request a new activation email from your administrator." 
       }, { status: 400 });
     }
+    
+    console.log(`[set-password] Token found, created at: ${storedToken.createdAt.toISOString()}, userId: ${storedToken.userId}`)
 
     // 2. Check token expiry (based on createdAt + configurable expiry duration)
-    const tokenAgeMs = Date.now() - storedToken.createdAt.getTime();
+    const now = Date.now();
+    const tokenCreatedAt = storedToken.createdAt.getTime();
+    const tokenAgeMs = now - tokenCreatedAt;
+    const tokenAgeHours = tokenAgeMs / (60 * 60 * 1000);
     const expiryMs = TOKEN_EXPIRY_HOURS * 60 * 60 * 1000;
     
+    console.log(`[set-password] Token age check - Now: ${new Date(now).toISOString()}, Created: ${storedToken.createdAt.toISOString()}, Age: ${tokenAgeHours.toFixed(2)}h, Expiry: ${TOKEN_EXPIRY_HOURS}h`);
+    
     if (tokenAgeMs > expiryMs) {
+      console.log(`[set-password] Token expired! Age ${tokenAgeHours.toFixed(2)}h > ${TOKEN_EXPIRY_HOURS}h limit`);
+      
       // Delete expired token
       await prisma.activationToken.delete({
         where: { token },
       });
       
-      const expiryHours = TOKEN_EXPIRY_HOURS;
       return NextResponse.json({ 
-        error: `This activation link has expired (valid for ${expiryHours} hours). Please request a new activation email from your administrator.` 
+        error: `This activation link has expired (valid for ${TOKEN_EXPIRY_HOURS} hours). Please request a new activation email from your administrator.` 
       }, { status: 410 });
     }
 

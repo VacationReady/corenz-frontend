@@ -600,14 +600,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create activation token now; email optionally sent now or later
-    await prisma.activationToken.create({
-      data: {
+    // Create or update activation token (upsert handles re-invites)
+    await prisma.activationToken.upsert({
+      where: { userId: user.id },
+      update: { 
+        token: activationToken,
+        createdAt: new Date(), // Reset creation time on update
+      },
+      create: {
         id: crypto.randomUUID(),
         token: activationToken,
-        User: { connect: { id: user.id } },
+        userId: user.id,
       },
     });
+    
+    console.log(`[employees/POST] Activation token created/updated for user ${user.id}`);
 
     const redirectPath = normalizedTemplateId
       ? `/${employee.id}/onboarding`

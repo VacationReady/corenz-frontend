@@ -503,6 +503,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
         />
 
         <UnsavedChangesGuard>
+          <div className="space-y-6">
           {/* Banking & Tax Details */}
           <EmployeeFormCard
             title="Banking & Tax Details"
@@ -953,6 +954,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
               disabled={disableSave}
             />
           </motion.div>
+          </div>
         </UnsavedChangesGuard>
       </div>
     </TooltipProvider>

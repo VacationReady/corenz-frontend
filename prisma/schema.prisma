@@ -1173,7 +1173,7 @@ model LeaveRequest {
 
 model Location {
   id             String      @id
-  name           String      @unique
+  name           String
   companyId      String?
   address        String?
   latitude       Float?
@@ -1184,6 +1184,8 @@ model Location {
   Employees      Employee[]
   Shifts         Shift[]     @relation("ShiftLocation")
   RotaGroups     RotaGroup[]
+
+  @@unique([name, companyId])
 }
 
 model NewsPost {

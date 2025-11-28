@@ -370,3 +370,5 @@ function generateAISuggestions(data: {
   return suggestions.slice(0, 4);
 }
 
+
+

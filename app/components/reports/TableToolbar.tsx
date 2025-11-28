@@ -372,3 +372,5 @@ export function ColumnPinButton({ isPinned, pinPosition, onToggle }: ColumnPinBu
 
 export default TableToolbar;
 
+
+

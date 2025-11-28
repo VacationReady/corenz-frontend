@@ -396,7 +396,7 @@ export function EnhancedStepPalette({ stepTypes, onAddStep }: EnhancedStepPalett
                       >
                         <div
                           className={cn(
-                            "w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center",
+                            "w-8 h-8 min-w-[32px] min-h-[32px] rounded-full bg-gradient-to-br flex items-center justify-center flex-shrink-0",
                             category.color
                           )}
                         >

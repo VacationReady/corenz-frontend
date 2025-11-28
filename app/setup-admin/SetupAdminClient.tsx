@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,13 +13,17 @@ import {
   Lock,
   Eye,
   EyeOff,
-  CheckCircle2,
   AlertCircle,
   Shield,
   Rocket,
   RefreshCw,
   Check,
   X,
+  Database,
+  Users,
+  Settings,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 
 interface PasswordStrength {
@@ -64,6 +68,265 @@ function evaluatePasswordStrength(password: string): PasswordStrength {
   }
 
   return { score, label, color, checks };
+}
+
+// Setup loading steps configuration
+const SETUP_STEPS = [
+  { id: "account", label: "Creating your account", icon: UserPlus, duration: 800 },
+  { id: "company", label: "Setting up your organisation", icon: Building2, duration: 1200 },
+  { id: "permissions", label: "Configuring permissions", icon: Shield, duration: 1000 },
+  { id: "departments", label: "Building department structure", icon: Users, duration: 1100 },
+  { id: "templates", label: "Creating an onboarding template", icon: FileText, duration: 900 },
+  { id: "data", label: "Seeding initial data", icon: Database, duration: 1500 },
+  { id: "settings", label: "Applying default settings", icon: Settings, duration: 800 },
+  { id: "finalizing", label: "Finalizing your workspace", icon: Sparkles, duration: 1000 },
+];
+
+function SetupLoadingAnimation({ companyName }: { companyName: string }) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+
+  useEffect(() => {
+    const advanceStep = () => {
+      if (currentStep < SETUP_STEPS.length) {
+        setCompletedSteps((prev) => [...prev, currentStep]);
+        setCurrentStep((prev) => prev + 1);
+      }
+    };
+
+    if (currentStep < SETUP_STEPS.length) {
+      const timer = setTimeout(advanceStep, SETUP_STEPS[currentStep].duration);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep]);
+
+  const progress = ((completedSteps.length) / SETUP_STEPS.length) * 100;
+
+  return (
+    <motion.div
+      key="setup-loading"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="w-full max-w-xl"
+    >
+      {/* Glowing background effect */}
+      <div className="relative">
+        <motion.div
+          className="absolute -inset-4 rounded-3xl opacity-30 blur-xl"
+          style={{
+            background: "linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(139, 92, 246) 50%, rgb(16, 185, 129) 100%)",
+          }}
+          animate={{
+            scale: [1, 1.02, 1],
+            opacity: [0.2, 0.3, 0.2],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        <div className="relative glass-premium rounded-3xl p-8 md:p-10 overflow-hidden">
+          {/* Animated shimmer effect */}
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%)",
+            }}
+            animate={{
+              x: ["-100%", "200%"],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          />
+
+          {/* Header */}
+          <div className="text-center mb-8">
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-5 relative"
+            >
+              <motion.div
+                className="absolute inset-0 rounded-2xl"
+                style={{
+                  background: "linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(139, 92, 246) 100%)",
+                }}
+                animate={{
+                  boxShadow: [
+                    "0 0 20px rgba(59, 130, 246, 0.4)",
+                    "0 0 40px rgba(139, 92, 246, 0.4)",
+                    "0 0 20px rgba(59, 130, 246, 0.4)",
+                  ],
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <Rocket className="w-10 h-10 text-white relative z-10" />
+            </motion.div>
+            
+            <motion.h2
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-2xl md:text-3xl font-bold text-foreground mb-2"
+            >
+              Setting up{" "}
+              <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 bg-clip-text text-transparent">
+                {companyName || "your workspace"}
+              </span>
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-muted-foreground"
+            >
+              We're preparing everything you need to get started
+            </motion.p>
+          </div>
+
+          {/* Progress bar */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-foreground">Progress</span>
+              <span className="text-sm font-medium text-primary">{Math.round(progress)}%</span>
+            </div>
+            <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{
+                  background: "linear-gradient(90deg, rgb(59, 130, 246) 0%, rgb(139, 92, 246) 50%, rgb(16, 185, 129) 100%)",
+                }}
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+
+          {/* Steps list */}
+          <div className="space-y-3">
+            {SETUP_STEPS.map((step, index) => {
+              const Icon = step.icon;
+              const isCompleted = completedSteps.includes(index);
+              const isActive = currentStep === index;
+
+              return (
+                <motion.div
+                  key={step.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-300 ${
+                    isActive
+                      ? "bg-primary/10 ring-1 ring-primary/30"
+                      : isCompleted
+                      ? "bg-emerald-500/10"
+                      : "bg-muted/30"
+                  }`}
+                >
+                  {/* Icon container */}
+                  <div
+                    className={`relative flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-300 ${
+                      isCompleted
+                        ? "bg-emerald-500"
+                        : isActive
+                        ? "bg-primary"
+                        : "bg-muted"
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 500 }}
+                      >
+                        <Check className="w-5 h-5 text-white" />
+                      </motion.div>
+                    ) : isActive ? (
+                      <>
+                        <Icon className="w-5 h-5 text-white" />
+                        <motion.div
+                          className="absolute inset-0 rounded-lg"
+                          animate={{
+                            boxShadow: [
+                              "0 0 0 0 rgba(59, 130, 246, 0.4)",
+                              "0 0 0 8px rgba(59, 130, 246, 0)",
+                            ],
+                          }}
+                          transition={{
+                            duration: 1.5,
+                            repeat: Infinity,
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <Icon className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+
+                  {/* Label */}
+                  <div className="flex-1">
+                    <span
+                      className={`text-sm font-medium transition-colors duration-300 ${
+                        isCompleted
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : isActive
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+
+                  {/* Status indicator */}
+                  <div className="w-6 flex justify-center">
+                    {isActive && (
+                      <motion.div
+                        className="w-1.5 h-1.5 rounded-full bg-primary"
+                        animate={{
+                          scale: [1, 1.5, 1],
+                          opacity: [1, 0.5, 1],
+                        }}
+                        transition={{
+                          duration: 0.8,
+                          repeat: Infinity,
+                        }}
+                      />
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Bottom message */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-8 text-center"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 text-sm text-muted-foreground">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
+                <RefreshCw className="w-4 h-4" />
+              </motion.div>
+              <span>This will only take a moment...</span>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </motion.div>
+  );
 }
 
 export default function SetupAdminClient() {
@@ -233,31 +496,8 @@ export default function SetupAdminClient() {
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
         <AnimatePresence mode="wait">
           {registrationComplete ? (
-            /* Loading/Redirect State */
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-                className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-6"
-                style={{
-                  background: "linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%)",
-                }}
-              >
-                <CheckCircle2 className="w-12 h-12 text-emerald-500" />
-              </motion.div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Account Created!</h2>
-              <p className="text-muted-foreground mb-4">Signing you in and redirecting to your dashboard...</p>
-              <div className="flex items-center justify-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">Please wait...</span>
-              </div>
-            </motion.div>
+            /* Modern Setup Loading Animation */
+            <SetupLoadingAnimation companyName={companyName} />
           ) : (
             <motion.div
               key="form"

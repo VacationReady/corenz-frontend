@@ -6,6 +6,7 @@ import EmployeeDashboardClient from "./EmployeeDashboardClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { User } from "lucide-react";
@@ -20,6 +21,27 @@ export default async function EmployeeDashboard() {
       select: { id: true },
     });
     employeeId = employee?.id;
+
+    // Check for active onboarding - redirect if pending steps exist
+    if (employeeId) {
+      const activeOnboarding = await prisma.onboardingInstance.findFirst({
+        where: {
+          employeeId,
+          status: { in: ["active", "in_progress"] },
+        },
+        include: {
+          OnboardingStepInstance: {
+            where: { status: { not: "completed" } },
+            take: 1,
+          },
+        },
+      });
+
+      // If there's an active onboarding with uncompleted steps, redirect
+      if (activeOnboarding?.OnboardingStepInstance?.length) {
+        redirect(`/${employeeId}/onboarding`);
+      }
+    }
   }
 
   const user = userId ? await prisma.user.findUnique({

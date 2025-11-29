@@ -694,13 +694,18 @@ function ReportsPreviewClientInner() {
       );
       
       if (result.error) {
+        console.error("📛 resilientPost returned error:", result.error);
         throw result.error;
       }
       
+      console.log("📦 resilientPost result:", result);
       const json = result.data;
+      console.log("📦 json data:", json);
       const results = Array.isArray(json?.data) ? json.data : [];
+      console.log("📦 extracted results:", results.length, "items");
       const totalCount =
         typeof json?.total === "number" ? json.total : results.length;
+      console.log("📦 totalCount:", totalCount);
       return { results, totalCount };
     },
     [
@@ -717,11 +722,19 @@ function ReportsPreviewClientInner() {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (effectiveSelectedFields.length === 0) return;
-    if (reportIdParam && !reportConfig) return;
+    console.log("🔄 useEffect triggered, effectiveSelectedFields:", effectiveSelectedFields);
+    if (effectiveSelectedFields.length === 0) {
+      console.log("⏭️ Skipping: no selected fields");
+      return;
+    }
+    if (reportIdParam && !reportConfig) {
+      console.log("⏭️ Skipping: waiting for reportConfig");
+      return;
+    }
 
     // Cancel any existing request
     if (abortControllerRef.current) {
+      console.log("🛑 Aborting previous request");
       abortControllerRef.current.abort();
     }
 
@@ -736,25 +749,40 @@ function ReportsPreviewClientInner() {
       setRetryCount(0);
       
       try {
+        console.log("🚀 Starting fetch, fetchId:", fetchId);
         const { results, totalCount } = await fetchReportPage(page, pageSize, controller.signal);
         
-        // Check if this request is still current
-        if (fetchId !== fetchIdRef.current) return;
+        console.log("✅ Fetch completed, fetchId:", fetchId, "current fetchIdRef:", fetchIdRef.current);
         
+        // Check if this request is still current
+        if (fetchId !== fetchIdRef.current) {
+          console.log("⚠️ Stale request, ignoring results");
+          return;
+        }
+        
+        console.log("💾 Setting data:", results.length, "results, total:", totalCount);
         setData([...results]);
         setFilteredData([...results]);
         setTotal(totalCount);
         setLastFetched(new Date());
         setRetryCount(0);
       } catch (error) {
+        console.log("🔴 Caught error, fetchId:", fetchId, "current:", fetchIdRef.current);
+        console.log("🔴 Error details:", error);
+        
         // Check if this request is still current
-        if (fetchId !== fetchIdRef.current) return;
+        if (fetchId !== fetchIdRef.current) {
+          console.log("⚠️ Error from stale request, ignoring");
+          return;
+        }
         
         // Don't show error for cancelled requests (handle both DOMException and ResilientFetchError)
         if (error instanceof DOMException && error.name === "AbortError") {
+          console.log("⚠️ AbortError (DOMException), ignoring");
           return;
         }
         if (error instanceof ResilientFetchError && error.isAborted) {
+          console.log("⚠️ ResilientFetchError.isAborted, ignoring");
           return;
         }
         

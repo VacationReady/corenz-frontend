@@ -98,6 +98,14 @@ interface OffboardingData {
   assetsToReturn?: { name: string; returned: boolean }[];
   assetsReturned?: boolean;
   assetsReturnedAt?: string;
+
+  // Key dates and details
+  resignationDate?: string;
+  lastWorkingDate?: string;
+  noticePeriodDays?: number;
+  offboardingType?: string;
+  offboardingReason?: string;
+  isVoluntary?: boolean;
 }
 
 // Animation variants
@@ -660,6 +668,139 @@ export default function EmployeeOffboardingPage() {
                 </Card>
               </motion.div>
             )}
+
+            {/* Key Dates & Details Card */}
+            <motion.div variants={fadeInUp}>
+              <Card className="overflow-hidden border-border/50">
+                <CardHeader className="bg-gradient-to-r from-indigo-500/5 to-violet-500/5 border-b border-border/30">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-indigo-500/10">
+                      <Calendar className="w-5 h-5 text-indigo-500" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Key Dates & Details</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Important offboarding information
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {/* Last Working Date */}
+                    <div className="p-4 rounded-xl bg-muted/30">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>Last Working Date</span>
+                      </div>
+                      <p className="font-semibold">
+                        {offboarding.lastWorkingDate 
+                          ? formatLondonDate(offboarding.lastWorkingDate)
+                          : "Not set"}
+                      </p>
+                    </div>
+
+                    {/* Resignation Date */}
+                    <div className="p-4 rounded-xl bg-muted/30">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Resignation Date</span>
+                      </div>
+                      <p className="font-semibold">
+                        {offboarding.resignationDate 
+                          ? formatLondonDate(offboarding.resignationDate)
+                          : "Not applicable"}
+                      </p>
+                    </div>
+
+                    {/* Notice Period */}
+                    <div className="p-4 rounded-xl bg-muted/30">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>Notice Period</span>
+                      </div>
+                      <p className="font-semibold">
+                        {offboarding.noticePeriodDays !== undefined && offboarding.noticePeriodDays !== null
+                          ? `${offboarding.noticePeriodDays} days`
+                          : "Not specified"}
+                      </p>
+                    </div>
+
+                    {/* Offboarding Type */}
+                    <div className="p-4 rounded-xl bg-muted/30">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <Briefcase className="w-3.5 h-3.5" />
+                        <span>Type</span>
+                      </div>
+                      <p className="font-semibold capitalize">
+                        {offboarding.offboardingType 
+                          ? offboarding.offboardingType.toLowerCase().replace(/_/g, ' ')
+                          : "Not specified"}
+                      </p>
+                    </div>
+
+                    {/* Voluntary/Involuntary */}
+                    <div className="p-4 rounded-xl bg-muted/30">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <User className="w-3.5 h-3.5" />
+                        <span>Exit Type</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold">
+                          {offboarding.isVoluntary !== undefined
+                            ? offboarding.isVoluntary ? "Voluntary" : "Involuntary"
+                            : "Not specified"}
+                        </p>
+                        {offboarding.isVoluntary !== undefined && (
+                          <div className={cn(
+                            "w-2 h-2 rounded-full",
+                            offboarding.isVoluntary ? "bg-emerald-500" : "bg-amber-500"
+                          )} />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Reason */}
+                    {offboarding.offboardingReason && (
+                      <div className="p-4 rounded-xl bg-muted/30 col-span-2 md:col-span-1">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Reason</span>
+                        </div>
+                        <p className="font-semibold text-sm">
+                          {offboarding.offboardingReason}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Time until last working date */}
+                  {offboarding.lastWorkingDate && (
+                    <div className="mt-4 pt-4 border-t border-border/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          Time until last working day
+                        </span>
+                        <span className={cn(
+                          "text-sm font-semibold",
+                          differenceInDays(new Date(offboarding.lastWorkingDate), new Date()) < 0
+                            ? "text-muted-foreground"
+                            : differenceInDays(new Date(offboarding.lastWorkingDate), new Date()) <= 7
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-indigo-600 dark:text-indigo-400"
+                        )}>
+                          {differenceInDays(new Date(offboarding.lastWorkingDate), new Date()) < 0
+                            ? `${Math.abs(differenceInDays(new Date(offboarding.lastWorkingDate), new Date()))} days ago`
+                            : differenceInDays(new Date(offboarding.lastWorkingDate), new Date()) === 0
+                            ? "Today"
+                            : `${differenceInDays(new Date(offboarding.lastWorkingDate), new Date())} days remaining`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
 
           {/* Right Column - Assets & Timeline */}

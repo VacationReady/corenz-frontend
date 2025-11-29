@@ -439,6 +439,10 @@ export default function AddEmployeeModal({
   const [isWorkingPatternSelectOpen, setIsWorkingPatternSelectOpen] = useState(false);
   const [isCreatingSelfEmployee, setIsCreatingSelfEmployee] = useState(false);
 
+  // Success animation state
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [successEmployeeName, setSuccessEmployeeName] = useState("");
+
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
   const [isCalculateModalOpen, setIsCalculateModalOpen] = useState(false);
@@ -1298,9 +1302,10 @@ export default function AddEmployeeModal({
         return;
       }
 
-      // Success! Show success message
+      // Success! Show beautiful animation
       const employeeName = `${formData.firstName} ${formData.lastName}`.trim();
-      toast.success(`Employee ${employeeName} has been created successfully!`);
+      setSuccessEmployeeName(employeeName);
+      setShowSuccessAnimation(true);
 
       // Clear the draft from sessionStorage
       try {
@@ -2872,6 +2877,224 @@ export default function AddEmployeeModal({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Beautiful Success Animation Overlay */}
+      <AnimatePresence>
+        {showSuccessAnimation && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center"
+          >
+            {/* Backdrop with blur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => {
+                setShowSuccessAnimation(false);
+                onClose();
+                if (onSuccess) onSuccess();
+              }}
+            />
+
+            {/* Floating particles/confetti */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {[...Array(20)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{
+                    opacity: 0,
+                    scale: 0,
+                    x: "50vw",
+                    y: "50vh",
+                  }}
+                  animate={{
+                    opacity: [0, 1, 1, 0],
+                    scale: [0, 1, 1, 0.5],
+                    x: `${Math.random() * 100}vw`,
+                    y: `${Math.random() * 100}vh`,
+                    rotate: Math.random() * 360,
+                  }}
+                  transition={{
+                    duration: 2 + Math.random() * 2,
+                    delay: Math.random() * 0.5,
+                    ease: "easeOut",
+                  }}
+                  className={`absolute w-3 h-3 rounded-full ${
+                    i % 5 === 0
+                      ? "bg-emerald-400"
+                      : i % 5 === 1
+                      ? "bg-violet-400"
+                      : i % 5 === 2
+                      ? "bg-amber-400"
+                      : i % 5 === 3
+                      ? "bg-rose-400"
+                      : "bg-blue-400"
+                  }`}
+                  style={{
+                    boxShadow: `0 0 ${10 + Math.random() * 10}px currentColor`,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Success Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -20 }}
+              transition={{
+                type: "spring",
+                damping: 25,
+                stiffness: 300,
+                delay: 0.1,
+              }}
+              className="relative z-10 w-full max-w-md mx-4"
+            >
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-[2px] shadow-2xl shadow-emerald-500/30">
+                <div className="relative rounded-[22px] bg-white dark:bg-slate-900 px-8 py-10 overflow-hidden">
+                  {/* Decorative gradient orbs */}
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-emerald-400/30 to-transparent rounded-full blur-3xl" />
+                  <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-tr from-cyan-400/30 to-transparent rounded-full blur-3xl" />
+
+                  {/* Content */}
+                  <div className="relative z-10 text-center space-y-6">
+                    {/* Animated Check Circle */}
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{
+                        type: "spring",
+                        damping: 15,
+                        stiffness: 200,
+                        delay: 0.2,
+                      }}
+                      className="mx-auto"
+                    >
+                      <div className="relative w-24 h-24 mx-auto">
+                        {/* Outer ring animation */}
+                        <motion.div
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: [0.8, 1.2, 1], opacity: [0, 0.5, 0] }}
+                          transition={{
+                            duration: 1.5,
+                            repeat: Infinity,
+                            repeatDelay: 1,
+                          }}
+                          className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400"
+                        />
+                        {/* Main circle */}
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/40">
+                          <motion.svg
+                            className="w-12 h-12 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                          >
+                            <motion.path
+                              initial={{ pathLength: 0 }}
+                              animate={{ pathLength: 1 }}
+                              transition={{
+                                duration: 0.5,
+                                delay: 0.4,
+                                ease: "easeOut",
+                              }}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </motion.svg>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* Title */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="space-y-2"
+                    >
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                        Welcome Aboard!
+                      </h3>
+                      <p className="text-lg text-foreground font-medium">
+                        {successEmployeeName}
+                      </p>
+                    </motion.div>
+
+                    {/* Message */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 }}
+                      className="space-y-3"
+                    >
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        has been successfully added to the system.
+                        {sendInviteNow && (
+                          <>
+                            {" "}They&apos;ve received an invitation email and you&apos;ll be notified once they activate their account.
+                          </>
+                        )}
+                      </p>
+                    </motion.div>
+
+                    {/* Action indicators */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 }}
+                      className="flex items-center justify-center gap-6 pt-2"
+                    >
+                      {sendInviteNow && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                            <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <span>Email sent</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="p-1.5 rounded-lg bg-violet-100 dark:bg-violet-900/30">
+                          <User className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                        </div>
+                        <span>Profile created</span>
+                      </div>
+                    </motion.div>
+
+                    {/* Close button */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.7 }}
+                    >
+                      <Button
+                        onClick={() => {
+                          setShowSuccessAnimation(false);
+                          onClose();
+                          if (onSuccess) onSuccess();
+                        }}
+                        className="mt-4 h-12 px-8 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-600 hover:via-teal-600 hover:to-cyan-600 text-white font-semibold shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl hover:shadow-emerald-500/30"
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Continue
+                      </Button>
+                    </motion.div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AddEmployeeModalErrorBoundary>
   );
 }

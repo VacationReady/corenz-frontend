@@ -23,6 +23,12 @@ import {
   Settings2,
   Table2,
   GripVertical,
+  Users,
+  Calendar,
+  Cake,
+  Rocket,
+  Phone,
+  DollarSign,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -100,7 +106,7 @@ const quickTemplates = [
   {
     id: "employee_directory",
     name: "Employee Directory",
-    icon: "👥",
+    icon: Users,
     description: "Basic employee contact info",
     fields: [
       "User.firstName",
@@ -114,7 +120,7 @@ const quickTemplates = [
   {
     id: "leave_balances",
     name: "Leave Balances",
-    icon: "🌴",
+    icon: Calendar,
     description: "Annual leave entitlements",
     fields: [
       "User.firstName",
@@ -127,7 +133,7 @@ const quickTemplates = [
   {
     id: "birthdays",
     name: "Upcoming Birthdays",
-    icon: "🎂",
+    icon: Cake,
     description: "Employee birthday list",
     fields: [
       "User.firstName",
@@ -139,7 +145,7 @@ const quickTemplates = [
   {
     id: "new_starters",
     name: "New Starters",
-    icon: "🚀",
+    icon: Rocket,
     description: "Recent hires in last 30 days",
     fields: [
       "User.firstName",
@@ -153,7 +159,7 @@ const quickTemplates = [
   {
     id: "contact_list",
     name: "Emergency Contacts",
-    icon: "📞",
+    icon: Phone,
     description: "Employee emergency contacts",
     fields: [
       "User.firstName",
@@ -166,7 +172,7 @@ const quickTemplates = [
   {
     id: "payroll_export",
     name: "Payroll Export",
-    icon: "💰",
+    icon: DollarSign,
     description: "Standard payroll data",
     fields: [
       "User.firstName",
@@ -407,26 +413,36 @@ export default function QuickReportBuilder({
                     <h3 className="text-sm font-semibold text-foreground">Quick Start Templates</h3>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {quickTemplates.map((template) => (
-                      <motion.button
-                        key={template.id}
-                        onClick={() => selectTemplate(template.id)}
-                        className={cn(
-                          "p-4 rounded-xl border-2 text-left transition-all",
-                          selectedTemplate === template.id
-                            ? "border-primary bg-primary/5 shadow-md"
-                            : "border-transparent bg-muted/50 hover:bg-muted hover:border-border"
-                        )}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <div className="flex items-center gap-3 mb-2">
-                          <span className="text-2xl">{template.icon}</span>
-                          <span className="font-medium text-sm">{template.name}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{template.description}</p>
-                      </motion.button>
-                    ))}
+                    {quickTemplates.map((template) => {
+                      const TemplateIcon = template.icon;
+                      return (
+                        <motion.button
+                          key={template.id}
+                          onClick={() => selectTemplate(template.id)}
+                          className={cn(
+                            "p-4 rounded-xl border-2 text-left transition-all",
+                            selectedTemplate === template.id
+                              ? "border-primary bg-primary/5 shadow-md"
+                              : "border-transparent bg-muted/50 hover:bg-muted hover:border-border"
+                          )}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className={cn(
+                              "w-8 h-8 rounded-lg flex items-center justify-center",
+                              selectedTemplate === template.id
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted text-muted-foreground"
+                            )}>
+                              <TemplateIcon className="w-4 h-4" />
+                            </div>
+                            <span className="font-medium text-sm">{template.name}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{template.description}</p>
+                        </motion.button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -497,7 +513,13 @@ export default function QuickReportBuilder({
                             className="w-full px-4 py-3 flex items-center justify-between bg-muted/30 hover:bg-muted/50 transition-colors"
                           >
                             <div className="flex items-center gap-3">
-                              <span className="text-lg">{category.icon}</span>
+                              {category.iconComponent ? (
+                                <div className="w-5 h-5 text-muted-foreground">
+                                  <category.iconComponent className="w-5 h-5" />
+                                </div>
+                              ) : (
+                                <span className="text-lg">{category.icon}</span>
+                              )}
                               <span className="font-medium">{category.name}</span>
                               {selectedCount > 0 && (
                                 <Badge variant="default" className="text-xs">

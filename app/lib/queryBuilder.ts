@@ -21,6 +21,9 @@ import type {
 import {
         isFilterGroup,
         isFilterRule,
+        filterGroupByModel,
+        stripModelPrefixFromGroup,
+        createRootFilterGroup,
 } from "@/lib/reportFilters";
 
 type Operator =
@@ -384,8 +387,16 @@ export function buildDynamicQuery({
         console.warn("Multiple models selected; constraining to primary model:", primaryModel);
         selectedFields = selectedFields.filter((f: string) => f.startsWith(`${primaryModel}.`));
         // Also drop filters/sort that target other models; handled later per-model
-        if (Array.isArray(filters)) {
-            filters = filters.filter((f: any) => typeof f.field === "string" && f.field.startsWith(`${primaryModel}.`));
+        if (filters) {
+            if (Array.isArray(filters)) {
+                // Legacy array format
+                filters = filters.filter((f: any) => typeof f.field === "string" && f.field.startsWith(`${primaryModel}.`));
+            } else if (isFilterGroup(filters)) {
+                // FilterGroup format - filter by primary model
+                const filtered = filterGroupByModel(filters, primaryModel);
+                // Use filtered group if available, otherwise use empty group
+                filters = filtered || createRootFilterGroup();
+            }
         }
         if (sort?.field && !String(sort.field).startsWith(`${primaryModel}.`)) {
             sort = undefined;
@@ -397,11 +408,26 @@ export function buildDynamicQuery({
 
 	for (const model in constrainedGroups) {
 		const fields = constrainedGroups[model];
-		const modelFilters = (filters || []).filter((f: any) => f.field.startsWith(`${model}.`));
-		const strippedFilters = modelFilters.map((f: any) => ({
-			...f,
-			field: f.field.replace(`${model}.`, ""),
-		}));
+		
+		// Filter by model and strip model prefix
+		let modelFilters: any[] | FilterGroup | undefined;
+		if (filters) {
+			if (Array.isArray(filters)) {
+				// Legacy array format
+				modelFilters = filters.filter((f: any) => f.field?.startsWith(`${model}.`)).map((f: any) => ({
+					...f,
+					field: f.field.replace(`${model}.`, ""),
+				}));
+			} else if (isFilterGroup(filters)) {
+				// FilterGroup format - filter by model and strip prefix
+				const filteredGroup = filterGroupByModel(filters, model);
+				if (filteredGroup) {
+					modelFilters = stripModelPrefixFromGroup(filteredGroup, model);
+				} else {
+					modelFilters = undefined;
+				}
+			}
+		}
 
 		// Adapt sort to model context
 		let modelSort = sort;
@@ -413,7 +439,7 @@ export function buildDynamicQuery({
                         model,
                         prismaQuery: {
                                 select: buildSelect(fields),
-                                where: buildWhere(strippedFilters, context),
+                                where: buildWhere(modelFilters, context),
                                 ...buildPaginationAndSort(pagination, modelSort),
                         },
                 });

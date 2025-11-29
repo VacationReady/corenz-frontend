@@ -631,6 +631,9 @@ export async function POST(req: Request) {
                 };
 
                 console.log("🔍 Executing Prisma query for model:", model);
+                console.log("🔍 Session companyId:", companyId);
+                console.log("🔍 Selected fields:", sanitizedSelectedFields);
+                console.log("🔍 Enforced filter group children count:", enforcedFilterGroup.children.length);
                 console.log("🔍 Prisma query:", JSON.stringify(primary.prismaQuery, null, 2));
 
                 // Use caching for query results

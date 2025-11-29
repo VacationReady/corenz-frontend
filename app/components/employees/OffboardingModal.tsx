@@ -314,6 +314,7 @@ export default function OffboardingModal({
   const { data: session } = useSession();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const justNavigatedRef = React.useRef(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
   const [handoverSearch, setHandoverSearch] = useState("");
@@ -349,6 +350,8 @@ export default function OffboardingModal({
 
   const paginate = (newDirection: number) => {
     console.log(`[Offboarding] paginate called: direction=${newDirection}, currentStep=${currentStep}`);
+    justNavigatedRef.current = true;
+    setTimeout(() => { justNavigatedRef.current = false; }, 100);
     const newStep = currentStep + newDirection;
     if (newStep >= 0 && newStep < steps.length) {
       setCurrentStep(newStep);
@@ -495,8 +498,8 @@ export default function OffboardingModal({
     e.preventDefault();
     console.log(`[Offboarding] handleSubmit called`);
     // Prevent accidental submission if not on final step
-    if (currentStep !== 2) {
-      console.log(`[Offboarding] Blocked submission - not on final step (currentStep=${currentStep})`);
+    if (justNavigatedRef.current) {
+      console.log(`[Offboarding] Blocked submission - just navigated, ignoring`);
       return;
     }
 
@@ -1660,6 +1663,9 @@ export default function OffboardingModal({
     </Dialog>
   );
 }
+
+
+
 
 
 

@@ -725,7 +725,8 @@ function ReportsPreviewClientInner() {
       abortControllerRef.current.abort();
     }
 
-    const { controller, cleanup } = createAbortController(35000);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 35000);
     abortControllerRef.current = controller;
     const fetchId = ++fetchIdRef.current;
 
@@ -802,7 +803,9 @@ function ReportsPreviewClientInner() {
     load();
     
     return () => {
-      cleanup();
+      clearTimeout(timeoutId);
+      // Don't abort here - let the request complete if it's in progress
+      // The fetchId check will prevent stale data from being used
     };
   }, [
     effectiveSelectedFields,

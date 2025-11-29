@@ -250,13 +250,13 @@ export default function FormBuilderWizard({
 
   // Normalize incoming schema into sections
   const initialSections: FormSection[] = (() => {
-    const defaultSection = { id: uuidv4(), title: "Section 1", columns: 1, layout: "single" as const, hidden: false, fields: [] };
+    const defaultSection: FormSection = { id: uuidv4(), title: "Section 1", columns: 1, layout: "single", hidden: false, fields: [] };
     const incoming = initialData?.schema as any;
     if (!incoming) return [defaultSection];
     if (Array.isArray(incoming)) {
       const upgraded = upgradeLegacySchema(incoming).sections;
       return upgraded && upgraded.length > 0 ? upgraded : [
-        { id: uuidv4(), title: "Section 1", columns: 1, layout: "single" as const, hidden: false, fields: incoming as FormField[] },
+        { id: uuidv4(), title: "Section 1", columns: 1, layout: "single", hidden: false, fields: incoming as FormField[] } as FormSection,
       ];
     }
     if (incoming.sections && Array.isArray(incoming.sections)) {

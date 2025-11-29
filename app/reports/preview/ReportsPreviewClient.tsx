@@ -749,8 +749,11 @@ function ReportsPreviewClientInner() {
         // Check if this request is still current
         if (fetchId !== fetchIdRef.current) return;
         
-        // Don't show error for cancelled requests
+        // Don't show error for cancelled requests (handle both DOMException and ResilientFetchError)
         if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        if (error instanceof ResilientFetchError && error.isAborted) {
           return;
         }
         

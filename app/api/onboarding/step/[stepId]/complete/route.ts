@@ -279,7 +279,7 @@ async function syncFormDataToProfile(
   }
 
   // Create/Update EmergencyContact record
-  if (emergencyContactData) {
+  if (emergencyContactData && emergencyContactData.name) {
     const existingContact = await prisma.emergencyContact.findFirst({
       where: { employeeId },
     });
@@ -294,7 +294,10 @@ async function syncFormDataToProfile(
         data: {
           id: randomUUID(),
           employeeId,
-          ...emergencyContactData,
+          name: emergencyContactData.name,
+          phone: emergencyContactData.phone,
+          relationship: emergencyContactData.relationship,
+          email: emergencyContactData.email,
         },
       });
     }

@@ -1243,14 +1243,15 @@ async function main() {
             {
               id: randomUUID(),
               type: "PAYROLL_SETUP",
-              label: "Bank Details",
+              label: "Bank & IRD Details",
               order: 5,
-              instruction: "Please enter your bank account details for payroll.",
+              instruction: "Please enter your bank account and IRD details for payroll.",
               metadata: { 
                 category: "Payroll",
-                instructions: "Please enter your bank account details below so we can set up your payments correctly.",
+                instructions: "Please enter your bank account number and IRD number below so we can set up your payments correctly.",
                 fields: [
                   { id: "bankAccountNumber", label: "Bank account number", type: "text", placeholder: "00-0000-0000000-00", required: true },
+                  { id: "irdNumber", label: "IRD number", type: "irdNumber", placeholder: "123-456-789", required: true },
                 ],
               },
             },

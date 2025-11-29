@@ -346,7 +346,7 @@ export function EnhancedStepCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-8 w-8 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreHorizontal className="w-4 h-4" />

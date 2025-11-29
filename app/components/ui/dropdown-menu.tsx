@@ -92,14 +92,6 @@ export function DropdownMenuItem({
   disabled?: boolean;
   icon?: React.ReactNode;
 }) {
-  const handleClick = (event: React.MouseEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (onClick) {
-      onClick();
-    }
-  };
-
   return (
     <Menu.Item disabled={disabled}>
       {({ active, disabled: itemDisabled }) => {
@@ -112,17 +104,22 @@ export function DropdownMenuItem({
           itemDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
           className,
         );
+        
+        const handleClick = () => {
+          if (!itemDisabled && onClick) {
+            onClick();
+          }
+        };
+        
         if (asChild && React.isValidElement(children)) {
           const element = children as React.ReactElement<any>;
           return React.cloneElement(element, {
             className: cn(element.props.className, classes),
-            onClick: (event: React.MouseEvent) => {
+            onClick: () => {
               if (itemDisabled) return;
-              event.preventDefault();
-              event.stopPropagation();
               if (onClick) onClick();
               if (typeof element.props.onClick === "function") {
-                element.props.onClick(event);
+                element.props.onClick();
               }
             },
           });
@@ -130,7 +127,7 @@ export function DropdownMenuItem({
         return (
           <button 
             type="button"
-            onClick={itemDisabled ? undefined : handleClick} 
+            onClick={handleClick} 
             className={classes} 
             disabled={itemDisabled}
           >
@@ -166,11 +163,9 @@ export const DropdownMenuContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { align?: "start" | "center" | "end" }
 >(({ children, align = "end", ...props }, ref) => {
-  return (
-    <div ref={ref} {...props}>
-      {children}
-    </div>
-  );
+  // Return children directly - Menu.Items needs Menu.Item as direct children
+  // The wrapper div was breaking HeadlessUI's click handling
+  return <>{children}</>;
 });
 DropdownMenuContent.displayName = "DropdownMenuContent";
 

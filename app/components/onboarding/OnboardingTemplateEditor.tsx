@@ -227,6 +227,65 @@ function DocumentDropdown({
   );
 }
 
+// Built-in screen templates (always available)
+const BUILTIN_SCREEN_TEMPLATES = [
+  {
+    slug: "demographics",
+    name: "Demographic Information",
+    description: "Equality & diversity details",
+    formType: "FORM",
+    schema: [
+      { id: "gender", type: "select", label: "Gender", required: false, options: ["Female","Male","Non-binary","Prefer not to say"] },
+      { id: "ethnicity", type: "text", label: "Ethnicity", required: false },
+      { id: "disability", type: "checkbox", label: "Disability", required: false },
+    ],
+  },
+  {
+    slug: "emergency-contact",
+    name: "Emergency Contact",
+    description: "Primary emergency contact",
+    formType: "FORM",
+    schema: [
+      { id: "contactName", type: "text", label: "Contact name", required: true },
+      { id: "relationship", type: "text", label: "Relationship", required: true },
+      { id: "contactPhone", type: "phone", label: "Phone number", required: true },
+    ],
+  },
+  {
+    slug: "equipment-allocation",
+    name: "Equipment Allocation",
+    description: "Devices & assets issued",
+    formType: "DATA_SCREEN",
+    schema: { version: 2, sections: [ { id: "s1", title: "Equipment", columns: 1, fields: [
+      { id: "laptop", type: "checkbox", label: "Laptop issued", required: false },
+      { id: "phone", type: "checkbox", label: "Phone issued", required: false },
+      { id: "notes", type: "textarea", label: "Notes", required: false },
+    ] } ] },
+  },
+  {
+    slug: "bank-details",
+    name: "Bank & Payment Details",
+    description: "Bank account for salary payments",
+    formType: "DATA_SCREEN",
+    schema: { version: 2, sections: [ { id: "s1", title: "Bank Details", columns: 1, fields: [
+      { id: "bankName", type: "text", label: "Bank name", required: true },
+      { id: "accountNumber", type: "text", label: "Account number", required: true },
+      { id: "sortCode", type: "text", label: "Sort code / BSB", required: false },
+    ] } ] },
+  },
+  {
+    slug: "driver-licence",
+    name: "Driver Licence Details",
+    description: "Driver licence information",
+    formType: "FORM",
+    schema: [
+      { id: "licenceNumber", type: "text", label: "Licence number", required: true },
+      { id: "expiryDate", type: "date", label: "Expiry date", required: true },
+      { id: "licenceClass", type: "text", label: "Licence class", required: false },
+    ],
+  },
+];
+
 // --- Screen/Form dropdown (API) - Shows FORM, DATA_SCREEN, TABLE types (NOT surveys)
 function FormDropdown({
   value,
@@ -236,87 +295,37 @@ function FormDropdown({
   onChange: (id: string) => void;
 }) {
   const [forms, setForms] = useState<any[]>([]);
-  const [builtins, setBuiltins] = useState<any[]>([]);
+  // Initialize builtins with the templates immediately
+  const [builtins, setBuiltins] = useState<any[]>(BUILTIN_SCREEN_TEMPLATES);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
         // Only fetch screens (FORM, DATA_SCREEN, TABLE) - NOT surveys
-        const [fRes, bRes] = await Promise.all([
-          fetch("/api/forms?type=FORM,DATA_SCREEN,TABLE"),
-          fetch("/api/forms/defaults"),
-        ]);
-        const fJson = await fRes.json();
-        const bJson = await bRes.json();
-        const curated = Array.isArray(bJson) ? bJson : [];
-        // Add curated HRIS starter screens (non-survey types only)
-        const curatedExtras = [
-          {
-            slug: "demographics",
-            name: "Demographic Information",
-            description: "Equality & diversity details",
-            formType: "FORM",
-            schema: [
-              { id: "gender", type: "select", label: "Gender", required: false, options: ["Female","Male","Non-binary","Prefer not to say"] },
-              { id: "ethnicity", type: "text", label: "Ethnicity", required: false },
-              { id: "disability", type: "checkbox", label: "Disability", required: false },
-            ],
-          },
-          {
-            slug: "emergency-contact",
-            name: "Emergency Contact",
-            description: "Primary emergency contact",
-            formType: "FORM",
-            schema: [
-              { id: "contactName", type: "text", label: "Contact name", required: true },
-              { id: "relationship", type: "text", label: "Relationship", required: true },
-              { id: "contactPhone", type: "phone", label: "Phone number", required: true },
-            ],
-          },
-          {
-            slug: "equipment-allocation",
-            name: "Equipment Allocation",
-            description: "Devices & assets issued",
-            formType: "DATA_SCREEN",
-            schema: { version: 2, sections: [ { id: "s1", title: "Equipment", columns: 1, fields: [
-              { id: "laptop", type: "checkbox", label: "Laptop issued", required: false },
-              { id: "phone", type: "checkbox", label: "Phone issued", required: false },
-              { id: "notes", type: "textarea", label: "Notes", required: false },
-            ] } ] },
-          },
-          {
-            slug: "bank-details",
-            name: "Bank & Payment Details",
-            description: "Bank account for salary payments",
-            formType: "DATA_SCREEN",
-            schema: { version: 2, sections: [ { id: "s1", title: "Bank Details", columns: 1, fields: [
-              { id: "bankName", type: "text", label: "Bank name", required: true },
-              { id: "accountNumber", type: "text", label: "Account number", required: true },
-              { id: "sortCode", type: "text", label: "Sort code / BSB", required: false },
-            ] } ] },
-          },
-          {
-            slug: "driver-licence",
-            name: "Driver Licence Details",
-            description: "Driver licence information",
-            formType: "FORM",
-            schema: [
-              { id: "licenceNumber", type: "text", label: "Licence number", required: true },
-              { id: "expiryDate", type: "date", label: "Expiry date", required: true },
-              { id: "licenceClass", type: "text", label: "Licence class", required: false },
-            ],
-          },
-        ].filter((x) => !curated.some((c: any) => c.slug === x.slug));
-        setForms(Array.isArray(fJson) ? fJson : []);
-        // Only include non-survey builtins
-        const screenBuiltins = [...curated, ...curatedExtras].filter(
-          (b) => b.formType !== "SURVEY"
-        );
-        setBuiltins(screenBuiltins);
+        const fRes = await fetch("/api/forms?type=FORM,DATA_SCREEN,TABLE");
+        if (fRes.ok) {
+          const fJson = await fRes.json();
+          setForms(Array.isArray(fJson) ? fJson : []);
+        }
+        
+        // Try to fetch additional defaults from API
+        const bRes = await fetch("/api/forms/defaults");
+        if (bRes.ok) {
+          const bJson = await bRes.json();
+          const curated = Array.isArray(bJson) ? bJson : [];
+          // Merge API defaults with our templates, avoiding duplicates
+          const allBuiltins = [...BUILTIN_SCREEN_TEMPLATES];
+          for (const c of curated) {
+            if (!allBuiltins.some((b) => b.slug === c.slug) && c.formType !== "SURVEY") {
+              allBuiltins.push(c);
+            }
+          }
+          setBuiltins(allBuiltins);
+        }
       } catch {
+        // On error, keep the default builtins (already set in state)
         setForms([]);
-        setBuiltins([]);
       }
     };
     load();
@@ -410,6 +419,47 @@ function FormDropdown({
   );
 }
 
+// Built-in survey templates (always available)
+const BUILTIN_SURVEY_TEMPLATES = [
+  {
+    slug: "welcome-feedback",
+    name: "Welcome Feedback Survey",
+    description: "First week feedback from new hire",
+    formType: "SURVEY",
+    schema: [
+      { id: "overallExperience", type: "rating", label: "How would you rate your onboarding experience so far?", required: true },
+      { id: "clarity", type: "rating", label: "How clear were the instructions provided?", required: true },
+      { id: "support", type: "rating", label: "How supported did you feel during your first days?", required: true },
+      { id: "suggestions", type: "textarea", label: "Any suggestions for improvement?", required: false },
+    ],
+  },
+  {
+    slug: "30-day-checkin",
+    name: "30-Day Check-in Survey",
+    description: "First month feedback survey",
+    formType: "SURVEY",
+    schema: [
+      { id: "settledIn", type: "rating", label: "How settled do you feel in your role?", required: true },
+      { id: "teamIntegration", type: "rating", label: "How well have you integrated with your team?", required: true },
+      { id: "roleClarity", type: "rating", label: "How clear are you about your role expectations?", required: true },
+      { id: "concerns", type: "textarea", label: "Any concerns or feedback?", required: false },
+    ],
+  },
+  {
+    slug: "onboarding-completion",
+    name: "Onboarding Completion Survey",
+    description: "Final onboarding feedback",
+    formType: "SURVEY",
+    schema: [
+      { id: "overallSatisfaction", type: "rating", label: "Overall satisfaction with onboarding", required: true },
+      { id: "preparedness", type: "rating", label: "How prepared do you feel for your role?", required: true },
+      { id: "recommend", type: "select", label: "Would you recommend our onboarding process?", required: true, options: ["Definitely", "Probably", "Not sure", "Probably not", "Definitely not"] },
+      { id: "bestPart", type: "textarea", label: "What was the best part of your onboarding?", required: false },
+      { id: "improvements", type: "textarea", label: "What could we improve?", required: false },
+    ],
+  },
+];
+
 // --- Survey dropdown (API) - Shows only SURVEY type forms
 function SurveyDropdown({
   value,
@@ -419,7 +469,8 @@ function SurveyDropdown({
   onChange: (id: string) => void;
 }) {
   const [surveys, setSurveys] = useState<any[]>([]);
-  const [builtins, setBuiltins] = useState<any[]>([]);
+  // Initialize builtins with the templates immediately
+  const [builtins, setBuiltins] = useState<any[]>(BUILTIN_SURVEY_TEMPLATES);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -427,53 +478,13 @@ function SurveyDropdown({
       try {
         // Only fetch SURVEY type forms
         const fRes = await fetch("/api/forms?type=SURVEY");
-        const fJson = await fRes.json();
-        setSurveys(Array.isArray(fJson) ? fJson : []);
-        
-        // Add curated survey templates
-        const curatedSurveys = [
-          {
-            slug: "welcome-feedback",
-            name: "Welcome Feedback Survey",
-            description: "First week feedback from new hire",
-            formType: "SURVEY",
-            schema: [
-              { id: "overallExperience", type: "rating", label: "How would you rate your onboarding experience so far?", required: true },
-              { id: "clarity", type: "rating", label: "How clear were the instructions provided?", required: true },
-              { id: "support", type: "rating", label: "How supported did you feel during your first days?", required: true },
-              { id: "suggestions", type: "textarea", label: "Any suggestions for improvement?", required: false },
-            ],
-          },
-          {
-            slug: "30-day-checkin",
-            name: "30-Day Check-in Survey",
-            description: "First month feedback survey",
-            formType: "SURVEY",
-            schema: [
-              { id: "settledIn", type: "rating", label: "How settled do you feel in your role?", required: true },
-              { id: "teamIntegration", type: "rating", label: "How well have you integrated with your team?", required: true },
-              { id: "roleClarity", type: "rating", label: "How clear are you about your role expectations?", required: true },
-              { id: "concerns", type: "textarea", label: "Any concerns or feedback?", required: false },
-            ],
-          },
-          {
-            slug: "onboarding-completion",
-            name: "Onboarding Completion Survey",
-            description: "Final onboarding feedback",
-            formType: "SURVEY",
-            schema: [
-              { id: "overallSatisfaction", type: "rating", label: "Overall satisfaction with onboarding", required: true },
-              { id: "preparedness", type: "rating", label: "How prepared do you feel for your role?", required: true },
-              { id: "recommend", type: "select", label: "Would you recommend our onboarding process?", required: true, options: ["Definitely", "Probably", "Not sure", "Probably not", "Definitely not"] },
-              { id: "bestPart", type: "textarea", label: "What was the best part of your onboarding?", required: false },
-              { id: "improvements", type: "textarea", label: "What could we improve?", required: false },
-            ],
-          },
-        ];
-        setBuiltins(curatedSurveys);
+        if (fRes.ok) {
+          const fJson = await fRes.json();
+          setSurveys(Array.isArray(fJson) ? fJson : []);
+        }
       } catch {
+        // On error, keep empty surveys list but builtins remain available
         setSurveys([]);
-        setBuiltins([]);
       }
     };
     load();

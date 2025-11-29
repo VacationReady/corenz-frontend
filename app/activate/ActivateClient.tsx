@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, LifeBuoy, Check, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, LifeBuoy, Check, ShieldCheck, Sparkles, Eye, EyeOff, Lock, KeyRound, CheckCircle2, XCircle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-import { FullScreenHeader } from "@/components/ui/FullScreenHeader";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 import {
   Tooltip,
@@ -14,6 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 // Success animation sparkle positions
 const sparkles = [
@@ -23,6 +23,14 @@ const sparkles = [
   { bottom: '25%', right: '10%', delay: 0.15, size: 'h-2 w-2' },
   { bottom: '15%', left: '20%', delay: 0.25, size: 'h-3 w-3' },
   { bottom: '8%', right: '18%', delay: 0.3, size: 'h-2 w-2' },
+];
+
+// Floating orbs configuration
+const floatingOrbs = [
+  { size: 400, x: '10%', y: '20%', color: 'from-blue-400/30 to-cyan-400/20', duration: 20, delay: 0 },
+  { size: 300, x: '70%', y: '60%', color: 'from-violet-400/25 to-purple-400/15', duration: 25, delay: 2 },
+  { size: 250, x: '80%', y: '10%', color: 'from-emerald-400/20 to-teal-400/15', duration: 22, delay: 4 },
+  { size: 350, x: '20%', y: '70%', color: 'from-pink-400/20 to-rose-400/15', duration: 28, delay: 1 },
 ];
 
 function PasswordSetSuccessAnimation({ isOpen }: { isOpen: boolean }) {
@@ -222,6 +230,104 @@ function PasswordSetSuccessAnimation({ isOpen }: { isOpen: boolean }) {
   );
 }
 
+// Password requirement component with animation
+function PasswordRequirement({ 
+  met, 
+  text, 
+  delay = 0 
+}: { 
+  met: boolean; 
+  text: string; 
+  delay?: number;
+}) {
+  return (
+    <motion.li
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration: 0.3 }}
+      className="flex items-center gap-2.5 py-1"
+    >
+      <motion.div
+        key={met ? 'met' : 'unmet'}
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ 
+          scale: 1,
+          opacity: 1,
+          rotate: met ? [0, 10, 0] : 0 
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      >
+        {met ? (
+          <CheckCircle2 className="h-4 w-4 text-emerald-500 drop-shadow-sm" />
+        ) : (
+          <div className="h-4 w-4 rounded-full border-2 border-slate-300 dark:border-slate-600" />
+        )}
+      </motion.div>
+      <span className={cn(
+        "text-sm transition-all duration-200",
+        met 
+          ? "text-emerald-600 dark:text-emerald-400 font-medium" 
+          : "text-slate-500 dark:text-slate-400"
+      )}>
+        {text}
+      </span>
+    </motion.li>
+  );
+}
+
+// Password strength meter
+function PasswordStrengthMeter({ strength }: { strength: number }) {
+  const segments = [
+    { threshold: 1, color: 'bg-rose-500', label: 'Weak' },
+    { threshold: 2, color: 'bg-orange-500', label: 'Fair' },
+    { threshold: 3, color: 'bg-amber-500', label: 'Good' },
+    { threshold: 4, color: 'bg-emerald-400', label: 'Strong' },
+    { threshold: 5, color: 'bg-emerald-500', label: 'Excellent' },
+  ];
+
+  const activeSegment = segments.find((s, i) => i === strength - 1) || segments[0];
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1.5">
+        {[1, 2, 3, 4, 5].map((level) => (
+          <motion.div
+            key={level}
+            className={cn(
+              "h-1.5 flex-1 rounded-full transition-colors duration-300",
+              level <= strength 
+                ? activeSegment.color 
+                : "bg-slate-200 dark:bg-slate-700"
+            )}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: level * 0.05, duration: 0.2 }}
+          />
+        ))}
+      </div>
+      <AnimatePresence mode="wait">
+        {strength > 0 && (
+          <motion.p
+            key={strength}
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 5 }}
+            className={cn(
+              "text-xs font-medium transition-colors",
+              strength <= 1 && "text-rose-600",
+              strength === 2 && "text-orange-600",
+              strength === 3 && "text-amber-600",
+              strength >= 4 && "text-emerald-600"
+            )}
+          >
+            {activeSegment.label}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function ActivateClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -233,9 +339,12 @@ export default function ActivateClient() {
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [focusedField, setFocusedField] = useState<'password' | 'confirm' | null>(null);
 
   const supportHref = useMemo(() => {
     const email = "support@peoplecore.co.nz";
@@ -247,7 +356,6 @@ export default function ActivateClient() {
     branding.initials || (branding.name ? branding.name.slice(0, 2).toUpperCase() : "YR");
   const brandLogo = branding.squareLogoUrl || branding.logoUrl || null;
   const activationHeadline = `Activate Your ${brandName} Account`;
-  const activationSubtitle = `Set your password to get started with ${brandName}`;
 
   // Derived validation flags
   const hasMinLength = password.length >= 6;
@@ -257,6 +365,18 @@ export default function ActivateClient() {
   const passwordsMatch = password.length > 0 && password === confirmPassword;
   const meetsAllRequirements =
     hasMinLength && hasUppercase && hasNumber && hasSpecial && passwordsMatch;
+
+  // Calculate password strength (0-5)
+  const passwordStrength = useMemo(() => {
+    let strength = 0;
+    if (hasMinLength) strength++;
+    if (hasUppercase) strength++;
+    if (hasNumber) strength++;
+    if (hasSpecial) strength++;
+    if (password.length >= 12) strength++;
+    return strength;
+  }, [hasMinLength, hasUppercase, hasNumber, hasSpecial, password.length]);
+
   const missingRequirements = useMemo(() => {
     const requirements: string[] = [];
     if (!hasMinLength) requirements.push("at least 6 characters");
@@ -308,166 +428,383 @@ export default function ActivateClient() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Animated background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-50 via-blue-50/50 to-violet-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />
+      
+      {/* Floating gradient orbs */}
+      {floatingOrbs.map((orb, index) => (
+        <motion.div
+          key={index}
+          className={cn(
+            "fixed rounded-full blur-3xl pointer-events-none bg-gradient-to-br",
+            orb.color
+          )}
+          style={{
+            width: orb.size,
+            height: orb.size,
+            left: orb.x,
+            top: orb.y,
+          }}
+          animate={{
+            x: [0, 30, -20, 0],
+            y: [0, -40, 20, 0],
+            scale: [1, 1.1, 0.95, 1],
+          }}
+          transition={{
+            duration: orb.duration,
+            repeat: Infinity,
+            delay: orb.delay,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+
+      {/* Mesh gradient overlay */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-200/20 via-transparent to-transparent dark:from-blue-500/5 pointer-events-none" />
+
       {/* Success Animation Overlay */}
       <PasswordSetSuccessAnimation isOpen={showSuccess} />
 
-      <FullScreenHeader
-        backSlot={
+      {/* Header */}
+      <motion.header
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="relative z-10 w-full border-b border-white/20 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl"
+      >
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors rounded-full px-3 py-1.5 hover:bg-white/50 dark:hover:bg-white/10"
             aria-label="Back to login"
           >
             <ArrowLeft aria-hidden className="h-4 w-4" />
             <span>Back to login</span>
           </Link>
-        }
-        title={<span>{activationHeadline}</span>}
-        helpSlot={
-          <a href={supportHref} className="focus-visible:outline-none">
-            <span className="flex items-center gap-2">
-              <LifeBuoy aria-hidden className="h-4 w-4" />
-              Need help?
-            </span>
+          <a 
+            href={supportHref} 
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors rounded-full px-3 py-1.5 hover:bg-primary/10"
+          >
+            <LifeBuoy aria-hidden className="h-4 w-4" />
+            Need help?
           </a>
-        }
-      >
-        <p className="text-sm text-muted-foreground">
-          Set a secure password to finish activating your account and jump back into
-          {` ${brandName}`} portal.
-        </p>
-      </FullScreenHeader>
+        </div>
+      </motion.header>
 
-      <div className="mx-auto flex w-full max-w-5xl justify-center px-4 pb-12 pt-10">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
-          <div className="text-center mb-6">
-            <div className="flex justify-center mb-3">
-              {brandLogo ? (
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-900/5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={brandLogo}
-                    alt={`${brandName} logo`}
-                    className="h-10 w-10 object-contain"
-                  />
+      {/* Main content */}
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center justify-center px-4 py-12 sm:py-16">
+        <motion.div
+          initial={{ y: 20, opacity: 0, scale: 0.98 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+          className="w-full max-w-md"
+        >
+          {/* Glass card */}
+          <div className="relative overflow-hidden rounded-3xl glass-premium shadow-depth-5">
+            {/* Top gradient accent */}
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-violet-500 to-purple-500" />
+            
+            {/* Shimmer effect */}
+            <motion.div
+              className="absolute inset-0 opacity-30 pointer-events-none"
+              initial={{ x: '-100%' }}
+              animate={{ x: '200%' }}
+              transition={{ duration: 3, repeat: Infinity, repeatDelay: 5, ease: "easeInOut" }}
+              style={{
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+              }}
+            />
+
+            <div className="relative p-8 sm:p-10">
+              {/* Brand logo/initials */}
+              <motion.div 
+                className="flex justify-center mb-6"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+              >
+                {brandLogo ? (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-lg ring-1 ring-black/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={brandLogo}
+                      alt={`${brandName} logo`}
+                      className="h-12 w-12 object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-white text-xl font-bold shadow-lg">
+                    {brandInitials}
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Title */}
+              <motion.div
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="text-center mb-8"
+              >
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                  {activationHeadline}
+                </h1>
+                <p className="text-slate-500 dark:text-slate-400">
+                  Create a secure password to get started
+                </p>
+              </motion.div>
+
+              {/* Form */}
+              <motion.form
+                onSubmit={handleSubmit}
+                className="space-y-6"
+                initial={{ y: 10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+              >
+                {/* Password field */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    New Password
+                  </label>
+                  <div className="relative group">
+                    <div className={cn(
+                      "absolute left-0 top-0 bottom-0 w-11 flex items-center justify-center pointer-events-none transition-colors duration-200",
+                      focusedField === 'password' ? "text-primary" : "text-slate-400"
+                    )}>
+                      <KeyRound className="h-4.5 w-4.5" />
+                    </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your new password"
+                      className={cn(
+                        "w-full h-12 pl-11 pr-11 rounded-xl border bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm",
+                        "text-slate-900 dark:text-white placeholder-slate-400",
+                        "transition-all duration-200",
+                        "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                        focusedField === 'password' 
+                          ? "border-primary shadow-[0_0_0_4px_rgba(59,130,246,0.1)]" 
+                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                      )}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={() => setFocusedField(null)}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-white text-xl font-semibold">
-                  {brandInitials}
+
+                {/* Password strength meter */}
+                {password.length > 0 && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <PasswordStrengthMeter strength={passwordStrength} />
+                  </motion.div>
+                )}
+
+                {/* Confirm password field */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Confirm Password
+                  </label>
+                  <div className="relative group">
+                    <div className={cn(
+                      "absolute left-0 top-0 bottom-0 w-11 flex items-center justify-center pointer-events-none transition-colors duration-200",
+                      focusedField === 'confirm' ? "text-primary" : "text-slate-400"
+                    )}>
+                      <Lock className="h-4.5 w-4.5" />
+                    </div>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm your password"
+                      className={cn(
+                        "w-full h-12 pl-11 pr-11 rounded-xl border bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm",
+                        "text-slate-900 dark:text-white placeholder-slate-400",
+                        "transition-all duration-200",
+                        "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary",
+                        focusedField === 'confirm' 
+                          ? "border-primary shadow-[0_0_0_4px_rgba(59,130,246,0.1)]" 
+                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                      )}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onFocus={() => setFocusedField('confirm')}
+                      onBlur={() => setFocusedField(null)}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {/* Password match indicator */}
+                  <AnimatePresence>
+                    {confirmPassword.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className={cn(
+                          "text-sm flex items-center gap-1.5",
+                          passwordsMatch ? "text-emerald-600" : "text-rose-500"
+                        )}
+                      >
+                        {passwordsMatch ? (
+                          <>
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>Passwords match</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-3.5 w-3.5" />
+                            <span>Passwords do not match</span>
+                          </>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-              )}
+
+                {/* Password requirements */}
+                <div className="rounded-xl bg-slate-50/80 dark:bg-slate-800/30 p-4 border border-slate-100 dark:border-slate-700/50">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary" />
+                    Password Requirements
+                  </p>
+                  <ul className="space-y-0.5">
+                    <PasswordRequirement met={hasMinLength} text="At least 6 characters" delay={0} />
+                    <PasswordRequirement met={hasUppercase} text="One uppercase letter (A–Z)" delay={0.05} />
+                    <PasswordRequirement met={hasNumber} text="One number (0–9)" delay={0.1} />
+                    <PasswordRequirement met={hasSpecial} text="One special character (!@#$%)" delay={0.15} />
+                  </ul>
+                </div>
+
+                {/* Error message */}
+                <AnimatePresence>
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 p-4"
+                    >
+                      <p className="text-sm text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                        <XCircle className="h-4 w-4 flex-shrink-0" />
+                        {error}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Submit button */}
+                {missingRequirements.length > 0 && !loading ? (
+                  <TooltipProvider delayDuration={150}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="block w-full">
+                          <motion.button
+                            type="submit"
+                            disabled
+                            className={cn(
+                              "w-full h-12 rounded-xl font-semibold text-white",
+                              "bg-gradient-to-r from-slate-400 to-slate-500 dark:from-slate-600 dark:to-slate-700",
+                              "cursor-not-allowed",
+                              "flex items-center justify-center gap-2"
+                            )}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Lock className="h-4 w-4" />
+                            Set Password
+                          </motion.button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent 
+                        className="max-w-[280px] p-4 rounded-xl bg-slate-900 text-white border-0 shadow-xl"
+                        sideOffset={8}
+                      >
+                        <p className="font-semibold mb-2">Complete the requirements:</p>
+                        <ul className="space-y-1 text-sm text-slate-300">
+                          {missingRequirements.map((requirement) => (
+                            <li key={requirement} className="flex items-center gap-2">
+                              <span className="h-1 w-1 rounded-full bg-slate-500" />
+                              {requirement}
+                            </li>
+                          ))}
+                        </ul>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <motion.button
+                    type="submit"
+                    disabled={loading || !meetsAllRequirements}
+                    className={cn(
+                      "w-full h-12 rounded-2xl font-semibold text-white relative overflow-hidden",
+                      "bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600",
+                      "hover:from-blue-500 hover:via-violet-500 hover:to-purple-500",
+                      "shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40",
+                      "transition-all duration-300",
+                      "flex items-center justify-center gap-2",
+                      "disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none",
+                      "group"
+                    )}
+                    whileHover={{ scale: 1.02, y: -1 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {/* Shimmer effect on hover */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                    </div>
+                    {loading ? (
+                      <>
+                        <motion.div
+                          className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        />
+                        <span>Setting Password...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="h-4 w-4" />
+                        <span>Set Password</span>
+                      </>
+                    )}
+                  </motion.button>
+                )}
+              </motion.form>
             </div>
-            <h1 className="text-xl font-bold text-gray-900">{activationHeadline}</h1>
-            <p className="text-sm text-gray-500">{activationSubtitle}</p>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Choose a password that meets the requirements below to keep your account safe.
-            </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="password"
-              placeholder="New Password"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <input
-              type="password"
-              placeholder="Confirm Password"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-            {/* Real-time password requirements */}
-            <div className="text-sm">
-              <div className="mb-1 font-medium">Password requirements:</div>
-              <ul className="space-y-1">
-                <li className="flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className={hasMinLength ? "text-green-600" : "text-gray-400"}
-                  >
-                    {hasMinLength ? "✓" : "○"}
-                  </span>
-                  At least 6 characters
-                </li>
-                <li className="flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className={hasUppercase ? "text-green-600" : "text-gray-400"}
-                  >
-                    {hasUppercase ? "✓" : "○"}
-                  </span>
-                  Contains an uppercase letter (A–Z)
-                </li>
-                <li className="flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className={hasNumber ? "text-green-600" : "text-gray-400"}
-                  >
-                    {hasNumber ? "✓" : "○"}
-                  </span>
-                  Contains a number (0–9)
-                </li>
-                <li className="flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className={hasSpecial ? "text-green-600" : "text-gray-400"}
-                  >
-                    {hasSpecial ? "✓" : "○"}
-                  </span>
-                  Contains a special character (!@#$% etc.)
-                </li>
-                <li className="flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className={passwordsMatch ? "text-green-600" : "text-gray-400"}
-                  >
-                    {passwordsMatch ? "✓" : "○"}
-                  </span>
-                  Passwords match
-                </li>
-              </ul>
-            </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            {missingRequirements.length && !loading ? (
-              <TooltipProvider delayDuration={150}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="block w-full">
-                      <button
-                        type="submit"
-                        className="w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition"
-                        disabled
-                        aria-disabled
-                      >
-                        Set Password
-                      </button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-[260px] space-y-1 text-left text-xs">
-                    <p className="font-semibold">Finish the checklist to enable Set Password:</p>
-                    <ul className="list-disc space-y-1 pl-4">
-                      {missingRequirements.map((requirement) => (
-                        <li key={requirement}>{requirement}</li>
-                      ))}
-                    </ul>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              <button
-                type="submit"
-                className="w-full bg-black text-white py-2 rounded-lg hover:bg-gray-800 transition"
-                disabled={loading || !meetsAllRequirements}
-              >
-                {loading ? "Submitting..." : "Set Password"}
-              </button>
-            )}
-          </form>
-        </div>
+          {/* Security note */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="text-center text-xs text-slate-500 dark:text-slate-400 mt-6 flex items-center justify-center gap-1.5"
+          >
+            <Lock className="h-3 w-3" />
+            Your connection is secure and encrypted
+          </motion.p>
+        </motion.div>
       </div>
     </div>
   );

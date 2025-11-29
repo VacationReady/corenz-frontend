@@ -74,9 +74,52 @@ export default function EmployeeOnboardingPage({
   const canAssignTemplate =
     session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
 
+  // Compute steps and activeStep from instance (safe to call even when instance is null)
+  const steps = useMemo(() => 
+    instance?.steps ? [...instance.steps].sort((a, b) => a.order - b.order) : [],
+    [instance]
+  );
+  const totalSteps = steps.length;
+  const completeCount = steps.filter((s) => s.status === "completed").length;
+  const percent = totalSteps
+    ? Math.round((completeCount / totalSteps) * 100)
+    : 0;
+  const activeStep = steps.find((s) => s.status !== "completed");
+  const currentIdx = activeStep
+    ? steps.findIndex((s) => s.id === activeStep.id)
+    : totalSteps;
+
+  const activeStepKey = activeStep?.instanceStepId || activeStep?.id;
+  const isCompletingActive =
+    !!activeStepKey && completingStepId === activeStepKey;
+
+  // Get employee name for animation
+  const employeeName = session?.user?.name || "there";
+
+  const statusCopy = useMemo(() => {
+    if (!activeStep) return "All steps completed";
+    const position = currentIdx + 1;
+    return `Next step ${position} of ${totalSteps}: ${
+      activeStep.title || activeStep.label || "Untitled"
+    }`;
+  }, [activeStep, currentIdx, totalSteps]);
+
+  const percentLabel = totalSteps
+    ? `${percent}% complete`
+    : "No steps configured yet";
+
   useEffect(() => {
     router.prefetch("/dashboard");
   }, [router]);
+
+  // Detect when onboarding completes (activeStep transitions from something to undefined)
+  useEffect(() => {
+    if (prevActiveStepRef.current && !activeStep && !loading) {
+      // Just completed all steps - show celebration!
+      setShowCompleteAnimation(true);
+    }
+    prevActiveStepRef.current = activeStep;
+  }, [activeStep, loading]);
 
   const fetchOnboarding = async (options?: { silent?: boolean }) => {
     if (!options?.silent) {
@@ -277,17 +320,6 @@ export default function EmployeeOnboardingPage({
     );
   }
 
-  const steps = instance.steps.sort((a, b) => a.order - b.order);
-  const totalSteps = steps.length;
-  const completeCount = steps.filter((s) => s.status === "completed").length;
-  const percent = totalSteps
-    ? Math.round((completeCount / totalSteps) * 100)
-    : 0;
-  const activeStep = steps.find((s) => s.status !== "completed");
-  const currentIdx = activeStep
-    ? steps.findIndex((s) => s.id === activeStep.id)
-    : totalSteps;
-
   const handleComplete = async (stepId: string, data?: any) => {
     try {
       setCompletingStepId(stepId);
@@ -311,34 +343,6 @@ export default function EmployeeOnboardingPage({
     setCompletingStepId(null);
     setRefreshing(false);
   };
-
-  const percentLabel = totalSteps
-    ? `${percent}% complete`
-    : "No steps configured yet";
-
-  const activeStepKey = activeStep?.instanceStepId || activeStep?.id;
-  const isCompletingActive =
-    !!activeStepKey && completingStepId === activeStepKey;
-
-  // Detect when onboarding completes (activeStep transitions from something to undefined)
-  useEffect(() => {
-    if (prevActiveStepRef.current && !activeStep && !loading) {
-      // Just completed all steps - show celebration!
-      setShowCompleteAnimation(true);
-    }
-    prevActiveStepRef.current = activeStep;
-  }, [activeStep, loading]);
-
-  // Get employee name for animation
-  const employeeName = session?.user?.name || "there";
-
-  const statusCopy = useMemo(() => {
-    if (!activeStep) return "All steps completed";
-    const position = currentIdx + 1;
-    return `Next step ${position} of ${totalSteps}: ${
-      activeStep.title || activeStep.label || "Untitled"
-    }`;
-  }, [activeStep, currentIdx, totalSteps]);
 
   return (
     <>

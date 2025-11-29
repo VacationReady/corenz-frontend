@@ -1120,7 +1120,7 @@ export default function AddEmployeeModal({
   };
 
   const nextStep = () => {
-    // Validate step 1 fields (onboarding template is optional - can be "none")
+    // Validate step 1 required fields
     if (
       !formData.firstName ||
       !formData.lastName ||
@@ -1128,6 +1128,11 @@ export default function AddEmployeeModal({
       !formData.startDate
     ) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+    // Validate onboarding template selection
+    if (!formData.onboardingTemplateId) {
+      toast.error("Please select an onboarding template. If onboarding is not required, select 'No Template'.");
       return;
     }
     // Validate email and phone
@@ -1197,7 +1202,7 @@ export default function AddEmployeeModal({
         return;
       }
 
-      // onboardingTemplateId is optional - "none" means skip onboarding
+      // onboardingTemplateId is required - "none" means skip onboarding workflow
 
       // Validate step 2 fields
       if (holidayYearError) {
@@ -1410,13 +1415,14 @@ export default function AddEmployeeModal({
   );
 
   // Compute form validity for Step 1
-  // Note: onboardingTemplateId is optional - "none" means skip onboarding
+  // onboardingTemplateId is required - user must select a template or "No Template"
   const isStep1Valid = useMemo(() => {
     return (
       formData.firstName?.trim() &&
       formData.lastName?.trim() &&
       formData.email?.trim() &&
       formData.startDate &&
+      formData.onboardingTemplateId && // Required - must select template or "No Template"
       !emailError &&
       !duplicateEmailError &&
       !phoneError &&
@@ -1429,6 +1435,7 @@ export default function AddEmployeeModal({
     formData.lastName,
     formData.email,
     formData.startDate,
+    formData.onboardingTemplateId,
     emailError,
     duplicateEmailError,
     phoneError,
@@ -2029,7 +2036,7 @@ export default function AddEmployeeModal({
                     <FormSection title="Onboarding" icon={FileText} accentColor="violet" defaultOpen={true}>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-foreground/80">
-                          Onboarding Template <span className="text-muted-foreground text-xs">(optional)</span>
+                          Onboarding Template <span className="text-primary">*</span>
                         </Label>
                         <Select
                           open={isTemplateSelectOpen}
@@ -2040,9 +2047,10 @@ export default function AddEmployeeModal({
                               setShowAllTemplates(true);
                               return;
                             }
+                            // Keep "none" as a valid string value for backend
                             setFormData({
                               ...formData,
-                              onboardingTemplateId: value === "none" ? undefined : value,
+                              onboardingTemplateId: value,
                             });
                             if (value === "none") {
                               setShowAllTemplates(false);
@@ -2061,7 +2069,7 @@ export default function AddEmployeeModal({
                               />
                             )}
                             <SelectItem value="none">
-                              <span className="text-muted-foreground italic">None - Skip onboarding</span>
+                              <span className="text-muted-foreground">No Template - Skip onboarding workflow</span>
                             </SelectItem>
                             {templateOptions.map((t) => (
                               <SelectItem key={t.id} value={t.id}>
@@ -2075,6 +2083,11 @@ export default function AddEmployeeModal({
                             )}
                           </SelectContent>
                         </Select>
+                        {!formData.onboardingTemplateId && (
+                          <p className="text-xs text-muted-foreground">
+                            Select a template for the employee's onboarding workflow, or choose "No Template" to skip.
+                          </p>
+                        )}
                         {!showAllTemplates && filteredTemplates.length === 0 && (
                           <motion.p 
                             initial={{ opacity: 0, y: -5 }}

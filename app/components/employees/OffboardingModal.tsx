@@ -314,6 +314,7 @@ export default function OffboardingModal({
   const { data: session } = useSession();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const justNavigatedRef = React.useRef(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
   const [handoverSearch, setHandoverSearch] = useState("");
@@ -349,6 +350,10 @@ export default function OffboardingModal({
 
   const paginate = (newDirection: number) => {
     console.log(`[Offboarding] paginate called: direction=${newDirection}, currentStep=${currentStep}`);
+    // Set flag to prevent auto-submission during step transition
+    justNavigatedRef.current = true;
+    setTimeout(() => { justNavigatedRef.current = false; }, 100);
+    
     const newStep = currentStep + newDirection;
     if (newStep >= 0 && newStep < steps.length) {
       console.log(`[Offboarding] Navigating to step ${newStep}`);
@@ -503,7 +508,14 @@ export default function OffboardingModal({
       exitInterviewDate: formData.exitInterviewDate,
       sendForm: formData.sendForm,
       formTemplateId: formData.formTemplateId,
+      justNavigated: justNavigatedRef.current,
     });
+
+    // Block auto-submission that happens during step transition
+    if (justNavigatedRef.current) {
+      console.log(`[Offboarding] Blocked auto-submission - just navigated`);
+      return;
+    }
 
     if (!employee || !formData.lastWorkingDate || !formData.offboardingType) {
       toast({

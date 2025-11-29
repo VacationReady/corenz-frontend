@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -10,6 +10,8 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  pointerWithin,
+  rectIntersection,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { v4 as uuidv4 } from "uuid";
@@ -156,7 +158,27 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
   const slugIsValid = useMemo(() => /^[a-z0-9-]+$/.test(formSlug), [formSlug]);
 
-  // (slug generation handled by useSlug)
+  // Custom collision detection that prefers section droppables but falls back to canvas
+  const customCollisionDetection = useCallback((args: Parameters<typeof rectIntersection>[0]) => {
+    // First try pointer within - more accurate for nested droppables
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      // Prefer section droppables over the canvas
+      const sectionCollision = pointerCollisions.find(c => String(c.id).startsWith('section-'));
+      if (sectionCollision) return [sectionCollision];
+      return pointerCollisions;
+    }
+    
+    // Fall back to rect intersection
+    const rectCollisions = rectIntersection(args);
+    if (rectCollisions.length > 0) {
+      const sectionCollision = rectCollisions.find(c => String(c.id).startsWith('section-'));
+      if (sectionCollision) return [sectionCollision];
+      return rectCollisions;
+    }
+    
+    return [];
+  }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDragField(null);
@@ -336,6 +358,7 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
         <DndContext
           sensors={sensors}
+          collisionDetection={customCollisionDetection}
           onDragEnd={handleDragEnd}
           onDragStart={(event) => {
             const dragged = event.active.data?.current as

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, {
   ChangeEvent,
@@ -272,15 +272,15 @@ const offboardingTypes = [
 ];
 
 const commonAssets = [
-  { name: "Laptop/Computer", icon: "ðŸ’»" },
-  { name: "Mobile Phone", icon: "ðŸ“±" },
-  { name: "ID Card/Badge", icon: "ðŸªª" },
-  { name: "Keys", icon: "ðŸ”‘" },
-  { name: "Company Credit Card", icon: "ðŸ’³" },
-  { name: "Uniform/Clothing", icon: "ðŸ‘”" },
-  { name: "Tools/Equipment", icon: "ðŸ”§" },
-  { name: "Vehicle", icon: "ðŸš—" },
-  { name: "Documentation", icon: "ðŸ“„" },
+  { name: "Laptop/Computer", icon: "💻" },
+  { name: "Mobile Phone", icon: "📱" },
+  { name: "ID Card/Badge", icon: "🪪" },
+  { name: "Keys", icon: "🔑" },
+  { name: "Company Credit Card", icon: "💳" },
+  { name: "Uniform/Clothing", icon: "👔" },
+  { name: "Tools/Equipment", icon: "🔧" },
+  { name: "Vehicle", icon: "🚗" },
+  { name: "Documentation", icon: "📄" },
 ];
 
 // Step definitions
@@ -314,7 +314,6 @@ export default function OffboardingModal({
   const { data: session } = useSession();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const justNavigatedRef = React.useRef(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
   const [handoverSearch, setHandoverSearch] = useState("");
@@ -350,10 +349,9 @@ export default function OffboardingModal({
 
   const paginate = (newDirection: number) => {
     console.log(`[Offboarding] paginate called: direction=${newDirection}, currentStep=${currentStep}`);
-    justNavigatedRef.current = true;
-    setTimeout(() => { justNavigatedRef.current = false; }, 100);
     const newStep = currentStep + newDirection;
     if (newStep >= 0 && newStep < steps.length) {
+      console.log(`[Offboarding] Navigating to step ${newStep}`);
       setCurrentStep(newStep);
       setPage([newStep, newDirection]);
     }
@@ -479,10 +477,13 @@ export default function OffboardingModal({
       );
       if (response.ok) {
         const data = await response.json();
+        console.log(`[Offboarding] Loaded ${data.length} exit interview templates:`, data);
         setFormTemplates(data);
+      } else {
+        console.error(`[Offboarding] Failed to fetch templates: ${response.status}`);
       }
     } catch (error) {
-      console.error("Error fetching form templates:", error);
+      console.error("[Offboarding] Error fetching form templates:", error);
     }
   };
 
@@ -496,12 +497,13 @@ export default function OffboardingModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(`[Offboarding] handleSubmit called`);
-    // Prevent accidental submission if not on final step
-    if (justNavigatedRef.current) {
-      console.log(`[Offboarding] Blocked submission - just navigated, ignoring`);
-      return;
-    }
+    
+    console.log(`[Offboarding] handleSubmit called at step ${currentStep}`, {
+      exitInterviewRequired: formData.exitInterviewRequired,
+      exitInterviewDate: formData.exitInterviewDate,
+      sendForm: formData.sendForm,
+      formTemplateId: formData.formTemplateId,
+    });
 
     if (!employee || !formData.lastWorkingDate || !formData.offboardingType) {
       toast({
@@ -545,65 +547,94 @@ export default function OffboardingModal({
       }
 
       const data = await response.json();
+      console.log(`[Offboarding] Offboard API response:`, data);
 
-      if (formData.exitInterviewRequired && data.offboardingId) {
-        try {
-          const finalFormTemplateId = formData.sendForm
-            ? formData.formTemplateId || formTemplates[0]?.id
-            : undefined;
-          const scheduledAt = formData.exitInterviewDate
-            ? toUTCFromLondon(
-                format(formData.exitInterviewDate, "yyyy-MM-dd"),
-                formData.exitInterviewTime
-              ).toISOString()
-            : undefined;
+      let exitInterviewScheduled = false;
+      let exitInterviewError: string | null = null;
 
-          const exitInterviewResponse = await fetch(
-            `/api/offboarding/${employee.id}/exit-interview`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                scheduledAt,
-                durationMinutes: formData.exitInterviewDuration,
-                interviewerId: formData.exitInterviewInterviewer || undefined,
-                sendForm: formData.sendForm,
-                formTemplateId: finalFormTemplateId,
-                formTiming: formData.sendForm ? formData.formTiming : undefined,
-              }),
+      if (formData.exitInterviewRequired) {
+        if (!data.offboardingId) {
+          console.error("No offboardingId returned from offboard API");
+          exitInterviewError = "Could not schedule exit interview - missing offboarding reference";
+        } else {
+          try {
+            const finalFormTemplateId = formData.sendForm
+              ? formData.formTemplateId || formTemplates[0]?.id
+              : undefined;
+            
+            // Validate we have a template if sendForm is enabled
+            if (formData.sendForm && !finalFormTemplateId) {
+              exitInterviewError = "No exit interview template available";
+            } else {
+              const scheduledAt = formData.exitInterviewDate
+                ? toUTCFromLondon(
+                    format(formData.exitInterviewDate, "yyyy-MM-dd"),
+                    formData.exitInterviewTime
+                  ).toISOString()
+                : undefined;
+
+              const exitInterviewResponse = await fetch(
+                `/api/offboarding/${employee.id}/exit-interview`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    scheduledAt,
+                    durationMinutes: formData.exitInterviewDuration,
+                    interviewerId: formData.exitInterviewInterviewer || undefined,
+                    sendForm: formData.sendForm,
+                    formTemplateId: finalFormTemplateId,
+                    formTiming: formData.sendForm ? formData.formTiming : undefined,
+                  }),
+                }
+              );
+
+              if (!exitInterviewResponse.ok) {
+                const errorData = await exitInterviewResponse.json();
+                console.error("Exit interview setup failed:", errorData);
+                exitInterviewError = errorData.error || "Failed to schedule exit interview";
+              } else {
+                exitInterviewScheduled = true;
+                
+                // Send form immediately if requested
+                if (formData.sendForm && formData.formTiming === "NOW") {
+                  try {
+                    await fetch("/api/cron/send-expiry-alerts", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                    });
+                  } catch (err) {
+                    console.error("Error sending form invitation:", err);
+                  }
+                }
+              }
             }
-          );
-
-          if (!exitInterviewResponse.ok) {
-            const errorData = await exitInterviewResponse.json();
-            console.error("Exit interview setup failed:", errorData);
+          } catch (err) {
+            console.error("Error setting up exit interview:", err);
+            exitInterviewError = err instanceof Error ? err.message : "Failed to schedule exit interview";
           }
-
-          if (formData.sendForm && formData.formTiming === "NOW") {
-            try {
-              await fetch("/api/cron/send-expiry-alerts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-              });
-            } catch (err) {
-              console.error("Error sending form invitation:", err);
-            }
-          }
-        } catch (err) {
-          console.error("Error setting up exit interview:", err);
         }
       }
 
-      toast({
-        title: "Offboarding Started Successfully",
-        description: `Offboarding initiated for ${employee.firstName} ${employee.lastName}. ${
-          formData.exitInterviewRequired ? "Calendar invite sent." : ""
-        } ${
-          formData.sendForm && formData.formTiming === "NOW"
-            ? "Exit interview form sent immediately."
-            : ""
-        }`,
-      });
+      // Show appropriate toast based on what succeeded/failed
+      if (exitInterviewError) {
+        toast({
+          title: "Offboarding Started with Warning",
+          description: `${employee.firstName} ${employee.lastName} has been moved to offboarding, but: ${exitInterviewError}. You can schedule the exit interview manually from their profile.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Offboarding Started Successfully",
+          description: `Offboarding initiated for ${employee.firstName} ${employee.lastName}. ${
+            exitInterviewScheduled ? "Exit interview scheduled." : ""
+          } ${
+            formData.sendForm && formData.formTiming === "NOW" && exitInterviewScheduled
+              ? "Exit interview form sent."
+              : ""
+          }`,
+        });
+      }
 
       onSuccess();
       onClose();
@@ -671,8 +702,15 @@ export default function OffboardingModal({
     (t) => t.value === formData.offboardingType
   );
 
+  const handleOpenChange = (isOpen: boolean) => {
+    console.log(`[Offboarding] Dialog onOpenChange called: isOpen=${isOpen}, currentStep=${currentStep}`);
+    if (!isOpen) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { console.log(`[Offboarding] Dialog onOpenChange: isOpen=${isOpen}`); if (!isOpen) onClose(); }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
         {/* Header with gradient */}
         <div className="relative overflow-hidden">
@@ -689,7 +727,7 @@ export default function OffboardingModal({
                   Start Offboarding Process
                 </DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground mt-1">
-                  {employee.firstName} {employee.lastName} â€¢ {employee.email}
+                  {employee.firstName} {employee.lastName} • {employee.email}
                 </DialogDescription>
               </div>
             </div>
@@ -920,12 +958,12 @@ export default function OffboardingModal({
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button
+                                type="button"
                                 variant="outline"
                                 className={cn(
                                   "w-full justify-start text-left h-11 rounded-xl",
                                   !formData.lastWorkingDate && "text-muted-foreground"
                                 )}
-                                type="button"
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                 {formData.lastWorkingDate ? (
@@ -1386,8 +1424,7 @@ export default function OffboardingModal({
                     </FormSection>
 
                     {/* Exit Interview Form */}
-                    {formData.exitInterviewRequired && (
-                      <FormSection
+                    <FormSection
                         title="Exit Interview Form"
                         icon={Send}
                         accentColor="emerald"
@@ -1441,9 +1478,9 @@ export default function OffboardingModal({
                                   </SelectTrigger>
                                   <SelectContent>
                                     {formTemplates.length === 0 ? (
-                                      <SelectItem value="" disabled>
-                                        No templates available
-                                      </SelectItem>
+                                      <div className="px-2 py-4 text-sm text-center text-muted-foreground">
+                                        No templates available. Please create an exit interview template in Settings.
+                                      </div>
                                     ) : (
                                       formTemplates.map((template) => (
                                         <SelectItem key={template.id} value={template.id}>
@@ -1531,6 +1568,23 @@ export default function OffboardingModal({
                           )}
                         </div>
                       </FormSection>
+
+                    {/* Info about exit feedback options */}
+                    {!formData.exitInterviewRequired && !formData.sendForm && (
+                      <motion.div
+                        variants={fadeInUp}
+                        className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30"
+                      >
+                        <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="font-medium text-sm text-amber-700 dark:text-amber-400">
+                            No exit feedback configured
+                          </p>
+                          <p className="text-xs text-amber-600/80 dark:text-amber-400/70 mt-1">
+                            Consider scheduling an exit interview or sending an exit interview form to gather valuable feedback from the departing employee.
+                          </p>
+                        </div>
+                      </motion.div>
                     )}
 
                     {/* Summary Preview */}
@@ -1565,8 +1619,15 @@ export default function OffboardingModal({
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Exit Interview</p>
-                          <p className="font-medium">
-                            {formData.exitInterviewRequired ? "Scheduled" : "Not required"}
+                          <p className={cn(
+                            "font-medium",
+                            !formData.exitInterviewRequired && "text-amber-600"
+                          )}>
+                            {formData.exitInterviewRequired 
+                              ? formData.exitInterviewDate 
+                                ? `Scheduled for ${format(formData.exitInterviewDate, "PPP")}`
+                                : "Enabled (date required)"
+                              : "⚠️ Not scheduled"}
                           </p>
                         </div>
                         <div>
@@ -1663,10 +1724,3 @@ export default function OffboardingModal({
     </Dialog>
   );
 }
-
-
-
-
-
-
-

@@ -769,19 +769,24 @@ export async function seedTenantReferenceData(
         OnboardingStep: {
           create: [
             { id: randomUUID(), type: "INSTRUCTION", label: "Welcome to the Team", order: 1, instruction: "Welcome! We're excited to have you join us. This onboarding process will guide you through everything you need to get started.", metadata: { category: "Welcome" } },
-            { id: randomUUID(), type: "ACKNOWLEDGE_DOCUMENT", label: "Employee Handbook", order: 2, instruction: "Please read and acknowledge our employee handbook which outlines company policies and procedures.", metadata: { category: "Documentation" } },
+            { id: randomUUID(), type: "INSTRUCTION", label: "Company Policies", order: 2, instruction: "Please familiarise yourself with our company policies. Your manager or HR contact can provide you with the employee handbook and any other relevant documentation.", metadata: { category: "Documentation" } },
             { id: randomUUID(), type: "UPLOAD_DOCUMENT", label: "Upload ID Photo", order: 3, uploadType: "OTHER", instruction: "Please upload a professional photo for your employee profile and ID badge.", metadata: { category: "Documentation" } },
             { id: randomUUID(), type: "UPLOAD_DOCUMENT", label: "Right to Work Documentation", order: 4, uploadType: "RIGHT_TO_WORK", instruction: "Please upload documentation proving your right to work (passport, visa, etc.).", metadata: { category: "Compliance" } },
-            { id: randomUUID(), type: "UPLOAD_DOCUMENT", label: "Bank Details", order: 5, uploadType: "OTHER", instruction: "Please upload a bank statement or void cheque for payroll setup.", metadata: { category: "Payroll" } },
-            { id: randomUUID(), type: "INSTRUCTION", label: "Tax Code Declaration", order: 6, instruction: "Please complete your IR330 tax code declaration form for IRD.", metadata: { category: "Payroll" } },
-            { id: randomUUID(), type: "INSTRUCTION", label: "KiwiSaver Enrollment", order: 7, instruction: "Review and confirm your KiwiSaver preferences. You can opt in, opt out, or choose your contribution rate.", metadata: { category: "Payroll" } },
-            { id: randomUUID(), type: "EQUIPMENT_CHECKLIST", label: "IT Equipment Setup", order: 8, instruction: "Your IT equipment will be prepared. Please confirm receipt of all items.", metadata: { category: "IT Setup", checklist: ["Laptop", "Mouse", "Keyboard", "Monitor", "Headset", "Security Badge"] } },
-            { id: randomUUID(), type: "SYSTEM_ACCESS", label: "System Access & Accounts", order: 9, instruction: "Your accounts for company systems will be created. Please verify access to email, Teams/Slack, and other required systems.", metadata: { category: "IT Setup" } },
-            { id: randomUUID(), type: "COMPLIANCE_TRAINING", label: "Health & Safety Induction", order: 10, instruction: "Complete the mandatory health and safety induction training.", metadata: { category: "Training" } },
-            { id: randomUUID(), type: "MANAGER_CHECKIN", label: "Manager Introduction Meeting", order: 11, instruction: "Your manager will schedule a welcome meeting to discuss your role, expectations, and answer any questions.", metadata: { category: "Orientation" } },
-            { id: randomUUID(), type: "BUDDY_INTRODUCTION", label: "Meet Your Buddy", order: 12, instruction: "You'll be introduced to your onboarding buddy who can help you navigate the company.", metadata: { category: "Orientation" } },
-            { id: randomUUID(), type: "PROBATION_GOALS", label: "Set Probation Goals", order: 13, instruction: "Work with your manager to set clear goals and expectations for your probation period.", metadata: { category: "Performance" } },
-            { id: randomUUID(), type: "WELCOME_SURVEY", label: "First Week Feedback", order: 14, instruction: "Please share your feedback on your first week experience.", metadata: { category: "Feedback" } },
+            { 
+              id: randomUUID(), 
+              type: "PAYROLL_SETUP", 
+              label: "Bank Details", 
+              order: 5, 
+              instruction: "Please enter your bank account details for payroll.", 
+              metadata: { 
+                category: "Payroll",
+                instructions: "Please enter your bank account details below so we can set up your payments correctly.",
+                fields: [
+                  { id: "bankAccountNumber", label: "Bank account number", type: "text", placeholder: "00-0000-0000000-00", required: true },
+                ],
+              } 
+            },
+            { id: randomUUID(), type: "INSTRUCTION", label: "Onboarding Complete", order: 6, instruction: "Congratulations! You've completed your onboarding. Welcome to the team! If you have any questions, please don't hesitate to reach out to your manager or HR.", metadata: { category: "Complete" } },
           ],
         },
       },

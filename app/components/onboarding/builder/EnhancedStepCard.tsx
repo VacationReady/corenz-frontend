@@ -610,7 +610,66 @@ function DocumentDropdown({
   );
 }
 
-// Form Dropdown Component
+// Built-in screen templates for the form dropdown
+const BUILTIN_SCREEN_OPTIONS = [
+  {
+    slug: "demographics",
+    name: "Demographic Information",
+    description: "Equality & diversity details",
+    formType: "FORM",
+    schema: [
+      { id: "gender", type: "select", label: "Gender", required: false, options: ["Female","Male","Non-binary","Prefer not to say"] },
+      { id: "ethnicity", type: "text", label: "Ethnicity", required: false },
+      { id: "disability", type: "checkbox", label: "Disability", required: false },
+    ],
+  },
+  {
+    slug: "emergency-contact",
+    name: "Emergency Contact",
+    description: "Primary emergency contact",
+    formType: "FORM",
+    schema: [
+      { id: "contactName", type: "text", label: "Contact name", required: true },
+      { id: "relationship", type: "text", label: "Relationship", required: true },
+      { id: "contactPhone", type: "phone", label: "Phone number", required: true },
+    ],
+  },
+  {
+    slug: "equipment-allocation",
+    name: "Equipment Allocation",
+    description: "Devices & assets issued",
+    formType: "DATA_SCREEN",
+    schema: { version: 2, sections: [ { id: "s1", title: "Equipment", columns: 1, fields: [
+      { id: "laptop", type: "checkbox", label: "Laptop issued", required: false },
+      { id: "phone", type: "checkbox", label: "Phone issued", required: false },
+      { id: "notes", type: "textarea", label: "Notes", required: false },
+    ] } ] },
+  },
+  {
+    slug: "bank-details",
+    name: "Bank & Payment Details",
+    description: "Bank account for salary payments",
+    formType: "DATA_SCREEN",
+    schema: { version: 2, sections: [ { id: "s1", title: "Bank Details", columns: 1, fields: [
+      { id: "bankName", type: "text", label: "Bank name", required: true },
+      { id: "accountNumber", type: "text", label: "Account number", required: true },
+      { id: "sortCode", type: "text", label: "Sort code / BSB", required: false },
+    ] } ] },
+  },
+  {
+    slug: "driver-licence",
+    name: "Driver Licence Details",
+    description: "Driver licence information",
+    formType: "FORM",
+    schema: [
+      { id: "licenceNumber", type: "text", label: "Licence number", required: true },
+      { id: "expiryDate", type: "date", label: "Expiry date", required: true },
+      { id: "licenceClass", type: "text", label: "Licence class", required: false },
+    ],
+  },
+];
+
+// Form Dropdown Component - Shows screens (FORM, DATA_SCREEN, TABLE) not surveys
 function FormDropdown({
   value,
   onChange,
@@ -619,11 +678,14 @@ function FormDropdown({
   onChange: (id: string) => void;
 }) {
   const [forms, setForms] = React.useState<any[]>([]);
+  const [builtins] = React.useState<any[]>(BUILTIN_SCREEN_OPTIONS);
   const [loading, setLoading] = React.useState(true);
+  const [creating, setCreating] = React.useState(false);
 
   React.useEffect(() => {
     setLoading(true);
-    fetch("/api/forms")
+    // Only fetch screens (FORM, DATA_SCREEN, TABLE) - NOT surveys
+    fetch("/api/forms?type=FORM,DATA_SCREEN,TABLE")
       .then((r) => r.json())
       .then((data) => {
         setForms(Array.isArray(data) ? data : []);
@@ -635,12 +697,56 @@ function FormDropdown({
       });
   }, []);
 
+  const handleChange = async (raw: string) => {
+    if (!raw) return onChange("");
+    if (raw.startsWith("builtin:")) {
+      const slug = raw.replace("builtin:", "");
+      const def = builtins.find((b) => b.slug === slug);
+      if (!def) return;
+      try {
+        setCreating(true);
+        // Check if it already exists
+        const existingRes = await fetch(`/api/forms/by-slug/${encodeURIComponent(slug)}`);
+        if (existingRes.ok) {
+          const existing = await existingRes.json();
+          setForms((prev) => [existing, ...prev.filter((f) => f.id !== existing.id)]);
+          onChange(existing.id);
+          return;
+        }
+        // Create if not existing
+        const createRes = await fetch("/api/forms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: def.name,
+            slug: def.slug,
+            description: def.description,
+            formType: def.formType,
+            schema: def.schema,
+            visibleToRoles: ["ADMIN", "MANAGER", "EMPLOYEE"],
+          }),
+        });
+        if (createRes.ok) {
+          const created = await createRes.json();
+          setForms((prev) => [created, ...prev]);
+          onChange(created.id);
+        }
+      } catch {
+        // Silently fail
+      } finally {
+        setCreating(false);
+      }
+      return;
+    }
+    onChange(raw);
+  };
+
   return (
     <select
       className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:border-indigo-400 focus:ring-indigo-400/20"
       value={value || ""}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={loading}
+      onChange={(e) => handleChange(e.target.value)}
+      disabled={loading || creating}
     >
       <option value="">{loading ? "Loading forms..." : "Select a form..."}</option>
       {forms.map((f) => (
@@ -648,6 +754,15 @@ function FormDropdown({
           {f.name}
         </option>
       ))}
+      {builtins.length > 0 && (
+        <optgroup label="Built-in screens (create on select)">
+          {builtins.map((b) => (
+            <option key={b.slug} value={`builtin:${b.slug}`}>
+              {b.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
     </select>
   );
 }

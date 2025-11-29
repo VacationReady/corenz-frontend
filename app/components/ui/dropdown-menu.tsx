@@ -92,6 +92,14 @@ export function DropdownMenuItem({
   disabled?: boolean;
   icon?: React.ReactNode;
 }) {
+  const handleClick = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <Menu.Item disabled={disabled}>
       {({ active, disabled: itemDisabled }) => {
@@ -110,6 +118,8 @@ export function DropdownMenuItem({
             className: cn(element.props.className, classes),
             onClick: (event: React.MouseEvent) => {
               if (itemDisabled) return;
+              event.preventDefault();
+              event.stopPropagation();
               if (onClick) onClick();
               if (typeof element.props.onClick === "function") {
                 element.props.onClick(event);
@@ -118,7 +128,12 @@ export function DropdownMenuItem({
           });
         }
         return (
-          <button onClick={itemDisabled ? undefined : onClick} className={classes} disabled={itemDisabled}>
+          <button 
+            type="button"
+            onClick={itemDisabled ? undefined : handleClick} 
+            className={classes} 
+            disabled={itemDisabled}
+          >
             {icon && <span className="flex-shrink-0">{icon}</span>}
             {children}
           </button>

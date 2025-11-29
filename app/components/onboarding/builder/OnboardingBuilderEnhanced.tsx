@@ -350,13 +350,15 @@ export function OnboardingBuilderEnhanced({
   }, []);
 
   const removeStep = useCallback((index: number) => {
+    const stepToRemove = steps[index];
     setSteps((prev) => prev.filter((_, i) => i !== index));
     if (selectedStepIndex === index) {
       setSelectedStepIndex(index > 0 ? index - 1 : steps.length > 1 ? 0 : null);
     } else if (selectedStepIndex !== null && selectedStepIndex > index) {
       setSelectedStepIndex(selectedStepIndex - 1);
     }
-  }, [selectedStepIndex, steps.length]);
+    toast.success(`Step "${stepToRemove?.title || 'Untitled'}" removed`);
+  }, [selectedStepIndex, steps]);
 
   const duplicateStep = useCallback((index: number) => {
     const step = steps[index];

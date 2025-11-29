@@ -227,7 +227,7 @@ function DocumentDropdown({
   );
 }
 
-// --- Form dropdown (API)
+// --- Screen/Form dropdown (API) - Shows FORM, DATA_SCREEN, TABLE types (NOT surveys)
 function FormDropdown({
   value,
   onChange,
@@ -242,32 +242,32 @@ function FormDropdown({
   useEffect(() => {
     const load = async () => {
       try {
+        // Only fetch screens (FORM, DATA_SCREEN, TABLE) - NOT surveys
         const [fRes, bRes] = await Promise.all([
-          fetch("/api/forms"),
+          fetch("/api/forms?type=FORM,DATA_SCREEN,TABLE"),
           fetch("/api/forms/defaults"),
         ]);
         const fJson = await fRes.json();
         const bJson = await bRes.json();
         const curated = Array.isArray(bJson) ? bJson : [];
-        // Add curated HRIS starter forms if not present
+        // Add curated HRIS starter screens (non-survey types only)
         const curatedExtras = [
           {
             slug: "demographics",
             name: "Demographic Information",
             description: "Equality & diversity details",
-            formType: "SURVEY",
+            formType: "FORM",
             schema: [
               { id: "gender", type: "select", label: "Gender", required: false, options: ["Female","Male","Non-binary","Prefer not to say"] },
               { id: "ethnicity", type: "text", label: "Ethnicity", required: false },
               { id: "disability", type: "checkbox", label: "Disability", required: false },
             ],
           },
-          // Prefer the persistent Bank & Payroll data screen instead of a submission form
           {
             slug: "emergency-contact",
             name: "Emergency Contact",
             description: "Primary emergency contact",
-            formType: "SURVEY",
+            formType: "FORM",
             schema: [
               { id: "contactName", type: "text", label: "Contact name", required: true },
               { id: "relationship", type: "text", label: "Relationship", required: true },
@@ -286,19 +286,34 @@ function FormDropdown({
             ] } ] },
           },
           {
-            slug: "payroll-starter",
-            name: "Payroll Starter",
-            description: "Starter declaration & tax",
-            formType: "SURVEY",
+            slug: "bank-details",
+            name: "Bank & Payment Details",
+            description: "Bank account for salary payments",
+            formType: "DATA_SCREEN",
+            schema: { version: 2, sections: [ { id: "s1", title: "Bank Details", columns: 1, fields: [
+              { id: "bankName", type: "text", label: "Bank name", required: true },
+              { id: "accountNumber", type: "text", label: "Account number", required: true },
+              { id: "sortCode", type: "text", label: "Sort code / BSB", required: false },
+            ] } ] },
+          },
+          {
+            slug: "driver-licence",
+            name: "Driver Licence Details",
+            description: "Driver licence information",
+            formType: "FORM",
             schema: [
-              { id: "niNumber", type: "text", label: "National Insurance number", required: true },
-              { id: "taxCode", type: "text", label: "Initial tax code", required: false },
-              { id: "studentLoan", type: "checkbox", label: "Student loan?", required: false },
+              { id: "licenceNumber", type: "text", label: "Licence number", required: true },
+              { id: "expiryDate", type: "date", label: "Expiry date", required: true },
+              { id: "licenceClass", type: "text", label: "Licence class", required: false },
             ],
           },
         ].filter((x) => !curated.some((c: any) => c.slug === x.slug));
         setForms(Array.isArray(fJson) ? fJson : []);
-        setBuiltins([...curated, ...curatedExtras]);
+        // Only include non-survey builtins
+        const screenBuiltins = [...curated, ...curatedExtras].filter(
+          (b) => b.formType !== "SURVEY"
+        );
+        setBuiltins(screenBuiltins);
       } catch {
         setForms([]);
         setBuiltins([]);
@@ -384,6 +399,163 @@ function FormDropdown({
       ))}
       {builtins.length > 0 && (
         <optgroup label="Built-in screens (create on select)">
+          {builtins.map((b) => (
+            <option key={b.slug} value={`builtin:${b.slug}`}>
+              {b.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </select>
+  );
+}
+
+// --- Survey dropdown (API) - Shows only SURVEY type forms
+function SurveyDropdown({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const [surveys, setSurveys] = useState<any[]>([]);
+  const [builtins, setBuiltins] = useState<any[]>([]);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // Only fetch SURVEY type forms
+        const fRes = await fetch("/api/forms?type=SURVEY");
+        const fJson = await fRes.json();
+        setSurveys(Array.isArray(fJson) ? fJson : []);
+        
+        // Add curated survey templates
+        const curatedSurveys = [
+          {
+            slug: "welcome-feedback",
+            name: "Welcome Feedback Survey",
+            description: "First week feedback from new hire",
+            formType: "SURVEY",
+            schema: [
+              { id: "overallExperience", type: "rating", label: "How would you rate your onboarding experience so far?", required: true },
+              { id: "clarity", type: "rating", label: "How clear were the instructions provided?", required: true },
+              { id: "support", type: "rating", label: "How supported did you feel during your first days?", required: true },
+              { id: "suggestions", type: "textarea", label: "Any suggestions for improvement?", required: false },
+            ],
+          },
+          {
+            slug: "30-day-checkin",
+            name: "30-Day Check-in Survey",
+            description: "First month feedback survey",
+            formType: "SURVEY",
+            schema: [
+              { id: "settledIn", type: "rating", label: "How settled do you feel in your role?", required: true },
+              { id: "teamIntegration", type: "rating", label: "How well have you integrated with your team?", required: true },
+              { id: "roleClarity", type: "rating", label: "How clear are you about your role expectations?", required: true },
+              { id: "concerns", type: "textarea", label: "Any concerns or feedback?", required: false },
+            ],
+          },
+          {
+            slug: "onboarding-completion",
+            name: "Onboarding Completion Survey",
+            description: "Final onboarding feedback",
+            formType: "SURVEY",
+            schema: [
+              { id: "overallSatisfaction", type: "rating", label: "Overall satisfaction with onboarding", required: true },
+              { id: "preparedness", type: "rating", label: "How prepared do you feel for your role?", required: true },
+              { id: "recommend", type: "select", label: "Would you recommend our onboarding process?", required: true, options: ["Definitely", "Probably", "Not sure", "Probably not", "Definitely not"] },
+              { id: "bestPart", type: "textarea", label: "What was the best part of your onboarding?", required: false },
+              { id: "improvements", type: "textarea", label: "What could we improve?", required: false },
+            ],
+          },
+        ];
+        setBuiltins(curatedSurveys);
+      } catch {
+        setSurveys([]);
+        setBuiltins([]);
+      }
+    };
+    load();
+  }, []);
+
+  const handleChange = async (raw: string) => {
+    if (!raw) return onChange("");
+    if (raw.startsWith("builtin:")) {
+      const slug = raw.replace("builtin:", "");
+      const def = builtins.find((b) => b.slug === slug);
+      if (!def) return;
+      try {
+        setCreating(true);
+        // 1) Reuse if it already exists by slug
+        const existingRes = await fetch(`/api/forms/by-slug/${encodeURIComponent(slug)}`);
+        if (existingRes.ok) {
+          const existing = await existingRes.json();
+          setSurveys((prev) => [existing, ...prev.filter((f) => f.id !== existing.id)]);
+          onChange(existing.id);
+          return;
+        }
+
+        // 2) Create if not existing yet
+        const createRes = await fetch("/api/forms", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: def.name,
+            slug: def.slug,
+            description: def.description,
+            formType: "SURVEY",
+            schema: def.schema,
+            visibleToRoles: ["ADMIN", "MANAGER", "EMPLOYEE"],
+            visibleToDepartments: [],
+            visibleToJobRoles: [],
+          }),
+        });
+        if (createRes.ok) {
+          const created = await createRes.json();
+          setSurveys((prev) => [created, ...prev]);
+          onChange(created.id);
+          return;
+        }
+
+        // 3) If server rejects (e.g., duplicate by name), try to find by name
+        const allRes = await fetch("/api/forms?type=SURVEY");
+        if (allRes.ok) {
+          const all = await allRes.json();
+          const found = (Array.isArray(all) ? all : []).find(
+            (f: any) => String(f.name).toLowerCase() === String(def.name).toLowerCase(),
+          );
+          if (found) {
+            onChange(found.id);
+            return;
+          }
+        }
+        toast.error("Failed to create survey");
+      } catch {
+        toast.error("Failed to create survey");
+      } finally {
+        setCreating(false);
+      }
+      return;
+    }
+    onChange(raw);
+  };
+
+  return (
+    <select
+      className="w-full border rounded-md p-2"
+      value={value}
+      onChange={(e) => handleChange(e.target.value)}
+      disabled={creating}
+    >
+      <option value="">Select a survey…</option>
+      {surveys.map((f) => (
+        <option key={f.id} value={f.id}>
+          {f.name} {f.description && `(${f.description})`}
+        </option>
+      ))}
+      {builtins.length > 0 && (
+        <optgroup label="Survey templates (create on select)">
           {builtins.map((b) => (
             <option key={b.slug} value={`builtin:${b.slug}`}>
               {b.name}
@@ -565,7 +737,7 @@ const StepEditor = React.memo(function StepEditor({
           <div className="col-span-2">
             <div className="space-y-4">
               <div>
-                <Label>Select Existing Form (Recommended)</Label>
+                <Label>Select Screen or Custom Form</Label>
                 <FormDropdown
                   value={step.formId || ""}
                   onChange={(formId) =>
@@ -576,8 +748,7 @@ const StepEditor = React.memo(function StepEditor({
                   }
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Choose a form created in the Forms section for better
-                  management and reusability.
+                  Choose a screen from the Screen Designer (e.g., emergency contacts, driver licence details).
                 </p>
               </div>
               {!step.formId && (
@@ -591,10 +762,31 @@ const StepEditor = React.memo(function StepEditor({
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Note: Inline fields are harder to manage. Consider creating
-                    a reusable form instead.
+                    a reusable screen instead.
                   </p>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {step.type === "welcome-survey" && (
+          <div className="col-span-2">
+            <div className="space-y-4">
+              <div>
+                <Label>Select Survey Form</Label>
+                <SurveyDropdown
+                  value={step.formId || ""}
+                  onChange={(formId) =>
+                    updateStep(idx, {
+                      formId,
+                    })
+                  }
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Choose a survey to collect feedback from the new hire.
+                </p>
+              </div>
             </div>
           </div>
         )}

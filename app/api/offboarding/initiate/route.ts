@@ -215,45 +215,67 @@ export async function POST(req: NextRequest) {
     let formEmailSent = false;
     let actionItemCreated = false;
 
+    console.log("Offboarding initiate - Form settings:", {
+      sendForm,
+      formTiming,
+      formTemplateId,
+      completionTokenHash: completionTokenHash ? "generated" : "not generated",
+      hasUser: !!employee.User,
+      userId: employee.User?.id,
+    });
+
     if (sendForm && formTiming === "NOW") {
+      console.log("Sending exit interview form invite for offboarding:", offboarding.id);
       // Send the exit interview form invitation email
       formEmailSent = await sendExitInterviewFormInvite(offboarding.id);
+      console.log("Form email sent result:", formEmailSent);
 
       // Also send the exit interview confirmation email with ICS if date is set
       if (exitInterviewDateUTC) {
         emailSent = await sendExitInterviewConfirmation(offboarding.id);
+        console.log("Confirmation email sent result:", emailSent);
       }
+    } else {
+      console.log("Skipping immediate email send:", { sendForm, formTiming });
     }
 
     // Create action item for employee to complete the exit interview form
     if (sendForm && employee.User) {
+      console.log("Creating action item for user:", employee.User.id);
       const employeeName = `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() || "Employee";
       const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
       const formLink = `${baseUrl}/exit-interview/${completionTokenHash}`;
 
-      await prisma.actionItem.create({
-        data: {
-          id: crypto.randomUUID(),
-          companyId,
-          type: "EXIT_INTERVIEW_FORM",
-          title: "Complete your Exit Interview Form",
-          description: `Please complete the exit interview form to share your feedback before you leave.`,
-          status: "PENDING",
-          priority: "HIGH",
-          assignedToId: employee.User.id,
-          relatedEmployeeId: employeeId,
-          dueDate: exitInterviewDateUTC || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Due in 7 days if no interview date
-          updatedAt: new Date(),
-          metadata: {
-            offboardingId: offboarding.id,
-            formTemplateId: formTemplateId,
-            completionTokenHash: completionTokenHash,
-            formLink,
-            source: "offboarding",
+      try {
+        await prisma.actionItem.create({
+          data: {
+            id: crypto.randomUUID(),
+            companyId,
+            type: "EXIT_INTERVIEW_FORM",
+            title: "Complete your Exit Interview Form",
+            description: `Please complete the exit interview form to share your feedback before you leave.`,
+            status: "PENDING",
+            priority: "HIGH",
+            assignedToId: employee.User.id,
+            relatedEmployeeId: employeeId,
+            dueDate: exitInterviewDateUTC || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Due in 7 days if no interview date
+            updatedAt: new Date(),
+            metadata: {
+              offboardingId: offboarding.id,
+              formTemplateId: formTemplateId,
+              completionTokenHash: completionTokenHash,
+              formLink,
+              source: "offboarding",
+            },
           },
-        },
-      });
-      actionItemCreated = true;
+        });
+        actionItemCreated = true;
+        console.log("Action item created successfully");
+      } catch (actionItemError) {
+        console.error("Failed to create action item:", actionItemError);
+      }
+    } else {
+      console.log("Skipping action item creation:", { sendForm, hasUser: !!employee.User });
     }
 
     return NextResponse.json({

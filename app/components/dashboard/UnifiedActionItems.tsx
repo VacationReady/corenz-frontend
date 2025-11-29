@@ -307,6 +307,28 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
                 }
               }
             });
+          } else if (item.type === 'EXIT_INTERVIEW_FORM') {
+            // Exit interview form completion task
+            const metadata = item.metadata || {};
+            items.push({
+              id: `action-${item.id}`,
+              type: "task",
+              title: item.title,
+              subtitle: "Exit interview form",
+              urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
+              metadata: item,
+              actionLabel: "Complete Form",
+              onAction: async () => {
+                // Navigate to exit interview form page using the completion token
+                if (metadata.completionTokenHash) {
+                  window.location.href = `/exit-interview/${metadata.completionTokenHash}`;
+                } else if (metadata.formLink) {
+                  window.location.href = metadata.formLink;
+                } else {
+                  toast.error('Exit interview form link not available');
+                }
+              }
+            });
           } else {
             // Regular workflow tasks
             items.push({

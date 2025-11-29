@@ -112,9 +112,9 @@ const quickTemplates = [
       "User.firstName",
       "User.lastName",
       "User.email",
-      "Employee.jobTitle",
-      "Employee.department",
-      "Employee.phoneNumber",
+      "User.JobRole.name",
+      "User.Department_User_departmentIdToDepartment.name",
+      "User.phone",
     ],
   },
   {
@@ -123,10 +123,12 @@ const quickTemplates = [
     icon: Calendar,
     description: "Annual leave entitlements",
     fields: [
-      "User.firstName",
-      "User.lastName",
-      "Employee.department",
-      "LeaveEntitlement.leaveType",
+      "LeaveEntitlement.Employee.User.firstName",
+      "LeaveEntitlement.Employee.User.lastName",
+      "LeaveEntitlement.Employee.Department.name",
+      "LeaveEntitlement.EventCategory.name",
+      "LeaveEntitlement.totalDays",
+      "LeaveEntitlement.usedDays",
       "_computed.remainingEntitlement",
     ],
   },
@@ -138,8 +140,8 @@ const quickTemplates = [
     fields: [
       "User.firstName",
       "User.lastName",
-      "Employee.dateOfBirth",
-      "Employee.department",
+      "User.dateOfBirth",
+      "User.Department_User_departmentIdToDepartment.name",
     ],
   },
   {
@@ -151,8 +153,8 @@ const quickTemplates = [
       "User.firstName",
       "User.lastName",
       "Employee.startDate",
-      "Employee.jobTitle",
-      "Employee.department",
+      "User.JobRole.name",
+      "User.Department_User_departmentIdToDepartment.name",
       "Employee.employmentType",
     ],
   },
@@ -164,9 +166,9 @@ const quickTemplates = [
     fields: [
       "User.firstName",
       "User.lastName",
-      "Employee.phoneNumber",
-      "Employee.emergencyContactName",
-      "Employee.emergencyContactPhone",
+      "User.phone",
+      "_computed.primaryEmergencyContactName",
+      "_computed.primaryEmergencyContactPhone",
     ],
   },
   {
@@ -177,9 +179,9 @@ const quickTemplates = [
     fields: [
       "User.firstName",
       "User.lastName",
-      "PayrollProfile.taxCode",
-      "PayrollProfile.bankAccountNumber",
-      "PayrollProfile.irdNumber",
+      "Employee.taxCode",
+      "Employee.bankAccountNumber",
+      "Employee.irdNumber",
       "Employee.salaryAmount",
     ],
   },
@@ -189,8 +191,8 @@ const quickTemplates = [
 const recentFields = [
   "User.firstName",
   "User.lastName",
-  "Employee.department",
-  "Employee.jobTitle",
+  "User.Department_User_departmentIdToDepartment.name",
+  "User.JobRole.name",
   "Employee.startDate",
 ];
 

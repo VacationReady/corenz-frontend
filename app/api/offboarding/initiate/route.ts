@@ -7,6 +7,7 @@ import { toUTCFromLondon } from "@/lib/time";
 import {
   generateCompletionToken,
   sendExitInterviewConfirmation,
+  sendExitInterviewFormInvite,
 } from "@/lib/email/send";
 
 // Validation schema
@@ -209,10 +210,50 @@ export async function POST(req: NextRequest) {
       data: { isActive: false },
     });
 
-    // Send immediate confirmation if form timing is NOW
+    // Send emails and create action items when form is enabled
     let emailSent = false;
+    let formEmailSent = false;
+    let actionItemCreated = false;
+
     if (sendForm && formTiming === "NOW") {
-      emailSent = await sendExitInterviewConfirmation(offboarding.id);
+      // Send the exit interview form invitation email
+      formEmailSent = await sendExitInterviewFormInvite(offboarding.id);
+
+      // Also send the exit interview confirmation email with ICS if date is set
+      if (exitInterviewDateUTC) {
+        emailSent = await sendExitInterviewConfirmation(offboarding.id);
+      }
+    }
+
+    // Create action item for employee to complete the exit interview form
+    if (sendForm && employee.User) {
+      const employeeName = `${employee.User.firstName ?? ""} ${employee.User.lastName ?? ""}`.trim() || "Employee";
+      const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+      const formLink = `${baseUrl}/exit-interview/${completionTokenHash}`;
+
+      await prisma.actionItem.create({
+        data: {
+          id: crypto.randomUUID(),
+          companyId,
+          type: "EXIT_INTERVIEW_FORM",
+          title: "Complete your Exit Interview Form",
+          description: `Please complete the exit interview form to share your feedback before you leave.`,
+          status: "PENDING",
+          priority: "HIGH",
+          assignedToId: employee.User.id,
+          relatedEmployeeId: employeeId,
+          dueDate: exitInterviewDateUTC || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Due in 7 days if no interview date
+          updatedAt: new Date(),
+          metadata: {
+            offboardingId: offboarding.id,
+            formTemplateId: formTemplateId,
+            completionTokenHash: completionTokenHash,
+            formLink,
+            source: "offboarding",
+          },
+        },
+      });
+      actionItemCreated = true;
     }
 
     return NextResponse.json({
@@ -223,7 +264,9 @@ export async function POST(req: NextRequest) {
         exitInterviewDate: offboarding.exitInterviewDate,
         sendForm: offboarding.sendForm,
         formTiming: offboarding.formTiming,
-        emailSent,
+        emailSent: emailSent || formEmailSent,
+        formEmailSent,
+        actionItemCreated,
       },
     });
   } catch (error) {

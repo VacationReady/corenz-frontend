@@ -161,6 +161,11 @@ export const actionItemIconConfig: Record<string, ActionItemIconConfig> = {
     bgColor: "bg-rose-100",
     iconColor: "text-rose-600",
   },
+  exit_interview_form: {
+    icon: FileQuestion,
+    bgColor: "bg-rose-100",
+    iconColor: "text-rose-600",
+  },
   // Performance reviews
   performance: {
     icon: Star,

@@ -69,6 +69,24 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Mark the associated action item as completed
+    await prisma.actionItem.updateMany({
+      where: {
+        type: "EXIT_INTERVIEW_FORM",
+        relatedEmployeeId: offboarding.employeeId,
+        status: { in: ["PENDING", "IN_PROGRESS"] },
+        metadata: {
+          path: ["offboardingId"],
+          equals: offboarding.id,
+        },
+      },
+      data: {
+        status: "COMPLETED",
+        completedAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
     return NextResponse.json({
       success: true,
       message: "Exit interview form submitted successfully",

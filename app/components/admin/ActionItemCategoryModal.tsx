@@ -101,6 +101,7 @@ const ACTION_TYPE_LABELS: Record<string, string> = {
   ONBOARDING_TASK: "Onboarding Task",
   OFFBOARDING_TASK: "Offboarding Task",
   EXIT_INTERVIEW: "Exit Interview",
+  EXIT_INTERVIEW_FORM: "Exit Interview Form",
   MEETING_PREPARATION: "Meeting Prep",
   MEETING_ACTION_ITEM: "Meeting Follow-up",
   BULK_UPDATE_APPROVAL: "Bulk Update Approval",

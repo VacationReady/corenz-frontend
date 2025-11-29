@@ -171,21 +171,20 @@ export function SortableFieldItem({
             <span className="text-rose-500 text-lg leading-none">*</span>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs font-mono text-muted-foreground bg-gray-100/80 px-1.5 py-0.5 rounded">
-            {field.type}
-          </span>
-          {field.hidden && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 flex items-center gap-1">
-              <EyeOff className="h-3 w-3" /> hidden
-            </span>
-          )}
-          {field.logic?.visibleWhen && (
-            <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-              conditional
-            </span>
-          )}
-        </div>
+        {(field.hidden || field.logic?.visibleWhen) && (
+          <div className="flex items-center gap-2 mt-1">
+            {field.hidden && (
+              <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 flex items-center gap-1">
+                <EyeOff className="h-3 w-3" /> hidden
+              </span>
+            )}
+            {field.logic?.visibleWhen && (
+              <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                conditional
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Action Buttons */}

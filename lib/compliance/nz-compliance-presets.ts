@@ -88,7 +88,7 @@ export const NZ_CORE_EMPLOYMENT_PRESET: CompliancePreset = {
             label: 'IRD Number',
             fieldType: 'irdNumber',
             required: true,
-            placeholder: '123-456-789'
+            placeholder: '123-456-785'
           },
           {
             id: 'tax-code',

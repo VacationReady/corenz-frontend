@@ -55,7 +55,7 @@ export const NZ_ONBOARDING_PRESETS: NzOnboardingPreset[] = [
             {
               id: "irdNumber",
               label: "IRD number",
-              placeholder: "123-456-789",
+              placeholder: "123-456-785",
               required: true,
               fieldType: "irdNumber",
             },

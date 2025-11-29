@@ -1251,7 +1251,7 @@ async function main() {
                 instructions: "Please enter your bank account number and IRD number below so we can set up your payments correctly.",
                 fields: [
                   { id: "bankAccountNumber", label: "Bank account number", type: "text", placeholder: "00-0000-0000000-00", required: true },
-                  { id: "irdNumber", label: "IRD number", type: "irdNumber", placeholder: "123-456-789", required: true },
+                  { id: "irdNumber", label: "IRD number", type: "irdNumber", placeholder: "123-456-785", required: true },
                 ],
               },
             },

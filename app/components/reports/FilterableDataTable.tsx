@@ -7,6 +7,7 @@ import { DatePresetSelector } from "./DatePresetSelector";
 import { calculateDateRange, type DatePresetSelection } from "@/lib/reportingDatePresets";
 import { useReportingTimeConfig } from "@/hooks/useReportingTimeConfig";
 import { useDebounce } from "@/hooks/useDebounce";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Column {
   header: string;
@@ -616,10 +617,12 @@ export default function FilterableDataTable({
     }
   };
 
-  const toggleFilter = (columnKey: string) => {
+  const toggleFilter = (columnKey: string, forceOpen?: boolean) => {
     setOpenFilters((prev) => {
       const next = new Set(prev);
-      if (next.has(columnKey)) {
+      const shouldOpen = forceOpen !== undefined ? forceOpen : !next.has(columnKey);
+      
+      if (!shouldOpen) {
         next.delete(columnKey);
         setDraftColumnFilters((draft) => {
           const copy = { ...draft };
@@ -1256,24 +1259,33 @@ export default function FilterableDataTable({
                                 {(columnFilters[column.accessorKey] || []).length + (isAdvancedFilterActive(advancedFilters[column.accessorKey]) ? 1 : 0)}
                               </span>
                             )}
-                            <button
-                              type="button"
-                              onClick={() => toggleFilter(column.accessorKey)}
-                              className="rounded p-1 hover:bg-gray-200"
-                              aria-label={`Filter ${column.header}`}
-                              aria-expanded={isFilterOpen}
-                              aria-controls={`filter-${column.accessorKey}`}
+                            <Popover 
+                              open={isFilterOpen} 
+                              onOpenChange={(open) => toggleFilter(column.accessorKey, open)}
                             >
-                              {isFilterOpen ? <ChevronUpIcon className="h-4 w-4 text-gray-400" /> : <ChevronDownIcon className="h-4 w-4 text-gray-400" />}
-                            </button>
+                              <PopoverTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="rounded p-1 hover:bg-gray-200"
+                                  aria-label={`Filter ${column.header}`}
+                                  aria-expanded={isFilterOpen}
+                                  aria-controls={`filter-${column.accessorKey}`}
+                                >
+                                  {isFilterOpen ? <ChevronUpIcon className="h-4 w-4 text-gray-400" /> : <ChevronDownIcon className="h-4 w-4 text-gray-400" />}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent 
+                                id={`filter-${column.accessorKey}`}
+                                align="start" 
+                                sideOffset={8}
+                                className="w-80 rounded-xl border border-gray-200 bg-white p-0 shadow-2xl"
+                              >
+                                {renderColumnDraft(column.accessorKey)}
+                              </PopoverContent>
+                            </Popover>
                           </div>
                         </div>
                       </div>
-                      {isFilterOpen && (
-                        <div id={`filter-${column.accessorKey}`} className="absolute left-0 top-full z-30 mt-1 w-80 rounded-xl border border-gray-200 bg-white shadow-2xl">
-                          {renderColumnDraft(column.accessorKey)}
-                        </div>
-                      )}
                     </th>
                   );
                 })}
@@ -1353,3 +1365,4 @@ export default function FilterableDataTable({
     </div>
   );
 }
+

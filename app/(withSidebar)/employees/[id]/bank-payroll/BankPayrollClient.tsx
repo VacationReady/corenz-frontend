@@ -558,7 +558,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
                     errors.irdNumber && "border-destructive focus:border-destructive focus:ring-destructive/20",
                     (isEmployee && !isPrivileged) && "bg-muted/30"
                   )}
-                  placeholder="123-456-789"
+                  placeholder="123-456-785"
                   inputMode="numeric"
                   maxLength={11}
                   disabled={isEmployee && !isPrivileged}

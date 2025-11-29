@@ -536,7 +536,7 @@ const metadataDefinitions: Record<string, MetadataDefinition<any>> = {
         {
           id: "irdNumber",
           label: "IRD number",
-          placeholder: "123-456-789",
+          placeholder: "123-456-785",
           required: true,
           fieldType: "irdNumber",
         },

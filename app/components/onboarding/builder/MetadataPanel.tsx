@@ -565,7 +565,7 @@ const PAYROLL_PRESETS: Record<string, PayrollPreset> = {
       {
         id: "irdNumber",
         label: "IRD number",
-        placeholder: "123-456-789",
+        placeholder: "123-456-785",
         required: true,
         fieldType: "irdNumber" as PayrollFieldType,
       },
@@ -616,7 +616,7 @@ const PAYROLL_PRESETS: Record<string, PayrollPreset> = {
       {
         id: "irdNumber",
         label: "IRD number",
-        placeholder: "123-456-789",
+        placeholder: "123-456-785",
         required: true,
         fieldType: "irdNumber" as PayrollFieldType,
       },

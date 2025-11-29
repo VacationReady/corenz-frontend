@@ -494,6 +494,11 @@ export default function OffboardingModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log(`[Offboarding] handleSubmit called`);
+    // Prevent accidental submission if not on final step
+    if (currentStep !== 2) {
+      console.log(`[Offboarding] Blocked submission - not on final step (currentStep=${currentStep})`);
+      return;
+    }
 
     if (!employee || !formData.lastWorkingDate || !formData.offboardingType) {
       toast({
@@ -1655,6 +1660,7 @@ export default function OffboardingModal({
     </Dialog>
   );
 }
+
 
 
 

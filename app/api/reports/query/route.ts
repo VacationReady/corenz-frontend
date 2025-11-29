@@ -630,23 +630,31 @@ export async function POST(req: Request) {
                         companyId,
                 };
 
+                console.log("🔍 Executing Prisma query for model:", model);
+                console.log("🔍 Prisma query:", JSON.stringify(primary.prismaQuery, null, 2));
+
                 // Use caching for query results
                 const { data: queryResult, cached, responseTimeMs } = await cachedReportQuery<{ results: any[]; total: number }>(
                         cacheParams,
                         async () => {
+                                console.log("🔍 Cache miss - executing database query");
                                 const countArgs = primary.prismaQuery.where
                                         ? { where: primary.prismaQuery.where }
                                         : {};
 
                                 // @ts-ignore dynamic access
                                 const total = await (prisma[model] as any).count(countArgs);
+                                console.log("🔍 Count result:", total);
                                 // @ts-ignore dynamic access
                                 let results = await (prisma[model] as any).findMany(primary.prismaQuery);
+                                console.log("🔍 Query returned", results.length, "results");
                                 results = await attachComputedFields(results, sanitizedSelectedFields, primary.model);
                                 
                                 return { results, total };
                         }
                 );
+
+                console.log("✅ Query completed successfully, returning response");
 
                 // Add cache headers for debugging/monitoring
                 const headers = new Headers();

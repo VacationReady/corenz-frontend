@@ -644,6 +644,8 @@ function ReportsPreviewClientInner() {
             timeout: 30000,
             retries: 3,
             headers,
+            // Use unique cache key to prevent deduplication (each request should be independent)
+            cacheKey: `report-generate-${Date.now()}-${Math.random()}`,
             onRetry: (attempt) => {
               setRetryCount(attempt);
               console.log(`[Report] Retry attempt ${attempt} for custom report`);
@@ -686,6 +688,8 @@ function ReportsPreviewClientInner() {
           timeout: 30000,
           retries: 3,
           headers,
+          // Use unique cache key to prevent deduplication (each request should be independent)
+          cacheKey: `report-query-${Date.now()}-${Math.random()}`,
           onRetry: (attempt) => {
             setRetryCount(attempt);
             console.log(`[Report] Retry attempt ${attempt} for dynamic report`);
@@ -732,16 +736,14 @@ function ReportsPreviewClientInner() {
       return;
     }
 
-    // Cancel any existing request
-    if (abortControllerRef.current) {
-      console.log("🛑 Aborting previous request");
-      abortControllerRef.current.abort();
-    }
-
+    // Don't abort previous requests - let them complete
+    // The fetchId check will ignore stale results
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 35000);
     abortControllerRef.current = controller;
     const fetchId = ++fetchIdRef.current;
+    
+    console.log("🆕 New fetch starting, fetchId:", fetchId);
 
     const load = async () => {
       setLoading(true);

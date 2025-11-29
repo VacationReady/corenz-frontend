@@ -102,20 +102,24 @@ interface FormBuilderProps {
 export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
   // Normalize incoming schema into sections (single page model in builder)
   const initialSections: FormSection[] = (() => {
+    const defaultSection = { id: uuidv4(), title: "Section 1", columns: 1, layout: "single" as const, hidden: false, fields: [] };
     const incoming = initialData?.schema as any;
-    if (!incoming) return [{ id: uuidv4(), title: "Section 1", columns: 1, layout: "single", hidden: false, fields: [] }];
+    if (!incoming) return [defaultSection];
     if (Array.isArray(incoming)) {
-      return upgradeLegacySchema(incoming).sections || [
-        { id: uuidv4(), title: "Section 1", columns: 1, layout: "single", hidden: false, fields: incoming as FormField[] },
+      const upgraded = upgradeLegacySchema(incoming).sections;
+      return upgraded && upgraded.length > 0 ? upgraded : [
+        { id: uuidv4(), title: "Section 1", columns: 1, layout: "single" as const, hidden: false, fields: incoming as FormField[] },
       ];
     }
     if (incoming.sections && Array.isArray(incoming.sections)) {
-      return incoming.sections as FormSection[];
+      // Ensure we always have at least one section for dropping fields
+      return incoming.sections.length > 0 ? incoming.sections as FormSection[] : [defaultSection];
     }
     if (incoming.pages && Array.isArray(incoming.pages) && incoming.pages.length) {
-      return (incoming.pages[0].sections || []) as FormSection[];
+      const pageSections = incoming.pages[0].sections || [];
+      return pageSections.length > 0 ? pageSections as FormSection[] : [defaultSection];
     }
-    return [{ id: uuidv4(), title: "Section 1", columns: 1, layout: "single", hidden: false, fields: [] }];
+    return [defaultSection];
   })();
 
   const [sections, setSections] = useState<FormSection[]>(initialSections);

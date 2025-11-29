@@ -412,6 +412,7 @@ export async function DELETE(request: NextRequest) {
       await tx.onboardingStepResponse.deleteMany({ where: { OnboardingStepInstance: { OnboardingInstance: { Employee: { companyId } } } } });
       await tx.onboardingStepInstance.deleteMany({ where: { OnboardingInstance: { Employee: { companyId } } } });
       await tx.onboardingInstance.deleteMany({ where: { Employee: { companyId } } });
+      await tx.onboardingAssignment.deleteMany({ where: { OnboardingTemplate: { companyId } } });
       await tx.templateStepVersion.deleteMany({ where: { TemplateVersion: { companyId } } });
       await tx.onboardingStep.deleteMany({ where: { OnboardingTemplate: { companyId } } });
       await tx.templateVersion.deleteMany({ where: { companyId } });

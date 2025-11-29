@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, {
   ChangeEvent,
@@ -272,15 +272,15 @@ const offboardingTypes = [
 ];
 
 const commonAssets = [
-  { name: "Laptop/Computer", icon: "💻" },
-  { name: "Mobile Phone", icon: "📱" },
-  { name: "ID Card/Badge", icon: "🪪" },
-  { name: "Keys", icon: "🔑" },
-  { name: "Company Credit Card", icon: "💳" },
-  { name: "Uniform/Clothing", icon: "👔" },
-  { name: "Tools/Equipment", icon: "🔧" },
-  { name: "Vehicle", icon: "🚗" },
-  { name: "Documentation", icon: "📄" },
+  { name: "Laptop/Computer", icon: "ðŸ’»" },
+  { name: "Mobile Phone", icon: "ðŸ“±" },
+  { name: "ID Card/Badge", icon: "ðŸªª" },
+  { name: "Keys", icon: "ðŸ”‘" },
+  { name: "Company Credit Card", icon: "ðŸ’³" },
+  { name: "Uniform/Clothing", icon: "ðŸ‘”" },
+  { name: "Tools/Equipment", icon: "ðŸ”§" },
+  { name: "Vehicle", icon: "ðŸš—" },
+  { name: "Documentation", icon: "ðŸ“„" },
 ];
 
 // Step definitions
@@ -348,6 +348,7 @@ export default function OffboardingModal({
   });
 
   const paginate = (newDirection: number) => {
+    console.log(`[Offboarding] paginate called: direction=${newDirection}, currentStep=${currentStep}`);
     const newStep = currentStep + newDirection;
     if (newStep >= 0 && newStep < steps.length) {
       setCurrentStep(newStep);
@@ -492,6 +493,7 @@ export default function OffboardingModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log(`[Offboarding] handleSubmit called`);
 
     if (!employee || !formData.lastWorkingDate || !formData.offboardingType) {
       toast({
@@ -662,7 +664,7 @@ export default function OffboardingModal({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(isOpen) => { console.log(`[Offboarding] Dialog onOpenChange: isOpen=${isOpen}`); if (!isOpen) onClose(); }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
         {/* Header with gradient */}
         <div className="relative overflow-hidden">
@@ -679,7 +681,7 @@ export default function OffboardingModal({
                   Start Offboarding Process
                 </DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground mt-1">
-                  {employee.firstName} {employee.lastName} • {employee.email}
+                  {employee.firstName} {employee.lastName} â€¢ {employee.email}
                 </DialogDescription>
               </div>
             </div>
@@ -1653,3 +1655,6 @@ export default function OffboardingModal({
     </Dialog>
   );
 }
+
+
+

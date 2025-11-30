@@ -635,17 +635,6 @@ const BUILTIN_SCREEN_OPTIONS = [
     ],
   },
   {
-    slug: "equipment-allocation",
-    name: "Equipment Allocation",
-    description: "Devices & assets issued",
-    formType: "DATA_SCREEN",
-    schema: { version: 2, sections: [ { id: "s1", title: "Equipment", columns: 1, fields: [
-      { id: "laptop", type: "checkbox", label: "Laptop issued", required: false },
-      { id: "phone", type: "checkbox", label: "Phone issued", required: false },
-      { id: "notes", type: "textarea", label: "Notes", required: false },
-    ] } ] },
-  },
-  {
     slug: "bank-details",
     name: "Bank & Payment Details",
     description: "Bank account for salary payments",

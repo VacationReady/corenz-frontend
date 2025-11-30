@@ -5,3 +5,4 @@ DROP INDEX IF EXISTS "Location_name_key";
 -- This allows different tenants to have locations with the same name
 CREATE UNIQUE INDEX "Location_name_companyId_key" ON "Location"("name", "companyId");
 
+

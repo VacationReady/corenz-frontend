@@ -17,12 +17,19 @@ async function processCompany(companyId: string) {
     },
   });
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize to start of day
 
   for (const rule of expiryRules) {
-    const targetDate = new Date();
-    targetDate.setDate(today.getDate() + rule.daysBefore);
+    // Calculate the exact threshold date (e.g., exactly 28 days from now)
+    const thresholdStart = new Date(today);
+    thresholdStart.setDate(today.getDate() + rule.daysBefore);
+    thresholdStart.setHours(0, 0, 0, 0);
+    
+    const thresholdEnd = new Date(thresholdStart);
+    thresholdEnd.setHours(23, 59, 59, 999);
 
     let expiringItems: {
+      id: string;
       employee: any;
       expiryDate: Date | null;
       type: string;
@@ -32,13 +39,15 @@ async function processCompany(companyId: string) {
     if (rule.category === "Driver Licence") {
       const items = await prisma.driverLicence.findMany({
         where: {
-          expiryDate: { lte: targetDate, gte: today },
+          // Only items expiring EXACTLY at the threshold (e.g., exactly 28 days from now)
+          expiryDate: { gte: thresholdStart, lte: thresholdEnd },
           Employee: { companyId },
         },
         include: { Employee: { include: { User: true } } },
       });
       expiringItems.push(
         ...items.map((item: any) => ({
+          id: item.id,
           employee: item.Employee,
           expiryDate: item.expiryDate,
           type: "Driver Licence",
@@ -50,13 +59,14 @@ async function processCompany(companyId: string) {
     if (rule.category === "Training") {
       const items = await prisma.trainingRecord.findMany({
         where: {
-          expiryDate: { lte: targetDate, gte: today },
+          expiryDate: { gte: thresholdStart, lte: thresholdEnd },
           Employee: { companyId },
         },
         include: { Employee: { include: { User: true } }, Course: true },
       });
       expiringItems.push(
         ...items.map((item: any) => ({
+          id: item.id,
           employee: item.Employee,
           expiryDate: item.expiryDate,
           type: "Training",
@@ -68,13 +78,14 @@ async function processCompany(companyId: string) {
     if (rule.category === "Employment Checks") {
       const items = await prisma.employmentCheck.findMany({
         where: {
-          expiryDate: { lte: targetDate, gte: today },
+          expiryDate: { gte: thresholdStart, lte: thresholdEnd },
           Employee: { companyId },
         },
         include: { Employee: { include: { User: true } } },
       });
       expiringItems.push(
         ...items.map((item: any) => ({
+          id: item.id,
           employee: item.Employee,
           expiryDate: item.expiryDate,
           type: "Employment Check",
@@ -89,6 +100,22 @@ async function processCompany(companyId: string) {
       const daysRemaining = Math.ceil(
         (item.expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
       );
+
+      // Check if we already sent a notification for this item at this threshold
+      const existingNotification = await prisma.expiryNotificationLog.findFirst({
+        where: {
+          ruleId: rule.id,
+          itemId: item.id,
+          daysRemaining: rule.daysBefore, // Check based on the rule's threshold, not current days
+        },
+      });
+
+      if (existingNotification) {
+        console.log(
+          `⏭️ Skipping ${item.type} for ${item.employee.User?.firstName} - already notified at ${rule.daysBefore} days threshold`,
+        );
+        continue;
+      }
 
       const employeeName =
         `${item.employee.User?.firstName ?? "Unknown"} ${item.employee.User?.lastName ?? ""}`.trim();
@@ -113,6 +140,11 @@ async function processCompany(companyId: string) {
 
       if (rule.notifyEmployee && item.employee.User?.email) {
         recipients.push(item.employee.User.email);
+      }
+
+      if (recipients.length === 0) {
+        console.log(`⚠️ No recipients for ${item.type} - ${employeeName}`);
+        continue;
       }
 
       for (const recipient of recipients) {
@@ -153,6 +185,22 @@ async function processCompany(companyId: string) {
           `✅ Sent expiry alert to ${recipient} for ${employeeName} (${item.type})`,
         );
       }
+
+      // Log the notification to prevent duplicates
+      await prisma.expiryNotificationLog.create({
+        data: {
+          companyId: item.employee.companyId,
+          ruleId: rule.id,
+          category: item.type,
+          itemId: item.id,
+          employeeId: item.employee.id,
+          expiryDate: item.expiryDate,
+          daysRemaining: rule.daysBefore,
+        },
+      });
+      console.log(
+        `📝 Logged notification for ${item.type} - ${employeeName} at ${rule.daysBefore} days threshold`,
+      );
     }
   }
 

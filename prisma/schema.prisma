@@ -195,6 +195,7 @@ model Company {
   EventRuleOverride                   EventRuleOverride[]
   EventSubcategory                    EventSubcategory[]
   ExitInterviewFormTemplate           ExitInterviewFormTemplate[]
+  ExpiryNotificationLog               ExpiryNotificationLog[]
   ExpiryRule                          ExpiryRule[]
   Form                                Form[]
   GenderOption                        GenderOption[]
@@ -514,6 +515,7 @@ model Employee {
   PerformanceReviews               EmployeePerformanceReview[]
   EmployeeWorkingPatternAssignment EmployeeWorkingPatternAssignment[]
   EmploymentCheck                  EmploymentCheck[]
+  ExpiryNotificationLog            ExpiryNotificationLog[]
   FormAssignment                   FormAssignment[]
   FormDataRecord                   FormDataRecord[]
   FormSubmission                   FormSubmission[]
@@ -829,6 +831,31 @@ model ExpiryRule {
   updatedAt      DateTime
   companyId      String?
   Company        Company? @relation(fields: [companyId], references: [id])
+  NotificationLogs ExpiryNotificationLog[]
+}
+
+// Tracks sent expiry notifications to prevent daily duplicates
+// Only one notification per item per threshold (daysBefore) period
+model ExpiryNotificationLog {
+  id            String   @id @default(uuid())
+  companyId     String
+  ruleId        String
+  category      String   // e.g., "Employment Checks", "Driver Licence", "Training"
+  itemId        String   // ID of the expiring item (employmentCheckId, driverLicenceId, etc.)
+  employeeId    String
+  expiryDate    DateTime // The expiry date of the item
+  daysRemaining Int      // Days remaining when notification was sent
+  sentAt        DateTime @default(now())
+  
+  Company  Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  Rule     ExpiryRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  Employee Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  // Unique constraint: one notification per item per rule threshold
+  @@unique([ruleId, itemId, daysRemaining])
+  @@index([companyId, category])
+  @@index([employeeId])
+  @@index([sentAt])
 }
 
 model FieldMetadata {

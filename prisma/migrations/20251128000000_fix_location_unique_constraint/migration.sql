@@ -6,3 +6,4 @@ DROP INDEX IF EXISTS "Location_name_key";
 CREATE UNIQUE INDEX "Location_name_companyId_key" ON "Location"("name", "companyId");
 
 
+

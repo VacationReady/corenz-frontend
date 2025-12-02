@@ -164,7 +164,8 @@ export default function FieldPlacementModal({
   const lastPointerEventRef = useRef<React.PointerEvent<HTMLDivElement> | null>(null);
 
   const [docUrl, setDocUrl] = useState<string>("");
-  const [pdfAspectRatio, setPdfAspectRatio] = useState<number | null>(null); // width / height
+  const [pdfAspectRatio, setPdfAspectRatio] = useState<number | null>(null); // width / height of single page
+  const [pdfPageCount, setPdfPageCount] = useState<number>(1);
   const [assignees, setAssignees] = useState<{ id: string; name: string }[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
   
@@ -201,7 +202,9 @@ export default function FieldPlacementModal({
           .then(async (buffer) => {
             try {
               const doc = await PDFDocument.load(buffer);
-              const page = doc.getPages()[0];
+              const pages = doc.getPages();
+              setPdfPageCount(pages.length);
+              const page = pages[0];
               if (page) {
                 const { width, height } = page.getSize();
                 setPdfAspectRatio(width / height);
@@ -230,14 +233,16 @@ export default function FieldPlacementModal({
         .then((d: any) => {
           const newUrl = d?.url || url;
           setDocUrl(newUrl);
-          // Fetch PDF to get dimensions
+          // Fetch PDF to get dimensions and page count
           if (newUrl) {
             fetch(newUrl)
               .then(res => res.arrayBuffer())
               .then(async (buffer) => {
                 try {
                   const doc = await PDFDocument.load(buffer);
-                  const page = doc.getPages()[0];
+                  const pages = doc.getPages();
+                  setPdfPageCount(pages.length);
+                  const page = pages[0];
                   if (page) {
                     const { width, height } = page.getSize();
                     setPdfAspectRatio(width / height);
@@ -484,7 +489,8 @@ export default function FieldPlacementModal({
                   ref={contentRef}
                   className="relative bg-white shadow-lg mx-auto"
                   style={{
-                    aspectRatio: pdfAspectRatio ? `${pdfAspectRatio}` : '8.5 / 11',
+                    // Aspect ratio accounts for all pages stacked vertically
+                    aspectRatio: pdfAspectRatio ? `${pdfAspectRatio / pdfPageCount}` : `${8.5 / (11 * pdfPageCount)}`,
                     width: '100%',
                     minHeight: 'min-content',
                   }}

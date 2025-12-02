@@ -7,3 +7,4 @@ CREATE UNIQUE INDEX "Location_name_companyId_key" ON "Location"("name", "company
 
 
 
+

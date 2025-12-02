@@ -130,7 +130,7 @@ export function HolidayApprovalModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] p-0 gap-0 bg-gradient-to-br from-sky-50 via-white to-cyan-50/50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 border-0 shadow-2xl overflow-hidden">
+      <DialogContent rawContent className="max-w-2xl max-h-[90vh] p-0 gap-0 bg-gradient-to-br from-sky-50 via-white to-cyan-50/50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 border-0 shadow-2xl overflow-hidden">
         {/* Background decorative elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-gradient-to-br from-sky-400/20 to-cyan-400/20 rounded-full blur-3xl" />
@@ -150,26 +150,27 @@ export function HolidayApprovalModal({
           </div>
         ) : details ? (
           <div className="relative">
+            {/* Close Button */}
+            <button
+              onClick={() => onOpenChange(false)}
+              className="absolute right-5 top-5 z-10 p-2 rounded-xl text-slate-400 hover:text-slate-600 bg-white/50 hover:bg-white/80 dark:bg-slate-800/50 dark:hover:bg-slate-700/80 transition-all focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+            >
+              <X className="w-4 h-4" />
+              <span className="sr-only">Close</span>
+            </button>
+
             {/* Header Section */}
             <div className="relative px-6 pt-6 pb-4">
-              <div className="flex items-start justify-between mb-1">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 shadow-lg shadow-sky-500/25">
-                    <Palmtree className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
-                      Leave Request
-                    </h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Review and approve time off</p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 shadow-lg shadow-sky-500/25">
+                  <Palmtree className="w-5 h-5 text-white" />
                 </div>
-                <button
-                  onClick={() => onOpenChange(false)}
-                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <X className="w-5 h-5 text-slate-400" />
-                </button>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
+                    Leave Request
+                  </h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Review and approve time off</p>
+                </div>
               </div>
             </div>
 

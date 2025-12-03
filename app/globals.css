@@ -1629,7 +1629,7 @@ video {
 .fc .fc-day-today {
   background: hsl(var(--primary) / 0.06) !important;
   border-left: 1px solid hsl(var(--border) / 0.3) !important;
-  position: relative;
+  /* DO NOT set position: relative - it breaks multi-day event spanning */
 }
 
 /* Ensure no pseudo-element vertical bars on today */
@@ -1899,13 +1899,13 @@ video {
 /* Better event stacking without cutoff */
 .fc .fc-daygrid-event-harness {
   margin-top: 1px;
-  position: relative;
+  /* DO NOT set position: relative here - it breaks multi-day event spanning */
 }
 
 /* Ensure the day body expands to fit content */
 .fc .fc-daygrid-day-bg,
 .fc .fc-daygrid-day-bottom {
-  position: relative;
+  /* DO NOT set position: relative here - it breaks multi-day event spanning */
 }
 
 /* Responsive adjustments */
@@ -2074,12 +2074,12 @@ video {
 
   /* Calendar day cell design system */
   .cz-daycell {
-    position: relative;
+    /* DO NOT set position: relative - it breaks multi-day event spanning */
     border-radius: 0.5rem;
   }
 
   .cz-daycell__inner {
-    position: relative;
+    /* DO NOT set position: relative on inner elements either */
     min-height: 58px;
     padding: 4px 0;
   }
@@ -2132,16 +2132,9 @@ video {
       rgba(239, 68, 68, 0.16) 8px,
       rgba(239, 68, 68, 0.16) 16px
     );
-    position: relative;
-  }
-
-  .cz-daycell--blackout::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border: 2px dashed rgba(220, 38, 38, 0.4);
-    border-radius: inherit;
-    pointer-events: none;
+    /* Use outline instead of ::before pseudo-element to avoid position: relative */
+    outline: 2px dashed rgba(220, 38, 38, 0.4);
+    outline-offset: -2px;
   }
 
   .cz-daycell--heat-1 {
@@ -3134,7 +3127,8 @@ video {
 
 
 /* MULTI-DAY EVENTS: Allow FullCalendar to position spanning events correctly */
-/* DO NOT override left/right positioning - let FullCalendar calculate these for multi-day spans */
+/* CRITICAL: Do NOT set position: relative on day-level containers - it breaks multi-day spanning */
+/* Do NOT override left/right/width positioning - let FullCalendar calculate these */
 
 /* Ensure multi-day event bars stretch across days */
 .calendar-wrapper .fc .fc-h-event {
@@ -3153,13 +3147,8 @@ video {
   overflow: visible;
 }
 
-/* Allow overflow so multi-day events can span beyond cell boundaries */
-.calendar-wrapper .fc .fc-daygrid-body {
-  position: relative;
-}
-
-.calendar-wrapper .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
-  position: relative;
+/* Allow overflow for spanning events - but do NOT set position relative */
+.calendar-wrapper .fc .fc-daygrid-day-events {
   overflow: visible !important;
   pointer-events: auto;
 }
@@ -3168,25 +3157,40 @@ video {
   overflow: visible !important;
 }
 
-/* CRITICAL: Let FullCalendar control left/right for multi-day spanning */
-/* Only ensure visibility and overflow are correct */
+/* CRITICAL: Let FullCalendar control positioning for multi-day spanning */
+/* Only ensure visibility - do NOT set position or left/right/width */
 .calendar-wrapper .fc .fc-daygrid-event-harness-abs {
   visibility: visible !important;
   opacity: 1 !important;
-  display: block !important;
   overflow: visible !important;
-  z-index: 1;
+  /* Debug: make harness visible */
+  /* background: rgba(255, 0, 0, 0.1) !important; */
+}
+
+/* FORCE multi-day events to span - FullCalendar's default behavior */
+/* The harness should be positioned at row level, not cell level */
+.calendar-wrapper .fc .fc-daygrid-day-events {
+  /* This container should NOT clip spanning events */
+  overflow: visible !important;
+}
+
+/* Ensure event fills its container width */
+.calendar-wrapper .fc .fc-event,
+.calendar-wrapper .fc .fc-h-event {
+  width: 100% !important;
+}
+
+.calendar-wrapper .fc .fc-event-main {
+  width: 100% !important;
 }
 
 /* Day cells must allow overflow for spanning events */
 .calendar-wrapper .fc .fc-daygrid-day-frame {
   overflow: visible !important;
-  position: relative;
 }
 
 .calendar-wrapper .fc td.fc-daygrid-day {
   overflow: visible !important;
-  position: relative;
 }
 
 /* Scrollgrid must allow overflow for spanning */
@@ -3212,10 +3216,6 @@ video {
 }
 
 .calendar-wrapper .fc .fc-scrollgrid-sync-table tr {
-  overflow: visible !important;
-}
-
-html body .calendar-wrapper .fc .fc-scroller-harness {
   overflow: visible !important;
 }
 

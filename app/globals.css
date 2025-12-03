@@ -1702,10 +1702,8 @@ video {
   margin-bottom: 1px;
 }
 
-/* Default leave event background - blue gradient (inline styles will override this for special events) */
-.fc .fc-event:not(.fc-bg-event) {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-}
+/* Event background colors come from inline styles set by API (backgroundColor property) */
+/* No default background here - FullCalendar handles this via event data */
 
 .fc .fc-event:hover {
   transform: translateY(-1px);

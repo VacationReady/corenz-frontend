@@ -151,10 +151,8 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // Force blue color for annual leave events
-        const categoryName = req.EventCategory?.name ?? "";
-        const isAnnualLeave = categoryName.toLowerCase().includes("annual") || categoryName.toLowerCase().includes("holiday");
-        const eventColor = isAnnualLeave ? '#3B82F6' : (req.EventCategory?.color || '#3B82F6');
+        // Use category color from database, fallback to blue if not set
+        const eventColor = req.EventCategory?.color || '#3B82F6';
         
         // FullCalendar uses exclusive end dates for all-day events
         // Format dates as YYYY-MM-DD for proper multi-day spanning

@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
-import { PlusIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { PlusIcon, ChevronDownIcon, ChevronUpIcon, PencilIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AddCategoryModal from "@/components/AddCategoryModal";
 import AddSubcategoryModal from "@/components/AddSubcategoryModal";
+import EditCategoryModal from "@/components/EditCategoryModal";
 import { toast } from "react-hot-toast";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
@@ -28,6 +29,7 @@ interface EventCategory {
   systemDefined: boolean;
   subcategories?: Array<{ id: string; name: string }>;
   iconKey?: string | null;
+  color?: string | null;
 }
 
 export default function EventManagerPage() {
@@ -39,6 +41,9 @@ export default function EventManagerPage() {
     useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>("");
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<EventCategory | null>(null);
   // Search & filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"active" | "archived">(
@@ -181,6 +186,11 @@ export default function EventManagerPage() {
     setIsAddSubcategoryModalOpen(true);
   };
 
+  const handleOpenEditCategory = (category: EventCategory) => {
+    setEditingCategory(category);
+    setIsEditModalOpen(true);
+  };
+
   const handleArchiveCategory = async (categoryId: string) => {
     if (!confirm("Are you sure you want to archive this category?")) return;
     try {
@@ -292,6 +302,12 @@ export default function EventManagerPage() {
               <div key={category.id} className="glass-card rounded-2xl p-4 shadow-depth-1">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
+                    {/* Color indicator */}
+                    <div 
+                      className="w-3 h-10 rounded-full shrink-0"
+                      style={{ backgroundColor: category.color || '#3b82f6' }}
+                      title={`Color: ${category.color || '#3b82f6'}`}
+                    />
                     <div className="w-12">
                       <IconPicker
                         value={category.iconKey}
@@ -337,6 +353,14 @@ export default function EventManagerPage() {
                         </div>
                       </div>
                     ))}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleOpenEditCategory(category)}
+                      icon={<PencilIcon className="w-4 h-4" />}
+                    >
+                      Edit
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -397,6 +421,17 @@ export default function EventManagerPage() {
         onSuccess={fetchCategories}
         parentCategoryId={selectedCategoryId}
         parentCategoryName={selectedCategoryName}
+      />
+
+      {/* Edit Category Modal */}
+      <EditCategoryModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingCategory(null);
+        }}
+        onSuccess={fetchCategories}
+        category={editingCategory}
       />
     </PageShell>
   );

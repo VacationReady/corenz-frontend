@@ -320,9 +320,165 @@ export function PUT() {
   );
 }
 
-export function DELETE() {
-  return NextResponse.json(
-    { success: false, error: "Method Not Allowed" },
-    { status: 405 },
-  );
+export async function DELETE(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user || !session.user.companyId) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
+  const { id: leaveId } = await context.params;
+
+  try {
+    await ensurePrismaConnected();
+
+    // Fetch the leave request with related data
+    const leave = await prisma.leaveRequest.findUnique({
+      where: { id: leaveId },
+      include: {
+        Employee: {
+          include: { User: true },
+        },
+        EventCategory: true,
+        LeaveApprovalStage: true,
+      },
+    });
+
+    if (!leave || leave.companyId !== session.user.companyId) {
+      return NextResponse.json(
+        { success: false, error: "Leave request not found" },
+        { status: 404 },
+      );
+    }
+
+    const isAdminOrManager = ["ADMIN", "MANAGER"].includes(session.user.role);
+    const isOwnRequest = leave.Employee?.User?.id === session.user.id;
+
+    // Employees can only delete their own PENDING requests
+    if (!isAdminOrManager) {
+      if (!isOwnRequest) {
+        return NextResponse.json(
+          { success: false, error: "You can only delete your own leave requests" },
+          { status: 403 },
+        );
+      }
+      if (leave.approvalStatus !== "PENDING") {
+        return NextResponse.json(
+          { success: false, error: "You can only cancel pending leave requests" },
+          { status: 400 },
+        );
+      }
+    }
+
+    // If the leave was APPROVED, we need to return the deducted days to entitlement
+    if (leave.approvalStatus === "APPROVED") {
+      // Calculate how many days were deducted
+      const totalDays: number[] = [];
+      let currentDate = new Date(leave.startDate);
+      const endDate = new Date(leave.endDate);
+      const exclusiveEnd = new Date(endDate);
+      exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+
+      while (currentDate <= exclusiveEnd) {
+        const deduction = await calculateLeaveDeduction(
+          leave.employeeId,
+          currentDate,
+        );
+        totalDays.push(deduction);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
+
+      // Return the days to the entitlement
+      const entitlement = await prisma.leaveEntitlement.findFirst({
+        where: {
+          employeeId: leave.employeeId,
+          eventCategoryId: leave.eventCategoryId,
+        },
+      });
+
+      if (entitlement && totalDeduction > 0) {
+        await prisma.leaveEntitlement.update({
+          where: { id: entitlement.id },
+          data: { 
+            usedDays: Math.max(0, roundToTwoDecimals(entitlement.usedDays - totalDeduction))
+          },
+        });
+      }
+    }
+
+    // Cancel associated action items
+    await prisma.actionItem.updateMany({
+      where: {
+        type: "LEAVE_APPROVAL",
+        metadata: {
+          path: ["leaveRequestId"],
+          equals: leaveId,
+        },
+        status: "PENDING",
+      },
+      data: {
+        status: "CANCELLED",
+        completedAt: new Date(),
+      },
+    });
+
+    // Delete approval stages and decisions if any
+    if (leave.LeaveApprovalStage && leave.LeaveApprovalStage.length > 0) {
+      await prisma.leaveApprovalDecision.deleteMany({
+        where: {
+          stage: {
+            leaveRequestId: leaveId,
+          },
+        },
+      });
+      await prisma.leaveApprovalStage.deleteMany({
+        where: { leaveRequestId: leaveId },
+      });
+    }
+
+    // Delete the leave request
+    await prisma.leaveRequest.delete({
+      where: { id: leaveId },
+    });
+
+    // Create audit log
+    await prisma.globalAuditLog.create({
+      data: {
+        action: "DELETE",
+        entityType: "LeaveRequest",
+        entityId: leaveId,
+        companyId: session.user.companyId,
+        userId: session.user.id,
+        changes: {
+          deletedLeave: {
+            employeeId: leave.employeeId,
+            employeeName: leave.Employee?.User?.name || leave.Employee?.User?.email,
+            categoryName: leave.EventCategory?.name,
+            startDate: leave.startDate,
+            endDate: leave.endDate,
+            approvalStatus: leave.approvalStatus,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      message: "Leave request deleted successfully" 
+    });
+  } catch (error: any) {
+    console.error("[LEAVE_REQUEST_DELETE]", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to delete leave request" },
+      { status: 500 },
+    );
+  }
 }

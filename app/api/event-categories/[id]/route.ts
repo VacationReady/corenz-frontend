@@ -13,6 +13,7 @@ const UpdateEventCategorySchema = z.object({
   adminOnly: z.boolean().optional(),
   isActive: z.boolean().optional(),
   iconKey: z.string().optional(),
+  color: z.string().optional(),
 });
 
 // GET single event category

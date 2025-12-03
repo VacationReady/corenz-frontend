@@ -760,6 +760,10 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         </Popover>
       );
     }
+    const leaveRequestId = content.event.id;
+    // Only admins/managers can delete leave from calendar (which shows only approved leave)
+    const canDelete = !isEmployeeRole;
+    
     return (
       <Popover>
         <PopoverTrigger asChild>
@@ -779,12 +783,39 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
           <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4">
             <div className="flex items-center gap-3">
               <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={40} className="ring-2 ring-white shadow-lg" />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="font-semibold text-sm truncate">{employee?.name || content.event.title}</div>
                 {employee?.department ? (
                   <div className="text-xs text-muted-foreground truncate">{employee.department}</div>
                 ) : null}
               </div>
+              {canDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (confirm("Delete this leave request? This action cannot be undone.")) {
+                      try {
+                        const res = await fetch(`/api/leave-request/${leaveRequestId}`, {
+                          method: "DELETE",
+                        });
+                        if (!res.ok) {
+                          const data = await res.json();
+                          throw new Error(data.error || "Failed to delete");
+                        }
+                        toast.success("Leave request deleted");
+                        refreshCalendar();
+                      } catch (error: any) {
+                        toast.error(error.message || "Failed to delete leave request");
+                      }
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
           <div className="p-4 space-y-3">
@@ -1356,11 +1387,40 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                         {ev.employee?.department ?? ""}
                       </div>
                     </div>
-                    {ev.categoryName ? (
-                      <Badge className={cn("text-[10px]", getCategoryColor(ev.categoryName))}>
-                        {ev.categoryName}
-                      </Badge>
-                    ) : null}
+                    <div className="flex items-center gap-2">
+                      {ev.categoryName ? (
+                        <Badge className={cn("text-[10px]", getCategoryColor(ev.categoryName))}>
+                          {ev.categoryName}
+                        </Badge>
+                      ) : null}
+                      {!isEmployeeRole && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={async () => {
+                            if (confirm("Delete this leave request? This action cannot be undone.")) {
+                              try {
+                                const res = await fetch(`/api/leave-request/${ev.id}`, {
+                                  method: "DELETE",
+                                });
+                                if (!res.ok) {
+                                  const data = await res.json();
+                                  throw new Error(data.error || "Failed to delete");
+                                }
+                                toast.success("Leave request deleted");
+                                setInspectorDate(null);
+                                refreshCalendar();
+                              } catch (error: any) {
+                                toast.error(error.message || "Failed to delete leave request");
+                              }
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </motion.div>
                 ))}
               {leaveEventsInRange.filter((ev: any) => {

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import SectionHeading from "@/components/ui/SectionHeading";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface LeaveRequest {
   id: string;
@@ -14,6 +16,7 @@ interface LeaveRequest {
 export default function LeaveHistory() {
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [error, setError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchRequests = () => {
     fetch("/api/leave-request")
@@ -28,6 +31,37 @@ export default function LeaveHistory() {
   useEffect(() => {
     fetchRequests();
   }, []);
+
+  const handleDelete = async (id: string, status: string) => {
+    // Only allow deletion of pending requests for employees
+    if (status !== "PENDING") {
+      toast.error("Only pending leave requests can be cancelled");
+      return;
+    }
+
+    if (!confirm("Cancel this leave request? This action cannot be undone.")) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/leave-request/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete");
+      }
+
+      toast.success("Leave request cancelled");
+      fetchRequests();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to cancel leave request");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -45,6 +79,7 @@ export default function LeaveHistory() {
                 <th className="p-2 border text-left">Start Date</th>
                 <th className="p-2 border text-left">End Date</th>
                 <th className="p-2 border text-left">Status</th>
+                <th className="p-2 border text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -69,6 +104,18 @@ export default function LeaveHistory() {
                     >
                       {req.status}
                     </span>
+                  </td>
+                  <td className="p-2 border">
+                    {req.status === "PENDING" && (
+                      <button
+                        onClick={() => handleDelete(req.id, req.status)}
+                        disabled={deletingId === req.id}
+                        className="text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50"
+                        title="Cancel leave request"
+                      >
+                        <Trash2 className={`w-4 h-4 ${deletingId === req.id ? "animate-pulse" : ""}`} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

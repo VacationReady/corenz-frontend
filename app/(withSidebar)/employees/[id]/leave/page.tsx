@@ -20,7 +20,9 @@ import {
   XCircle,
   AlertCircle,
   Filter,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 import Button from "@/components/ui/Button";
@@ -143,10 +145,46 @@ function getStatusConfig(status?: string | null) {
 }
 
 // Leave Item Card Component
-function LeaveItemCard({ leave, index }: { leave: LeaveRequest; index: number }) {
+function LeaveItemCard({ 
+  leave, 
+  index, 
+  canDelete = false,
+  onDelete,
+}: { 
+  leave: LeaveRequest; 
+  index: number;
+  canDelete?: boolean;
+  onDelete?: (id: string) => void;
+}) {
   const statusConfig = getStatusConfig(leave.approvalStatus);
   const dayTypeLabel = getDayTypeLabel(leave.dayType);
   const StatusIcon = statusConfig?.icon;
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirm("Delete this leave request? This action cannot be undone.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/leave-request/${leave.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete");
+      }
+
+      toast.success("Leave request deleted");
+      onDelete?.(leave.id);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete leave request");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <motion.div
@@ -183,16 +221,34 @@ function LeaveItemCard({ leave, index }: { leave: LeaveRequest; index: number })
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-start gap-1 text-sm sm:items-end sm:text-right">
-          {dayTypeLabel && (
-            <Badge variant="outline" className="text-xs">
-              {dayTypeLabel}
-            </Badge>
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col items-start gap-1 text-sm sm:items-end sm:text-right">
+            {dayTypeLabel && (
+              <Badge variant="outline" className="text-xs">
+                {dayTypeLabel}
+              </Badge>
+            )}
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Clock className="w-3.5 h-3.5" />
+              {calculateDuration(leave.start, leave.end, leave.dayType)}
+            </span>
+          </div>
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className={cn(
+                "flex items-center justify-center w-8 h-8 rounded-lg",
+                "text-muted-foreground hover:text-destructive",
+                "hover:bg-destructive/10 transition-all",
+                "opacity-0 group-hover:opacity-100",
+                isDeleting && "opacity-50 cursor-not-allowed"
+              )}
+              title="Delete leave request"
+            >
+              <Trash2 className={cn("w-4 h-4", isDeleting && "animate-pulse")} />
+            </button>
           )}
-          <span className="flex items-center gap-1 text-muted-foreground">
-            <Clock className="w-3.5 h-3.5" />
-            {calculateDuration(leave.start, leave.end, leave.dayType)}
-          </span>
         </div>
       </div>
     </motion.div>
@@ -581,7 +637,13 @@ export default function LeavePage() {
           <div className="space-y-3">
             <AnimatePresence>
               {currentLeaves.map((leave, index) => (
-                <LeaveItemCard key={leave.id} leave={leave} index={index} />
+                <LeaveItemCard 
+                  key={leave.id} 
+                  leave={leave} 
+                  index={index}
+                  canDelete={isPrivileged}
+                  onDelete={refresh}
+                />
               ))}
             </AnimatePresence>
           </div>
@@ -611,7 +673,13 @@ export default function LeavePage() {
           <div className="space-y-3">
             <AnimatePresence>
               {upcomingLeaves.map((leave, index) => (
-                <LeaveItemCard key={leave.id} leave={leave} index={index} />
+                <LeaveItemCard 
+                  key={leave.id} 
+                  leave={leave} 
+                  index={index}
+                  canDelete={isPrivileged}
+                  onDelete={refresh}
+                />
               ))}
             </AnimatePresence>
           </div>

@@ -185,6 +185,7 @@ export async function GET(req: NextRequest) {
           categoryName: req.EventCategory?.name ?? null,
           categoryIconKey: req.EventCategory?.iconKey ?? null,
           eventCategoryId: req.EventCategory?.id ?? null,
+          approvalStatus: req.approvalStatus,
           backgroundColor: eventColor,
           borderColor: eventColor,
           textColor: '#FFFFFF',

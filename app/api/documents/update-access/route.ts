@@ -14,6 +14,7 @@ export async function PATCH(req: Request) {
 
   const {
     documentId,
+    name, // Optional: rename document
     canViewAdmin,
     canViewManager,
     canViewEmployee,
@@ -45,10 +46,12 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    // Update access flags, requiresAck, and reset department/job role M:N relations
+    // Update access flags, requiresAck, name (if provided), and reset department/job role M:N relations
     const updatedDoc = await prisma.document.update({
       where: { id: documentId },
       data: {
+        // Only update name if provided and non-empty (supports renaming)
+        ...(name?.trim() ? { name: name.trim() } : {}),
         canViewAdmin,
         canViewManager,
         canViewEmployee,

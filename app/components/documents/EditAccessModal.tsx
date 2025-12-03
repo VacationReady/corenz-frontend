@@ -11,8 +11,10 @@ import { MultiSelect } from "@/components/ui/MultiSelect";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { PenLine } from "lucide-react";
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -45,6 +47,7 @@ export default function EditAccessModal({
   isEmployeeDocument = false,
 }: EditAccessModalProps) {
   const tenantFetch = useTenantFetch();
+  const [documentName, setDocumentName] = useState("");
   const [deptIds, setDeptIds] = useState<string[]>([]);
   const [roleIds, setRoleIds] = useState<string[]>([]);
   const [canAdmin, setCanAdmin] = useState(false);
@@ -55,6 +58,7 @@ export default function EditAccessModal({
   const [signatureDueAt, setSignatureDueAt] = useState<string>("");
   const [signerDepartments, setSignerDepartments] = useState<string[]>([]);
   const [signerJobRoles, setSignerJobRoles] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const [departmentsList, setDepartmentsList] = useState<
     { label: string; value: string }[]
   >([]);
@@ -87,6 +91,7 @@ export default function EditAccessModal({
   // Populate fields when modal opens
   useEffect(() => {
     if (document) {
+      setDocumentName(document.name || "");
       setDeptIds(
         document.departments?.length
           ? document.departments.map((d) => d.id)
@@ -104,42 +109,57 @@ export default function EditAccessModal({
       setRequiresSignature(document.requiresSignature || false);
       setSignatureDueAt(document.signatureDueAt || "");
     }
-  }, [document, tenantFetch]);
+  }, [document]);
 
   const handleSave = async () => {
     if (!document) return;
-    const res = await tenantFetch("/api/documents/update-access", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        documentId: document.id,
-        canViewAdmin: canAdmin,
-        canViewManager: canManager,
-        canViewEmployee: canEmployee,
-        requiresAck, // ✅ Send to API
-        requiresSignature,
-        signatureDueAt: signatureDueAt || null,
-        signerDepartments: isEmployeeDocument ? [] : signerDepartments,
-        signerJobRoles: isEmployeeDocument ? [] : signerJobRoles,
-        departmentIds: isEmployeeDocument
-          ? []
-          : deptIds.includes("all")
+    
+    // Validate name is not empty
+    if (!documentName.trim()) {
+      toast.error("Document name cannot be empty");
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const res = await tenantFetch("/api/documents/update-access", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId: document.id,
+          name: documentName.trim(), // Include name for renaming
+          canViewAdmin: canAdmin,
+          canViewManager: canManager,
+          canViewEmployee: canEmployee,
+          requiresAck, // ✅ Send to API
+          requiresSignature,
+          signatureDueAt: signatureDueAt || null,
+          signerDepartments: isEmployeeDocument ? [] : signerDepartments,
+          signerJobRoles: isEmployeeDocument ? [] : signerJobRoles,
+          departmentIds: isEmployeeDocument
             ? []
-            : deptIds,
-        jobRoleIds: isEmployeeDocument
-          ? []
-          : roleIds.includes("all")
+            : deptIds.includes("all")
+              ? []
+              : deptIds,
+          jobRoleIds: isEmployeeDocument
             ? []
-            : roleIds,
-      }),
-    });
+            : roleIds.includes("all")
+              ? []
+              : roleIds,
+        }),
+      });
 
-    if (res.ok) {
-      toast("Access updated successfully");
-      onSaved();
-      onClose();
-    } else {
-      toast("Failed to update access");
+      if (res.ok) {
+        toast.success("Document updated successfully");
+        onSaved();
+        onClose();
+      } else {
+        toast.error("Failed to update document");
+      }
+    } catch (error) {
+      toast.error("An error occurred while saving");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -147,12 +167,32 @@ export default function EditAccessModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Edit Access: {document.name}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <PenLine className="w-5 h-5 text-emerald-600" />
+            Edit Document
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Document Name (Rename) */}
+          <div className="space-y-2">
+            <Label htmlFor="document-name" className="text-sm font-medium">
+              Document Name
+            </Label>
+            <Input
+              id="document-name"
+              value={documentName}
+              onChange={(e) => setDocumentName(e.target.value)}
+              placeholder="Enter document name"
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500">
+              Change the display name for this document.
+            </p>
+          </div>
+
           {/* Only show department/job role if NOT employee-specific */}
           {!isEmployeeDocument && (
             <>
@@ -246,8 +286,12 @@ export default function EditAccessModal({
             </div>
           )}
 
-          <Button onClick={handleSave} className="w-full mt-4">
-            Save Changes
+          <Button 
+            onClick={handleSave} 
+            className="w-full mt-4"
+            disabled={isSaving || !documentName.trim()}
+          >
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </DialogContent>

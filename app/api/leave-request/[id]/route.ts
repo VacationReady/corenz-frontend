@@ -452,7 +452,7 @@ export async function DELETE(
     // Create audit log
     await prisma.globalAuditLog.create({
       data: {
-        action: "DELETE",
+        action: "DELETED",
         entityType: "LeaveRequest",
         entityId: leaveId,
         companyId: session.user.companyId,

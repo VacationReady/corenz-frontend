@@ -35,6 +35,35 @@
   ],
   "headers": [
     {
+      "source": "/setup-admin",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self' https://*.supabase.co https://api.resend.com; object-src 'self' blob: https://*.supabase.co data:; frame-src 'self' blob: https://*.supabase.co; img-src 'self' https: data: blob:; media-src 'self' blob:; connect-src 'self' https://*.supabase.co https://api.resend.com https://nominatim.openstreetmap.org; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; frame-ancestors 'self' https://people-core-website.vercel.app https://*.peoplecore.co.nz https://peoplecore.co.nz"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "accelerometer=(), camera=(), geolocation=(), microphone=(), payment=(), usb=(), interest-cohort=()"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {

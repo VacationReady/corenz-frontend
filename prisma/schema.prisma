@@ -2238,6 +2238,7 @@ enum AuditActorType {
 
 enum AuditEntityType {
   LEAVE_POLICY
+  LEAVE_REQUEST
   PERMISSION_PROFILE
   EVENT_RULE
   DOCUMENT_TYPE

@@ -444,6 +444,16 @@ export async function DELETE(
       });
     }
 
+    // Store details before deletion for audit log
+    const auditDetails = {
+      employeeId: leave.employeeId,
+      employeeName: leave.Employee?.User?.name || leave.Employee?.User?.email,
+      categoryName: leave.EventCategory?.name,
+      startDate: leave.startDate,
+      endDate: leave.endDate,
+      approvalStatus: leave.approvalStatus,
+    };
+
     // Delete the leave request
     await prisma.leaveRequest.delete({
       where: { id: leaveId },
@@ -452,21 +462,14 @@ export async function DELETE(
     // Create audit log
     await prisma.globalAuditLog.create({
       data: {
+        id: crypto.randomUUID(),
         action: "DELETED",
-        entityType: "LeaveRequest",
+        entityType: "LEAVE_REQUEST",
         entityId: leaveId,
         companyId: session.user.companyId,
-        userId: session.user.id,
-        changes: {
-          deletedLeave: {
-            employeeId: leave.employeeId,
-            employeeName: leave.Employee?.User?.name || leave.Employee?.User?.email,
-            categoryName: leave.EventCategory?.name,
-            startDate: leave.startDate,
-            endDate: leave.endDate,
-            approvalStatus: leave.approvalStatus,
-          },
-        },
+        actorId: session.user.id,
+        actorType: "USER",
+        changes: auditDetails,
       },
     });
 

@@ -99,14 +99,14 @@ export async function PATCH(
     }
 
     if (category.systemDefined) {
-      // Allow editing iconKey for system-defined categories, but prevent other changes
-      const { iconKey, ...rest } = parse.data;
+      // Allow editing iconKey and color for system-defined categories, but prevent other changes
+      const { iconKey, color, ...rest } = parse.data;
       // Check if any other fields are being updated
       const hasRestUpdates = Object.values(rest).some((val) => val !== undefined);
 
       if (hasRestUpdates) {
         return NextResponse.json(
-          { success: false, error: "Cannot edit system-defined categories properties except icon." },
+          { success: false, error: "Cannot edit system-defined categories properties except icon and color." },
           { status: 400 },
         );
       }

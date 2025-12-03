@@ -80,17 +80,23 @@ export default function EditCategoryModal({
     setLoading(true);
 
     try {
+      // For system-defined categories, only send icon and color
+      // For custom categories, send all fields
+      const payload = category.systemDefined
+        ? { iconKey, color }
+        : {
+            name,
+            requiresApproval,
+            adminOnly,
+            color,
+            isActive,
+            iconKey,
+          };
+
       const res = await fetch(`/api/event-categories/${category.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          requiresApproval,
-          adminOnly,
-          color,
-          isActive,
-          iconKey,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();

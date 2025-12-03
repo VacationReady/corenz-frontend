@@ -2,15 +2,13 @@
 const path = require("path");
 
 // CSP configuration that's different for dev and production
-const getCsp = (isDev, allowFraming = false) => {
+const getCsp = (isDev) => {
   const scriptSrc = isDev
     ? "'self' 'unsafe-eval' 'unsafe-inline'" // Dev needs unsafe-eval for webpack HMR
     : "'self'"; // Production stays strict
   
-  // Allow framing from marketing site for setup-admin page
-  const frameAncestors = allowFraming 
-    ? "'self' https://people-core-website.vercel.app https://*.peoplecore.co.nz https://peoplecore.co.nz"
-    : "'none'";
+  // Allow framing from marketing site (peoplecore.co.nz) for embedding
+  const frameAncestors = "'self' https://people-core-website.vercel.app https://*.peoplecore.co.nz https://peoplecore.co.nz https://www.peoplecore.co.nz";
   
   return [
     "default-src 'self' https://*.supabase.co https://api.resend.com",
@@ -44,19 +42,11 @@ const nextConfig = {
     const isDev = process.env.NODE_ENV === 'development';
     
     return [
-      // Setup admin page - allow framing for marketing site embed
+      // All pages - allow framing from peoplecore.co.nz
       {
-        source: "/setup-admin",
+        source: "/(.*)",
         headers: [
-          { key: "Content-Security-Policy", value: getCsp(isDev, true) },
-          { key: "Permissions-Policy", value: "geolocation=(self), camera=(self)" },
-        ],
-      },
-      // All other pages - strict no framing (excluding setup-admin which allows framing)
-      {
-        source: "/((?!setup-admin).*)",
-        headers: [
-          { key: "Content-Security-Policy", value: getCsp(isDev, false) },
+          { key: "Content-Security-Policy", value: getCsp(isDev) },
           { key: "Permissions-Policy", value: "geolocation=(self), camera=(self)" },
         ],
       },

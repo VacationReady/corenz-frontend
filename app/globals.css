@@ -3133,19 +3133,8 @@ video {
 }
 
 
-/* FIX: Multi-day events must span across days */
-.calendar-wrapper .fc .fc-daygrid-event-harness {
-  position: relative !important;
-}
-
-.calendar-wrapper .fc .fc-daygrid-event-harness-abs {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  visibility: visible !important;
-  display: block !important;
-}
+/* MULTI-DAY EVENTS: Allow FullCalendar to position spanning events correctly */
+/* DO NOT override left/right positioning - let FullCalendar calculate these for multi-day spans */
 
 /* Ensure multi-day event bars stretch across days */
 .calendar-wrapper .fc .fc-h-event {
@@ -3158,63 +3147,71 @@ video {
   min-width: 0;
 }
 
-/* Fix event rendering in day grid */
-.calendar-wrapper .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
-  position: relative !important;
-  pointer-events: auto !important;
-}
-
-/* Ensure events are not constrained */
+/* Ensure events are visible and not clipped */
 .calendar-wrapper .fc .fc-daygrid-block-event {
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
 }
 
-
-/* CRITICAL FIX: Multi-day events MUST span across days */
-/* Override everything with maximum specificity */
-html body .calendar-wrapper .fc .fc-daygrid-body {
-  position: relative !important;
+/* Allow overflow so multi-day events can span beyond cell boundaries */
+.calendar-wrapper .fc .fc-daygrid-body {
+  position: relative;
 }
 
-html body .calendar-wrapper .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
-  position: relative !important;
+.calendar-wrapper .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
+  position: relative;
+  overflow: visible !important;
+  pointer-events: auto;
+}
+
+.calendar-wrapper .fc .fc-daygrid-event-harness {
   overflow: visible !important;
 }
 
-html body .calendar-wrapper .fc-daygrid-event-harness {
-  overflow: visible !important;
-}
-
-html body .calendar-wrapper .fc-daygrid-event-harness-abs {
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  margin: 0 !important;
+/* CRITICAL: Let FullCalendar control left/right for multi-day spanning */
+/* Only ensure visibility and overflow are correct */
+.calendar-wrapper .fc .fc-daygrid-event-harness-abs {
   visibility: visible !important;
   opacity: 1 !important;
   display: block !important;
   overflow: visible !important;
-  z-index: 1 !important;
+  z-index: 1;
 }
 
-/* The day-events container needs overflow visible for spanning events */
-html body .calendar-wrapper .fc .fc-daygrid-day-frame {
+/* Day cells must allow overflow for spanning events */
+.calendar-wrapper .fc .fc-daygrid-day-frame {
   overflow: visible !important;
-  position: relative !important;
+  position: relative;
 }
 
-html body .calendar-wrapper .fc td.fc-daygrid-day {
+.calendar-wrapper .fc td.fc-daygrid-day {
   overflow: visible !important;
-  position: relative !important;
+  position: relative;
 }
 
-/* Ensure scrollgrid allows overflow */
-html body .calendar-wrapper .fc .fc-scrollgrid-sync-inner {
+/* Scrollgrid must allow overflow for spanning */
+.calendar-wrapper .fc .fc-scrollgrid-sync-inner {
   overflow: visible !important;
 }
 
-html body .calendar-wrapper .fc .fc-scroller {
+.calendar-wrapper .fc .fc-scroller {
+  overflow: visible !important;
+}
+
+.calendar-wrapper .fc .fc-scroller-harness {
+  overflow: visible !important;
+}
+
+/* Table cells must not clip spanning events */
+.calendar-wrapper .fc .fc-scrollgrid-sync-table {
+  overflow: visible !important;
+}
+
+.calendar-wrapper .fc .fc-scrollgrid-sync-table tbody {
+  overflow: visible !important;
+}
+
+.calendar-wrapper .fc .fc-scrollgrid-sync-table tr {
   overflow: visible !important;
 }
 

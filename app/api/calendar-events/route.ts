@@ -158,17 +158,27 @@ export async function GET(req: NextRequest) {
         
         // FullCalendar uses exclusive end dates for all-day events
         // Format dates as YYYY-MM-DD for proper multi-day spanning
+        // Use UTC methods to avoid timezone shifts
         const startDate = new Date(req.startDate);
         const endDate = new Date(req.endDate);
-        endDate.setDate(endDate.getDate() + 1); // Add 1 day for exclusive end
         
-        const formatDate = (d: Date) => d.toISOString().split('T')[0];
+        // Format date preserving the intended date regardless of timezone
+        const formatDateLocal = (d: Date) => {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+        
+        // Add 1 day for exclusive end (FullCalendar convention for all-day events)
+        const exclusiveEndDate = new Date(endDate);
+        exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
         
         return {
           id: req.id,
           title: `${req.EventCategory?.name ?? "Leave"} - ${displayName}`,
-          start: formatDate(startDate),
-          end: formatDate(endDate),
+          start: formatDateLocal(startDate),
+          end: formatDateLocal(exclusiveEndDate),
           allDay: true,
           type: "leave",
           reason: req.reason ?? null,

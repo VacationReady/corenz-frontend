@@ -52,9 +52,9 @@ const nextConfig = {
           { key: "Permissions-Policy", value: "geolocation=(self), camera=(self)" },
         ],
       },
-      // All other pages - strict no framing
+      // All other pages - strict no framing (excluding setup-admin which allows framing)
       {
-        source: "/(.*)",
+        source: "/((?!setup-admin).*)",
         headers: [
           { key: "Content-Security-Policy", value: getCsp(isDev, false) },
           { key: "Permissions-Policy", value: "geolocation=(self), camera=(self)" },

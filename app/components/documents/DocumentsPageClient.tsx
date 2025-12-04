@@ -35,7 +35,8 @@ import {
   Sparkles,
   TrendingUp,
   Calendar,
-  Eye as EyeIcon
+  Eye as EyeIcon,
+  Info
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { apiClient } from "@/lib/apiClient";
@@ -1388,9 +1389,19 @@ function DocumentsContent() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <Users className="w-5 h-5 text-slate-400" />
-                        <div>
-                          <p className="text-sm font-medium">Auto-assign to New Starters</p>
-                          <p className="text-xs text-slate-500">Include in onboarding package</p>
+                        <div className="flex items-center gap-1.5">
+                          <div>
+                            <p className="text-sm font-medium">Auto-assign to New Starters</p>
+                            <p className="text-xs text-slate-500">Include in onboarding package</p>
+                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-center">
+                              This document will automatically appear in onboarding journey templates and new starters will be required to acknowledge it during their onboarding.
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </div>
                       <Switch checked={requireAckFromNewStarters} onChange={setRequireAckFromNewStarters} />

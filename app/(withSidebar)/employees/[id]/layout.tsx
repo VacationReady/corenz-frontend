@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
-import { canAccessEmployee } from "@/lib/permissions";
+import { canAccessEmployee, getAccessibleEmployeeScreens, UserWithProfile } from "@/lib/permissions";
 import EmployeeNavClient from "./EmployeeNavClient";
 
 export default async function EmployeeLayout({
@@ -111,39 +111,71 @@ export default async function EmployeeLayout({
   ]);
   forms = forms.filter((f: any) => !hiddenSlugs.has(f.slug));
 
-  const menu = [
-    { href: `/employees/${id}/overview`, label: "Overview" },
+  // Fetch the current user with their permission profile to filter menu
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { PermissionProfile: true },
+  });
+
+  // Get accessible screens for the current user
+  const userWithProfile: UserWithProfile = currentUser ? {
+    ...currentUser,
+    permissionProfile: currentUser.PermissionProfile,
+  } : { role: session.user.role } as UserWithProfile;
+  
+  const accessibleScreens = getAccessibleEmployeeScreens(userWithProfile);
+  const hasFullEmployeesAccess = accessibleScreens.includes("employees");
+  
+  // Check if user is viewing their own profile
+  const isOwnProfile = employee.userId === session.user.id;
+
+  // Build the full menu
+  const fullMenu = [
+    { href: `/employees/${id}/overview`, label: "Overview", screenKey: "employee-overview" },
     {
       href: `/employees/${id}/personal-information`,
       label: "Personal information",
+      screenKey: "employee-personal-information",
     },
-    // Merged into Personal information
-    { href: `/employees/${id}/leave`, label: "Leave" },
-    { href: `/employees/${id}/documents`, label: "Documents" },
+    { href: `/employees/${id}/leave`, label: "Leave", screenKey: "employee-leave" },
+    { href: `/employees/${id}/documents`, label: "Documents", screenKey: "employee-documents" },
     ...forms.map((form: any) => ({
       href: `/employees/${id}/${form.slug}`,
       label: form.name,
+      screenKey: "employee-forms", // Forms use the general forms permission
     })),
-    { href: `/employees/${id}/employment-details`, label: "Employment Details" },
-    { href: `/employees/${id}/emergency-contacts`, label: "Emergency Contacts" },
-    { href: `/employees/${id}/bank-payroll`, label: "Bank & Payroll" },
-    { href: `/employees/${id}/performance`, label: "Performance" },
-    { href: `/employees/${id}/onboarding`, label: "Onboarding History" },
+    { href: `/employees/${id}/employment-details`, label: "Employment Details", screenKey: "employee-employment-details" },
+    { href: `/employees/${id}/emergency-contacts`, label: "Emergency Contacts", screenKey: "employee-emergency-contacts" },
+    { href: `/employees/${id}/bank-payroll`, label: "Bank & Payroll", screenKey: "employee-bank-payroll" },
+    { href: `/employees/${id}/performance`, label: "Performance", screenKey: "employee-performance" },
+    { href: `/employees/${id}/onboarding`, label: "Onboarding History", screenKey: "employee-onboarding" },
     // Show offboarding tab for archived employees or if they have an offboarding record
     ...(employee.EmployeeOffboarding || !employee.isActive
-      ? [{ href: `/employees/${id}/offboarding`, label: "Offboarding" }]
+      ? [{ href: `/employees/${id}/offboarding`, label: "Offboarding", screenKey: "employee-offboarding" }]
       : []),
     {
       href: `/employees/${id}/driver-licenses`,
       label: "Driver Licenses",
+      screenKey: "employee-driver-licenses",
     },
-    { href: `/employees/${id}/training`, label: "Training" },
+    { href: `/employees/${id}/training`, label: "Training", screenKey: "employee-training" },
     {
       href: `/employees/${id}/employment-checks`,
       label: "Employment Checks",
+      screenKey: "employee-employment-checks",
     },
-    { href: `/employees/${id}/settings`, label: "Settings" },
+    { href: `/employees/${id}/settings`, label: "Settings", screenKey: "employee-settings" },
   ];
+
+  // Filter menu based on permissions
+  // - If viewing own profile, show all screens (employees can see their own data)
+  // - If user has full "employees" access, show all screens
+  // - Otherwise, only show screens they have specific permission for
+  const menu = fullMenu.filter((item) => {
+    if (isOwnProfile) return true;
+    if (hasFullEmployeesAccess) return true;
+    return accessibleScreens.includes(item.screenKey);
+  }).map(({ href, label }) => ({ href, label }));
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-background via-primary-50/30 to-background">

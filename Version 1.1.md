@@ -47,3 +47,7 @@ Fixed an issue where shift details showed "Employee" instead of the actual emplo
 ## 12. Calendar Shifts Removed
 
 Removed shifts from the /calendar page to reduce visual clutter. The calendar now focuses on leave events, blackout days, and public holidays, while shifts remain accessible via the dedicated /rota page.
+
+## 13. Shift-Based Pattern Employee Dropdown Fix
+
+Fixed an issue where employees assigned a shift-based working pattern via their settings page weren't appearing in the rota shift creation dropdown, by updating the employees API to check both the direct WorkingPattern relationship and the EmployeeWorkingPatternAssignment table.

@@ -134,9 +134,13 @@ export function getAvailableScreens(): string[] {
     "permissions",
     // Employee detail screens
     "employee-overview",
+    "employee-personal-information",
     "employee-documents",
     "employee-driver-licenses",
     "employee-employment-checks",
+    "employee-employment-details",
+    "employee-emergency-contacts",
+    "employee-bank-payroll",
     "employee-forms",
     "employee-leave",
     "employee-offboarding",
@@ -212,9 +216,13 @@ export function getScreenDisplayName(screen: string): string {
     permissions: "Permissions",
     // Employee detail screens
     "employee-overview": "Employee Overview",
+    "employee-personal-information": "Employee Personal Information",
     "employee-documents": "Employee Documents",
     "employee-driver-licenses": "Employee Driver Licenses",
     "employee-employment-checks": "Employee Employment Checks",
+    "employee-employment-details": "Employee Employment Details",
+    "employee-emergency-contacts": "Employee Emergency Contacts",
+    "employee-bank-payroll": "Employee Bank & Payroll",
     "employee-forms": "Employee Forms",
     "employee-leave": "Employee Leave",
     "employee-offboarding": "Employee Offboarding",
@@ -241,11 +249,36 @@ export function getActionDisplayName(action: PermissionAction): string {
 }
 
 /**
+ * List of employee profile sub-screens that grant access to employee profiles
+ */
+export const EMPLOYEE_PROFILE_SCREENS = [
+  "employee-overview",
+  "employee-documents",
+  "employee-driver-licenses",
+  "employee-employment-checks",
+  "employee-forms",
+  "employee-leave",
+  "employee-offboarding",
+  "employee-onboarding",
+  "employee-performance",
+  "employee-settings",
+  "employee-training",
+  "employee-personal-information",
+  "employee-employment-details",
+  "employee-emergency-contacts",
+  "employee-bank-payroll",
+] as const;
+
+export type EmployeeProfileScreen = typeof EMPLOYEE_PROFILE_SCREENS[number];
+
+/**
  * Determines if the requesting user can access a target employee record.
  * Access rules:
  * - ADMIN and SUPER_ADMIN can access any employee in their company
  * - A user can access their own employee record
  * - A MANAGER can access employees whose user.managerId = requestor.id
+ * - A user with "employees" read permission via their permission profile can access any employee
+ * - A user with ANY employee-* screen read permission can access employee profiles (limited to those screens)
  */
 export async function canAccessEmployee(
   requestor: {
@@ -275,6 +308,34 @@ export async function canAccessEmployee(
   // Self-access
   if (target.userId === requestor.id) return true;
 
+  // Check if user has "employees" or any "employee-*" read permission via their permission profile
+  const requestorUser = await prisma.user.findUnique({
+    where: { id: requestor.id },
+    include: {
+      PermissionProfile: true,
+    },
+  });
+
+  if (requestorUser) {
+    const userWithProfile: UserWithProfile = {
+      ...requestorUser,
+      permissionProfile: requestorUser.PermissionProfile,
+    };
+    
+    // If user has "employees" read permission via profile, allow full access
+    if (hasPermission(userWithProfile, "employees", "read")) {
+      return true;
+    }
+    
+    // Check if user has ANY employee-* screen permission - if so, allow access to profile
+    // (individual pages should then check their specific permissions)
+    for (const screen of EMPLOYEE_PROFILE_SCREENS) {
+      if (hasPermission(userWithProfile, screen, "read")) {
+        return true;
+      }
+    }
+  }
+
   if (requestor.role === "EMPLOYEE") {
     return false;
   }
@@ -286,6 +347,32 @@ export async function canAccessEmployee(
   }
 
   return false;
+}
+
+/**
+ * Gets the list of employee profile screens the user has access to
+ */
+export function getAccessibleEmployeeScreens(user: UserWithProfile): string[] {
+  // ADMIN and SUPER_ADMIN have access to all screens
+  if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+    return ["employees", ...EMPLOYEE_PROFILE_SCREENS];
+  }
+  
+  const accessibleScreens: string[] = [];
+  
+  // Check main "employees" permission
+  if (hasPermission(user, "employees", "read")) {
+    accessibleScreens.push("employees");
+  }
+  
+  // Check individual employee-* screens
+  for (const screen of EMPLOYEE_PROFILE_SCREENS) {
+    if (hasPermission(user, screen, "read")) {
+      accessibleScreens.push(screen);
+    }
+  }
+  
+  return accessibleScreens;
 }
 
 // ... (rest of the code remains the same)

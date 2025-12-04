@@ -268,7 +268,10 @@ export default function ViewFullDayModal({
       return acc + hours;
     }, 0);
 
-    const totalCost = filteredShifts.reduce((acc, shift) => acc + (shift.cost || 0), 0);
+    const totalCost = filteredShifts.reduce((acc, shift) => {
+      const cost = shift.cost != null ? Number(shift.cost) : 0;
+      return acc + (isNaN(cost) ? 0 : cost);
+    }, 0);
 
     const byStatus = {
       scheduled: filteredShifts.filter(s => s.attendanceStatus === 'SCHEDULED').length,
@@ -565,10 +568,10 @@ export default function ViewFullDayModal({
                       </div>
 
                       {/* Cost (if available) */}
-                      {shift.cost !== null && shift.cost !== undefined && (
+                      {shift.cost != null && !isNaN(Number(shift.cost)) && (
                         <div className="absolute top-4 right-4 flex items-center gap-1 text-emerald-400/80 text-sm font-medium opacity-60 group-hover:opacity-100 transition-opacity">
                           <DollarSign className="h-3.5 w-3.5" />
-                          {typeof shift.cost === 'number' ? shift.cost.toFixed(2) : parseFloat(String(shift.cost)).toFixed(2)}
+                          {Number(shift.cost).toFixed(2)}
                         </div>
                       )}
                     </div>

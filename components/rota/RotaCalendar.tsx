@@ -300,17 +300,15 @@ export default function RotaCalendar({
                             onViewFullDay(day, dayShifts);
                           }}
                           className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all",
-                            "bg-gradient-to-r from-blue-600/20 to-blue-500/10 hover:from-blue-600/30 hover:to-blue-500/20",
+                            "flex items-center justify-center p-1 rounded transition-all",
+                            "bg-blue-600/20 hover:bg-blue-600/40",
                             "border border-blue-500/30 hover:border-blue-500/50",
                             "text-blue-300 hover:text-blue-200",
-                            "opacity-0 group-hover:opacity-100 focus:opacity-100",
-                            "shadow-sm hover:shadow-md shadow-blue-500/10"
+                            "opacity-0 group-hover:opacity-100 focus:opacity-100"
                           )}
                           title="View full day"
                         >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">View day</span>
+                          <Eye className="w-3 h-3" />
                         </button>
                       )}
                     </div>

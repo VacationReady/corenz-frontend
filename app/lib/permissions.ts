@@ -61,10 +61,13 @@ export const DEFAULT_PERMISSIONS: Record<string, ScreenPermissions> = {
  * Resolves the effective permissions for a user based on their role and permission profile
  */
 export function resolvePermissions(user: UserWithProfile): ScreenPermissions {
+  // Check for permission profile - handle both camelCase and PascalCase (Prisma includes)
+  const profile = user.permissionProfile || (user as any).PermissionProfile;
+  
   // If user has a custom permission profile, use it
-  if (user.permissionProfile) {
+  if (profile) {
     try {
-      const raw = user.permissionProfile.permissions as unknown;
+      const raw = profile.permissions as unknown;
       const profilePermissions =
         typeof raw === "string"
           ? (JSON.parse(raw) as ScreenPermissions)

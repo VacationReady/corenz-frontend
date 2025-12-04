@@ -29,7 +29,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { Shield, Clock, User, ChevronDown, ChevronRight } from "lucide-react";
+import { Shield, Clock, User, ChevronDown, ChevronRight, History, Eye } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { PermissionDiff } from "./PermissionDiff";
@@ -97,7 +98,6 @@ export function PermissionProfileManagement({
   const [selectedProfileId, setSelectedProfileId] = useState<string>("");
   const [note, setNote] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [expandedAudits, setExpandedAudits] = useState<Set<string>>(new Set());
   const [screensMeta, setScreensMeta] = useState<{
     screens: { key: string; label: string }[];
     actions: { key: "read" | "edit" | "delete"; label: string }[];
@@ -106,6 +106,57 @@ export function PermissionProfileManagement({
   const [customPermissionsDraft, setCustomPermissionsDraft] = useState<
     Record<string, ("read" | "edit" | "delete")[]>
   >({});
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+
+  // Helper to format profile name for display
+  const formatProfileName = (name: string | null | undefined, fallbackRole: string) => {
+    if (!name) return `Default (${fallbackRole})`;
+    if (name.startsWith("USER_") && name.endsWith("_OVERRIDES")) {
+      return "Custom Permissions";
+    }
+    return name;
+  };
+
+  // Helper to describe permission changes in plain English
+  const describePermissionChange = (audit: PermissionAudit) => {
+    const oldName = formatProfileName(audit.oldProfile?.name, userPermissions?.user.role || "Employee");
+    const newName = formatProfileName(audit.newProfile?.name, userPermissions?.user.role || "Employee");
+    
+    if (oldName === newName && audit.oldPermissions && audit.newPermissions) {
+      // Same profile, but permissions changed (custom permissions update)
+      try {
+        const oldPerms = typeof audit.oldPermissions === "string" ? JSON.parse(audit.oldPermissions) : audit.oldPermissions;
+        const newPerms = typeof audit.newPermissions === "string" ? JSON.parse(audit.newPermissions) : audit.newPermissions;
+        
+        const changes: string[] = [];
+        const allScreens = new Set([...Object.keys(oldPerms || {}), ...Object.keys(newPerms || {})]);
+        
+        allScreens.forEach(screen => {
+          const oldActions = new Set(oldPerms?.[screen] || []);
+          const newActions = new Set(newPerms?.[screen] || []);
+          const screenLabel = screensMeta?.screens.find(s => s.key === screen)?.label || screen;
+          
+          const added = [...newActions].filter(a => !oldActions.has(a));
+          const removed = [...oldActions].filter(a => !newActions.has(a));
+          
+          if (added.length > 0) {
+            changes.push(`Added ${added.join(", ")} access to ${screenLabel}`);
+          }
+          if (removed.length > 0) {
+            changes.push(`Removed ${removed.join(", ")} access from ${screenLabel}`);
+          }
+        });
+        
+        if (changes.length > 0) {
+          return changes.slice(0, 2).join("; ") + (changes.length > 2 ? ` (+${changes.length - 2} more)` : "");
+        }
+      } catch {
+        // Fall through to default
+      }
+    }
+    
+    return `Changed from ${oldName} to ${newName}`;
+  };
 
   useEffect(() => {
     fetchData();
@@ -220,16 +271,6 @@ export function PermissionProfileManagement({
     } finally {
       setChanging(false);
     }
-  };
-
-  const toggleAuditExpansion = (auditId: string) => {
-    const newExpanded = new Set(expandedAudits);
-    if (newExpanded.has(auditId)) {
-      newExpanded.delete(auditId);
-    } else {
-      newExpanded.add(auditId);
-    }
-    setExpandedAudits(newExpanded);
   };
 
   const getCurrentProfileDisplay = () => {
@@ -392,83 +433,120 @@ export function PermissionProfileManagement({
         </Card>
       )}
 
-      {/* Audit Trail */}
+      {/* Permission Changes - Compact Summary */}
       {userPermissions.auditTrail && userPermissions.auditTrail.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Permission Changes
-            </CardTitle>
-            <CardDescription>
-              History of permission profile changes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {userPermissions.auditTrail.filter(audit => audit && audit.id).slice(0, 5).map((audit) => {
-                const hasPermissionDiff =
-                  audit.oldPermissions && audit.newPermissions;
-                const isExpanded = expandedAudits.has(audit.id);
-
-                return (
-                  <div
-                    key={audit.id}
-                    className="border rounded-md overflow-hidden"
-                  >
-                    <div
-                      className="flex items-start justify-between p-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                      onClick={() =>
-                        hasPermissionDiff && toggleAuditExpansion(audit.id)
-                      }
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm font-medium">
-                            Changed by{" "}
-                            {audit.changedBy?.name || audit.changedBy?.email || "Unknown"}
-                          </span>
-                          {hasPermissionDiff &&
-                            (isExpanded ? (
-                              <ChevronDown className="h-4 w-4 text-gray-500" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-gray-500" />
-                            ))}
-                        </div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          {audit.oldProfile?.name ||
-                            `Default (${userPermissions.user.role})`}{" "}
-                          →{" "}
-                          {audit.newProfile?.name ||
-                            `Default (${userPermissions.user.role})`}
-                        </div>
-                        {audit.note && (
-                          <p className="text-sm text-gray-500 mt-1 italic">
-                            &ldquo;{audit.note}&rdquo;
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {format(new Date(audit.changedAt), "MMM d, yyyy HH:mm")}
-                      </div>
-                    </div>
-
-                    {hasPermissionDiff && isExpanded && (
-                      <div className="p-3 border-t bg-white">
-                        <PermissionDiff
-                          oldPermissions={JSON.parse(audit.oldPermissions)}
-                          newPermissions={JSON.parse(audit.newPermissions)}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base">Permission Changes</CardTitle>
+                <Badge variant="secondary" className="text-xs">
+                  {userPermissions.auditTrail.length} change{userPermissions.auditTrail.length !== 1 ? "s" : ""}
+                </Badge>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowHistoryModal(true)}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                View all changes
+              </Button>
             </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {/* Show most recent change as a summary */}
+            {userPermissions.auditTrail.filter(a => a && a.id)[0] && (() => {
+              const latestAudit = userPermissions.auditTrail.filter(a => a && a.id)[0];
+              return (
+                <div className="text-sm p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-foreground">Latest change</span>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(latestAudit.changedAt), "MMM d, yyyy 'at' h:mm a")}
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground">
+                    {describePermissionChange(latestAudit)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    by {latestAudit.changedBy?.name || latestAudit.changedBy?.email || "Unknown"}
+                    {latestAudit.note && <span className="italic"> — "{latestAudit.note}"</span>}
+                  </p>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       )}
+
+      {/* Permission History Modal */}
+      <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Permission Change History
+            </DialogTitle>
+            <DialogDescription>
+              Complete history of permission changes for this employee
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-4">
+              {userPermissions.auditTrail.filter(a => a && a.id).map((audit, index) => (
+                <div 
+                  key={audit.id} 
+                  className={`relative pl-6 pb-4 ${index !== userPermissions.auditTrail.length - 1 ? "border-l-2 border-muted ml-2" : "ml-2"}`}
+                >
+                  {/* Timeline dot */}
+                  <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary border-2 border-background" />
+                  
+                  <div className="bg-muted/30 rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {describePermissionChange(audit)}
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          by {audit.changedBy?.name || audit.changedBy?.email || "Unknown"}
+                        </p>
+                      </div>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
+                        {format(new Date(audit.changedAt), "MMM d, yyyy")}
+                        <br />
+                        {format(new Date(audit.changedAt), "h:mm a")}
+                      </span>
+                    </div>
+                    
+                    {audit.note && (
+                      <p className="text-sm text-muted-foreground italic border-l-2 border-primary/30 pl-3 mt-2">
+                        "{audit.note}"
+                      </p>
+                    )}
+                    
+                    {/* Detailed diff for expanded view */}
+                    {audit.oldPermissions && audit.newPermissions && (
+                      <details className="mt-3">
+                        <summary className="text-xs text-primary cursor-pointer hover:underline">
+                          View detailed changes
+                        </summary>
+                        <div className="mt-2 p-3 bg-background rounded border">
+                          <PermissionDiff
+                            oldPermissions={typeof audit.oldPermissions === "string" ? JSON.parse(audit.oldPermissions) : audit.oldPermissions}
+                            newPermissions={typeof audit.newPermissions === "string" ? JSON.parse(audit.newPermissions) : audit.newPermissions}
+                          />
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
       <ProfileUpdateSuccessAnimation
         isOpen={showSuccess}

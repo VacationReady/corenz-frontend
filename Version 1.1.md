@@ -43,3 +43,7 @@ Improved the shift creation and editing experience with two key changes: (1) Dep
 ## 11. Shift Details Employee Name Display Fix
 
 Fixed an issue where shift details showed "Employee" instead of the actual employee's name. The shifts API now includes firstName and lastName fields, and the display logic falls back to combining these when the name field is empty.
+
+## 12. Calendar Shifts Removed
+
+Removed shifts from the /calendar page to reduce visual clutter. The calendar now focuses on leave events, blackout days, and public holidays, while shifts remain accessible via the dedicated /rota page.

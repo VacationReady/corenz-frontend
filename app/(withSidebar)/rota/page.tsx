@@ -33,6 +33,7 @@ import CreateShiftModal from '@/components/rota/CreateShiftModal';
 import EditShiftModal from '@/components/rota/EditShiftModal';
 import AutoScheduleWizard, { AutoScheduleResult } from '@/components/rota/AutoScheduleWizard';
 import VirtualizedShiftList from '@/components/rota/VirtualizedShiftList';
+import ViewFullDayModal from '@/components/rota/ViewFullDayModal';
 import {
   usePaginatedShifts,
   ShiftRecord,
@@ -227,6 +228,11 @@ export default function RotaPage() {
   const [liveAttendancePanelOpen, setLiveAttendancePanelOpen] = useState(false);
   const [liveAttendanceData, setLiveAttendanceData] = useState<LiveAttendanceData | null>(null);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
+  
+  // View Full Day modal state
+  const [viewFullDayOpen, setViewFullDayOpen] = useState(false);
+  const [viewFullDayDate, setViewFullDayDate] = useState<Date | null>(null);
+  const [viewFullDayShifts, setViewFullDayShifts] = useState<ShiftRecord[]>([]);
 
   const {
     shifts,
@@ -540,6 +546,12 @@ export default function RotaPage() {
 
   const clearSelection = useCallback(() => setSelectedShiftIds(new Set()), []);
 
+  const handleViewFullDay = useCallback((date: Date, dayShifts: ShiftRecord[]) => {
+    setViewFullDayDate(date);
+    setViewFullDayShifts(dayShifts);
+    setViewFullDayOpen(true);
+  }, []);
+
   if (status === 'loading' || (isLoading && size === 0)) {
     return (
       <div className="w-full min-h-screen bg-content-panel p-8">
@@ -808,6 +820,7 @@ export default function RotaPage() {
                   setShowEditModal(true);
                 }}
                 onShiftDelete={shiftId => handleDeleteShift(shiftId)}
+                onViewFullDay={(date, dayShifts) => handleViewFullDay(date, dayShifts as ShiftRecord[])}
                 showActions
                 hideViewToggle
               />
@@ -1170,6 +1183,29 @@ export default function RotaPage() {
         <Settings className="h-6 w-6 text-card-foreground transition duration-300 group-hover:rotate-90" />
         <span className="text-sm font-medium text-card-foreground">Settings</span>
       </Link>
+
+      {/* View Full Day Modal */}
+      {viewFullDayDate && (
+        <ViewFullDayModal
+          isOpen={viewFullDayOpen}
+          onClose={() => {
+            setViewFullDayOpen(false);
+            setViewFullDayDate(null);
+            setViewFullDayShifts([]);
+          }}
+          date={viewFullDayDate}
+          shifts={viewFullDayShifts as any}
+          onShiftClick={(shift) => {
+            setSelectedShift(shift as ShiftRecord);
+            setViewFullDayOpen(false);
+          }}
+          onShiftEdit={(shift) => {
+            setShiftToEdit(shift as ShiftRecord);
+            setShowEditModal(true);
+            setViewFullDayOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

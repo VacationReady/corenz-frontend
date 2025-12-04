@@ -20,8 +20,10 @@ import {
   ChevronRight, 
   Calendar as CalendarIcon,
   AlertTriangle,
+  Eye,
 } from 'lucide-react';
 import ShiftCard from './ShiftCard';
+import { cn } from '@/lib/utils';
 
 // Helper function to get display name from User object
 function getEmployeeDisplayName(user: { name?: string | null; firstName?: string | null; lastName?: string | null; email?: string | null } | null | undefined): string {
@@ -88,6 +90,7 @@ interface RotaCalendarProps {
   onDateClick?: (date: Date) => void;
   onShiftEdit?: (shift: Shift) => void;
   onShiftDelete?: (shiftId: string) => void;
+  onViewFullDay?: (date: Date, shifts: Shift[]) => void;
   showActions?: boolean;
   hideViewToggle?: boolean;
 }
@@ -101,6 +104,7 @@ export default function RotaCalendar({
   onDateClick,
   onShiftEdit,
   onShiftDelete,
+  onViewFullDay,
   showActions = true,
   hideViewToggle = false,
 }: RotaCalendarProps) {
@@ -262,11 +266,13 @@ export default function RotaCalendar({
               return (
                 <div 
                   key={day.toISOString()} 
-                  className={`bg-gray-800 rounded-lg p-4 min-h-[200px] border-2 transition-all ${
+                  className={cn(
+                    "group bg-gray-800 rounded-lg p-4 min-h-[200px] border-2 transition-all",
                     isToday 
                       ? 'border-blue-500 bg-blue-900/30' 
-                      : 'border-gray-700 hover:border-gray-600'
-                  } ${onDateClick ? 'cursor-pointer' : ''}`}
+                      : 'border-gray-700 hover:border-gray-600',
+                    onDateClick && 'cursor-pointer'
+                  )}
                   onClick={() => onDateClick && onDateClick(day)}
                 >
                   <div className="flex items-center justify-between mb-3">
@@ -280,11 +286,34 @@ export default function RotaCalendar({
                         {format(day, 'd')}
                       </div>
                     </div>
-                    {dayConflicts.length > 0 && (
-                      <div className="p-1 rounded bg-amber-600 border border-amber-500">
-                        <AlertTriangle className="w-4 h-4 text-amber-400" />
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {dayConflicts.length > 0 && (
+                        <div className="p-1 rounded bg-amber-600 border border-amber-500">
+                          <AlertTriangle className="w-4 h-4 text-amber-400" />
+                        </div>
+                      )}
+                      {/* View Full Day Button */}
+                      {dayShifts.length > 0 && onViewFullDay && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewFullDay(day, dayShifts);
+                          }}
+                          className={cn(
+                            "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all",
+                            "bg-gradient-to-r from-blue-600/20 to-blue-500/10 hover:from-blue-600/30 hover:to-blue-500/20",
+                            "border border-blue-500/30 hover:border-blue-500/50",
+                            "text-blue-300 hover:text-blue-200",
+                            "opacity-0 group-hover:opacity-100 focus:opacity-100",
+                            "shadow-sm hover:shadow-md shadow-blue-500/10"
+                          )}
+                          title="View full day"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">View day</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2">

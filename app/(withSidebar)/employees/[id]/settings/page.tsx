@@ -9,6 +9,7 @@ import { authOptions } from "@/lib/auth-options";
 import { format } from "date-fns";
 import { Suspense } from "react";
 import WorkingPatternAssignment from "@/components/WorkingPatternAssignment";
+import ViewWorkingPatternModal from "@/components/ViewWorkingPatternModal";
 import { PermissionProfileManagement } from "@/components/employees/PermissionProfileManagement";
 
 export default async function EmployeeSettingsPage(context: { params: Promise<{ id: string }> }) {
@@ -36,7 +37,16 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
 
   const assignments = await prisma.employeeWorkingPatternAssignment.findMany({
     where: { employeeId: id },
-    include: { WorkingPattern: true },
+    include: {
+      WorkingPattern: {
+        include: {
+          WorkingPatternWeek: {
+            include: { WorkingPatternDay: true },
+            orderBy: { weekNumber: "asc" },
+          },
+        },
+      },
+    },
     orderBy: { effectiveDate: "asc" },
   });
 
@@ -47,6 +57,27 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
   const upcoming = [...assignments]
     .filter((a) => a.effectiveDate > today)
     .sort((a, b) => a.effectiveDate.getTime() - b.effectiveDate.getTime())[0];
+
+  // Format the current pattern for the ViewWorkingPatternModal
+  const currentPatternFormatted = current?.WorkingPattern ? {
+    id: current.WorkingPattern.id,
+    name: current.WorkingPattern.name,
+    description: current.WorkingPattern.description,
+    patternType: current.WorkingPattern.patternType,
+    contractedHoursPerWeek: current.WorkingPattern.contractedHoursPerWeek
+      ? parseFloat(current.WorkingPattern.contractedHoursPerWeek.toString())
+      : null,
+    weeks: current.WorkingPattern.WorkingPatternWeek?.map((week) => ({
+      id: week.id,
+      weekNumber: week.weekNumber,
+      days: week.WorkingPatternDay?.map((day) => ({
+        id: day.id,
+        day: day.day,
+        type: day.type,
+        hoursPerDay: day.hoursPerDay ? parseFloat(day.hoursPerDay.toString()) : null,
+      })) ?? [],
+    })) ?? [],
+  } : null;
 
   // Fetch subordinates for the employee being viewed (if they are a manager)
   const subordinates = await prisma.user.findMany({
@@ -92,14 +123,19 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
             </p>
           )}
 
-          {/* Only the Assign New Pattern button */}
-          {canAssignWorkingPattern && (
-            <div className="pt-2">
+          {/* View and Assign Pattern buttons */}
+          <div className="pt-2 flex flex-wrap gap-2">
+            {current && (
+              <Suspense fallback={null}>
+                <ViewWorkingPatternModal pattern={currentPatternFormatted} />
+              </Suspense>
+            )}
+            {canAssignWorkingPattern && (
               <Suspense fallback={null}>
                 <WorkingPatternAssignment employeeId={id} />
               </Suspense>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Upcoming Pattern */}

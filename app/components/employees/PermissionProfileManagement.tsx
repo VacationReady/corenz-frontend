@@ -178,16 +178,9 @@ export function PermissionProfileManagement({
         throw new Error(error.error || "Failed to update permissions");
       }
 
-      const updatedData = await response.json();
-      setUserPermissions(updatedData);
-      if (updatedData?.effectivePermissions) {
-        const mapped: Record<string, ("read" | "edit" | "delete")[]> = {};
-        Object.entries(updatedData.effectivePermissions as Record<string, string[]>).forEach(([screen, actions]) => {
-          const filtered = actions.filter((a) => a === "read" || a === "edit" || a === "delete") as ("read" | "edit" | "delete")[];
-          if (filtered.length > 0) mapped[screen] = filtered;
-        });
-        setCustomPermissionsDraft(mapped);
-      }
+      // Refetch fresh data to ensure UI is in sync with database
+      await fetchData();
+      
       setSelectedProfileId("");
       setNote("");
       setShowConfirmDialog(false);
@@ -215,16 +208,10 @@ export function PermissionProfileManagement({
         const error = await response.json();
         throw new Error(error.error || "Failed to save custom permissions");
       }
-      const updatedData = await response.json();
-      setUserPermissions(updatedData);
-      if (updatedData?.effectivePermissions) {
-        const mapped: Record<string, ("read" | "edit" | "delete")[]> = {};
-        Object.entries(updatedData.effectivePermissions as Record<string, string[]>).forEach(([screen, actions]) => {
-          const filtered = actions.filter((a) => a === "read" || a === "edit" || a === "delete") as ("read" | "edit" | "delete")[];
-          if (filtered.length > 0) mapped[screen] = filtered;
-        });
-        setCustomPermissionsDraft(mapped);
-      }
+      
+      // Refetch fresh data to ensure UI is in sync with database
+      await fetchData();
+      
       setNote("");
       setShowSuccess(true);
     } catch (err) {
@@ -254,8 +241,21 @@ export function PermissionProfileManagement({
       };
     }
 
+    const profileName = userPermissions.user.permissionProfile.name;
+    
+    // Check if this is a per-user override profile (has USER_*_OVERRIDES pattern)
+    const isPerUserOverride = profileName?.startsWith("USER_") && profileName?.endsWith("_OVERRIDES");
+    
+    if (isPerUserOverride) {
+      return {
+        name: "Custom Permissions",
+        description: "Personalized access settings for this employee",
+        isBuiltIn: false,
+      };
+    }
+
     return {
-      name: userPermissions.user.permissionProfile.name,
+      name: profileName,
       description: userPermissions.user.permissionProfile.description,
       isBuiltIn: userPermissions.user.permissionProfile.builtIn,
     };

@@ -39,3 +39,7 @@ Fixed Training Reports showing blank data for Course Name, Training Provider, an
 ## 10. Rota Shift Creation UX Improvements
 
 Improved the shift creation and editing experience with two key changes: (1) Department and location are now automatically populated from the selected employee's profile, removing the need for manual selection since these are fixed employee attributes. (2) Added a "Shift-based workers only" filter (enabled by default) that shows only employees on variable/shift-based working patterns, making it easier to schedule the right staff without scrolling through salaried employees with fixed schedules.
+
+## 11. Shift Details Employee Name Display Fix
+
+Fixed an issue where shift details showed "Employee" instead of the actual employee's name. The shifts API now includes firstName and lastName fields, and the display logic falls back to combining these when the name field is empty.

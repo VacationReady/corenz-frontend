@@ -207,16 +207,26 @@ export async function PATCH(
       }
     }
 
-    const updatedUser = await prisma.user.update({
+    // Update user's profile assignment
+    await prisma.user.update({
       where: { id: id },
       data: {
         permissionProfileId:
           profileIdToAssign !== undefined ? profileIdToAssign : permissionProfileId || null,
       },
+    });
+
+    // Fetch fresh user data with updated profile to avoid any caching issues
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: id },
       include: {
         PermissionProfile: true,
       },
     });
+
+    if (!updatedUser) {
+      return NextResponse.json({ error: "User not found after update" }, { status: 500 });
+    }
 
     // Get new permissions for audit
     const newPermissions = updatedUser.PermissionProfile

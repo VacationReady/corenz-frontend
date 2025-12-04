@@ -400,19 +400,19 @@ export default function ReportsPage() {
           <motion.div
             whileHover={{ scale: 1.02, y: -2 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-100 dark:from-emerald-900/20 dark:to-teal-800/20 border border-emerald-200/50 dark:border-emerald-700/30 p-5 shadow-depth-2"
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-800/20 border border-blue-200/50 dark:border-blue-700/30 p-5 shadow-depth-2"
           >
-            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-emerald-500/10 blur-2xl" />
+            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-blue-500/10 blur-2xl" />
             <div className="relative">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
                   <Calendar className="w-5 h-5 text-white" />
                 </div>
-                <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="mt-4">
-                <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">{stats.thisMonth}</p>
-                <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">Created This Month</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.thisMonth}</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Created This Month</p>
               </div>
             </div>
           </motion.div>
@@ -421,18 +421,18 @@ export default function ReportsPage() {
           <motion.div
             whileHover={{ scale: 1.02, y: -2 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-50 to-purple-100 dark:from-violet-900/20 dark:to-purple-800/20 border border-violet-200/50 dark:border-violet-700/30 p-5 shadow-depth-2"
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-800/20 border border-blue-200/50 dark:border-blue-700/30 p-5 shadow-depth-2"
           >
-            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-violet-500/10 blur-2xl" />
+            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-blue-500/10 blur-2xl" />
             <div className="relative">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
                   <FolderOpen className="w-5 h-5 text-white" />
                 </div>
               </div>
               <div className="mt-4">
-                <p className="text-2xl font-bold text-violet-900 dark:text-violet-100">{stats.categories}</p>
-                <p className="text-sm text-violet-700 dark:text-violet-300 font-medium">Categories</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.categories}</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Categories</p>
               </div>
             </div>
           </motion.div>
@@ -442,19 +442,19 @@ export default function ReportsPage() {
             whileHover={{ scale: 1.02, y: -2 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
             onClick={() => router.push("/reports/builder-new")}
-            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-800/20 border border-amber-200/50 dark:border-amber-700/30 p-5 shadow-depth-2 group"
+            className="relative cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-800/20 border border-blue-200/50 dark:border-blue-700/30 p-5 shadow-depth-2 group"
           >
-            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-amber-500/10 blur-2xl" />
+            <div className="absolute top-0 right-0 w-20 h-20 -mr-6 -mt-6 rounded-full bg-blue-500/10 blur-2xl" />
             <div className="relative">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
                   <Plus className="w-5 h-5 text-white" />
                 </div>
-                <ArrowRight className="w-4 h-4 text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform" />
               </div>
               <div className="mt-4">
-                <p className="text-lg font-bold text-amber-900 dark:text-amber-100">Create Report</p>
-                <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">Build new analytics</p>
+                <p className="text-lg font-bold text-blue-900 dark:text-blue-100">Create Report</p>
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Build new analytics</p>
               </div>
             </div>
           </motion.div>

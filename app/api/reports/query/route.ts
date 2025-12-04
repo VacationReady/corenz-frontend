@@ -107,6 +107,9 @@ function anchorFieldToTrainingRecord(field: string): string {
     if (field.startsWith("Department.")) return field.replace("Department.", "TrainingRecord.Employee.Department.");
     if (field.startsWith("JobRole.")) return field.replace("JobRole.", "TrainingRecord.Employee.JobRole.");
     if (field.startsWith("WorkingPattern.")) return field.replace("WorkingPattern.", "TrainingRecord.Employee.WorkingPattern.");
+    // Anchor Course and TrainingProvider to TrainingRecord context
+    if (field.startsWith("Course.") && !field.startsWith("TrainingRecord.Course.")) return field.replace("Course.", "TrainingRecord.Course.");
+    if (field.startsWith("TrainingProvider.") && !field.startsWith("TrainingRecord.TrainingProvider.")) return field.replace("TrainingProvider.", "TrainingRecord.TrainingProvider.");
     return field;
 }
 

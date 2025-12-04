@@ -108,6 +108,13 @@ const COLUMN_FALLBACKS: Record<string, string[]> = {
   "LeaveEntitlement.totalDays": ["LeaveEntitlement.totalDays", "totalDays"],
   "LeaveEntitlement.usedDays": ["LeaveEntitlement.usedDays", "usedDays"],
   "LeaveEntitlement.carryoverDays": ["LeaveEntitlement.carryoverDays", "carryoverDays"],
+  // TrainingRecord field mappings
+  "TrainingRecord.Course.name": ["TrainingRecord.Course.name", "Course.name", "courseName"],
+  "Course.name": ["TrainingRecord.Course.name", "Course.name", "courseName"],
+  "TrainingRecord.TrainingProvider.name": ["TrainingRecord.TrainingProvider.name", "TrainingProvider.name", "providerName"],
+  "TrainingProvider.name": ["TrainingRecord.TrainingProvider.name", "TrainingProvider.name", "providerName"],
+  "TrainingRecord.Employee.User.firstName": ["TrainingRecord.Employee.User.firstName", "Employee.User.firstName", "firstName", "User.firstName"],
+  "TrainingRecord.Employee.User.lastName": ["TrainingRecord.Employee.User.lastName", "Employee.User.lastName", "lastName", "User.lastName"],
 };
 
 function parseFieldsParam(value: string | null | undefined): string[] {
@@ -527,6 +534,7 @@ function ReportsPreviewClientInner() {
 
   const rewriteFieldsForLeaveContext = useCallback((fields: string[]) => {
     const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
+    const hasTrainingRecord = fields.some((f) => f.startsWith("TrainingRecord."));
     const result: string[] = [];
     for (const f of fields) {
       if (f === "User.JobRole.name" || f === "Employee.JobRole.name") {
@@ -535,18 +543,39 @@ function ReportsPreviewClientInner() {
         }
         const dep = hasLeave
           ? "LeaveRequest.Employee.JobRole.name"
+          : hasTrainingRecord
+          ? "TrainingRecord.Employee.JobRole.name"
           : "Employee.JobRole.name";
         if (!result.includes(dep)) {
           result.push(dep);
         }
         continue;
       }
-      if (!hasLeave && f === "WorkingPattern.name") {
+      if (!hasLeave && !hasTrainingRecord && f === "WorkingPattern.name") {
         result.push("Employee.WorkingPattern.name");
         if (!result.includes("_computed.workingPatternName")) {
           result.push("_computed.workingPatternName");
         }
         continue;
+      }
+      // Handle TrainingRecord context - anchor related fields
+      if (hasTrainingRecord) {
+        if (f.startsWith("User.") && !f.startsWith("TrainingRecord.")) {
+          result.push(f.replace("User.", "TrainingRecord.Employee.User."));
+          continue;
+        }
+        if (f.startsWith("Employee.") && !f.startsWith("TrainingRecord.Employee.")) {
+          result.push(f.replace("Employee.", "TrainingRecord.Employee."));
+          continue;
+        }
+        if (f.startsWith("Course.") && !f.startsWith("TrainingRecord.Course.")) {
+          result.push(f.replace("Course.", "TrainingRecord.Course."));
+          continue;
+        }
+        if (f.startsWith("TrainingProvider.") && !f.startsWith("TrainingRecord.TrainingProvider.")) {
+          result.push(f.replace("TrainingProvider.", "TrainingRecord.TrainingProvider."));
+          continue;
+        }
       }
       if (hasLeave) {
         if (f.startsWith("User.")) {
@@ -955,6 +984,13 @@ function ReportsPreviewClientInner() {
             if (withoutEmployee.startsWith("User.")) {
               appendUnique(candidates, withoutEmployee.slice("User.".length));
             }
+          }
+          // Handle Course and TrainingProvider nested under TrainingRecord
+          if (withoutContext.startsWith("Course.")) {
+            appendUnique(candidates, withoutContext);
+          }
+          if (withoutContext.startsWith("TrainingProvider.")) {
+            appendUnique(candidates, withoutContext);
           }
         }
       });

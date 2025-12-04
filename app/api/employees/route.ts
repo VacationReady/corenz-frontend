@@ -218,10 +218,26 @@ export async function GET(req: NextRequest) {
     // If status is "all", no isActive filter is applied
     
     // Filter by working pattern type (for rota scheduling - filter to SHIFT_BASED workers)
+    // Check BOTH direct WorkingPattern AND EmployeeWorkingPatternAssignment
+    // because patterns can be assigned either way:
+    // - Direct: Employee.workingPatternId (legacy/simple assignment)
+    // - Assignment: EmployeeWorkingPatternAssignment table (with effective dates - preferred approach)
     if (workingPatternType) {
-      whereCondition.WorkingPattern = {
-        patternType: workingPatternType,
+      const patternFilter = {
+        OR: [
+          { WorkingPattern: { patternType: workingPatternType } },
+          { 
+            EmployeeWorkingPatternAssignment: { 
+              some: { 
+                WorkingPattern: { patternType: workingPatternType } 
+              } 
+            } 
+          },
+        ],
       };
+      
+      whereCondition.AND = whereCondition.AND || [];
+      whereCondition.AND.push(patternFilter);
     }
 
     // Allow admins to explicitly scope to their managed hierarchy
@@ -313,6 +329,16 @@ export async function GET(req: NextRequest) {
         WorkingPattern: {
           select: { id: true, name: true, patternType: true },
         },
+        // Include working pattern assignments (with effective dates) - this is the preferred way to assign patterns
+        EmployeeWorkingPatternAssignment: {
+          include: {
+            WorkingPattern: {
+              select: { id: true, name: true, patternType: true },
+            },
+          },
+          orderBy: { effectiveDate: 'desc' as const },
+          take: 1, // Only get the most recent assignment
+        },
         EmployeeOffboarding: {
           select: {
             id: true,
@@ -349,6 +375,10 @@ export async function GET(req: NextRequest) {
         ? signedUrlMap.get(emp.User.id) ?? null
         : null;
 
+      // Prioritize assignment-based working pattern (with effective dates) over direct relationship
+      // This ensures employees assigned via the settings page are properly identified
+      const effectiveWorkingPattern = emp.EmployeeWorkingPatternAssignment?.[0]?.WorkingPattern || emp.WorkingPattern;
+
       return {
         id: emp.id,
         userId: emp.User.id,
@@ -365,9 +395,9 @@ export async function GET(req: NextRequest) {
         jobRoleName: emp.JobRole?.name ?? null,
         locationId: emp.Location?.id ?? null,
         locationName: emp.Location?.name ?? null,
-        workingPatternId: emp.WorkingPattern?.id ?? null,
-        workingPatternName: emp.WorkingPattern?.name ?? null,
-        workingPatternType: emp.WorkingPattern?.patternType ?? null,
+        workingPatternId: effectiveWorkingPattern?.id ?? null,
+        workingPatternName: effectiveWorkingPattern?.name ?? null,
+        workingPatternType: effectiveWorkingPattern?.patternType ?? null,
         isActive: emp.isActive,
         isActivated: emp.User.isActivated,
         offboardingStatus: emp.offboardingStatus,

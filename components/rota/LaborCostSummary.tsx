@@ -67,7 +67,7 @@ export default function LaborCostSummary({
             <div>
               <h3 className="text-lg font-semibold text-white">Labor Cost Summary</h3>
               <p className="text-sm text-gray-300">
-                {dateRange.start.toLocaleDateString()} - {dateRange.end.toLocaleDateString()}
+                {dateRange.start.toLocaleDateString('en-GB')} - {dateRange.end.toLocaleDateString('en-GB')}
               </p>
             </div>
           </div>

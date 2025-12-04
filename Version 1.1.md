@@ -51,3 +51,7 @@ Removed shifts from the /calendar page to reduce visual clutter. The calendar no
 ## 13. Shift-Based Pattern Employee Dropdown Fix
 
 Fixed an issue where employees assigned a shift-based working pattern via their settings page weren't appearing in the rota shift creation dropdown, by updating the employees API to check both the direct WorkingPattern relationship and the EmployeeWorkingPatternAssignment table.
+
+## 14. View Working Pattern Modal
+
+Added a "View Pattern" button to employee settings that opens a modern modal displaying the full working pattern details. The modal shows a visual weekly calendar grid with color-coded day types (Full Day, Morning, Afternoon), weekly hour totals, and pattern descriptions, making it easy to understand ambiguous patterns at a glance.

@@ -98,31 +98,31 @@ interface ViewFullDayModalProps {
 
 const STATUS_CONFIG = {
   SCHEDULED: {
-    className: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+    className: 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/40',
     icon: Clock,
     label: 'Scheduled',
     color: 'amber',
   },
   CONFIRMED: {
-    className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+    className: 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/40',
     icon: CheckCircle,
     label: 'Confirmed',
     color: 'emerald',
   },
   COMPLETED: {
-    className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+    className: 'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/40',
     icon: CheckCircle,
     label: 'Completed',
     color: 'emerald',
   },
   NO_SHOW: {
-    className: 'bg-rose-500/20 text-rose-400 border-rose-500/40',
+    className: 'bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/40',
     icon: XCircle,
     label: 'No Show',
     color: 'rose',
   },
   CANCELLED: {
-    className: 'bg-rose-500/20 text-rose-400 border-rose-500/40',
+    className: 'bg-rose-100 text-rose-700 border-rose-300 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/40',
     icon: XCircle,
     label: 'Cancelled',
     color: 'rose',
@@ -148,23 +148,23 @@ function FilterDropdown({ label, icon, value, options, onChange, placeholder = '
         <button
           className={cn(
             "group flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all",
-            "bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20",
-            value && "bg-primary/20 border-primary/40 text-primary-foreground"
+            "bg-background hover:bg-muted border border-border hover:border-border",
+            value && "bg-primary/10 border-primary/40"
           )}
         >
           {icon}
-          <span className="hidden sm:inline text-white/60 group-hover:text-white/80">{label}:</span>
-          <span className={cn("truncate max-w-[100px]", value ? "text-white" : "text-white/50")}>
+          <span className="hidden sm:inline text-muted-foreground group-hover:text-foreground">{label}:</span>
+          <span className={cn("truncate max-w-[100px]", value ? "text-foreground" : "text-muted-foreground")}>
             {selectedLabel}
           </span>
-          <ChevronDown className="h-3.5 w-3.5 text-white/40 group-hover:text-white/60" />
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-0 bg-slate-900/95 backdrop-blur-xl border-white/10" align="start">
-        <Command className="bg-transparent">
-          <CommandInput placeholder={`Search ${label.toLowerCase()}...`} className="text-white placeholder:text-white/40" />
+      <PopoverContent className="w-[220px] p-0 bg-popover border-border" align="start">
+        <Command>
+          <CommandInput placeholder={`Search ${label.toLowerCase()}...`} />
           <CommandList>
-            <CommandEmpty className="text-white/50 text-sm py-4 text-center">No results found</CommandEmpty>
+            <CommandEmpty className="text-muted-foreground text-sm py-4 text-center">No results found</CommandEmpty>
             <CommandGroup>
               <CommandItem
                 value=""
@@ -172,7 +172,6 @@ function FilterDropdown({ label, icon, value, options, onChange, placeholder = '
                   onChange('');
                   setOpen(false);
                 }}
-                className="text-white/70 hover:bg-white/10 hover:text-white cursor-pointer"
               >
                 All {label.toLowerCase()}s
                 {!value && <CheckCircle className="ml-auto h-4 w-4 text-primary" />}
@@ -185,7 +184,6 @@ function FilterDropdown({ label, icon, value, options, onChange, placeholder = '
                     onChange(option.value);
                     setOpen(false);
                   }}
-                  className="text-white/70 hover:bg-white/10 hover:text-white cursor-pointer"
                 >
                   {option.label}
                   {value === option.value && <CheckCircle className="ml-auto h-4 w-4 text-primary" />}
@@ -293,103 +291,103 @@ export default function ViewFullDayModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl p-0 gap-0 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border border-white/10 overflow-hidden">
+      <DialogContent className="max-w-4xl p-0 gap-0 bg-card border border-border overflow-hidden">
         {/* Decorative Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl" />
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl" />
         </div>
 
         {/* Header */}
-        <DialogHeader className="relative px-6 pt-6 pb-4 border-b border-white/10">
+        <DialogHeader className="relative px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/20">
+              <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20">
                 <Calendar className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-bold text-white tracking-tight">
+                <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">
                   {format(date, 'EEEE, MMMM d')}
                 </DialogTitle>
-                <p className="text-white/50 text-sm mt-1">
+                <p className="text-muted-foreground text-sm mt-1">
                   {format(date, 'yyyy')} • {shifts.length} total shift{shifts.length !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all group"
+              className="p-2 rounded-xl bg-muted hover:bg-muted/80 border border-border transition-all group"
             >
-              <X className="h-5 w-5 text-white/60 group-hover:text-white" />
+              <X className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
             </button>
           </div>
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-            <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/5">
+            <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary/80" />
-                <span className="text-xs text-white/50 uppercase tracking-wide">Shifts</span>
+                <Users className="h-4 w-4 text-primary" />
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">Shifts</span>
               </div>
-              <div className="text-2xl font-bold text-white mt-1">{stats.total}</div>
+              <div className="text-2xl font-bold text-foreground mt-1">{stats.total}</div>
             </div>
-            <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/5">
+            <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-sky-400/80" />
-                <span className="text-xs text-white/50 uppercase tracking-wide">Hours</span>
+                <Clock className="h-4 w-4 text-sky-500" />
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">Hours</span>
               </div>
-              <div className="text-2xl font-bold text-white mt-1">{stats.totalHours.toFixed(1)}</div>
+              <div className="text-2xl font-bold text-foreground mt-1">{stats.totalHours.toFixed(1)}</div>
             </div>
-            <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/5">
+            <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
               <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-emerald-400/80" />
-                <span className="text-xs text-white/50 uppercase tracking-wide">Cost</span>
+                <DollarSign className="h-4 w-4 text-emerald-500" />
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">Cost</span>
               </div>
-              <div className="text-2xl font-bold text-white mt-1">${stats.totalCost.toFixed(0)}</div>
+              <div className="text-2xl font-bold text-foreground mt-1">${stats.totalCost.toFixed(0)}</div>
             </div>
-            <div className="bg-white/5 rounded-xl px-4 py-3 border border-white/5">
+            <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-400/80" />
-                <span className="text-xs text-white/50 uppercase tracking-wide">Confirmed</span>
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">Confirmed</span>
               </div>
-              <div className="text-2xl font-bold text-white mt-1">{stats.byStatus.confirmed}</div>
+              <div className="text-2xl font-bold text-foreground mt-1">{stats.byStatus.confirmed}</div>
             </div>
           </div>
         </DialogHeader>
 
         {/* Filters Section */}
-        <div className="relative px-6 py-4 border-b border-white/5 bg-white/[0.02]">
+        <div className="relative px-6 py-4 border-b border-border bg-muted/30">
           <div className="flex flex-wrap items-center gap-3">
             {/* Search */}
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search by name or role..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-background border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
               />
             </div>
 
             {/* Filter Dropdowns */}
             <FilterDropdown
               label="Location"
-              icon={<MapPin className="h-4 w-4 text-emerald-400" />}
+              icon={<MapPin className="h-4 w-4 text-emerald-500" />}
               value={locationFilter}
               options={filterOptions.locations}
               onChange={setLocationFilter}
             />
             <FilterDropdown
               label="Department"
-              icon={<Building2 className="h-4 w-4 text-purple-400" />}
+              icon={<Building2 className="h-4 w-4 text-purple-500" />}
               value={departmentFilter}
               options={filterOptions.departments}
               onChange={setDepartmentFilter}
             />
             <FilterDropdown
               label="Status"
-              icon={<AlertCircle className="h-4 w-4 text-amber-400" />}
+              icon={<AlertCircle className="h-4 w-4 text-amber-500" />}
               value={statusFilter}
               options={filterOptions.statuses}
               onChange={setStatusFilter}
@@ -399,7 +397,7 @@ export default function ViewFullDayModal({
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all"
               >
                 <X className="h-3.5 w-3.5" />
                 Clear
@@ -409,7 +407,7 @@ export default function ViewFullDayModal({
 
           {/* Active filter count */}
           {hasActiveFilters && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-white/50">
+            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
               <Filter className="h-3.5 w-3.5" />
               Showing {filteredShifts.length} of {shifts.length} shifts
             </div>
@@ -421,11 +419,11 @@ export default function ViewFullDayModal({
           <div className="p-6 space-y-3">
             {sortedShifts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-4">
-                  <Sparkles className="h-8 w-8 text-white/20" />
+                <div className="p-4 rounded-2xl bg-muted border border-border mb-4">
+                  <Sparkles className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold text-white/70">No shifts found</h3>
-                <p className="text-white/40 text-sm mt-1 max-w-xs">
+                <h3 className="text-lg font-semibold text-foreground">No shifts found</h3>
+                <p className="text-muted-foreground text-sm mt-1 max-w-xs">
                   {hasActiveFilters 
                     ? 'Try adjusting your filters to see more results'
                     : 'No shifts are scheduled for this day'
@@ -453,22 +451,22 @@ export default function ViewFullDayModal({
                     key={shift.id}
                     className={cn(
                       "group relative flex gap-4 p-4 rounded-2xl transition-all cursor-pointer",
-                      "bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/10",
-                      "hover:shadow-lg hover:shadow-black/10"
+                      "bg-muted/30 hover:bg-muted/60 border border-border hover:border-border",
+                      "hover:shadow-lg hover:shadow-black/5"
                     )}
                     onClick={() => onShiftClick?.(shift)}
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     {/* Time Column */}
                     <div className="flex-shrink-0 w-20 text-center">
-                      <div className="text-lg font-bold text-white">
+                      <div className="text-lg font-bold text-foreground">
                         {format(startTime, 'h:mm')}
                       </div>
-                      <div className="text-xs text-white/40 uppercase">
+                      <div className="text-xs text-muted-foreground uppercase">
                         {format(startTime, 'a')}
                       </div>
-                      <div className="w-px h-4 bg-white/10 mx-auto my-1.5" />
-                      <div className="text-sm font-medium text-white/60">
+                      <div className="w-px h-4 bg-border mx-auto my-1.5" />
+                      <div className="text-sm font-medium text-muted-foreground">
                         {format(endTime, 'h:mm a')}
                       </div>
                     </div>
@@ -483,19 +481,19 @@ export default function ViewFullDayModal({
                               <img
                                 src={shift.employee.User.profileImageUrl}
                                 alt=""
-                                className="h-8 w-8 rounded-full border-2 border-white/20"
+                                className="h-8 w-8 rounded-full border-2 border-border"
                               />
                             ) : (
-                              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/40 to-primary/20 border-2 border-primary/30 flex items-center justify-center">
-                                <User className="h-4 w-4 text-white" />
+                              <div className="h-8 w-8 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
+                                <User className="h-4 w-4 text-primary" />
                               </div>
                             )}
                             <div>
-                              <h4 className="font-semibold text-white truncate">
+                              <h4 className="font-semibold text-foreground truncate">
                                 {getEmployeeDisplayName(shift.employee?.User)}
                               </h4>
                               {shift.role && (
-                                <p className="text-xs text-white/50 flex items-center gap-1">
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Briefcase className="h-3 w-3" />
                                   {shift.role}
                                 </p>
@@ -513,11 +511,11 @@ export default function ViewFullDayModal({
                               {statusConfig.label}
                             </Badge>
                             {!shift.isPublished && (
-                              <Badge variant="outline" className="text-xs border-white/20 text-white/50">
+                              <Badge variant="outline" className="text-xs border-border text-muted-foreground">
                                 Draft
                               </Badge>
                             )}
-                            <span className="text-xs text-white/40">
+                            <span className="text-xs text-muted-foreground">
                               {durationHours.toFixed(1)}h
                               {shift.breakDuration > 0 && ` (${shift.breakDuration}m break)`}
                             </span>
@@ -526,14 +524,14 @@ export default function ViewFullDayModal({
                           {/* Location & Department */}
                           <div className="flex flex-wrap items-center gap-4 mt-2">
                             {shift.location && (
-                              <span className="flex items-center gap-1.5 text-xs text-white/50">
-                                <MapPin className="h-3 w-3 text-emerald-400/60" />
+                              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3 text-emerald-500" />
                                 {shift.location.name}
                               </span>
                             )}
                             {shift.department && (
-                              <span className="flex items-center gap-1.5 text-xs text-white/50">
-                                <Building2 className="h-3 w-3 text-purple-400/60" />
+                              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Building2 className="h-3 w-3 text-purple-500" />
                                 {shift.department.name}
                               </span>
                             )}
@@ -548,7 +546,7 @@ export default function ViewFullDayModal({
                                 e.stopPropagation();
                                 onShiftEdit(shift);
                               }}
-                              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-all"
+                              className="p-2 rounded-lg bg-muted hover:bg-muted/80 border border-border text-muted-foreground hover:text-foreground transition-all"
                               title="Edit shift"
                             >
                               <Edit className="h-4 w-4" />
@@ -559,7 +557,7 @@ export default function ViewFullDayModal({
                               e.stopPropagation();
                               onShiftClick?.(shift);
                             }}
-                            className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary transition-all"
+                            className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary transition-all"
                             title="View details"
                           >
                             <Eye className="h-4 w-4" />
@@ -569,7 +567,7 @@ export default function ViewFullDayModal({
 
                       {/* Cost (if available) */}
                       {shift.cost != null && !isNaN(Number(shift.cost)) && (
-                        <div className="absolute top-4 right-4 flex items-center gap-1 text-emerald-400/80 text-sm font-medium opacity-60 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-4 right-4 flex items-center gap-1 text-emerald-600 text-sm font-medium opacity-60 group-hover:opacity-100 transition-opacity">
                           <DollarSign className="h-3.5 w-3.5" />
                           {Number(shift.cost).toFixed(2)}
                         </div>

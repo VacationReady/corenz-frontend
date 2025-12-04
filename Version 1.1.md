@@ -24,3 +24,7 @@ Added the ability to delete leave requests directly from the calendar and employ
 
 Added the ability to edit existing event categories in the Event Manager, including changing the color. A new Edit button and color indicator are now visible on each category card.
 
+## 7. Document Rename Functionality
+
+Added the ability for administrators to rename documents from a modernized Edit Document modal with animated permission cards and contextual signature options (employee documents only).
+

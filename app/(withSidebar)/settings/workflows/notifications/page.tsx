@@ -211,7 +211,7 @@ export default function TransactionalNotificationsPage() {
                   }}>
                     <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                     <SelectContent>
-                      {departments.map((d) => (
+                      {departments.filter(d => d && d.id && d.name).map((d) => (
                         <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -227,7 +227,7 @@ export default function TransactionalNotificationsPage() {
                     <SelectTrigger><SelectValue placeholder="(Optional) Job role" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="_ALL_">All roles</SelectItem>
-                      {jobRoles.map((r) => (
+                      {jobRoles.filter(r => r && r.id && r.name).map((r) => (
                         <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -236,7 +236,7 @@ export default function TransactionalNotificationsPage() {
 
                 {(row.type === 'DEPARTMENT' || row.type === 'EMPLOYEE') && (
                   <MultiSelect
-                    options={(row.type === 'DEPARTMENT' ? filteredEmployees : employees).map((e) => ({ label: e.name, value: e.id }))}
+                    options={(row.type === 'DEPARTMENT' ? filteredEmployees : employees).filter(e => e && e.id && e.name).map((e) => ({ label: e.name, value: e.id }))}
                     selected={row.employeeIds ?? []}
                     onChange={(ids) => {
                       const next = [...rows];

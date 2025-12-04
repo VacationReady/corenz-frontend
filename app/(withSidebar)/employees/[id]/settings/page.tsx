@@ -81,7 +81,7 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
           <h2 className="text-lg font-semibold">Current Working Pattern</h2>
           {current ? (
             <div>
-              <p className="font-medium">{current.WorkingPattern.name}</p>
+              <p className="font-medium">{current.WorkingPattern?.name ?? "Unknown Pattern"}</p>
               <p className="text-sm text-gray-600">
                 Effective from: {format(new Date(current.effectiveDate), "PPP")}
               </p>
@@ -109,7 +109,7 @@ export default async function EmployeeSettingsPage(context: { params: Promise<{ 
           </h2>
           {upcoming ? (
             <div>
-              <p className="font-medium">{upcoming.WorkingPattern.name}</p>
+              <p className="font-medium">{upcoming.WorkingPattern?.name ?? "Unknown Pattern"}</p>
               <p className="text-sm text-gray-600">
                 Effective from:{" "}
                 {format(new Date(upcoming.effectiveDate), "PPP")}

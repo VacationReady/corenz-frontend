@@ -48,7 +48,7 @@ export async function GET(
     const effectivePermissions = resolvePermissions(user as any);
 
     // Get audit trail
-    const auditTrail = await prisma.permissionAudit.findMany({
+    const auditTrailRaw = await prisma.permissionAudit.findMany({
       where: { employeeId: id },
       select: {
         id: true,
@@ -69,6 +69,18 @@ export async function GET(
       orderBy: { changedAt: "desc" },
       take: 10,
     });
+
+    // Map Prisma relation names to frontend-expected field names
+    const auditTrail = auditTrailRaw.map(audit => ({
+      id: audit.id,
+      changedAt: audit.changedAt,
+      note: audit.note,
+      oldPermissions: audit.oldPermissions,
+      newPermissions: audit.newPermissions,
+      changedBy: audit.User_PermissionAudit_changedByIdToUser || { id: '', name: null, email: 'Unknown' },
+      oldProfile: audit.PermissionProfile_PermissionAudit_oldProfileIdToPermissionProfile,
+      newProfile: audit.PermissionProfile_PermissionAudit_newProfileIdToPermissionProfile,
+    }));
 
     return NextResponse.json({
       user: {
@@ -238,7 +250,7 @@ export async function PATCH(
     const effectivePermissions = resolvePermissions(updatedUser as any);
 
     // Get audit trail
-    const auditTrail = await prisma.permissionAudit.findMany({
+    const auditTrailRawPatch = await prisma.permissionAudit.findMany({
       where: { employeeId: id },
       select: {
         id: true,
@@ -260,6 +272,18 @@ export async function PATCH(
       take: 10,
     });
 
+    // Map Prisma relation names to frontend-expected field names
+    const auditTrailPatch = auditTrailRawPatch.map(audit => ({
+      id: audit.id,
+      changedAt: audit.changedAt,
+      note: audit.note,
+      oldPermissions: audit.oldPermissions,
+      newPermissions: audit.newPermissions,
+      changedBy: audit.User_PermissionAudit_changedByIdToUser || { id: '', name: null, email: 'Unknown' },
+      oldProfile: audit.PermissionProfile_PermissionAudit_oldProfileIdToPermissionProfile,
+      newProfile: audit.PermissionProfile_PermissionAudit_newProfileIdToPermissionProfile,
+    }));
+
     return NextResponse.json({
       user: {
         id: updatedUser.id,
@@ -269,7 +293,7 @@ export async function PATCH(
         permissionProfile: updatedUser.PermissionProfile,
       },
       effectivePermissions,
-      auditTrail,
+      auditTrail: auditTrailPatch,
     });
   } catch (error) {
     console.error("Error updating user permissions:", error);

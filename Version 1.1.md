@@ -36,3 +36,6 @@ Redesigned the transactional change request review modal with a modern glass mor
 
 Fixed Training Reports showing blank data for Course Name, Training Provider, and Employee names by correcting field path definitions to properly traverse Prisma relations and ensuring sort fields are anchored to the correct model context.
 
+## 10. Rota Shift Creation UX Improvements
+
+Improved the shift creation and editing experience with two key changes: (1) Department and location are now automatically populated from the selected employee's profile, removing the need for manual selection since these are fixed employee attributes. (2) Added a "Shift-based workers only" filter (enabled by default) that shows only employees on variable/shift-based working patterns, making it easier to schedule the right staff without scrolling through salaried employees with fixed schedules.

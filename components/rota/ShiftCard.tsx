@@ -18,6 +18,17 @@ import {
   CheckSquare,
 } from 'lucide-react';
 
+// Helper function to get display name from User object
+function getEmployeeDisplayName(user: { name?: string | null; firstName?: string | null; lastName?: string | null; email?: string | null } | null | undefined): string {
+  if (!user) return 'Unknown Employee';
+  if (user.name) return user.name;
+  if (user.firstName || user.lastName) {
+    return [user.firstName, user.lastName].filter(Boolean).join(' ');
+  }
+  if (user.email) return user.email;
+  return 'Unknown Employee';
+}
+
 interface ShiftCardProps {
   shift: {
     id: string;
@@ -33,11 +44,13 @@ interface ShiftCardProps {
     cost?: number | null;
     employee?: {
       id: string;
-      User: {
-        name: string;
-        email: string;
+      User?: {
+        name?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+        email?: string | null;
         profileImageUrl?: string | null;
-      };
+      } | null;
       Department?: {
         name: string;
       } | null;
@@ -216,7 +229,7 @@ export default function ShiftCard({
         {shift.employee && (
           <div className="flex items-center gap-2 text-sm text-gray-200">
             <User className="w-4 h-4 text-blue-400" />
-            <span>{shift.employee.User.name}</span>
+            <span>{getEmployeeDisplayName(shift.employee.User)}</span>
           </div>
         )}
       </div>
@@ -326,10 +339,10 @@ export default function ShiftCard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {shift.employee ? (
           <div className="flex items-center gap-3">
-            {shift.employee.User.profileImageUrl ? (
+            {shift.employee.User?.profileImageUrl ? (
               <img
                 src={shift.employee.User.profileImageUrl}
-                alt={shift.employee.User.name}
+                alt={getEmployeeDisplayName(shift.employee.User)}
                 className="w-10 h-10 rounded-full border-2 border-blue-500"
               />
             ) : (
@@ -339,7 +352,9 @@ export default function ShiftCard({
             )}
             <div>
               <div className="text-sm text-gray-300">Employee</div>
-              <div className="font-medium text-white">{shift.employee.User.name}</div>
+              <div className="font-medium text-white">
+                {getEmployeeDisplayName(shift.employee.User)}
+              </div>
               {shift.employee.Department && (
                 <div className="text-xs text-gray-400">{shift.employee.Department.name}</div>
               )}

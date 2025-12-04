@@ -23,6 +23,17 @@ import {
 } from 'lucide-react';
 import ShiftCard from './ShiftCard';
 
+// Helper function to get display name from User object
+function getEmployeeDisplayName(user: { name?: string | null; firstName?: string | null; lastName?: string | null; email?: string | null } | null | undefined): string {
+  if (!user) return 'Unknown';
+  if (user.name) return user.name;
+  if (user.firstName || user.lastName) {
+    return [user.firstName, user.lastName].filter(Boolean).join(' ');
+  }
+  if (user.email) return user.email;
+  return 'Unknown';
+}
+
 interface Shift {
   id: string;
   startTime: string | Date;
@@ -37,11 +48,13 @@ interface Shift {
   cost?: number | null;
   employee?: {
     id: string;
-    User: {
-      name: string;
-      email: string;
+    User?: {
+      name?: string | null;
+      firstName?: string | null;
+      lastName?: string | null;
+      email?: string | null;
       profileImageUrl?: string | null;
-    };
+    } | null;
     Department?: {
       name: string;
     } | null;
@@ -300,7 +313,7 @@ export default function RotaCalendar({
                             </div>
                             {shift.employee && (
                               <div className="text-xs text-gray-200 truncate font-medium">
-                                {shift.employee.User.name}
+                                {getEmployeeDisplayName(shift.employee.User)}
                               </div>
                             )}
                             {shiftConflicts.length > 0 && (

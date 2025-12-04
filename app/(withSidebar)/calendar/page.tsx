@@ -683,7 +683,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   const renderEventContent = (content: EventContentArg) => {
     const isBlackout = Boolean(content.event.extendedProps?.isBlackout);
     const isBankHoliday = Boolean(content.event.extendedProps?.isBankHoliday);
-    const isShift = (content.event.extendedProps as any)?.type === 'shift';
     const categoryName = (content.event.extendedProps as any)?.categoryName as string | null;
     const categoryIconKey = (content.event.extendedProps as any)?.categoryIconKey as string | null;
     const Icon = getEventCategoryIcon(categoryIconKey);
@@ -701,63 +700,6 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         <div className="flex items-center gap-1 text-[9px] font-medium text-red-700 px-1 py-0.5 rounded bg-red-50/80">
           <Lock className="h-2.5 w-2.5" /> Blackout
         </div>
-      );
-    }
-    if (isShift) {
-      return (
-        <Popover>
-          <PopoverTrigger asChild>
-            <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-md hover:bg-primary/10 cursor-pointer transition-colors">
-              <ClockIcon className="h-2.5 w-2.5 flex-shrink-0 text-primary" />
-              <span className="text-[10px] font-medium truncate max-w-[80px]">
-                {content.timeText}
-              </span>
-              <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={14} />
-            </div>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-72 rounded-xl shadow-xl border-border/50">
-            <div className="flex items-center gap-3">
-              <Avatar src={employee?.profileImageUrl ?? null} name={employee?.name ?? null} size={32} />
-              <div className="min-w-0">
-                <div className="font-semibold text-sm truncate">{employee?.name || 'Shift'}</div>
-                {employee?.department ? (
-                  <div className="text-xs text-muted-foreground truncate">{employee.department}</div>
-                ) : null}
-              </div>
-            </div>
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <ClockIcon className="h-4 w-4 text-primary" />
-                <span className="font-medium">{content.timeText}</span>
-              </div>
-              {content.event.extendedProps?.duration ? (
-                <div className="text-xs text-muted-foreground">
-                  Duration: {content.event.extendedProps.duration} hours
-                </div>
-              ) : null}
-              {content.event.extendedProps?.locationName ? (
-                <div className="text-xs text-muted-foreground">
-                  Location: {String(content.event.extendedProps.locationName)}
-                </div>
-              ) : null}
-              {content.event.extendedProps?.notes ? (
-                <div className="text-xs text-muted-foreground mt-2 p-2 bg-muted/50 rounded-lg">
-                  {String(content.event.extendedProps.notes)}
-                </div>
-              ) : null}
-              {employee?.id ? (
-                <div className="pt-2 flex gap-2">
-                  <Button asChild variant="secondary" size="sm">
-                    <a href={`/admin/timesheets/hub`}>View Timesheets</a>
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <a href={`/employees/${employee.id}/overview`}>View Profile</a>
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          </PopoverContent>
-        </Popover>
       );
     }
     const leaveRequestId = content.event.id;

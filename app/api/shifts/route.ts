@@ -14,6 +14,8 @@ const shiftInclude = {
       User: {
         select: {
           name: true,
+          firstName: true,
+          lastName: true,
           email: true,
           profileImageUrl: true,
         },
@@ -101,6 +103,8 @@ async function generateVirtualShiftsFromPattern(
       User: {
         select: {
           name: true,
+          firstName: true,
+          lastName: true,
           email: true,
           profileImageUrl: true,
         },

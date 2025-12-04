@@ -106,6 +106,8 @@ export async function GET(
           User: {
             select: {
               name: true,
+              firstName: true,
+              lastName: true,
               email: true,
               profileImageUrl: true,
             },
@@ -289,7 +291,10 @@ export async function PUT(
           User: {
             select: {
               name: true,
+              firstName: true,
+              lastName: true,
               email: true,
+              profileImageUrl: true,
             },
           },
         },

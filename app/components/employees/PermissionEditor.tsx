@@ -48,18 +48,18 @@ export function PermissionEditor({
         <thead>
           <tr>
             <th className="text-left p-2">Screen</th>
-            {actions.map((a) => (
+            {actions.filter(a => a && a.key).map((a) => (
               <th key={a.key} className="text-center p-2">{a.label}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {screens.map((s) => {
+          {screens.filter(s => s && s.key).map((s) => {
             const selected = new Set(value[s.key] || []);
             return (
               <tr key={s.key} className="odd:bg-gray-50">
                 <td className="p-2">{s.label}</td>
-                {actions.map((a) => (
+                {actions.filter(a => a && a.key).map((a) => (
                   <td key={a.key} className="text-center p-2">
                     <button
                       type="button"

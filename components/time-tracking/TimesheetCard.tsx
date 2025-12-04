@@ -4,6 +4,17 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Clock, Calendar, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
+// Helper function to get display name from User object
+function getEmployeeDisplayName(user: { name?: string | null; firstName?: string | null; lastName?: string | null; email?: string | null } | null | undefined): string {
+  if (!user) return 'Unknown Employee';
+  if (user.name) return user.name;
+  if (user.firstName || user.lastName) {
+    return [user.firstName, user.lastName].filter(Boolean).join(' ');
+  }
+  if (user.email) return user.email;
+  return 'Unknown Employee';
+}
+
 interface TimesheetCardProps {
   timesheet: {
     id: string;
@@ -16,10 +27,13 @@ interface TimesheetCardProps {
     submittedAt?: Date | string | null;
     approvedAt?: Date | string | null;
     employee?: {
-      User: {
-        name: string | null;
+      User?: {
+        name?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+        email?: string | null;
         profileImageUrl?: string | null;
-      };
+      } | null;
       Department?: {
         name: string;
       } | null;
@@ -118,19 +132,19 @@ export default function TimesheetCard({
           
           {showEmployee && timesheet.employee && (
             <div className="flex items-center gap-2 mt-2">
-              {timesheet.employee.User.profileImageUrl ? (
+              {timesheet.employee.User?.profileImageUrl ? (
                 <img
                   src={timesheet.employee.User.profileImageUrl}
-                  alt={timesheet.employee.User.name || 'Employee'}
+                  alt={getEmployeeDisplayName(timesheet.employee.User)}
                   className="w-6 h-6 rounded-full"
                 />
               ) : (
                 <div className="w-6 h-6 rounded-full bg-blue-600/10 text-blue-700 flex items-center justify-center text-xs font-bold">
-                  {timesheet.employee.User.name?.charAt(0) || 'E'}
+                  {getEmployeeDisplayName(timesheet.employee.User).charAt(0)}
                 </div>
               )}
               <span className="text-sm text-slate-600">
-                {timesheet.employee.User.name}
+                {getEmployeeDisplayName(timesheet.employee.User)}
               </span>
               {timesheet.employee.Department && (
                 <span className="text-xs text-slate-500">

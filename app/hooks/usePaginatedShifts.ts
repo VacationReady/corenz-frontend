@@ -15,11 +15,13 @@ export interface ShiftRecord {
   cost?: number | null;
   employee?: {
     id: string;
-    User: {
-      name: string;
-      email: string;
+    User?: {
+      name?: string | null;
+      firstName?: string | null;
+      lastName?: string | null;
+      email?: string | null;
       profileImageUrl?: string | null;
-    };
+    } | null;
     Department?: { id: string; name: string } | null;
   } | null;
   department?: {

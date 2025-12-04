@@ -142,7 +142,10 @@ export function PermissionProfileManagement({
       const screensRes = await fetch("/api/permissions/screens");
       if (screensRes.ok) {
         const sm = await screensRes.json();
-        setScreensMeta(sm);
+        // Validate screens and actions arrays have valid entries
+        const validScreens = (sm.screens || []).filter((s: any) => s && s.key && s.label);
+        const validActions = (sm.actions || []).filter((a: any) => a && a.key && a.label);
+        setScreensMeta({ screens: validScreens, actions: validActions });
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -318,7 +321,7 @@ export function PermissionProfileManagement({
                     <SelectItem value="none">
                       Default ({userPermissions.user.role})
                     </SelectItem>
-                    {availableProfiles.map((profile) => (
+                    {availableProfiles.filter(profile => profile && profile.id && profile.name).map((profile) => (
                       <SelectItem key={profile.id} value={profile.id}>
                         {profile.name} {profile.builtIn && "(Built-in)"}
                       </SelectItem>
@@ -403,7 +406,7 @@ export function PermissionProfileManagement({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {userPermissions.auditTrail.slice(0, 5).map((audit) => {
+              {userPermissions.auditTrail.filter(audit => audit && audit.id).slice(0, 5).map((audit) => {
                 const hasPermissionDiff =
                   audit.oldPermissions && audit.newPermissions;
                 const isExpanded = expandedAudits.has(audit.id);
@@ -424,7 +427,7 @@ export function PermissionProfileManagement({
                           <User className="h-4 w-4 text-gray-500" />
                           <span className="text-sm font-medium">
                             Changed by{" "}
-                            {audit.changedBy.name || audit.changedBy.email}
+                            {audit.changedBy?.name || audit.changedBy?.email || "Unknown"}
                           </span>
                           {hasPermissionDiff &&
                             (isExpanded ? (

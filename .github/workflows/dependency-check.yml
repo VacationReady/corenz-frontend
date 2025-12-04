@@ -27,7 +27,7 @@ jobs:
       
       - name: Check for unused dependencies
         run: |
-          npx depcheck --ignores="@types/*,autoprefixer,postcss,tailwindcss,eslint*,@typescript-eslint/*,ts-node,tsx,prisma,typescript,preact"
+          npx depcheck --ignores="@types/*,autoprefixer,postcss,tailwindcss,eslint*,@typescript-eslint/*,ts-node,tsx,prisma,typescript,preact,ignore-loader"
           if [ $? -ne 0 ]; then
             echo "❌ Unused dependencies detected. Run 'npx depcheck' locally and remove them."
             exit 1

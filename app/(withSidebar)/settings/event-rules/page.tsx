@@ -174,12 +174,16 @@ export default function EventRulesPage() {
           fetch("/api/event-rule-overrides"),
         ]);
 
-      const catData: EventCategory[] = await catRes.json();
+      const catDataRaw = await catRes.json();
       const ruleData: EventRule[] = await ruleRes.json();
       const blackoutData: BlackoutDay[] = await blackoutRes.json();
       const empData = await empRes.json();
       const deptData = await deptRes.json();
-      const overrideData: EventRuleOverride[] = await overrideRes.json();
+      const overrideDataRaw = await overrideRes.json();
+      
+      // Filter out any null/undefined entries from API responses
+      const catData: EventCategory[] = (Array.isArray(catDataRaw) ? catDataRaw : []).filter((c): c is EventCategory => c != null && typeof c.id === 'string' && typeof c.name === 'string');
+      const overrideData: EventRuleOverride[] = (Array.isArray(overrideDataRaw) ? overrideDataRaw : []).filter((o): o is EventRuleOverride => o != null && typeof o.eventCategoryId === 'string');
 
       console.log("Employee API Response:", empData);
       console.log("Employees array:", empData.data || empData.employees || empData);
@@ -1363,8 +1367,9 @@ export default function EventRulesPage() {
           ) : (
             <div className="grid gap-4">
               {overrides.map((override) => {
+                if (!override || !override.eventCategoryId) return null;
                 const category = categories.find(
-                  (c) => c.id === override.eventCategoryId,
+                  (c) => c && c.id === override.eventCategoryId,
                 );
                 return (
                   <Card key={override.id}>

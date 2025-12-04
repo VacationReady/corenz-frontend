@@ -23,6 +23,10 @@ interface Employee {
   Department?: {
     name: string;
   };
+  departmentId?: string | null;
+  locationId?: string | null;
+  workingPatternType?: 'STANDARD' | 'SHIFT_BASED' | 'FLEXIBLE' | 'COMPRESSED' | null;
+  workingPatternName?: string | null;
 }
 
 interface Department {
@@ -334,6 +338,7 @@ export default function CreateShiftModal({
   const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
+  const [shiftBasedOnly, setShiftBasedOnly] = useState(true); // Default to only showing shift-based workers
 
   // Form state - now supports multiple employees
   const [formData, setFormData] = useState({
@@ -359,7 +364,7 @@ export default function CreateShiftModal({
       fetchLocations();
       fetchRotaGroups();
     }
-  }, [isOpen]);
+  }, [isOpen, shiftBasedOnly]);
 
   useEffect(() => {
     if (formData.rotaGroupId) {
@@ -375,10 +380,50 @@ export default function CreateShiftModal({
     }
   }, [formData.employeeIds, formData.startTime, formData.endTime]);
 
+  // Auto-populate department and location based on selected employees
+  useEffect(() => {
+    if (formData.employeeIds.length === 0) {
+      // Don't clear when no employees - allow manual selection for open shifts
+      return;
+    }
+
+    const selectedEmps = employees.filter(emp => formData.employeeIds.includes(emp.id));
+    if (selectedEmps.length === 0) return;
+
+    // Get unique department and location IDs from selected employees
+    const departmentIds = [...new Set(selectedEmps.map(e => e.departmentId).filter(Boolean))];
+    const locationIds = [...new Set(selectedEmps.map(e => e.locationId).filter(Boolean))];
+
+    // Auto-set department if all selected employees share the same department
+    if (departmentIds.length === 1 && departmentIds[0]) {
+      setFormData(prev => ({ ...prev, departmentId: departmentIds[0] as string }));
+    } else if (departmentIds.length > 1) {
+      // Multiple different departments - clear to indicate mixed selection
+      setFormData(prev => ({ ...prev, departmentId: '' }));
+    }
+
+    // Auto-set location if all selected employees share the same location
+    if (locationIds.length === 1 && locationIds[0]) {
+      setFormData(prev => ({ ...prev, locationId: locationIds[0] as string }));
+    } else if (locationIds.length > 1) {
+      // Multiple different locations - clear to indicate mixed selection
+      setFormData(prev => ({ ...prev, locationId: '' }));
+    }
+  }, [formData.employeeIds, employees]);
+
   const fetchEmployees = async () => {
     setLoadingEmployees(true);
     try {
-      const response = await fetch('/api/employees?status=active&limit=all');
+      // Build URL with optional filter for shift-based workers
+      const params = new URLSearchParams({
+        status: 'active',
+        limit: 'all',
+      });
+      if (shiftBasedOnly) {
+        params.set('workingPatternType', 'SHIFT_BASED');
+      }
+      
+      const response = await fetch(`/api/employees?${params}`);
       const data = await response.json();
       // API returns { data: [...], pagination: {...} } with flat employee objects
       // Transform to expected nested format for the component
@@ -394,6 +439,12 @@ export default function CreateShiftModal({
         Department: emp.departmentName 
           ? { name: emp.departmentName }
           : emp.Department || undefined,
+        // Include department and location IDs for auto-population
+        departmentId: emp.departmentId || null,
+        locationId: emp.locationId || null,
+        // Working pattern info
+        workingPatternType: emp.workingPatternType || null,
+        workingPatternName: emp.workingPatternName || null,
       }));
       setEmployees(employeeList);
     } catch (error) {
@@ -699,23 +750,85 @@ export default function CreateShiftModal({
             </div>
           )}
 
+          {/* Employee Filter Toggle */}
+          <div className="bg-muted/30 rounded-xl p-4 border border-border">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <span className="text-lg">👷</span> Worker Type Filter
+                </label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {shiftBasedOnly 
+                    ? 'Showing only shift-based workers (employees with variable schedules)' 
+                    : 'Showing all employees including those with fixed schedules'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShiftBasedOnly(!shiftBasedOnly);
+                  setFormData(prev => ({ ...prev, employeeIds: [] })); // Clear selection when toggling
+                }}
+                className={cn(
+                  "relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-2 focus:ring-offset-background",
+                  shiftBasedOnly ? "bg-primary" : "bg-muted"
+                )}
+                role="switch"
+                aria-checked={shiftBasedOnly}
+                aria-label="Filter to shift-based workers only"
+              >
+                <span
+                  className={cn(
+                    "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out",
+                    shiftBasedOnly ? "translate-x-7" : "translate-x-0"
+                  )}
+                />
+              </button>
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-xs">
+              <span className={cn(
+                "px-2 py-1 rounded-full font-medium",
+                shiftBasedOnly ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+              )}>
+                Shift-based only
+              </span>
+              <span className="text-muted-foreground">or</span>
+              <span className={cn(
+                "px-2 py-1 rounded-full font-medium",
+                !shiftBasedOnly ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+              )}>
+                All employees
+              </span>
+            </div>
+          </div>
+
           {/* Employee Selection with Multi-Select */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               <span className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
                 Assign Employees
+                {shiftBasedOnly && (
+                  <span className="text-xs text-muted-foreground font-normal ml-2">
+                    ({employees.length} shift-based worker{employees.length !== 1 ? 's' : ''} available)
+                  </span>
+                )}
               </span>
             </label>
             <EmployeeMultiSelect
               employees={availableEmployees}
               selectedIds={formData.employeeIds}
               onChange={(ids) => setFormData({ ...formData, employeeIds: ids })}
-              placeholder="Select employees or leave empty for open shift..."
+              placeholder={shiftBasedOnly 
+                ? "Select shift-based employees..." 
+                : "Select employees or leave empty for open shift..."}
               loading={loadingEmployees}
             />
             <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-              <span>💡</span> Select multiple employees to create shifts for all of them at once, or leave empty to create an open shift.
+              <span>💡</span> 
+              {shiftBasedOnly 
+                ? 'Only showing employees on shift-based working patterns. Toggle above to include all employees.' 
+                : 'Select multiple employees to create shifts for all of them at once, or leave empty to create an open shift.'}
             </p>
           </div>
 
@@ -772,16 +885,25 @@ export default function CreateShiftModal({
             )}
           </div>
 
-          {/* Department and Location */}
+          {/* Department and Location - Auto-populated from employee */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
                 Department
+                {formData.employeeIds.length > 0 && (
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">(from employee)</span>
+                )}
               </label>
               <select
                 value={formData.departmentId}
                 onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-150"
+                disabled={formData.employeeIds.length > 0}
+                className={cn(
+                  "w-full px-4 py-3 rounded-xl border text-foreground transition-all duration-150",
+                  formData.employeeIds.length > 0
+                    ? "bg-muted/50 border-border cursor-not-allowed opacity-75"
+                    : "bg-background border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                )}
               >
                 <option value="">No Department</option>
                 {departments.map((dept) => (
@@ -790,16 +912,30 @@ export default function CreateShiftModal({
                   </option>
                 ))}
               </select>
+              {formData.employeeIds.length > 0 && !formData.departmentId && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  Selected employee(s) have no department assigned
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
                 Location
+                {formData.employeeIds.length > 0 && (
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">(from employee)</span>
+                )}
               </label>
               <select
                 value={formData.locationId}
                 onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-150"
+                disabled={formData.employeeIds.length > 0}
+                className={cn(
+                  "w-full px-4 py-3 rounded-xl border text-foreground transition-all duration-150",
+                  formData.employeeIds.length > 0
+                    ? "bg-muted/50 border-border cursor-not-allowed opacity-75"
+                    : "bg-background border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                )}
               >
                 <option value="">No Location</option>
                 {locations.map((loc) => (
@@ -808,6 +944,11 @@ export default function CreateShiftModal({
                   </option>
                 ))}
               </select>
+              {formData.employeeIds.length > 0 && !formData.locationId && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  Selected employee(s) have no location assigned
+                </p>
+              )}
             </div>
           </div>
 

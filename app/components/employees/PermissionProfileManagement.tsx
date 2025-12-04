@@ -134,7 +134,9 @@ export function PermissionProfileManagement({
       const profilesResponse = await fetch("/api/permissions");
       if (!profilesResponse.ok) throw new Error("Failed to fetch profiles");
       const profilesData = await profilesResponse.json();
-      setAvailableProfiles(profilesData.profiles);
+      // Filter out any null/undefined profiles
+      const validProfiles = (profilesData.profiles || []).filter((p: PermissionProfile | null | undefined) => p && p.id && p.name);
+      setAvailableProfiles(validProfiles);
 
       // Load screens/actions metadata
       const screensRes = await fetch("/api/permissions/screens");

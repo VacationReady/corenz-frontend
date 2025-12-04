@@ -41,6 +41,10 @@ interface Employee {
   Department?: {
     name: string;
   };
+  departmentId?: string | null;
+  locationId?: string | null;
+  workingPatternType?: 'STANDARD' | 'SHIFT_BASED' | 'FLEXIBLE' | 'COMPRESSED' | null;
+  workingPatternName?: string | null;
 }
 
 interface Department {
@@ -74,6 +78,7 @@ export default function EditShiftModal({
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [checkingConflicts, setCheckingConflicts] = useState(false);
+  const [shiftBasedOnly, setShiftBasedOnly] = useState(true); // Default to only showing shift-based workers
 
   // Form state
   const [formData, setFormData] = useState({
@@ -107,7 +112,7 @@ export default function EditShiftModal({
       fetchDepartments();
       fetchLocations();
     }
-  }, [isOpen, shift]);
+  }, [isOpen, shift, shiftBasedOnly]);
 
   useEffect(() => {
     if (formData.employeeId && formData.startTime && formData.endTime) {
@@ -115,11 +120,61 @@ export default function EditShiftModal({
     }
   }, [formData.employeeId, formData.startTime, formData.endTime]);
 
+  // Auto-populate department and location based on selected employee
+  useEffect(() => {
+    if (!formData.employeeId) {
+      // Don't clear when no employee - allow manual selection for open shifts
+      return;
+    }
+
+    const selectedEmployee = employees.find(emp => emp.id === formData.employeeId);
+    if (!selectedEmployee) return;
+
+    // Auto-set department from employee
+    if (selectedEmployee.departmentId) {
+      setFormData(prev => ({ ...prev, departmentId: selectedEmployee.departmentId as string }));
+    }
+
+    // Auto-set location from employee
+    if (selectedEmployee.locationId) {
+      setFormData(prev => ({ ...prev, locationId: selectedEmployee.locationId as string }));
+    }
+  }, [formData.employeeId, employees]);
+
   const fetchEmployees = async () => {
     try {
-      const response = await fetch('/api/employees?status=active');
+      // Build URL with optional filter for shift-based workers
+      const params = new URLSearchParams({
+        status: 'active',
+        limit: 'all',
+      });
+      if (shiftBasedOnly) {
+        params.set('workingPatternType', 'SHIFT_BASED');
+      }
+      
+      const response = await fetch(`/api/employees?${params}`);
       const data = await response.json();
-      setEmployees(data.employees || []);
+      // API returns { data: [...], pagination: {...} } with flat employee objects
+      // Transform to expected nested format for the component
+      const employeeList = (data.data || data.employees || []).map((emp: any) => ({
+        id: emp.id,
+        User: {
+          name: emp.firstName && emp.lastName 
+            ? `${emp.firstName} ${emp.lastName}`.trim()
+            : emp.User?.name || emp.email || 'Unknown',
+          email: emp.email || emp.User?.email || '',
+        },
+        Department: emp.departmentName 
+          ? { name: emp.departmentName }
+          : emp.Department || undefined,
+        // Include department and location IDs for auto-population
+        departmentId: emp.departmentId || null,
+        locationId: emp.locationId || null,
+        // Working pattern info
+        workingPatternType: emp.workingPatternType || null,
+        workingPatternName: emp.workingPatternName || null,
+      }));
+      setEmployees(employeeList);
     } catch (error) {
       console.error('Error fetching employees:', error);
     }
@@ -349,16 +404,53 @@ export default function EditShiftModal({
             </div>
           )}
 
+          {/* Employee Filter Toggle */}
+          <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                  <span className="text-lg">👷</span> Worker Type Filter
+                </label>
+                <p className="text-xs text-gray-500 mt-1">
+                  {shiftBasedOnly 
+                    ? 'Showing only shift-based workers' 
+                    : 'Showing all employees'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShiftBasedOnly(!shiftBasedOnly)}
+                className={`relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+                  shiftBasedOnly ? 'bg-blue-600' : 'bg-gray-600'
+                }`}
+                role="switch"
+                aria-checked={shiftBasedOnly}
+                aria-label="Filter to shift-based workers only"
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                    shiftBasedOnly ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
           {/* Employee Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Employee
+              {shiftBasedOnly && (
+                <span className="text-xs text-gray-500 font-normal ml-2">
+                  ({employees.length} shift-based worker{employees.length !== 1 ? 's' : ''})
+                </span>
+              )}
             </label>
             <div className="relative mb-2">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search employees..."
+                placeholder={shiftBasedOnly ? "Search shift-based workers..." : "Search employees..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -376,6 +468,11 @@ export default function EditShiftModal({
                 </option>
               ))}
             </select>
+            {shiftBasedOnly && employees.length === 0 && (
+              <p className="text-xs text-amber-400 mt-2">
+                No shift-based workers found. Toggle the filter above to see all employees.
+              </p>
+            )}
           </div>
 
           {/* Time Selection */}
@@ -431,16 +528,24 @@ export default function EditShiftModal({
             )}
           </div>
 
-          {/* Department and Location */}
+          {/* Department and Location - Auto-populated from employee */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Department
+                {formData.employeeId && (
+                  <span className="ml-2 text-xs text-gray-500 font-normal">(from employee)</span>
+                )}
               </label>
               <select
                 value={formData.departmentId}
                 onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                disabled={!!formData.employeeId}
+                className={`w-full px-4 py-2 rounded-lg border text-white ${
+                  formData.employeeId 
+                    ? 'bg-gray-800/50 border-gray-700 cursor-not-allowed opacity-75' 
+                    : 'bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                }`}
               >
                 <option value="" className="bg-gray-800 text-white">No Department</option>
                 {departments.map((dept) => (
@@ -449,16 +554,29 @@ export default function EditShiftModal({
                   </option>
                 ))}
               </select>
+              {formData.employeeId && !formData.departmentId && (
+                <p className="text-xs text-amber-400 mt-1">
+                  Selected employee has no department assigned
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Location
+                {formData.employeeId && (
+                  <span className="ml-2 text-xs text-gray-500 font-normal">(from employee)</span>
+                )}
               </label>
               <select
                 value={formData.locationId}
                 onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                disabled={!!formData.employeeId}
+                className={`w-full px-4 py-2 rounded-lg border text-white ${
+                  formData.employeeId 
+                    ? 'bg-gray-800/50 border-gray-700 cursor-not-allowed opacity-75' 
+                    : 'bg-gray-800 border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                }`}
               >
                 <option value="" className="bg-gray-800 text-white">No Location</option>
                 {locations.map((loc) => (
@@ -467,6 +585,11 @@ export default function EditShiftModal({
                   </option>
                 ))}
               </select>
+              {formData.employeeId && !formData.locationId && (
+                <p className="text-xs text-amber-400 mt-1">
+                  Selected employee has no location assigned
+                </p>
+              )}
             </div>
           </div>
 

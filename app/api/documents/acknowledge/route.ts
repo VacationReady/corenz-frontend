@@ -53,6 +53,27 @@ export async function POST(req: Request) {
       },
     });
 
+    // ✅ Mark related action items as completed
+    if (session.user.companyId) {
+      await prisma.actionItem.updateMany({
+        where: {
+          companyId: session.user.companyId,
+          assignedToId: session.user.id,
+          type: "DOCUMENT_ACKNOWLEDGEMENT",
+          status: "PENDING",
+          metadata: {
+            path: ["documentId"],
+            equals: documentId,
+          },
+        },
+        data: {
+          status: "COMPLETED",
+          completedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+
     // Invalidate document status cache
     if (session.user.companyId) {
       try {

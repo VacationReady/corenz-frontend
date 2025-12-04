@@ -78,9 +78,9 @@ export default function MultiStageApprovalsSettingsPage() {
           fetch("/api/job-roles").then((r) => r.json()),
           fetch("/api/employees?status=active").then((r) => r.json()),
         ]);
-        setEventCategories((Array.isArray(cats) ? cats : cats?.data || []).map((c: any) => ({ id: c.id, name: c.name })));
-        setDepartments((Array.isArray(depts) ? depts : depts?.data || []).map((d: any) => ({ id: d.id, name: d.name })));
-        setJobRoles(((roles && roles.jobRoles) || []).map((r: any) => ({ id: r.id, name: r.name })));
+        setEventCategories((Array.isArray(cats) ? cats : cats?.data || []).filter((c: any) => c && c.id && c.name).map((c: any) => ({ id: c.id, name: c.name })));
+        setDepartments((Array.isArray(depts) ? depts : depts?.data || []).filter((d: any) => d && d.id && d.name).map((d: any) => ({ id: d.id, name: d.name })));
+        setJobRoles(((roles && roles.jobRoles) || []).filter((r: any) => r && r.id && r.name).map((r: any) => ({ id: r.id, name: r.name })));
         const empArr = (Array.isArray(emps) ? emps : emps?.data || []).map((e: any) => {
           const name = [e.firstName, e.lastName].filter(Boolean).join(" ") || e.email || e.User?.name || "Unnamed";
           const id = e.userId || e.User?.id || e.id;

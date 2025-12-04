@@ -195,6 +195,7 @@ export async function GET(req: NextRequest) {
     const userId = searchParams.get("userId");
     const managerId = searchParams.get("managerId");
     const scope = (searchParams.get("scope") || "directory").toLowerCase();
+    const workingPatternType = searchParams.get("workingPatternType"); // Filter by pattern type (SHIFT_BASED, STANDARD, etc.)
     
     const limitParam = searchParams.get("limit");
     const fetchAll = limitParam === "all";
@@ -215,6 +216,13 @@ export async function GET(req: NextRequest) {
     if (status === "active") whereCondition.isActive = true;
     else if (status === "archived") whereCondition.isActive = false;
     // If status is "all", no isActive filter is applied
+    
+    // Filter by working pattern type (for rota scheduling - filter to SHIFT_BASED workers)
+    if (workingPatternType) {
+      whereCondition.WorkingPattern = {
+        patternType: workingPatternType,
+      };
+    }
 
     // Allow admins to explicitly scope to their managed hierarchy
     if (
@@ -302,6 +310,9 @@ export async function GET(req: NextRequest) {
         Location: {
           select: { id: true, name: true },
         },
+        WorkingPattern: {
+          select: { id: true, name: true, patternType: true },
+        },
         EmployeeOffboarding: {
           select: {
             id: true,
@@ -354,6 +365,9 @@ export async function GET(req: NextRequest) {
         jobRoleName: emp.JobRole?.name ?? null,
         locationId: emp.Location?.id ?? null,
         locationName: emp.Location?.name ?? null,
+        workingPatternId: emp.WorkingPattern?.id ?? null,
+        workingPatternName: emp.WorkingPattern?.name ?? null,
+        workingPatternType: emp.WorkingPattern?.patternType ?? null,
         isActive: emp.isActive,
         isActivated: emp.User.isActivated,
         offboardingStatus: emp.offboardingStatus,

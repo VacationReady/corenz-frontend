@@ -32,3 +32,7 @@ Added the ability for administrators to rename documents from a modernized Edit 
 
 Redesigned the transactional change request review modal with a modern glass morphism UI featuring employee profile cards, gradient accents, and beautiful diff visualizations to match the leave request approval modal styling.
 
+## 9. Training Report Field Mapping Fix
+
+Fixed Training Reports showing blank data for Course Name, Training Provider, and Employee names by correcting field path definitions to properly traverse Prisma relations and ensuring sort fields are anchored to the correct model context.
+

@@ -50,12 +50,15 @@ export async function GET() {
         },
       },
       orderBy: [
-        { EventCategory: { name: "asc" } },
-        { Department: { name: "asc" } },
+        { eventCategoryId: "asc" },
+        { departmentId: "asc" },
       ],
     });
 
-    return NextResponse.json(overrides);
+    // Filter out overrides with missing event categories (orphaned data)
+    const validOverrides = overrides.filter(o => o.EventCategory != null);
+
+    return NextResponse.json(validOverrides);
   } catch (error) {
     console.error("GET /api/event-rule-overrides error:", error);
     return NextResponse.json(

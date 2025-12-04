@@ -453,9 +453,39 @@ export async function POST(req: Request) {
         // Rewrite to leave-anchored equivalents if applicable (includes LeaveEntitlement -> LeaveRequest.Employee.LeaveEntitlement)
         translatedSelectedFields = rewriteFieldsForLeaveContext(translatedSelectedFields);
         translatedFilterGroup = rewriteFilterGroupForLeaveContext(translatedFilterGroup);
+        
+        // Rewrite sort field using context from selected fields (not just the sort field alone)
         if (translatedSort?.field) {
-            const newSortField = rewriteFieldsForLeaveContext([translatedSort.field])[0];
-            translatedSort = { ...translatedSort, field: newSortField } as any;
+            // Detect context from the already-rewritten selected fields
+            const hasLeave = translatedSelectedFields.some((f) => f.startsWith("LeaveRequest."));
+            const hasDriverLicence = translatedSelectedFields.some((f) => f.startsWith("DriverLicence."));
+            const hasEmploymentCheck = translatedSelectedFields.some((f) => f.startsWith("EmploymentCheck."));
+            const hasTrainingRecord = translatedSelectedFields.some((f) => f.startsWith("TrainingRecord."));
+            const hasEmployeeOffboarding = translatedSelectedFields.some((f) => f.startsWith("EmployeeOffboarding."));
+            const hasTimesheet = translatedSelectedFields.some((f) => f.startsWith("Timesheet.") && !f.startsWith("TimesheetEntry.") && !f.startsWith("TimesheetApprovalDecision."));
+            const hasTimesheetEntry = translatedSelectedFields.some((f) => f.startsWith("TimesheetEntry."));
+            const hasTimesheetApprovalDecision = translatedSelectedFields.some((f) => f.startsWith("TimesheetApprovalDecision."));
+            
+            let sortField = translatedSort.field;
+            // Apply the appropriate anchor function based on detected context
+            if (hasLeave) {
+                sortField = anchorFieldToLeave(sortField);
+            } else if (hasDriverLicence) {
+                sortField = anchorFieldToDriverLicence(sortField);
+            } else if (hasEmploymentCheck) {
+                sortField = anchorFieldToEmploymentCheck(sortField);
+            } else if (hasTrainingRecord) {
+                sortField = anchorFieldToTrainingRecord(sortField);
+            } else if (hasEmployeeOffboarding) {
+                sortField = anchorFieldToEmployeeOffboarding(sortField);
+            } else if (hasTimesheetApprovalDecision) {
+                sortField = anchorFieldToTimesheetApprovalDecision(sortField);
+            } else if (hasTimesheetEntry) {
+                sortField = anchorFieldToTimesheetEntry(sortField);
+            } else if (hasTimesheet) {
+                sortField = anchorFieldToTimesheet(sortField);
+            }
+            translatedSort = { ...translatedSort, field: sortField } as any;
         }
 
         // Do not restrict fields by an allowlist; accept all translated selections

@@ -28,3 +28,7 @@ Added the ability to edit existing event categories in the Event Manager, includ
 
 Added the ability for administrators to rename documents from a modernized Edit Document modal with animated permission cards and contextual signature options (employee documents only).
 
+## 8. Change Request Review Modal UI Improvements
+
+Redesigned the transactional change request review modal with a modern glass morphism UI featuring employee profile cards, gradient accents, and beautiful diff visualizations to match the leave request approval modal styling.
+

@@ -233,6 +233,9 @@ export default function RotaPage() {
   const [viewFullDayOpen, setViewFullDayOpen] = useState(false);
   const [viewFullDayDate, setViewFullDayDate] = useState<Date | null>(null);
   const [viewFullDayShifts, setViewFullDayShifts] = useState<ShiftRecord[]>([]);
+  
+  // Publishing all shifts state
+  const [isPublishingAll, setIsPublishingAll] = useState(false);
 
   const {
     shifts,
@@ -499,6 +502,52 @@ export default function RotaPage() {
       });
     }
   }, [selectedShiftIds, refresh, fetchConflicts, toast]);
+
+  // Publish all unpublished shifts in the current view
+  const handlePublishAll = useCallback(async () => {
+    // Get all unpublished shift IDs from current shifts (excluding virtual shifts)
+    const unpublishedShiftIds = shifts
+      .filter(shift => !shift.isPublished && !shift.isVirtualShift)
+      .map(shift => shift.id);
+
+    if (unpublishedShiftIds.length === 0) {
+      toast({
+        title: 'No shifts to publish',
+        description: 'All shifts in the current view are already published.',
+      });
+      return;
+    }
+
+    setIsPublishingAll(true);
+    try {
+      const response = await fetch(`/api/shifts/${unpublishedShiftIds[0]}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shiftIds: unpublishedShiftIds, notifyEmployees: true }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to publish shifts');
+      }
+
+      const data = await response.json();
+      toast({
+        title: 'All shifts published!',
+        description: data.message ?? `${unpublishedShiftIds.length} shift${unpublishedShiftIds.length > 1 ? 's' : ''} published and employees notified.`,
+      });
+      await refresh();
+      fetchConflicts();
+    } catch (error) {
+      toast({
+        title: 'Publish failed',
+        description: error instanceof Error ? error.message : 'Unable to publish shifts',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPublishingAll(false);
+    }
+  }, [shifts, refresh, fetchConflicts, toast]);
 
   const handleDeleteShift = useCallback(
     async (shiftId: string) => {
@@ -844,7 +893,9 @@ export default function RotaPage() {
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Draft</dt>
-                    <dd className="text-lg font-semibold text-foreground">{summary.unpublishedCount}</dd>
+                    <dd className={`text-lg font-semibold ${summary.unpublishedCount > 0 ? 'text-amber-500' : 'text-foreground'}`}>
+                      {summary.unpublishedCount}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-muted-foreground">Scheduled hours</dt>
@@ -855,6 +906,37 @@ export default function RotaPage() {
                     <dd className="text-lg font-semibold text-foreground">{summary.overtimeHours.toFixed(1)}</dd>
                   </div>
                 </dl>
+                {summary.unpublishedCount > 0 && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-3">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="text-sm font-medium">
+                        {summary.unpublishedCount} unpublished shift{summary.unpublishedCount > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <Button
+                      onClick={handlePublishAll}
+                      disabled={isPublishingAll}
+                      className="w-full"
+                      variant="default"
+                    >
+                      {isPublishingAll ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Publishing...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          Publish all shifts
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Employees will be notified of their schedules
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

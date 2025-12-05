@@ -15,7 +15,7 @@ const RATE_LIMIT_PATHS = [
   "/api/news",
 ];
 
-// Exclude NextAuth routes and other system routes from middleware
+// Exclude NextAuth routes and other system routes from proxy
 const EXCLUDED_PATHS = [
   "/api/auth",
   "/api/health",
@@ -24,17 +24,17 @@ const EXCLUDED_PATHS = [
   "/favicon.ico",
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Skip middleware for excluded paths
+  // Skip proxy for excluded paths
   if (EXCLUDED_PATHS.some((excludedPath) => path.startsWith(excludedPath))) {
     return NextResponse.next();
   }
 
   try {
     // Note: RBAC is enforced in server components for dashboard pages.
-    // Avoid RBAC in middleware to prevent auth token issues and redirect loops.
+    // Avoid RBAC in proxy to prevent auth token issues and redirect loops.
 
     // Origin checking for restricted methods
     if (RESTRICTED_METHODS.includes(request.method)) {
@@ -44,7 +44,7 @@ export async function middleware(request: NextRequest) {
       if (origin && origin !== selfOrigin) {
         const allowed = originAllowList.length > 0 && isAllowedOrigin(origin);
         if (!allowed) {
-          console.warn("middleware: origin rejected", {
+          console.warn("proxy: origin rejected", {
             path,
             method: request.method,
             origin,
@@ -70,7 +70,7 @@ export async function middleware(request: NextRequest) {
       try {
         const secret = process.env.NEXTAUTH_SECRET;
         if (!secret) {
-          console.error("middleware: NEXTAUTH_SECRET is missing");
+          console.error("proxy: NEXTAUTH_SECRET is missing");
         }
 
         // Try to get token with explicit cookie name for secure environments
@@ -86,7 +86,7 @@ export async function middleware(request: NextRequest) {
           // Debug logging for missing token/companyId on rate-limited paths
           if (RATE_LIMIT_PATHS.some((p) => path.startsWith(p))) {
             const cookieNames = request.cookies.getAll().map(c => c.name);
-            console.warn("middleware: failed to hydrate companyId from token", {
+            console.warn("proxy: failed to hydrate companyId from token", {
               path,
               hasToken: !!tokenForHeader,
               tokenKeys: tokenForHeader ? Object.keys(tokenForHeader) : [],
@@ -112,7 +112,7 @@ export async function middleware(request: NextRequest) {
       const tenantId = requestHeaders.get("x-company-id");
 
       if (!tenantId) {
-        console.warn("middleware: missing tenant header for rate-limited path", {
+        console.warn("proxy: missing tenant header for rate-limited path", {
           path,
           method: request.method,
           ip,
@@ -150,7 +150,7 @@ export async function middleware(request: NextRequest) {
           );
         }
       } catch (error: any) {
-        console.error("middleware: rate limiting failed, failing closed", {
+        console.error("proxy: rate limiting failed, failing closed", {
           path,
           method: request.method,
           tenantId,
@@ -172,7 +172,7 @@ export async function middleware(request: NextRequest) {
       headers: { "Permissions-Policy": "geolocation=(self), camera=(self)" } 
     });
   } catch (error) {
-    console.error("Middleware error:", error);
+    console.error("Proxy error:", error);
     // Return a basic response to prevent hanging
     return NextResponse.next();
   }
@@ -190,3 +190,4 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
+

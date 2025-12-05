@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "es2015",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     // Disabled for .js scripts and legacy code - migrate or exclude explicitly
     "allowJs": false,
     "skipLibCheck": true,
@@ -14,17 +18,32 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["app/*"],
-      "@/components/*": ["components/*", "app/components/*"],
-      "@/lib/*": ["lib/*", "app/lib/*"],
-      "@/types/*": ["types/*", "app/types/*"],
-      "@/hooks/*": ["app/hooks/*"]
+      "@/*": [
+        "app/*"
+      ],
+      "@/components/*": [
+        "components/*",
+        "app/components/*"
+      ],
+      "@/lib/*": [
+        "lib/*",
+        "app/lib/*"
+      ],
+      "@/types/*": [
+        "types/*",
+        "app/types/*"
+      ],
+      "@/hooks/*": [
+        "app/hooks/*"
+      ]
     },
-    "types": ["next-auth"],
+    "types": [
+      "next-auth"
+    ],
     "plugins": [
       {
         "name": "next"
@@ -32,8 +51,7 @@
     ],
     // Enhanced strictness flags
     "strictNullChecks": true,
-    "noFallthroughCasesInSwitch": true,
-    
+    "noFallthroughCasesInSwitch": true
     // Deferred for gradual migration - enable file-by-file
     // These flags catch 700+ errors in existing codebase
     // "noUncheckedIndexedAccess": true,
@@ -49,7 +67,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "types/next-auth.d.ts"
+    "types/next-auth.d.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

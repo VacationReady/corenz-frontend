@@ -31,9 +31,6 @@ const nextConfig = {
   output: "standalone",
   // Explicitly set root to avoid monorepo lockfile inference
   outputFileTracingRoot: __dirname,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   experimental: {
     optimizePackageImports: ["lucide-react", "@heroicons/react"],
   },

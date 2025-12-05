@@ -926,7 +926,7 @@ export async function POST(req: Request) {
                         queryResult.results,
                         fieldsBeforeAnchoring,
                         fieldsAfterAnchoring,
-                        model
+                        primary.model // Use the string model name directly
                 );
 
                 // Add cache headers for debugging/monitoring

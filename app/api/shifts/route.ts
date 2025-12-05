@@ -299,10 +299,11 @@ export async function GET(req: NextRequest) {
       companyId: requestingEmployee.companyId,
     };
 
-    // Regular employees can only see their own published shifts
+    // Regular employees can see their own shifts (regardless of publish status)
+    // isPublished controls visibility to OTHER employees for open/broadcast shifts
     if (!isAdminOrManager) {
       where.employeeId = requestingEmployee.id;
-      where.isPublished = true;
+      // Note: Removed isPublished filter - employees should see their assigned shifts
     } else {
       if (employeeId) {
         where.employeeId = employeeId;

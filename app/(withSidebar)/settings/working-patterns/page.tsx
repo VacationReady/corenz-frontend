@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Archive, Edit, Eye, Trash2, Clock } from "lucide-react";
+import { Archive, Edit, Eye, Trash2, Clock, Calendar, Briefcase, Copy, ClipboardPaste, Plus, X, ChevronRight, Sparkles, CheckCircle2, Info, Timer, Coffee, AlertCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
@@ -10,12 +10,82 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { GlassSurface } from "@/components/ui/GlassSurface";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import { cn } from "@/lib/utils";
 import { ProfileUpdateSuccessAnimation } from "@/components/animations";
 import { calculateDayHours, formatHoursDisplay } from "@/lib/working-pattern-utils";
+
+// Collapsible Section Component for form organization
+const FormSection = ({ 
+  title, 
+  icon: Icon, 
+  children, 
+  defaultOpen = true,
+  accentColor = "primary",
+  badge,
+}: { 
+  title: string; 
+  icon: React.ElementType; 
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  accentColor?: "primary" | "emerald" | "violet" | "amber" | "rose" | "blue";
+  badge?: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  const iconColors = {
+    primary: "text-primary",
+    emerald: "text-emerald-600 dark:text-emerald-400",
+    violet: "text-violet-600 dark:text-violet-400",
+    amber: "text-amber-600 dark:text-amber-400",
+    rose: "text-rose-600 dark:text-rose-400",
+    blue: "text-blue-600 dark:text-blue-400",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="overflow-hidden"
+    >
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between py-2 hover:opacity-80 transition-opacity"
+      >
+        <div className="flex items-center gap-2">
+          <Icon className={`w-4 h-4 ${iconColors[accentColor]}`} />
+          <span className="font-semibold text-foreground">{title}</span>
+          {badge}
+        </div>
+        <motion.div
+          animate={{ rotate: isOpen ? 90 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </motion.div>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <div className="pt-3 space-y-4">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
 
 // Type for day configuration - supports both simple types and TIMED with time details
 interface DayConfig {
@@ -81,9 +151,15 @@ export default function WorkingPatternsPage() {
   };
 
   const fetchPatterns = async () => {
-    const res = await fetch("/api/working-patterns");
-    const data = await res.json();
-    setPatterns(data);
+    try {
+      const res = await fetch("/api/working-patterns");
+      const data = await res.json();
+      // Ensure data is always an array
+      setPatterns(Array.isArray(data) ? data : data?.data || []);
+    } catch (error) {
+      console.error("Failed to fetch patterns:", error);
+      setPatterns([]);
+    }
   };
 
   useEffect(() => {
@@ -446,287 +522,533 @@ export default function WorkingPatternsPage() {
             <DialogTrigger asChild>
               <Button>{editMode ? "Editing Pattern" : "Add Pattern"}</Button>
             </DialogTrigger>
-            <DialogContent>
-              <div className="max-h-[80vh] overflow-y-auto space-y-4 p-2">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editMode
-                      ? "Edit Working Pattern"
-                      : "Create Working Pattern"}
-                  </DialogTitle>
-                </DialogHeader>
-                <Input
-                  placeholder="Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-                <Input
-                  placeholder="Description (optional)"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-                
-                {/* Pattern Type Selector */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Pattern Type</label>
-                  <Select
-                    value={patternType}
-                    onValueChange={(value) => {
-                      setPatternType(value);
-                      // Reset weeks when switching to SHIFT_BASED
-                      if (value === "SHIFT_BASED") {
-                        setWeeks([{ weekNumber: 1, days: {} }]);
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select pattern type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="STANDARD">
-                        Standard - Fixed recurring schedule
-                      </SelectItem>
-                      <SelectItem value="SHIFT_BASED">
-                        Shift-Based - Flexible hours, manual scheduling
-                      </SelectItem>
-                      <SelectItem value="FLEXIBLE">
-                        Flexible - Variable schedule
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {patternType === "STANDARD" && (
-                    <p className="text-xs text-muted-foreground">
-                      For employees with fixed, recurring work schedules (e.g., Mon-Fri, 9am-5pm)
-                    </p>
-                  )}
-                  {patternType === "SHIFT_BASED" && (
-                    <p className="text-xs text-muted-foreground">
-                      For gig workers, zero-hour contracts, or employees with flexible schedules. Define total contracted hours, then create shifts manually.
-                    </p>
-                  )}
-                  {patternType === "FLEXIBLE" && (
-                    <p className="text-xs text-muted-foreground">
-                      For employees with variable schedules that change frequently
-                    </p>
-                  )}
-                </div>
-
-                {/* Default Break Minutes - shown for non-SHIFT_BASED patterns */}
-                {patternType !== "SHIFT_BASED" && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Default Break (minutes)</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="5"
-                      placeholder="30"
-                      value={defaultBreakMinutes}
-                      onChange={(e) => setDefaultBreakMinutes(parseInt(e.target.value) || 0)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Default break deduction for Timed days. Can be overridden per day.
-                    </p>
-                  </div>
-                )}
-
-                {/* Contracted Hours (only for SHIFT_BASED) */}
-                {patternType === "SHIFT_BASED" && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Contracted Hours per Week</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      placeholder="e.g., 20"
-                      value={contractedHoursPerWeek}
-                      onChange={(e) => setContractedHoursPerWeek(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Total contracted hours per week. Shifts will be created manually to meet this requirement.
-                    </p>
-                  </div>
-                )}
-
-                {/* Only show weeks configuration for non-SHIFT_BASED patterns */}
-                {patternType !== "SHIFT_BASED" && weeks.map((week, weekIndex) => (
-                  <div
-                    key={weekIndex}
-                    className="border p-2 rounded bg-gray-50"
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-medium">Week {week.weekNumber}</h3>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCopyWeek(weekIndex)}
-                        >
-                          Copy week
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handlePasteWeek(weekIndex)}
-                          disabled={!clipboardRef.current}
-                        >
-                          Paste to week
-                        </Button>
-                        {weeks.length > 1 && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => removeWeek(weekIndex)}
-                          >
-                            Remove Week
-                          </Button>
-                        )}
+            <DialogContent 
+              rawContent 
+              size="full" 
+              className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-5xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col"
+              aria-describedby={undefined}
+            >
+              {/* Visually hidden title for accessibility */}
+              <DialogTitle className="sr-only">
+                {editMode ? "Edit Working Pattern" : "Create Working Pattern"}
+              </DialogTitle>
+              {/* Header */}
+              <div className="px-8 pt-8 pb-6 flex-shrink-0 border-b border-muted/20">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/20 text-primary">
+                        <Calendar className="w-5 h-5" />
                       </div>
+                      <h2 className="text-2xl font-bold text-foreground">
+                        {editMode ? "Edit Working Pattern" : "Create Working Pattern"}
+                      </h2>
                     </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {days.map((day) => {
-                        const dayConfig = week.days[day];
-                        const isSelected = day in week.days;
-                        const isTimed = dayConfig?.type === "TIMED";
-                        const calculatedHours = dayConfig ? getCalculatedHours(dayConfig) : null;
-                        
-                        return (
-                          <div key={day} className="flex flex-col space-y-1">
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`week-${weekIndex}-day-${day}`}
-                                checked={isSelected}
-                                onCheckedChange={(checked) =>
-                                  handleCheckboxChange(
-                                    weekIndex,
-                                    day,
-                                    Boolean(checked),
-                                  )
-                                }
-                              />
-                              <label
-                                htmlFor={`week-${weekIndex}-day-${day}`}
-                                className="text-sm"
-                              >
-                                {day}
-                              </label>
+                    <p className="text-sm text-muted-foreground ml-14">
+                      {editMode 
+                        ? "Update the working schedule configuration" 
+                        : "Define a new work schedule for employees"
+                      }
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setOpen(false)}
+                    className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content Area */}
+              <div className="px-8 py-6 flex-1 overflow-y-auto space-y-6">
+                {/* Basic Info Section */}
+                <FormSection title="Basic Information" icon={Briefcase} accentColor="primary">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground/80">
+                        Pattern Name <span className="text-primary">*</span>
+                      </Label>
+                      <Input
+                        placeholder="e.g., Standard Full-Time"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground/80">Pattern Type</Label>
+                      <Select
+                        value={patternType}
+                        onValueChange={(value) => {
+                          setPatternType(value);
+                          if (value === "SHIFT_BASED") {
+                            setWeeks([{ weekNumber: 1, days: {} }]);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                          <SelectValue placeholder="Select pattern type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="STANDARD">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                              Standard - Fixed recurring schedule
                             </div>
-                            {isSelected && (
-                              <>
-                                <Select
-                                  value={dayConfig?.type || "FULL_DAY"}
-                                  onValueChange={(value) =>
-                                    handleTypeChange(weekIndex, day, value)
-                                  }
-                                >
-                                  <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {dayTypes.map((type) => (
-                                      <SelectItem
-                                        key={type.value}
-                                        value={type.value}
-                                      >
-                                        {type.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                
-                                {/* Time inputs for TIMED type */}
-                                {isTimed && (
-                                  <div className="space-y-1 p-2 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800">
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="h-3 w-3 text-blue-600" />
-                                      <span className="text-xs text-blue-600 font-medium">Times</span>
-                                    </div>
-                                    <div className="flex gap-1">
-                                      <Input
-                                        type="time"
-                                        value={dayConfig?.startTime || "09:00"}
-                                        onChange={(e) => handleTimeChange(weekIndex, day, "startTime", e.target.value)}
-                                        className="text-xs h-7 px-1"
-                                      />
-                                      <Input
-                                        type="time"
-                                        value={dayConfig?.endTime || "17:00"}
-                                        onChange={(e) => handleTimeChange(weekIndex, day, "endTime", e.target.value)}
-                                        className="text-xs h-7 px-1"
-                                      />
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-xs text-muted-foreground">Break:</span>
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        step="5"
-                                        value={dayConfig?.breakMinutes ?? defaultBreakMinutes}
-                                        onChange={(e) => handleTimeChange(weekIndex, day, "breakMinutes", parseInt(e.target.value) || 0)}
-                                        className="text-xs h-6 w-14 px-1"
-                                      />
-                                      <span className="text-xs text-muted-foreground">min</span>
-                                    </div>
-                                    {calculatedHours !== null && (
-                                      <div className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                                        = {formatHoursDisplay(calculatedHours)}
-                                      </div>
-                                    )}
+                          </SelectItem>
+                          <SelectItem value="SHIFT_BASED">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-violet-500" />
+                              Shift-Based - Flexible hours
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="FLEXIBLE">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-amber-500" />
+                              Flexible - Variable schedule
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground/80">Description</Label>
+                    <Textarea
+                      placeholder="Optional description of this working pattern..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="min-h-[80px] rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all resize-none"
+                    />
+                  </div>
+
+                  {/* Pattern Type Info Card */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={cn(
+                      "p-4 rounded-xl border flex items-start gap-3",
+                      patternType === "STANDARD" && "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/50 dark:border-emerald-800/50",
+                      patternType === "SHIFT_BASED" && "bg-violet-50/50 dark:bg-violet-950/20 border-violet-200/50 dark:border-violet-800/50",
+                      patternType === "FLEXIBLE" && "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-800/50"
+                    )}
+                  >
+                    <Info className={cn(
+                      "w-5 h-5 flex-shrink-0 mt-0.5",
+                      patternType === "STANDARD" && "text-emerald-600 dark:text-emerald-400",
+                      patternType === "SHIFT_BASED" && "text-violet-600 dark:text-violet-400",
+                      patternType === "FLEXIBLE" && "text-amber-600 dark:text-amber-400"
+                    )} />
+                    <div>
+                      {patternType === "STANDARD" && (
+                        <p className="text-sm text-emerald-800 dark:text-emerald-200">
+                          <span className="font-medium">Standard patterns</span> are ideal for employees with fixed, recurring work schedules (e.g., Mon-Fri, 9am-5pm). Define specific days and hours that repeat each week.
+                        </p>
+                      )}
+                      {patternType === "SHIFT_BASED" && (
+                        <p className="text-sm text-violet-800 dark:text-violet-200">
+                          <span className="font-medium">Shift-based patterns</span> suit gig workers, zero-hour contracts, or employees with flexible schedules. Define total contracted hours, then create shifts manually.
+                        </p>
+                      )}
+                      {patternType === "FLEXIBLE" && (
+                        <p className="text-sm text-amber-800 dark:text-amber-200">
+                          <span className="font-medium">Flexible patterns</span> work for employees with variable schedules that change frequently. Hours and days can be adjusted as needed.
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
+                </FormSection>
+
+                {/* Settings Section */}
+                <FormSection 
+                  title={patternType === "SHIFT_BASED" ? "Contracted Hours" : "Break Settings"} 
+                  icon={Coffee} 
+                  accentColor="amber"
+                >
+                  {patternType === "SHIFT_BASED" ? (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground/80">
+                        Contracted Hours per Week <span className="text-primary">*</span>
+                      </Label>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          placeholder="e.g., 20"
+                          value={contractedHoursPerWeek}
+                          onChange={(e) => setContractedHoursPerWeek(e.target.value)}
+                          className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all max-w-[200px]"
+                        />
+                        <span className="text-sm text-muted-foreground">hours/week</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Total contracted hours per week. Shifts will be created manually to meet this requirement.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground/80">
+                        Default Break Duration
+                      </Label>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="5"
+                          placeholder="30"
+                          value={defaultBreakMinutes}
+                          onChange={(e) => setDefaultBreakMinutes(parseInt(e.target.value) || 0)}
+                          className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all max-w-[150px]"
+                        />
+                        <span className="text-sm text-muted-foreground">minutes</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Default break deduction for Timed days. Can be overridden per day.
+                      </p>
+                    </div>
+                  )}
+                </FormSection>
+
+                {/* Weekly Schedule Section */}
+                {patternType !== "SHIFT_BASED" && (
+                  <FormSection 
+                    title="Weekly Schedule" 
+                    icon={Calendar} 
+                    accentColor="blue"
+                    badge={
+                      <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                        {weeks.length} week{weeks.length > 1 ? "s" : ""}
+                      </span>
+                    }
+                  >
+                    <AnimatePresence mode="popLayout">
+                      {weeks.map((week, weekIndex) => {
+                        const selectedDaysCount = Object.keys(week.days).length;
+                        const totalHours = Object.values(week.days).reduce((acc, config) => {
+                          const hours = getCalculatedHours(config);
+                          return acc + (hours || (config.type === "FULL_DAY" ? 8 : config.type.includes("HALF") ? 4 : 0));
+                        }, 0);
+
+                        return (
+                          <motion.div
+                            key={weekIndex}
+                            layout
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                            className="relative rounded-2xl border border-muted/30 bg-gradient-to-br from-white/80 to-slate-50/50 dark:from-slate-800/50 dark:to-slate-900/50 overflow-hidden"
+                          >
+                            {/* Week Header */}
+                            <div className="px-5 py-4 border-b border-muted/20 bg-gradient-to-r from-blue-50/50 via-transparent to-violet-50/50 dark:from-blue-950/20 dark:to-violet-950/20">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 text-white font-bold text-sm shadow-lg shadow-blue-500/25">
+                                    {week.weekNumber}
                                   </div>
-                                )}
-                              </>
-                            )}
-                          </div>
+                                  <div>
+                                    <h4 className="font-semibold text-foreground">Week {week.weekNumber}</h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      {selectedDaysCount} day{selectedDaysCount !== 1 ? "s" : ""} selected
+                                      {totalHours > 0 && ` • ~${formatHoursDisplay(totalHours)}`}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleCopyWeek(weekIndex)}
+                                    className="h-8 px-3 text-xs rounded-lg"
+                                  >
+                                    <Copy className="w-3.5 h-3.5 mr-1.5" />
+                                    Copy
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handlePasteWeek(weekIndex)}
+                                    disabled={!clipboardRef.current}
+                                    className="h-8 px-3 text-xs rounded-lg"
+                                  >
+                                    <ClipboardPaste className="w-3.5 h-3.5 mr-1.5" />
+                                    Paste
+                                  </Button>
+                                  {weeks.length > 1 && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => removeWeek(weekIndex)}
+                                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Days Grid */}
+                            <div className="p-5">
+                              <div className="grid grid-cols-7 gap-3">
+                                {days.map((day) => {
+                                  const dayConfig = week.days[day];
+                                  const isSelected = day in week.days;
+                                  const isTimed = dayConfig?.type === "TIMED";
+                                  const calculatedHours = dayConfig ? getCalculatedHours(dayConfig) : null;
+
+                                  return (
+                                    <motion.div 
+                                      key={day}
+                                      layout
+                                      className="flex flex-col"
+                                    >
+                                      {/* Day Toggle Button */}
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCheckboxChange(weekIndex, day, !isSelected)}
+                                        className={cn(
+                                          "relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200",
+                                          isSelected 
+                                            ? "border-primary bg-primary/10 shadow-md shadow-primary/10" 
+                                            : "border-muted/30 bg-white/50 dark:bg-white/5 hover:border-primary/30 hover:bg-primary/5"
+                                        )}
+                                      >
+                                        {isSelected && (
+                                          <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30"
+                                          >
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                                          </motion.div>
+                                        )}
+                                        <span className={cn(
+                                          "text-sm font-semibold",
+                                          isSelected ? "text-primary" : "text-foreground/70"
+                                        )}>
+                                          {day}
+                                        </span>
+                                        {isSelected && calculatedHours !== null && (
+                                          <span className="text-xs text-primary/80 mt-0.5">
+                                            {formatHoursDisplay(calculatedHours)}
+                                          </span>
+                                        )}
+                                        {isSelected && !isTimed && dayConfig && (
+                                          <span className="text-[10px] text-muted-foreground mt-0.5">
+                                            {dayConfig.type === "FULL_DAY" ? "Full" : dayConfig.type.includes("AM") ? "AM" : "PM"}
+                                          </span>
+                                        )}
+                                      </button>
+
+                                      {/* Day Configuration */}
+                                      <AnimatePresence>
+                                        {isSelected && (
+                                          <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: "auto" }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="mt-2 space-y-2"
+                                          >
+                                            <Select
+                                              value={dayConfig?.type || "FULL_DAY"}
+                                              onValueChange={(value) => handleTypeChange(weekIndex, day, value)}
+                                            >
+                                              <SelectTrigger className="h-8 text-xs rounded-lg border-muted/40 bg-white/80 dark:bg-white/5">
+                                                <SelectValue placeholder="Type" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {dayTypes.map((type) => (
+                                                  <SelectItem key={type.value} value={type.value}>
+                                                    {type.label}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+
+                                            {/* Timed Configuration */}
+                                            {isTimed && (
+                                              <motion.div
+                                                initial={{ opacity: 0, y: -10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="p-3 rounded-xl bg-gradient-to-br from-blue-50 to-violet-50 dark:from-blue-950/30 dark:to-violet-950/30 border border-blue-200/50 dark:border-blue-800/50 space-y-2.5"
+                                              >
+                                                <div className="flex items-center gap-1.5 mb-2">
+                                                  <Timer className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                                  <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">Schedule</span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                  <Input
+                                                    type="time"
+                                                    value={dayConfig?.startTime || "09:00"}
+                                                    onChange={(e) => handleTimeChange(weekIndex, day, "startTime", e.target.value)}
+                                                    className="h-8 text-xs rounded-lg border-blue-200/50 dark:border-blue-800/50 bg-white/80 dark:bg-white/5 focus:border-blue-400"
+                                                  />
+                                                  <Input
+                                                    type="time"
+                                                    value={dayConfig?.endTime || "17:00"}
+                                                    onChange={(e) => handleTimeChange(weekIndex, day, "endTime", e.target.value)}
+                                                    className="h-8 text-xs rounded-lg border-blue-200/50 dark:border-blue-800/50 bg-white/80 dark:bg-white/5 focus:border-blue-400"
+                                                  />
+                                                </div>
+                                                <div className="flex items-center gap-1.5 pt-1 border-t border-blue-200/30 dark:border-blue-800/30">
+                                                  <Coffee className="w-3 h-3 text-amber-600" />
+                                                  <Input
+                                                    type="number"
+                                                    min="0"
+                                                    step="5"
+                                                    value={dayConfig?.breakMinutes ?? defaultBreakMinutes}
+                                                    onChange={(e) => handleTimeChange(weekIndex, day, "breakMinutes", parseInt(e.target.value) || 0)}
+                                                    className="h-6 w-12 text-xs px-1.5 rounded border-amber-200/50 dark:border-amber-800/50 bg-white/80 dark:bg-white/5"
+                                                  />
+                                                  <span className="text-[10px] text-muted-foreground">min</span>
+                                                </div>
+                                                {calculatedHours !== null && (
+                                                  <div className="flex items-center justify-center pt-1">
+                                                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full">
+                                                      = {formatHoursDisplay(calculatedHours)}
+                                                    </span>
+                                                  </div>
+                                                )}
+                                              </motion.div>
+                                            )}
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </motion.div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </motion.div>
                         );
                       })}
-                    </div>
-                  </div>
-                ))}
-                {patternType !== "SHIFT_BASED" && (
-                  <Button variant="ghost" onClick={addWeek} className="w-full">
-                    + Add Week
-                  </Button>
-                )}
-                <Button onClick={handleSubmit} className="w-full mt-2">
-                  {editMode ? "Save Changes" : "Create"}
-                </Button>
-                {/* Read-only calendar preview - only for non-SHIFT_BASED patterns */}
-                {patternType !== "SHIFT_BASED" && (
-                  <div className="mt-4">
-                    <h4 className="font-medium mb-2">Calendar Preview</h4>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-xs border">
-                        <thead>
-                          <tr>
-                            <th className="border px-2 py-1 text-left">Week</th>
-                            {days.map((d) => (
-                              <th
-                                key={d}
-                                className="border px-2 py-1 text-center"
-                              >
-                                {d}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {calendarPreview.map((weekRow, idx) => (
-                            <tr key={idx}>
-                              <td className="border px-2 py-1">{idx + 1}</td>
-                              {weekRow.map((val, j) => (
-                                <td
-                                  key={j}
-                                  className="border px-2 py-1 text-center"
-                                >
-                                  {val ? val.replace(/_/g, " ") : ""}
-                                </td>
+                    </AnimatePresence>
+
+                    {/* Add Week Button */}
+                    <motion.button
+                      type="button"
+                      onClick={addWeek}
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      className="w-full py-4 rounded-xl border-2 border-dashed border-muted/40 hover:border-primary/40 bg-white/30 dark:bg-white/5 hover:bg-primary/5 transition-all flex items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="font-medium">Add Another Week</span>
+                    </motion.button>
+
+                    {/* Calendar Preview */}
+                    {weeks.some(w => Object.keys(w.days).length > 0) && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-4 p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800/50 dark:to-slate-900/50 border border-muted/30"
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <Eye className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-foreground">Schedule Preview</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-muted/30">
+                                <th className="px-3 py-2 text-left font-semibold text-muted-foreground">Week</th>
+                                {days.map((d) => (
+                                  <th key={d} className="px-2 py-2 text-center font-semibold text-muted-foreground">{d}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {calendarPreview.map((weekRow, idx) => (
+                                <tr key={idx} className="border-b border-muted/20 last:border-b-0">
+                                  <td className="px-3 py-2 font-medium text-foreground">{idx + 1}</td>
+                                  {weekRow.map((val, j) => (
+                                    <td key={j} className="px-2 py-2 text-center">
+                                      {val ? (
+                                        <span className={cn(
+                                          "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium",
+                                          val.includes("h") 
+                                            ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
+                                            : "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300"
+                                        )}>
+                                          {val.replace(/_/g, " ")}
+                                        </span>
+                                      ) : (
+                                        <span className="text-muted-foreground/40">—</span>
+                                      )}
+                                    </td>
+                                  ))}
+                                </tr>
                               ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                            </tbody>
+                          </table>
+                        </div>
+                      </motion.div>
+                    )}
+                  </FormSection>
                 )}
+
+                {/* Shift-Based Info */}
+                {patternType === "SHIFT_BASED" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-6 rounded-2xl bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 border border-violet-200/50 dark:border-violet-800/50"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 rounded-xl bg-violet-500/20">
+                        <Clock className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-violet-900 dark:text-violet-100 mb-1">
+                          Shift-Based Schedule
+                        </h4>
+                        <p className="text-sm text-violet-800/80 dark:text-violet-200/80 mb-3">
+                          This pattern type doesn't require fixed weekly schedules. Instead, shifts will be created manually through the rota/scheduling system.
+                        </p>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-violet-700 dark:text-violet-300">Contracted:</span>
+                          <span className="px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-700 dark:text-violet-300 font-semibold">
+                            {contractedHoursPerWeek || "0"} hours/week
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-8 py-5 border-t border-muted/20 bg-slate-50/50 dark:bg-slate-900/50 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    {patternType !== "SHIFT_BASED" && weeks.some(w => Object.keys(w.days).length > 0) && (
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        {weeks.reduce((acc, w) => acc + Object.keys(w.days).length, 0)} working day{weeks.reduce((acc, w) => acc + Object.keys(w.days).length, 0) !== 1 ? "s" : ""} configured
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setOpen(false)}
+                      className="h-11 px-5 rounded-xl"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSubmit}
+                      className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 text-white font-semibold shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30"
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {editMode ? "Save Changes" : "Create Pattern"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </DialogContent>
           </Dialog>

@@ -62,10 +62,11 @@ export async function GET(req: NextRequest) {
     });
 
     // Find scheduled shift
+    // Note: Show employee their own shifts regardless of publish status
+    // isPublished controls visibility to OTHER employees (e.g., open shifts), not the assigned employee
     const shift = await prisma.shift.findFirst({
       where: {
         employeeId,
-        isPublished: true,
         startTime: {
           gte: todayStart,
           lte: todayEnd,

@@ -505,9 +505,10 @@ export default function RotaPage() {
 
   // Publish all unpublished shifts in the current view
   const handlePublishAll = useCallback(async () => {
-    // Get all unpublished shift IDs from current shifts (excluding virtual shifts)
+    // Get all unpublished shift IDs from current shifts (excluding virtual shifts from working patterns)
+    // Virtual shifts have IDs starting with "virtual-"
     const unpublishedShiftIds = shifts
-      .filter(shift => !shift.isPublished && !shift.isVirtualShift)
+      .filter(shift => !shift.isPublished && !shift.id.startsWith('virtual-'))
       .map(shift => shift.id);
 
     if (unpublishedShiftIds.length === 0) {

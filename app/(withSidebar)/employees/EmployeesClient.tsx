@@ -363,6 +363,9 @@ function EmployeesContent(props: EmployeesClientProps) {
     setSelectedEmployee(null);
   };
 
+  // Check if user is admin (only admins can see the actions menu)
+  const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+
   // DataTable columns with per-column filters
   const columns: ColumnDef<Employee>[] = useMemo(
     () => [
@@ -489,12 +492,13 @@ function EmployeesContent(props: EmployeesClientProps) {
           );
         },
       },
-      {
+      // Only show actions column for admins
+      ...(isAdmin ? [{
         id: "actions",
         header: "",
         enableSorting: false,
         enableColumnFilter: false,
-        cell: ({ row }) => {
+        cell: ({ row }: { row: { original: Employee } }) => {
           const emp = row.original as Employee;
           return (
             <DropdownMenu>
@@ -587,10 +591,10 @@ function EmployeesContent(props: EmployeesClientProps) {
             </DropdownMenu>
           );
         },
-      },
+      }] : []),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeTab, departments, jobRoles],
+    [activeTab, departments, jobRoles, isAdmin],
   );
 
   // Export CSV

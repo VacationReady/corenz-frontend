@@ -340,6 +340,9 @@ export default function EditShiftModal({
     c => c.severity === 'CRITICAL' || c.severity === 'HIGH'
   );
 
+  // Check if there are blocking conflicts that prevent shift updates
+  const hasBlockingConflicts = criticalConflicts.length > 0;
+
   if (!isOpen || !shift) return null;
 
   return (
@@ -383,22 +386,72 @@ export default function EditShiftModal({
             </div>
           )}
 
-          {/* Conflict Warning */}
-          {criticalConflicts.length > 0 && (
-            <div className="bg-amber-900/40 backdrop-blur-md border border-amber-600 rounded-lg p-4 shadow-md">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="font-semibold text-amber-400 mb-1">
-                    {criticalConflicts.length} Conflict{criticalConflicts.length !== 1 ? 's' : ''} Detected
-                  </h4>
-                  <div className="space-y-1">
-                    {criticalConflicts.map((conflict, idx) => (
-                      <p key={idx} className="text-sm text-gray-300">
-                        {conflict.description}
-                      </p>
-                    ))}
+          {/* BLOCKING Conflict Warning - Full Width Blocker */}
+          {hasBlockingConflicts && (
+            <div className="relative overflow-hidden rounded-xl border-2 border-red-500/60 shadow-lg">
+              {/* Red gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-red-900/40 via-red-800/30 to-red-900/20" />
+              <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(239,68,68,0.05)_10px,rgba(239,68,68,0.05)_20px)]" />
+              
+              <div className="relative p-5">
+                {/* Big Icon and Title */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-red-500/30 rounded-full blur-xl animate-pulse" />
+                    <div className="relative p-3 rounded-full bg-red-500/20 border-2 border-red-500/40">
+                      <X className="w-7 h-7 text-red-400" />
+                    </div>
                   </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-red-400">
+                      Cannot Save Changes
+                    </h3>
+                    <p className="text-sm text-red-300/80">
+                      {criticalConflicts.length} blocking issue{criticalConflicts.length !== 1 ? 's' : ''} must be resolved
+                    </p>
+                  </div>
+                </div>
+
+                {/* Conflict Details */}
+                <div className="space-y-2">
+                  {criticalConflicts.map((conflict, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex items-start gap-3 p-3 rounded-lg bg-gray-900/60 border border-red-500/20"
+                    >
+                      <div className="p-1.5 rounded-md bg-red-500/10 shrink-0">
+                        <AlertTriangle className="w-4 h-4 text-red-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${
+                            conflict.severity === 'CRITICAL' 
+                              ? "bg-red-500 text-white" 
+                              : "bg-amber-500 text-white"
+                          }`}>
+                            {conflict.severity}
+                          </span>
+                          <span className="text-xs text-gray-400 capitalize">
+                            {conflict.type.toLowerCase().replace('_', ' ')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-200">
+                          {conflict.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Help Text */}
+                <div className="mt-3 p-2.5 rounded-md bg-gray-800/50 border border-gray-700">
+                  <p className="text-xs text-gray-400 flex items-start gap-2">
+                    <span className="text-base">💡</span>
+                    <span>
+                      <strong className="text-gray-300">To resolve:</strong> Choose a different time slot, select a different employee, 
+                      or ensure there's adequate rest time between shifts.
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -673,13 +726,27 @@ export default function EditShiftModal({
             </button>
             <button
               type="submit"
-              disabled={loading || checkingConflicts || deleting}
-              className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium transition-all flex items-center justify-center gap-2"
+              disabled={loading || checkingConflicts || deleting || hasBlockingConflicts}
+              className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                hasBlockingConflicts 
+                  ? "bg-red-500/20 text-red-400 border-2 border-red-500/30 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white"
+              }`}
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Saving...
+                </>
+              ) : hasBlockingConflicts ? (
+                <>
+                  <X className="w-4 h-4" />
+                  Blocked - Resolve Conflicts
+                </>
+              ) : checkingConflicts ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Checking...
                 </>
               ) : (
                 <>

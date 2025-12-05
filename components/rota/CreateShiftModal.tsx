@@ -635,6 +635,9 @@ export default function CreateShiftModal({
     c => c.severity === 'CRITICAL' || c.severity === 'HIGH'
   );
 
+  // Check if there are blocking conflicts that prevent shift creation
+  const hasBlockingConflicts = criticalConflicts.length > 0;
+
   if (!isOpen) return null;
 
   return (
@@ -674,22 +677,73 @@ export default function CreateShiftModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Conflict Warning */}
-          {criticalConflicts.length > 0 && (
-            <div className="bg-amber-500/10 backdrop-blur-md border border-amber-500/30 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="font-semibold text-amber-600 dark:text-amber-400 mb-1">
-                    {criticalConflicts.length} Conflict{criticalConflicts.length !== 1 ? 's' : ''} Detected
-                  </h4>
-                  <div className="space-y-1">
-                    {criticalConflicts.map((conflict, idx) => (
-                      <p key={idx} className="text-sm text-amber-900 dark:text-amber-200/80">
-                        {conflict.description}
-                      </p>
-                    ))}
+          {/* BLOCKING Conflict Warning - Full Width Blocker */}
+          {hasBlockingConflicts && (
+            <div className="relative overflow-hidden rounded-2xl border-2 border-destructive/50 shadow-lg animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-300">
+              {/* Red gradient background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-destructive/20 via-destructive/10 to-destructive/5" />
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImRpYWdvbmFsIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiPjxwYXRoIGQ9Ik0tMTAgMzBsMjAgLTIwTTAgNDBsMjAgLTIwTTEwIDUwbDIwIC0yME0yMCAwbDIwIDIwTTMwIC0xMGwyMCAyME00MCAwbDIwIDIwIiBzdHJva2U9InJnYmEoMjM5LCA2OCwgNjgsIDAuMSkiIHN0cm9rZS13aWR0aD0iMiIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNkaWFnb25hbCkiLz48L3N2Zz4=')] opacity-50" />
+              
+              <div className="relative p-6">
+                {/* Big Icon and Title */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-destructive/30 rounded-full blur-xl animate-pulse" />
+                    <div className="relative p-4 rounded-full bg-destructive/20 border-2 border-destructive/40">
+                      <X className="w-8 h-8 text-destructive" />
+                    </div>
                   </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-destructive">
+                      Cannot Assign This Shift
+                    </h3>
+                    <p className="text-sm text-destructive/80 mt-0.5">
+                      {criticalConflicts.length} blocking issue{criticalConflicts.length !== 1 ? 's' : ''} must be resolved
+                    </p>
+                  </div>
+                </div>
+
+                {/* Conflict Details */}
+                <div className="space-y-3">
+                  {criticalConflicts.map((conflict, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex items-start gap-3 p-4 rounded-xl bg-background/80 backdrop-blur-sm border border-destructive/20"
+                    >
+                      <div className="p-2 rounded-lg bg-destructive/10 shrink-0">
+                        <AlertTriangle className="w-5 h-5 text-destructive" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={cn(
+                            "px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide",
+                            conflict.severity === 'CRITICAL' 
+                              ? "bg-destructive text-destructive-foreground" 
+                              : "bg-amber-500 text-white"
+                          )}>
+                            {conflict.severity}
+                          </span>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {conflict.type.toLowerCase().replace('_', ' ')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground font-medium">
+                          {conflict.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Help Text */}
+                <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border">
+                  <p className="text-sm text-muted-foreground flex items-start gap-2">
+                    <span className="text-lg">💡</span>
+                    <span>
+                      <strong>To resolve:</strong> Choose a different time slot, select a different employee, 
+                      or ensure there's adequate rest time between shifts.
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -1013,18 +1067,29 @@ export default function CreateShiftModal({
             </button>
             <button
               type="submit"
-              disabled={loading || checkingConflicts}
+              disabled={loading || checkingConflicts || hasBlockingConflicts}
               className={cn(
                 "flex-1 px-5 py-3 rounded-xl font-medium transition-all duration-150 flex items-center justify-center gap-2",
-                "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md",
-                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-sm",
-                "hover:scale-[1.01] active:scale-[0.99]"
+                hasBlockingConflicts 
+                  ? "bg-destructive/20 text-destructive border-2 border-destructive/30 cursor-not-allowed"
+                  : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md hover:scale-[1.01] active:scale-[0.99]",
+                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-sm"
               )}
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Creating{formData.employeeIds.length > 1 ? ` ${formData.employeeIds.length} shifts...` : '...'}
+                </>
+              ) : hasBlockingConflicts ? (
+                <>
+                  <X className="w-4 h-4" />
+                  Blocked - Resolve Conflicts
+                </>
+              ) : checkingConflicts ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Checking availability...
                 </>
               ) : (
                 <>

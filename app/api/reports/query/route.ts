@@ -177,6 +177,11 @@ function flattenToOriginalPaths(
     console.log("🔄 Flattening results to original paths. Primary model:", primaryModel);
     console.log("🔄 Original fields sample:", originalFields.slice(0, 5));
     
+    // Debug: log raw row keys for first result
+    if (results.length > 0) {
+        console.log("🔄 Raw row keys:", Object.keys(results[0]));
+    }
+    
     return results.map((row, idx) => {
         const flatRow: any = { id: row.id }; // Preserve ID
         
@@ -200,11 +205,24 @@ function flattenToOriginalPaths(
             const dataPath = computeDataPath(originalField, primaryModel);
             
             // Get value from the nested data path
-            const value = getNestedValue(row, dataPath);
+            let value = getNestedValue(row, dataPath);
             
             // Debug first row
             if (idx === 0) {
-                console.log(`🔄 Field mapping: ${originalField} -> ${dataPath} = ${JSON.stringify(value)}`);
+                console.log(`🔄 Field mapping: ${originalField} -> ${dataPath} = ${JSON.stringify(value)} (type: ${typeof value})`);
+            }
+            
+            // Handle null/undefined for numeric fields that should default to 0
+            // This handles cases where the database has NULL for numeric fields
+            if (value === null || value === undefined) {
+                // Check if this looks like a numeric field based on field name
+                const fieldName = originalField.split(".").pop() || "";
+                if (/days|hours|amount|count|total|balance|rate/i.test(fieldName)) {
+                    value = 0;
+                    if (idx === 0) {
+                        console.log(`🔄 Defaulted null numeric field ${originalField} to 0`);
+                    }
+                }
             }
             
             // Set value at the original field path

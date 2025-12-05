@@ -703,7 +703,7 @@ export default function EditShiftModal({
             </button>
             <button
               type="submit"
-              disabled={loading || checkingConflicts || deleting || hasBlockingConflicts}
+              disabled={loading || checkingConflicts || hasBlockingConflicts}
               className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
                 hasBlockingConflicts 
                   ? "bg-red-500/20 text-red-400 border-2 border-red-500/30 cursor-not-allowed"

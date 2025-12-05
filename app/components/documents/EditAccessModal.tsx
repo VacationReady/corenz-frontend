@@ -12,7 +12,7 @@ import { MultiSelect } from "@/components/ui/MultiSelect";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { toast } from "sonner";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { 
@@ -218,7 +218,7 @@ export default function EditAccessModal({
             </div>
             <Input
               value={documentName}
-              onChange={(e) => setDocumentName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocumentName(e.target.value)}
               placeholder="Enter document name"
               className="w-full h-11 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 focus:border-emerald-500 focus:ring-emerald-500/20"
             />
@@ -439,7 +439,7 @@ export default function EditAccessModal({
                       <Input
                         type="datetime-local"
                         value={signatureDueAt}
-                        onChange={(e) => setSignatureDueAt(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSignatureDueAt(e.target.value)}
                         className="h-10 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
                       />
                     </div>

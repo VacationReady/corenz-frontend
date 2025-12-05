@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Button from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import Button from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { 
@@ -70,7 +70,7 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import EditAccessModal from "@/components/documents/EditAccessModal";
 import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import ViewAcknowledgementsModal from "@/components/documents/ViewAcknowledgementsModal";
@@ -1013,7 +1013,7 @@ function DocumentsContent() {
               <Input
                 placeholder="Search documents..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                 className="pl-10 h-10 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
@@ -1273,7 +1273,7 @@ function DocumentsContent() {
                     </Label>
                     <Input
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                       placeholder="Enter document name"
                       className="h-11 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-blue-500/20"
                       required
@@ -1284,7 +1284,7 @@ function DocumentsContent() {
                     <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">
                       Category <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={category} onValueChange={(v) => {
+                    <Select value={category} onValueChange={(v: string) => {
                       if (v === "__new__") setManageCategoriesOpen(true);
                       else setCategory(v);
                     }}>
@@ -1449,7 +1449,7 @@ function DocumentsContent() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); setFile(null); }}
                         className="text-slate-500 hover:text-red-500"
                       >
                         <X className="w-4 h-4 mr-1" /> Remove
@@ -1545,7 +1545,7 @@ function DocumentsContent() {
                 <div className="flex items-center gap-2">
                   <Input
                     value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCategoryName(e.target.value)}
                     placeholder="New category name"
                     className="h-11 rounded-xl"
                   />

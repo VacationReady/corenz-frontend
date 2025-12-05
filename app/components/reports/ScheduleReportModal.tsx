@@ -40,7 +40,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -272,7 +272,7 @@ export function ScheduleReportModal({
               id="schedule-name"
               placeholder="e.g., Weekly Team Update"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             />
           </div>
 
@@ -308,7 +308,7 @@ export function ScheduleReportModal({
           {frequency === "weekly" && (
             <div className="space-y-2">
               <Label>Day of Week</Label>
-              <Select value={String(dayOfWeek)} onValueChange={(v) => setDayOfWeek(Number(v))}>
+              <Select value={String(dayOfWeek)} onValueChange={(v: string) => setDayOfWeek(Number(v))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -326,7 +326,7 @@ export function ScheduleReportModal({
           {["monthly", "quarterly"].includes(frequency) && (
             <div className="space-y-2">
               <Label>Day of Month</Label>
-              <Select value={String(dayOfMonth)} onValueChange={(v) => setDayOfMonth(Number(v))}>
+              <Select value={String(dayOfMonth)} onValueChange={(v: string) => setDayOfMonth(Number(v))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -349,7 +349,7 @@ export function ScheduleReportModal({
                 id="time"
                 type="time"
                 value={timeOfDay}
-                onChange={(e) => setTimeOfDay(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTimeOfDay(e.target.value)}
               />
             </div>
             <div className="space-y-2">

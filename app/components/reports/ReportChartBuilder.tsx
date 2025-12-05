@@ -25,7 +25,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import {
   Dialog,
   DialogContent,
@@ -457,7 +457,7 @@ export function ReportChartBuilder({
           <Button
             variant="ghost"
             size="sm"
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
               setIsFullscreen(true);
             }}
@@ -486,7 +486,7 @@ export function ReportChartBuilder({
                 {/* Chart Type */}
                 <div>
                   <Label className="text-xs mb-1.5 block">Chart Type</Label>
-                  <Select value={config.type} onValueChange={(v) => updateConfig({ type: v as ChartType })}>
+                  <Select value={config.type} onValueChange={(v: string) => updateConfig({ type: v as ChartType })}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -506,7 +506,7 @@ export function ReportChartBuilder({
                 {/* Group By */}
                 <div>
                   <Label className="text-xs mb-1.5 block">Group By</Label>
-                  <Select value={config.groupByField} onValueChange={(v) => updateConfig({ groupByField: v })}>
+                  <Select value={config.groupByField} onValueChange={(v: string) => updateConfig({ groupByField: v })}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Select field" />
                     </SelectTrigger>
@@ -523,7 +523,7 @@ export function ReportChartBuilder({
                 {/* Aggregation */}
                 <div>
                   <Label className="text-xs mb-1.5 block">Aggregation</Label>
-                  <Select value={config.aggregation} onValueChange={(v) => updateConfig({ aggregation: v as any })}>
+                  <Select value={config.aggregation} onValueChange={(v: string) => updateConfig({ aggregation: v as ChartConfig["aggregation"] })}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -540,7 +540,7 @@ export function ReportChartBuilder({
                 {/* Color Scheme */}
                 <div>
                   <Label className="text-xs mb-1.5 block">Colors</Label>
-                  <Select value={config.colorScheme} onValueChange={(v) => updateConfig({ colorScheme: v })}>
+                  <Select value={config.colorScheme} onValueChange={(v: string) => updateConfig({ colorScheme: v })}>
                     <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>

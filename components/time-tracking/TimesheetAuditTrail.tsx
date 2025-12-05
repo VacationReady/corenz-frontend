@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/Badge";
 import { Loader2, History, User, Calendar, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 

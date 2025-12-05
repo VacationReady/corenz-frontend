@@ -30,7 +30,7 @@ import {
 import ReportWizard, { ReportConfig } from "@/components/reports/ReportWizard";
 import QuickReportBuilder, { QuickReportConfig } from "@/components/reports/QuickReportBuilder";
 import TemplateGallery from "../../components/reports/TemplateGallery";
-import Button from "@/components/ui/button";
+import Button from "@/components/ui/Button";
 import { PageShell } from "@/components/ui/PageShell";
 import { Card, CardContent } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";

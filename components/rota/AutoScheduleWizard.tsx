@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import Button from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, Plus, Trash2 } from 'lucide-react';
@@ -286,7 +286,7 @@ export default function AutoScheduleWizard({
                 <Input
                   id="laborBudget"
                   value={laborBudget}
-                  onChange={event => {
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                     setLaborBudget(event.target.value);
                     resetOutcome();
                   }}
@@ -328,7 +328,7 @@ export default function AutoScheduleWizard({
                       id={`start-${requirement.id}`}
                       type="datetime-local"
                       value={requirement.startTime}
-                      onChange={event =>
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                         handleRequirementChange(requirement.id, 'startTime', event.target.value)
                       }
                       className="bg-slate-950 border-slate-700"
@@ -340,7 +340,7 @@ export default function AutoScheduleWizard({
                       id={`end-${requirement.id}`}
                       type="datetime-local"
                       value={requirement.endTime}
-                      onChange={event =>
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                         handleRequirementChange(requirement.id, 'endTime', event.target.value)
                       }
                       className="bg-slate-950 border-slate-700"
@@ -356,7 +356,7 @@ export default function AutoScheduleWizard({
                       type="number"
                       min={1}
                       value={requirement.minStaffing}
-                      onChange={event =>
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                         handleRequirementChange(
                           requirement.id,
                           'minStaffing',
@@ -374,7 +374,7 @@ export default function AutoScheduleWizard({
                       min={0}
                       step={5}
                       value={requirement.breakDuration}
-                      onChange={event =>
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                         handleRequirementChange(
                           requirement.id,
                           'breakDuration',
@@ -390,7 +390,7 @@ export default function AutoScheduleWizard({
                       id={`role-${requirement.id}`}
                       value={requirement.role}
                       placeholder="Optional"
-                      onChange={event =>
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                         handleRequirementChange(requirement.id, 'role', event.target.value)
                       }
                       className="bg-slate-950 border-slate-700"

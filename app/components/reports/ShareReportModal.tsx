@@ -38,7 +38,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -319,10 +319,10 @@ export function ShareReportModal({
                       type="email"
                       placeholder="colleague@company.com"
                       value={userEmail}
-                      onChange={(e) => setUserEmail(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserEmail(e.target.value)}
                       className="flex-1"
                     />
-                    <Select value={permission} onValueChange={(v) => setPermission(v as typeof permission)}>
+                    <Select value={permission} onValueChange={(v: string) => setPermission(v as typeof permission)}>
                       <SelectTrigger className="w-32">
                         <SelectValue />
                       </SelectTrigger>
@@ -370,7 +370,7 @@ export function ShareReportModal({
                       <Shield className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm font-medium">Permission Level</span>
                     </div>
-                    <Select value={permission} onValueChange={(v) => setPermission(v as typeof permission)}>
+                    <Select value={permission} onValueChange={(v: string) => setPermission(v as typeof permission)}>
                       <SelectTrigger className="w-32">
                         <SelectValue />
                       </SelectTrigger>

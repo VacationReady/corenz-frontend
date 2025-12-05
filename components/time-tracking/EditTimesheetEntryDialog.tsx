@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
-import Button from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import Button from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Clock, Calendar, Coffee, FileText, Edit3, Info } from "lucide-react";
 import { format } from "date-fns";
@@ -218,7 +218,7 @@ export default function EditTimesheetEntryDialog({
                   id="date"
                   type="date"
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, date: e.target.value })}
                   required
                 />
               </div>
@@ -232,7 +232,7 @@ export default function EditTimesheetEntryDialog({
                   id="startTime"
                   type="time"
                   value={formData.startTime}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, startTime: e.target.value })}
                   required
                 />
               </div>
@@ -246,7 +246,7 @@ export default function EditTimesheetEntryDialog({
                   id="endTime"
                   type="time"
                   value={formData.endTime}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, endTime: e.target.value })}
                   required
                 />
               </div>
@@ -263,7 +263,7 @@ export default function EditTimesheetEntryDialog({
                   type="number"
                   min="0"
                   value={formData.breakMinutes}
-                  onChange={(e) => setFormData({ ...formData, breakMinutes: parseInt(e.target.value) || 0 })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, breakMinutes: parseInt(e.target.value) || 0 })}
                   required
                 />
               </div>

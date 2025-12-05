@@ -4,7 +4,7 @@ import { useState, ChangeEvent } from "react";
 import { motion } from "framer-motion";
 import Button from "@/components/ui/Button";
 import { PlusCircle, Sparkles, Tag } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
@@ -13,7 +13,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/Select";
 import { toast } from "react-hot-toast";
 
 interface AddSubcategoryModalProps {

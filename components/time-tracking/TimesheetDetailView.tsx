@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { ArrowLeft, Send, X, Check, AlertCircle, TrendingUp, Edit3 } from 'lucide-react';
 import TimesheetTable from './TimesheetTable';
 import ApprovalTimeline from './ApprovalTimeline';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/Badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';

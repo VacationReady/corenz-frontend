@@ -71,7 +71,6 @@ export default function EditShiftModal({
   onDelete,
 }: EditShiftModalProps) {
   const [loading, setLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -288,25 +287,12 @@ export default function EditShiftModal({
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!shift || !onDelete) return;
-
-    const confirmed = confirm(
-      'Are you sure you want to delete this shift? This action cannot be undone.'
-    );
-
-    if (!confirmed) return;
-
-    setDeleting(true);
-    try {
-      await onDelete(shift.id);
-      onClose();
-      resetForm();
-    } catch (error: any) {
-      setErrors({ submit: error.message });
-    } finally {
-      setDeleting(false);
-    }
+    // Close the edit modal and let the parent open the delete modal
+    onDelete(shift.id);
+    onClose();
+    resetForm();
   };
 
   const resetForm = () => {
@@ -697,24 +683,15 @@ export default function EditShiftModal({
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-4 border-t border-gray-700">
-            {onDelete && !shift.isPublished && (
+            {onDelete && (
               <button
                 type="button"
                 onClick={handleDelete}
-                disabled={deleting || loading}
+                disabled={loading}
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium transition-all flex items-center gap-2"
               >
-                {deleting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </>
-                )}
+                <Trash2 className="w-4 h-4" />
+                Delete
               </button>
             )}
             <button

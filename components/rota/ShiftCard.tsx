@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import type { MouseEvent } from 'react';
 import { format } from 'date-fns';
 import {
@@ -90,8 +89,6 @@ export default function ShiftCard({
   selected = false,
   onToggleSelect,
 }: ShiftCardProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
-
   const startTime = new Date(shift.startTime);
   const endTime = new Date(shift.endTime);
   const durationHours = ((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)) - (shift.breakDuration / 60);
@@ -160,19 +157,11 @@ export default function ShiftCard({
     }
   };
 
-  const handleDelete = async (event: MouseEvent<HTMLButtonElement>) => {
+  const handleDelete = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     if (!onDelete) return;
-
-    const confirmed = window.confirm('Are you sure you want to delete this shift?');
-    if (!confirmed) return;
-
-    setIsDeleting(true);
-    try {
-      await onDelete();
-    } finally {
-      setIsDeleting(false);
-    }
+    // Call onDelete - the parent component will handle showing the delete modal
+    onDelete();
   };
 
   const handleEdit = (event: MouseEvent<HTMLButtonElement>) => {
@@ -294,11 +283,10 @@ export default function ShiftCard({
                 <Edit className="w-4 h-4" />
               </button>
             )}
-            {onDelete && !shift.isPublished && (
+            {onDelete && (
               <button
                 onClick={handleDelete}
-                disabled={isDeleting}
-                className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 transition-all disabled:opacity-50"
+                className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 transition-all"
                 title="Delete shift"
               >
                 <Trash2 className="w-4 h-4" />

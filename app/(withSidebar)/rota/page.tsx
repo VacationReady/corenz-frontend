@@ -31,6 +31,7 @@ import ShiftCard from '@/components/rota/ShiftCard';
 import LaborCostSummary from '@/components/rota/LaborCostSummary';
 import CreateShiftModal from '@/components/rota/CreateShiftModal';
 import EditShiftModal from '@/components/rota/EditShiftModal';
+import DeleteShiftModal from '@/components/rota/DeleteShiftModal';
 import AutoScheduleWizard, { AutoScheduleResult } from '@/components/rota/AutoScheduleWizard';
 import VirtualizedShiftList from '@/components/rota/VirtualizedShiftList';
 import ViewFullDayModal from '@/components/rota/ViewFullDayModal';
@@ -207,7 +208,9 @@ export default function RotaPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [shiftToEdit, setShiftToEdit] = useState<ShiftRecord | null>(null);
+  const [shiftToDelete, setShiftToDelete] = useState<ShiftRecord | null>(null);
   const [selectedDateForCreate, setSelectedDateForCreate] = useState<Date | undefined>();
   const [selectedShift, setSelectedShift] = useState<ShiftRecord | null>(null);
   const [selectedShiftIds, setSelectedShiftIds] = useState<Set<string>>(new Set());
@@ -550,28 +553,30 @@ export default function RotaPage() {
     }
   }, [shifts, refresh, fetchConflicts, toast]);
 
-  const handleDeleteShift = useCallback(
-    async (shiftId: string) => {
-      try {
-        const response = await fetch(`/api/shifts/${shiftId}`, { method: 'DELETE' });
-        if (!response.ok) {
-          const data = await response.json().catch(() => null);
-          throw new Error(data?.error || 'Failed to delete shift');
-        }
-
-        toast({
-          title: 'Shift deleted',
-          description: 'The shift has been removed from the rota.',
-        });
-        await refresh();
-        fetchConflicts();
-      } catch (error) {
-        toast({
-          title: 'Delete failed',
-          description: error instanceof Error ? error.message : 'Unable to delete shift',
-          variant: 'destructive',
-        });
+  const openDeleteModal = useCallback(
+    (shiftId: string) => {
+      // Find the shift from the list to pass full data to the modal
+      const shift = shifts.find(s => s.id === shiftId);
+      if (shift) {
+        setShiftToDelete(shift);
+        setShowDeleteModal(true);
       }
+    },
+    [shifts]
+  );
+
+  const handleDeleteSuccess = useCallback(
+    async () => {
+      toast({
+        title: 'Shift deleted',
+        description: 'The shift has been removed from the rota.',
+      });
+      await refresh();
+      fetchConflicts();
+      setShowDeleteModal(false);
+      setShiftToDelete(null);
+      // Also close the shift details dialog if it's open
+      setSelectedShift(null);
     },
     [refresh, fetchConflicts, toast]
   );
@@ -829,7 +834,7 @@ export default function RotaPage() {
                     setShiftToEdit(shift);
                     setShowEditModal(true);
                   }}
-                  onShiftDelete={handleDeleteShift}
+                  onShiftDelete={openDeleteModal}
                   selectedShiftIds={selectedShiftIds}
                   onToggleSelect={toggleShiftSelection}
                   emptyState={
@@ -869,7 +874,7 @@ export default function RotaPage() {
                   setShiftToEdit(shift as ShiftRecord);
                   setShowEditModal(true);
                 }}
-                onShiftDelete={shiftId => handleDeleteShift(shiftId)}
+                onShiftDelete={openDeleteModal}
                 onViewFullDay={(date, dayShifts) => handleViewFullDay(date, dayShifts as ShiftRecord[])}
                 showActions
                 hideViewToggle
@@ -969,7 +974,7 @@ export default function RotaPage() {
                   setShowEditModal(true);
                   setSelectedShift(null);
                 }}
-                onDelete={() => handleDeleteShift(selectedShift.id)}
+                onDelete={() => openDeleteModal(selectedShift.id)}
                 onPublish={async () => {
                   try {
                     const response = await fetch(`/api/shifts/${selectedShift.id}/publish`, {
@@ -1053,13 +1058,23 @@ export default function RotaPage() {
             await refresh();
             fetchConflicts();
           }}
-          onDelete={async shiftId => {
-            await handleDeleteShift(shiftId);
+          onDelete={shiftId => {
+            openDeleteModal(shiftId);
             setShowEditModal(false);
             setShiftToEdit(null);
           }}
         />
       )}
+
+      <DeleteShiftModal
+        isOpen={showDeleteModal}
+        shift={shiftToDelete}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setShiftToDelete(null);
+        }}
+        onSuccess={handleDeleteSuccess}
+      />
 
       {/* Rota Groups Panel */}
       <Sheet open={rotaGroupsPanelOpen} onOpenChange={setRotaGroupsPanelOpen}>

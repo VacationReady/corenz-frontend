@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateShiftCost } from '@/lib/timesheet-calculations';
+import { resend, PEOPLECORE_FROM_EMAIL } from '@/app/lib/resend';
+import { format } from 'date-fns';
 
 const updateShiftSchema = z.object({
   employeeId: z.string().optional().nullable(),
@@ -323,9 +325,15 @@ export async function PUT(
   }
 }
 
+const deleteShiftSchema = z.object({
+  reason: z.string().optional(),
+  notifyEmployee: z.boolean().optional().default(false),
+});
+
 /**
  * DELETE /api/shifts/[id]
- * Delete unpublished shifts only
+ * Delete shifts (both published and unpublished)
+ * For published shifts with assigned employees, can optionally notify them via email
  * Permission: MANAGER/ADMIN only
  */
 export async function DELETE(
@@ -341,6 +349,17 @@ export async function DELETE(
 
     const { id } = await params;
 
+    // Parse request body (optional for backwards compatibility)
+    let body: { reason?: string; notifyEmployee?: boolean } = {};
+    try {
+      const rawBody = await req.text();
+      if (rawBody) {
+        body = deleteShiftSchema.parse(JSON.parse(rawBody));
+      }
+    } catch {
+      // Body is optional, continue with defaults
+    }
+
     const requestingEmployee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
       select: {
@@ -349,6 +368,7 @@ export async function DELETE(
         User: {
           select: {
             role: true,
+            name: true,
           },
         },
       },
@@ -364,8 +384,29 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized to delete shifts' }, { status: 403 });
     }
 
+    // Fetch shift with employee and company details for email notification
     const shift = await prisma.shift.findUnique({
       where: { id: id },
+      include: {
+        employee: {
+          include: {
+            User: {
+              select: {
+                name: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        department: {
+          select: { name: true },
+        },
+        location: {
+          select: { name: true },
+        },
+      },
     });
 
     if (!shift) {
@@ -377,12 +418,93 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Can only delete unpublished shifts
-    if (shift.isPublished) {
-      return NextResponse.json(
-        { error: 'Cannot delete published shifts. Please unpublish first or cancel instead.' },
-        { status: 400 }
-      );
+    // Get company name for email
+    const company = await prisma.company.findUnique({
+      where: { id: shift.companyId },
+      select: { name: true },
+    });
+
+    // Send notification email if requested and shift is published with an assigned employee
+    let emailSent = false;
+    if (body.notifyEmployee && shift.isPublished && shift.employee?.User?.email) {
+      try {
+        const employeeName = shift.employee.User.name ||
+          [shift.employee.User.firstName, shift.employee.User.lastName].filter(Boolean).join(' ') ||
+          'Team Member';
+        
+        const formattedDate = format(shift.startTime, 'EEEE, MMMM d, yyyy');
+        const formattedStartTime = format(shift.startTime, 'h:mm a');
+        const formattedEndTime = format(shift.endTime, 'h:mm a');
+        
+        const reasonText = body.reason 
+          ? `<p style="margin: 16px 0; padding: 12px 16px; background-color: #f3f4f6; border-left: 4px solid #6b7280; border-radius: 4px;"><strong>Reason:</strong> ${body.reason}</p>`
+          : '';
+
+        const locationText = shift.location?.name ? ` at ${shift.location.name}` : '';
+        const departmentText = shift.department?.name ? ` (${shift.department.name})` : '';
+
+        await resend.emails.send({
+          from: PEOPLECORE_FROM_EMAIL,
+          to: shift.employee.User.email,
+          subject: `Shift Cancelled - ${formattedDate}`,
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            </head>
+            <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #374151; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 24px; border-radius: 12px 12px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">Shift Cancelled</h1>
+              </div>
+              
+              <div style="background-color: #ffffff; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+                <p style="margin-top: 0;">Hi ${employeeName},</p>
+                
+                <p>We're writing to let you know that your scheduled shift has been cancelled:</p>
+                
+                <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                  <p style="margin: 0 0 8px 0;"><strong>📅 Date:</strong> ${formattedDate}</p>
+                  <p style="margin: 0 0 8px 0;"><strong>🕐 Time:</strong> ${formattedStartTime} - ${formattedEndTime}</p>
+                  ${shift.location?.name ? `<p style="margin: 0 0 8px 0;"><strong>📍 Location:</strong> ${shift.location.name}</p>` : ''}
+                  ${shift.department?.name ? `<p style="margin: 0;"><strong>🏢 Department:</strong> ${shift.department.name}</p>` : ''}
+                </div>
+                
+                ${reasonText}
+                
+                <p>If you have any questions about this cancellation, please contact your manager.</p>
+                
+                <p style="margin-bottom: 0; color: #6b7280; font-size: 14px;">
+                  Best regards,<br>
+                  ${company?.name || 'Your Team'}
+                </p>
+              </div>
+              
+              <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 16px;">
+                This is an automated message from PeopleCore.
+              </p>
+            </body>
+            </html>
+          `,
+          text: `Hi ${employeeName},
+
+Your scheduled shift has been cancelled:
+
+Date: ${formattedDate}
+Time: ${formattedStartTime} - ${formattedEndTime}${locationText}${departmentText}
+
+${body.reason ? `Reason: ${body.reason}\n\n` : ''}If you have any questions about this cancellation, please contact your manager.
+
+Best regards,
+${company?.name || 'Your Team'}`,
+        });
+        
+        emailSent = true;
+      } catch (emailError) {
+        console.error('Failed to send shift cancellation email:', emailError);
+        // Continue with deletion even if email fails
+      }
     }
 
     // Delete shift (cascade will handle related records)
@@ -404,6 +526,9 @@ export async function DELETE(
           shiftId: id,
           startTime: shift.startTime.toISOString(),
           endTime: shift.endTime.toISOString(),
+          wasPublished: shift.isPublished,
+          reason: body.reason || null,
+          employeeNotified: emailSent,
         },
       },
     });
@@ -411,6 +536,7 @@ export async function DELETE(
     return NextResponse.json({
       success: true,
       message: 'Shift deleted successfully',
+      employeeNotified: emailSent,
     });
   } catch (error) {
     console.error('Shift delete error:', error);

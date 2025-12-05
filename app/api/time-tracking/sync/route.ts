@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { startOfDay } from 'date-fns';
 import { roundClockTime } from '@/lib/timesheet-calculations';
 import { verifyClockLocation } from '@/lib/gps-verification';
 import { uploadClockPhoto } from '@/lib/storage/clock-photos';
+import { autoMatchClockEntryToShift, linkClockEntryToShift } from '@/lib/time-tracking/shift-matcher';
+import { 
+  findOrCreateTimesheet, 
+  processTimesheetEntry, 
+  recalculateTimesheetTotals 
+} from '@/lib/time-tracking/timesheet-entry-processor';
 
 const syncEntrySchema = z.object({
   localId: z.string(),
@@ -258,7 +265,7 @@ export async function POST(req: NextRequest) {
           }
 
           // Update clock entry
-          await prisma.clockEntry.update({
+          const updatedEntry = await prisma.clockEntry.update({
             where: { id: activeEntry.id },
             data: {
               clockOutTime,
@@ -272,6 +279,132 @@ export async function POST(req: NextRequest) {
               syncedAt: new Date(),
             },
           });
+
+          // Auto-match to shift (non-blocking)
+          let shiftMatch = null;
+          try {
+            const matchResult = await autoMatchClockEntryToShift({
+              id: updatedEntry.id,
+              employeeId: employee.id,
+              companyId: employee.companyId,
+              clockInTime: activeEntry.clockInTime,
+              clockOutTime,
+            });
+            
+            if (matchResult && matchResult.confidence >= 0.7) {
+              await linkClockEntryToShift(
+                updatedEntry.id,
+                matchResult.shiftId,
+                'AUTO',
+                matchResult.confidence
+              );
+              shiftMatch = {
+                shiftId: matchResult.shiftId,
+                confidence: matchResult.confidence,
+                varianceMinutes: matchResult.varianceMinutes,
+              };
+            }
+          } catch (matchError) {
+            console.error('[Sync] Auto-match error (non-blocking):', matchError);
+          }
+
+          // Auto-generate timesheet entry from clock data (non-blocking)
+          // Skip if the clock entry was already linked to a timesheet (e.g., from manual generation)
+          if (!activeEntry.timesheetId) {
+            try {
+              // Find or create timesheet for this period
+              const timesheetId = await findOrCreateTimesheet(
+              employee.id,
+              employee.companyId,
+              clockOutTime
+            );
+
+            // Get break duration from matched shift or use default
+            let breakMinutes = 0;
+            if (shiftMatch?.shiftId) {
+              const matchedShift = await prisma.shift.findUnique({
+                where: { id: shiftMatch.shiftId },
+                select: { breakDuration: true },
+              });
+              breakMinutes = matchedShift?.breakDuration || 0;
+            }
+
+            // Process the entry with overtime/holiday calculations
+            const processedEntry = await processTimesheetEntry(
+              {
+                date: startOfDay(activeEntry.clockInTime),
+                startTime: activeEntry.clockInTime,
+                endTime: clockOutTime,
+                breakMinutes,
+              },
+              employee.id,
+              employee.companyId,
+              'CLOCK',
+              clockOutNotes || undefined
+            );
+
+            // Get shift details if matched for linking
+            let shiftDetails: { startTime: Date; endTime: Date } | null = null;
+            if (shiftMatch?.shiftId) {
+              shiftDetails = await prisma.shift.findUnique({
+                where: { id: shiftMatch.shiftId },
+                select: { startTime: true, endTime: true },
+              });
+            }
+
+            // Create timesheet entry in transaction
+            await prisma.$transaction(async (tx) => {
+              const entryData: any = {
+                timesheetId,
+                date: processedEntry.date,
+                startTime: processedEntry.startTime,
+                endTime: processedEntry.endTime,
+                breakMinutes: processedEntry.breakMinutes,
+                hours: processedEntry.hours,
+                regularHours: processedEntry.regularHours,
+                overtimeHours: processedEntry.overtimeHours,
+                overtimeMultiplier: processedEntry.overtimeMultiplier,
+                overtimeType: processedEntry.overtimeType,
+                overtimeReason: processedEntry.overtimeReason,
+                isOvertime: processedEntry.isOvertime,
+                isPublicHoliday: processedEntry.isPublicHoliday,
+                publicHolidayName: processedEntry.publicHolidayName,
+                publicHolidayHours: processedEntry.publicHolidayHours,
+                publicHolidayMultiplier: processedEntry.publicHolidayMultiplier,
+                publicHolidayType: processedEntry.publicHolidayType,
+                publicHolidayRegion: processedEntry.publicHolidayRegion,
+                alternativeDayGranted: processedEntry.alternativeDayGranted,
+                notes: processedEntry.notes,
+                entryType: 'CLOCK',
+                reconciliationStatus: shiftMatch ? 'AUTO_MATCHED' : 'PENDING',
+              };
+
+              // Add shift linking fields if matched
+              if (shiftMatch && shiftDetails) {
+                entryData.shiftId = shiftMatch.shiftId;
+                entryData.scheduledStartTime = shiftDetails.startTime;
+                entryData.scheduledEndTime = shiftDetails.endTime;
+                entryData.varianceMinutes = shiftMatch.varianceMinutes;
+              }
+
+              await tx.timesheetEntry.create({
+                data: entryData,
+              });
+
+              // Update clock entry to link to timesheet
+              await tx.clockEntry.update({
+                where: { id: updatedEntry.id },
+                data: { timesheetId },
+              });
+
+              // Recalculate timesheet totals
+              await recalculateTimesheetTotals(timesheetId, tx);
+            });
+            } catch (timesheetError) {
+              // Log but don't fail the sync - timesheet can be generated manually if needed
+              console.error('[Sync] Auto-generate timesheet error (non-blocking):', timesheetError);
+            }
+          }
 
           synced.push({
             localId: entry.localId,

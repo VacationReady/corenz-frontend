@@ -31,6 +31,195 @@ function translateFieldKey(field: string): string {
     return legacyFieldMap[field] || field;
 }
 
+// Helper to get nested value from an object using dot path
+function getNestedValue(obj: any, path: string): any {
+    return path.split(".").reduce((current, key) => {
+        if (current === null || current === undefined) return undefined;
+        if (Array.isArray(current)) current = current[0];
+        return current?.[key];
+    }, obj);
+}
+
+// Helper to set nested value on an object using dot path
+function setNestedValue(obj: any, path: string, value: any): void {
+    const keys = path.split(".");
+    let current = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+        if (!(key in current)) {
+            current[key] = {};
+        }
+        current = current[key];
+    }
+    current[keys[keys.length - 1]] = value;
+}
+
+// Compute the data path for an original field given the primary model
+function computeDataPath(originalField: string, primaryModel: string): string {
+    // Skip computed fields
+    if (originalField.startsWith("_computed.")) {
+        return originalField;
+    }
+    
+    // If field already starts with the primary model, strip the prefix
+    if (originalField.startsWith(`${primaryModel}.`)) {
+        return originalField.slice(primaryModel.length + 1);
+    }
+    
+    // Map common patterns based on primary model
+    // These mirror the anchor functions defined above
+    const modelAnchorPrefixes: Record<string, string> = {
+        "LeaveRequest": "LeaveRequest.",
+        "LeaveEntitlement": "LeaveEntitlement.",
+        "DriverLicence": "DriverLicence.",
+        "EmploymentCheck": "EmploymentCheck.",
+        "TrainingRecord": "TrainingRecord.",
+        "EmployeeOffboarding": "EmployeeOffboarding.",
+        "Timesheet": "Timesheet.",
+        "TimesheetEntry": "TimesheetEntry.",
+        "TimesheetApprovalDecision": "TimesheetApprovalDecision.",
+    };
+    
+    // Determine the relationship path based on primary model
+    const pathMappings: Record<string, Record<string, string>> = {
+        "LeaveEntitlement": {
+            "User.": "Employee.User.",
+            "Employee.": "Employee.",
+            "Department.": "Employee.Department.",
+            "JobRole.": "Employee.JobRole.",
+            "WorkingPattern.": "Employee.WorkingPattern.",
+            "EventCategory.": "EventCategory.",
+        },
+        "LeaveRequest": {
+            "User.": "Employee.User.",
+            "Employee.": "Employee.",
+            "Department.": "Employee.Department.",
+            "JobRole.": "Employee.JobRole.",
+            "WorkingPattern.": "Employee.WorkingPattern.",
+            "EventCategory.": "EventCategory.",
+            "LeaveEntitlement.": "Employee.LeaveEntitlement.",
+        },
+        "DriverLicence": {
+            "User.": "Employee.User.",
+            "Employee.": "Employee.",
+            "Department.": "Employee.Department.",
+            "JobRole.": "Employee.JobRole.",
+            "WorkingPattern.": "Employee.WorkingPattern.",
+        },
+        "EmploymentCheck": {
+            "User.": "Employee.User.",
+            "Employee.": "Employee.",
+            "Department.": "Employee.Department.",
+            "JobRole.": "Employee.JobRole.",
+            "WorkingPattern.": "Employee.WorkingPattern.",
+        },
+        "TrainingRecord": {
+            "User.": "Employee.User.",
+            "Employee.": "Employee.",
+            "Department.": "Employee.Department.",
+            "JobRole.": "Employee.JobRole.",
+            "WorkingPattern.": "Employee.WorkingPattern.",
+            "Course.": "Course.",
+            "TrainingProvider.": "TrainingProvider.",
+        },
+        "EmployeeOffboarding": {
+            "User.": "Employee.User.",
+            "Employee.": "Employee.",
+            "Department.": "Employee.Department.",
+            "JobRole.": "Employee.JobRole.",
+            "WorkingPattern.": "Employee.WorkingPattern.",
+        },
+        "Timesheet": {
+            "User.": "Employee.User.",
+            "Employee.": "Employee.",
+            "Department.": "Employee.Department.",
+            "JobRole.": "Employee.JobRole.",
+            "WorkingPattern.": "Employee.WorkingPattern.",
+        },
+        "TimesheetEntry": {
+            "User.": "Timesheet.Employee.User.",
+            "Employee.": "Timesheet.Employee.",
+            "Department.": "Timesheet.Employee.Department.",
+            "JobRole.": "Timesheet.Employee.JobRole.",
+            "WorkingPattern.": "Timesheet.Employee.WorkingPattern.",
+            "Timesheet.": "Timesheet.",
+        },
+        "TimesheetApprovalDecision": {
+            "User.": "Stage.Timesheet.Employee.User.",
+            "Employee.": "Stage.Timesheet.Employee.",
+            "Department.": "Stage.Timesheet.Employee.Department.",
+            "JobRole.": "Stage.Timesheet.Employee.JobRole.",
+            "WorkingPattern.": "Stage.Timesheet.Employee.WorkingPattern.",
+            "Timesheet.": "Stage.Timesheet.",
+        },
+    };
+    
+    const mappings = pathMappings[primaryModel];
+    if (mappings) {
+        for (const [prefix, replacement] of Object.entries(mappings)) {
+            if (originalField.startsWith(prefix)) {
+                return originalField.replace(prefix, replacement);
+            }
+        }
+    }
+    
+    // If no mapping found, return as-is (for User model or unmapped fields)
+    return originalField;
+}
+
+// Transform results to map anchored paths back to original field paths
+function flattenToOriginalPaths(
+    results: any[],
+    originalFields: string[],
+    _anchoredFields: string[], // kept for potential debugging
+    primaryModel: string
+): any[] {
+    console.log("🔄 Flattening results to original paths. Primary model:", primaryModel);
+    console.log("🔄 Original fields sample:", originalFields.slice(0, 5));
+    
+    return results.map((row, idx) => {
+        const flatRow: any = { id: row.id }; // Preserve ID
+        
+        // Process each unique original field
+        const processedFields = new Set<string>();
+        
+        for (const originalField of originalFields) {
+            // Skip duplicates
+            if (processedFields.has(originalField)) continue;
+            processedFields.add(originalField);
+            
+            // Handle computed fields
+            if (originalField.startsWith("_computed.")) {
+                if (row._computed) {
+                    flatRow._computed = row._computed;
+                }
+                continue;
+            }
+            
+            // Compute the data path based on the original field and primary model
+            const dataPath = computeDataPath(originalField, primaryModel);
+            
+            // Get value from the nested data path
+            const value = getNestedValue(row, dataPath);
+            
+            // Debug first row
+            if (idx === 0) {
+                console.log(`🔄 Field mapping: ${originalField} -> ${dataPath} = ${JSON.stringify(value)}`);
+            }
+            
+            // Set value at the original field path
+            setNestedValue(flatRow, originalField, value);
+        }
+        
+        // Also preserve any _computed fields that weren't explicitly requested
+        if (row._computed) {
+            flatRow._computed = { ...flatRow._computed, ...row._computed };
+        }
+        
+        return flatRow;
+    });
+}
+
 // Helper to recursively translate field keys in a FilterGroup
 function translateFilterGroup(group: FilterGroup): FilterGroup {
     return {
@@ -475,9 +664,17 @@ export async function POST(req: Request) {
         let translatedFilterGroup = translateFilterGroup(normalizedFilterGroup);
         let translatedSort = sort?.field ? { ...sort, field: translateFieldKey(sort.field) } : sort;
 
+        // Store fields BEFORE anchoring (these are what frontend expects)
+        const fieldsBeforeAnchoring = [...translatedSelectedFields];
+        console.log("🔍 Fields BEFORE anchoring:", fieldsBeforeAnchoring);
+
         // Rewrite to leave-anchored equivalents if applicable (includes LeaveEntitlement -> LeaveRequest.Employee.LeaveEntitlement)
         translatedSelectedFields = rewriteFieldsForLeaveContext(translatedSelectedFields);
         translatedFilterGroup = rewriteFilterGroupForLeaveContext(translatedFilterGroup);
+        
+        // Store fields AFTER anchoring (these are the data paths)
+        const fieldsAfterAnchoring = [...translatedSelectedFields];
+        console.log("🔍 Fields AFTER anchoring:", fieldsAfterAnchoring);
         
         // Rewrite sort field using context from selected fields (not just the sort field alone)
         if (translatedSort?.field) {
@@ -712,6 +909,9 @@ export async function POST(req: Request) {
                                 // @ts-ignore dynamic access
                                 let results = await (prisma[model] as any).findMany(primary.prismaQuery);
                                 console.log("🔍 Query returned", results.length, "results");
+                                if (results.length > 0) {
+                                        console.log("🔍 Sample raw result structure:", JSON.stringify(results[0], null, 2).substring(0, 1000));
+                                }
                                 results = await attachComputedFields(results, sanitizedSelectedFields, primary.model);
                                 
                                 return { results, total };
@@ -719,6 +919,15 @@ export async function POST(req: Request) {
                 );
 
                 console.log("✅ Query completed successfully, returning response");
+
+                // Transform results to map anchored paths back to original field paths
+                // This ensures the frontend can access data at the paths it expects
+                const transformedResults = flattenToOriginalPaths(
+                        queryResult.results,
+                        fieldsBeforeAnchoring,
+                        fieldsAfterAnchoring,
+                        model
+                );
 
                 // Add cache headers for debugging/monitoring
                 const headers = new Headers();
@@ -729,7 +938,7 @@ export async function POST(req: Request) {
                 return NextResponse.json({
                         status: "success",
                         message: "Report generated successfully",
-                        data: queryResult.results,
+                        data: transformedResults,
                         total: queryResult.total,
                         _meta: {
                                 cached,

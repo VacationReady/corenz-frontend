@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getMobileSession } from '@/lib/mobile-session';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { startOfDay } from 'date-fns';
 import { roundClockTime } from '@/lib/timesheet-calculations';
 import { verifyClockLocation } from '@/lib/gps-verification';
 import { isPhotoRequiredForClockOut, isGpsLocationRequired } from '@/types/time-tracking-settings';
 import { autoMatchClockEntryToShift, linkClockEntryToShift } from '@/lib/time-tracking/shift-matcher';
+import { 
+  findOrCreateTimesheet, 
+  processTimesheetEntry, 
+  recalculateTimesheetTotals 
+} from '@/lib/time-tracking/timesheet-entry-processor';
 
 const clockOutSchema = z.object({
   location: z
@@ -163,11 +169,120 @@ export async function POST(req: NextRequest) {
       console.error('[Clock-out] Auto-match error (non-blocking):', matchError);
     }
 
+    // Auto-generate timesheet entry from clock data (non-blocking)
+    // Skip if the clock entry was already linked to a timesheet (e.g., from manual generation)
+    let timesheetEntry = null;
+    if (!activeEntry.timesheetId) {
+      try {
+        // Find or create timesheet for this period
+        const timesheetId = await findOrCreateTimesheet(
+          employee.id,
+          employee.companyId,
+          clockOutTime
+        );
+
+      // Get break duration from matched shift or use default
+      let breakMinutes = 0;
+      if (shiftMatch?.shiftId) {
+        const matchedShift = await prisma.shift.findUnique({
+          where: { id: shiftMatch.shiftId },
+          select: { breakDuration: true },
+        });
+        breakMinutes = matchedShift?.breakDuration || 0;
+      }
+
+      // Process the entry with overtime/holiday calculations
+      const processedEntry = await processTimesheetEntry(
+        {
+          date: startOfDay(activeEntry.clockInTime),
+          startTime: activeEntry.clockInTime,
+          endTime: clockOutTime,
+          breakMinutes,
+        },
+        employee.id,
+        employee.companyId,
+        'CLOCK',
+        notes || undefined
+      );
+
+      // Get shift details if matched for linking
+      let shiftDetails: { startTime: Date; endTime: Date } | null = null;
+      if (shiftMatch?.shiftId) {
+        shiftDetails = await prisma.shift.findUnique({
+          where: { id: shiftMatch.shiftId },
+          select: { startTime: true, endTime: true },
+        });
+      }
+
+      // Create timesheet entry in transaction
+      // Note: Using 'as any' for shift reconciliation fields due to Prisma type generation lag
+      const createdEntry = await prisma.$transaction(async (tx) => {
+        const entryData: any = {
+          timesheetId,
+          date: processedEntry.date,
+          startTime: processedEntry.startTime,
+          endTime: processedEntry.endTime,
+          breakMinutes: processedEntry.breakMinutes,
+          hours: processedEntry.hours,
+          regularHours: processedEntry.regularHours,
+          overtimeHours: processedEntry.overtimeHours,
+          overtimeMultiplier: processedEntry.overtimeMultiplier,
+          overtimeType: processedEntry.overtimeType,
+          overtimeReason: processedEntry.overtimeReason,
+          isOvertime: processedEntry.isOvertime,
+          isPublicHoliday: processedEntry.isPublicHoliday,
+          publicHolidayName: processedEntry.publicHolidayName,
+          publicHolidayHours: processedEntry.publicHolidayHours,
+          publicHolidayMultiplier: processedEntry.publicHolidayMultiplier,
+          publicHolidayType: processedEntry.publicHolidayType,
+          publicHolidayRegion: processedEntry.publicHolidayRegion,
+          alternativeDayGranted: processedEntry.alternativeDayGranted,
+          notes: processedEntry.notes,
+          entryType: 'CLOCK',
+          reconciliationStatus: shiftMatch ? 'AUTO_MATCHED' : 'PENDING',
+        };
+
+        // Add shift linking fields if matched
+        if (shiftMatch && shiftDetails) {
+          entryData.shiftId = shiftMatch.shiftId;
+          entryData.scheduledStartTime = shiftDetails.startTime;
+          entryData.scheduledEndTime = shiftDetails.endTime;
+          entryData.varianceMinutes = shiftMatch.varianceMinutes;
+        }
+
+        const entry = await tx.timesheetEntry.create({
+          data: entryData,
+        });
+
+        // Update clock entry to link to timesheet
+        await tx.clockEntry.update({
+          where: { id: updatedEntry.id },
+          data: { timesheetId },
+        });
+
+        // Recalculate timesheet totals
+        await recalculateTimesheetTotals(timesheetId, tx);
+
+        return entry;
+      });
+
+      timesheetEntry = {
+        id: createdEntry.id,
+        timesheetId,
+        hours: processedEntry.hours,
+      };
+      } catch (timesheetError) {
+        // Log but don't fail the clock-out - timesheet can be generated manually if needed
+        console.error('[Clock-out] Auto-generate timesheet error (non-blocking):', timesheetError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       clockEntry: updatedEntry,
       hoursWorked: hoursWorked.toFixed(2),
       shiftMatch,
+      timesheetEntry,
       message: locationVerificationFailed 
         ? locationWarning 
         : 'Clocked out successfully',

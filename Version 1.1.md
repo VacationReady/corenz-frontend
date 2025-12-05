@@ -75,3 +75,7 @@ Added a "View day" button to rota calendar day cells that opens a modern modal d
 ## 19. Permission Profile Employee Access Fix
 
 Fixed permission profiles not granting access to employee profiles. Users with "employees" permission or any granular employee screen permission (e.g., "Employee Employment Checks") can now access employee profiles, with the navigation menu filtered to show only the tabs they have permission for.
+
+## 20. Reports Preview Save Button UX Fix
+
+Fixed duplicate report creation when using the report builder. Previously, reports were saved when entering preview, but a "Save Report" button still appeared and created duplicates when clicked. Now the Save button only appears for unsaved previews (e.g., from templates), and an unsaved changes warning dialog prompts users before leaving an unsaved report preview.

@@ -9,7 +9,6 @@ import {
   Clock,
   MapPin,
   Building2,
-  User,
   Filter,
   ChevronDown,
   CheckCircle,
@@ -26,6 +25,7 @@ import {
   Loader2,
   Flag,
 } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Command,
@@ -700,17 +700,12 @@ export default function ViewFullDayModal({
                         <div className="flex-1 min-w-0">
                           {/* Employee */}
                           <div className="flex items-center gap-2">
-                            {shift.employee?.User?.profileImageUrl ? (
-                              <img
-                                src={shift.employee.User.profileImageUrl}
-                                alt=""
-                                className="h-8 w-8 rounded-full border-2 border-border"
-                              />
-                            ) : (
-                              <div className="h-8 w-8 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
-                                <User className="h-4 w-4 text-primary" />
-                              </div>
-                            )}
+                            <Avatar
+                              src={shift.employee?.User?.profileImageUrl ?? undefined}
+                              name={getEmployeeDisplayName(shift.employee?.User) !== 'Unassigned' ? getEmployeeDisplayName(shift.employee?.User) : undefined}
+                              size={32}
+                              className="border-2 border-border"
+                            />
                             <div>
                               <h4 className="font-semibold text-foreground truncate">
                                 {getEmployeeDisplayName(shift.employee?.User)}

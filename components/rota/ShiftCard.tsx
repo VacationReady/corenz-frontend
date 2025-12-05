@@ -17,6 +17,7 @@ import {
   Square,
   CheckSquare,
 } from 'lucide-react';
+import { Avatar } from '@/components/ui/Avatar';
 
 // Helper function to get display name from User object
 function getEmployeeDisplayName(user: { name?: string | null; firstName?: string | null; lastName?: string | null; email?: string | null } | null | undefined): string {
@@ -339,17 +340,12 @@ export default function ShiftCard({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {shift.employee ? (
           <div className="flex items-center gap-3">
-            {shift.employee.User?.profileImageUrl ? (
-              <img
-                src={shift.employee.User.profileImageUrl}
-                alt={getEmployeeDisplayName(shift.employee.User)}
-                className="w-10 h-10 rounded-full border-2 border-blue-500"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-blue-600 border-2 border-blue-500 flex items-center justify-center">
-                <User className="w-5 h-5 text-white" />
-              </div>
-            )}
+            <Avatar
+              src={shift.employee.User?.profileImageUrl ?? undefined}
+              name={getEmployeeDisplayName(shift.employee.User) !== 'Unknown Employee' ? getEmployeeDisplayName(shift.employee.User) : undefined}
+              size={40}
+              className="border-2 border-blue-500"
+            />
             <div>
               <div className="text-sm text-gray-300">Employee</div>
               <div className="font-medium text-white">

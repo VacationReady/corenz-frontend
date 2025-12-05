@@ -5,13 +5,13 @@ import { motion } from 'framer-motion';
 import { 
   Clock, 
   Calendar, 
-  User, 
   ArrowRight, 
   AlertTriangle,
   CheckCircle,
   XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Avatar } from '@/components/ui/Avatar';
 import VarianceBadge, { VarianceType } from './VarianceBadge';
 
 interface ShiftActualComparisonProps {
@@ -113,17 +113,12 @@ export default function ShiftActualComparison({
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-3">
           {/* Employee Avatar */}
-          {shift.employee?.User?.profileImageUrl ? (
-            <img
-              src={shift.employee.User.profileImageUrl}
-              alt=""
-              className="h-10 w-10 rounded-full border-2 border-border"
-            />
-          ) : (
-            <div className="h-10 w-10 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
-              <User className="h-5 w-5 text-primary" />
-            </div>
-          )}
+          <Avatar
+            src={shift.employee?.User?.profileImageUrl ?? undefined}
+            name={employeeName !== 'Unassigned' ? employeeName : undefined}
+            size={40}
+            className="border-2 border-border"
+          />
           
           <div>
             <h4 className="font-semibold text-foreground">{employeeName}</h4>

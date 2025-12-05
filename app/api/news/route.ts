@@ -3,14 +3,13 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) throw new Error("User not authenticated");
     const userId = session.user.id;
     const companyId = session.user.companyId;
@@ -69,7 +68,7 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const skip = (page - 1) * limit;
 
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -20,7 +20,7 @@ const payloadSchema = z
 export async function POST(request: Request) {
   try {
     await ensurePrismaConnected();
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

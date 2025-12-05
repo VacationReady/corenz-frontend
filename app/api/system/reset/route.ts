@@ -35,7 +35,7 @@ const runChunked = async <T>(
 };
 
 export async function POST() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.companyId || !session.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -1,7 +1,7 @@
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env.server";
-import { AuthOptions } from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -9,10 +9,10 @@ import bcrypt from "bcryptjs";
 
 const MAIN_PRODUCTION_COMPANY_ID = env.NEXT_PUBLIC_MAIN_PRODUCTION_COMPANY_ID;
 
-export const authOptions: AuthOptions = {
+export const authConfig = {
   secret: env.NEXTAUTH_SECRET,
 
-  adapter: PrismaAdapter(prisma) as any,
+  adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   providers: [
     ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET ? [GoogleProvider({
@@ -131,5 +131,7 @@ export const authOptions: AuthOptions = {
   pages: {
     signIn: "/login",
   },
-};
+} satisfies NextAuthConfig;
+
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
 

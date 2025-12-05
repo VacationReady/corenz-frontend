@@ -4,8 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { isAIEnabled, validateAPIKey, checkRateLimit } from "@/lib/ai/openai-client";
 import { processUserMessage } from "@/lib/ai/orchestrator";
 import { undoAction } from "@/lib/ai/action-executor";
@@ -13,7 +12,7 @@ import { clearConversation, getConversation, updateConversation } from "@/lib/ai
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

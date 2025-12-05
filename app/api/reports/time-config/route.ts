@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { resolveReportingTimeConfig } from "@/lib/reportingTimeConfig";
 import { DEFAULT_LOCALE_CODE, DEFAULT_TIMEZONE } from "@/lib/datetime";
 
@@ -8,7 +7,7 @@ export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const userId = session?.user?.id;
     const companyId = session?.user?.companyId;
 

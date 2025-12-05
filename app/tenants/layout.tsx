@@ -1,15 +1,14 @@
 import React, { ReactNode } from "react";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import ClientLayout from "@/ClientLayout";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 
 export default async function TenantsLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user) {
     redirect("/login");

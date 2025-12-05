@@ -2,8 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { hrReportFields } from "@/lib/hrReportFields";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 
 function mapFormFieldTypeToHRType(type?: string): "string" | "number" | "date" | "boolean" | "enum" {
 	switch ((type || "text").toLowerCase()) {
@@ -25,7 +24,7 @@ function slugify(value: string): string {
 
 export async function GET() {
 	try {
-		const session = await getServerSession(authOptions);
+		const session = await auth();
 		if (!session?.user?.companyId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}

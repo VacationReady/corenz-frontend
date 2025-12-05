@@ -1,8 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { calculateDayHours } from "@/lib/working-pattern-utils";
 
 // Zod schema for day definition with optional time fields for TIMED type
@@ -59,7 +58,7 @@ const WorkingPatternCreateSchema = z.object({
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -113,7 +112,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }

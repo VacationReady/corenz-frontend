@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 export const runtime = "nodejs";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const companyIdFromSession = (session as any)?.user?.companyId as string | undefined;
     if (!companyIdFromSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,7 +23,7 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const companyIdFromSession = (session as any)?.user?.companyId as string | undefined;
     const role = (session as any)?.user?.role as string | undefined;
     if (!companyIdFromSession || role !== "ADMIN") {

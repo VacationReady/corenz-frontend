@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { z } from "zod";
 import { validateCoordinates } from "@/lib/geofence";
 import { syncGeofenceLocations } from "@/lib/sync-geofence-locations";
@@ -18,7 +17,7 @@ const locationCreateSchema = z.object({
 export async function GET() {
   try {
     await ensurePrismaConnected();
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -55,7 +54,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const data = locationCreateSchema.parse(body);
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

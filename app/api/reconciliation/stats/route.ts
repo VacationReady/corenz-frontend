@@ -14,7 +14,7 @@ import { parseISO, isValid, startOfWeek, endOfWeek, startOfMonth, endOfMonth } f
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

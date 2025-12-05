@@ -1,12 +1,11 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { normalizeTenantBranding, extractBrandingFromSession } from "@/lib/tenant-branding";
 
 export const dynamic = "force-dynamic";
 
 async function getTenantBranding() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   // Try to extract branding from session first
   if (session) {

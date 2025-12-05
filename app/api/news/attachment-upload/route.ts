@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 import { randomUUID } from "crypto";
 
@@ -8,7 +7,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const companyId = session?.user?.companyId;
     if (!session?.user?.id || !companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

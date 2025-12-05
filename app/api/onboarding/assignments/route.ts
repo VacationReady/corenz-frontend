@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth-options";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id || !session.user.companyId) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id || !session.user.companyId) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id || !session.user.companyId) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }

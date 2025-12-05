@@ -4,8 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import {
   isAIEnabled,
   validateAPIKey,
@@ -17,7 +16,7 @@ import { getConversation, addMessage, buildContextString } from "@/lib/ai/conver
 export async function POST(req: NextRequest) {
   try {
     // Auth check
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -158,7 +157,7 @@ async function executeQuickQuery(
 
 // GET endpoint for available quick queries
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

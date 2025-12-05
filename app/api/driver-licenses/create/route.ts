@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
 import { getTransactionalRecipients } from "@/lib/transactional-notifications";
@@ -10,7 +9,7 @@ import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
 import { canAccessEmployee } from "@/lib/permissions";
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

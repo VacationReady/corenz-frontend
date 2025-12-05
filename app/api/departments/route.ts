@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 
 export async function GET() {
   try {
     await ensurePrismaConnected();
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     console.log("[departments] Session check:", {
       hasSession: !!session,
       hasUser: !!session?.user,
@@ -59,7 +58,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -102,7 +101,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

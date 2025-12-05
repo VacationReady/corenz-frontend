@@ -17,7 +17,7 @@ function isManagerOrAdmin(role?: string | null) {
 export async function POST(req: NextRequest) {
   try {
     // 1. Validate session
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json(
         { error: 'Unauthorized', details: 'You must be logged in to send meeting invites' },

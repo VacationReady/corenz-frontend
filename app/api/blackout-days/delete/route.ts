@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 
 // 🚩 disables Vercel caching for this API
 export const revalidate = 0;
@@ -15,7 +14,7 @@ export const revalidate = 0;
  */
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const user = session?.user;
     if (!user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

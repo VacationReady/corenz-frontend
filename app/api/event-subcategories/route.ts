@@ -2,8 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { z } from "zod";
 
 // Zod schema for EventSubcategory payload
@@ -15,7 +14,7 @@ const EventSubcategorySchema = z.object({
 });
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.companyId) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
@@ -48,7 +47,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (
     !session?.user ||
     session.user.role !== "ADMIN" ||

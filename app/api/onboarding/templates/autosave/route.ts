@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { hasPermission } from "@/lib/permissions";
 
 /**
@@ -10,7 +9,7 @@ import { hasPermission } from "@/lib/permissions";
  * Debounced on client side to avoid excessive writes
  */
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -126,7 +125,7 @@ export async function POST(req: Request) {
  * GET - Retrieve draft versions for a template
  */
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

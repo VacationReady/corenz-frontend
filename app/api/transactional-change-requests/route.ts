@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { createAuditLogs } from "@/lib/audit-helpers";
 import { resend } from "@/lib/resend";
@@ -8,7 +7,7 @@ import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
 
 // GET: list my actionable items (admin/manager approver) or my submitted requests
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const url = new URL(req.url);
@@ -41,7 +40,7 @@ export async function GET(req: NextRequest) {
 
 // POST: act on a request { id, action: approve|decline, comment? }
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, action, comment } = await req.json();

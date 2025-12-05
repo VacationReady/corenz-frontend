@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { hrReportFields, hrCategories, groupFieldsByCategory } from "@/lib/hrReportFields";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +25,7 @@ function slugify(value: string): string {
 
 export async function GET() {
 	try {
-		const session = await getServerSession(authOptions);
+		const session = await auth();
 
 		// Return HR-curated fields grouped by category
 		const fieldsByCategory = groupFieldsByCategory();

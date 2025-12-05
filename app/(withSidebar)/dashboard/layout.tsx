@@ -1,8 +1,7 @@
 // app/(withSidebar)/dashboard/layout.tsx
 
 import React, { ReactNode } from "react";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import AdminSidebar from "@/components/sidebars/AdminSidebar";
 import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
 import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
@@ -12,7 +11,7 @@ export default async function DashboardLayout({
 }: {
   children: ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const role = session?.user?.role ?? "EMPLOYEE";
 
   let Sidebar: React.ReactElement | null = null;

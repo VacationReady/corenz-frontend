@@ -118,7 +118,7 @@ async function buildPreferencesResponse(companyId: string) {
 // GET handler - retrieve current preferences
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
 // PUT handler - update preferences
 export async function PUT(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -1,7 +1,6 @@
 // app/(withSidebar)/dashboard/admin/page.tsx
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
@@ -14,7 +13,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
 
 export default async function AdminDashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user) redirect("/login");
   const role = session.user.role;

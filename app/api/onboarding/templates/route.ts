@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { createTemplate, updateTemplate, TemplateConflictError } from "./actions";
 import { hasPermission } from "@/lib/permissions";
 import { fetchTenantTemplates, serializeTemplate, templateSelect } from "./tenantScopedFetch";
 
 // ✅ GET - Fetch Templates
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -54,7 +53,7 @@ export async function GET(req: Request) {
 
 // ✅ POST - Create Template
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -88,7 +87,7 @@ export async function POST(req: Request) {
 
 // ✅ PUT - Update Template (Includes Publish/Unpublish)
 export async function PUT(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -127,7 +126,7 @@ export async function PUT(req: Request) {
 
 // ✅ DELETE - Delete Template (Steps cascade manually)
 export async function DELETE(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user?.companyId || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

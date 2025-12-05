@@ -1,4 +1,4 @@
-import NextAuth, { DefaultSession } from "next-auth";
+import { DefaultSession } from "next-auth";
 import { JWT } from "next-auth/jwt";
 
 // ✅ Extend the default session

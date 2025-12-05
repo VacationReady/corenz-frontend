@@ -23,7 +23,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.companyId || !session.user.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

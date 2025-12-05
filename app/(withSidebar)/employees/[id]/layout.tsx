@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
 import { canAccessEmployee, getAccessibleEmployeeScreens, UserWithProfile } from "@/lib/permissions";
 import EmployeeNavClient from "./EmployeeNavClient";
@@ -14,7 +13,7 @@ export default async function EmployeeLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.id || !session.user.companyId) {
     return (
       <UnauthorizedAccess

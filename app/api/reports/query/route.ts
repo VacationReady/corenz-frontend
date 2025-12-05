@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { buildDynamicQuery, attachComputedFields } from "@/lib/queryBuilder";
 import { getFieldByKey } from "@/lib/hrReportFields";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { z } from "zod";
 import { resolveReportingTimeConfig } from "@/lib/reportingTimeConfig";
 import { deserializeFilterGroup, normalizeFilterGroupInput, addRuleToGroup, createFilterRule } from "@/lib/reportFilters";
@@ -627,7 +626,7 @@ const reportQuerySchema = z.object({
 export async function POST(req: Request) {
 	try {
     await ensurePrismaConnected();
-		const session = await getServerSession(authOptions);
+		const session = await auth();
 		if (!session?.user?.companyId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}

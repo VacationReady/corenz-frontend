@@ -396,19 +396,52 @@ async function getEmployeeWorkingPattern(
 
 /**
  * Get expected hours for a specific day from working pattern
+ * Handles FULL_DAY, HALF_DAY_AM/PM, and TIMED day types
  */
 function getDayExpectedHours(
-  week: { WorkingPatternDay: Array<{ day: string; hoursPerDay: Prisma.Decimal | null; type: string }> },
+  week: { WorkingPatternDay: Array<{ 
+    day: string; 
+    hoursPerDay: Prisma.Decimal | null; 
+    type: string;
+    startTime?: string | null;
+    endTime?: string | null;
+    breakMinutes?: number | null;
+  }> },
   date: Date
 ): number {
   const dayName = format(date, 'EEEE').toUpperCase(); // MONDAY, TUESDAY, etc.
   const dayPattern = week.WorkingPatternDay.find((d) => d.day === dayName);
 
-  if (!dayPattern || dayPattern.type !== 'FULL_DAY') {
+  if (!dayPattern) {
     return 0;
   }
 
-  return dayPattern.hoursPerDay ? parseFloat(dayPattern.hoursPerDay.toString()) : 0;
+  // If hoursPerDay is explicitly set, use it (works for all types including TIMED)
+  if (dayPattern.hoursPerDay) {
+    return parseFloat(dayPattern.hoursPerDay.toString());
+  }
+
+  // Fall back to type-based defaults
+  switch (dayPattern.type) {
+    case 'FULL_DAY':
+      return 8; // Default 8 hours for full day
+    case 'HALF_DAY_AM':
+    case 'HALF_DAY_PM':
+      return 4; // Default 4 hours for half day
+    case 'TIMED':
+      // For TIMED without hoursPerDay, calculate from times if available
+      if (dayPattern.startTime && dayPattern.endTime) {
+        const { calculateDayHours } = require('@/lib/working-pattern-utils');
+        return calculateDayHours(
+          dayPattern.startTime, 
+          dayPattern.endTime, 
+          dayPattern.breakMinutes ?? 0
+        );
+      }
+      return 8; // Fallback for TIMED without times
+    default:
+      return 0;
+  }
 }
 
 /**

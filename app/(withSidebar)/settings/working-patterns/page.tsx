@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Archive, Edit, Eye, Trash2 } from "lucide-react";
+import { Archive, Edit, Eye, Trash2, Clock } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
@@ -15,6 +15,21 @@ import { PageShell } from "@/components/ui/PageShell";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import { cn } from "@/lib/utils";
 import { ProfileUpdateSuccessAnimation } from "@/components/animations";
+import { calculateDayHours, formatHoursDisplay } from "@/lib/working-pattern-utils";
+
+// Type for day configuration - supports both simple types and TIMED with time details
+interface DayConfig {
+  type: string;
+  startTime?: string;
+  endTime?: string;
+  breakMinutes?: number;
+}
+
+// Type for week configuration  
+interface WeekConfig {
+  weekNumber: number;
+  days: Record<string, DayConfig>;
+}
 
 export default function WorkingPatternsPage() {
   const [patterns, setPatterns] = useState<any[]>([]);
@@ -27,7 +42,8 @@ export default function WorkingPatternsPage() {
   const [description, setDescription] = useState("");
   const [patternType, setPatternType] = useState<string>("STANDARD");
   const [contractedHoursPerWeek, setContractedHoursPerWeek] = useState<string>("");
-  const [weeks, setWeeks] = useState<any[]>([{ weekNumber: 1, days: {} }]);
+  const [defaultBreakMinutes, setDefaultBreakMinutes] = useState<number>(30);
+  const [weeks, setWeeks] = useState<WeekConfig[]>([{ weekNumber: 1, days: {} }]);
 
   const [typeFilter, setTypeFilter] = useState<
     "all" | "STANDARD" | "SHIFT_BASED" | "FLEXIBLE"
@@ -36,13 +52,14 @@ export default function WorkingPatternsPage() {
   const [viewPattern, setViewPattern] = useState<any>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   // Copy/Paste week clipboard (in-memory only)
-  const clipboardRef = useRef<Record<string, string> | null>(null);
+  const clipboardRef = useRef<Record<string, DayConfig> | null>(null);
 
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const dayTypes = [
     { label: "Full Day", value: "FULL_DAY" },
     { label: "Half Day AM", value: "HALF_DAY_AM" },
     { label: "Half Day PM", value: "HALF_DAY_PM" },
+    { label: "Timed", value: "TIMED" },
   ];
 
   const formatDayLabel = (raw: string) => {
@@ -92,7 +109,7 @@ export default function WorkingPatternsPage() {
       const updated = [...prev];
       const daysObj = { ...updated[weekIndex].days };
       if (checked) {
-        daysObj[day] = "FULL_DAY";
+        daysObj[day] = { type: "FULL_DAY" };
       } else {
         delete daysObj[day];
       }
@@ -104,13 +121,54 @@ export default function WorkingPatternsPage() {
   const handleTypeChange = (weekIndex: number, day: string, type: string) => {
     setWeeks((prev) => {
       const updated = [...prev];
-      updated[weekIndex].days[day] = type;
+      const existing = updated[weekIndex].days[day] || {};
+      if (type === "TIMED") {
+        // Initialize with default times when switching to TIMED
+        updated[weekIndex].days[day] = {
+          ...existing,
+          type,
+          startTime: existing.startTime || "09:00",
+          endTime: existing.endTime || "17:00",
+          breakMinutes: existing.breakMinutes ?? defaultBreakMinutes,
+        };
+      } else {
+        // For non-TIMED types, just keep the type
+        updated[weekIndex].days[day] = { type };
+      }
       return updated;
     });
   };
 
+  const handleTimeChange = (
+    weekIndex: number,
+    day: string,
+    field: "startTime" | "endTime" | "breakMinutes",
+    value: string | number
+  ) => {
+    setWeeks((prev) => {
+      const updated = [...prev];
+      const dayConfig = updated[weekIndex].days[day];
+      if (dayConfig) {
+        updated[weekIndex].days[day] = {
+          ...dayConfig,
+          [field]: value,
+        };
+      }
+      return updated;
+    });
+  };
+
+  // Calculate hours for a TIMED day
+  const getCalculatedHours = (dayConfig: DayConfig): number | null => {
+    if (dayConfig.type !== "TIMED" || !dayConfig.startTime || !dayConfig.endTime) {
+      return null;
+    }
+    return calculateDayHours(dayConfig.startTime, dayConfig.endTime, dayConfig.breakMinutes ?? 0);
+  };
+
   const handleCopyWeek = (weekIndex: number) => {
-    clipboardRef.current = { ...weeks[weekIndex].days };
+    // Deep clone the days object
+    clipboardRef.current = JSON.parse(JSON.stringify(weeks[weekIndex].days));
     toast.success(`Copied week ${weeks[weekIndex].weekNumber}`);
   };
 
@@ -123,7 +181,7 @@ export default function WorkingPatternsPage() {
       const updated = [...prev];
       updated[weekIndex] = {
         ...updated[weekIndex],
-        days: { ...clipboardRef.current },
+        days: JSON.parse(JSON.stringify(clipboardRef.current)),
       };
       return updated;
     });
@@ -131,8 +189,16 @@ export default function WorkingPatternsPage() {
   };
 
   const calendarPreview = useMemo(() => {
-    // Build compact matrix preview of selected weeks/days
-    return weeks.map((week) => days.map((d) => week.days[d] || null));
+    // Build compact matrix preview of selected weeks/days with hours for TIMED
+    return weeks.map((week) => days.map((d) => {
+      const dayConfig = week.days[d];
+      if (!dayConfig) return null;
+      if (dayConfig.type === "TIMED" && dayConfig.startTime && dayConfig.endTime) {
+        const hours = calculateDayHours(dayConfig.startTime, dayConfig.endTime, dayConfig.breakMinutes ?? 0);
+        return `${formatHoursDisplay(hours)}`;
+      }
+      return dayConfig.type;
+    }));
   }, [weeks]);
 
   const addWeek = () => {
@@ -163,11 +229,30 @@ export default function WorkingPatternsPage() {
         toast.error("At least one working day in any week is required");
         return;
       }
+      
+      // Validate TIMED days have proper times
+      for (const week of weeks) {
+        for (const [day, config] of Object.entries(week.days)) {
+          if (config.type === "TIMED") {
+            if (!config.startTime || !config.endTime) {
+              toast.error(`${day} is set to Timed but missing start or end time`);
+              return;
+            }
+          }
+        }
+      }
     }
 
+    // Build weeks payload with full day configuration
     const weeksPayload = patternType === "SHIFT_BASED" ? [] : weeks.map((week) => ({
       weekNumber: week.weekNumber,
-      days: Object.entries(week.days).map(([day, type]) => ({ day, type })),
+      days: Object.entries(week.days).map(([day, config]) => ({
+        day,
+        type: config.type,
+        startTime: config.type === "TIMED" ? config.startTime : undefined,
+        endTime: config.type === "TIMED" ? config.endTime : undefined,
+        breakMinutes: config.type === "TIMED" ? (config.breakMinutes ?? defaultBreakMinutes) : undefined,
+      })),
     }));
 
     const url =
@@ -182,6 +267,7 @@ export default function WorkingPatternsPage() {
       description, 
       weeks: weeksPayload,
       patternType,
+      defaultBreakMinutes,
     };
     
     if (patternType === "SHIFT_BASED" && contractedHoursPerWeek) {
@@ -200,6 +286,7 @@ export default function WorkingPatternsPage() {
       setDescription("");
       setPatternType("STANDARD");
       setContractedHoursPerWeek("");
+      setDefaultBreakMinutes(30);
       setWeeks([{ weekNumber: 1, days: {} }]);
       setOpen(false);
       setEditMode(false);
@@ -221,6 +308,7 @@ export default function WorkingPatternsPage() {
     setDescription(pattern.description || "");
     setPatternType(pattern.patternType || "STANDARD");
     setContractedHoursPerWeek(pattern.contractedHoursPerWeek ? pattern.contractedHoursPerWeek.toString() : "");
+    setDefaultBreakMinutes(pattern.defaultBreakMinutes ?? 30);
     
     const toShortDay = (name: string) => {
       const map: Record<string, string> = {
@@ -237,11 +325,17 @@ export default function WorkingPatternsPage() {
       return map[name] || name;
     };
 
-    const loadedWeeks = pattern.weeks?.length > 0 ? pattern.weeks.map((week: any) => {
-      const daysObj: Record<string, string> = {};
+    const loadedWeeks: WeekConfig[] = pattern.weeks?.length > 0 ? pattern.weeks.map((week: any) => {
+      const daysObj: Record<string, DayConfig> = {};
       week.days.forEach((d: any) => {
         const key = toShortDay(d.day);
-        daysObj[key] = d.type;
+        // Load full day configuration including time fields for TIMED
+        daysObj[key] = {
+          type: d.type,
+          startTime: d.startTime || undefined,
+          endTime: d.endTime || undefined,
+          breakMinutes: d.breakMinutes ?? 0,
+        };
       });
       return { weekNumber: week.weekNumber, days: daysObj };
     }) : [{ weekNumber: 1, days: {} }];
@@ -344,6 +438,7 @@ export default function WorkingPatternsPage() {
                 setDescription("");
                 setPatternType("STANDARD");
                 setContractedHoursPerWeek("");
+                setDefaultBreakMinutes(30);
                 setWeeks([{ weekNumber: 1, days: {} }]);
               }
             }}
@@ -416,6 +511,24 @@ export default function WorkingPatternsPage() {
                   )}
                 </div>
 
+                {/* Default Break Minutes - shown for non-SHIFT_BASED patterns */}
+                {patternType !== "SHIFT_BASED" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Default Break (minutes)</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="5"
+                      placeholder="30"
+                      value={defaultBreakMinutes}
+                      onChange={(e) => setDefaultBreakMinutes(parseInt(e.target.value) || 0)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Default break deduction for Timed days. Can be overridden per day.
+                    </p>
+                  </div>
+                )}
+
                 {/* Contracted Hours (only for SHIFT_BASED) */}
                 {patternType === "SHIFT_BASED" && (
                   <div className="space-y-2">
@@ -470,51 +583,101 @@ export default function WorkingPatternsPage() {
                       </div>
                     </div>
                     <div className="grid grid-cols-4 gap-2">
-                      {days.map((day) => (
-                        <div key={day} className="flex flex-col space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`week-${weekIndex}-day-${day}`}
-                              checked={day in week.days}
-                              onCheckedChange={(checked) =>
-                                handleCheckboxChange(
-                                  weekIndex,
-                                  day,
-                                  Boolean(checked),
-                                )
-                              }
-                            />
-                            <label
-                              htmlFor={`week-${weekIndex}-day-${day}`}
-                              className="text-sm"
-                            >
-                              {day}
-                            </label>
+                      {days.map((day) => {
+                        const dayConfig = week.days[day];
+                        const isSelected = day in week.days;
+                        const isTimed = dayConfig?.type === "TIMED";
+                        const calculatedHours = dayConfig ? getCalculatedHours(dayConfig) : null;
+                        
+                        return (
+                          <div key={day} className="flex flex-col space-y-1">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`week-${weekIndex}-day-${day}`}
+                                checked={isSelected}
+                                onCheckedChange={(checked) =>
+                                  handleCheckboxChange(
+                                    weekIndex,
+                                    day,
+                                    Boolean(checked),
+                                  )
+                                }
+                              />
+                              <label
+                                htmlFor={`week-${weekIndex}-day-${day}`}
+                                className="text-sm"
+                              >
+                                {day}
+                              </label>
+                            </div>
+                            {isSelected && (
+                              <>
+                                <Select
+                                  value={dayConfig?.type || "FULL_DAY"}
+                                  onValueChange={(value) =>
+                                    handleTypeChange(weekIndex, day, value)
+                                  }
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {dayTypes.map((type) => (
+                                      <SelectItem
+                                        key={type.value}
+                                        value={type.value}
+                                      >
+                                        {type.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                
+                                {/* Time inputs for TIMED type */}
+                                {isTimed && (
+                                  <div className="space-y-1 p-2 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3 text-blue-600" />
+                                      <span className="text-xs text-blue-600 font-medium">Times</span>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <Input
+                                        type="time"
+                                        value={dayConfig?.startTime || "09:00"}
+                                        onChange={(e) => handleTimeChange(weekIndex, day, "startTime", e.target.value)}
+                                        className="text-xs h-7 px-1"
+                                      />
+                                      <Input
+                                        type="time"
+                                        value={dayConfig?.endTime || "17:00"}
+                                        onChange={(e) => handleTimeChange(weekIndex, day, "endTime", e.target.value)}
+                                        className="text-xs h-7 px-1"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-muted-foreground">Break:</span>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        step="5"
+                                        value={dayConfig?.breakMinutes ?? defaultBreakMinutes}
+                                        onChange={(e) => handleTimeChange(weekIndex, day, "breakMinutes", parseInt(e.target.value) || 0)}
+                                        className="text-xs h-6 w-14 px-1"
+                                      />
+                                      <span className="text-xs text-muted-foreground">min</span>
+                                    </div>
+                                    {calculatedHours !== null && (
+                                      <div className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                                        = {formatHoursDisplay(calculatedHours)}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </>
+                            )}
                           </div>
-                          {day in week.days && (
-                            <Select
-                              value={week.days[day]}
-                              onValueChange={(value) =>
-                                handleTypeChange(weekIndex, day, value)
-                              }
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {dayTypes.map((type) => (
-                                  <SelectItem
-                                    key={type.value}
-                                    value={type.value}
-                                  >
-                                    {type.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -608,7 +771,15 @@ export default function WorkingPatternsPage() {
                     <ul className="text-sm list-disc list-inside">
                       {week.days.map((d: any) => (
                         <li key={d.id}>
-                          {d.day} ({d.type.replace(/_/g, " ")})
+                          {d.day} - {d.type === "TIMED" ? (
+                            <span className="text-blue-600">
+                              {d.startTime} - {d.endTime}
+                              {d.breakMinutes > 0 && ` (${d.breakMinutes}min break)`}
+                              {d.hoursPerDay && ` = ${formatHoursDisplay(d.hoursPerDay)}`}
+                            </span>
+                          ) : (
+                            d.type.replace(/_/g, " ")
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -623,11 +794,14 @@ export default function WorkingPatternsPage() {
       <div className="grid gap-4">
         <AnimatePresence initial={false}>
           {filteredPatterns.map((pattern) => {
-            const days = pattern.weeks?.flatMap((w: any) => w.days) || [];
-            const preview = days
+            const patternDays = pattern.weeks?.flatMap((w: any) => w.days) || [];
+            const preview = patternDays
               .slice(0, 3)
               .map((d: any) => {
                 const dayLabel = formatDayLabel(d.day);
+                if (d.type === "TIMED" && d.hoursPerDay) {
+                  return `${dayLabel} (${formatHoursDisplay(d.hoursPerDay)})`;
+                }
                 const typeLabel = formatTypeLabel(d.type);
                 return typeLabel ? `${dayLabel} (${typeLabel})` : dayLabel;
               })
@@ -680,7 +854,7 @@ export default function WorkingPatternsPage() {
                               {weekLengthLabel}
                             </span>
                             <span className="rounded-full bg-foreground/10 px-3 py-1">
-                              {days.length} day{days.length === 1 ? "" : "s"}
+                              {patternDays.length} day{patternDays.length === 1 ? "" : "s"}
                             </span>
                           </>
                         )}
@@ -696,7 +870,7 @@ export default function WorkingPatternsPage() {
                     ) : (
                       <div className="text-sm text-foreground/80">
                         {preview}
-                        {days.length > 3 ? ` (+${days.length - 3} more)` : ""}
+                        {patternDays.length > 3 ? ` (+${patternDays.length - 3} more)` : ""}
                       </div>
                     )}
                   </div>

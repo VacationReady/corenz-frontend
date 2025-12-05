@@ -5,6 +5,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { z } from "zod";
+import { calculateDayHours } from "@/lib/working-pattern-utils";
+
+// Zod schema for day definition with optional time fields for TIMED type
+const DaySchema = z.object({
+  day: z.string(),
+  type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM", "TIMED"]),
+  startTime: z.string().regex(/^([01]?[0-9]|2[0-3]):([0-5][0-9])$/, "Invalid time format").optional(),
+  endTime: z.string().regex(/^([01]?[0-9]|2[0-3]):([0-5][0-9])$/, "Invalid time format").optional(),
+  breakMinutes: z.number().int().min(0).optional(),
+  hoursPerDay: z.number().positive().optional(),
+}).refine(
+  (data) => {
+    // TIMED type requires startTime and endTime
+    if (data.type === "TIMED") {
+      return !!data.startTime && !!data.endTime;
+    }
+    return true;
+  },
+  {
+    message: "TIMED day type requires startTime and endTime",
+    path: ["type"],
+  }
+);
 
 // Validate name, optional description, and multi-week data
 const WorkingPatternUpdateSchema = z.object({
@@ -12,15 +35,11 @@ const WorkingPatternUpdateSchema = z.object({
   description: z.string().optional(),
   patternType: z.enum(["STANDARD", "SHIFT_BASED", "FLEXIBLE", "COMPRESSED"]).optional(),
   contractedHoursPerWeek: z.number().positive().optional().nullable(),
+  defaultBreakMinutes: z.number().int().min(0).optional(),
   weeks: z.array(
     z.object({
       weekNumber: z.number().int().min(1),
-      days: z.array(
-        z.object({
-          day: z.string(),
-          type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
-        }),
-      ),
+      days: z.array(DaySchema),
     }),
   ).min(0), // Allow empty weeks for SHIFT_BASED
 }).refine(
@@ -47,8 +66,8 @@ export async function PATCH(
     if (!session?.user?.companyId) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    const { name, description, patternType, contractedHoursPerWeek, weeks } = await req.json();
-    await WorkingPatternUpdateSchema.parseAsync({ name, description, patternType, contractedHoursPerWeek, weeks });
+    const { name, description, patternType, contractedHoursPerWeek, defaultBreakMinutes, weeks } = await req.json();
+    await WorkingPatternUpdateSchema.parseAsync({ name, description, patternType, contractedHoursPerWeek, defaultBreakMinutes, weeks });
 
     // Ensure pattern belongs to the same company
     const { id } = await context.params;
@@ -67,15 +86,29 @@ export async function PATCH(
         description,
         patternType: patternType ?? undefined,
         contractedHoursPerWeek: contractedHoursPerWeek ?? undefined,
+        defaultBreakMinutes: defaultBreakMinutes ?? undefined,
         WorkingPatternWeek: {
           deleteMany: {}, // clear out existing weeks & days
           create: weeks.map((week: any) => ({
             weekNumber: week.weekNumber,
             WorkingPatternDay: {
-              create: week.days.map((day: any) => ({
-                day: day.day,
-                type: day.type,
-              })),
+              create: week.days.map((day: any) => {
+                // Auto-calculate hoursPerDay for TIMED type
+                let hoursPerDay = day.hoursPerDay;
+                if (day.type === "TIMED" && day.startTime && day.endTime) {
+                  const breakMins = day.breakMinutes ?? defaultBreakMinutes ?? 30;
+                  hoursPerDay = calculateDayHours(day.startTime, day.endTime, breakMins);
+                }
+                
+                return {
+                  day: day.day,
+                  type: day.type,
+                  startTime: day.startTime ?? null,
+                  endTime: day.endTime ?? null,
+                  breakMinutes: day.breakMinutes ?? 0,
+                  hoursPerDay: hoursPerDay ?? null,
+                };
+              }),
             },
           })),
         },

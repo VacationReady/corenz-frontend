@@ -291,7 +291,7 @@ export default function ViewFullDayModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl p-0 gap-0 bg-card border border-border overflow-hidden">
+      <DialogContent className="max-w-4xl p-0 gap-0 bg-background border border-border shadow-2xl overflow-hidden">
         {/* Decorative Background */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
@@ -415,7 +415,7 @@ export default function ViewFullDayModal({
         </div>
 
         {/* Shifts List */}
-        <ScrollArea className="relative h-[400px]">
+        <ScrollArea className="relative h-[400px] bg-muted/40">
           <div className="p-6 space-y-3">
             {sortedShifts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -451,8 +451,8 @@ export default function ViewFullDayModal({
                     key={shift.id}
                     className={cn(
                       "group relative flex gap-4 p-4 rounded-2xl transition-all cursor-pointer",
-                      "bg-muted/30 hover:bg-muted/60 border border-border hover:border-border",
-                      "hover:shadow-lg hover:shadow-black/5"
+                      "bg-card hover:bg-accent border border-border",
+                      "hover:shadow-lg hover:shadow-black/10"
                     )}
                     onClick={() => onShiftClick?.(shift)}
                     style={{ animationDelay: `${index * 50}ms` }}
@@ -565,9 +565,9 @@ export default function ViewFullDayModal({
                         </div>
                       </div>
 
-                      {/* Cost (if available) */}
+                      {/* Cost (if available) - positioned at bottom right */}
                       {shift.cost != null && !isNaN(Number(shift.cost)) && (
-                        <div className="absolute top-4 right-4 flex items-center gap-1 text-emerald-600 text-sm font-medium opacity-60 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute bottom-4 right-4 flex items-center gap-1 text-emerald-600 text-sm font-semibold">
                           <DollarSign className="h-3.5 w-3.5" />
                           {Number(shift.cost).toFixed(2)}
                         </div>

@@ -2058,6 +2058,7 @@ model WorkingPattern {
   name                             String
   patternType                      WorkingPatternType                 @default(STANDARD)
   contractedHoursPerWeek           Decimal?                           @db.Decimal(5, 2) // For shift-based/flexible contracts
+  defaultBreakMinutes              Int?                               @default(30) // Default break deduction for TIMED days
   active                           Boolean                            @default(true)
   createdAt                        DateTime                           @default(now())
   updatedAt                        DateTime                           @updatedAt
@@ -2078,6 +2079,7 @@ model WorkingPatternDay {
   hoursPerDay          Decimal?           @db.Decimal(4, 2) // e.g., 7.5, 8.0, 10.0
   startTime            String? // e.g., "09:00" (24-hour format)
   endTime              String? // e.g., "17:00" (24-hour format)
+  breakMinutes         Int?               @default(0) // Break deduction in minutes for TIMED days
   workingPatternWeekId String
   WorkingPatternWeek   WorkingPatternWeek @relation(fields: [workingPatternWeekId], references: [id], onDelete: Cascade)
 
@@ -2300,6 +2302,7 @@ enum DayType {
   FULL_DAY
   HALF_DAY_AM
   HALF_DAY_PM
+  TIMED // Uses startTime/endTime for precise hour calculation
 }
 
 enum WorkingPatternType {

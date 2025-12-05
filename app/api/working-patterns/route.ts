@@ -3,6 +3,29 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { calculateDayHours } from "@/lib/working-pattern-utils";
+
+// Zod schema for day definition with optional time fields for TIMED type
+const DaySchema = z.object({
+  day: z.string().min(1, "Day is required"),
+  type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM", "TIMED"]),
+  startTime: z.string().regex(/^([01]?[0-9]|2[0-3]):([0-5][0-9])$/, "Invalid time format").optional(),
+  endTime: z.string().regex(/^([01]?[0-9]|2[0-3]):([0-5][0-9])$/, "Invalid time format").optional(),
+  breakMinutes: z.number().int().min(0).optional(),
+  hoursPerDay: z.number().positive().optional(),
+}).refine(
+  (data) => {
+    // TIMED type requires startTime and endTime
+    if (data.type === "TIMED") {
+      return !!data.startTime && !!data.endTime;
+    }
+    return true;
+  },
+  {
+    message: "TIMED day type requires startTime and endTime",
+    path: ["type"],
+  }
+);
 
 // Zod schema for creating a new pattern
 const WorkingPatternCreateSchema = z.object({
@@ -10,18 +33,12 @@ const WorkingPatternCreateSchema = z.object({
   description: z.string().optional(),
   patternType: z.enum(["STANDARD", "SHIFT_BASED", "FLEXIBLE", "COMPRESSED"]).default("STANDARD"),
   contractedHoursPerWeek: z.number().positive().optional(),
+  defaultBreakMinutes: z.number().int().min(0).optional(),
   weeks: z
     .array(
       z.object({
         weekNumber: z.number().int().min(1, "Week number must be at least 1"),
-        days: z
-          .array(
-            z.object({
-              day: z.string().min(1, "Day is required"),
-              type: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]),
-            }),
-          )
-          .min(0, "Days can be empty for shift-based patterns"), // Allow empty for SHIFT_BASED
+        days: z.array(DaySchema).min(0, "Days can be empty for shift-based patterns"),
       }),
     )
     .min(0, "Weeks array is required"), // Allow empty weeks for SHIFT_BASED
@@ -65,6 +82,7 @@ export async function GET() {
       description: pattern.description,
       patternType: pattern.patternType,
       contractedHoursPerWeek: pattern.contractedHoursPerWeek ? parseFloat(pattern.contractedHoursPerWeek.toString()) : null,
+      defaultBreakMinutes: pattern.defaultBreakMinutes ?? 30,
       weeks: pattern.WorkingPatternWeek.map((week) => ({
         id: week.id,
         weekNumber: week.weekNumber,
@@ -73,6 +91,9 @@ export async function GET() {
           day: day.day,
           type: day.type,
           hoursPerDay: day.hoursPerDay ? parseFloat(day.hoursPerDay.toString()) : null,
+          startTime: day.startTime,
+          endTime: day.endTime,
+          breakMinutes: day.breakMinutes ?? 0,
         })),
       })),
     }));
@@ -98,7 +119,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, description, patternType, contractedHoursPerWeek, weeks } = WorkingPatternCreateSchema.parse(body);
+    const { name, description, patternType, contractedHoursPerWeek, defaultBreakMinutes, weeks } = WorkingPatternCreateSchema.parse(body);
 
     // Build the data object conditionally based on whether there are weeks
     const createData: any = {
@@ -106,6 +127,7 @@ export async function POST(req: Request) {
       description,
       patternType,
       contractedHoursPerWeek: contractedHoursPerWeek ?? null,
+      defaultBreakMinutes: defaultBreakMinutes ?? 30,
       companyId: session.user.companyId,
     };
 
@@ -115,10 +137,23 @@ export async function POST(req: Request) {
         create: weeks.map((week) => ({
           weekNumber: week.weekNumber,
           WorkingPatternDay: {
-            create: week.days.map((day) => ({
-              day: day.day,
-              type: day.type,
-            })),
+            create: week.days.map((day) => {
+              // Auto-calculate hoursPerDay for TIMED type
+              let hoursPerDay = day.hoursPerDay;
+              if (day.type === "TIMED" && day.startTime && day.endTime) {
+                const breakMins = day.breakMinutes ?? defaultBreakMinutes ?? 30;
+                hoursPerDay = calculateDayHours(day.startTime, day.endTime, breakMins);
+              }
+              
+              return {
+                day: day.day,
+                type: day.type,
+                startTime: day.startTime ?? null,
+                endTime: day.endTime ?? null,
+                breakMinutes: day.breakMinutes ?? 0,
+                hoursPerDay: hoursPerDay ?? null,
+              };
+            }),
           },
         })),
       };

@@ -465,7 +465,13 @@ export function calculateAnniversaryBasedEntitlement(
  */
 export function calculateDaysPerWeek(workingPattern: {
   weeks: Array<{
-    days: Array<{ type: string }>;
+    days: Array<{ 
+      type: string;
+      hoursPerDay?: number | null;
+      startTime?: string | null;
+      endTime?: string | null;
+      breakMinutes?: number | null;
+    }>;
   }>;
 }): number {
   if (!workingPattern?.weeks || workingPattern.weeks.length === 0) {
@@ -474,6 +480,7 @@ export function calculateDaysPerWeek(workingPattern: {
   
   let totalDays = 0;
   let weekCount = 0;
+  const STANDARD_DAY_HOURS = 8;
   
   for (const week of workingPattern.weeks) {
     if (!week.days || week.days.length === 0) continue;
@@ -484,8 +491,20 @@ export function calculateDaysPerWeek(workingPattern: {
         totalDays += 1;
       } else if (day.type.includes('HALF_DAY')) {
         totalDays += 0.5;
+      } else if (day.type === 'TIMED') {
+        // For TIMED type, calculate day fraction based on hours
+        let hours = 0;
+        if (day.hoursPerDay != null && day.hoursPerDay > 0) {
+          hours = day.hoursPerDay;
+        } else if (day.startTime && day.endTime) {
+          // Calculate hours from times if hoursPerDay not set
+          const { calculateDayHours } = require('@/lib/working-pattern-utils');
+          hours = calculateDayHours(day.startTime, day.endTime, day.breakMinutes ?? 0);
+        }
+        // Convert hours to day fraction (e.g., 6 hours = 0.75 days)
+        totalDays += hours / STANDARD_DAY_HOURS;
       }
-      // OFF days contribute 0
+      // OFF days and unknown types contribute 0
     }
   }
   

@@ -108,7 +108,9 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
-          // Verify geofence if configured
+          // Verify geofence if configured - don't block sync on failure, just flag it
+          let locationVerificationFailed = false;
+          let locationWarning = '';
           if (entry.latitude && entry.longitude && settings?.geofenceLocations) {
             const geofences = settings.geofenceLocations as any[];
             const verification = verifyClockLocation(
@@ -121,11 +123,12 @@ export async function POST(req: NextRequest) {
             );
 
             if (!verification.isValid) {
-              failed.push({
-                localId: entry.localId,
-                error: `Location verification failed: ${verification.errors.join(', ')}`,
-              });
-              continue;
+              // Don't block - just flag that verification failed
+              locationVerificationFailed = true;
+              const distanceInfo = verification.nearestGeofence 
+                ? ` (${Math.round(verification.nearestGeofence.distance)}m from ${verification.nearestGeofence.name})`
+                : '';
+              locationWarning = `Clocked in outside of approved location${distanceInfo}`;
             }
           }
 
@@ -152,6 +155,12 @@ export async function POST(req: NextRequest) {
             }
           }
 
+          // Build notes with location warning if applicable
+          let notes = entry.notes || '';
+          if (locationVerificationFailed) {
+            notes = notes ? `${notes} | ${locationWarning}` : locationWarning;
+          }
+
           // Create clock entry
           const clockEntry = await prisma.clockEntry.create({
             data: {
@@ -160,10 +169,10 @@ export async function POST(req: NextRequest) {
               clockInTime,
               clockInLocation:
                 entry.latitude && entry.longitude
-                  ? { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy }
+                  ? { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy, verificationFailed: locationVerificationFailed }
                   : undefined,
               clockInPhotoUrl,
-              notes: entry.notes,
+              notes,
               status: 'ACTIVE',
               localId: entry.localId,
               syncedAt: new Date(),
@@ -196,6 +205,29 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
+          // Verify geofence if configured - don't block sync on failure, just flag it
+          let clockOutLocationVerificationFailed = false;
+          let clockOutLocationWarning = '';
+          if (entry.latitude && entry.longitude && settings?.geofenceLocations) {
+            const geofences = settings.geofenceLocations as any[];
+            const verification = verifyClockLocation(
+              { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy },
+              geofences,
+              {
+                requireGeofence: settings.requireGpsLocation,
+                maxAccuracyMeters: 100,
+              }
+            );
+
+            if (!verification.isValid) {
+              clockOutLocationVerificationFailed = true;
+              const distanceInfo = verification.nearestGeofence 
+                ? ` (${Math.round(verification.nearestGeofence.distance)}m from ${verification.nearestGeofence.name})`
+                : '';
+              clockOutLocationWarning = `Clocked out outside of approved location${distanceInfo}`;
+            }
+          }
+
           // Apply rounding if configured
           let clockOutTime = new Date(entry.timestamp);
           if (settings?.roundClockTimes && settings.roundClockTimes !== 'NONE') {
@@ -219,6 +251,12 @@ export async function POST(req: NextRequest) {
             }
           }
 
+          // Build notes with location warning if applicable
+          let clockOutNotes = entry.notes || activeEntry.notes || '';
+          if (clockOutLocationVerificationFailed) {
+            clockOutNotes = clockOutNotes ? `${clockOutNotes} | ${clockOutLocationWarning}` : clockOutLocationWarning;
+          }
+
           // Update clock entry
           await prisma.clockEntry.update({
             where: { id: activeEntry.id },
@@ -226,11 +264,11 @@ export async function POST(req: NextRequest) {
               clockOutTime,
               clockOutLocation:
                 entry.latitude && entry.longitude
-                  ? { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy }
+                  ? { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy, verificationFailed: clockOutLocationVerificationFailed }
                   : undefined,
               clockOutPhotoUrl,
               status: 'COMPLETED',
-              notes: entry.notes || activeEntry.notes,
+              notes: clockOutNotes,
               syncedAt: new Date(),
             },
           });

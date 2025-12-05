@@ -77,7 +77,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify geofence if configured
+    // Verify geofence if configured - but don't block clock-in on failure
+    let locationVerificationFailed = false;
+    let locationWarning = '';
     if (data.location && settings?.geofenceLocations) {
       const geofences = settings.geofenceLocations as any[];
       const verification = verifyClockLocation(data.location, geofences, {
@@ -87,21 +89,12 @@ export async function POST(req: NextRequest) {
       });
 
       if (!verification.isValid) {
-        return NextResponse.json(
-          {
-            error: 'Location verification failed',
-            details: verification.errors,
-            warnings: verification.warnings,
-            // Include helpful debug info for the user
-            debug: {
-              userLat: data.location.lat,
-              userLng: data.location.lng,
-              accuracy: data.location.accuracy,
-              nearestGeofence: verification.nearestGeofence,
-            }
-          },
-          { status: 400 }
-        );
+        // Don't block - just flag that verification failed
+        locationVerificationFailed = true;
+        const distanceInfo = verification.nearestGeofence 
+          ? ` (${Math.round(verification.nearestGeofence.distance)}m from ${verification.nearestGeofence.name})`
+          : '';
+        locationWarning = `Clocked in outside of approved location${distanceInfo}`;
       }
     }
 
@@ -119,17 +112,29 @@ export async function POST(req: NextRequest) {
       clockInTime = roundClockTime(clockInTime, settings.roundClockTimes as any);
     }
 
+    // Build notes - include location warning if verification failed
+    let notes = data.notes || '';
+    if (locationVerificationFailed) {
+      notes = notes ? `${notes} | ${locationWarning}` : locationWarning;
+    }
+
+    // Build location data with verification status
+    const clockInLocationData = data.location ? {
+      ...data.location,
+      verificationFailed: locationVerificationFailed,
+    } : undefined;
+
     // Create clock entry
     const clockEntry = await prisma.clockEntry.create({
       data: {
         employeeId: employee.id,
         companyId: employee.companyId,
         clockInTime,
-        clockInLocation: data.location || undefined,
+        clockInLocation: clockInLocationData,
         clockInPhotoUrl: data.photoUrl,
         ipAddress,
         deviceInfo: data.deviceInfo || undefined,
-        notes: data.notes,
+        notes,
         status: 'ACTIVE',
       },
     });
@@ -137,7 +142,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       clockEntry,
-      message: 'Clocked in successfully',
+      message: locationVerificationFailed 
+        ? locationWarning 
+        : 'Clocked in successfully',
+      warning: locationVerificationFailed ? locationWarning : undefined,
     });
   } catch (error) {
     console.error('Clock in error:', error);

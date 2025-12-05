@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateShiftCost } from '@/lib/timesheet-calculations';
-import { resend, PEOPLECORE_FROM_EMAIL } from '@/app/lib/resend';
+import { resend, PEOPLECORE_FROM_EMAIL } from '@/lib/resend';
 import { format } from 'date-fns';
 
 const updateShiftSchema = z.object({

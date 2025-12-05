@@ -388,7 +388,7 @@ export async function DELETE(
     const shift = await prisma.shift.findUnique({
       where: { id: id },
       include: {
-        employee: {
+        Employee: {
           include: {
             User: {
               select: {
@@ -400,10 +400,7 @@ export async function DELETE(
             },
           },
         },
-        department: {
-          select: { name: true },
-        },
-        location: {
+        Location: {
           select: { name: true },
         },
       },
@@ -424,12 +421,22 @@ export async function DELETE(
       select: { name: true },
     });
 
+    // Get department name if needed for email
+    let departmentName: string | null = null;
+    if (shift.departmentId) {
+      const department = await prisma.department.findUnique({
+        where: { id: shift.departmentId },
+        select: { name: true },
+      });
+      departmentName = department?.name || null;
+    }
+
     // Send notification email if requested and shift is published with an assigned employee
     let emailSent = false;
-    if (body.notifyEmployee && shift.isPublished && shift.employee?.User?.email) {
+    if (body.notifyEmployee && shift.isPublished && shift.Employee?.User?.email) {
       try {
-        const employeeName = shift.employee.User.name ||
-          [shift.employee.User.firstName, shift.employee.User.lastName].filter(Boolean).join(' ') ||
+        const employeeName = shift.Employee.User.name ||
+          [shift.Employee.User.firstName, shift.Employee.User.lastName].filter(Boolean).join(' ') ||
           'Team Member';
         
         const formattedDate = format(shift.startTime, 'EEEE, MMMM d, yyyy');
@@ -440,12 +447,12 @@ export async function DELETE(
           ? `<p style="margin: 16px 0; padding: 12px 16px; background-color: #f3f4f6; border-left: 4px solid #6b7280; border-radius: 4px;"><strong>Reason:</strong> ${body.reason}</p>`
           : '';
 
-        const locationText = shift.location?.name ? ` at ${shift.location.name}` : '';
-        const departmentText = shift.department?.name ? ` (${shift.department.name})` : '';
+        const locationText = shift.Location?.name ? ` at ${shift.Location.name}` : '';
+        const departmentText = departmentName ? ` (${departmentName})` : '';
 
         await resend.emails.send({
           from: PEOPLECORE_FROM_EMAIL,
-          to: shift.employee.User.email,
+          to: shift.Employee.User.email,
           subject: `Shift Cancelled - ${formattedDate}`,
           html: `
             <!DOCTYPE html>
@@ -467,8 +474,8 @@ export async function DELETE(
                 <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0;">
                   <p style="margin: 0 0 8px 0;"><strong>📅 Date:</strong> ${formattedDate}</p>
                   <p style="margin: 0 0 8px 0;"><strong>🕐 Time:</strong> ${formattedStartTime} - ${formattedEndTime}</p>
-                  ${shift.location?.name ? `<p style="margin: 0 0 8px 0;"><strong>📍 Location:</strong> ${shift.location.name}</p>` : ''}
-                  ${shift.department?.name ? `<p style="margin: 0;"><strong>🏢 Department:</strong> ${shift.department.name}</p>` : ''}
+                  ${shift.Location?.name ? `<p style="margin: 0 0 8px 0;"><strong>📍 Location:</strong> ${shift.Location.name}</p>` : ''}
+                  ${departmentName ? `<p style="margin: 0;"><strong>🏢 Department:</strong> ${departmentName}</p>` : ''}
                 </div>
                 
                 ${reasonText}

@@ -71,3 +71,7 @@ Hidden the kebab menu (actions column) on the /employees page for employees and 
 ## 18. Rota View Full Day Modal
 
 Added a "View day" button to rota calendar day cells that opens a modern modal displaying all shifts for that day. The modal includes quick stats (total shifts, hours, cost, confirmed count), and powerful filtering options to search by employee name/role, filter by location, department, or status. Each shift card shows time, employee, role, location, department, and cost with quick access to view details or edit.
+
+## 19. Permission Profile Employee Access Fix
+
+Fixed permission profiles not granting access to employee profiles. Users with "employees" permission or any granular employee screen permission (e.g., "Employee Employment Checks") can now access employee profiles, with the navigation menu filtered to show only the tabs they have permission for.

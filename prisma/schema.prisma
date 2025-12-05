@@ -3352,13 +3352,21 @@ model ClockEntry {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
+  // Shift Reconciliation fields (all optional for backwards compatibility)
+  shiftId         String? // Link to scheduled shift for reconciliation
+  matchConfidence Float? // 0-1, how confident the auto-match is
+  matchedBy       String? // 'AUTO' | 'MANUAL' | userId who matched
+  matchedAt       DateTime? // When the match was made
+
   Employee  Employee   @relation("ClockEntryEmployee", fields: [employeeId], references: [id])
   Timesheet Timesheet? @relation(fields: [timesheetId], references: [id])
+  Shift     Shift?     @relation("ShiftClockEntries", fields: [shiftId], references: [id])
 
   @@index([employeeId, clockInTime])
   @@index([companyId, status])
   @@index([timesheetId])
   @@index([localId])
+  @@index([shiftId])
 }
 
 model Timesheet {
@@ -3424,13 +3432,27 @@ model TimesheetEntry {
   createdAt               DateTime           @default(now())
   updatedAt               DateTime           @updatedAt
 
+  // Shift Reconciliation fields (all optional for backwards compatibility)
+  shiftId              String? // Link to scheduled shift for reconciliation
+  scheduledStartTime   DateTime? // Copy of shift start for quick reference
+  scheduledEndTime     DateTime? // Copy of shift end for quick reference
+  varianceMinutes      Int? // Positive = worked more, negative = worked less
+  varianceType         String? // 'EARLY_START' | 'LATE_START' | 'EARLY_END' | 'LATE_END' | 'OVERTIME' | 'UNDERTIME'
+  reconciliationStatus String               @default("PENDING") // 'PENDING' | 'AUTO_MATCHED' | 'MANUALLY_MATCHED' | 'APPROVED' | 'ADJUSTED' | 'FLAGGED'
+  reconciliationNotes  String? // Notes from reconciliation process
+  reconciledBy         String? // User ID who reconciled
+  reconciledAt         DateTime? // When reconciliation was done
+
   Timesheet         Timesheet             @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  Shift             Shift?                @relation("ShiftTimesheetEntries", fields: [shiftId], references: [id])
   AuditLogs         TimesheetEntryAudit[]
   OvertimeAuditLogs OvertimeAuditLog[]
 
   @@index([timesheetId, date])
   @@index([date, isOvertime])
   @@index([date, isPublicHoliday])
+  @@index([shiftId])
+  @@index([reconciliationStatus])
 }
 
 model TimesheetApprovalStage {
@@ -3545,6 +3567,10 @@ model Shift {
   Template          ShiftTemplate?     @relation(fields: [templateId], references: [id])
   RotaGroup         RotaGroup?         @relation(fields: [rotaGroupId], references: [id], onDelete: SetNull)
   ShiftSwapRequests ShiftSwapRequest[]
+
+  // Reconciliation relations - link to actual time worked
+  ClockEntries     ClockEntry[]     @relation("ShiftClockEntries")
+  TimesheetEntries TimesheetEntry[] @relation("ShiftTimesheetEntries")
 
   @@index([companyId, startTime])
   @@index([employeeId, startTime])

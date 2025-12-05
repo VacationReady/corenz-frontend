@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
   Calendar,
@@ -21,6 +22,9 @@ import {
   Eye,
   Edit,
   DollarSign,
+  GitCompare,
+  Loader2,
+  Flag,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -36,9 +40,38 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils';
+
+// Simple inline Badge component to avoid import issues
+function Badge({ 
+  className, 
+  variant = "default",
+  children, 
+  ...props 
+}: { 
+  className?: string; 
+  variant?: "default" | "outline";
+  children: React.ReactNode;
+} & React.HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+        variant === "default"
+          ? "bg-primary text-primary-foreground"
+          : "border-border bg-background",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </span>
+  );
+}
+import { VarianceBadge, ShiftActualComparison, ReconciliationActions, AdjustmentDialog } from '@/components/reconciliation';
+import type { VarianceType } from '@/components/reconciliation';
 
 // Helper function to get display name from User object
 function getEmployeeDisplayName(user: { name?: string | null; firstName?: string | null; lastName?: string | null; email?: string | null } | null | undefined): string {
@@ -87,6 +120,50 @@ interface Shift {
   } | null;
 }
 
+interface ReconciliationData {
+  shift: {
+    id: string;
+    employeeId: string | null;
+    startTime: Date;
+    endTime: Date;
+    breakDuration: number;
+    role: string | null;
+    attendanceStatus: string;
+    isPublished: boolean;
+    employee?: {
+      id: string;
+      User?: {
+        name: string | null;
+        firstName: string | null;
+        lastName: string | null;
+        email: string | null;
+        profileImageUrl: string | null;
+      } | null;
+    } | null;
+  };
+  clockEntry?: {
+    id: string;
+    clockInTime: Date;
+    clockOutTime: Date | null;
+    matchConfidence: number | null;
+  } | null;
+  timesheetEntry?: {
+    id: string;
+    startTime: Date;
+    endTime: Date;
+    hours: number;
+    reconciliationStatus: string;
+    reconciliationNotes: string | null;
+  } | null;
+  variance: {
+    minutes: number;
+    type: VarianceType;
+    startVarianceMinutes: number;
+    endVarianceMinutes: number;
+  };
+  reconciliationStatus: string;
+}
+
 interface ViewFullDayModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -94,6 +171,7 @@ interface ViewFullDayModalProps {
   shifts: Shift[];
   onShiftClick?: (shift: Shift) => void;
   onShiftEdit?: (shift: Shift) => void;
+  showReconciliation?: boolean; // Enable reconciliation tab
 }
 
 const STATUS_CONFIG = {
@@ -204,11 +282,79 @@ export default function ViewFullDayModal({
   shifts,
   onShiftClick,
   onShiftEdit,
+  showReconciliation = true,
 }: ViewFullDayModalProps) {
   const [locationFilter, setLocationFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'shifts' | 'reconciliation'>('shifts');
+  
+  // Reconciliation state
+  const [reconciliationData, setReconciliationData] = useState<ReconciliationData[]>([]);
+  const [reconciliationLoading, setReconciliationLoading] = useState(false);
+  const [reconciliationError, setReconciliationError] = useState<string | null>(null);
+  const [adjustmentEntry, setAdjustmentEntry] = useState<{
+    id: string;
+    startTime: Date;
+    endTime: Date;
+    scheduledStart?: Date;
+    scheduledEnd?: Date;
+  } | null>(null);
+
+  // Fetch reconciliation data when tab changes
+  useEffect(() => {
+    if (activeTab === 'reconciliation' && isOpen && showReconciliation) {
+      fetchReconciliationData();
+    }
+  }, [activeTab, isOpen, date]);
+
+  const fetchReconciliationData = async () => {
+    setReconciliationLoading(true);
+    setReconciliationError(null);
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const response = await fetch(`/api/reconciliation/day/${dateStr}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch reconciliation data');
+      }
+      const data = await response.json();
+      // Convert date strings to Date objects
+      const processed = data.shifts.map((item: any) => ({
+        ...item,
+        shift: {
+          ...item.shift,
+          startTime: new Date(item.shift.startTime),
+          endTime: new Date(item.shift.endTime),
+        },
+        clockEntry: item.clockEntry ? {
+          ...item.clockEntry,
+          clockInTime: new Date(item.clockEntry.clockInTime),
+          clockOutTime: item.clockEntry.clockOutTime ? new Date(item.clockEntry.clockOutTime) : null,
+        } : null,
+        timesheetEntry: item.timesheetEntry ? {
+          ...item.timesheetEntry,
+          startTime: new Date(item.timesheetEntry.startTime),
+          endTime: new Date(item.timesheetEntry.endTime),
+        } : null,
+      }));
+      setReconciliationData(processed);
+    } catch (error) {
+      console.error('Error fetching reconciliation data:', error);
+      setReconciliationError('Failed to load reconciliation data');
+    } finally {
+      setReconciliationLoading(false);
+    }
+  };
+
+  // Reconciliation stats
+  const reconStats = useMemo(() => {
+    const pending = reconciliationData.filter(r => r.reconciliationStatus === 'PENDING').length;
+    const approved = reconciliationData.filter(r => r.reconciliationStatus === 'APPROVED').length;
+    const flagged = reconciliationData.filter(r => r.reconciliationStatus === 'FLAGGED').length;
+    const noShow = reconciliationData.filter(r => r.variance.type === 'NO_SHOW').length;
+    return { pending, approved, flagged, noShow, total: reconciliationData.length };
+  }, [reconciliationData]);
 
   // Extract unique filter options from shifts
   const filterOptions = useMemo(() => {
@@ -322,102 +468,179 @@ export default function ViewFullDayModal({
             </button>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-            <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                <span className="text-xs text-muted-foreground uppercase tracking-wide">Shifts</span>
-              </div>
-              <div className="text-2xl font-bold text-foreground mt-1">{stats.total}</div>
-            </div>
-            <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-sky-500" />
-                <span className="text-xs text-muted-foreground uppercase tracking-wide">Hours</span>
-              </div>
-              <div className="text-2xl font-bold text-foreground mt-1">{stats.totalHours.toFixed(1)}</div>
-            </div>
-            <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-emerald-500" />
-                <span className="text-xs text-muted-foreground uppercase tracking-wide">Cost</span>
-              </div>
-              <div className="text-2xl font-bold text-foreground mt-1">${stats.totalCost.toFixed(0)}</div>
-            </div>
-            <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-emerald-500" />
-                <span className="text-xs text-muted-foreground uppercase tracking-wide">Confirmed</span>
-              </div>
-              <div className="text-2xl font-bold text-foreground mt-1">{stats.byStatus.confirmed}</div>
-            </div>
-          </div>
+          {/* Tabs - Show only if reconciliation is enabled */}
+          {showReconciliation && (
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'shifts' | 'reconciliation')} className="mt-4">
+              <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted/50 p-1 rounded-xl">
+                <TabsTrigger 
+                  value="shifts"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Shifts
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="reconciliation"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  <GitCompare className="w-4 h-4 mr-2" />
+                  Reconciliation
+                  {reconStats.pending > 0 && (
+                    <Badge className="ml-2 h-5 px-1.5 bg-amber-500/20 text-amber-600 border-amber-500/30 text-xs">
+                      {reconStats.pending}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+
+          {/* Quick Stats - Different for each tab */}
+          <AnimatePresence mode="wait">
+            {activeTab === 'shifts' ? (
+              <motion.div
+                key="shifts-stats"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5"
+              >
+                <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide">Shifts</span>
+                  </div>
+                  <div className="text-2xl font-bold text-foreground mt-1">{stats.total}</div>
+                </div>
+                <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-sky-500" />
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide">Hours</span>
+                  </div>
+                  <div className="text-2xl font-bold text-foreground mt-1">{stats.totalHours.toFixed(1)}</div>
+                </div>
+                <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-emerald-500" />
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide">Cost</span>
+                  </div>
+                  <div className="text-2xl font-bold text-foreground mt-1">${stats.totalCost.toFixed(0)}</div>
+                </div>
+                <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide">Confirmed</span>
+                  </div>
+                  <div className="text-2xl font-bold text-foreground mt-1">{stats.byStatus.confirmed}</div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="reconciliation-stats"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5"
+              >
+                <div className="bg-muted/50 rounded-xl px-4 py-3 border border-border">
+                  <div className="flex items-center gap-2">
+                    <GitCompare className="h-4 w-4 text-primary" />
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide">Total</span>
+                  </div>
+                  <div className="text-2xl font-bold text-foreground mt-1">{reconStats.total}</div>
+                </div>
+                <div className="bg-amber-500/10 rounded-xl px-4 py-3 border border-amber-500/30">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-amber-500" />
+                    <span className="text-xs text-amber-600 dark:text-amber-400 uppercase tracking-wide">Pending</span>
+                  </div>
+                  <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{reconStats.pending}</div>
+                </div>
+                <div className="bg-emerald-500/10 rounded-xl px-4 py-3 border border-emerald-500/30">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Approved</span>
+                  </div>
+                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{reconStats.approved}</div>
+                </div>
+                <div className="bg-rose-500/10 rounded-xl px-4 py-3 border border-rose-500/30">
+                  <div className="flex items-center gap-2">
+                    <Flag className="h-4 w-4 text-rose-500" />
+                    <span className="text-xs text-rose-600 dark:text-rose-400 uppercase tracking-wide">Flagged</span>
+                  </div>
+                  <div className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">{reconStats.flagged}</div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </DialogHeader>
 
-        {/* Filters Section */}
-        <div className="relative px-6 py-4 border-b border-border bg-muted/30">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Search */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search by name or role..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-background border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-              />
+        {/* Shifts Tab Content */}
+        {activeTab === 'shifts' && (
+          <>
+            {/* Filters Section */}
+            <div className="relative px-6 py-4 border-b border-border bg-muted/30">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Search */}
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search by name or role..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-xl bg-background border border-border text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+
+                {/* Filter Dropdowns */}
+                <FilterDropdown
+                  label="Location"
+                  icon={<MapPin className="h-4 w-4 text-emerald-500" />}
+                  value={locationFilter}
+                  options={filterOptions.locations}
+                  onChange={setLocationFilter}
+                />
+                <FilterDropdown
+                  label="Department"
+                  icon={<Building2 className="h-4 w-4 text-purple-500" />}
+                  value={departmentFilter}
+                  options={filterOptions.departments}
+                  onChange={setDepartmentFilter}
+                />
+                <FilterDropdown
+                  label="Status"
+                  icon={<AlertCircle className="h-4 w-4 text-amber-500" />}
+                  value={statusFilter}
+                  options={filterOptions.statuses}
+                  onChange={setStatusFilter}
+                />
+
+                {/* Clear Filters */}
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {/* Active filter count */}
+              {hasActiveFilters && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Filter className="h-3.5 w-3.5" />
+                  Showing {filteredShifts.length} of {shifts.length} shifts
+                </div>
+              )}
             </div>
 
-            {/* Filter Dropdowns */}
-            <FilterDropdown
-              label="Location"
-              icon={<MapPin className="h-4 w-4 text-emerald-500" />}
-              value={locationFilter}
-              options={filterOptions.locations}
-              onChange={setLocationFilter}
-            />
-            <FilterDropdown
-              label="Department"
-              icon={<Building2 className="h-4 w-4 text-purple-500" />}
-              value={departmentFilter}
-              options={filterOptions.departments}
-              onChange={setDepartmentFilter}
-            />
-            <FilterDropdown
-              label="Status"
-              icon={<AlertCircle className="h-4 w-4 text-amber-500" />}
-              value={statusFilter}
-              options={filterOptions.statuses}
-              onChange={setStatusFilter}
-            />
-
-            {/* Clear Filters */}
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-rose-600 hover:text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all"
-              >
-                <X className="h-3.5 w-3.5" />
-                Clear
-              </button>
-            )}
-          </div>
-
-          {/* Active filter count */}
-          {hasActiveFilters && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <Filter className="h-3.5 w-3.5" />
-              Showing {filteredShifts.length} of {shifts.length} shifts
-            </div>
-          )}
-        </div>
-
-        {/* Shifts List */}
-        <ScrollArea className="relative h-[400px] bg-muted/40">
-          <div className="p-6 space-y-3">
-            {sortedShifts.length === 0 ? (
+            {/* Shifts List */}
+            <ScrollArea className="relative h-[400px] bg-muted/40">
+              <div className="p-6 space-y-3">
+                {sortedShifts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="p-4 rounded-2xl bg-muted border border-border mb-4">
                   <Sparkles className="h-8 w-8 text-muted-foreground" />
@@ -577,8 +800,110 @@ export default function ViewFullDayModal({
                 );
               })
             )}
-          </div>
-        </ScrollArea>
+              </div>
+            </ScrollArea>
+          </>
+        )}
+
+        {/* Reconciliation Tab Content */}
+        {activeTab === 'reconciliation' && (
+          <ScrollArea className="relative h-[500px] bg-muted/40">
+            <div className="p-6 space-y-4">
+              {reconciliationLoading ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
+                  <p className="text-muted-foreground">Loading reconciliation data...</p>
+                </div>
+              ) : reconciliationError ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 mb-4">
+                    <AlertCircle className="h-8 w-8 text-rose-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Error Loading Data</h3>
+                  <p className="text-muted-foreground text-sm mt-1 max-w-xs">{reconciliationError}</p>
+                  <button
+                    onClick={fetchReconciliationData}
+                    className="mt-4 px-4 py-2 rounded-xl text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : reconciliationData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="p-4 rounded-2xl bg-muted border border-border mb-4">
+                    <GitCompare className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">No Reconciliation Data</h3>
+                  <p className="text-muted-foreground text-sm mt-1 max-w-xs">
+                    There are no shifts to reconcile for this day.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Reconciliation list */}
+                  {reconciliationData.map((item, index) => (
+                    <motion.div
+                      key={item.shift.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <ShiftActualComparison
+                        shift={item.shift}
+                        actual={item.clockEntry || item.timesheetEntry ? {
+                          startTime: item.clockEntry?.clockInTime || item.timesheetEntry!.startTime,
+                          endTime: item.clockEntry?.clockOutTime || item.timesheetEntry!.endTime,
+                          hours: item.timesheetEntry?.hours,
+                        } : null}
+                        variance={item.variance}
+                        reconciliationStatus={item.reconciliationStatus}
+                      />
+                      
+                      {/* Actions for timesheet entries */}
+                      {item.timesheetEntry && (
+                        <div className="mt-2 flex justify-end">
+                          <ReconciliationActions
+                            entryId={item.timesheetEntry.id}
+                            entryType="timesheet"
+                            currentStatus={item.timesheetEntry.reconciliationStatus}
+                            hasShiftLink={!!item.shift.id}
+                            varianceMinutes={item.variance.minutes}
+                            onAdjust={() => setAdjustmentEntry({
+                              id: item.timesheetEntry!.id,
+                              startTime: item.timesheetEntry!.startTime,
+                              endTime: item.timesheetEntry!.endTime,
+                              scheduledStart: item.shift.startTime,
+                              scheduledEnd: item.shift.endTime,
+                            })}
+                            onRefresh={fetchReconciliationData}
+                            compact
+                          />
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </>
+              )}
+            </div>
+          </ScrollArea>
+        )}
+
+        {/* Adjustment Dialog */}
+        {adjustmentEntry && (
+          <AdjustmentDialog
+            isOpen={!!adjustmentEntry}
+            onClose={() => setAdjustmentEntry(null)}
+            entryId={adjustmentEntry.id}
+            currentStartTime={adjustmentEntry.startTime}
+            currentEndTime={adjustmentEntry.endTime}
+            scheduledStartTime={adjustmentEntry.scheduledStart}
+            scheduledEndTime={adjustmentEntry.scheduledEnd}
+            onSuccess={() => {
+              setAdjustmentEntry(null);
+              fetchReconciliationData();
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

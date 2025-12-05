@@ -123,6 +123,17 @@ function anchorFieldToEmployeeOffboarding(field: string): string {
     return field;
 }
 
+// When LeaveEntitlement fields are present (without LeaveRequest), anchor other fields to LeaveEntitlement
+function anchorFieldToLeaveEntitlement(field: string): string {
+    if (field.startsWith("User.")) return field.replace("User.", "LeaveEntitlement.Employee.User.");
+    if (field.startsWith("Employee.") && !field.startsWith("LeaveEntitlement.Employee.")) return field.replace("Employee.", "LeaveEntitlement.Employee.");
+    if (field.startsWith("Department.")) return field.replace("Department.", "LeaveEntitlement.Employee.Department.");
+    if (field.startsWith("JobRole.")) return field.replace("JobRole.", "LeaveEntitlement.Employee.JobRole.");
+    if (field.startsWith("WorkingPattern.")) return field.replace("WorkingPattern.", "LeaveEntitlement.Employee.WorkingPattern.");
+    if (field.startsWith("EventCategory.") && !field.startsWith("LeaveEntitlement.EventCategory.")) return field.replace("EventCategory.", "LeaveEntitlement.EventCategory.");
+    return field;
+}
+
 // When any Timesheet field is present, anchor other fields to Timesheet
 function anchorFieldToTimesheet(field: string): string {
     if (field.startsWith("User.")) return field.replace("User.", "Timesheet.Employee.User.");
@@ -157,6 +168,7 @@ function anchorFieldToTimesheetApprovalDecision(field: string): string {
 
 function rewriteFieldsForLeaveContext(fields: string[]): string[] {
     const hasLeave = fields.some((f) => f.startsWith("LeaveRequest."));
+    const hasLeaveEntitlement = fields.some((f) => f.startsWith("LeaveEntitlement."));
     const hasDriverLicence = fields.some((f) => f.startsWith("DriverLicence."));
     const hasEmploymentCheck = fields.some((f) => f.startsWith("EmploymentCheck."));
     const hasTrainingRecord = fields.some((f) => f.startsWith("TrainingRecord."));
@@ -165,13 +177,15 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
     const hasTimesheetEntry = fields.some((f) => f.startsWith("TimesheetEntry."));
     const hasTimesheetApprovalDecision = fields.some((f) => f.startsWith("TimesheetApprovalDecision."));
     const anchorToUserRoot =
-        !hasLeave && !hasDriverLicence && !hasEmploymentCheck && !hasTrainingRecord && !hasEmployeeOffboarding && !hasTimesheet && !hasTimesheetEntry && !hasTimesheetApprovalDecision;
+        !hasLeave && !hasLeaveEntitlement && !hasDriverLicence && !hasEmploymentCheck && !hasTrainingRecord && !hasEmployeeOffboarding && !hasTimesheet && !hasTimesheetEntry && !hasTimesheetApprovalDecision;
     const result: string[] = [];
     for (const f of fields) {
         let maybeAnchored = f;
-        // Priority: LeaveRequest > DriverLicence > EmploymentCheck > TrainingRecord > EmployeeOffboarding > TimesheetApprovalDecision > TimesheetEntry > Timesheet
+        // Priority: LeaveRequest > LeaveEntitlement > DriverLicence > EmploymentCheck > TrainingRecord > EmployeeOffboarding > TimesheetApprovalDecision > TimesheetEntry > Timesheet
         if (hasLeave) {
             maybeAnchored = anchorFieldToLeave(f);
+        } else if (hasLeaveEntitlement) {
+            maybeAnchored = anchorFieldToLeaveEntitlement(f);
         } else if (hasDriverLicence) {
             maybeAnchored = anchorFieldToDriverLicence(f);
         } else if (hasEmploymentCheck) {
@@ -193,6 +207,8 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             f === "Employee.JobRole.name" ||
             maybeAnchored === "LeaveRequest.Employee.User.JobRole.name" ||
             maybeAnchored === "LeaveRequest.Employee.JobRole.name" ||
+            maybeAnchored === "LeaveEntitlement.Employee.User.JobRole.name" ||
+            maybeAnchored === "LeaveEntitlement.Employee.JobRole.name" ||
             maybeAnchored === "DriverLicence.Employee.User.JobRole.name" ||
             maybeAnchored === "DriverLicence.Employee.JobRole.name" ||
             maybeAnchored === "EmploymentCheck.Employee.User.JobRole.name" ||
@@ -214,6 +230,9 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             if (hasLeave) {
                 userPath = "LeaveRequest.Employee.User.JobRole.name";
                 employeePath = "LeaveRequest.Employee.JobRole.name";
+            } else if (hasLeaveEntitlement) {
+                userPath = "LeaveEntitlement.Employee.User.JobRole.name";
+                employeePath = "LeaveEntitlement.Employee.JobRole.name";
             } else if (hasDriverLicence) {
                 userPath = "DriverLicence.Employee.User.JobRole.name";
                 employeePath = "DriverLicence.Employee.JobRole.name";
@@ -247,6 +266,7 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             f === "User.department.name" ||
             f === "Department.name" ||
             maybeAnchored === "LeaveRequest.Employee.Department.name" ||
+            maybeAnchored === "LeaveEntitlement.Employee.Department.name" ||
             maybeAnchored === "DriverLicence.Employee.Department.name" ||
             maybeAnchored === "EmploymentCheck.Employee.Department.name" ||
             maybeAnchored === "TrainingRecord.Employee.Department.name" ||
@@ -258,6 +278,11 @@ function rewriteFieldsForLeaveContext(fields: string[]): string[] {
             if (hasLeave) {
                 const deptPath = "LeaveRequest.Employee.Department.name";
                 const userDeptPath = "LeaveRequest.Employee.User.Department_User_departmentIdToDepartment.name";
+                if (!result.includes(userDeptPath)) result.push(userDeptPath);
+                if (!result.includes(deptPath)) result.push(deptPath);
+            } else if (hasLeaveEntitlement) {
+                const deptPath = "LeaveEntitlement.Employee.Department.name";
+                const userDeptPath = "LeaveEntitlement.Employee.User.Department_User_departmentIdToDepartment.name";
                 if (!result.includes(userDeptPath)) result.push(userDeptPath);
                 if (!result.includes(deptPath)) result.push(deptPath);
             } else if (hasDriverLicence) {
@@ -458,6 +483,7 @@ export async function POST(req: Request) {
         if (translatedSort?.field) {
             // Detect context from the already-rewritten selected fields
             const hasLeave = translatedSelectedFields.some((f) => f.startsWith("LeaveRequest."));
+            const hasLeaveEntitlement = translatedSelectedFields.some((f) => f.startsWith("LeaveEntitlement."));
             const hasDriverLicence = translatedSelectedFields.some((f) => f.startsWith("DriverLicence."));
             const hasEmploymentCheck = translatedSelectedFields.some((f) => f.startsWith("EmploymentCheck."));
             const hasTrainingRecord = translatedSelectedFields.some((f) => f.startsWith("TrainingRecord."));
@@ -470,6 +496,8 @@ export async function POST(req: Request) {
             // Apply the appropriate anchor function based on detected context
             if (hasLeave) {
                 sortField = anchorFieldToLeave(sortField);
+            } else if (hasLeaveEntitlement) {
+                sortField = anchorFieldToLeaveEntitlement(sortField);
             } else if (hasDriverLicence) {
                 sortField = anchorFieldToDriverLicence(sortField);
             } else if (hasEmploymentCheck) {

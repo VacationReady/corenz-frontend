@@ -20,6 +20,12 @@ export const computedHandlers: ComputedFieldRegistry = {
         (item.carryoverDays || 0);
       return total - (item.usedDays || 0);
     },
+    "_computed.jobRoleName": (item) => {
+      // Access through Employee relation
+      const viaEmployee = item?.Employee?.JobRole?.name;
+      const viaUser = item?.Employee?.User?.JobRole?.name;
+      return viaEmployee || viaUser || null;
+    },
   },
 
   // ===========================

@@ -294,6 +294,8 @@ function ReportsPreviewClientInner() {
   const [piiAcknowledged, setPiiAcknowledged] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+  const [pendingExit, setPendingExit] = useState<(() => void) | null>(null);
 
   const [activeFilters, setActiveFilters] = useState<any[]>([]);
   const [activeSort, setActiveSort] = useState<{
@@ -347,7 +349,10 @@ function ReportsPreviewClientInner() {
     return "Back";
   }, [safeReturnTo]);
 
-  const handleExit = useCallback(() => {
+  // Track if this is an unsaved report (no reportId means user came from builder without saving)
+  const isUnsavedReport = !reportIdParam;
+
+  const performExit = useCallback(() => {
     if (typeof window !== "undefined") {
       const closeEvent = new CustomEvent("reports-preview:close", {
         cancelable: true,
@@ -374,6 +379,29 @@ function ReportsPreviewClientInner() {
 
     router.push("/reports");
   }, [router, safeReturnTo]);
+
+  const handleExit = useCallback(() => {
+    // If this is an unsaved report with data, warn user before exiting
+    if (isUnsavedReport && data.length > 0) {
+      setPendingExit(() => performExit);
+      setShowUnsavedWarning(true);
+      return;
+    }
+    performExit();
+  }, [isUnsavedReport, data.length, performExit]);
+
+  const handleConfirmExit = useCallback(() => {
+    setShowUnsavedWarning(false);
+    if (pendingExit) {
+      pendingExit();
+      setPendingExit(null);
+    }
+  }, [pendingExit]);
+
+  const handleCancelExit = useCallback(() => {
+    setShowUnsavedWarning(false);
+    setPendingExit(null);
+  }, []);
 
   const defaultSort = useMemo(() => {
     if (!selectedFields.length) return null;
@@ -1513,15 +1541,18 @@ function ReportsPreviewClientInner() {
             </>
           )}
           
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="ml-auto">
-            <Button 
-              onClick={handleSaveReport}
-              className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20 rounded-xl h-10 px-5"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save Report
-            </Button>
-          </motion.div>
+          {/* Only show Save Report button if report is NOT already saved */}
+          {!reportIdParam && (
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="ml-auto">
+              <Button 
+                onClick={handleSaveReport}
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20 rounded-xl h-10 px-5"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Report
+              </Button>
+            </motion.div>
+          )}
         </div>
       </div>
 
@@ -1648,6 +1679,52 @@ function ReportsPreviewClientInner() {
         progress={exportProgress}
         message="Exporting full report..."
       />
+
+      {/* Unsaved Changes Warning Modal */}
+      <Dialog open={showUnsavedWarning} onOpenChange={setShowUnsavedWarning}>
+        <DialogContent className="glass-premium border-0 rounded-2xl shadow-depth-4 max-w-md">
+          <DialogHeader>
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-4">
+              <AlertTriangle className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+            </div>
+            <DialogTitle className="text-xl">Unsaved Report</DialogTitle>
+            <DialogDescription>
+              This report preview hasn't been saved yet. If you leave now, you'll lose this report configuration and will need to recreate it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Would you like to save this report before leaving?
+            </p>
+          </div>
+          <DialogFooter className="gap-3 sm:gap-3">
+            <Button
+              variant="ghost"
+              onClick={handleConfirmExit}
+              className="rounded-xl"
+            >
+              Leave Without Saving
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleCancelExit}
+              className="rounded-xl"
+            >
+              Stay Here
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowUnsavedWarning(false);
+                handleSaveReport();
+              }}
+              className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -1,0 +1,661 @@
+'use client';
+
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { format, startOfWeek, endOfWeek, addDays, subWeeks, addWeeks, isSameDay, parseISO } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Calendar,
+  Clock,
+  CheckCircle,
+  Flag,
+  Users,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  GitCompare,
+  CheckSquare,
+  Search,
+  Download,
+  RefreshCw,
+  Building2,
+  TrendingUp,
+} from 'lucide-react';
+import Button from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  ReconciliationStats,
+  ShiftActualComparison, 
+  ReconciliationActions, 
+  AdjustmentDialog,
+  VarianceBadge,
+} from '@/components/reconciliation';
+import type { VarianceType } from '@/components/reconciliation';
+
+interface ReconciliationEntry {
+  shift: {
+    id: string;
+    employeeId: string | null;
+    startTime: Date;
+    endTime: Date;
+    breakDuration: number;
+    role: string | null;
+    attendanceStatus: string;
+    isPublished: boolean;
+    employee?: {
+      id: string;
+      User?: {
+        name: string | null;
+        firstName: string | null;
+        lastName: string | null;
+        email: string | null;
+        profileImageUrl: string | null;
+      } | null;
+    } | null;
+  };
+  clockEntry?: {
+    id: string;
+    clockInTime: Date;
+    clockOutTime: Date | null;
+    matchConfidence: number | null;
+  } | null;
+  timesheetEntry?: {
+    id: string;
+    startTime: Date;
+    endTime: Date;
+    hours: number;
+    reconciliationStatus: string;
+    reconciliationNotes: string | null;
+  } | null;
+  variance: {
+    minutes: number;
+    type: VarianceType;
+    startVarianceMinutes: number;
+    endVarianceMinutes: number;
+  };
+  reconciliationStatus: string;
+}
+
+interface DayData {
+  date: Date;
+  shifts: ReconciliationEntry[];
+  unmatchedClockEntries: any[];
+  totalShifts: number;
+  matchedCount: number;
+  pendingCount: number;
+}
+
+interface StatsData {
+  totalShifts: number;
+  matchedShifts: number;
+  pendingReconciliation: number;
+  approvedCount: number;
+  flaggedCount: number;
+  noShowCount: number;
+  averageVarianceMinutes: number;
+  totalScheduledHours: number;
+  totalActualHours: number;
+}
+
+export default function ReconciliationHubPage() {
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [dayData, setDayData] = useState<DayData | null>(null);
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [dayLoading, setDayLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+  
+  // Adjustment dialog
+  const [adjustmentEntry, setAdjustmentEntry] = useState<{
+    id: string;
+    startTime: Date;
+    endTime: Date;
+    scheduledStart?: Date;
+    scheduledEnd?: Date;
+  } | null>(null);
+  
+  const { toast } = useToast();
+  
+  const weekEnd = useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
+  const weekDays = useMemo(() => {
+    const days: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      days.push(addDays(weekStart, i));
+    }
+    return days;
+  }, [weekStart]);
+
+  // Fetch stats for the current week
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/reconciliation/stats?period=custom&startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      const data = await response.json();
+      setStats(data.stats);
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
+  }, [weekStart, weekEnd]);
+
+  // Fetch day data
+  const fetchDayData = useCallback(async (date: Date) => {
+    setDayLoading(true);
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const response = await fetch(`/api/reconciliation/day/${dateStr}`);
+      if (!response.ok) throw new Error('Failed to fetch day data');
+      const data = await response.json();
+      
+      // Parse dates
+      const processed: DayData = {
+        date: new Date(data.date),
+        shifts: data.shifts.map((item: any) => ({
+          ...item,
+          shift: {
+            ...item.shift,
+            startTime: new Date(item.shift.startTime),
+            endTime: new Date(item.shift.endTime),
+          },
+          clockEntry: item.clockEntry ? {
+            ...item.clockEntry,
+            clockInTime: new Date(item.clockEntry.clockInTime),
+            clockOutTime: item.clockEntry.clockOutTime ? new Date(item.clockEntry.clockOutTime) : null,
+          } : null,
+          timesheetEntry: item.timesheetEntry ? {
+            ...item.timesheetEntry,
+            startTime: new Date(item.timesheetEntry.startTime),
+            endTime: new Date(item.timesheetEntry.endTime),
+          } : null,
+        })),
+        unmatchedClockEntries: data.unmatchedClockEntries,
+        totalShifts: data.totalShifts,
+        matchedCount: data.matchedCount,
+        pendingCount: data.pendingCount,
+      };
+      
+      setDayData(processed);
+    } catch (err) {
+      console.error('Error fetching day data:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to load reconciliation data',
+        variant: 'destructive',
+      });
+    } finally {
+      setDayLoading(false);
+    }
+  }, [toast]);
+
+  // Initial load
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await fetchStats();
+        // Select today by default if it's within the week
+        const today = new Date();
+        if (today >= weekStart && today <= weekEnd) {
+          setSelectedDate(today);
+          await fetchDayData(today);
+        } else {
+          setSelectedDate(weekStart);
+          await fetchDayData(weekStart);
+        }
+      } catch (err) {
+        setError('Failed to load reconciliation data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadInitialData();
+  }, [weekStart, weekEnd, fetchStats, fetchDayData]);
+
+  // Handle date selection
+  const handleDateSelect = async (date: Date) => {
+    setSelectedDate(date);
+    setSelectedEntries(new Set());
+    await fetchDayData(date);
+  };
+
+  // Navigate weeks
+  const goToPreviousWeek = () => setWeekStart(subWeeks(weekStart, 1));
+  const goToNextWeek = () => setWeekStart(addWeeks(weekStart, 1));
+  const goToCurrentWeek = () => setWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+
+  // Filter entries
+  const filteredEntries = useMemo(() => {
+    if (!dayData) return [];
+    
+    return dayData.shifts.filter((entry) => {
+      // Status filter
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'pending' && entry.reconciliationStatus !== 'PENDING') return false;
+        if (statusFilter === 'approved' && entry.reconciliationStatus !== 'APPROVED') return false;
+        if (statusFilter === 'flagged' && entry.reconciliationStatus !== 'FLAGGED') return false;
+        if (statusFilter === 'no_show' && entry.variance.type !== 'NO_SHOW') return false;
+      }
+      
+      // Search filter
+      if (searchQuery) {
+        const name = entry.shift.employee?.User?.name ||
+          `${entry.shift.employee?.User?.firstName || ''} ${entry.shift.employee?.User?.lastName || ''}`.trim();
+        const role = entry.shift.role || '';
+        const query = searchQuery.toLowerCase();
+        if (!name.toLowerCase().includes(query) && !role.toLowerCase().includes(query)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [dayData, statusFilter, searchQuery]);
+
+  // Bulk actions
+  const handleBulkApprove = async () => {
+    if (selectedEntries.size === 0) return;
+    
+    try {
+      const entryIds = Array.from(selectedEntries);
+      const response = await fetch('/api/reconciliation/bulk-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryIds }),
+      });
+      
+      if (!response.ok) throw new Error('Failed to bulk approve');
+      
+      const result = await response.json();
+      toast({
+        title: 'Bulk Approve Complete',
+        description: `Approved ${result.approved} entries, skipped ${result.skipped}`,
+      });
+      
+      setSelectedEntries(new Set());
+      await fetchDayData(selectedDate!);
+      await fetchStats();
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to bulk approve entries',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const toggleEntrySelection = (entryId: string) => {
+    setSelectedEntries((prev) => {
+      const next = new Set(prev);
+      if (next.has(entryId)) {
+        next.delete(entryId);
+      } else {
+        next.add(entryId);
+      }
+      return next;
+    });
+  };
+
+  const selectAllEntries = () => {
+    const ids = filteredEntries
+      .filter((e) => e.timesheetEntry?.id)
+      .map((e) => e.timesheetEntry!.id);
+    setSelectedEntries(new Set(ids));
+  };
+
+  const clearSelection = () => setSelectedEntries(new Set());
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading reconciliation data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 pb-10">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-500/20 border border-violet-500/30">
+              <GitCompare className="h-7 w-7 text-violet-500" />
+            </div>
+            Shift Reconciliation
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Compare scheduled shifts with actual time worked
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              fetchStats();
+              if (selectedDate) fetchDayData(selectedDate);
+            }}
+            className="rounded-xl"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      {stats && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <ReconciliationStats stats={stats} />
+        </motion.div>
+      )}
+
+      {/* Week Navigation */}
+      <div className="bg-card border border-border rounded-2xl p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToPreviousWeek}
+              className="rounded-xl"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="text-center min-w-[200px]">
+              <h3 className="font-semibold text-foreground">
+                {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Week {format(weekStart, 'w')}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToNextWeek}
+              className="rounded-xl"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={goToCurrentWeek}
+            className="rounded-xl"
+          >
+            Today
+          </Button>
+        </div>
+
+        {/* Day Selector */}
+        <div className="grid grid-cols-7 gap-2">
+          {weekDays.map((day) => {
+            const isSelected = selectedDate && isSameDay(day, selectedDate);
+            const isToday = isSameDay(day, new Date());
+            
+            return (
+              <motion.button
+                key={day.toISOString()}
+                onClick={() => handleDateSelect(day)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={cn(
+                  'relative p-3 rounded-xl border-2 transition-all text-center',
+                  isSelected
+                    ? 'bg-primary/10 border-primary shadow-lg shadow-primary/20'
+                    : 'bg-muted/50 border-border hover:border-primary/30 hover:bg-muted',
+                )}
+              >
+                <div className={cn(
+                  'text-xs font-medium uppercase',
+                  isSelected ? 'text-primary' : 'text-muted-foreground'
+                )}>
+                  {format(day, 'EEE')}
+                </div>
+                <div className={cn(
+                  'text-xl font-bold mt-1',
+                  isSelected ? 'text-primary' : 'text-foreground'
+                )}>
+                  {format(day, 'd')}
+                </div>
+                {isToday && (
+                  <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary" />
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Day Detail View */}
+      {selectedDate && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-card border border-border rounded-2xl overflow-hidden"
+        >
+          {/* Day Header */}
+          <div className="px-6 py-4 border-b border-border bg-muted/30">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Calendar className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-foreground">
+                    {format(selectedDate, 'EEEE, MMMM d')}
+                  </h2>
+                  {dayData && (
+                    <p className="text-sm text-muted-foreground">
+                      {dayData.totalShifts} shifts • {dayData.matchedCount} matched • {dayData.pendingCount} pending
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                {selectedEntries.size > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="text-sm text-muted-foreground">
+                      {selectedEntries.size} selected
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={handleBulkApprove}
+                      className="rounded-xl bg-emerald-500 hover:bg-emerald-600"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Bulk Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={clearSelection}
+                      className="rounded-xl"
+                    >
+                      Clear
+                    </Button>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-wrap items-center gap-3 mt-4">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search by name or role..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 rounded-xl"
+                />
+              </div>
+              
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[160px] rounded-xl">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="flagged">Flagged</SelectItem>
+                  <SelectItem value="no_show">No Show</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAllEntries}
+                className="rounded-xl"
+              >
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Select All
+              </Button>
+            </div>
+          </div>
+
+          {/* Entries List */}
+          <div className="p-6">
+            {dayLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              </div>
+            ) : filteredEntries.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="p-4 rounded-2xl bg-muted border border-border mb-4">
+                  <GitCompare className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">No entries found</h3>
+                <p className="text-muted-foreground text-sm mt-1 max-w-xs">
+                  {statusFilter !== 'all' || searchQuery
+                    ? 'Try adjusting your filters'
+                    : 'No shifts scheduled for this day'
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredEntries.map((entry, index) => (
+                  <motion.div
+                    key={entry.shift.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="relative"
+                  >
+                    {/* Selection checkbox */}
+                    {entry.timesheetEntry && (
+                      <div className="absolute top-4 left-4 z-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedEntries.has(entry.timesheetEntry.id)}
+                          onChange={() => toggleEntrySelection(entry.timesheetEntry!.id)}
+                          className="h-5 w-5 rounded border-2 border-border text-primary focus:ring-primary cursor-pointer"
+                        />
+                      </div>
+                    )}
+                    
+                    <div className={cn(
+                      'pl-10',
+                      entry.timesheetEntry && selectedEntries.has(entry.timesheetEntry.id) && 'ring-2 ring-primary/30 rounded-2xl'
+                    )}>
+                      <ShiftActualComparison
+                        shift={entry.shift}
+                        actual={entry.clockEntry || entry.timesheetEntry ? {
+                          startTime: entry.clockEntry?.clockInTime || entry.timesheetEntry!.startTime,
+                          endTime: entry.clockEntry?.clockOutTime || entry.timesheetEntry!.endTime,
+                          hours: entry.timesheetEntry?.hours,
+                        } : null}
+                        variance={entry.variance}
+                        reconciliationStatus={entry.reconciliationStatus}
+                      />
+                      
+                      {/* Actions */}
+                      {entry.timesheetEntry && (
+                        <div className="mt-2 flex justify-end">
+                          <ReconciliationActions
+                            entryId={entry.timesheetEntry.id}
+                            entryType="timesheet"
+                            currentStatus={entry.timesheetEntry.reconciliationStatus}
+                            hasShiftLink={!!entry.shift.id}
+                            varianceMinutes={entry.variance.minutes}
+                            onAdjust={() => setAdjustmentEntry({
+                              id: entry.timesheetEntry!.id,
+                              startTime: entry.timesheetEntry!.startTime,
+                              endTime: entry.timesheetEntry!.endTime,
+                              scheduledStart: entry.shift.startTime,
+                              scheduledEnd: entry.shift.endTime,
+                            })}
+                            onRefresh={async () => {
+                              await fetchDayData(selectedDate);
+                              await fetchStats();
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Adjustment Dialog */}
+      {adjustmentEntry && (
+        <AdjustmentDialog
+          isOpen={!!adjustmentEntry}
+          onClose={() => setAdjustmentEntry(null)}
+          entryId={adjustmentEntry.id}
+          currentStartTime={adjustmentEntry.startTime}
+          currentEndTime={adjustmentEntry.endTime}
+          scheduledStartTime={adjustmentEntry.scheduledStart}
+          scheduledEndTime={adjustmentEntry.scheduledEnd}
+          onSuccess={async () => {
+            setAdjustmentEntry(null);
+            await fetchDayData(selectedDate!);
+            await fetchStats();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+

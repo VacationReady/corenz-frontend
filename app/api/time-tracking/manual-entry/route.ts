@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { processTimesheetEntry, findOrCreateTimesheet, recalculateTimesheetTotals } from '@/lib/time-tracking/timesheet-entry-processor';
+import { autoMatchClockEntryToShift, linkClockEntryToShift, linkTimesheetEntryToShift } from '@/lib/time-tracking/shift-matcher';
 
 const manualEntrySchema = z.object({
   employeeId: z.string(),
@@ -191,6 +192,43 @@ export async function POST(req: NextRequest) {
 
       // Recalculate timesheet totals
       await recalculateTimesheetTotals(timesheetId, tx);
+
+      // Auto-match to shift (non-blocking within transaction)
+      try {
+        const matchResult = await autoMatchClockEntryToShift({
+          id: clockEntry.id,
+          employeeId: data.employeeId,
+          companyId: requestingEmployee.companyId,
+          clockInTime,
+          clockOutTime,
+        });
+
+        if (matchResult && matchResult.confidence >= 0.7) {
+          // Link clock entry to shift
+          await linkClockEntryToShift(
+            clockEntry.id,
+            matchResult.shiftId,
+            session.user.id,
+            matchResult.confidence,
+            tx
+          );
+
+          // Also link timesheet entry to shift with variance data
+          await linkTimesheetEntryToShift(
+            timesheetEntry.id,
+            matchResult.shiftId,
+            { startTime: matchResult.scheduledStartTime, endTime: matchResult.scheduledEndTime },
+            { startTime: clockInTime, endTime: clockOutTime },
+            session.user.id,
+            'AUTO_MATCHED',
+            undefined,
+            tx
+          );
+        }
+      } catch (matchError) {
+        // Log but don't fail the transaction
+        console.error('[Manual entry] Auto-match error (non-blocking):', matchError);
+      }
 
       // Log the manual entry creation with overtime info
       await tx.globalAuditLog.create({

@@ -22,6 +22,7 @@ import {
   Target,
   ClipboardList,
   CalendarClock,
+  GitCompare,
 } from "lucide-react";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 import {
@@ -163,6 +164,7 @@ const hrToolsLinks = [
   { href: "/analytics", icon: LineChart, label: "Analytics" },
   { href: "/admin/timesheets/hub", icon: ClipboardList, label: "Timesheets" },
   { href: "/rota", icon: CalendarClock, label: "Rota/Shifts" },
+  { href: "/admin/reconciliation", icon: GitCompare, label: "Reconciliation" },
   { href: "/org-chart", icon: Network, label: "Org Chart" },
   { href: "/news", icon: Megaphone, label: "News" },
   { href: "/surveys", icon: BarChart3, label: "Surveys" },

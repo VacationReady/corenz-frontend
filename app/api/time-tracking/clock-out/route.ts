@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { roundClockTime } from '@/lib/timesheet-calculations';
 import { verifyClockLocation } from '@/lib/gps-verification';
 import { isPhotoRequiredForClockOut, isGpsLocationRequired } from '@/types/time-tracking-settings';
+import { autoMatchClockEntryToShift, linkClockEntryToShift } from '@/lib/time-tracking/shift-matcher';
 
 const clockOutSchema = z.object({
   location: z
@@ -133,10 +134,40 @@ export async function POST(req: NextRequest) {
     const hoursWorked =
       (clockOutTime.getTime() - activeEntry.clockInTime.getTime()) / (1000 * 60 * 60);
 
+    // Auto-match to shift if enabled (non-blocking - errors are logged but don't fail clock-out)
+    let shiftMatch = null;
+    try {
+      const matchResult = await autoMatchClockEntryToShift({
+        id: updatedEntry.id,
+        employeeId: employee.id,
+        companyId: employee.companyId,
+        clockInTime: activeEntry.clockInTime,
+        clockOutTime,
+      });
+      
+      if (matchResult && matchResult.confidence >= 0.7) {
+        await linkClockEntryToShift(
+          updatedEntry.id,
+          matchResult.shiftId,
+          'AUTO',
+          matchResult.confidence
+        );
+        shiftMatch = {
+          shiftId: matchResult.shiftId,
+          confidence: matchResult.confidence,
+          varianceMinutes: matchResult.varianceMinutes,
+        };
+      }
+    } catch (matchError) {
+      // Log but don't fail the clock-out
+      console.error('[Clock-out] Auto-match error (non-blocking):', matchError);
+    }
+
     return NextResponse.json({
       success: true,
       clockEntry: updatedEntry,
       hoursWorked: hoursWorked.toFixed(2),
+      shiftMatch,
       message: locationVerificationFailed 
         ? locationWarning 
         : 'Clocked out successfully',

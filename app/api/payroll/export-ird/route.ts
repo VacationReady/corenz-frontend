@@ -6,41 +6,40 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
 import { PrismaClient } from '@prisma/client';
 import { stringify } from 'csv-stringify/sync';
 import * as XLSX from 'xlsx';
 import { validatePayrollExport, formatValidationResult } from '@/lib/payroll/validators';
 import { flattenPayrollRecord } from '@/types/nz-payroll-export';
+import { getRequestContext } from '@/lib/request-context';
 
 const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const ctx = await getRequestContext();
+    if (!ctx) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
-    const { companyId, periodStart, periodEnd, paymentDate, format = 'CSV', employeeIds } = body;
+    const { periodStart, periodEnd, paymentDate, format = 'CSV', employeeIds } = body;
 
     // Validate required fields
-    if (!companyId || !periodStart || !periodEnd || !paymentDate) {
+    if (!periodStart || !periodEnd || !paymentDate) {
       return NextResponse.json(
-        { error: 'Missing required fields: companyId, periodStart, periodEnd, paymentDate' },
+        { error: 'Missing required fields: periodStart, periodEnd, paymentDate' },
         { status: 400 }
       );
     }
 
     // Verify user access
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: ctx.userId, companyId: ctx.companyId },
       select: { companyId: true, role: true },
     });
 
-    if (!user || user.companyId !== companyId) {
+    if (!user) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -54,7 +53,7 @@ export async function POST(req: NextRequest) {
     // Fetch payroll calculations for the period
     const calculations = await prisma.payrollCalculation.findMany({
       where: {
-        companyId,
+        companyId: ctx.companyId,
         payPeriodStart: { gte: new Date(periodStart) },
         payPeriodEnd: { lte: new Date(periodEnd) },
         status: { in: ['CALCULATED', 'APPROVED', 'EXPORTED'] },
@@ -216,6 +215,7 @@ export async function POST(req: NextRequest) {
     await prisma.payrollCalculation.updateMany({
       where: {
         id: { in: calculations.map(c => c.id) },
+        companyId: ctx.companyId,
       },
       data: {
         status: 'EXPORTED',
@@ -227,8 +227,8 @@ export async function POST(req: NextRequest) {
     await prisma.globalAuditLog.create({
       data: {
         id: `audit-${Date.now()}-${Math.random()}`,
-        actorId: session.user.id,
-        companyId,
+        actorId: ctx.userId,
+        companyId: ctx.companyId,
         action: 'CREATED',
         entityType: 'EMPLOYEE',
         entityId: `payroll-export-${Date.now()}`,

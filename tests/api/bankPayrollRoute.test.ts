@@ -21,7 +21,7 @@ const originalLoad = (Module as any)._load;
     };
   }
   if (request === "@/lib/auth-options") {
-    return { authOptions: {} };
+    return { auth: mockGetServerSession, authOptions: {} };
   }
   if (request === "@/lib/permissions") {
     return { canAccessEmployee: mockCanAccessEmployee };

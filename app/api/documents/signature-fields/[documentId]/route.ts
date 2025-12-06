@@ -27,7 +27,7 @@ export async function POST(
   context: { params: Promise<{ documentId: string }> },
 ) {
   const { documentId } = await context.params;
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.companyId || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

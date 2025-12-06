@@ -45,7 +45,7 @@ export async function POST(
 ) {
   const { id } = await context.params;
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -156,7 +156,7 @@ export async function PATCH(
 ) {
   const { id } = await context.params;
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -302,7 +302,7 @@ export async function DELETE(
 ) {
   const { id } = await context.params;
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

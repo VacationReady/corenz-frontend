@@ -2,8 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
 // ✅ Handle GET requests
@@ -13,7 +12,7 @@ export async function GET(
 ) {
   const { id } = await context.params;
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session || !session.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -38,7 +37,7 @@ export async function GET(
 
     // ✅ Shape response to match client expectations (eventCategory, not EventCategory)
     // Round all values to 2 decimal places for consistent display
-    const serialized = entitlements.map((entitlement) => ({
+    const serialized = entitlements.map((entitlement: any) => ({
       id: entitlement.id,
       totalDays: roundToTwoDecimals(entitlement.totalDays),
       usedDays: roundToTwoDecimals(entitlement.usedDays),
@@ -67,7 +66,7 @@ export async function POST(
 ) {
   const { id } = await context.params;
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     // ✅ Restrict to ADMIN only and ensure company scope
     if (!session || session.user.role !== "ADMIN" || !session.user.companyId) {

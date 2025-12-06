@@ -1,7 +1,6 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { sendLeaveNotification } from "@/lib/sendLeaveNotification";
 import { resolveApprovalWorkflow } from "@/lib/resolveApprovalWorkflow";
 import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
@@ -71,7 +70,7 @@ export async function GET(
     await ensurePrismaConnected();
     
     // 1. ✅ Authentication: Verify session exists
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json(
         { success: false, error: "Unauthenticated" },
@@ -179,7 +178,7 @@ export async function POST(
     await ensurePrismaConnected();
     
     // 1. ✅ Authentication: Verify session exists
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       console.log("❌ Unauthenticated attempt to submit leave request");
       return NextResponse.json(

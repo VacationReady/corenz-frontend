@@ -59,7 +59,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await context.params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

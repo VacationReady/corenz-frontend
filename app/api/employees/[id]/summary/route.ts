@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { canAccessEmployee } from "@/lib/permissions";
 
 /**
@@ -14,7 +13,7 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.companyId) {
       return NextResponse.json(

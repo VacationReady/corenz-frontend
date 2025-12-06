@@ -1,14 +1,13 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { sendNewsEmail } from "@/lib/news/sendNewsEmail";
 
 interface Params {}
 
-// ✅ GET: Fetch a single news post
+// GET: Fetch a single news post
 export async function GET(req: NextRequest, context: any) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -36,9 +35,9 @@ export async function GET(req: NextRequest, context: any) {
   return NextResponse.json(mapNewsPost(post));
 }
 
-// ✅ PUT: Update a news post
+// PUT: Update a news post
 export async function PUT(req: NextRequest, context: any) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -106,16 +105,16 @@ export async function PUT(req: NextRequest, context: any) {
     await sendNewsEmail({
       title: updated.title,
       slug: updated.slug,
-      recipients: recipients.map((u) => u.email!) || [],
+      recipients: recipients.map((u: { email: string }) => u.email) || [],
     });
   }
 
   return NextResponse.json(mapNewsPost(updated));
 }
 
-// ✅ DELETE: Delete a news post
+// DELETE: Delete a news post
 export async function DELETE(req: NextRequest, context: any) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

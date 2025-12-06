@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 interface RouteParams {}
@@ -30,7 +29,7 @@ async function getPostForCompany(slug: string, companyId: string) {
 }
 
 export async function POST(req: NextRequest, context: any) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id || !session.user.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -80,7 +79,7 @@ export async function POST(req: NextRequest, context: any) {
 }
 
 export async function DELETE(req: NextRequest, context: any) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id || !session.user.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

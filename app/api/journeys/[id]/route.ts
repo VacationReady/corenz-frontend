@@ -162,7 +162,7 @@ export async function PUT(
 
     // Check for governance locks
     const activeLocks = existingJourney.governanceLocks.filter(
-      lock => !lock.unlockedAt
+      (lock: any) => !lock.unlockedAt
     );
     
     if (activeLocks.length > 0) {
@@ -232,7 +232,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

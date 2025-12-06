@@ -1,7 +1,7 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { sendLeaveStatusUpdate } from "@/lib/sendLeaveStatusUpdate";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { z } from "zod";
@@ -21,7 +21,7 @@ export async function GET(
   _req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user || !session.user.companyId) {
     return NextResponse.json(
@@ -121,7 +121,7 @@ export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user || !["ADMIN", "MANAGER"].includes(session.user.role)) {
     return NextResponse.json(
@@ -205,7 +205,7 @@ export async function PATCH(
         // Round total deduction to 2 decimal places (NZ HRIS requirement)
         const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
 
-        updatedLeaveRequest = await prisma.$transaction(async (tx) => {
+        updatedLeaveRequest = await prisma.$transaction(async (tx: PrismaClient) => {
           const entitlement = await tx.leaveEntitlement.findFirst({
             where: {
               employeeId: leave.employeeId,
@@ -324,7 +324,7 @@ export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user || !session.user.companyId) {
     return NextResponse.json(

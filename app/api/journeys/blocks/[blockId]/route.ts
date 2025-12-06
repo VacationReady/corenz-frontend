@@ -142,7 +142,7 @@ export async function PUT(
 ) {
   try {
     const { blockId } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId || !session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -283,7 +283,7 @@ export async function DELETE(
 ) {
   try {
     const { blockId } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId || !session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -298,7 +298,7 @@ export async function DELETE(
 
     // Check for governance locks on the journey
     const journeyLocks = journey.governanceLocks.filter(
-      (lock) => !lock.unlockedAt
+      (lock: any) => !lock.unlockedAt
     );
     if (journeyLocks.length > 0) {
       return NextResponse.json(
@@ -308,7 +308,7 @@ export async function DELETE(
     }
 
     // Check for governance locks on the block itself
-    const blockLocks = block.governanceLocks.filter((lock) => !lock.unlockedAt);
+    const blockLocks = block.governanceLocks.filter((lock: any) => !lock.unlockedAt);
     if (blockLocks.length > 0) {
       return NextResponse.json(
         { error: "Block is locked and cannot be deleted", locks: blockLocks },

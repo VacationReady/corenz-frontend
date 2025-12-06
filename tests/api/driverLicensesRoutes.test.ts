@@ -24,11 +24,8 @@ const mockResendSend = test.mock.fn<(payload: any) => Promise<void>>();
 
 const originalLoad = (Module as any)._load;
 (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
-  if (request === "next-auth") {
-    return { getServerSession: mockGetServerSession };
-  }
   if (request === "@/lib/auth-options") {
-    return { authOptions: {} };
+    return { auth: mockGetServerSession, authOptions: {} };
   }
   if (request === "@/lib/prisma") {
     return {

@@ -23,9 +23,10 @@ let mockPrisma: any = {};
 let mockCache: any = {};
 
 (Module as any)._load = function (request: string, parent: any, isMain: boolean) {
-  if (request === "next-auth") {
+  if (request === "@/lib/auth-options") {
     return {
-      getServerSession: async () => mockSession,
+      auth: async () => mockSession,
+      authOptions: {},
     };
   }
   if (request === "@/lib/prisma") {

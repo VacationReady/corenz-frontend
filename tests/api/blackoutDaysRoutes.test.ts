@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import Module from "module";
 
-const mockGetServerSession = test.mock.fn();
+const mockAuth = test.mock.fn();
 const mockFindMany = test.mock.fn();
 const mockCreate = test.mock.fn();
 const mockDeleteMany = test.mock.fn();
@@ -14,9 +14,6 @@ const originalLoad = (Module as any)._load;
   parent: any,
   isMain: boolean,
 ) {
-  if (request === "next-auth") {
-    return { getServerSession: mockGetServerSession };
-  }
   if (request === "@/lib/prisma") {
     return {
       prisma: {
@@ -29,7 +26,7 @@ const originalLoad = (Module as any)._load;
     };
   }
   if (request === "@/lib/auth-options") {
-    return { authOptions: {} };
+    return { auth: mockAuth, authOptions: {} };
   }
   return originalLoad.call(this, request, parent, isMain);
 };
@@ -53,9 +50,9 @@ const routesPromise = (async () => {
 })();
 
 test("GET /api/blackout-days/get rejects unauthenticated requests", async () => {
-  mockGetServerSession.mock.resetCalls();
+  mockAuth.mock.resetCalls();
   mockFindMany.mock.resetCalls();
-  mockGetServerSession.mock.mockImplementationOnce(() => Promise.resolve(null));
+  mockAuth.mock.mockImplementationOnce(() => Promise.resolve(null));
 
   const { get } = await routesPromise;
   const res = await get(new Request("http://localhost/api/blackout-days/get"));
@@ -67,9 +64,9 @@ test("GET /api/blackout-days/get rejects unauthenticated requests", async () => 
 test(
   "GET /api/blackout-days/get ignores x-company-id header overrides",
   async () => {
-    mockGetServerSession.mock.resetCalls();
+    mockAuth.mock.resetCalls();
     mockFindMany.mock.resetCalls();
-    mockGetServerSession.mock.mockImplementationOnce(() =>
+    mockAuth.mock.mockImplementationOnce(() =>
       Promise.resolve({ user: { id: "user-1", companyId: "session-company" } }),
     );
     mockFindMany.mock.mockImplementationOnce(() => Promise.resolve([]));
@@ -90,9 +87,9 @@ test(
 );
 
 test("POST /api/blackout-days/create rejects unauthenticated users", async () => {
-  mockGetServerSession.mock.resetCalls();
+  mockAuth.mock.resetCalls();
   mockCreate.mock.resetCalls();
-  mockGetServerSession.mock.mockImplementationOnce(() => Promise.resolve(null));
+  mockAuth.mock.mockImplementationOnce(() => Promise.resolve(null));
 
   const { create } = await routesPromise;
   const res = await create(
@@ -107,9 +104,9 @@ test("POST /api/blackout-days/create rejects unauthenticated users", async () =>
 });
 
 test("POST /api/blackout-days/create requires admin role", async () => {
-  mockGetServerSession.mock.resetCalls();
+  mockAuth.mock.resetCalls();
   mockCreate.mock.resetCalls();
-  mockGetServerSession.mock.mockImplementationOnce(() =>
+  mockAuth.mock.mockImplementationOnce(() =>
     Promise.resolve({
       user: { id: "user-1", companyId: "tenant-1", role: "MEMBER" },
     }),
@@ -130,9 +127,9 @@ test("POST /api/blackout-days/create requires admin role", async () => {
 test(
   "POST /api/blackout-days/create uses the authenticated tenant despite headers",
   async () => {
-    mockGetServerSession.mock.resetCalls();
+    mockAuth.mock.resetCalls();
     mockCreate.mock.resetCalls();
-    mockGetServerSession.mock.mockImplementationOnce(() =>
+    mockAuth.mock.mockImplementationOnce(() =>
       Promise.resolve({
         user: { id: "user-1", companyId: "tenant-session", role: "ADMIN" },
       }),
@@ -159,9 +156,9 @@ test(
 );
 
 test("POST /api/blackout-days/delete requires admin role", async () => {
-  mockGetServerSession.mock.resetCalls();
+  mockAuth.mock.resetCalls();
   mockDeleteMany.mock.resetCalls();
-  mockGetServerSession.mock.mockImplementationOnce(() =>
+  mockAuth.mock.mockImplementationOnce(() =>
     Promise.resolve({
       user: { id: "user-1", companyId: "tenant-1", role: "MEMBER" },
     }),

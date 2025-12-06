@@ -11,7 +11,12 @@
     "prisma",
     "typescript",
     "preact",
-    "ignore-loader"
+    "ignore-loader",
+    "@opentelemetry/api",
+    "@opentelemetry/context-async-hooks",
+    "@opentelemetry/core",
+    "@opentelemetry/sdk-trace-base",
+    "@opentelemetry/semantic-conventions"
   ],
   "skip-missing": true
 }

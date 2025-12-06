@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -34,9 +33,7 @@ const shiftInclude = {
       name: true,
     },
   },
-} satisfies Prisma.ShiftInclude;
-
-type ShiftWithRelations = Prisma.ShiftGetPayload<{ include: typeof shiftInclude }>;
+};
 
 const createShiftSchema = z.object({
   employeeId: z.string().nullable().optional(),
@@ -146,7 +143,7 @@ async function generateVirtualShiftsFromPattern(
 
   // Create a set of dates that have actual shifts
   const datesWithShifts = new Set(
-    actualShifts.map(shift => formatDate(startOfDay(shift.startTime), 'yyyy-MM-dd'))
+    actualShifts.map((shift: any) => formatDate(startOfDay(shift.startTime), 'yyyy-MM-dd'))
   );
 
   // Generate virtual shifts for each day in range
@@ -360,39 +357,31 @@ export async function GET(req: NextRequest) {
       ? Number(companySettings.overtimeThreshold)
       : 40;
 
-    const filters: Prisma.Sql[] = [
-      Prisma.sql`"companyId" = ${requestingEmployee.companyId}`,
+    const filters: any[] = [
+      (Prisma as any).sql`"companyId" = ${requestingEmployee.companyId}`,
     ];
 
     if (startDate && endDate) {
       filters.push(
-        Prisma.sql`"startTime" BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}`
+        (Prisma as any).sql`"startTime" BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}`
       );
     }
     if (where.employeeId) {
-      filters.push(Prisma.sql`"employeeId" = ${where.employeeId}`);
+      filters.push((Prisma as any).sql`"employeeId" = ${where.employeeId}`);
     }
     if (where.departmentId) {
-      filters.push(Prisma.sql`"departmentId" = ${where.departmentId}`);
+      filters.push((Prisma as any).sql`"departmentId" = ${where.departmentId}`);
     }
     if (where.isPublished !== undefined) {
-      filters.push(Prisma.sql`"isPublished" = ${where.isPublished}`);
+      filters.push((Prisma as any).sql`"isPublished" = ${where.isPublished}`);
     }
 
     const whereClause = filters.length
-      ? Prisma.sql`WHERE ${Prisma.join(filters, ' AND ')}`
-      : Prisma.sql``;
+      ? (Prisma as any).sql`WHERE ${(Prisma as any).join(filters, ' AND ')}`
+      : (Prisma as any).sql``;
 
-    const [summaryRow] = await prisma.$queryRaw<
-      Array<{
-        scheduledhours: number;
-        overtimehours: number;
-        publishedcount: bigint;
-        unpublishedcount: bigint;
-        totalcost: number;
-      }>
-    >(
-      Prisma.sql`
+    const [summaryRow] = (await prisma.$queryRaw(
+      (Prisma as any).sql`
         WITH base AS (
           SELECT
             "id",
@@ -413,18 +402,10 @@ export async function GET(req: NextRequest) {
           COALESCE(SUM(cost), 0) AS totalcost
         FROM base;
       `
-    );
+    )) as any[];
 
-    const departmentBreakdownRaw = await prisma.$queryRaw<
-      Array<{
-        departmentid: string | null;
-        hours: number;
-        cost: number;
-        employeecount: bigint;
-        shiftcount: bigint;
-      }>
-    >(
-      Prisma.sql`
+    const departmentBreakdownRaw = (await prisma.$queryRaw(
+      (Prisma as any).sql`
         SELECT
           "departmentId" AS departmentid,
           COALESCE(SUM(
@@ -440,15 +421,15 @@ export async function GET(req: NextRequest) {
         ${whereClause}
         GROUP BY "departmentId"
       `
-    );
+    )) as any[];
 
-    const rawShifts = allShifts as (ShiftWithRelations | any)[];
+    const rawShifts = allShifts as any[];
     const shiftDepartmentIds = rawShifts
-      .map(shift => shift.departmentId)
+      .map((shift: any) => shift.departmentId)
       .filter((id): id is string => Boolean(id));
 
     const departmentIdsFromBreakdown = departmentBreakdownRaw
-      .map(entry => entry.departmentid)
+      .map((entry: any) => entry.departmentid)
       .filter((id): id is string => Boolean(id));
 
     const referencedDepartmentIds = Array.from(
@@ -462,9 +443,11 @@ export async function GET(req: NextRequest) {
         })
       : [];
 
-    const departmentMap = new Map(departments.map(dept => [dept.id, dept.name]));
+    const departmentMap = new Map(
+      departments.map((dept: any) => [dept.id, dept.name])
+    );
 
-    const normalizedShifts = rawShifts.map((shift) => {
+    const normalizedShifts = rawShifts.map((shift: any) => {
       // Handle virtual shifts (already have employee/location populated)
       if (shift.isVirtualShift) {
         return {
@@ -499,7 +482,7 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    const departmentBreakdown = departmentBreakdownRaw.map(entry => ({
+    const departmentBreakdown = departmentBreakdownRaw.map((entry: any) => ({
       departmentId: entry.departmentid ?? 'unassigned',
       departmentName: entry.departmentid
         ? departmentMap.get(entry.departmentid) ?? 'Unknown Department'

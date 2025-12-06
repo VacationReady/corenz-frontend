@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { format } from 'date-fns';
@@ -24,7 +23,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -80,13 +79,13 @@ export async function POST(
     }
 
     // Validate all shifts belong to the same company
-    const invalidShifts = shifts.filter(s => s.companyId !== requestingEmployee.companyId);
+    const invalidShifts = shifts.filter((s: any) => s.companyId !== requestingEmployee.companyId);
     if (invalidShifts.length > 0) {
       return NextResponse.json({ error: 'Unauthorized to publish these shifts' }, { status: 403 });
     }
 
     // Check if any shifts are already published
-    const alreadyPublished = shifts.filter(s => s.isPublished);
+    const alreadyPublished = shifts.filter((s: any) => s.isPublished);
     if (alreadyPublished.length > 0) {
       return NextResponse.json(
         { 
@@ -98,7 +97,7 @@ export async function POST(
     }
 
     // Warn about unassigned shifts
-    const unassignedShifts = shifts.filter(s => !s.employeeId);
+    const unassignedShifts = shifts.filter((s: any) => !s.employeeId);
     
     // Update all shifts to published
     await prisma.shift.updateMany({
@@ -111,8 +110,8 @@ export async function POST(
     });
 
     // Get employee details for assigned shifts
-    const assignedShifts = shifts.filter(s => s.employeeId);
-    const employeeIds = [...new Set(assignedShifts.map(s => s.employeeId).filter(Boolean))];
+    const assignedShifts = shifts.filter((s: any) => s.employeeId);
+    const employeeIds = [...new Set(assignedShifts.map((s: any) => s.employeeId).filter(Boolean))];
     
     const employees = await prisma.employee.findMany({
       where: {
@@ -128,7 +127,9 @@ export async function POST(
       },
     });
 
-    const employeeMap = new Map(employees.map(e => [e.id, e]));
+    const employeeMap: Map<string, any> = new Map(
+      employees.map((e: any) => [e.id, e])
+    );
 
     // Send notifications to employees (if enabled)
     const notificationResults: { success: number; failed: number } = { success: 0, failed: 0 };

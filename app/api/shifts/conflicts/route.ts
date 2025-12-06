@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { parseISO } from 'date-fns';
 import { detectScheduleConflicts, getConflictSummary } from '@/lib/conflict-detector';
@@ -99,7 +98,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get unique employee IDs
-    const employeeIds = [...new Set(shifts.map(s => s.employeeId).filter(Boolean))] as string[];
+    const employeeIds = [...new Set(shifts.map((s: any) => s.employeeId).filter(Boolean))] as string[];
 
     // Get availability patterns for employees
     const availabilityPatterns = new Map();
@@ -174,7 +173,7 @@ export async function GET(req: NextRequest) {
     );
 
     // Get employee details for conflicts
-    const conflictEmployeeIds = [...new Set(conflicts.map(c => c.employeeId))];
+    const conflictEmployeeIds = [...new Set(conflicts.map((c: any) => c.employeeId))];
     const conflictEmployees = await prisma.employee.findMany({
       where: {
         id: { in: conflictEmployeeIds },
@@ -194,18 +193,20 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const employeeMap = new Map(conflictEmployees.map(e => [e.id, e]));
+    const employeeMap: Map<string, any> = new Map(
+      conflictEmployees.map((e: any) => [e.id, e])
+    );
 
     // Enrich conflicts with employee and shift details
-    const enrichedConflicts = conflicts.map(conflict => {
+    const enrichedConflicts = conflicts.map((conflict: any) => {
       const employee = employeeMap.get(conflict.employeeId);
       
       const shift1 = conflict.shift1Id 
-        ? shifts.find(s => s.id === conflict.shift1Id)
+        ? shifts.find((s: any) => s.id === conflict.shift1Id)
         : null;
       
       const shift2 = conflict.shift2Id 
-        ? shifts.find(s => s.id === conflict.shift2Id)
+        ? shifts.find((s: any) => s.id === conflict.shift2Id)
         : null;
 
       return {
@@ -241,7 +242,9 @@ export async function GET(req: NextRequest) {
     });
 
     const existingConflictKeys = new Set(
-      existingConflicts.map(c => `${c.employeeId}-${c.conflictType}-${c.shift1Id}-${c.shift2Id}`)
+      existingConflicts.map(
+        (c: any) => `${c.employeeId}-${c.conflictType}-${c.shift1Id}-${c.shift2Id}`
+      )
     );
 
     // Create new conflict records

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { sendShiftSwapRequestEmail } from '@/lib/shift-swap-emails';
@@ -95,7 +94,7 @@ export async function GET(req: NextRequest) {
 
     // Get employee details for requester and target
     const employeeIds = new Set<string>();
-    swapRequests.forEach((swap) => {
+    swapRequests.forEach((swap: any) => {
       employeeIds.add(swap.requesterId);
       if (swap.targetEmployeeId) employeeIds.add(swap.targetEmployeeId);
       if (swap.managerApprovedBy) employeeIds.add(swap.managerApprovedBy);
@@ -121,10 +120,10 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const employeeMap = new Map(employees.map((e) => [e.id, e]));
+    const employeeMap = new Map(employees.map((e: any) => [e.id, e]));
 
     // Enrich swap requests with employee data
-    const enrichedSwaps = swapRequests.map((swap) => ({
+    const enrichedSwaps = swapRequests.map((swap: any) => ({
       ...swap,
       requester: employeeMap.get(swap.requesterId),
       targetEmployee: swap.targetEmployeeId ? employeeMap.get(swap.targetEmployeeId) : null,

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../lib/auth-options";
+import { auth } from "../../../lib/auth-options";
 import { prisma } from "../../../lib/prisma";
 import { auditLog } from "../../../lib/audit";
 import { Prisma, Role } from "@prisma/client";

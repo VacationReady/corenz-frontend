@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { sendOffboardingCompletionSummaryEmail } from "@/lib/email/send";
 
@@ -9,7 +8,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -97,8 +96,8 @@ export async function PATCH(
       });
 
       const allRequiredTasksCompleted = allTasks
-        .filter((t) => t.isRequired)
-        .every((t) => t.completedAt !== null);
+        .filter((t: any) => t.isRequired)
+        .every((t: any) => t.completedAt !== null);
 
       if (allRequiredTasksCompleted) {
         await prisma.employeeOffboarding.update({
@@ -139,7 +138,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

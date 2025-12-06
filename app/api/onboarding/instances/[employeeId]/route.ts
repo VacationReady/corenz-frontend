@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import supabase from "@/lib/supabase-admin";
 import { mapDbStepTypeToUi } from "@/lib/onboarding/mapStepType";
@@ -11,7 +10,7 @@ export async function GET(
   context: any,
 ) {
   // 🔒 Authentication check
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -79,8 +78,8 @@ export async function GET(
 
     // ✅ Merge template steps with instance step info
     const mergedSteps = await Promise.all(
-      instance.OnboardingTemplate.OnboardingStep.map(async (tStep) => {
-        const instStep = instance.OnboardingStepInstance.find((i) => i.stepId === tStep.id);
+      instance.OnboardingTemplate.OnboardingStep.map(async (tStep: any) => {
+        const instStep = instance.OnboardingStepInstance.find((i: any) => i.stepId === tStep.id);
         const latestResponse = instStep?.OnboardingStepResponse?.[0]?.response ?? undefined;
         let url: string | null = null;
         if (tStep.Document?.url) {

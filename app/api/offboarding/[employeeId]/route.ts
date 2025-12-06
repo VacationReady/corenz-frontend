@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
@@ -8,7 +7,7 @@ export async function GET(
   context: { params: Promise<{ employeeId: string }> },
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -130,7 +129,7 @@ export async function GET(
 
       // Form submissions
       formSubmissions: offboarding.ExitInterviewSubmission.map(
-        (submission) => ({
+        (submission: any) => ({
           id: submission.id,
           templateName: submission.ExitInterviewFormTemplate.name,
           templateSchema: submission.ExitInterviewFormTemplate.schemaJson,
@@ -213,7 +212,7 @@ export async function PATCH(
   context: { params: Promise<{ employeeId: string }> },
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

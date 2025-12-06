@@ -1,5 +1,4 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
-import { PrismaClient } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { sendLeaveStatusUpdate } from "@/lib/sendLeaveStatusUpdate";
@@ -205,7 +204,7 @@ export async function PATCH(
         // Round total deduction to 2 decimal places (NZ HRIS requirement)
         const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
 
-        updatedLeaveRequest = await prisma.$transaction(async (tx: PrismaClient) => {
+        updatedLeaveRequest = await prisma.$transaction(async (tx) => {
           const entitlement = await tx.leaveEntitlement.findFirst({
             where: {
               employeeId: leave.employeeId,

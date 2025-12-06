@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { computeDiffs, createAuditLogs } from "@/lib/audit-helpers";
 
@@ -9,7 +8,7 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -70,7 +69,8 @@ export async function GET(
         readOnly = true;
       } else {
         const stepForForm = activeInstance.OnboardingStepInstance.find(
-          (s) => s.OnboardingStep?.formId === id,
+          (s: (typeof activeInstance.OnboardingStepInstance)[number]) =>
+            s.OnboardingStep?.formId === id,
         );
         readOnly = !stepForForm || stepForForm.status === "completed";
       }
@@ -111,7 +111,7 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

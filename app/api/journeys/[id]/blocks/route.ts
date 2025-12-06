@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -40,7 +39,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -68,8 +67,8 @@ export async function GET(
     }
 
     // Flatten blocks with phase information
-    const blocks = journey.phases.flatMap((phase) =>
-      phase.experienceBlocks.map((block) => ({
+    const blocks = journey.phases.flatMap((phase: any) =>
+      phase.experienceBlocks.map((block: any) => ({
         ...block,
         phaseName: phase.name,
         phaseOrder: phase.order,
@@ -96,7 +95,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId || !session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -126,7 +125,7 @@ export async function POST(
 
     // Check for governance locks on the journey
     const activeLocks = journey.governanceLocks.filter(
-      (lock) => !lock.unlockedAt
+      (lock: { unlockedAt: any }) => !lock.unlockedAt
     );
     if (activeLocks.length > 0) {
       return NextResponse.json(
@@ -136,7 +135,7 @@ export async function POST(
     }
 
     // Verify phase belongs to this journey
-    const phase = journey.phases.find((p) => p.id === validatedData.phaseId);
+    const phase = journey.phases.find((p: { id: string }) => p.id === validatedData.phaseId);
     if (!phase) {
       return NextResponse.json(
         { error: "Phase not found in this journey" },
@@ -145,11 +144,11 @@ export async function POST(
     }
 
     // Calculate order if not provided - append to end of phase
-    const maxOrder = Math.max(...phase.experienceBlocks.map((b) => b.order), -1);
+    const maxOrder = Math.max(...phase.experienceBlocks.map((b: { order: number }) => b.order), -1);
     const blockOrder = validatedData.order ?? maxOrder + 1;
 
     // If order was specified and blocks exist at that position, shift them
-    if (validatedData.order !== undefined && phase.experienceBlocks.some((b) => b.order >= blockOrder)) {
+    if (validatedData.order !== undefined && phase.experienceBlocks.some((b: { order: number }) => b.order >= blockOrder)) {
       await prisma.experienceBlock.updateMany({
         where: {
           journeyPhaseId: validatedData.phaseId,

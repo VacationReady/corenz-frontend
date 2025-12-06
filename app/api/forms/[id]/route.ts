@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 // GET a single form by ID
 export async function GET(
@@ -120,7 +121,7 @@ export async function DELETE(
 ) {
   const rawParams = context?.params;
   const { id } = rawParams?.then ? await rawParams : rawParams;
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.companyId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -128,7 +129,7 @@ export async function DELETE(
   try {
     // Delete all related records first to avoid foreign key constraint violations
     // This is done in a transaction to ensure data consistency
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Delete form submissions
       await tx.formSubmission.deleteMany({
         where: { formId: id },

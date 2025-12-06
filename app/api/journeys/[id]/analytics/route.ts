@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -13,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -66,8 +65,8 @@ export async function GET(
     // Calculate metrics from real instance data
     const instances = journey.instances;
     const totalParticipants = instances.length;
-    const activeParticipants = instances.filter(i => i.status === "IN_PROGRESS").length;
-    const completedParticipants = instances.filter(i => i.status === "COMPLETED").length;
+    const activeParticipants = instances.filter((i: any) => i.status === "IN_PROGRESS").length;
+    const completedParticipants = instances.filter((i: any) => i.status === "COMPLETED").length;
     
     // Calculate completion rate
     const completionRate = totalParticipants > 0
@@ -76,14 +75,19 @@ export async function GET(
 
     // Calculate average progress
     const avgProgress = totalParticipants > 0
-      ? Math.round(instances.reduce((acc, i) => acc + (i.progress || 0), 0) / totalParticipants)
+      ? Math.round(
+          instances.reduce(
+            (acc: number, i: any) => acc + (i.progress || 0),
+            0,
+          ) / totalParticipants,
+        )
       : 0;
 
     // Calculate average time to complete (in days)
-    const completedInstances = instances.filter(i => i.status === "COMPLETED" && i.completedAt);
+    const completedInstances = instances.filter((i: any) => i.status === "COMPLETED" && i.completedAt);
     const avgTimeToComplete = completedInstances.length > 0
       ? Math.round(
-          completedInstances.reduce((acc, i) => {
+          completedInstances.reduce((acc: number, i: any) => {
             const start = new Date(i.startedAt).getTime();
             const end = new Date(i.completedAt!).getTime();
             return acc + (end - start) / (1000 * 60 * 60 * 24);
@@ -92,9 +96,9 @@ export async function GET(
       : journey.duration || 0;
 
     // Collect all feedback signals across blocks
-    const allFeedback = journey.phases.flatMap(phase =>
-      phase.experienceBlocks.flatMap(block =>
-        block.feedbackSignals.map(signal => ({
+    const allFeedback = journey.phases.flatMap((phase: any) =>
+      phase.experienceBlocks.flatMap((block: any) =>
+        block.feedbackSignals.map((signal: any) => ({
           id: signal.id,
           blockId: block.id,
           blockName: block.name,
@@ -108,29 +112,45 @@ export async function GET(
     );
 
     // Calculate satisfaction score from ratings
-    const ratings = allFeedback.filter(f => f.signalType === "RATING");
+    const ratings = allFeedback.filter((f: any) => f.signalType === "RATING");
     const avgSatisfaction = ratings.length > 0
-      ? parseFloat((ratings.reduce((acc, r) => {
+      ? parseFloat((ratings.reduce((acc: number, r: any) => {
           const val = parseFloat(r.content) || 0;
           return acc + val;
         }, 0) / ratings.length).toFixed(1))
       : 0;
 
     // Calculate per-block analytics
-    const blockAnalytics = journey.phases.flatMap(phase =>
-      phase.experienceBlocks.map(block => {
+    const blockAnalytics = journey.phases.flatMap((phase: any) =>
+      phase.experienceBlocks.map((block: any) => {
         const blockFeedback = block.feedbackSignals;
-        const completions = blockFeedback.filter(f => f.signalType === "COMPLETION").length;
-        const skips = blockFeedback.filter(f => f.signalType === "SKIP").length;
-        const blockRatings = blockFeedback.filter(f => f.signalType === "RATING");
+        const completions = blockFeedback.filter(
+          (f: any) => f.signalType === "COMPLETION",
+        ).length;
+        const skips = blockFeedback.filter(
+          (f: any) => f.signalType === "SKIP",
+        ).length;
+        const blockRatings = blockFeedback.filter(
+          (f: any) => f.signalType === "RATING",
+        );
         
-        const engagement = completions + skips > 0
-          ? Math.round((completions / (completions + skips)) * 100)
-          : 100; // Default to 100% if no data
+        const engagement =
+          completions + skips > 0
+            ? Math.round((completions / (completions + skips)) * 100)
+            : 100; // Default to 100% if no data
 
-        const blockSatisfaction = blockRatings.length > 0
-          ? parseFloat((blockRatings.reduce((acc, r) => acc + (parseFloat(r.content) || 0), 0) / blockRatings.length).toFixed(1))
-          : null;
+        const blockSatisfaction =
+          blockRatings.length > 0
+            ? parseFloat(
+                (
+                  blockRatings.reduce(
+                    (acc: number, r: any) =>
+                      acc + (parseFloat(r.content) || 0),
+                    0,
+                  ) / blockRatings.length
+                ).toFixed(1),
+              )
+            : null;
 
         return {
           blockId: block.id,
@@ -148,31 +168,46 @@ export async function GET(
     );
 
     // Format experiments data
-    const experiments = journey.experiments.map(exp => ({
-      id: exp.id,
-      name: exp.name,
-      description: exp.description,
-      status: exp.status,
-      trafficAllocation: exp.trafficAllocation,
-      isControl: exp.isControl,
-      createdAt: exp.createdAt,
-      // In a real implementation, you'd calculate conversions from instance data
-      conversions: Math.floor(Math.random() * 30) + 60, // Placeholder until experiment tracking is added
-    }));
+    const experimentGroups = journey.experiments.reduce((acc: any, exp: any) => {
+      const groupKey = exp.name.split(" - ")[0] || exp.name;
+      if (!acc[groupKey]) {
+        acc[groupKey] = [];
+      }
+      acc[groupKey].push({
+        id: exp.id,
+        name: exp.name,
+        description: exp.description,
+        status: exp.status,
+        trafficAllocation: exp.trafficAllocation,
+        isControl: exp.isControl,
+        createdAt: exp.createdAt,
+        // In a real implementation, you'd calculate conversions from instance data
+        conversions: Math.floor(Math.random() * 30) + 60, // Placeholder until experiment tracking is added
+      });
+      return acc;
+    }, {} as Record<string, any[]>);
 
     // Group experiments by parent (for A/B test display)
-    const experimentGroups: Record<string, typeof experiments> = {};
-    experiments.forEach(exp => {
-      // Group by name prefix (e.g., "Welcome Email Test" groups variants)
-      const groupKey = exp.name.split(" - ")[0] || exp.name;
-      if (!experimentGroups[groupKey]) {
-        experimentGroups[groupKey] = [];
-      }
-      experimentGroups[groupKey].push(exp);
-    });
+    const experiments = (Object.entries(
+      experimentGroups,
+    ) as [string, any[]][]).map(([name, variants]) => ({
+      name,
+      status: variants[0]?.status || "DRAFT",
+      variants: variants.map((v: any) => ({
+        name: v.name,
+        allocation: v.trafficAllocation,
+        conversions: v.conversions,
+        isControl: v.isControl,
+      })),
+      confidence:
+        variants.length > 1
+          ? Math.floor(Math.random() * 20) + 75
+          : 0,
+      startDate: variants[0]?.createdAt,
+    }));
 
     // Calculate metric bindings with current values
-    const metrics = journey.metricBindings.map(metric => {
+    const metrics = journey.metricBindings.map((metric: any) => {
       let currentValue = 0;
       
       switch (metric.metricType) {
@@ -190,8 +225,13 @@ export async function GET(
           break;
         case "RETENTION_RATE":
           // Calculate based on non-cancelled instances
-          const nonCancelled = instances.filter(i => i.status !== "CANCELLED").length;
-          currentValue = totalParticipants > 0 ? Math.round((nonCancelled / totalParticipants) * 100) : 100;
+          const nonCancelled = instances.filter(
+            (i: any) => i.status !== "CANCELLED",
+          ).length;
+          currentValue =
+            totalParticipants > 0
+              ? Math.round((nonCancelled / totalParticipants) * 100)
+              : 100;
           break;
         default:
           currentValue = metric.currentValue || 0;
@@ -224,9 +264,13 @@ export async function GET(
 
     // Recent feedback for display
     const recentFeedback = allFeedback
-      .sort((a, b) => new Date(b.collectedAt).getTime() - new Date(a.collectedAt).getTime())
+      .filter((f: any) => f.signalType === "TEXT" || f.signalType === "RATING")
+      .sort(
+        (a: any, b: any) =>
+          new Date(b.collectedAt).getTime() - new Date(a.collectedAt).getTime(),
+      )
       .slice(0, 10)
-      .map(f => ({
+      .map((f: any) => ({
         id: f.id,
         content: f.content,
         sentiment: f.sentiment,
@@ -259,18 +303,23 @@ export async function GET(
       },
       metrics,
       blockAnalytics,
-      experiments: Object.entries(experimentGroups).map(([name, variants]) => ({
-        name,
-        status: variants[0]?.status || "DRAFT",
-        variants: variants.map(v => ({
-          name: v.name,
-          allocation: v.trafficAllocation,
-          conversions: v.conversions,
-          isControl: v.isControl,
-        })),
-        confidence: variants.length > 1 ? Math.floor(Math.random() * 20) + 75 : 0,
-        startDate: variants[0]?.createdAt,
-      })),
+      experiments: (Object.entries(experimentGroups) as [string, any[]][]).map(
+        ([name, variants]) => ({
+          name,
+          status: variants[0]?.status || "DRAFT",
+          variants: variants.map((v: any) => ({
+            name: v.name,
+            allocation: v.trafficAllocation,
+            conversions: v.conversions,
+            isControl: v.isControl,
+          })),
+          confidence:
+            variants.length > 1
+              ? Math.floor(Math.random() * 20) + 75
+              : 0,
+          startDate: variants[0]?.createdAt,
+        }),
+      ),
       feedback: recentFeedback,
       aiSuggestions,
     });

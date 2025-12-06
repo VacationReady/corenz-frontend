@@ -5,8 +5,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -25,7 +24,7 @@ export async function GET(
 ) {
   try {
     await ensurePrismaConnected();
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -72,7 +71,7 @@ export async function PATCH(
 ) {
   try {
     await ensurePrismaConnected();
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -165,7 +164,7 @@ export async function DELETE(
 ) {
   try {
     await ensurePrismaConnected();
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

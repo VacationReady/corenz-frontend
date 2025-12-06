@@ -1,9 +1,7 @@
 // app/api/onboarding/step/[stepId]/complete/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
@@ -372,7 +370,7 @@ export async function POST(
   const { stepId } = rawParams?.then ? await rawParams : rawParams;
   const body = await parseBody(request);
 
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.companyId || !session.user.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -436,7 +434,8 @@ export async function POST(
         data: {
           id: `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           onboardingStepInstanceId: stepId,
-          response: completionPayload as Prisma.InputJsonValue,
+          // Use a broad type cast here to avoid Prisma.InputJsonValue type issues
+          response: completionPayload as any,
         },
       });
     }

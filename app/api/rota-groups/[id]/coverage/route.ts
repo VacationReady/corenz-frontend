@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, parseISO, addDays } from 'date-fns';
 
@@ -27,7 +26,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -109,19 +108,19 @@ export async function GET(
 
       // Get requirements for this day
       const dayRequirements = rotaGroup.ShiftRequirements.filter(
-        req => req.dayOfWeek === dayOfWeek
+        (req: any) => req.dayOfWeek === dayOfWeek
       );
 
       // Get shifts for this day
       const dayShifts = shifts.filter(
-        shift => format(shift.startTime, 'yyyy-MM-dd') === dateStr
+        (shift: any) => format(shift.startTime, 'yyyy-MM-dd') === dateStr
       );
 
       // Analyze each requirement
       for (const requirement of dayRequirements) {
         // Count how many shifts are scheduled for this role
         const scheduledCount = dayShifts.filter(
-          shift => shift.role === requirement.role && shift.employeeId !== null
+          (shift: any) => shift.role === requirement.role && shift.employeeId !== null
         ).length;
 
         const gap = requirement.quantity - scheduledCount;
@@ -129,15 +128,15 @@ export async function GET(
         if (gap > 0) {
           // Find employees who can fill this gap
           const suggestions = rotaGroup.Members
-            .filter(member => 
+            .filter((member: any) => 
               member.assignedRoles.includes(requirement.role)
             )
-            .map(member => {
+            .map((member: any) => {
               const employee = member.Employee;
               
               // Check if already scheduled for this day
               const alreadyScheduled = dayShifts.some(
-                shift => shift.employeeId === employee.id
+                (shift: any) => shift.employeeId === employee.id
               );
 
               return {
@@ -147,7 +146,7 @@ export async function GET(
                 reason: alreadyScheduled ? 'Already scheduled' : undefined,
               };
             })
-            .filter(s => s.canWork);
+            .filter((s: any) => s.canWork);
 
           coverage.push({
             date: dateStr,
@@ -164,9 +163,9 @@ export async function GET(
     }
 
     // Calculate summary statistics
-    const totalGaps = coverage.reduce((sum, c) => sum + c.gap, 0);
-    const criticalGaps = coverage.filter(c => c.priority === 'CRITICAL').length;
-    const highGaps = coverage.filter(c => c.priority === 'HIGH').length;
+    const totalGaps = coverage.reduce((sum: number, c: any) => sum + c.gap, 0);
+    const criticalGaps = coverage.filter((c: any) => c.priority === 'CRITICAL').length;
+    const highGaps = coverage.filter((c: any) => c.priority === 'HIGH').length;
 
     return NextResponse.json({
       weekStart: format(weekStartDate, 'yyyy-MM-dd'),

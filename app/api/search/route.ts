@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getServerSession } from "next-auth";
-import type { Prisma } from "@prisma/client";
 
 import { ensurePrismaConnected, prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 
 const querySchema = z.object({
@@ -28,14 +26,14 @@ const CASE_INSENSITIVE_CONTAINS = (value: string) => ({
 });
 
 function appendEmployeeSearchFilters(
-  employeeWhere: Prisma.EmployeeWhereInput,
+  employeeWhere: any,
   searchTerms: string[],
 ) {
   if (!searchTerms.length) {
     return;
   }
 
-  const andFilters = searchTerms.map<Prisma.EmployeeWhereInput>((term) => ({
+  const andFilters = searchTerms.map((term) => ({
     OR: [
       { User: { firstName: CASE_INSENSITIVE_CONTAINS(term) } },
       { User: { lastName: CASE_INSENSITIVE_CONTAINS(term) } },
@@ -56,7 +54,7 @@ function appendEmployeeSearchFilters(
 }
 
 async function buildEmployeeResults(
-  employeeWhere: Prisma.EmployeeWhereInput,
+  employeeWhere: any,
   limit: number,
 ) {
   const employees = await prisma.employee.findMany({
@@ -79,7 +77,7 @@ async function buildEmployeeResults(
   });
 
   return Promise.all(
-    employees.map(async (employee) => {
+    employees.map(async (employee: any) => {
       let profileUrl: string | null = null;
 
       if (employee.User.profileImageUrl) {
@@ -141,7 +139,7 @@ export async function GET(req: Request) {
       .map((term) => term.trim())
       .filter(Boolean);
 
-    const employeeWhere: Prisma.EmployeeWhereInput = {
+    const employeeWhere: any = {
       companyId: session.user.companyId,
       isActive: true,
     };

@@ -1,7 +1,6 @@
 // /app/api/onboarding/assignments/route.ts
-import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {

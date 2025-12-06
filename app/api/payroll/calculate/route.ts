@@ -6,8 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { PrismaClient } from '@prisma/client';
 import { calculatePayroll, PayrollCalculationInput } from '@/lib/payroll/payroll-calculation-service';
 import { PayFrequency } from '@/lib/payroll/paye-calculator';

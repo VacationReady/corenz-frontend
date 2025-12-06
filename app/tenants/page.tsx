@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 import TenantsPageClient from "./TenantsPageClient";
@@ -10,7 +9,7 @@ const MAIN_PRODUCTION_COMPANY_ID =
   process.env.NEXT_PUBLIC_MAIN_PRODUCTION_COMPANY_ID;
 
 export default async function TenantsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user) {
     redirect("/login");
@@ -45,13 +44,13 @@ export default async function TenantsPage() {
     orderBy: { name: "asc" },
   });
 
-  const ordered = companies.slice().sort((a, b) => {
+  const ordered = companies.slice().sort((a: any, b: any) => {
     if (a.id === homeCompanyId) return -1;
     if (b.id === homeCompanyId) return 1;
     return a.name.localeCompare(b.name);
   });
 
-  const serialised = ordered.map((company) => ({
+  const serialised = ordered.map((company: any) => ({
     id: company.id,
     name: company.name,
     createdAt: company.createdAt.toISOString(),

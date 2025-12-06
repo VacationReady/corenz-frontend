@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import {
@@ -28,7 +27,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -98,7 +97,7 @@ export async function POST(
     }
 
     // Find active stage and user's decision
-    const activeStage = timesheet.ApprovalStages.find((s) => s.isActive);
+    const activeStage = timesheet.ApprovalStages.find((s: any) => s.isActive);
 
     if (!activeStage) {
       return NextResponse.json(
@@ -108,7 +107,7 @@ export async function POST(
     }
 
     const userDecision = activeStage.Decisions.find(
-      (d) => d.approverId === requestingEmployee.id && d.isActive
+      (d: any) => d.approverId === requestingEmployee.id && d.isActive
     );
 
     if (!userDecision) {
@@ -140,12 +139,13 @@ export async function POST(
     if (activeStage.mode === 'FIRST_RESPONDER') {
       stageComplete = true;
     } else if (activeStage.mode === 'UNANIMOUS') {
-      stageComplete = stageDecisions.every((d) => d.status === 'APPROVED');
+      stageComplete = stageDecisions.every((d: any) => d.status === 'APPROVED');
     } else {
       // SEQUENTIAL mode
       const nextDecision = stageDecisions.find(
-        (d) => d.order === userDecision.order + 1
+        (d: any) => d.order === userDecision.order + 1
       );
+
       if (nextDecision) {
         await prisma.timesheetApprovalDecision.update({
           where: { id: nextDecision.id },
@@ -182,8 +182,9 @@ export async function POST(
     if (stageComplete) {
       if (activeStage.mode === 'FIRST_RESPONDER') {
         const remainingDecisionIds = stageDecisions
-          .filter((d) => d.id !== userDecision.id && d.status === 'PENDING')
-          .map((d) => d.id);
+          .filter((d: any) => d.id !== userDecision.id && d.status === 'PENDING')
+          .map((d: any) => d.id);
+
         if (remainingDecisionIds.length > 0) {
           await cancelTimesheetApprovalActionItems(remainingDecisionIds);
         }
@@ -201,7 +202,7 @@ export async function POST(
 
       // Check if there's a next stage
       const nextStage = timesheet.ApprovalStages.find(
-        (s) => s.order === activeStage.order + 1
+        (s: any) => s.order === activeStage.order + 1
       );
 
       if (nextStage) {
@@ -229,7 +230,7 @@ export async function POST(
           : requestingEmployee.User?.name || 'Employee';
 
         await Promise.all(
-          nextStageDecisions.map(async (decision) => {
+          nextStageDecisions.map(async (decision: any) => {
             const assignedToId = await resolveActionItemAssigneeUserId(decision.approverId);
             if (!assignedToId) return;
 

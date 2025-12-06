@@ -8,8 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import {
@@ -35,7 +34,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -129,7 +128,7 @@ export async function PATCH(
     };
 
     // Update entry in transaction with audit log
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // Update the entry
       const updateResult = await tx.timesheetEntry.updateMany({
         where: {
@@ -223,7 +222,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -264,7 +263,7 @@ export async function GET(
     });
 
     return NextResponse.json({
-      amendments: auditLogs.map((log) => ({
+      amendments: auditLogs.map((log: any) => ({
         id: log.id,
         triggeredAt: log.triggeredAt,
         reason: log.reason,

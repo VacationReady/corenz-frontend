@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
 
@@ -9,7 +8,7 @@ export async function PUT(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id: trainingId } = await context.params;
@@ -173,7 +172,7 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await context.params;

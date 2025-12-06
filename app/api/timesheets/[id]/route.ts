@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateHours } from '@/lib/timesheet-calculations';
@@ -33,7 +32,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -134,7 +133,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -213,7 +212,7 @@ export async function PUT(
 
     if (entries.length > 0) {
       // Use transaction to ensure consistency
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         // Delete existing manual/adjusted entries
         await tx.timesheetEntry.deleteMany({
           where: {
@@ -359,19 +358,19 @@ export async function PUT(
         });
 
         const totalHours = allEntries.reduce(
-          (sum, e) => sum + parseFloat(e.hours.toString()),
+          (sum: number, e: any) => sum + parseFloat(e.hours.toString()),
           0
         );
         const regularHours = allEntries.reduce(
-          (sum, e) => sum + parseFloat((e.regularHours || e.hours).toString()),
+          (sum: number, e: any) => sum + parseFloat((e.regularHours || e.hours).toString()),
           0
         );
         const overtimeHours = allEntries.reduce(
-          (sum, e) => sum + parseFloat((e.overtimeHours || 0).toString()),
+          (sum: number, e: any) => sum + parseFloat((e.overtimeHours || 0).toString()),
           0
         );
         const breakHours = allEntries.reduce(
-          (sum, e) => sum + (e.breakMinutes / 60),
+          (sum: number, e: any) => sum + (e.breakMinutes / 60),
           0
         );
 
@@ -456,7 +455,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

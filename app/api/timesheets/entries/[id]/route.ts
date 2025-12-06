@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateHours } from '@/lib/timesheet-calculations';
@@ -25,7 +24,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -237,7 +236,7 @@ export async function PATCH(
     }
 
     // Perform update in transaction
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Fetch overtime settings for NZ-compliant calculation
       const settings = await tx.timeTrackingSettings.findUnique({
         where: { companyId: requestingEmployee.companyId },
@@ -427,17 +426,17 @@ export async function PATCH(
       });
 
       const totalHours = allEntries.reduce(
-        (sum, e) => sum + parseFloat(e.hours.toString()),
+        (sum: number, e: any) => sum + parseFloat(e.hours.toString()),
         0
       );
 
       const totalRegularHours = allEntries.reduce(
-        (sum, e) => sum + (e.regularHours ? parseFloat(e.regularHours.toString()) : parseFloat(e.hours.toString())),
+        (sum: number, e: any) => sum + (e.regularHours ? parseFloat(e.regularHours.toString()) : parseFloat(e.hours.toString())),
         0
       );
 
       const totalOvertimeHours = allEntries.reduce(
-        (sum, e) => sum + (e.overtimeHours ? parseFloat(e.overtimeHours.toString()) : 0),
+        (sum: number, e: any) => sum + (e.overtimeHours ? parseFloat(e.overtimeHours.toString()) : 0),
         0
       );
 
@@ -499,7 +498,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

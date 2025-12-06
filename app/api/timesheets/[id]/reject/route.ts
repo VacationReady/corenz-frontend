@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
+
 import { z } from 'zod';
 import { cancelTimesheetApprovalActionItem } from '@/lib/action-items-helper';
 import {
@@ -21,7 +21,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -73,13 +74,14 @@ export async function POST(
       return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
     }
 
-    const activeStage = timesheet.ApprovalStages.find((s) => s.isActive);
+    const activeStage = timesheet.ApprovalStages.find((s: any) => s.isActive);
+
     if (!activeStage) {
       return NextResponse.json({ error: 'No active approval stage found' }, { status: 400 });
     }
 
     const userDecision = activeStage.Decisions.find(
-      (d) => d.approverId === requestingEmployee.id && d.isActive
+      (d: any) => d.approverId === requestingEmployee.id && d.isActive
     );
 
     if (!userDecision) {

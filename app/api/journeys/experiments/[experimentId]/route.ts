@@ -171,7 +171,7 @@ export async function PUT(
 ) {
   try {
     const { experimentId } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId || !session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -306,6 +306,9 @@ export async function PUT(
       { status: 500 }
     );
   }
+}
+
+/**
  * DELETE /api/journeys/experiments/[experimentId]
  * Delete an experiment and all its variants
  */
@@ -338,7 +341,7 @@ export async function DELETE(
     // Delete all variants
     await prisma.experimentVariant.deleteMany({
       where: {
-        id: { in: variants.map(v => v.id) },
+        id: { in: variants.map((v: any) => v.id) },
       },
     });
 

@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import Module from "module";
 import { NextRequest } from "next/server";
 
-// Mock next-auth getServerSession
+// Mock next-auth + auth() from auth-options for employees API tests
 const originalLoad = (Module as any)._load;
 let mockSession: any = null;
 let mockPrisma: any = {};
@@ -24,6 +24,11 @@ let mockSupabase: any = { storage: { from: () => ({ createSignedUrl: async () =>
   if (request === "next-auth") {
     return {
       getServerSession: async () => mockSession,
+    };
+  }
+  if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
+    return {
+      auth: async () => mockSession,
     };
   }
   if (request === "@/lib/prisma") {

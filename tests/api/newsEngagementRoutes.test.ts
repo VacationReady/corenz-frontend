@@ -40,8 +40,11 @@ const originalLoad = (Module as any)._load;
       },
     };
   }
-  if (request === "@/lib/auth-options") {
-    return { authOptions: {} };
+  if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
+    return {
+      authOptions: {},
+      auth: async () => mockGetServerSession(),
+    };
   }
   return originalLoad.call(this, request, parent, isMain);
 };

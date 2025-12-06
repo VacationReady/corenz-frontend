@@ -15,7 +15,7 @@ import Module from "module";
 import { prisma } from "../../app/lib/prisma";
 import { NextRequest } from "next/server";
 
-// Mock next-auth getServerSession
+// Mock next-auth + auth() for onboarding instances API tests
 const originalLoad = (Module as any)._load;
 let mockSession: any = null;
 
@@ -23,6 +23,11 @@ let mockSession: any = null;
   if (request === "next-auth") {
     return {
       getServerSession: async () => mockSession,
+    };
+  }
+  if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
+    return {
+      auth: async () => mockSession,
     };
   }
   if (request === "@/lib/supabase-admin") {

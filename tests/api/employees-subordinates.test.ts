@@ -26,6 +26,11 @@ let mockSupabase: any = { storage: { from: () => ({ createSignedUrl: async () =>
       getServerSession: async () => mockSession,
     };
   }
+  if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
+    return {
+      auth: async () => mockSession,
+    };
+  }
   if (request === "@/lib/prisma") {
     return {
       prisma: mockPrisma,

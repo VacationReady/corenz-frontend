@@ -27,8 +27,11 @@ const originalLoad = (Module as any)._load;
   if (request === "next-auth") {
     return { getServerSession: mockGetServerSession };
   }
-  if (request === "@/lib/auth-options") {
-    return { authOptions: {} };
+  if (request === "@/lib/auth-options" || request === "../app/lib/auth-options") {
+    return {
+      authOptions: {},
+      auth: async () => mockGetServerSession(),
+    };
   }
   if (request === "@/lib/prisma") {
     return {

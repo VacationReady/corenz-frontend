@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -23,7 +22,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -138,7 +137,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId || !session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -256,7 +255,7 @@ export async function DELETE(
 
     // Check if journey has active instances
     const activeInstances = journey.instances.filter(
-      instance => instance.status === "IN_PROGRESS"
+      (instance: any) => instance.status === "IN_PROGRESS",
     );
 
     if (activeInstances.length > 0) {
@@ -271,7 +270,7 @@ export async function DELETE(
 
     // Check for governance locks
     const activeLocks = journey.governanceLocks.filter(
-      lock => !lock.unlockedAt
+      (lock: any) => !lock.unlockedAt,
     );
     
     if (activeLocks.length > 0) {

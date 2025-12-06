@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -73,7 +72,7 @@ export async function GET(
 ) {
   try {
     const { blockId } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -107,12 +106,12 @@ export async function GET(
 
     // Calculate block-specific analytics
     // Count completed instances as having completed all blocks
-    const completedCount = analytics.filter((instance) => 
-      instance.status === "COMPLETED"
+    const completedCount = analytics.filter(
+      (instance: any) => instance.status === "COMPLETED",
     ).length;
 
     const currentlyOnBlock = analytics.filter(
-      (instance) => instance.currentBlockId === blockId
+      (instance: any) => instance.currentBlockId === blockId,
     ).length;
 
     return NextResponse.json({
@@ -161,7 +160,7 @@ export async function PUT(
 
     // Check for governance locks on the journey
     const journeyLocks = journey.governanceLocks.filter(
-      (lock) => !lock.unlockedAt
+      (lock: any) => !lock.unlockedAt,
     );
     if (journeyLocks.length > 0) {
       return NextResponse.json(
@@ -171,7 +170,7 @@ export async function PUT(
     }
 
     // Check for governance locks on the block itself
-    const blockLocks = block.governanceLocks.filter((lock) => !lock.unlockedAt);
+    const blockLocks = block.governanceLocks.filter((lock: any) => !lock.unlockedAt);
     if (blockLocks.length > 0) {
       return NextResponse.json(
         { error: "Block is locked for editing", locks: blockLocks },

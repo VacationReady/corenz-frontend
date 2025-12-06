@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -60,7 +59,7 @@ export async function GET(
 ) {
   try {
     const { experimentId } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -71,7 +70,7 @@ export async function GET(
     }
 
     const { variants, journey } = result;
-    const controlVariant = variants.find(v => v.isControl) || variants[0];
+    const controlVariant = variants.find((v: any) => v.isControl) || variants[0];
     const config = controlVariant.variantConfig as any;
 
     // Calculate experiment statistics
@@ -85,11 +84,11 @@ export async function GET(
       },
     });
 
-    const variantStats = variants.map(variant => {
+    const variantStats = variants.map((variant: any) => {
       const variantInstances = instances.filter(
-        (i) => (i.metadata as any)?.variantId === variant.id
+        (i: any) => (i.metadata as any)?.variantId === variant.id,
       );
-      const completed = variantInstances.filter(i => i.status === "COMPLETED").length;
+      const completed = variantInstances.filter((i: any) => i.status === "COMPLETED").length;
       
       return {
         id: variant.id,
@@ -110,8 +109,8 @@ export async function GET(
     });
 
     // Calculate statistical significance (simplified)
-    const controlStats = variantStats.find(v => v.isControl);
-    const treatmentStats = variantStats.filter(v => !v.isControl);
+    const controlStats = variantStats.find((v: any) => v.isControl);
+    const treatmentStats = variantStats.filter((v: any) => !v.isControl);
     
     let statisticalSignificance = null;
     if (controlStats && treatmentStats.length > 0 && instances.length >= 30) {
@@ -218,7 +217,7 @@ export async function PUT(
         // Update all variants
         await prisma.experimentVariant.updateMany({
           where: {
-            id: { in: variants.map(v => v.id) },
+            id: { in: variants.map((v: any) => v.id) },
           },
           data: updates,
         });
@@ -246,7 +245,7 @@ export async function PUT(
     // Handle variant updates
     if (validatedData.variants) {
       for (const variantUpdate of validatedData.variants) {
-        const variant = variants.find(v => v.id === variantUpdate.id);
+        const variant = variants.find((v: any) => v.id === variantUpdate.id);
         if (variant) {
           const updateData: any = {};
           
@@ -273,7 +272,7 @@ export async function PUT(
 
     // Update experiment name/description if provided
     if (validatedData.name || validatedData.description !== undefined) {
-      for (const variant of variants) {
+      for (const variant of variants as any[]) {
         const config = variant.variantConfig as any;
         await prisma.experimentVariant.update({
           where: { id: variant.id },
@@ -307,9 +306,6 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
-
-/**
  * DELETE /api/journeys/experiments/[experimentId]
  * Delete an experiment and all its variants
  */
@@ -319,7 +315,7 @@ export async function DELETE(
 ) {
   try {
     const { experimentId } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId || !session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -332,7 +328,7 @@ export async function DELETE(
     const { variants, journey } = result;
 
     // Don't allow deletion of running experiments
-    if (variants.some(v => v.status === "RUNNING")) {
+    if (variants.some((v: any) => v.status === "RUNNING")) {
       return NextResponse.json(
         { error: "Cannot delete a running experiment. Pause or complete it first." },
         { status: 400 }

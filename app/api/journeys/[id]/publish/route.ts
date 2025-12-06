@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 
 // POST /api/journeys/[id]/publish - Publish a journey template
@@ -10,7 +9,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId || !session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -37,7 +36,7 @@ export async function POST(
 
     // Check for governance locks
     const activeLocks = journey.governanceLocks.filter(
-      lock => !lock.unlockedAt && lock.lockType === "APPROVAL_REQUIRED"
+      (lock: any) => !lock.unlockedAt && lock.lockType === "APPROVAL_REQUIRED",
     );
     
     if (activeLocks.length > 0) {
@@ -91,7 +90,10 @@ export async function POST(
           journeyName: journey.name,
           version: journey.version,
           phases: journey.phases.length,
-          blocks: journey.phases.reduce((sum, phase) => sum + phase.experienceBlocks.length, 0),
+          blocks: journey.phases.reduce(
+            (sum: number, phase: any) => sum + phase.experienceBlocks.length,
+            0,
+          ),
         },
       },
     });

@@ -1,10 +1,9 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import ManagerDashboardClient from "./ManagerDashboardClient";
 
 export default async function ManagerDashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   const userId = session?.user?.id;
   

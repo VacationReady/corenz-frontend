@@ -2,6 +2,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env.server";
 import NextAuth, { type NextAuthConfig } from "next-auth";
+import type { Adapter } from "next-auth/adapters";
 import GoogleProvider from "next-auth/providers/google";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -12,18 +13,23 @@ const MAIN_PRODUCTION_COMPANY_ID = env.NEXT_PUBLIC_MAIN_PRODUCTION_COMPANY_ID;
 export const authConfig = {
   secret: env.NEXTAUTH_SECRET,
 
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as Adapter,
   session: { strategy: "jwt" },
   providers: [
     ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET ? [GoogleProvider({
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
     })] : []),
-    ...(env.AZURE_AD_CLIENT_ID && env.AZURE_AD_CLIENT_SECRET && env.AZURE_AD_TENANT_ID ? [AzureADProvider({
-      clientId: env.AZURE_AD_CLIENT_ID,
-      clientSecret: env.AZURE_AD_CLIENT_SECRET,
-      tenantId: env.AZURE_AD_TENANT_ID,
-    })] : []),
+    ...(env.AZURE_AD_CLIENT_ID && env.AZURE_AD_CLIENT_SECRET && env.AZURE_AD_TENANT_ID
+      ? [
+          AzureADProvider({
+            clientId: env.AZURE_AD_CLIENT_ID,
+            clientSecret: env.AZURE_AD_CLIENT_SECRET,
+            // In v5, Azure AD (Microsoft Entra ID) uses issuer instead of tenantId
+            issuer: `https://login.microsoftonline.com/${env.AZURE_AD_TENANT_ID}/v2.0`,
+          }),
+        ]
+      : []),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -37,7 +43,7 @@ export const authConfig = {
             return null;
           }
 
-          const emailInput = credentials.email.trim();
+          const emailInput = (credentials.email as string).trim();
           // Fetch all users with this email (case-insensitive) across tenants
           const users = await prisma.user.findMany({
             where: { email: { equals: emailInput, mode: "insensitive" } as any },
@@ -60,7 +66,7 @@ export const authConfig = {
           // Try to match by password among all candidates (supports cross-tenant same email)
           for (const candidate of users) {
             if (!candidate.password) continue;
-            const ok = await bcrypt.compare(credentials.password, candidate.password);
+            const ok = await bcrypt.compare(credentials.password as string, candidate.password);
             if (ok) {
               // Validate that companyId exists
               if (!candidate.companyId || candidate.companyId.trim() === "") {
@@ -133,5 +139,7 @@ export const authConfig = {
   },
 } satisfies NextAuthConfig;
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+// Backwards-compatible alias used by existing getServerSession(authOptions) calls
+export const authOptions: NextAuthConfig = authConfig;
 
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);

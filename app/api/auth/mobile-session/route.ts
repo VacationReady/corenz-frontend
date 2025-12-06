@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
     const decoded = await decode({
       token,
       secret: env.NEXTAUTH_SECRET,
+      salt: env.NEXTAUTH_SECRET,
     });
 
     if (!decoded || !decoded.id || !decoded.companyId) {

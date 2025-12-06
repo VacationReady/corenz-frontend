@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import type { Role } from "@prisma/client";
 
 export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -23,6 +21,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 
+    const targetRole = role as "ADMIN" | "MANAGER" | "EMPLOYEE";
+
     const { id } = await context.params;
     const user = await prisma.user.findFirst({
       where: { id: id, companyId: session.user.companyId },
@@ -34,7 +34,7 @@ export async function PATCH(
 
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { role: role as Role },
+      data: { role: targetRole },
       select: { id: true, role: true },
     });
     return NextResponse.json({ ok: true, user: updated });

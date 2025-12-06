@@ -14,15 +14,14 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 
 /**
  * Fetch dashboard metrics (headcount, managers, new starters, pending approvals)
  * These are relatively static and benefit from server-side rendering
  */
 export async function getDashboardMetrics(companyId: string, userId: string, departmentId?: string) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.companyId || session.user.companyId !== companyId) {
     throw new Error("Unauthorized");
@@ -102,7 +101,7 @@ export async function getDashboardMetrics(companyId: string, userId: string, dep
  * Shows employees on leave in the next 7 days
  */
 export async function getWhosOffData(companyId: string, departmentId?: string) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.companyId || session.user.companyId !== companyId) {
     throw new Error("Unauthorized");
@@ -167,7 +166,7 @@ export async function getWhosOffData(companyId: string, departmentId?: string) {
  * Fetch departments for filtering
  */
 export async function getDepartments(companyId: string) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.companyId || session.user.companyId !== companyId) {
     throw new Error("Unauthorized");
@@ -184,7 +183,7 @@ export async function getDepartments(companyId: string) {
  * Fetch new starters for the modal
  */
 export async function getNewStarters(companyId: string) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.companyId || session.user.companyId !== companyId) {
     throw new Error("Unauthorized");
@@ -221,7 +220,7 @@ export async function getNewStarters(companyId: string) {
     orderBy: { startDate: "desc" },
   });
 
-  return employees.map((emp) => ({
+  return employees.map((emp: any) => ({
     id: emp.id,
     name: `${emp.User.firstName || ""} ${emp.User.lastName || ""}`.trim(),
     email: emp.User.email,

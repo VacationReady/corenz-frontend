@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import {
   hasPermission,
@@ -13,7 +12,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -71,7 +70,7 @@ export async function GET(
     });
 
     // Map Prisma relation names to frontend-expected field names
-    const auditTrail = auditTrailRaw.map(audit => ({
+    const auditTrail = auditTrailRaw.map((audit: any) => ({
       id: audit.id,
       changedAt: audit.changedAt,
       note: audit.note,
@@ -107,7 +106,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -283,7 +282,7 @@ export async function PATCH(
     });
 
     // Map Prisma relation names to frontend-expected field names
-    const auditTrailPatch = auditTrailRawPatch.map(audit => ({
+    const auditTrailPatch = auditTrailRawPatch.map((audit: any) => ({
       id: audit.id,
       changedAt: audit.changedAt,
       note: audit.note,

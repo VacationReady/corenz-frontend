@@ -110,13 +110,17 @@ export async function POST(request: NextRequest) {
       token: {
         id: authenticatedUser.id,
         email: authenticatedUser.email,
-        name: `${authenticatedUser.firstName || ""} ${authenticatedUser.lastName || ""}`.trim() || authenticatedUser.email,
+        name:
+          `${authenticatedUser.firstName || ""} ${
+            authenticatedUser.lastName || ""
+          }`.trim() || authenticatedUser.email,
         role: authenticatedUser.role,
         companyId: authenticatedUser.companyId,
         homeCompanyId: authenticatedUser.companyId,
         sub: authenticatedUser.id,
       },
       secret: env.NEXTAUTH_SECRET,
+      salt: env.NEXTAUTH_SECRET,
       maxAge: 30 * 24 * 60 * 60, // 30 days
     });
 

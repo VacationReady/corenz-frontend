@@ -1,12 +1,11 @@
 import BulkActionsPageClient from "./BulkActionsPageClient";
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 
 export default async function BulkActionsPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session || !session.user?.companyId || !session.user?.id) {
     redirect("/login");

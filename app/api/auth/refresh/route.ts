@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       decoded = await decode({
         token,
         secret: env.NEXTAUTH_SECRET,
+        salt: env.NEXTAUTH_SECRET,
       });
     } catch (error) {
       return NextResponse.json(
@@ -68,10 +69,12 @@ export async function POST(request: NextRequest) {
         name: decoded.name as string,
         role: user.role,
         companyId: user.companyId,
-        homeCompanyId: decoded.homeCompanyId as string | undefined || user.companyId,
+        homeCompanyId:
+          ((decoded.homeCompanyId as string | undefined) ?? user.companyId),
         sub: user.id,
       },
       secret: env.NEXTAUTH_SECRET,
+      salt: env.NEXTAUTH_SECRET,
       maxAge: 30 * 24 * 60 * 60, // 30 days
     });
 

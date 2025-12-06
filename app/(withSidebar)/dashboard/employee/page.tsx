@@ -3,8 +3,7 @@ import DashboardGrid from "@/components/ui/DashboardGrid";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import EmployeeDashboardClient from "./EmployeeDashboardClient";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -12,7 +11,7 @@ import Button from "@/components/ui/Button";
 import { User } from "lucide-react";
 
 export default async function EmployeeDashboard() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const userId = session?.user?.id;
   let employeeId: string | undefined = undefined;
   if (userId && session?.user?.companyId) {

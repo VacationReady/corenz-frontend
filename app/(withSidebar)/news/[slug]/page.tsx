@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import NewsDetailClient from "@/components/news/NewsDetailClient";
@@ -10,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function NewsDetailPage(context: any) {
   const rawParams = context?.params;
   const { slug } = rawParams?.then ? await rawParams : rawParams;
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   const post = await prisma.newsPost.findFirst({
     where: {
@@ -98,12 +97,12 @@ export default async function NewsDetailPage(context: any) {
   }
   const { coverImageUrl, coverImage, ...postRest } = post as any;
 
-  const reactionCounts = post.reactions.reduce<Record<string, number>>(
-    (acc, reaction) => {
+  const reactionCounts = (post.reactions as { reaction: string; userId: string }[]).reduce(
+    (acc: Record<string, number>, reaction: { reaction: string; userId: string }) => {
       acc[reaction.reaction] = (acc[reaction.reaction] ?? 0) + 1;
       return acc;
     },
-    {}
+    {} as Record<string, number>
   );
 
   const transformedPost = {
@@ -126,15 +125,16 @@ export default async function NewsDetailPage(context: any) {
     views: post.viewCount,
     bookmarkCount: post.bookmarks.length,
     isBookmarked: post.bookmarks.some(
-      (bookmark) => bookmark.userId === session?.user?.id
+      (bookmark: { userId: string }) => bookmark.userId === session?.user?.id
     ),
     userReaction:
-      post.reactions.find((reaction) => reaction.userId === session?.user?.id)
-        ?.reaction ?? null,
+      post.reactions.find(
+        (reaction: { userId: string }) => reaction.userId === session?.user?.id
+      )?.reaction ?? null,
   };
 
   const transformedRelated = await Promise.all(
-    relatedPosts.map(async (p) => {
+    relatedPosts.map(async (p: any) => {
       let ci: string | null = (p as any).coverImageUrl ?? (p as any).coverImage ?? null;
       if (ci && !/^https?:\/\//i.test(ci)) {
         try {

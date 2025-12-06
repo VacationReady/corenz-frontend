@@ -1302,10 +1302,6 @@ async function handlePerformanceRequest(
   intent: any
 ): Promise<OrchestratorResult> {
   try {
-    // Get user session info for context
-    const { getServerSession } = await import("next-auth");
-    const { authOptions } = await import("@/lib/auth-options");
-    
     // Get user details for employee ID and role
     const { prisma } = await import("@/lib/prisma");
     const user = await prisma.user.findUnique({

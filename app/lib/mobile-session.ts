@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
 import { decode } from "next-auth/jwt";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { env } from "@/lib/env.server";
 
 interface MobileSession {
@@ -21,7 +20,7 @@ interface MobileSession {
  */
 export async function getMobileSession(req: NextRequest): Promise<MobileSession | null> {
   // First, try standard NextAuth session (for browser requests)
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (session?.user?.id) {
     return session as MobileSession;
   }
@@ -43,6 +42,7 @@ export async function getMobileSession(req: NextRequest): Promise<MobileSession 
           const decoded = await decode({
             token,
             secret: env.NEXTAUTH_SECRET,
+            salt: env.NEXTAUTH_SECRET,
           });
 
           if (decoded && decoded.id && decoded.companyId) {
@@ -72,6 +72,7 @@ export async function getMobileSession(req: NextRequest): Promise<MobileSession 
       const decoded = await decode({
         token,
         secret: env.NEXTAUTH_SECRET,
+        salt: env.NEXTAUTH_SECRET,
       });
 
       if (decoded && decoded.id && decoded.companyId) {

@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Scripts run in Node; adjust as needed but keep strict on for long-term health
+    "module": "commonjs",
+    "target": "es2019",
+    "noEmit": true
+  },
+  "include": [
+    "scripts/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

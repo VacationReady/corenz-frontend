@@ -182,7 +182,7 @@ export async function POST(
           companyId: true,
         },
       });
-      if (interviewerRecord?.companyId === companyId) {
+      if (interviewerRecord && interviewerRecord.companyId === companyId) {
         const { companyId: _interviewerCompanyId, ...rest } = interviewerRecord;
         interviewer = rest;
       }

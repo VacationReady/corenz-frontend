@@ -4,8 +4,12 @@ import { prisma } from "@/lib/prisma";
  * Sync active locations with geofence data to TimeTrackingSettings.geofenceLocations
  * This ensures clock-in/out validation uses the latest location data
  */
-export async function syncGeofenceLocations(companyId: string): Promise<void> {
+export async function syncGeofenceLocations(companyId: string | null): Promise<void> {
   try {
+    if (!companyId) {
+      return;
+    }
+
     // Fetch all active locations with geofence data
     // @ts-ignore - Fields exist in schema but client not generated yet
     const locations = await prisma.location.findMany({
@@ -33,7 +37,7 @@ export async function syncGeofenceLocations(companyId: string): Promise<void> {
     const defaultRadius = settings?.geofenceRadius || 100;
 
     // Transform to geofence format: [{lat, lng, radius, name, id}]
-    const geofenceLocations = locations.map((loc) => ({
+    const geofenceLocations = locations.map((loc: any) => ({
       id: loc.id,
       name: loc.name,
       lat: loc.latitude!,

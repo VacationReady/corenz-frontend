@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { z } from "zod";
 
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import {
   AI_CONFIG,
   checkRateLimit,

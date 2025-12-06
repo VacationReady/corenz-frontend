@@ -160,7 +160,7 @@ export default function NewsEditor({
       }),
     ],
     content: value,
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor }: { editor: any }) => {
       onChange?.(editor.getJSON());
     },
     editorProps: {

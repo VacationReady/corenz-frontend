@@ -4,8 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { format } from "date-fns";
 import { Suspense } from "react";
 import WorkingPatternAssignment from "@/components/WorkingPatternAssignment";
@@ -14,7 +13,7 @@ import { PermissionProfileManagement } from "@/components/employees/PermissionPr
 
 export default async function EmployeeSettingsPage(context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session || !session.user?.id || !session.user.companyId) {
     return (
       <div className="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">

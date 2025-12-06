@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { BASE_TRANSACTIONAL_SECTIONS, SectionConfig } from "@/lib/transactional-notifications";
 import { z } from "zod";

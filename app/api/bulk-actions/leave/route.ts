@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import crypto from "crypto";
 import { z } from "zod";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
 import { resolveApprovalWorkflow } from "@/lib/resolveApprovalWorkflow";

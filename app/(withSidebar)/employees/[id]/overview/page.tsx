@@ -1,6 +1,5 @@
 import LeaveBalancePanel from "@/components/LeaveBalancePanel";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import {
   isAdminOrManager as isAdminOrManagerHelper,
   isAdmin as isAdminHelper,
@@ -72,7 +71,7 @@ interface PageProps {
 
 export default async function EmployeeOverviewPage({ params }: PageProps) {
   const { id: employeeId } = await params;
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   const employee = await prisma.employee.findUnique({
     where: { id: employeeId },

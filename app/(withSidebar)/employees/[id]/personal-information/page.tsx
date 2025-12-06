@@ -1,11 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import PersonalInformationClient from "./PersonalInformationClient";
 
 export default async function PersonalInformationPage(context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const employee = await prisma.employee.findUnique({
     where: { id },
     include: {

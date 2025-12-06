@@ -14,9 +14,8 @@
  * - Prompt 8: Server-first architecture refactor
  */
 
-import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
 import EmployeesPageClient from "./EmployeesClient";
@@ -28,7 +27,7 @@ export const dynamic = "force-dynamic";
  * Directly queries database instead of API route to avoid auth issues
  */
 async function getInitialData(status: "active" | "archived" | "all" = "active") {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.companyId) {
     redirect("/login");

@@ -13,8 +13,7 @@
  */
 
 import { revalidatePath } from "next/cache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { randomBytes } from "crypto";
 import { resend } from "@/lib/resend";
@@ -28,7 +27,7 @@ import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
  * This mirrors the comprehensive delete logic in app/api/employees/[id]/route.ts
  */
 export async function deleteEmployeeAction(employeeId: string) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.companyId) {
     return { success: false, error: "Unauthorized" };
@@ -235,7 +234,7 @@ export async function deleteEmployeeAction(employeeId: string) {
  * Server action that sends activation email directly (no API call needed)
  */
 export async function sendActivationEmailAction(employeeId: string) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   
   if (!session?.user?.companyId) {
     return { success: false, error: "Unauthorized" };

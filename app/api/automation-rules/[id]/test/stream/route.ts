@@ -4,8 +4,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { testSimulator } from "@/lib/automation/test-simulator";
 
 export const runtime = "nodejs";
@@ -17,7 +16,7 @@ export async function GET(
 ) {
   try {
     await params; // Await params to satisfy Next.js type requirements
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.companyId) {
       return new Response("Unauthorized", { status: 401 });
     }

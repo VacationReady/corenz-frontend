@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { auth } from "@/lib/auth-options";
 import { canAccessEmployee } from "@/lib/permissions";
 import { computeDiffs, createAuditLogs, diffRequiresReason } from "@/lib/audit-helpers";
 import { getTransactionalRecipients } from "@/lib/transactional-notifications";
@@ -28,7 +27,7 @@ export async function PATCH(
 ) {
   const { id } = await context.params;
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -327,7 +326,7 @@ export async function GET(
 ) {
   const { id } = await context.params;
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

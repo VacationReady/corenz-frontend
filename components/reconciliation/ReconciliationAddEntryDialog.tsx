@@ -121,6 +121,7 @@ export default function ReconciliationAddEntryDialog({
           clockInTime: clockIn.toISOString(),
           clockOutTime: clockOut.toISOString(),
           notes: notes.trim() || undefined,
+          shiftId: shift.id,
         }),
       });
 
@@ -128,29 +129,6 @@ export default function ReconciliationAddEntryDialog({
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create manual entry');
-      }
-
-      // Ensure the new timesheet entry is explicitly linked to this shift for reconciliation
-      if (data?.timesheetEntry?.id) {
-        try {
-          const matchResponse = await fetch('/api/reconciliation/match', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              entryType: 'timesheet',
-              entryId: data.timesheetEntry.id,
-              shiftId: shift.id,
-            }),
-          });
-
-          // If matching fails, log it but do not block the success path
-          if (!matchResponse.ok) {
-            const matchError = await matchResponse.json().catch(() => null);
-            console.error('Failed to match manual entry to shift:', matchError || matchResponse.statusText);
-          }
-        } catch (matchError) {
-          console.error('Error calling reconciliation match API:', matchError);
-        }
       }
 
       toast({

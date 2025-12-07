@@ -10,6 +10,7 @@ const manualEntrySchema = z.object({
   clockInTime: z.string().datetime(),
   clockOutTime: z.string().datetime(),
   notes: z.string().optional(),
+  shiftId: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -120,6 +121,31 @@ export async function POST(req: NextRequest) {
 
     // Use transaction to create clock entry AND timesheet entry with overtime calculation
     const result = await prisma.$transaction(async (tx) => {
+      // If a shiftId is provided, validate it belongs to the same company and employee
+      let manualShift: {
+        id: string;
+        companyId: string;
+        employeeId: string | null;
+        startTime: Date;
+        endTime: Date;
+      } | null = null;
+
+      if (data.shiftId) {
+        manualShift = await tx.shift.findUnique({
+          where: { id: data.shiftId },
+          select: {
+            id: true,
+            companyId: true,
+            employeeId: true,
+            startTime: true,
+            endTime: true,
+          },
+        });
+
+        if (!manualShift || manualShift.companyId !== requestingEmployee.companyId || manualShift.employeeId !== data.employeeId) {
+          throw new Error('Invalid shift for manual manual time entry');
+        }
+      }
       // Create manual clock entry
       const clockEntry = await tx.clockEntry.create({
         data: {
@@ -192,41 +218,68 @@ export async function POST(req: NextRequest) {
       // Recalculate timesheet totals
       await recalculateTimesheetTotals(timesheetId, tx);
 
-      // Auto-match to shift (non-blocking within transaction)
-      try {
-        const matchResult = await autoMatchClockEntryToShift({
-          id: clockEntry.id,
-          employeeId: data.employeeId,
-          companyId: requestingEmployee.companyId,
-          clockInTime,
-          clockOutTime,
-        });
-
-        if (matchResult && matchResult.confidence >= 0.7) {
-          // Link clock entry to shift
+      // If a specific shiftId was provided, explicitly link this entry to that shift.
+      // Otherwise, fall back to auto-matching behaviour.
+      if (manualShift) {
+        try {
           await linkClockEntryToShift(
             clockEntry.id,
-            matchResult.shiftId,
+            manualShift.id,
             session.user.id,
-            matchResult.confidence,
+            1.0,
             tx
           );
 
-          // Also link timesheet entry to shift with variance data
           await linkTimesheetEntryToShift(
             timesheetEntry.id,
-            matchResult.shiftId,
-            { startTime: matchResult.scheduledStartTime, endTime: matchResult.scheduledEndTime },
+            manualShift.id,
+            { startTime: manualShift.startTime, endTime: manualShift.endTime },
             { startTime: clockInTime, endTime: clockOutTime },
             session.user.id,
-            'AUTO_MATCHED',
-            undefined,
+            'MANUALLY_MATCHED',
+            data.notes,
             tx
           );
+        } catch (matchError) {
+          console.error('[Manual entry] Manual shift link error (non-blocking):', matchError);
         }
-      } catch (matchError) {
-        // Log but don't fail the transaction
-        console.error('[Manual entry] Auto-match error (non-blocking):', matchError);
+      } else {
+        // Auto-match to shift (non-blocking within transaction)
+        try {
+          const matchResult = await autoMatchClockEntryToShift({
+            id: clockEntry.id,
+            employeeId: data.employeeId,
+            companyId: requestingEmployee.companyId,
+            clockInTime,
+            clockOutTime,
+          });
+
+          if (matchResult && matchResult.confidence >= 0.7) {
+            // Link clock entry to shift
+            await linkClockEntryToShift(
+              clockEntry.id,
+              matchResult.shiftId,
+              session.user.id,
+              matchResult.confidence,
+              tx
+            );
+
+            // Also link timesheet entry to shift with variance data
+            await linkTimesheetEntryToShift(
+              timesheetEntry.id,
+              matchResult.shiftId,
+              { startTime: matchResult.scheduledStartTime, endTime: matchResult.scheduledEndTime },
+              { startTime: clockInTime, endTime: clockOutTime },
+              session.user.id,
+              'AUTO_MATCHED',
+              undefined,
+              tx
+            );
+          }
+        } catch (matchError) {
+          // Log but don't fail the transaction
+          console.error('[Manual entry] Auto-match error (non-blocking):', matchError);
+        }
       }
 
       // Log the manual entry creation with overtime info

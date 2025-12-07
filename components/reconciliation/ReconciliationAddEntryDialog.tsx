@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, AlertCircle, Plus } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, Plus, Coffee } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 interface ReconciliationAddEntryDialogProps {
   open: boolean;
@@ -45,6 +46,7 @@ export default function ReconciliationAddEntryDialog({
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoDeductBreak, setAutoDeductBreak] = useState(true);
 
   useEffect(() => {
     if (open) {
@@ -54,10 +56,11 @@ export default function ReconciliationAddEntryDialog({
       setEndTime(format(shift.endTime, 'HH:mm'));
       setNotes('');
       setError(null);
+      setAutoDeductBreak(true);
     }
   }, [open, date, shift.startTime, shift.endTime]);
 
-  const calculateHours = () => {
+  const calculateHours = (includeBreakDeduction: boolean = true) => {
     if (!entryDate || !startTime || !endTime) return 0;
 
     const start = new Date(`${entryDate}T${startTime}`);
@@ -66,8 +69,19 @@ export default function ReconciliationAddEntryDialog({
     if (end <= start) return 0;
 
     const diffMs = end.getTime() - start.getTime();
-    return Math.max(0, diffMs / (1000 * 60 * 60));
+    const rawHours = diffMs / (1000 * 60 * 60);
+    
+    // Auto-deduct break time from shift if enabled
+    if (includeBreakDeduction && autoDeductBreak && shift.breakDuration > 0) {
+      return Math.max(0, rawHours - (shift.breakDuration / 60));
+    }
+    
+    return Math.max(0, rawHours);
   };
+  
+  const rawHours = calculateHours(false);
+  const hours = calculateHours(true);
+  const breakHours = shift.breakDuration / 60;
 
   const scheduledHours = (() => {
     const diffMs = shift.endTime.getTime() - shift.startTime.getTime();
@@ -76,7 +90,6 @@ export default function ReconciliationAddEntryDialog({
     return Math.max(0, workHours);
   })();
 
-  const hours = calculateHours();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,6 +135,7 @@ export default function ReconciliationAddEntryDialog({
           clockOutTime: clockOut.toISOString(),
           notes: notes.trim() || undefined,
           shiftId: shift.id,
+          breakMinutes: autoDeductBreak ? shift.breakDuration : 0,
         }),
       });
 
@@ -233,16 +247,52 @@ export default function ReconciliationAddEntryDialog({
             </div>
           </div>
 
-          {/* Hours preview */}
-          {hours > 0 && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/20">
-              <div className="flex flex-col text-sm">
-                <span className="font-medium text-foreground">New entry hours</span>
-                <span className="text-xs text-muted-foreground">
-                  Compared to scheduled {scheduledHours.toFixed(2)}h
-                </span>
+          {/* Break deduction toggle */}
+          {shift.breakDuration > 0 && (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-500/10">
+                  <Coffee className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">Auto-deduct break</span>
+                  <span className="text-xs text-muted-foreground">
+                    {shift.breakDuration} min break from shift schedule
+                  </span>
+                </div>
               </div>
-              <span className="text-2xl font-bold text-primary">{hours.toFixed(2)}</span>
+              <Switch
+                checked={autoDeductBreak}
+                onCheckedChange={setAutoDeductBreak}
+              />
+            </div>
+          )}
+
+          {/* Hours preview */}
+          {rawHours > 0 && (
+            <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">Total time</span>
+                <span className="text-lg font-semibold text-muted-foreground">{rawHours.toFixed(2)}h</span>
+              </div>
+              {autoDeductBreak && shift.breakDuration > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Coffee className="w-3 h-3" />
+                    Break deduction
+                  </span>
+                  <span className="text-amber-600">-{breakHours.toFixed(2)}h</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">Payable hours</span>
+                  <span className="text-xs text-muted-foreground">
+                    Scheduled: {scheduledHours.toFixed(2)}h
+                  </span>
+                </div>
+                <span className="text-2xl font-bold text-primary">{hours.toFixed(2)}</span>
+              </div>
             </div>
           )}
 

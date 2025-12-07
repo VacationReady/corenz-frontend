@@ -11,6 +11,7 @@ const manualEntrySchema = z.object({
   clockOutTime: z.string().datetime(),
   notes: z.string().optional(),
   shiftId: z.string().optional(),
+  breakMinutes: z.number().int().min(0).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -165,13 +166,24 @@ export async function POST(req: NextRequest) {
         clockInTime
       );
 
+      // Get break minutes - use provided value, or get from shift if linked
+      let breakMinutes = data.breakMinutes ?? 0;
+      if (breakMinutes === 0 && manualShift) {
+        // If no break minutes provided but we have a shift, get break from shift
+        const shiftWithBreak = await tx.shift.findUnique({
+          where: { id: manualShift.id },
+          select: { breakDuration: true },
+        });
+        breakMinutes = shiftWithBreak?.breakDuration ?? 0;
+      }
+
       // Process entry with NZ-compliant overtime calculation
       const processedEntry = await processTimesheetEntry(
         {
           date: clockInTime,
           startTime: clockInTime,
           endTime: clockOutTime,
-          breakMinutes: 0,
+          breakMinutes,
         },
         data.employeeId,
         requestingEmployee.companyId,

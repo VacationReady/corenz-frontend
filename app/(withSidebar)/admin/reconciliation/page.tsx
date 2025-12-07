@@ -40,6 +40,7 @@ import {
   AdjustmentDialog,
   VarianceBadge,
   ReconciliationAddEntryDialog,
+  EditClockEntryDialog,
 } from '@/components/reconciliation';
 import type { VarianceType } from '@/components/reconciliation';
 
@@ -131,6 +132,13 @@ export default function ReconciliationHubPage() {
     scheduledEnd?: Date;
   } | null>(null);
   const [addEntryShift, setAddEntryShift] = useState<ReconciliationEntry['shift'] | null>(null);
+  
+  // Edit clock entry dialog
+  const [editClockEntry, setEditClockEntry] = useState<{
+    clockEntry: ReconciliationEntry['clockEntry'];
+    shift: ReconciliationEntry['shift'];
+    employeeName: string;
+  } | null>(null);
   
   const { toast } = useToast();
   
@@ -618,7 +626,28 @@ export default function ReconciliationHubPage() {
                       
                       {/* Actions */}
                       {entry.timesheetEntry && (
-                        <div className="mt-2 flex justify-end">
+                        <div className="mt-2 flex justify-end gap-2">
+                          {/* Edit Clock Entry button */}
+                          {entry.clockEntry && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const employeeName = entry.shift.employee?.User?.name ||
+                                  `${entry.shift.employee?.User?.firstName || ''} ${entry.shift.employee?.User?.lastName || ''}`.trim() ||
+                                  'Unknown';
+                                setEditClockEntry({
+                                  clockEntry: entry.clockEntry!,
+                                  shift: entry.shift,
+                                  employeeName,
+                                });
+                              }}
+                              className="h-9 border-blue-500/30 text-blue-600 hover:bg-blue-500/10 rounded-xl"
+                            >
+                              <Clock className="mr-2 h-4 w-4" />
+                              Edit Clock
+                            </Button>
+                          )}
                           <ReconciliationActions
                             entryId={entry.timesheetEntry.id}
                             entryType="timesheet"
@@ -637,6 +666,29 @@ export default function ReconciliationHubPage() {
                               await fetchStats();
                             }}
                           />
+                        </div>
+                      )}
+                      {/* Edit button for entries with clock but no timesheet yet */}
+                      {entry.clockEntry && !entry.timesheetEntry && (
+                        <div className="mt-2 flex justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const employeeName = entry.shift.employee?.User?.name ||
+                                `${entry.shift.employee?.User?.firstName || ''} ${entry.shift.employee?.User?.lastName || ''}`.trim() ||
+                                'Unknown';
+                              setEditClockEntry({
+                                clockEntry: entry.clockEntry!,
+                                shift: entry.shift,
+                                employeeName,
+                              });
+                            }}
+                            className="h-9 border-blue-500/30 text-blue-600 hover:bg-blue-500/10 rounded-xl"
+                          >
+                            <Clock className="mr-2 h-4 w-4" />
+                            Edit Clock Entry
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -681,6 +733,28 @@ export default function ReconciliationHubPage() {
             setAddEntryShift(null);
             await fetchDayData(selectedDate);
             await fetchStats();
+          }}
+        />
+      )}
+
+      {/* Edit Clock Entry Dialog */}
+      {editClockEntry && editClockEntry.clockEntry && (
+        <EditClockEntryDialog
+          open={!!editClockEntry}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditClockEntry(null);
+            }
+          }}
+          clockEntry={editClockEntry.clockEntry}
+          shift={editClockEntry.shift}
+          employeeName={editClockEntry.employeeName}
+          onSuccess={async () => {
+            setEditClockEntry(null);
+            if (selectedDate) {
+              await fetchDayData(selectedDate);
+              await fetchStats();
+            }
           }}
         />
       )}

@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     // Set httpOnly cookie (not accessible to JavaScript - XSS protection)
     const isProduction = process.env.NODE_ENV === "production";
     const cookieName = isProduction 
-      ? "__Host-next-auth.session-token" 
+      ? "__Secure-next-auth.session-token" 
       : "next-auth.session-token";
 
     const response = NextResponse.json({

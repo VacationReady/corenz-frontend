@@ -12,6 +12,19 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
   const { type, name, config, isActive, fallbackToEmail } = body || {};
 
   try {
+    const existing = await prisma.notificationChannel.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Channel not found" }, { status: 404 });
+    }
+
+    if (existing.companyId !== session.user.companyId) {
+      // Prevent cross-tenant modification
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const updated = await prisma.notificationChannel.update({
       where: { id },
       data: {
@@ -23,10 +36,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
         updatedAt: new Date(),
       },
     });
-    if (updated.companyId !== session.user.companyId) {
-      // Prevent cross-tenant modification
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+
     return NextResponse.json(updated);
   } catch (error: any) {
     if (String(error?.code) === "P2025") {

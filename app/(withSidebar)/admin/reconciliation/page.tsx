@@ -39,6 +39,7 @@ import {
   ReconciliationActions, 
   AdjustmentDialog,
   VarianceBadge,
+  ReconciliationAddEntryDialog,
 } from '@/components/reconciliation';
 import type { VarianceType } from '@/components/reconciliation';
 
@@ -129,6 +130,7 @@ export default function ReconciliationHubPage() {
     scheduledStart?: Date;
     scheduledEnd?: Date;
   } | null>(null);
+  const [addEntryShift, setAddEntryShift] = useState<ReconciliationEntry['shift'] | null>(null);
   
   const { toast } = useToast();
   
@@ -604,6 +606,14 @@ export default function ReconciliationHubPage() {
                         } : null}
                         variance={entry.variance}
                         reconciliationStatus={entry.reconciliationStatus}
+                        onAddEntry={
+                          !entry.clockEntry &&
+                          !entry.timesheetEntry &&
+                          !!entry.shift.employeeId &&
+                          selectedDate
+                            ? () => setAddEntryShift(entry.shift)
+                            : undefined
+                        }
                       />
                       
                       {/* Actions */}
@@ -651,6 +661,25 @@ export default function ReconciliationHubPage() {
           onSuccess={async () => {
             setAdjustmentEntry(null);
             await fetchDayData(selectedDate!);
+            await fetchStats();
+          }}
+        />
+      )}
+
+      {/* Add Entry Dialog */}
+      {addEntryShift && selectedDate && (
+        <ReconciliationAddEntryDialog
+          open={!!addEntryShift}
+          onOpenChange={(open) => {
+            if (!open) {
+              setAddEntryShift(null);
+            }
+          }}
+          shift={addEntryShift}
+          date={selectedDate}
+          onSuccess={async () => {
+            setAddEntryShift(null);
+            await fetchDayData(selectedDate);
             await fetchStats();
           }}
         />

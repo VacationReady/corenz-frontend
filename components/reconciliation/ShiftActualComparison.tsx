@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
+import Button from '@/components/ui/Button';
 import VarianceBadge, { VarianceType } from './VarianceBadge';
 
 interface ShiftActualComparisonProps {
@@ -46,6 +47,7 @@ interface ShiftActualComparisonProps {
   isSelected?: boolean;
   onClick?: () => void;
   className?: string;
+  onAddEntry?: () => void;
 }
 
 function getEmployeeDisplayName(user?: { name?: string | null; firstName?: string | null; lastName?: string | null } | null): string {
@@ -78,6 +80,7 @@ export default function ShiftActualComparison({
   isSelected = false,
   onClick,
   className,
+  onAddEntry,
 }: ShiftActualComparisonProps) {
   const hasActual = !!actual;
   const employeeName = getEmployeeDisplayName(shift.employee?.User);
@@ -244,10 +247,22 @@ export default function ShiftActualComparison({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-24 text-center">
+            <div className="flex flex-col items-center justify-center h-24 text-center space-y-2">
               <XCircle className="w-8 h-8 text-rose-400 mb-2" />
               <p className="text-sm font-medium text-rose-600 dark:text-rose-400">No clock entry</p>
               <p className="text-xs text-muted-foreground">Employee did not clock in</p>
+              {onAddEntry && (
+                <Button
+                  size="sm"
+                  className="mt-1 rounded-xl"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddEntry();
+                  }}
+                >
+                  Add Entry
+                </Button>
+              )}
             </div>
           )}
         </div>

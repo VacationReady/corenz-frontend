@@ -11,7 +11,7 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { startOfDay, endOfDay, differenceInMinutes, isSameDay, parseISO } from 'date-fns';
-import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 // ============================================
 // TYPES & INTERFACES
@@ -386,11 +386,11 @@ export async function getShiftsWithActualsForDay(
   }
 ): Promise<ShiftWithActuals[]> {
   const timeZone = 'Pacific/Auckland';
-  const zonedDate = utcToZonedTime(date, timeZone);
+  const zonedDate = toZonedTime(date, timeZone);
   const zonedStart = startOfDay(zonedDate);
   const zonedEnd = endOfDay(zonedDate);
-  const dayStart = zonedTimeToUtc(zonedStart, timeZone);
-  const dayEnd = zonedTimeToUtc(zonedEnd, timeZone);
+  const dayStart = fromZonedTime(zonedStart, timeZone);
+  const dayEnd = fromZonedTime(zonedEnd, timeZone);
 
   // Build where clause
   const whereClause: Prisma.ShiftWhereInput = {

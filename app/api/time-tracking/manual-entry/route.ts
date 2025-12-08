@@ -120,7 +120,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get break minutes before transaction to avoid extra queries inside
+    let breakMinutesFromShift = data.breakMinutes ?? 0;
+    if (breakMinutesFromShift === 0 && data.shiftId) {
+      const shiftWithBreak = await prisma.shift.findUnique({
+        where: { id: data.shiftId },
+        select: { breakDuration: true },
+      });
+      breakMinutesFromShift = shiftWithBreak?.breakDuration ?? 0;
+    }
+
     // Use transaction to create clock entry AND timesheet entry with overtime calculation
+    // Increase timeout to 15 seconds to handle slower database operations
     const result = await prisma.$transaction(async (tx) => {
       // If a shiftId is provided, validate it belongs to the same company and employee
       let manualShift: {
@@ -166,16 +177,8 @@ export async function POST(req: NextRequest) {
         clockInTime
       );
 
-      // Get break minutes - use provided value, or get from shift if linked
-      let breakMinutes = data.breakMinutes ?? 0;
-      if (breakMinutes === 0 && manualShift) {
-        // If no break minutes provided but we have a shift, get break from shift
-        const shiftWithBreak = await tx.shift.findUnique({
-          where: { id: manualShift.id },
-          select: { breakDuration: true },
-        });
-        breakMinutes = shiftWithBreak?.breakDuration ?? 0;
-      }
+      // Use break minutes obtained before transaction
+      const breakMinutes = breakMinutesFromShift;
 
       // Process entry with NZ-compliant overtime calculation
       const processedEntry = await processTimesheetEntry(

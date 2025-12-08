@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { isManualEntryAllowed } from '@/types/time-tracking-settings';
-import { processTimesheetEntry, findOrCreateTimesheet, recalculateTimesheetTotals } from '@/lib/time-tracking/timesheet-entry-processor';
+import { processTimesheetEntry, findOrCreateTimesheet, recalculateTimesheetTotals, autoSubmitTimesheet } from '@/lib/time-tracking/timesheet-entry-processor';
 import { autoMatchClockEntryToShift, linkClockEntryToShift, linkTimesheetEntryToShift } from '@/lib/time-tracking/shift-matcher';
 
 const employeeManualEntrySchema = z.object({
@@ -247,8 +247,15 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return { clockEntry, timesheetEntry };
+      return { clockEntry, timesheetEntry, timesheetId };
     });
+
+    // Auto-submit the timesheet for approval (non-blocking)
+    try {
+      await autoSubmitTimesheet(result.timesheetId, requestingEmployee.id, requestingEmployee.companyId);
+    } catch (submitError) {
+      console.error('[Employee manual entry] Auto-submit timesheet error (non-blocking):', submitError);
+    }
 
     return NextResponse.json({
       success: true,

@@ -12,6 +12,11 @@ import { prisma } from '@/lib/prisma';
 import { calculateOvertimeForEntry, OvertimeSettings, EmployeeOvertimeConfig, TimesheetEntryInput } from '@/lib/overtime-calculator';
 import { Prisma } from '@prisma/client';
 import { startOfDay, startOfWeek, endOfWeek } from 'date-fns';
+import {
+  cancelPendingTimesheetApprovalActionItems,
+  resolveActionItemAssigneeUserId,
+  upsertTimesheetApprovalActionItem,
+} from '@/lib/action-items-helper';
 
 export interface ProcessedTimesheetEntry {
   date: Date;
@@ -258,4 +263,272 @@ export async function recalculateTimesheetTotals(
       breakHours,
     },
   });
+}
+
+/**
+ * Auto-submit a timesheet for approval
+ * 
+ * This function automatically submits a timesheet when entries are added,
+ * creating the approval workflow stages and action items for approvers.
+ * 
+ * @param timesheetId - Timesheet ID to submit
+ * @param employeeId - Employee ID who owns the timesheet
+ * @param companyId - Company ID
+ * @returns true if submitted successfully, false if already submitted or error
+ */
+export async function autoSubmitTimesheet(
+  timesheetId: string,
+  employeeId: string,
+  companyId: string
+): Promise<boolean> {
+  try {
+    // Check if already submitted
+    const timesheet = await prisma.timesheet.findFirst({
+      where: { id: timesheetId, companyId },
+      include: {
+        TimesheetEntries: true,
+        Employee: {
+          select: {
+            id: true,
+            User: {
+              select: {
+                firstName: true,
+                lastName: true,
+                name: true,
+                managerId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!timesheet) {
+      console.error(`[Auto-Submit] Timesheet ${timesheetId} not found`);
+      return false;
+    }
+
+    // Skip if already submitted
+    if (timesheet.submittedAt) {
+      console.log(`[Auto-Submit] Timesheet ${timesheetId} already submitted, skipping`);
+      return true;
+    }
+
+    // Skip if no entries
+    if (timesheet.TimesheetEntries.length === 0) {
+      console.log(`[Auto-Submit] Timesheet ${timesheetId} has no entries, skipping`);
+      return false;
+    }
+
+    const employeeName = timesheet.Employee?.User
+      ? `${timesheet.Employee.User.firstName ?? ''} ${timesheet.Employee.User.lastName ?? ''}`.trim() ||
+        timesheet.Employee.User.name ||
+        'Employee'
+      : 'Employee';
+
+    // Clear any lingering pending approval action items
+    await cancelPendingTimesheetApprovalActionItems(timesheetId);
+
+    // Update timesheet status to submitted
+    await prisma.timesheet.update({
+      where: { id: timesheetId },
+      data: {
+        submittedAt: new Date(),
+        approvalStatus: 'PENDING',
+      },
+    });
+
+    console.log(`[Auto-Submit] Timesheet ${timesheetId} auto-submitted for ${employeeName}`);
+
+    // Get company settings to find approval workflow
+    let settings = await prisma.timeTrackingSettings.findUnique({
+      where: { companyId },
+    });
+
+    // Ensure workflow exists - create if missing
+    if (!settings?.defaultWorkflowId) {
+      console.log('[Auto-Submit] No workflow configured - auto-creating default workflow');
+      
+      // Create TIMESHEET_APPROVAL event category if it doesn't exist
+      await prisma.eventCategory.upsert({
+        where: {
+          companyId_name: {
+            companyId,
+            name: 'Timesheet Approval',
+          },
+        },
+        update: {},
+        create: {
+          id: `TIMESHEET_APPROVAL_${companyId}`,
+          companyId,
+          name: 'Timesheet Approval',
+          requiresApproval: true,
+          adminOnly: false,
+          isActive: true,
+          categoryType: 'SYSTEM',
+          systemDefined: true,
+          updatedAt: new Date(),
+        },
+      });
+
+      // Create workflow
+      const newWorkflow = await prisma.approvalWorkflow.create({
+        data: {
+          companyId,
+          name: 'Default Timesheet Approval',
+          eventCategoryId: `TIMESHEET_APPROVAL_${companyId}`,
+          scopeType: 'COMPANY',
+          isActive: true,
+          stages: {
+            create: {
+              name: 'Manager Approval',
+              order: 1,
+              mode: 'SEQUENTIAL',
+              approvers: {
+                create: {
+                  type: 'MANAGER',
+                  order: 1,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Update settings
+      await prisma.timeTrackingSettings.upsert({
+        where: { companyId },
+        update: { defaultWorkflowId: newWorkflow.id },
+        create: {
+          companyId,
+          defaultWorkflowId: newWorkflow.id,
+        },
+      });
+
+      console.log(`[Auto-Submit] Auto-created workflow: ${newWorkflow.id}`);
+      
+      // Re-fetch settings with new workflow
+      settings = await prisma.timeTrackingSettings.findUnique({
+        where: { companyId },
+      });
+    }
+
+    // If there's a default workflow, create approval stages
+    if (settings?.defaultWorkflowId) {
+      const workflow = await prisma.approvalWorkflow.findFirst({
+        where: { id: settings.defaultWorkflowId, companyId },
+        include: {
+          stages: {
+            include: {
+              approvers: true,
+            },
+            orderBy: {
+              order: 'asc',
+            },
+          },
+        },
+      });
+
+      if (!workflow) {
+        console.error(`[Auto-Submit] Workflow ${settings.defaultWorkflowId} not found`);
+        return true; // Still submitted, just no workflow
+      }
+
+      if (workflow.stages && workflow.stages.length > 0) {
+        console.log(`[Auto-Submit] Creating ${workflow.stages.length} approval stages`);
+        
+        // Create approval stages
+        for (const stage of workflow.stages) {
+          const approvalStage = await prisma.timesheetApprovalStage.create({
+            data: {
+              timesheetId,
+              workflowStageId: stage.id,
+              name: stage.name || `Stage ${stage.order}`,
+              order: stage.order,
+              mode: stage.mode,
+              status: 'PENDING',
+              isActive: stage.order === 1, // First stage is active
+            },
+          });
+
+          // Create approval decisions for each approver
+          for (let i = 0; i < stage.approvers.length; i++) {
+            const approver = stage.approvers[i];
+
+            let approverId: string | null = null;
+            
+            if (approver.type === 'USER' && approver.userId) {
+              approverId = approver.userId;
+            } else if (approver.type === 'MANAGER') {
+              // Resolve the manager's employee record from the submitter's managerId
+              const managerId = timesheet.Employee?.User?.managerId;
+              
+              if (!managerId) {
+                console.warn(`[Auto-Submit] Employee ${employeeName} has no manager assigned - skipping manager approver`);
+                continue;
+              }
+
+              const managerEmployee = await prisma.employee.findFirst({
+                where: {
+                  userId: managerId,
+                  companyId,
+                },
+                select: { id: true },
+              });
+
+              if (!managerEmployee?.id) {
+                console.warn(`[Auto-Submit] Manager user ID ${managerId} has no employee record - skipping`);
+                continue;
+              }
+
+              approverId = managerEmployee.id;
+            } else {
+              console.warn(`[Auto-Submit] Unsupported approver type: ${approver.type}`);
+              continue;
+            }
+            
+            if (!approverId) {
+              continue;
+            }
+
+            const decision = await prisma.timesheetApprovalDecision.create({
+              data: {
+                stageId: approvalStage.id,
+                approverId,
+                order: i + 1,
+                status: 'PENDING',
+                isActive: stage.order === 1, // Active if first stage
+              },
+            });
+
+            if (stage.order === 1) {
+              // Create action item for first stage approvers
+              const assignedToId = await resolveActionItemAssigneeUserId(approverId);
+              if (assignedToId) {
+                await upsertTimesheetApprovalActionItem({
+                  companyId,
+                  assignedToId,
+                  relatedEmployeeId: employeeId,
+                  timesheetId,
+                  decisionId: decision.id,
+                  stageId: approvalStage.id,
+                  stageName: approvalStage.name,
+                  periodStart: timesheet.periodStart,
+                  periodEnd: timesheet.periodEnd,
+                  totalHours: Number(timesheet.totalHours),
+                  employeeName,
+                });
+                console.log(`[Auto-Submit] Created action item for approver ${assignedToId}`);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('[Auto-Submit] Error auto-submitting timesheet:', error);
+    return false;
+  }
 }

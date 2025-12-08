@@ -10,7 +10,8 @@ import { autoMatchClockEntryToShift, linkClockEntryToShift } from '@/lib/time-tr
 import { 
   findOrCreateTimesheet, 
   processTimesheetEntry, 
-  recalculateTimesheetTotals 
+  recalculateTimesheetTotals,
+  autoSubmitTimesheet,
 } from '@/lib/time-tracking/timesheet-entry-processor';
 
 const clockOutSchema = z.object({
@@ -271,6 +272,13 @@ export async function POST(req: NextRequest) {
         timesheetId,
         hours: processedEntry.hours,
       };
+
+      // Auto-submit the timesheet for approval (non-blocking)
+      try {
+        await autoSubmitTimesheet(timesheetId, employee.id, employee.companyId);
+      } catch (submitError) {
+        console.error('[Clock-out] Auto-submit timesheet error (non-blocking):', submitError);
+      }
       } catch (timesheetError) {
         // Log but don't fail the clock-out - timesheet can be generated manually if needed
         console.error('[Clock-out] Auto-generate timesheet error (non-blocking):', timesheetError);

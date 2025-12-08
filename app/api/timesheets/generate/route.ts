@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { getTimesheetPeriod, calculateHours, calculateOvertime } from '@/lib/timesheet-calculations';
 import { calculateOvertimeForEntry, OvertimeSettings } from '@/lib/overtime-calculator';
+import { autoSubmitTimesheet } from '@/lib/time-tracking/timesheet-entry-processor';
 
 const generateTimesheetSchema = z.object({
   employeeId: z.string().optional(), // If not provided, generates for requesting user
@@ -260,14 +261,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Auto-submit if configured
-    if (settings?.autoSubmit) {
-      await prisma.timesheet.update({
-        where: { id: timesheet.id },
-        data: {
-          submittedAt: new Date(),
-        },
-      });
+    // Auto-submit the timesheet for approval
+    // Always auto-submit when generating timesheets (entries are ready for approval)
+    try {
+      await autoSubmitTimesheet(timesheet.id, targetEmployeeId, requestingEmployee.companyId);
+    } catch (submitError) {
+      console.error('[Generate timesheet] Auto-submit error (non-blocking):', submitError);
     }
 
     return NextResponse.json({

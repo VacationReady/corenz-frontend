@@ -90,17 +90,28 @@ export async function GET(req: NextRequest) {
     }
 
     // Build status filter
+    // For ADMIN: Show ALL timesheets including drafts (no submittedAt filter)
+    // For MANAGER: Only show submitted timesheets
     let statusFilter: any;
     if (status === "APPROVED") {
       statusFilter = { approvalStatus: "APPROVED" };
     } else if (status === "DECLINED") {
       statusFilter = { approvalStatus: "DECLINED" };
+    } else if (status === "ALL") {
+      // Admin can view all timesheets regardless of status
+      statusFilter = {};
     } else {
-      // Default to pending timesheets that have been submitted
-      statusFilter = {
-        approvalStatus: "PENDING",
-        submittedAt: { not: null },
-      };
+      // Default to pending timesheets
+      if (isAdmin) {
+        // Admin sees ALL pending timesheets (including drafts)
+        statusFilter = { approvalStatus: "PENDING" };
+      } else {
+        // Manager only sees submitted pending timesheets
+        statusFilter = {
+          approvalStatus: "PENDING",
+          submittedAt: { not: null },
+        };
+      }
     }
 
     const whereClause: any = {
@@ -140,7 +151,10 @@ export async function GET(req: NextRequest) {
         where: whereClause,
         include: {
           Employee: {
-            include: {
+            select: {
+              id: true,
+              hourlyRate: true,
+              salaryAmount: true,
               User: {
                 select: {
                   name: true,
@@ -157,6 +171,18 @@ export async function GET(req: NextRequest) {
               },
             },
           },
+          ClockEntries: {
+            select: {
+              id: true,
+              clockInTime: true,
+              clockOutTime: true,
+              status: true,
+              shiftId: true,
+            },
+            orderBy: {
+              clockInTime: 'asc',
+            },
+          },
           TimesheetEntries: {
             select: {
               id: true,
@@ -167,6 +193,22 @@ export async function GET(req: NextRequest) {
               breakMinutes: true,
               notes: true,
               isOvertime: true,
+              entryType: true,
+              shiftId: true,
+              scheduledStartTime: true,
+              scheduledEndTime: true,
+              varianceMinutes: true,
+              varianceType: true,
+              reconciliationStatus: true,
+              Shift: {
+                select: {
+                  id: true,
+                  startTime: true,
+                  endTime: true,
+                  role: true,
+                  attendanceStatus: true,
+                },
+              },
             },
             orderBy: {
               date: 'asc',
@@ -208,6 +250,24 @@ export async function GET(req: NextRequest) {
         employeeName = [user.firstName, user.lastName].filter(Boolean).join(" ");
       }
 
+      // Calculate cost based on hourly rate or salary
+      const hourlyRate = timesheet.Employee.hourlyRate 
+        ? parseFloat(timesheet.Employee.hourlyRate.toString())
+        : null;
+      const salaryAmount = timesheet.Employee.salaryAmount
+        ? parseFloat(timesheet.Employee.salaryAmount.toString())
+        : null;
+      
+      // Calculate estimated cost
+      let estimatedCost: number | null = null;
+      if (hourlyRate) {
+        estimatedCost = totalHours * hourlyRate;
+      } else if (salaryAmount) {
+        // Assume annual salary, calculate hourly equivalent (2080 hours/year standard)
+        const hourlyEquivalent = salaryAmount / 2080;
+        estimatedCost = totalHours * hourlyEquivalent;
+      }
+
       return {
         id: timesheet.id,
         employeeId: timesheet.employeeId,
@@ -222,7 +282,14 @@ export async function GET(req: NextRequest) {
         submittedAt: timesheet.submittedAt,
         approvedAt: timesheet.approvedAt,
         notes: null,
-        entries: timesheet.TimesheetEntries.map((entry) => ({
+        // Cost information
+        hourlyRate,
+        salaryAmount,
+        estimatedCost: estimatedCost ? parseFloat(estimatedCost.toFixed(2)) : null,
+        payType: hourlyRate ? 'HOURLY' : salaryAmount ? 'SALARY' : 'UNKNOWN',
+        // Clock entries for reference
+        clockEntryCount: timesheet.ClockEntries?.length || 0,
+        entries: timesheet.TimesheetEntries.map((entry: any) => ({
           id: entry.id,
           date: entry.date,
           startTime: entry.startTime,
@@ -231,6 +298,21 @@ export async function GET(req: NextRequest) {
           hours: entry.hours,
           notes: entry.notes,
           isOvertime: entry.isOvertime,
+          entryType: entry.entryType || 'MANUAL',
+          // Shift reconciliation info
+          shiftId: entry.shiftId,
+          scheduledStartTime: entry.scheduledStartTime,
+          scheduledEndTime: entry.scheduledEndTime,
+          varianceMinutes: entry.varianceMinutes,
+          varianceType: entry.varianceType,
+          reconciliationStatus: entry.reconciliationStatus,
+          shift: entry.Shift ? {
+            id: entry.Shift.id,
+            startTime: entry.Shift.startTime,
+            endTime: entry.Shift.endTime,
+            role: entry.Shift.role,
+            attendanceStatus: entry.Shift.attendanceStatus,
+          } : null,
         })),
       };
     });

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Button from "@/components/ui/Button";
 import Checkbox from "@/components/ui/Checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Check, X, Eye, Filter, Users, Clock, Calendar as CalendarIcon, Sparkles, CheckCircle, Edit2, History, Info } from "lucide-react";
+import { Loader2, Check, X, Eye, Filter, Users, Clock, Calendar as CalendarIcon, Sparkles, CheckCircle, Edit2, History, Info, DollarSign, Briefcase, Link2 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
@@ -20,6 +20,14 @@ import EditTimesheetEntryDialog from "@/components/time-tracking/EditTimesheetEn
 import TimesheetAuditTrail from "@/components/time-tracking/TimesheetAuditTrail";
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, subWeeks, subMonths, subQuarters } from "date-fns";
 
+type ShiftInfo = {
+  id: string;
+  startTime: string;
+  endTime: string;
+  role: string | null;
+  attendanceStatus: string;
+};
+
 type TimesheetEntry = {
   id: string;
   date: string;
@@ -30,6 +38,14 @@ type TimesheetEntry = {
   notes?: string | null;
   isOvertime: boolean;
   entryType: "CLOCK" | "MANUAL" | "ADJUSTED";
+  // Shift reconciliation info
+  shiftId?: string | null;
+  scheduledStartTime?: string | null;
+  scheduledEndTime?: string | null;
+  varianceMinutes?: number | null;
+  varianceType?: string | null;
+  reconciliationStatus?: string;
+  shift?: ShiftInfo | null;
 };
 
 type Timesheet = {
@@ -47,6 +63,12 @@ type Timesheet = {
   approvedAt?: string | null;
   notes?: string | null;
   entries: TimesheetEntry[];
+  // Cost information
+  hourlyRate?: number | null;
+  salaryAmount?: number | null;
+  estimatedCost?: number | null;
+  payType?: 'HOURLY' | 'SALARY' | 'UNKNOWN';
+  clockEntryCount?: number;
 };
 
 type Department = {
@@ -59,7 +81,7 @@ export default function AdminTimesheetHubPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [statusFilter, setStatusFilter] = useState<"pending" | "approved" | "declined">("pending");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "declined">("pending");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [periodFilter, setPeriodFilter] = useState<"all" | "week" | "month" | "quarter" | "custom">("all");
@@ -82,9 +104,10 @@ export default function AdminTimesheetHubPage() {
   const totalHours = timesheets.reduce((sum, t) => sum + t.totalHours, 0);
   const avgHours = totalCount > 0 ? totalHours / totalCount : 0;
   const oldestSubmission = timesheets.length > 0 ? timesheets[0].submittedAt : null;
+  const totalCost = timesheets.reduce((sum, t) => sum + (t.estimatedCost || 0), 0);
   
   // Status labels
-  const statusLabel = statusFilter === "pending" ? "Pending" : statusFilter === "approved" ? "Approved" : "Declined";
+  const statusLabel = statusFilter === "all" ? "All" : statusFilter === "pending" ? "Pending" : statusFilter === "approved" ? "Approved" : "Declined";
   const showBulkActions = statusFilter === "pending"; // Only show bulk actions for pending
 
   useEffect(() => {
@@ -120,7 +143,9 @@ export default function AdminTimesheetHubPage() {
     }
     
     // Add status filter
-    if (statusFilter === "approved") {
+    if (statusFilter === "all") {
+      params.append("status", "ALL");
+    } else if (statusFilter === "approved") {
       params.append("status", "APPROVED");
     } else if (statusFilter === "declined") {
       params.append("status", "DECLINED");
@@ -337,10 +362,10 @@ export default function AdminTimesheetHubPage() {
               </div>
             </div>
             <div className="rounded-2xl border border-white/20 bg-black/30 p-4">
-              <p className="text-xs uppercase tracking-wide text-white/50">Oldest submitted</p>
-              <div className="mt-2 flex items-center gap-2 text-base font-semibold text-white">
-                <CalendarIcon className="h-5 w-5 text-amber-300" />
-                {oldestSubmission ? format(new Date(oldestSubmission), "MMM d") : "N/A"}
+              <p className="text-xs uppercase tracking-wide text-white/50">Total Cost</p>
+              <div className="mt-2 flex items-center gap-2 text-2xl font-semibold text-white">
+                <DollarSign className="h-5 w-5 text-emerald-300" />
+                {totalCost > 0 ? `$${totalCost.toFixed(0)}` : "N/A"}
               </div>
             </div>
           </div>
@@ -375,6 +400,7 @@ export default function AdminTimesheetHubPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="all">All Timesheets</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
                       <SelectItem value="declined">Declined</SelectItem>
@@ -551,7 +577,32 @@ export default function AdminTimesheetHubPage() {
                         <div className="font-medium text-foreground">
                           {format(new Date(timesheet.periodStart), "MMM d")} – {format(new Date(timesheet.periodEnd), "MMM d, yyyy")}
                         </div>
-                        <div>{timesheet.totalHours.toFixed(2)} hours</div>
+                        <div className="flex items-center gap-3">
+                          <span>{timesheet.totalHours.toFixed(2)} hours</span>
+                          {timesheet.estimatedCost != null && (
+                            <span className="flex items-center gap-1 text-emerald-400">
+                              <DollarSign className="h-3 w-3" />
+                              {timesheet.estimatedCost.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          {timesheet.payType === 'HOURLY' && timesheet.hourlyRate && (
+                            <Badge variant="outline" className="text-xs">
+                              ${timesheet.hourlyRate}/hr
+                            </Badge>
+                          )}
+                          {timesheet.payType === 'SALARY' && (
+                            <Badge variant="outline" className="text-xs">
+                              Salaried
+                            </Badge>
+                          )}
+                          {!timesheet.submittedAt && (
+                            <Badge variant="secondary" className="text-xs bg-amber-500/20 text-amber-400">
+                              Draft
+                            </Badge>
+                          )}
+                        </div>
                         {timesheet.approvedAt && (
                           <div className="text-xs text-emerald-400">
                             Approved {format(new Date(timesheet.approvedAt), "MMM d, yyyy")}
@@ -634,11 +685,55 @@ export default function AdminTimesheetHubPage() {
                       <span className="font-medium text-foreground">{previewSheet.totalHours.toFixed(2)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Submitted</span>
+                      <span className="text-muted-foreground">Status</span>
                       <span className="font-medium text-foreground">
-                        {format(new Date(previewSheet.submittedAt), "MMM d, yyyy")}
+                        {previewSheet.submittedAt ? 'Submitted' : 'Draft'}
+                        {!previewSheet.submittedAt && (
+                          <Badge variant="secondary" className="ml-2 text-xs bg-amber-500/20 text-amber-400">
+                            Not Submitted
+                          </Badge>
+                        )}
                       </span>
                     </div>
+                    {previewSheet.submittedAt && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Submitted</span>
+                        <span className="font-medium text-foreground">
+                          {format(new Date(previewSheet.submittedAt), "MMM d, yyyy")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cost Summary */}
+                  <div className="space-y-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="h-4 w-4 text-emerald-400" />
+                      <span className="font-medium text-emerald-400">Cost Summary</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Pay Type</span>
+                      <span className="font-medium text-foreground">
+                        {previewSheet.payType === 'HOURLY' ? 'Hourly' : previewSheet.payType === 'SALARY' ? 'Salaried' : 'Not Set'}
+                      </span>
+                    </div>
+                    {previewSheet.hourlyRate && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Hourly Rate</span>
+                        <span className="font-medium text-foreground">${previewSheet.hourlyRate.toFixed(2)}/hr</span>
+                      </div>
+                    )}
+                    {previewSheet.estimatedCost != null && (
+                      <div className="flex items-center justify-between border-t border-emerald-500/20 pt-2 mt-2">
+                        <span className="text-muted-foreground font-medium">Estimated Cost</span>
+                        <span className="font-bold text-emerald-400 text-lg">${previewSheet.estimatedCost.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {previewSheet.estimatedCost == null && (
+                      <div className="text-xs text-muted-foreground italic">
+                        Set employee hourly rate or salary to calculate cost
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -718,6 +813,35 @@ export default function AdminTimesheetHubPage() {
                             {entry.isOvertime && (
                               <div className="mt-1 text-xs text-orange-400">
                                 Overtime
+                              </div>
+                            )}
+                            {/* Shift Information */}
+                            {entry.shift && (
+                              <div className="mt-2 pt-2 border-t border-white/10">
+                                <div className="flex items-center gap-1 text-blue-400 mb-1">
+                                  <Link2 className="h-3 w-3" />
+                                  <span className="font-medium">Linked Shift</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span>Scheduled:</span>
+                                  <span>
+                                    {format(new Date(entry.shift.startTime), "h:mm a")} - {format(new Date(entry.shift.endTime), "h:mm a")}
+                                  </span>
+                                </div>
+                                {entry.shift.role && (
+                                  <div className="flex items-center justify-between">
+                                    <span>Role:</span>
+                                    <span>{entry.shift.role}</span>
+                                  </div>
+                                )}
+                                {entry.varianceMinutes != null && entry.varianceMinutes !== 0 && (
+                                  <div className="flex items-center justify-between">
+                                    <span>Variance:</span>
+                                    <span className={entry.varianceMinutes > 0 ? 'text-emerald-400' : 'text-amber-400'}>
+                                      {entry.varianceMinutes > 0 ? '+' : ''}{entry.varianceMinutes} min
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             )}
                             {entry.notes && (

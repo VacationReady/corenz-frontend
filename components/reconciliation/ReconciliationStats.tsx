@@ -112,7 +112,7 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         label="Total Shifts"
         value={stats.totalShifts}
         subValue={`${matchRate}% matched`}
-        color="primary"
+        color="blue"
       />
       
       <StatCard
@@ -120,7 +120,7 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         label="Pending"
         value={stats.pendingReconciliation}
         subValue="Need review"
-        color="amber"
+        color="blue"
       />
       
       <StatCard
@@ -128,7 +128,7 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         label="Approved"
         value={stats.approvedCount}
         subValue="Ready for payroll"
-        color="emerald"
+        color="blue"
       />
       
       <StatCard
@@ -136,21 +136,21 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         label="Flagged"
         value={stats.flaggedCount}
         subValue="Require attention"
-        color="rose"
+        color="blue"
       />
       
       <StatCard
         icon={XCircle}
         label="No Shows"
         value={stats.noShowCount}
-        color="rose"
+        color="blue"
       />
       
       <StatCard
         icon={TrendingUp}
         label="Avg Variance"
         value={`${stats.averageVarianceMinutes}m`}
-        color="violet"
+        color="blue"
       />
       
       <StatCard
@@ -166,7 +166,7 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         label="Actual Hours"
         value={stats.totalActualHours.toFixed(1)}
         subValue={hoursDiffDisplay}
-        color={hoursDiff >= 0 ? 'emerald' : 'amber'}
+        color="blue"
         trend={hoursDiff >= 0 ? 'up' : 'down'}
       />
     </div>

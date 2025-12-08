@@ -505,18 +505,24 @@ function EnhancedWorkflowCanvasInner({
     setShowProperties(true);
   }, []);
 
-  // Update node
+  // Update node and keep the selected node in sync so the properties panel
+  // immediately reflects any changes made from the Node Editor
   const handleNodeUpdate = useCallback((nodeId: string, updates: any) => {
     if (readOnly) return;
-    
-    setNodes((nds) =>
-      nds.map((node) =>
+
+    setNodes((nds) => {
+      const updatedNodes = nds.map((node) =>
         node.id === nodeId
           ? { ...node, data: { ...node.data, ...updates } }
           : node
-      )
-    );
-  }, [setNodes, readOnly]);
+      );
+
+      const updatedNode = updatedNodes.find((node) => node.id === nodeId) || null;
+      setSelectedNode(updatedNode);
+
+      return updatedNodes;
+    });
+  }, [setNodes, setSelectedNode, readOnly]);
 
   // Delete selected node
   const deleteSelectedNode = useCallback(() => {

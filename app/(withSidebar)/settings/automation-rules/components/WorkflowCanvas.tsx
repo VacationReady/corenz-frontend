@@ -383,7 +383,14 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
                 node={selectedNode}
                 onUpdate={(updates) => {
                   if (!selectedNode) return;
-                  setNodes((nds) => nds.map((n) => (n.id === selectedNode.id ? { ...n, data: { ...n.data, ...updates } } : n)));
+                  setNodes((nds) => {
+                    const newNodes = nds.map((n) =>
+                      n.id === selectedNode.id ? { ...n, data: { ...n.data, ...updates } } : n
+                    );
+                    const updated = newNodes.find((n) => n.id === selectedNode.id) || null;
+                    setSelectedNode(updated);
+                    return newNodes;
+                  });
                 }}
                 onClose={() => setShowProperties(false)}
                 referenceData={referenceData}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, LayoutDashboard, Calendar, Clock, Users, X, Target, ClipboardList, CalendarClock, FileText } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { getLogoutCallbackUrl } from "@/lib/logout-url";
 import clsx from "clsx";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
 
@@ -31,7 +32,7 @@ export default function EmployeeSidebar({
 
   const handleLogout = () => {
     onMobileNavigate?.();
-    void signOut({ callbackUrl: "/login" });
+    void signOut({ callbackUrl: getLogoutCallbackUrl() });
   };
 
   const navItems = [

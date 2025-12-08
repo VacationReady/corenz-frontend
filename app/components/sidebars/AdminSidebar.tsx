@@ -33,6 +33,7 @@ import {
   SidebarAction,
   SidebarFooter,
 } from "@/components/navigation/SidebarPrimitives";
+import { getLogoutCallbackUrl } from "@/lib/logout-url";
 
 interface SidebarProps {
   variant?: "desktop" | "mobile";
@@ -55,7 +56,7 @@ export default function AdminSidebar({
 
   const handleLogout = () => {
     onMobileNavigate?.();
-    void signOut({ callbackUrl: "/login" });
+    void signOut({ callbackUrl: getLogoutCallbackUrl() });
   };
 
   const logoElement = brandLogo ? (

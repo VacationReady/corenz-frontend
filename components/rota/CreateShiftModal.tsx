@@ -64,6 +64,19 @@ interface Conflict {
   severity: string;
   description: string;
 }
+interface ShiftFormData {
+  employeeIds: string[];
+  departmentId: string;
+  locationId: string;
+  rotaGroupId: string;
+  selectedRole: string;
+  startTime: string;
+  endTime: string;
+  breakDuration: number | '';
+  role: string;
+  notes: string;
+  requiresConfirmation: boolean;
+}
 
 // Searchable Multi-Select Component for Employees
 interface EmployeeMultiSelectProps {
@@ -341,7 +354,7 @@ export default function CreateShiftModal({
   const [shiftBasedOnly, setShiftBasedOnly] = useState(true); // Default to only showing shift-based workers
 
   // Form state - now supports multiple employees
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ShiftFormData>({
     employeeIds: preselectedEmployeeId ? [preselectedEmployeeId] : [] as string[],
     departmentId: '',
     locationId: '',
@@ -541,7 +554,9 @@ export default function CreateShiftModal({
       }
     }
 
-    if (formData.breakDuration < 0) {
+    const breakDurationValue = formData.breakDuration === '' ? 0 : formData.breakDuration;
+
+    if (breakDurationValue < 0) {
       newErrors.breakDuration = 'Break duration cannot be negative';
     }
 
@@ -561,17 +576,31 @@ export default function CreateShiftModal({
       const results = [];
       
       for (const employeeId of employeeIdsToProcess) {
+        // When creating shifts for multiple employees, use each employee's own department/location
+        // This ensures the department breakdown correctly reflects each employee's department
+        let shiftDepartmentId = formData.departmentId || null;
+        let shiftLocationId = formData.locationId || null;
+        
+        if (employeeId) {
+          const selectedEmployee = employees.find(emp => emp.id === employeeId);
+          if (selectedEmployee) {
+            // Use employee's department if available, otherwise fall back to form value
+            shiftDepartmentId = selectedEmployee.departmentId || formData.departmentId || null;
+            shiftLocationId = selectedEmployee.locationId || formData.locationId || null;
+          }
+        }
+        
         const response = await fetch('/api/shifts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             employeeId: employeeId,
-            departmentId: formData.departmentId || null,
-            locationId: formData.locationId || null,
+            departmentId: shiftDepartmentId,
+            locationId: shiftLocationId,
             rotaGroupId: formData.rotaGroupId || null,
             startTime: new Date(formData.startTime).toISOString(),
             endTime: new Date(formData.endTime).toISOString(),
-            breakDuration: formData.breakDuration,
+            breakDuration: formData.breakDuration === '' ? 0 : formData.breakDuration,
             role: formData.selectedRole || formData.role || null,
             notes: formData.notes || null,
             requiresConfirmation: formData.requiresConfirmation,
@@ -928,8 +957,22 @@ export default function CreateShiftModal({
             </label>
             <input
               type="number"
-              value={formData.breakDuration}
-              onChange={(e) => setFormData({ ...formData, breakDuration: parseInt(e.target.value) || 0 })}
+              value={formData.breakDuration === '' ? '' : formData.breakDuration}
+              onChange={(e) => {
+                const value = e.target.value;
+
+                if (value === '') {
+                  setFormData({ ...formData, breakDuration: '' });
+                  return;
+                }
+
+                const parsed = parseInt(value, 10);
+
+                setFormData({
+                  ...formData,
+                  breakDuration: Number.isNaN(parsed) ? '' : Math.max(0, parsed),
+                });
+              }}
               className="w-full px-4 py-3 rounded-xl bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all duration-150"
               min="0"
               step="15"
@@ -940,71 +983,104 @@ export default function CreateShiftModal({
           </div>
 
           {/* Department and Location - Auto-populated from employee */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Department
-                {formData.employeeIds.length > 0 && (
-                  <span className="ml-2 text-xs text-muted-foreground font-normal">(from employee)</span>
-                )}
-              </label>
-              <select
-                value={formData.departmentId}
-                onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                disabled={formData.employeeIds.length > 0}
-                className={cn(
-                  "w-full px-4 py-3 rounded-xl border text-foreground transition-all duration-150",
-                  formData.employeeIds.length > 0
-                    ? "bg-muted/50 border-border cursor-not-allowed opacity-75"
-                    : "bg-background border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                )}
-              >
-                <option value="">No Department</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.name}
-                  </option>
-                ))}
-              </select>
-              {formData.employeeIds.length > 0 && !formData.departmentId && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  Selected employee(s) have no department assigned
-                </p>
-              )}
-            </div>
+          {(() => {
+            // Compute unique departments and locations from selected employees
+            const selectedEmps = employees.filter(emp => formData.employeeIds.includes(emp.id));
+            const uniqueDepts = [...new Set(selectedEmps.map(e => e.departmentId).filter(Boolean))];
+            const uniqueLocs = [...new Set(selectedEmps.map(e => e.locationId).filter(Boolean))];
+            const deptNames = uniqueDepts.map(id => departments.find(d => d.id === id)?.name).filter(Boolean);
+            const locNames = uniqueLocs.map(id => locations.find(l => l.id === id)?.name).filter(Boolean);
+            const hasMultipleDepts = uniqueDepts.length > 1;
+            const hasMultipleLocs = uniqueLocs.length > 1;
+            const hasNoDepts = selectedEmps.length > 0 && uniqueDepts.length === 0;
+            const hasNoLocs = selectedEmps.length > 0 && uniqueLocs.length === 0;
+            
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Department
+                    {formData.employeeIds.length > 0 && (
+                      <span className="ml-2 text-xs text-muted-foreground font-normal">(from employee)</span>
+                    )}
+                  </label>
+                  <select
+                    value={formData.departmentId}
+                    onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
+                    disabled={formData.employeeIds.length > 0}
+                    className={cn(
+                      "w-full px-4 py-3 rounded-xl border text-foreground transition-all duration-150",
+                      formData.employeeIds.length > 0
+                        ? "bg-muted/50 border-border cursor-not-allowed opacity-75"
+                        : "bg-background border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                    )}
+                  >
+                    <option value="">
+                      {hasMultipleDepts 
+                        ? `Multiple departments (${deptNames.join(', ')})` 
+                        : 'No Department'}
+                    </option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </option>
+                    ))}
+                  </select>
+                  {formData.employeeIds.length > 0 && hasMultipleDepts && (
+                    <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                      <span>✓</span> Each shift will use the employee's own department
+                    </p>
+                  )}
+                  {formData.employeeIds.length > 0 && hasNoDepts && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      Selected employee(s) have no department assigned
+                    </p>
+                  )}
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Location
-                {formData.employeeIds.length > 0 && (
-                  <span className="ml-2 text-xs text-muted-foreground font-normal">(from employee)</span>
-                )}
-              </label>
-              <select
-                value={formData.locationId}
-                onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-                disabled={formData.employeeIds.length > 0}
-                className={cn(
-                  "w-full px-4 py-3 rounded-xl border text-foreground transition-all duration-150",
-                  formData.employeeIds.length > 0
-                    ? "bg-muted/50 border-border cursor-not-allowed opacity-75"
-                    : "bg-background border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                )}
-              >
-                <option value="">No Location</option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-              {formData.employeeIds.length > 0 && !formData.locationId && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  Selected employee(s) have no location assigned
-                </p>
-              )}
-            </div>
-          </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Location
+                    {formData.employeeIds.length > 0 && (
+                      <span className="ml-2 text-xs text-muted-foreground font-normal">(from employee)</span>
+                    )}
+                  </label>
+                  <select
+                    value={formData.locationId}
+                    onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
+                    disabled={formData.employeeIds.length > 0}
+                    className={cn(
+                      "w-full px-4 py-3 rounded-xl border text-foreground transition-all duration-150",
+                      formData.employeeIds.length > 0
+                        ? "bg-muted/50 border-border cursor-not-allowed opacity-75"
+                        : "bg-background border-border focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                    )}
+                  >
+                    <option value="">
+                      {hasMultipleLocs 
+                        ? `Multiple locations (${locNames.join(', ')})` 
+                        : 'No Location'}
+                    </option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                  {formData.employeeIds.length > 0 && hasMultipleLocs && (
+                    <p className="text-xs text-primary mt-1 flex items-center gap-1">
+                      <span>✓</span> Each shift will use the employee's own location
+                    </p>
+                  )}
+                  {formData.employeeIds.length > 0 && hasNoLocs && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      Selected employee(s) have no location assigned
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Role */}
           <div>

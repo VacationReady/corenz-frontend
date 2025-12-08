@@ -97,8 +97,8 @@ export default function DeleteShiftModal({
   const endTime = new Date(shift.endTime);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-md w-full shadow-2xl">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+      <div className="bg-gradient-to-b from-gray-900 to-gray-950 border border-gray-700/50 rounded-2xl max-w-md w-full shadow-2xl shadow-black/50">
         {/* Header */}
         <div className="border-b border-gray-700 p-6">
           <div className="flex items-center justify-between">

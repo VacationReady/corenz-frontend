@@ -958,15 +958,9 @@ export default function RotaPage() {
       />
 
       <Dialog open={Boolean(selectedShift)} onOpenChange={open => !open && setSelectedShift(null)}>
-        <DialogContent className="max-w-3xl border border-border bg-card text-card-foreground">
+        <DialogContent className="max-w-3xl p-0 gap-0 border-0 bg-transparent shadow-none overflow-hidden">
           {selectedShift && (
             <>
-              <DialogHeader>
-                <DialogTitle>Shift details</DialogTitle>
-                <DialogDescription>
-                  {format(new Date(selectedShift.startTime), 'EEEE, MMMM d, yyyy')}
-                </DialogDescription>
-              </DialogHeader>
               <ShiftCard
                 shift={selectedShift}
                 onEdit={() => {
@@ -974,7 +968,10 @@ export default function RotaPage() {
                   setShowEditModal(true);
                   setSelectedShift(null);
                 }}
-                onDelete={() => openDeleteModal(selectedShift.id)}
+                onDelete={() => {
+                  openDeleteModal(selectedShift.id);
+                  setSelectedShift(null); // Close the details dialog so delete modal is visible
+                }}
                 onPublish={async () => {
                   try {
                     const response = await fetch(`/api/shifts/${selectedShift.id}/publish`, {

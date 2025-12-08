@@ -332,23 +332,28 @@ export default function EditShiftModal({
   if (!isOpen || !shift) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-gray-800 border-b border-gray-700 p-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Edit Shift</h2>
-            <p className="text-gray-400 text-sm mt-1">
-              {shift.isPublished && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400 mr-2">
-                  Published
-                </span>
-              )}
-              Modify shift details
-            </p>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+      <div className="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700/50 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/50 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-500/10 via-slate-900/95 to-slate-900/95 backdrop-blur-xl border-b border-slate-700/50 p-6 flex items-center justify-between rounded-t-2xl">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <Search className="w-6 h-6 text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white tracking-tight">Edit Shift</h2>
+              <p className="text-slate-400 text-sm mt-0.5 flex items-center gap-2">
+                {shift.isPublished && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    Published
+                  </span>
+                )}
+                <span>Modify shift details</span>
+              </p>
+            </div>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 text-white transition-all"
+            className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-600/50 text-slate-400 hover:text-white transition-all duration-200"
           >
             <X className="w-5 h-5" />
           </button>

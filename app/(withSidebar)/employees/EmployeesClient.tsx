@@ -449,14 +449,7 @@ function EmployeesContent(props: EmployeesClientProps) {
           return (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
-                {emp.isActive ? (
-                  <Badge 
-                    variant="default" 
-                    className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 font-medium"
-                  >
-                    Active
-                  </Badge>
-                ) : (
+                {!emp.isActive && (
                   <Badge 
                     variant="secondary" 
                     className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-0 font-medium"

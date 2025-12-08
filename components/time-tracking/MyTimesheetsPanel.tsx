@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Calendar, Plus, PlusCircle } from 'lucide-react';
+import { Calendar, PlusCircle, CheckCircle2 } from 'lucide-react';
 import ClockWidget from './ClockWidget';
 import TimesheetCard from './TimesheetCard';
 import TimesheetDetailView from './TimesheetDetailView';
@@ -91,36 +91,6 @@ export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPane
     }
   };
 
-  const handleGenerateTimesheet = async () => {
-    try {
-      setActionLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/timesheets/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to generate timesheet');
-      }
-
-      const data = await response.json();
-
-      await fetchTimesheets();
-
-      if (data.timesheet?.id) {
-        await fetchTimesheetDetails(data.timesheet.id);
-      }
-    } catch (err: any) {
-      console.error('Error generating timesheet:', err);
-      setError(err.message || 'Failed to generate timesheet');
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   const handleSubmitTimesheet = async () => {
     if (!selectedTimesheet) return;
@@ -173,39 +143,32 @@ export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPane
               {variant === 'page' ? 'My Timesheets' : 'Manage your timesheets'}
             </h1>
             <p className="mt-2 text-base lg:text-lg text-white/80">
-              Track your hours, generate the current period, and submit for approval without leaving the hub.
+              Track your hours and view your timesheet history. Timesheets are automatically submitted for approval.
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-3 justify-end">
-          <button
-            onClick={() => setShowManualEntryDialog(true)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition px-4 py-3 font-semibold shadow-lg shadow-emerald-500/30"
-          >
-            <PlusCircle className="w-5 h-5" />
-            Add Entry
-          </button>
-          <button
-            onClick={handleGenerateTimesheet}
-            disabled={actionLoading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-white text-blue-600 hover:bg-white/90 disabled:bg-white/60 disabled:text-blue-400 transition px-4 py-3 font-semibold shadow-lg shadow-blue-500/30"
-          >
-            <Plus className="w-5 h-5" />
-            {actionLoading ? 'Working...' : 'Generate Timesheet'}
-          </button>
-        </div>
+        <button
+          onClick={() => setShowManualEntryDialog(true)}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition px-4 py-3 font-semibold shadow-lg shadow-emerald-500/30"
+        >
+          <PlusCircle className="w-5 h-5" />
+          Add Time Entry
+        </button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
-          <p className="text-sm text-white/60">Current Period</p>
-          <p className="mt-2 text-white/90 text-sm">
-            Your hours for the current pay period will appear automatically as you clock time.
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <p className="text-sm text-emerald-400 font-medium">Auto-Submit</p>
+          </div>
+          <p className="text-white/90 text-sm">
+            Timesheets are automatically submitted for approval when you clock out.
           </p>
         </div>
         <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
           <p className="text-sm text-white/60">Fast Approvals</p>
           <p className="mt-2 text-white/90 text-sm">
-            Submit for approval with one click. We route it to the right approvers instantly.
+            We route your timesheet to the right approvers instantly.
           </p>
         </div>
         <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
@@ -274,17 +237,16 @@ export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPane
               <div>
                 <h2 className="text-lg font-semibold text-white">Current Period</h2>
                 <p className="text-sm text-white/70">
-                  Your hours for the current pay period are shown below. Generate your timesheet when you are ready to submit for approval.
+                  Your hours for the current pay period are shown below.
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleGenerateTimesheet}
-              disabled={actionLoading}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white px-4 py-2 text-sm font-medium transition mb-6"
-            >
-              {actionLoading ? 'Generating…' : 'Generate Current Timesheet'}
-            </button>
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 mb-6">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+              <p className="text-emerald-300 text-sm">
+                Timesheets are automatically submitted for approval when you clock out or add a time entry.
+              </p>
+            </div>
             
             <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
               <CurrentPeriodEntries onRefresh={fetchTimesheets} />
@@ -298,16 +260,16 @@ export default function MyTimesheetsPanel({ variant = 'page' }: MyTimesheetsPane
                 <Calendar className="w-14 h-14 text-white/30 mx-auto" />
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold text-white">No Timesheets Yet</h3>
-                  <p className="text-sm text-white/70">
-                    Start by generating your first timesheet once you have clocked time.
+                  <p className="text-sm text-white/70 max-w-sm mx-auto">
+                    Clock in to start tracking your hours. Your timesheet will be automatically created and submitted for approval when you clock out.
                   </p>
                 </div>
                 <button
-                  onClick={handleGenerateTimesheet}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 text-white px-5 py-2.5 text-sm font-medium transition"
+                  onClick={() => setShowManualEntryDialog(true)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 text-sm font-medium transition"
                 >
-                  {actionLoading ? 'Generating…' : 'Generate Timesheet'}
+                  <PlusCircle className="w-4 h-4" />
+                  Add Manual Entry
                 </button>
               </div>
             ) : (

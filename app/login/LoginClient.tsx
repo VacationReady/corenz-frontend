@@ -68,70 +68,82 @@ export default function LoginClient() {
         password,
       });
 
-      if (res?.ok) {
-        const sessionRes = await fetch("/api/auth/session");
-        const session = await sessionRes.json();
-        const role = session?.user?.role;
-        const next = search?.get("next");
-
-        if (next) {
-          router.push(next);
-          return;
-        }
-
-        // If user has an active onboarding instance, redirect to their in-progress step
-        // Note: There's also a server-side check in /dashboard/employee as a fallback
-        try {
-          const userId = session?.user?.id as string | undefined;
-          const companyScopedEmployee = async (): Promise<string | null> => {
-            if (!userId) return null;
-            const resp = await fetch(`/api/employees?status=active&userId=${encodeURIComponent(userId)}`);
-            if (!resp.ok) {
-              console.warn("Failed to fetch employee for onboarding check:", resp.status);
-              return null;
-            }
-            const list = await resp.json();
-            const first = Array.isArray(list) ? list[0] : null;
-            return first?.id || null;
-          };
-
-          const empId = await companyScopedEmployee();
-          if (empId) {
-            const onboardingRes = await fetch(`/api/onboarding/instances/employee/${empId}`);
-            if (onboardingRes.ok) {
-              const instances = await onboardingRes.json();
-              const latest = Array.isArray(instances) ? instances[0] : null;
-              const hasActive = latest?.OnboardingStepInstance?.some((s: any) => s.status !== "completed");
-              if (hasActive) {
-                router.push(`/${empId}/onboarding`);
-                return;
-              }
-            } else {
-              console.warn("Failed to fetch onboarding instances:", onboardingRes.status);
-            }
-          }
-        } catch (err) {
-          console.warn("Error checking onboarding status:", err);
-          // Continue to dashboard - server-side check will catch this
-        }
-
-        if (role === "ADMIN" || role === "SUPER_ADMIN") {
-          router.push("/dashboard/admin");
-        } else if (role === "MANAGER") {
-          router.push("/dashboard/manager");
-        } else {
-          router.push("/dashboard");
-        }
-      } else {
+      // In NextAuth v5, signIn may return ok:true even on failed credentials
+      // We need to verify the session is actually valid
+      if (res?.error) {
+        // Explicit error returned
         const message =
-          res?.error === "CredentialsSignin"
+          res.error === "CredentialsSignin"
             ? "Invalid email or password"
-            : res?.error === "OAuthAccountNotLinked"
+            : res.error === "OAuthAccountNotLinked"
               ? "This email is already linked to a different sign-in method. Please use that provider or contact support."
-              : res?.error === "AccessDenied"
+              : res.error === "AccessDenied"
                 ? "Access denied. Please contact your administrator."
                 : "Unable to sign in. Please try again.";
         setError(message);
+        return;
+      }
+
+      // Verify session is actually valid before redirecting
+      const sessionRes = await fetch("/api/auth/session");
+      const session = await sessionRes.json();
+      
+      // Check if we actually have a valid session with a user
+      if (!session?.user?.id) {
+        setError("Invalid email or password");
+        return;
+      }
+
+      const role = session?.user?.role;
+      const next = search?.get("next");
+
+      if (next) {
+        router.push(next);
+        return;
+      }
+
+      // If user has an active onboarding instance, redirect to their in-progress step
+      // Note: There's also a server-side check in /dashboard/employee as a fallback
+      try {
+        const userId = session?.user?.id as string | undefined;
+        const companyScopedEmployee = async (): Promise<string | null> => {
+          if (!userId) return null;
+          const resp = await fetch(`/api/employees?status=active&userId=${encodeURIComponent(userId)}`);
+          if (!resp.ok) {
+            console.warn("Failed to fetch employee for onboarding check:", resp.status);
+            return null;
+          }
+          const list = await resp.json();
+          const first = Array.isArray(list) ? list[0] : null;
+          return first?.id || null;
+        };
+
+        const empId = await companyScopedEmployee();
+        if (empId) {
+          const onboardingRes = await fetch(`/api/onboarding/instances/employee/${empId}`);
+          if (onboardingRes.ok) {
+            const instances = await onboardingRes.json();
+            const latest = Array.isArray(instances) ? instances[0] : null;
+            const hasActive = latest?.OnboardingStepInstance?.some((s: any) => s.status !== "completed");
+            if (hasActive) {
+              router.push(`/${empId}/onboarding`);
+              return;
+            }
+          } else {
+            console.warn("Failed to fetch onboarding instances:", onboardingRes.status);
+          }
+        }
+      } catch (err) {
+        console.warn("Error checking onboarding status:", err);
+        // Continue to dashboard - server-side check will catch this
+      }
+
+      if (role === "ADMIN" || role === "SUPER_ADMIN") {
+        router.push("/dashboard/admin");
+      } else if (role === "MANAGER") {
+        router.push("/dashboard/manager");
+      } else {
+        router.push("/dashboard");
       }
     } catch (error) {
       setError("An error occurred. Please try again.");

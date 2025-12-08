@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,21 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Checkbox from "@/components/ui/Checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, FileText, FileSpreadsheet, Users, Briefcase, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { 
+  Mail, 
+  FileText, 
+  FileSpreadsheet, 
+  Users, 
+  Briefcase, 
+  Loader2, 
+  ChevronDown, 
+  ChevronRight,
+  Search,
+  Building2,
+  UserCheck,
+  X
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Department {
   id: string;
@@ -32,6 +46,7 @@ interface Employee {
   lastName: string;
   email: string;
   departmentId: string | null;
+  departmentName?: string | null;
 }
 
 interface SendReportModalProps {
@@ -74,6 +89,8 @@ export function SendReportModal({
   
   // UI state
   const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<"groups" | "individuals">("groups");
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -87,7 +104,7 @@ export function SendReportModal({
       const [deptRes, roleRes, empRes] = await Promise.all([
         fetch("/api/departments"),
         fetch("/api/job-roles"),
-        fetch("/api/employees"),
+        fetch("/api/employees?limit=all"),
       ]);
 
       if (deptRes.ok) {
@@ -102,7 +119,9 @@ export function SendReportModal({
 
       if (empRes.ok) {
         const empData = await empRes.json();
-        setEmployees(Array.isArray(empData) ? empData : []);
+        // Handle paginated response: { data: [...], pagination: {...} }
+        const employeeList = empData?.data ?? (Array.isArray(empData) ? empData : []);
+        setEmployees(employeeList);
       }
     } catch (error) {
       console.error("Failed to fetch departments/job roles/employees:", error);
@@ -115,6 +134,18 @@ export function SendReportModal({
       setLoadingData(false);
     }
   };
+
+  // Filter employees by search term
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearch.trim()) return employees;
+    const search = employeeSearch.toLowerCase();
+    return employees.filter(
+      (emp) =>
+        emp.firstName?.toLowerCase().includes(search) ||
+        emp.lastName?.toLowerCase().includes(search) ||
+        emp.email?.toLowerCase().includes(search)
+    );
+  }, [employees, employeeSearch]);
 
   const handleDepartmentToggle = (deptId: string) => {
     setSelectedDepartments((prev) =>
@@ -260,219 +291,378 @@ export function SendReportModal({
     setSubject(`Report: ${reportName}`);
     setMessageBody("");
     setExpandedDepartments(new Set());
+    setActiveTab("groups");
+    setEmployeeSearch("");
   };
+
+  // Get total selected count for summary
+  const totalRecipientCount = useMemo(() => {
+    return selectedDepartments.length + selectedJobRoles.length + selectedEmployees.length;
+  }, [selectedDepartments, selectedJobRoles, selectedEmployees]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Mail className="w-5 h-5" />
-            Send Report via Email
-          </DialogTitle>
-          <DialogDescription>
-            Send &quot;{reportName}&quot; to selected departments and job roles
-          </DialogDescription>
+      <DialogContent className="glass-premium border-0 rounded-2xl shadow-depth-4 max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="pb-4 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Mail className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-semibold">
+                Send Report via Email
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Send &quot;{reportName}&quot; to selected recipients
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         {loadingData ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="flex-1 flex items-center justify-center py-16">
+            <div className="text-center space-y-3">
+              <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
+              <p className="text-sm text-muted-foreground">Loading recipients...</p>
+            </div>
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Recipients Section */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Select Recipients
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Departments */}
-                {departments.length > 0 && (
-                  <div className="space-y-3 glass-subtle rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Departments (All Employees)</label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleSelectAllDepartments}
-                        className="h-auto py-1 px-2 text-xs"
-                      >
-                        {selectedDepartments.length === departments.length
-                          ? "Deselect All"
-                          : "Select All"}
-                      </Button>
-                    </div>
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                      {departments.map((dept) => (
-                        <div key={dept.id} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`dept-${dept.id}`}
-                            checked={selectedDepartments.includes(dept.id)}
-                            onCheckedChange={() => handleDepartmentToggle(dept.id)}
-                          />
-                          <label
-                            htmlFor={`dept-${dept.id}`}
-                            className="text-sm cursor-pointer flex-1"
-                          >
-                            {dept.name}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedDepartments.length > 0 && (
-                      <p className="text-xs text-primary font-medium">
-                        ✓ {selectedDepartments.length} selected
-                      </p>
-                    )}
-                  </div>
+          <div className="flex-1 overflow-y-auto py-4 space-y-6">
+            {/* Tab Navigation */}
+            <div className="flex gap-2 p-1 bg-muted/50 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setActiveTab("groups")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all",
+                  activeTab === "groups"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
-
-                {/* Job Roles */}
-                {jobRoles.length > 0 && (
-                  <div className="space-y-3 glass-subtle rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium flex items-center gap-2">
-                        <Briefcase className="w-4 h-4" />
-                        Job Roles (All Employees)
-                      </label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleSelectAllJobRoles}
-                        className="h-auto py-1 px-2 text-xs"
-                      >
-                        {selectedJobRoles.length === jobRoles.length
-                          ? "Deselect All"
-                          : "Select All"}
-                      </Button>
-                    </div>
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                      {jobRoles.map((role) => (
-                        <div key={role.id} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`role-${role.id}`}
-                            checked={selectedJobRoles.includes(role.id)}
-                            onCheckedChange={() => handleJobRoleToggle(role.id)}
-                          />
-                          <label
-                            htmlFor={`role-${role.id}`}
-                            className="text-sm cursor-pointer flex-1"
-                          >
-                            {role.name}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                    {selectedJobRoles.length > 0 && (
-                      <p className="text-xs text-primary font-medium">
-                        ✓ {selectedJobRoles.length} selected
-                      </p>
-                    )}
-                  </div>
+              >
+                <Building2 className="w-4 h-4" />
+                By Group
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("individuals")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all",
+                  activeTab === "individuals"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
-              </div>
+              >
+                <UserCheck className="w-4 h-4" />
+                Individual
+                {selectedEmployees.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                    {selectedEmployees.length}
+                  </span>
+                )}
+              </button>
             </div>
 
-            {/* Individual Employees Section */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Or Select Individual Employees
-              </h3>
-              <div className="glass-subtle rounded-xl p-4 space-y-2">
-                {departments.length > 0 ? (
-                  departments.map((dept) => {
-                    const deptEmployees = getEmployeesByDepartment(dept.id);
-                    const isExpanded = expandedDepartments.has(dept.id);
-                    const selectedInDept = deptEmployees.filter((e) =>
+            {/* Groups Tab Content */}
+            {activeTab === "groups" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Departments */}
+                  <div className="space-y-3 bg-muted/30 rounded-xl p-4 border border-border/50">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-semibold flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-primary" />
+                        Departments
+                      </label>
+                      {departments.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleSelectAllDepartments}
+                          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                        >
+                          {selectedDepartments.length === departments.length
+                            ? "Clear all"
+                            : "Select all"}
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {departments.length > 0 ? (
+                        departments.map((dept) => (
+                          <label
+                            key={dept.id}
+                            className={cn(
+                              "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all",
+                              selectedDepartments.includes(dept.id)
+                                ? "bg-primary/10 border border-primary/30"
+                                : "hover:bg-muted/50 border border-transparent"
+                            )}
+                          >
+                            <Checkbox
+                              id={`dept-${dept.id}`}
+                              checked={selectedDepartments.includes(dept.id)}
+                              onCheckedChange={() => handleDepartmentToggle(dept.id)}
+                            />
+                            <span className="text-sm flex-1">{dept.name}</span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No departments available
+                        </p>
+                      )}
+                    </div>
+                    {selectedDepartments.length > 0 && (
+                      <div className="pt-2 border-t border-border/50">
+                        <p className="text-xs text-primary font-medium">
+                          {selectedDepartments.length} department{selectedDepartments.length !== 1 ? "s" : ""} selected
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Job Roles */}
+                  <div className="space-y-3 bg-muted/30 rounded-xl p-4 border border-border/50">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-semibold flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-primary" />
+                        Job Roles
+                      </label>
+                      {jobRoles.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleSelectAllJobRoles}
+                          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                        >
+                          {selectedJobRoles.length === jobRoles.length
+                            ? "Clear all"
+                            : "Select all"}
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {jobRoles.length > 0 ? (
+                        jobRoles.map((role) => (
+                          <label
+                            key={role.id}
+                            className={cn(
+                              "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all",
+                              selectedJobRoles.includes(role.id)
+                                ? "bg-primary/10 border border-primary/30"
+                                : "hover:bg-muted/50 border border-transparent"
+                            )}
+                          >
+                            <Checkbox
+                              id={`role-${role.id}`}
+                              checked={selectedJobRoles.includes(role.id)}
+                              onCheckedChange={() => handleJobRoleToggle(role.id)}
+                            />
+                            <span className="text-sm flex-1">{role.name}</span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No job roles available
+                        </p>
+                      )}
+                    </div>
+                    {selectedJobRoles.length > 0 && (
+                      <div className="pt-2 border-t border-border/50">
+                        <p className="text-xs text-primary font-medium">
+                          {selectedJobRoles.length} role{selectedJobRoles.length !== 1 ? "s" : ""} selected
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Individuals Tab Content */}
+            {activeTab === "individuals" && (
+              <div className="space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search employees by name or email..."
+                    value={employeeSearch}
+                    onChange={(e) => setEmployeeSearch(e.target.value)}
+                    className="pl-10 bg-muted/30 border-border/50"
+                  />
+                  {employeeSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setEmployeeSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Employee List by Department */}
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {departments.length > 0 ? (
+                    departments.map((dept) => {
+                      const deptEmployees = filteredEmployees.filter((emp) => emp.departmentId === dept.id);
+                      if (deptEmployees.length === 0 && employeeSearch) return null;
+                      
+                      const isExpanded = expandedDepartments.has(dept.id);
+                      const selectedInDept = deptEmployees.filter((e) =>
+                        selectedEmployees.includes(e.id)
+                      ).length;
+
+                      return (
+                        <div key={dept.id} className="bg-muted/30 rounded-xl border border-border/50 overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => toggleDepartmentExpansion(dept.id)}
+                            className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              {isExpanded ? (
+                                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                              )}
+                              <span className="font-medium text-sm">{dept.name}</span>
+                              <span className="text-xs text-muted-foreground px-2 py-0.5 bg-muted rounded-full">
+                                {deptEmployees.length}
+                              </span>
+                            </div>
+                            {selectedInDept > 0 && (
+                              <span className="text-xs text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-full">
+                                {selectedInDept} selected
+                              </span>
+                            )}
+                          </button>
+                          
+                          {isExpanded && (
+                            <div className="border-t border-border/50">
+                              {deptEmployees.length > 0 ? (
+                                <div className="p-2 space-y-1">
+                                  <div className="flex justify-end px-2 pb-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSelectAllEmployeesInDept(dept.id)}
+                                      className="text-xs text-primary hover:text-primary/80 font-medium"
+                                    >
+                                      {selectedInDept === deptEmployees.length ? "Clear all" : "Select all"}
+                                    </button>
+                                  </div>
+                                  {deptEmployees.map((emp) => (
+                                    <label
+                                      key={emp.id}
+                                      className={cn(
+                                        "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all",
+                                        selectedEmployees.includes(emp.id)
+                                          ? "bg-primary/10"
+                                          : "hover:bg-muted/50"
+                                      )}
+                                    >
+                                      <Checkbox
+                                        id={`emp-${emp.id}`}
+                                        checked={selectedEmployees.includes(emp.id)}
+                                        onCheckedChange={() => handleEmployeeToggle(emp.id)}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">
+                                          {emp.firstName} {emp.lastName}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate">
+                                          {emp.email}
+                                        </p>
+                                      </div>
+                                    </label>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">
+                                  No employees in this department
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No employees available
+                    </p>
+                  )}
+                  
+                  {/* Employees without department */}
+                  {(() => {
+                    const unassignedEmployees = filteredEmployees.filter((emp) => !emp.departmentId);
+                    if (unassignedEmployees.length === 0) return null;
+                    
+                    const isExpanded = expandedDepartments.has("unassigned");
+                    const selectedInDept = unassignedEmployees.filter((e) =>
                       selectedEmployees.includes(e.id)
                     ).length;
 
                     return (
-                      <div key={dept.id} className="border rounded-lg">
-                        <div className="flex items-center justify-between p-3 bg-muted/30">
-                          <button
-                            type="button"
-                            onClick={() => toggleDepartmentExpansion(dept.id)}
-                            className="flex items-center gap-2 flex-1 text-left hover:text-primary transition-colors"
-                          >
+                      <div className="bg-muted/30 rounded-xl border border-border/50 overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => toggleDepartmentExpansion("unassigned")}
+                          className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
                             {isExpanded ? (
-                              <ChevronDown className="w-4 h-4" />
+                              <ChevronDown className="w-4 h-4 text-muted-foreground" />
                             ) : (
-                              <ChevronRight className="w-4 h-4" />
+                              <ChevronRight className="w-4 h-4 text-muted-foreground" />
                             )}
-                            <span className="font-medium">{dept.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              ({deptEmployees.length} employees)
+                            <span className="font-medium text-sm text-muted-foreground">Unassigned</span>
+                            <span className="text-xs text-muted-foreground px-2 py-0.5 bg-muted rounded-full">
+                              {unassignedEmployees.length}
                             </span>
-                          </button>
+                          </div>
                           {selectedInDept > 0 && (
-                            <span className="text-xs text-primary font-medium">
+                            <span className="text-xs text-primary font-medium px-2 py-0.5 bg-primary/10 rounded-full">
                               {selectedInDept} selected
                             </span>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSelectAllEmployeesInDept(dept.id)}
-                            className="h-auto py-1 px-2 text-xs ml-2"
-                          >
-                            {selectedInDept === deptEmployees.length
-                              ? "Deselect All"
-                              : "Select All"}
-                          </Button>
-                        </div>
+                        </button>
+                        
                         {isExpanded && (
-                          <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
-                            {deptEmployees.length > 0 ? (
-                              deptEmployees.map((emp) => (
-                                <div
-                                  key={emp.id}
-                                  className="flex items-center gap-2 py-1"
-                                >
-                                  <Checkbox
-                                    id={`emp-${emp.id}`}
-                                    checked={selectedEmployees.includes(emp.id)}
-                                    onCheckedChange={() => handleEmployeeToggle(emp.id)}
-                                  />
-                                  <label
-                                    htmlFor={`emp-${emp.id}`}
-                                    className="text-sm cursor-pointer flex-1"
-                                  >
+                          <div className="border-t border-border/50 p-2 space-y-1">
+                            {unassignedEmployees.map((emp) => (
+                              <label
+                                key={emp.id}
+                                className={cn(
+                                  "flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all",
+                                  selectedEmployees.includes(emp.id)
+                                    ? "bg-primary/10"
+                                    : "hover:bg-muted/50"
+                                )}
+                              >
+                                <Checkbox
+                                  id={`emp-${emp.id}`}
+                                  checked={selectedEmployees.includes(emp.id)}
+                                  onCheckedChange={() => handleEmployeeToggle(emp.id)}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">
                                     {emp.firstName} {emp.lastName}
-                                    <span className="text-xs text-muted-foreground ml-2">
-                                      ({emp.email})
-                                    </span>
-                                  </label>
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {emp.email}
+                                  </p>
                                 </div>
-                              ))
-                            ) : (
-                              <p className="text-sm text-muted-foreground text-center py-2">
-                                No employees in this department
-                              </p>
-                            )}
+                              </label>
+                            ))}
                           </div>
                         )}
                       </div>
                     );
-                  })
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    No departments available
-                  </p>
-                )}
-                {selectedEmployees.length > 0 && (
-                  <div className="pt-2 border-t">
-                    <p className="text-sm font-medium text-primary">
-                      ✓ Total individual employees selected: {selectedEmployees.length}
-                    </p>
-                  </div>
-                )}
+                  })()}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Format Selection */}
             <div className="space-y-3">
@@ -483,11 +673,12 @@ export function SendReportModal({
                 <button
                   type="button"
                   onClick={() => setFormat("PDF")}
-                  className={`flex items-center justify-center gap-2 h-14 rounded-xl transition-all ${
+                  className={cn(
+                    "flex items-center justify-center gap-2 h-12 rounded-xl transition-all border",
                     format === "PDF"
-                      ? "bg-primary text-primary-foreground shadow-lg scale-105"
-                      : "glass-subtle hover:bg-muted/50"
-                  }`}
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-muted/30 border-border/50 hover:bg-muted/50 text-foreground"
+                  )}
                 >
                   <FileText className="w-5 h-5" />
                   <span className="font-medium">PDF</span>
@@ -495,11 +686,12 @@ export function SendReportModal({
                 <button
                   type="button"
                   onClick={() => setFormat("EXCEL")}
-                  className={`flex items-center justify-center gap-2 h-14 rounded-xl transition-all ${
+                  className={cn(
+                    "flex items-center justify-center gap-2 h-12 rounded-xl transition-all border",
                     format === "EXCEL"
-                      ? "bg-primary text-primary-foreground shadow-lg scale-105"
-                      : "glass-subtle hover:bg-muted/50"
-                  }`}
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-muted/30 border-border/50 hover:bg-muted/50 text-foreground"
+                  )}
                 >
                   <FileSpreadsheet className="w-5 h-5" />
                   <span className="font-medium">Excel (CSV)</span>
@@ -522,7 +714,7 @@ export function SendReportModal({
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Enter email subject"
-                  className="glass-subtle"
+                  className="bg-muted/30 border-border/50"
                 />
               </div>
 
@@ -535,8 +727,8 @@ export function SendReportModal({
                   value={messageBody}
                   onChange={(e) => setMessageBody(e.target.value)}
                   placeholder="Add a custom message (you can use {firstName} for personalization)"
-                  rows={5}
-                  className="glass-subtle resize-none"
+                  rows={4}
+                  className="bg-muted/30 border-border/50 resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
                   Tip: Use {"{firstName}"} to personalize each email
@@ -546,23 +738,30 @@ export function SendReportModal({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading || loadingData}>
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Mail className="w-4 h-4 mr-2" />
-                Send Report
-              </>
-            )}
-          </Button>
+        <DialogFooter className="pt-4 border-t border-border/50 gap-2 sm:gap-0">
+          {totalRecipientCount > 0 && (
+            <div className="flex-1 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{totalRecipientCount}</span> recipient group{totalRecipientCount !== 1 ? "s" : ""} selected
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} disabled={loading || loadingData}>
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Send Report
+                </>
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -23,10 +23,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <input
             type={type}
             className={cn(
-              "flex h-10 w-full rounded-2xl glass-subtle border-glass px-4 py-2.5 text-sm transition-glass placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 focus:glass-strong disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
+              "flex h-10 w-full rounded-2xl glass-subtle border-glass py-2.5 text-sm transition-glass placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 focus:glass-strong disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
               {
-                "pl-10": iconPosition === "start" || iconPosition === "left",
-                "pr-10": iconPosition === "end" || iconPosition === "right",
+                "pl-10 pr-4": iconPosition === "start" || iconPosition === "left",
+                "pl-4 pr-10": iconPosition === "end" || iconPosition === "right",
                 "border-red-500 focus:ring-red-500/50": error,
               },
               className,
@@ -47,7 +47,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         type={type}
         className={cn(
-          "flex h-10 w-full rounded-2xl glass-subtle border-glass px-4 py-2.5 text-sm transition-glass placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 focus:glass-strong disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
+          "flex h-10 w-full rounded-2xl glass-subtle border-glass pl-4 pr-4 py-2.5 text-sm transition-glass placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/30 focus:glass-strong disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
           {
             "border-red-500 focus:ring-red-500/50": error,
           },

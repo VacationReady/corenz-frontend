@@ -294,12 +294,74 @@ export async function DELETE(
         where: { employeeId },
       });
 
+      // Time tracking & scheduling (ClockEntry, Timesheet, Shift, etc.)
+      // First delete payroll calculations (has onDelete: Restrict)
+      await tx.payrollCalculation.deleteMany({ where: { employeeId } });
+      // Delete overtime audit logs for this employee
+      await tx.overtimeAuditLog.deleteMany({ where: { employeeId } });
+      // Delete timesheet entry audits where this employee is subject or changer
+      await tx.timesheetEntryAudit.deleteMany({
+        where: {
+          OR: [{ employeeId }, { changedById: employeeId }],
+        },
+      });
+      // Delete break records
+      await tx.breakRecord.deleteMany({ where: { employeeId } });
+      // Delete clock entries
+      await tx.clockEntry.deleteMany({ where: { employeeId } });
+      // Delete timesheets (both owned and approved by)
+      await tx.timesheet.deleteMany({ where: { employeeId } });
+      await tx.timesheet.updateMany({
+        where: { approvedBy: employeeId },
+        data: { approvedBy: null },
+      });
+      // Unassign shifts (optional relation)
+      await tx.shift.updateMany({
+        where: { employeeId },
+        data: { employeeId: null },
+      });
+      // Availability patterns and exceptions
+      await tx.availabilityPattern.deleteMany({ where: { employeeId } });
+      await tx.availabilityException.deleteMany({ where: { employeeId } });
+      // Schedule conflicts
+      await tx.scheduleConflict.deleteMany({ where: { employeeId } });
+      // Compliance violations
+      await tx.complianceViolation.deleteMany({ where: { employeeId } });
+
+      // Surveys
+      await tx.surveyRecipient.deleteMany({ where: { employeeId } });
+      await tx.surveyResponse.deleteMany({ where: { employeeId } });
+
+      // Transactional change requests
+      await tx.transactionalChangeRequest.deleteMany({ where: { employeeId } });
+
+      // Action items (optional relation - set to null)
+      await tx.actionItem.updateMany({
+        where: { relatedEmployeeId: employeeId },
+        data: { relatedEmployeeId: null },
+      });
+
+      // Journey instances
+      await tx.journeyInstance.deleteMany({ where: { participantId: employeeId } });
+
+      // Document signature fields (optional relation - set to null)
+      await tx.documentSignatureField.updateMany({
+        where: { assignedEmployeeId: employeeId },
+        data: { assignedEmployeeId: null },
+      });
+
+      // Expiry notification logs (has cascade but ensure cleanup)
+      await tx.expiryNotificationLog.deleteMany({ where: { employeeId } });
+
+      // Rota group memberships (has cascade but ensure cleanup)
+      await tx.rotaGroupMember.deleteMany({ where: { employeeId } });
+
       // Finally delete employee then user
       await tx.employee.delete({ where: { id: employeeId } });
       await tx.user.delete({ where: { id: userId } });
 
       return { deleted: true, pathsToRemove };
-    }, { timeout: 20000 });
+    }, { timeout: 30000 });
 
     const { pathsToRemove, ...result } = transactionResult;
     const uniquePaths = Array.from(

@@ -9,7 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { getShiftsWithActualsForDay } from '@/lib/time-tracking/shift-matcher';
-import { startOfDay, parseISO, isValid } from 'date-fns';
+import { startOfDay, endOfDay, parseISO, isValid } from 'date-fns';
+import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 
 export async function GET(
   req: NextRequest,
@@ -92,14 +93,21 @@ export async function GET(
       }
     );
 
-    // Also get unmatched clock entries for this day
+    // Also get unmatched clock entries for this day (NZ/local timezone)
     // Note: shiftId filter requires schema migration - using raw query approach for compatibility
+    const timeZone = 'Pacific/Auckland';
+    const zonedDate = utcToZonedTime(date, timeZone);
+    const zonedStart = startOfDay(zonedDate);
+    const zonedEnd = endOfDay(zonedDate);
+    const dayStart = zonedTimeToUtc(zonedStart, timeZone);
+    const dayEnd = zonedTimeToUtc(zonedEnd, timeZone);
+
     const unmatchedClockEntries = await prisma.clockEntry.findMany({
       where: {
         companyId: employee.companyId,
         clockInTime: {
-          gte: startOfDay(date),
-          lt: new Date(startOfDay(date).getTime() + 24 * 60 * 60 * 1000),
+          gte: dayStart,
+          lt: dayEnd,
         },
         ...(employeeId ? { employeeId } : {}),
       } as any, // Type assertion for shiftId filter after migration

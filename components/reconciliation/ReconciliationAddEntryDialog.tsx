@@ -48,17 +48,21 @@ export default function ReconciliationAddEntryDialog({
   const [error, setError] = useState<string | null>(null);
   const [autoDeductBreak, setAutoDeductBreak] = useState(true);
 
+  const shiftDateString = format(shift.startTime, 'yyyy-MM-dd');
+  const shiftDateLabel = format(shift.startTime, 'EEE, MMM d');
+  const selectedDateString = format(date, 'yyyy-MM-dd');
+  const isSameDayAsSelected = shiftDateString === selectedDateString;
+
   useEffect(() => {
     if (open) {
-      const initialDate = format(date, 'yyyy-MM-dd');
-      setEntryDate(initialDate);
+      setEntryDate(shiftDateString);
       setStartTime(format(shift.startTime, 'HH:mm'));
       setEndTime(format(shift.endTime, 'HH:mm'));
       setNotes('');
       setError(null);
       setAutoDeductBreak(true);
     }
-  }, [open, date, shift.startTime, shift.endTime]);
+  }, [open, shiftDateString, shift.startTime, shift.endTime]);
 
   const calculateHours = (includeBreakDeduction: boolean = true) => {
     if (!entryDate || !startTime || !endTime) return 0;
@@ -102,6 +106,13 @@ export default function ReconciliationAddEntryDialog({
 
     if (!shift.employeeId) {
       setError('Cannot add entry because this shift has no assigned employee');
+      return;
+    }
+
+    if (entryDate !== shiftDateString) {
+      setError(
+        `Manual entries must be recorded on the shift's scheduled day (${shiftDateLabel}). You cannot add an entry on a different date.`
+      );
       return;
     }
 
@@ -211,10 +222,16 @@ export default function ReconciliationAddEntryDialog({
               type="date"
               value={entryDate}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEntryDate(e.target.value)}
-              max={format(new Date(), 'yyyy-MM-dd')}
+              min={shiftDateString}
+              max={shiftDateString}
               required
               className="h-11 rounded-xl"
             />
+            {!isSameDayAsSelected && (
+              <p className="text-xs text-muted-foreground">
+                This shift is scheduled for {shiftDateLabel}. Manual entries will be created for that day, even if you're viewing a different reconciliation date.
+              </p>
+            )}
           </div>
 
           {/* Time range */}

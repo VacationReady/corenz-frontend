@@ -104,6 +104,19 @@ export const authConfig = {
     }),
   ],
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Always redirect to the configured base URL to avoid stale preview deployments
+      // If the url is relative, prepend the baseUrl
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      // If the url is on the same origin, allow it
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      // Default to baseUrl
+      return baseUrl;
+    },
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;

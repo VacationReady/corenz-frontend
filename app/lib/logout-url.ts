@@ -8,7 +8,9 @@ export function getLogoutCallbackUrl(): string {
   // In production, use the configured app URL
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (appUrl) {
-    return `${appUrl}/login`;
+    // Remove trailing slash if present to avoid double slashes
+    const baseUrl = appUrl.replace(/\/$/, "");
+    return `${baseUrl}/login`;
   }
   
   // Fallback to current origin (works correctly on production domain)

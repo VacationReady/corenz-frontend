@@ -64,7 +64,7 @@ export default function RotaGroupMembersPage() {
       const [groupRes, membersRes, employeesRes] = await Promise.all([
         fetch(`/api/rota-groups/${groupId}`),
         fetch(`/api/rota-groups/${groupId}/members`),
-        fetch('/api/employees'),
+        fetch('/api/employees?status=active&limit=all'),
       ]);
 
       const groupData = await groupRes.json();
@@ -73,7 +73,46 @@ export default function RotaGroupMembersPage() {
 
       setGroup(groupData.rotaGroup);
       setMembers(membersData.members || []);
-      setAllEmployees(employeesData.employees || []);
+      const rawEmployees = (employeesData.employees || employeesData.data || []) as any[];
+
+      const normalizedEmployees: Employee[] = rawEmployees.map((emp: any) => {
+        // If the shape already matches the Employee interface (with nested User/Location/Department), preserve it
+        if (emp.User) {
+          return {
+            id: emp.id,
+            User: {
+              name:
+                emp.User.name ||
+                [emp.User.firstName, emp.User.lastName].filter(Boolean).join(' ') ||
+                emp.User.email,
+              email: emp.User.email,
+            },
+            Location: emp.Location
+              ? { name: emp.Location.name }
+              : emp.locationName
+              ? { name: emp.locationName }
+              : undefined,
+            Department: emp.Department
+              ? { name: emp.Department.name }
+              : emp.departmentName
+              ? { name: emp.departmentName }
+              : undefined,
+          };
+        }
+
+        // Map flattened /api/employees shape into the structure expected by the UI
+        return {
+          id: emp.id,
+          User: {
+            name: [emp.firstName, emp.lastName].filter(Boolean).join(' ') || emp.email,
+            email: emp.email,
+          },
+          Location: emp.locationName ? { name: emp.locationName } : undefined,
+          Department: emp.departmentName ? { name: emp.departmentName } : undefined,
+        };
+      });
+
+      setAllEmployees(normalizedEmployees);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {

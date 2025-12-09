@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
@@ -20,7 +20,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import EditRotaGroupModal from '@/components/rota/EditRotaGroupModal';
 
 interface RotaGroup {
   id: string;
@@ -43,8 +42,6 @@ export default function RotaGroupsPage() {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingGroup, setEditingGroup] = useState<RotaGroup | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -61,20 +58,6 @@ export default function RotaGroupsPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEditGroup = (group: RotaGroup) => {
-    setEditingGroup(group);
-    setIsEditModalOpen(true);
-  };
-
-  const handleEditModalClose = () => {
-    setIsEditModalOpen(false);
-    setEditingGroup(null);
-  };
-
-  const handleEditSuccess = () => {
-    fetchGroups();
   };
 
   const handleDelete = async (id: string) => {
@@ -306,13 +289,13 @@ export default function RotaGroupsPage() {
                     >
                       <Users className="w-4 h-4" />
                     </Link>
-                    <button
-                      onClick={() => handleEditGroup(group)}
+                    <Link
+                      href={`/admin/rota-groups/${group.id}/edit`}
                       className="px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 text-foreground transition-all"
                       title="Edit Group"
                     >
                       <Settings className="w-4 h-4" />
-                    </button>
+                    </Link>
                     <button
                       onClick={() => handleDelete(group.id)}
                       className="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all"
@@ -361,14 +344,6 @@ export default function RotaGroupsPage() {
           </div>
         </motion.div>
       </div>
-
-      {/* Edit Modal */}
-      <EditRotaGroupModal
-        isOpen={isEditModalOpen}
-        group={editingGroup}
-        onClose={handleEditModalClose}
-        onSuccess={handleEditSuccess}
-      />
     </div>
   );
 }

@@ -164,17 +164,17 @@ export default function TimesheetCard({
       {/* Hours Summary */}
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-blue-600" />
-            <span className="text-xs text-slate-500">Total Hours</span>
+          <div className="flex items-center gap-2 h-5 mb-1">
+            <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
+            <span className="text-xs text-slate-500 whitespace-nowrap">Total</span>
           </div>
           <p className="text-2xl font-bold text-slate-900">{totalHours.toFixed(2)}</p>
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-emerald-600" />
-            <span className="text-xs text-slate-500">Regular</span>
+          <div className="flex items-center gap-2 h-5 mb-1">
+            <Clock className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span className="text-xs text-slate-500 whitespace-nowrap">Regular</span>
           </div>
           <p className="text-2xl font-bold text-slate-900">
             {(typeof timesheet.regularHours === 'string' 
@@ -184,9 +184,9 @@ export default function TimesheetCard({
         </div>
 
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-amber-600" />
-            <span className="text-xs text-slate-500">Overtime</span>
+          <div className="flex items-center gap-2 h-5 mb-1">
+            <Clock className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <span className="text-xs text-slate-500 whitespace-nowrap">Overtime</span>
           </div>
           <p className="text-2xl font-bold text-slate-900">{overtimeHours.toFixed(2)}</p>
         </div>

@@ -155,10 +155,49 @@ export async function GET(req: NextRequest) {
       .filter((e) => e.isOvertime)
       .reduce((sum, entry) => sum + entry.hours, 0);
 
+    // Fetch timesheets for the current period (pending, approved, or declined)
+    const currentPeriodTimesheets = await prisma.timesheet.findMany({
+      where: {
+        employeeId: requestingEmployee.id,
+        companyId: requestingEmployee.companyId,
+        periodStart: {
+          gte: periodStart,
+          lte: periodEnd,
+        },
+      },
+      include: {
+        ApprovalStages: {
+          include: {
+            Decisions: true,
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+        ClockEntries: {
+          select: {
+            id: true,
+            clockInTime: true,
+            clockOutTime: true,
+            status: true,
+          },
+        },
+        _count: {
+          select: {
+            TimesheetEntries: true,
+          },
+        },
+      },
+      orderBy: {
+        periodStart: 'desc',
+      },
+    });
+
     return NextResponse.json({
       entries: allEntries,
       periodStart,
       periodEnd,
+      timesheets: currentPeriodTimesheets,
       summary: {
         totalHours: parseFloat(totalHours.toFixed(2)),
         regularHours: parseFloat(regularHours.toFixed(2)),

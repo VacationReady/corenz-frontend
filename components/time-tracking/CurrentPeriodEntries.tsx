@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { Calendar, RefreshCw } from 'lucide-react';
+import { Calendar, RefreshCw, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import TimesheetTable from './TimesheetTable';
+import TimesheetCard from './TimesheetCard';
 
 interface CurrentPeriodEntriesProps {
   onRefresh?: () => void;
+  onViewTimesheet?: (timesheet: any) => void;
 }
 
 interface Entry {
@@ -33,8 +35,21 @@ interface Summary {
   manualEntryCount: number;
 }
 
-export default function CurrentPeriodEntries({ onRefresh }: CurrentPeriodEntriesProps) {
+interface Timesheet {
+  id: string;
+  periodStart: Date | string;
+  periodEnd: Date | string;
+  totalHours: number | string;
+  regularHours: number | string;
+  overtimeHours: number | string;
+  approvalStatus: string;
+  submittedAt?: Date | string | null;
+  approvedAt?: Date | string | null;
+}
+
+export default function CurrentPeriodEntries({ onRefresh, onViewTimesheet }: CurrentPeriodEntriesProps) {
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [periodStart, setPeriodStart] = useState<Date | null>(null);
   const [periodEnd, setPeriodEnd] = useState<Date | null>(null);
@@ -53,6 +68,7 @@ export default function CurrentPeriodEntries({ onRefresh }: CurrentPeriodEntries
 
       const data = await response.json();
       setEntries(data.entries || []);
+      setTimesheets(data.timesheets || []);
       setSummary(data.summary || null);
       setPeriodStart(data.periodStart ? new Date(data.periodStart) : null);
       setPeriodEnd(data.periodEnd ? new Date(data.periodEnd) : null);
@@ -153,18 +169,34 @@ export default function CurrentPeriodEntries({ onRefresh }: CurrentPeriodEntries
         </div>
       )}
 
+      {/* Current Period Timesheets */}
+      {timesheets.length > 0 && (
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium text-slate-600">Submitted Timesheets</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {timesheets.map((timesheet) => (
+              <TimesheetCard
+                key={timesheet.id}
+                timesheet={timesheet}
+                onView={onViewTimesheet ? () => onViewTimesheet(timesheet) : undefined}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Entries Table */}
       {entries.length > 0 ? (
         <TimesheetTable entries={entries} editable={false} isLoading={false} />
-      ) : (
-        <div className="rounded-xl border border-white/10 bg-white/5 p-12 text-center">
-          <Calendar className="w-16 h-16 text-white/30 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">No Entries Yet</h3>
-          <p className="text-white/70 text-sm">
+      ) : timesheets.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-12 text-center">
+          <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">No Entries Yet</h3>
+          <p className="text-slate-500 text-sm">
             Clock in/out or add manual entries to see them here. Once you generate a timesheet, these entries will be included.
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

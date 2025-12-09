@@ -12,6 +12,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ActionItemCategoryModal } from "@/components/admin/ActionItemCategoryModal";
+import { TimesheetApprovalModal } from "@/components/approvals/TimesheetApprovalModal";
 import {
   CheckCircle,
   Clock,
@@ -104,6 +105,8 @@ export default function AdminActionItemsPage() {
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [categoryModal, setCategoryModal] = useState<"pending" | "overdue" | "dueToday" | "dueThisWeek" | null>(null);
+  const [timesheetApprovalId, setTimesheetApprovalId] = useState<string | null>(null);
+  const [timesheetActionItemId, setTimesheetActionItemId] = useState<string | null>(null);
 
   // Fetch stats
   const { data: statsData, error: statsError } = useSWR(
@@ -201,6 +204,17 @@ export default function AdminActionItemsPage() {
   const handleView = (item: ActionItemWithDetails) => {
     const type = item.type || "";
     const metadata = (item.metadata || {}) as Record<string, any>;
+
+    if (type === "TIMESHEET_APPROVAL") {
+      const timesheetId = metadata?.timesheetId;
+      if (timesheetId) {
+        setTimesheetApprovalId(timesheetId);
+        setTimesheetActionItemId(item.id);
+      } else {
+        toast.error("Timesheet data not available");
+      }
+      return;
+    }
 
     if (type.includes("PERFORMANCE")) {
       router.push(`/performance?actionItemId=${item.id}`);
@@ -369,6 +383,65 @@ export default function AdminActionItemsPage() {
         category={categoryModal}
         onRefresh={() => {
           mutate();
+        }}
+      />
+
+      {/* Timesheet Approval Modal */}
+      <TimesheetApprovalModal
+        timesheetId={timesheetApprovalId}
+        open={!!timesheetApprovalId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTimesheetApprovalId(null);
+            setTimesheetActionItemId(null);
+          }
+        }}
+        onApprove={async () => {
+          if (!timesheetApprovalId) return;
+          try {
+            const res = await fetch(`/api/timesheets/${timesheetApprovalId}/approve`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({})
+            });
+            const result = await res.json();
+            if (result.success) {
+              toast.success("Timesheet approved");
+              mutate();
+            } else {
+              toast.error(result.error || "Failed to approve timesheet");
+            }
+          } catch (error) {
+            toast.error("Failed to approve timesheet");
+          } finally {
+            setTimesheetApprovalId(null);
+            setTimesheetActionItemId(null);
+          }
+        }}
+        onDecline={async () => {
+          if (!timesheetApprovalId) return;
+          const reason = prompt("Please provide a reason for rejecting this timesheet:");
+          if (!reason || reason.trim() === "") return;
+
+          try {
+            const res = await fetch(`/api/timesheets/${timesheetApprovalId}/reject`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reason })
+            });
+            const result = await res.json();
+            if (result.success) {
+              toast.success("Timesheet rejected");
+              mutate();
+            } else {
+              toast.error(result.error || "Failed to reject timesheet");
+            }
+          } catch (error) {
+            toast.error("Failed to reject timesheet");
+          } finally {
+            setTimesheetApprovalId(null);
+            setTimesheetActionItemId(null);
+          }
         }}
       />
 

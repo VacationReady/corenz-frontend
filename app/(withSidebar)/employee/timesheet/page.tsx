@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { Calendar, PlusCircle, ClipboardList, CheckCircle2 } from 'lucide-react';
 import ClockWidget from '@/components/time-tracking/ClockWidget';
@@ -31,13 +31,39 @@ export default function EmployeeTimesheetPage() {
   const [error, setError] = useState<string | null>(null);
   const [showManualEntryDialog, setShowManualEntryDialog] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [currentPeriodStart, setCurrentPeriodStart] = useState<Date | null>(null);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<Date | null>(null);
 
-  // Fetch timesheets
+  // Fetch timesheets and current period info
   useEffect(() => {
     if (status === 'authenticated') {
       fetchTimesheets();
+      fetchCurrentPeriodInfo();
     }
   }, [status]);
+
+  const fetchCurrentPeriodInfo = async () => {
+    try {
+      const response = await fetch('/api/timesheets/current-period');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.periodStart) setCurrentPeriodStart(new Date(data.periodStart));
+        if (data.periodEnd) setCurrentPeriodEnd(new Date(data.periodEnd));
+      }
+    } catch (err) {
+      console.error('Error fetching current period info:', err);
+    }
+  };
+
+  // Filter out current period timesheets from past timesheets
+  const pastTimesheets = useMemo(() => {
+    if (!currentPeriodStart || !currentPeriodEnd) return timesheets;
+    return timesheets.filter((ts) => {
+      const tsStart = new Date(ts.periodStart);
+      // A timesheet is in the current period if its start date falls within the current period
+      return tsStart < currentPeriodStart || tsStart > currentPeriodEnd;
+    });
+  }, [timesheets, currentPeriodStart, currentPeriodEnd]);
 
   const fetchTimesheets = async () => {
     try {
@@ -273,14 +299,14 @@ export default function EmployeeTimesheetPage() {
               </div>
             </div>
             
-            <CurrentPeriodEntries onRefresh={fetchTimesheets} />
+            <CurrentPeriodEntries onRefresh={fetchTimesheets} onViewTimesheet={handleViewTimesheet} />
           </div>
 
           {/* Past Timesheets */}
           <div>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">Past Timesheets</h2>
             
-            {timesheets.length === 0 ? (
+            {pastTimesheets.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-sm">
                 <Calendar className="w-16 h-16 text-slate-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-slate-900 mb-2">No Timesheets Yet</h3>
@@ -299,7 +325,7 @@ export default function EmployeeTimesheetPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {timesheets.map((timesheet) => (
+                {pastTimesheets.map((timesheet) => (
                   <TimesheetCard
                     key={timesheet.id}
                     timesheet={timesheet}

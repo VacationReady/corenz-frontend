@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { HolidayApprovalModal } from "@/components/approvals/HolidayApprovalModal";
 import { TransactionalChangeReviewModal } from "@/components/approvals/TransactionalChangeReviewModal";
+import { TimesheetApprovalModal } from "@/components/approvals/TimesheetApprovalModal";
 import { DocumentAcknowledgmentModal } from "@/components/documents/DocumentAcknowledgmentModal";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { getTenantHeadersSync } from "@/lib/tenant-fetch";
@@ -110,6 +111,8 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
   const [signSubmitting, setSignSubmitting] = useState(false);
   const [viewAll, setViewAll] = useState(false);
   const [holidayApprovalId, setHolidayApprovalId] = useState<string | null>(null);
+  const [timesheetApprovalId, setTimesheetApprovalId] = useState<string | null>(null);
+  const [timesheetActionItemId, setTimesheetActionItemId] = useState<string | null>(null);
   const [selectedChangeRequest, setSelectedChangeRequest] = useState<any | null>(null);
   const [changeProcessing, setChangeProcessing] = useState(false);
   
@@ -285,7 +288,7 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
               }
             });
           } else if (item.type === 'TIMESHEET_APPROVAL') {
-            // Timesheet approval tasks
+            // Timesheet approval tasks - open modal instead of redirecting
             const metadata = item.metadata || {};
             const label = metadata.label || '';
             const totalHours = metadata.totalHours ? `${metadata.totalHours} hours` : '';
@@ -296,12 +299,13 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
               title: item.title,
               subtitle: [label, totalHours].filter(Boolean).join(' • '),
               urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date()),
-              metadata: item,
+              metadata: { ...item, isTimesheetApproval: true },
               actionLabel: "Review Timesheet",
               onAction: async () => {
-                // Navigate to timesheet approval hub with preview parameter
+                // Open timesheet approval modal
                 if (metadata.timesheetId) {
-                  window.location.href = `/admin/timesheets/hub?preview=${metadata.timesheetId}`;
+                  setTimesheetApprovalId(metadata.timesheetId);
+                  setTimesheetActionItemId(item.id);
                 } else {
                   toast.error('Timesheet data not available');
                 }
@@ -743,6 +747,13 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
                   if (item.type === "approval" && (item.metadata.type === 'LEAVE' || item.metadata.source === 'leave')) {
                     // Open holiday approval modal for leave requests
                     setHolidayApprovalId(item.metadata.id);
+                  } else if (item.type === "approval" && item.metadata.isTimesheetApproval) {
+                    // Open timesheet approval modal
+                    const timesheetId = item.metadata.metadata?.timesheetId;
+                    if (timesheetId) {
+                      setTimesheetApprovalId(timesheetId);
+                      setTimesheetActionItemId(item.metadata.id);
+                    }
                   } else if (item.type === "approval") {
                     setSelectedItem(item);
                   } else if (item.type === "change") {
@@ -790,6 +801,13 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
                       if (item.type === "approval" && (item.metadata.type === 'LEAVE' || item.metadata.source === 'leave')) {
                         // Open holiday approval modal for leave requests
                         setHolidayApprovalId(item.metadata.id);
+                      } else if (item.type === "approval" && item.metadata.isTimesheetApproval) {
+                        // Open timesheet approval modal
+                        const timesheetId = item.metadata.metadata?.timesheetId;
+                        if (timesheetId) {
+                          setTimesheetApprovalId(timesheetId);
+                          setTimesheetActionItemId(item.metadata.id);
+                        }
                       } else if (item.type === "approval") {
                         await handleItemAction(item, "approve");
                       } else if (item.type === "change") {
@@ -1190,6 +1208,75 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
             toast.error("Failed to decline holiday");
           } finally {
             setProcessing(null);
+          }
+        }}
+      />
+
+      {/* Timesheet Approval Modal */}
+      <TimesheetApprovalModal
+        timesheetId={timesheetApprovalId}
+        open={!!timesheetApprovalId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setTimesheetApprovalId(null);
+            setTimesheetActionItemId(null);
+          }
+        }}
+        onApprove={async () => {
+          if (!timesheetApprovalId) return;
+          setProcessing(timesheetApprovalId);
+          try {
+            const res = await fetch(`/api/timesheets/${timesheetApprovalId}/approve`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({})
+            });
+            const result = await res.json();
+            if (result.success) {
+              toast.success("Timesheet approved");
+              mutateActionItems?.();
+              setActionItems(prev => prev.filter(i => 
+                !(i.metadata?.metadata?.timesheetId === timesheetApprovalId || i.metadata?.id === timesheetActionItemId)
+              ));
+            } else {
+              toast.error(result.error || "Failed to approve timesheet");
+            }
+          } catch (error) {
+            toast.error("Failed to approve timesheet");
+          } finally {
+            setProcessing(null);
+            setTimesheetApprovalId(null);
+            setTimesheetActionItemId(null);
+          }
+        }}
+        onDecline={async () => {
+          if (!timesheetApprovalId) return;
+          const reason = prompt("Please provide a reason for rejecting this timesheet:");
+          if (!reason || reason.trim() === "") return;
+
+          setProcessing(timesheetApprovalId);
+          try {
+            const res = await fetch(`/api/timesheets/${timesheetApprovalId}/reject`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reason })
+            });
+            const result = await res.json();
+            if (result.success) {
+              toast.success("Timesheet rejected");
+              mutateActionItems?.();
+              setActionItems(prev => prev.filter(i => 
+                !(i.metadata?.metadata?.timesheetId === timesheetApprovalId || i.metadata?.id === timesheetActionItemId)
+              ));
+            } else {
+              toast.error(result.error || "Failed to reject timesheet");
+            }
+          } catch (error) {
+            toast.error("Failed to reject timesheet");
+          } finally {
+            setProcessing(null);
+            setTimesheetApprovalId(null);
+            setTimesheetActionItemId(null);
           }
         }}
       />

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMobileSession } from '@/lib/mobile-session';
-import { prisma } from '@/lib/prisma';
+import { prisma, ensurePrismaConnected } from '@/lib/prisma';
 import { z } from 'zod';
 import { startOfDay } from 'date-fns';
 import { roundClockTime } from '@/lib/timesheet-calculations';
@@ -28,6 +28,10 @@ const clockOutSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Ensure Prisma connection is established before heavy operations
+    // This prevents timeout on first request due to cold connection
+    await ensurePrismaConnected();
+    
     const session = await getMobileSession(req);
 
     if (!session?.user?.id) {
@@ -273,12 +277,18 @@ export async function POST(req: NextRequest) {
         hours: processedEntry.hours,
       };
 
-      // Auto-submit the timesheet for approval (non-blocking)
-      try {
-        await autoSubmitTimesheet(timesheetId, employee.id, employee.companyId);
-      } catch (submitError) {
-        console.error('[Clock-out] Auto-submit timesheet error (non-blocking):', submitError);
-      }
+      // Auto-submit the timesheet for approval (fire-and-forget to avoid timeout)
+      // Using setImmediate pattern to not block the response
+      const submitTimesheetId = timesheetId;
+      const submitEmployeeId = employee.id;
+      const submitCompanyId = employee.companyId;
+      setImmediate(async () => {
+        try {
+          await autoSubmitTimesheet(submitTimesheetId, submitEmployeeId, submitCompanyId);
+        } catch (submitError) {
+          console.error('[Clock-out] Auto-submit timesheet error (non-blocking):', submitError);
+        }
+      });
       } catch (timesheetError) {
         // Log but don't fail the clock-out - timesheet can be generated manually if needed
         console.error('[Clock-out] Auto-generate timesheet error (non-blocking):', timesheetError);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMobileSession } from '@/lib/mobile-session';
-import { prisma } from '@/lib/prisma';
+import { prisma, ensurePrismaConnected } from '@/lib/prisma';
 import { z } from 'zod';
 import { roundClockTime } from '@/lib/timesheet-calculations';
 import { verifyClockLocation } from '@/lib/gps-verification';
@@ -27,6 +27,10 @@ const clockInSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Ensure Prisma connection is established before operations
+    // This prevents timeout on first request due to cold connection
+    await ensurePrismaConnected();
+    
     const session = await getMobileSession(req);
 
     if (!session?.user?.id) {

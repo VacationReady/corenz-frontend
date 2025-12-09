@@ -23,6 +23,8 @@ export default async function NewsDetailPage(context: any) {
         select: {
           id: true,
           name: true,
+          firstName: true,
+          lastName: true,
           email: true,
           profileImageUrl: true,
           role: true,
@@ -58,6 +60,8 @@ export default async function NewsDetailPage(context: any) {
       User: {
         select: {
           name: true,
+          firstName: true,
+          lastName: true,
           email: true,
           profileImageUrl: true,
         },
@@ -97,6 +101,45 @@ export default async function NewsDetailPage(context: any) {
   }
   const { coverImageUrl, coverImage, ...postRest } = post as any;
 
+  // Helper to format full name
+  const formatFullName = (user: { firstName?: string | null; lastName?: string | null; name?: string | null; email: string }) => {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    if (user.firstName) return user.firstName;
+    if (user.lastName) return user.lastName;
+    if (user.name) return user.name;
+    return user.email.split("@")[0];
+  };
+
+  // Helper to sign avatar URL
+  const signAvatarUrl = async (avatarUrl: string | null | undefined): Promise<string | null> => {
+    if (!avatarUrl) return null;
+    if (/^https?:\/\//i.test(avatarUrl) && avatarUrl.includes("/object/sign/") && avatarUrl.includes("/documents/")) {
+      try {
+        const after = avatarUrl.split("/documents/")[1] || "";
+        const path = after.split("?")[0] || "";
+        if (path) {
+          const { data, error } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(path, 60 * 10);
+          if (!error) return data?.signedUrl ?? avatarUrl;
+        }
+      } catch {}
+    } else if (!/^https?:\/\//i.test(avatarUrl)) {
+      try {
+        const { data, error } = await supabase.storage
+          .from("documents")
+          .createSignedUrl(avatarUrl, 60 * 10);
+        if (!error) return data?.signedUrl ?? avatarUrl;
+      } catch {}
+    }
+    return avatarUrl;
+  };
+
+  // Sign the main post author's avatar
+  const signedAuthorAvatar = await signAvatarUrl(post.User.profileImageUrl);
+
   const reactionCounts = (post.reactions as { reaction: string; userId: string }[]).reduce(
     (acc: Record<string, number>, reaction: { reaction: string; userId: string }) => {
       acc[reaction.reaction] = (acc[reaction.reaction] ?? 0) + 1;
@@ -110,9 +153,9 @@ export default async function NewsDetailPage(context: any) {
     coverImage: coverImageFromPost ?? null,
     author: {
       id: post.User.id,
-      name: post.User.name,
+      name: formatFullName(post.User),
       email: post.User.email,
-      avatar: post.User.profileImageUrl,
+      avatar: signedAuthorAvatar,
       role: post.User.role,
     },
     content: post.content as any,
@@ -145,13 +188,14 @@ export default async function NewsDetailPage(context: any) {
         } catch {}
       }
       const { coverImageUrl: _a, coverImage: _b, ...rest } = p as any;
+      const signedRelatedAvatar = await signAvatarUrl(p.User.profileImageUrl);
       return {
         ...rest,
         coverImage: ci ?? null,
         author: {
-          name: p.User.name,
+          name: formatFullName(p.User),
           email: p.User.email,
-          avatar: p.User.profileImageUrl,
+          avatar: signedRelatedAvatar,
         },
       };
     }),

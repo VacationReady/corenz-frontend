@@ -30,13 +30,14 @@ import type {
   OnboardingTemplate,
   WorkingPattern,
   PermissionProfile,
+  RotaGroup,
   DatasetState,
 } from "@/hooks/useEmployeeModalData";
 import { fetchWithCsrf } from "@/lib/csrf";
 import { prepareSensitiveDataForTransmission } from "@/lib/crypto";
 import { AddEmployeeModalErrorBoundary } from "./AddEmployeeModalErrorBoundary";
 import { roundToTwoDecimals } from "@/lib/decimalPrecision";
-import { RefreshCw, User, Briefcase, Calendar, Shield, Building2, MapPin, FileText, DollarSign, Phone, Heart, CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
+import { RefreshCw, User, Users, Briefcase, Calendar, Shield, Building2, MapPin, FileText, DollarSign, Phone, Heart, CheckCircle2, ChevronRight, Sparkles, Check } from "lucide-react";
 
 // 👇 Toggle
 import { Switch } from "@/components/ui/switch";
@@ -365,6 +366,7 @@ export default function AddEmployeeModal({
   const templates: OnboardingTemplate[] = modalData.templates.data;
   const workingPatterns: WorkingPattern[] = modalData.workingPatterns.data;
   const permissionProfiles: PermissionProfile[] = modalData.permissionProfiles.data;
+  const rotaGroups: RotaGroup[] = modalData.rotaGroups.data;
 
   const datasetHealth: DatasetHealthEntry[] = [
     {
@@ -490,6 +492,8 @@ export default function AddEmployeeModal({
     // 90-day trial period fields
     ninetyDayTrialPeriod: false,
     trialPeriodAccepted: false,
+    // Rota group assignments for shift-based patterns
+    rotaGroupIds: [] as string[],
   });
 
   // Validation errors for NZ fields
@@ -607,6 +611,13 @@ export default function AddEmployeeModal({
         : workingPatterns,
     [workingPatterns, workingPatternSearch, shouldShowWorkingPatternSearch],
   );
+
+  // Check if selected working pattern is shift-based
+  const selectedWorkingPattern = useMemo(
+    () => workingPatterns.find((p) => p.id === formData.workingPatternId),
+    [workingPatterns, formData.workingPatternId]
+  );
+  const isShiftBasedPattern = selectedWorkingPattern?.patternType === "SHIFT_BASED";
 
   const shouldShowTaxCodeSearch = NZ_TAX_CODES.length > 10;
   const taxCodeOptions = useMemo<TaxCodeOption[]>(
@@ -1280,6 +1291,8 @@ export default function AddEmployeeModal({
         trialPeriodAcceptedAt: formData.ninetyDayTrialPeriod && formData.trialPeriodAccepted
           ? new Date().toISOString()
           : "",
+        // Rota group assignments for shift-based patterns
+        rotaGroupIds: formData.rotaGroupIds.length > 0 ? formData.rotaGroupIds : undefined,
       };
 
       // Encrypt sensitive NZ payroll and visa data before transmission
@@ -1353,6 +1366,8 @@ export default function AddEmployeeModal({
         workPermitType: "",
         ninetyDayTrialPeriod: false,
         trialPeriodAccepted: false,
+        // Rota groups
+        rotaGroupIds: [],
       });
       setIrdError(null);
       setBankAccountError(null);
@@ -2564,6 +2579,100 @@ export default function AddEmployeeModal({
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* Rota Groups - conditionally shown for shift-based patterns */}
+                      <AnimatePresence>
+                        {isShiftBasedPattern && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="mt-4 pt-4 border-t border-emerald-500/20"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                <Label className="text-sm font-medium text-foreground/80">
+                                  Rota Groups (Shift Scheduling)
+                                </Label>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Select the teams this employee will be available for shift scheduling.
+                              </p>
+                              
+                              {rotaGroups.length === 0 ? (
+                                <div className="p-3 rounded-xl bg-amber-50/50 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/50">
+                                  <p className="text-sm text-amber-700 dark:text-amber-300">
+                                    No rota groups configured. Create rota groups in the Rota settings to enable shift scheduling.
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2 max-h-48 overflow-y-auto rounded-xl border border-muted/50 bg-white/50 dark:bg-white/5 p-2">
+                                  {rotaGroups.map((group) => (
+                                    <label
+                                      key={group.id}
+                                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                                        formData.rotaGroupIds.includes(group.id)
+                                          ? "bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800"
+                                          : "hover:bg-muted/50 border border-transparent"
+                                      }`}
+                                    >
+                                      <div className={`flex items-center justify-center w-5 h-5 rounded border-2 transition-colors ${
+                                        formData.rotaGroupIds.includes(group.id)
+                                          ? "bg-emerald-500 border-emerald-500"
+                                          : "border-muted-foreground/30"
+                                      }`}>
+                                        {formData.rotaGroupIds.includes(group.id) && (
+                                          <Check className="w-3 h-3 text-white" />
+                                        )}
+                                      </div>
+                                      <input
+                                        type="checkbox"
+                                        className="sr-only"
+                                        checked={formData.rotaGroupIds.includes(group.id)}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setFormData({
+                                              ...formData,
+                                              rotaGroupIds: [...formData.rotaGroupIds, group.id],
+                                            });
+                                          } else {
+                                            setFormData({
+                                              ...formData,
+                                              rotaGroupIds: formData.rotaGroupIds.filter((id) => id !== group.id),
+                                            });
+                                          }
+                                        }}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-foreground truncate">
+                                          {group.name}
+                                        </p>
+                                        {(group.Location || group.Department) && (
+                                          <p className="text-xs text-muted-foreground truncate">
+                                            {[group.Location?.name, group.Department?.name].filter(Boolean).join(" • ")}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {formData.rotaGroupIds.length > 0 && (
+                                <motion.p
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="text-xs text-emerald-600 dark:text-emerald-400"
+                                >
+                                  {formData.rotaGroupIds.length} group{formData.rotaGroupIds.length !== 1 ? "s" : ""} selected
+                                </motion.p>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </FormSection>
 
                     {/* Leave Entitlements Section */}

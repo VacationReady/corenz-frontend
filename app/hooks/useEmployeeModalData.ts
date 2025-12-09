@@ -46,12 +46,23 @@ export interface WorkingPatternWeek {
 export interface WorkingPattern {
   id: string;
   name: string;
+  patternType?: "STANDARD" | "SHIFT_BASED" | "FLEXIBLE" | "COMPRESSED";
   weeks: WorkingPatternWeek[];
 }
 
 export interface PermissionProfile {
   id: string;
   name: string;
+}
+
+export interface RotaGroup {
+  id: string;
+  name: string;
+  description?: string;
+  locationId?: string;
+  departmentId?: string;
+  Location?: { id: string; name: string };
+  Department?: { id: string; name: string };
 }
 
 export interface DatasetState<T> {
@@ -246,6 +257,24 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     }
   );
 
+  // Rota Groups (for shift-based scheduling)
+  const {
+    data: rotaGroupsData,
+    error: rotaGroupsError,
+    isLoading: rotaGroupsLoading,
+    mutate: revalidateRotaGroups,
+  } = useSWRImmutable<{ rotaGroups: RotaGroup[] }>(
+    enabled ? `/api/rota-groups?isActive=true&_v=${manualRevalidate}` : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+      shouldRetryOnError: true,
+      errorRetryCount: 3,
+      errorRetryInterval: 1000,
+    }
+  );
+
   // Normalize data shapes (handle both array and { key: array } responses)
   const departments = Array.isArray(departmentsData)
     ? departmentsData
@@ -263,6 +292,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     : (templatesData as any)?.templates || [];
   const workingPatterns = Array.isArray(workingPatternsData) ? workingPatternsData : [];
   const permissionProfiles = Array.isArray(permissionProfilesData) ? permissionProfilesData : [];
+  const rotaGroups = (rotaGroupsData as any)?.rotaGroups || [];
 
   // Debug logging for employees data
   if (enabled && !employeesLoading && !employeesError) {
@@ -298,7 +328,8 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     contractTypesLoading ||
     templatesLoading ||
     workingPatternsLoading ||
-    permissionProfilesLoading;
+    permissionProfilesLoading ||
+    rotaGroupsLoading;
 
   // Check if all critical data has loaded (templates are required)
   const hasLoadedCriticalData = !templatesLoading && templates.length >= 0;
@@ -372,5 +403,13 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
       error: permissionProfilesError,
       retry: revalidatePermissionProfiles,
     } as DatasetState<PermissionProfile[]>,
+
+    // Rota Groups
+    rotaGroups: {
+      data: rotaGroups,
+      isLoading: rotaGroupsLoading,
+      error: rotaGroupsError,
+      retry: revalidateRotaGroups,
+    } as DatasetState<RotaGroup[]>,
   };
 }

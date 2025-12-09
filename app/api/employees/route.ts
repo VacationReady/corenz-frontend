@@ -451,6 +451,7 @@ export async function POST(req: NextRequest) {
     const companyId = session.user.companyId;
     const appBaseUrl = getAppBaseUrl();
 
+    const body = await req.json();
     const {
       firstName,
       lastName,
@@ -473,7 +474,10 @@ export async function POST(req: NextRequest) {
       sickLeaveDays,
       alternativeHolidayDays,
       publicHolidayEntitlement,
-    } = createEmployeeSchema.parse(await req.json());
+    } = createEmployeeSchema.parse(body);
+    
+    // Extract rotaGroupIds separately (not in schema to keep it optional)
+    const rotaGroupIds: string[] = Array.isArray(body.rotaGroupIds) ? body.rotaGroupIds : [];
 
     // ✅ Enforce global email uniqueness across all tenants
     const existingAnywhere = await prisma.user.findFirst({
@@ -782,6 +786,41 @@ export async function POST(req: NextRequest) {
         });
       } catch (e) {
         console.warn("Leave entitlement creation failed:", e);
+      }
+    }
+
+    // Create rota group memberships for shift-based scheduling
+    if (rotaGroupIds.length > 0) {
+      try {
+        // Verify all rota groups belong to this company
+        const validRotaGroups = await prisma.rotaGroup.findMany({
+          where: {
+            id: { in: rotaGroupIds },
+            companyId,
+            isActive: true,
+          },
+          select: { id: true },
+        });
+
+        const validGroupIds = validRotaGroups.map((g) => g.id);
+        
+        // Create memberships for valid groups
+        if (validGroupIds.length > 0) {
+          await prisma.rotaGroupMember.createMany({
+            data: validGroupIds.map((rotaGroupId) => ({
+              id: crypto.randomUUID(),
+              rotaGroupId,
+              employeeId: employee.id,
+              isActive: true,
+              addedBy: session.user.id,
+              addedAt: new Date(),
+            })),
+            skipDuplicates: true,
+          });
+          console.log(`[employees/POST] Added employee ${employee.id} to ${validGroupIds.length} rota groups`);
+        }
+      } catch (e) {
+        console.warn("Rota group membership creation failed:", e);
       }
     }
 

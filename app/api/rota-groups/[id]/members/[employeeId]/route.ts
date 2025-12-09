@@ -5,7 +5,8 @@ import { z } from 'zod';
 
 // Validation schema for updating member
 const updateMemberSchema = z.object({
-  assignedRoles: z.array(z.string()),
+  assignedRoles: z.array(z.string()).optional(),
+  assignedSkills: z.array(z.string()).optional(),
   isActive: z.boolean().optional(),
 });
 

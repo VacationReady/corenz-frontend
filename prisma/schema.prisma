@@ -3685,13 +3685,14 @@ model RotaGroup {
 }
 
 model RotaGroupMember {
-  id            String   @id @default(cuid())
-  rotaGroupId   String
-  employeeId    String
-  assignedRoles String[] @default([]) // Roles employee can fill in this group
-  isActive      Boolean  @default(true)
-  addedAt       DateTime @default(now())
-  addedBy       String?
+  id             String   @id @default(cuid())
+  rotaGroupId    String
+  employeeId     String
+  assignedRoles  String[] @default([]) // Roles employee can fill in this group
+  assignedSkills String[] @default([]) // Skills this employee has for this group
+  isActive       Boolean  @default(true)
+  addedAt        DateTime @default(now())
+  addedBy        String?
 
   RotaGroup RotaGroup @relation(fields: [rotaGroupId], references: [id], onDelete: Cascade)
   Employee  Employee  @relation("RotaGroupMembers", fields: [employeeId], references: [id], onDelete: Cascade)

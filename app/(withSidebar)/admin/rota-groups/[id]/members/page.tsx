@@ -14,7 +14,10 @@ import {
   Briefcase,
   MapPin,
   Building2,
-  Eye
+  Eye,
+  Pencil,
+  Award,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
@@ -31,6 +34,7 @@ interface Member {
   id: string;
   employeeId: string;
   assignedRoles: string[];
+  assignedSkills: string[];
   Employee: Employee;
 }
 
@@ -40,6 +44,7 @@ interface RotaGroup {
   icon?: string;
   color?: string;
   roles: string[];
+  requiredSkills: string[];
 }
 
 export default function RotaGroupMembersPage() {
@@ -54,6 +59,9 @@ export default function RotaGroupMembersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string[]>>({});
+  const [selectedSkills, setSelectedSkills] = useState<Record<string, string[]>>({});
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -135,11 +143,18 @@ export default function RotaGroupMembersPage() {
       const newRoles = { ...selectedRoles };
       delete newRoles[employeeId];
       setSelectedRoles(newRoles);
+      const newSkills = { ...selectedSkills };
+      delete newSkills[employeeId];
+      setSelectedSkills(newSkills);
     } else {
       newSelected.add(employeeId);
       setSelectedRoles({
         ...selectedRoles,
         [employeeId]: group?.roles || [],
+      });
+      setSelectedSkills({
+        ...selectedSkills,
+        [employeeId]: group?.requiredSkills || [],
       });
     }
     setSelectedEmployees(newSelected);
@@ -157,6 +172,18 @@ export default function RotaGroupMembersPage() {
     });
   };
 
+  const toggleSkill = (employeeId: string, skill: string) => {
+    const currentSkills = selectedSkills[employeeId] || [];
+    const newSkills = currentSkills.includes(skill)
+      ? currentSkills.filter(s => s !== skill)
+      : [...currentSkills, skill];
+    
+    setSelectedSkills({
+      ...selectedSkills,
+      [employeeId]: newSkills,
+    });
+  };
+
   const addSelectedMembers = async () => {
     if (selectedEmployees.size === 0) return;
 
@@ -164,6 +191,7 @@ export default function RotaGroupMembersPage() {
       const membersToAdd = Array.from(selectedEmployees).map(empId => ({
         employeeId: empId,
         assignedRoles: selectedRoles[empId] || [],
+        assignedSkills: selectedSkills[empId] || [],
       }));
 
       const response = await fetch(`/api/rota-groups/${groupId}/members`, {
@@ -182,6 +210,7 @@ export default function RotaGroupMembersPage() {
       fetchData();
       setSelectedEmployees(new Set());
       setSelectedRoles({});
+      setSelectedSkills({});
     } catch (error) {
       console.error('Error adding members:', error);
       alert('Failed to add members');
@@ -206,6 +235,71 @@ export default function RotaGroupMembersPage() {
     } catch (error) {
       console.error('Error removing member:', error);
       alert('Failed to remove member');
+    }
+  };
+
+  const startEditingMember = (member: Member) => {
+    setEditingMemberId(member.employeeId);
+  };
+
+  const cancelEditingMember = () => {
+    setEditingMemberId(null);
+    // Refresh to reset any unsaved changes
+    fetchData();
+  };
+
+  const toggleMemberRole = (member: Member, role: string) => {
+    const currentRoles = member.assignedRoles || [];
+    const newRoles = currentRoles.includes(role)
+      ? currentRoles.filter((r) => r !== role)
+      : [...currentRoles, role];
+    
+    setMembers(members.map((m) => 
+      m.employeeId === member.employeeId 
+        ? { ...m, assignedRoles: newRoles }
+        : m
+    ));
+  };
+
+  const toggleMemberSkill = (member: Member, skill: string) => {
+    const currentSkills = member.assignedSkills || [];
+    const newSkills = currentSkills.includes(skill)
+      ? currentSkills.filter((s) => s !== skill)
+      : [...currentSkills, skill];
+    
+    setMembers(members.map((m) => 
+      m.employeeId === member.employeeId 
+        ? { ...m, assignedSkills: newSkills }
+        : m
+    ));
+  };
+
+  const saveMemberChanges = async (member: Member) => {
+    setSavingMemberId(member.employeeId);
+    try {
+      const response = await fetch(`/api/rota-groups/${groupId}/members/${member.employeeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assignedRoles: member.assignedRoles,
+          assignedSkills: member.assignedSkills,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error.error || 'Failed to update member');
+        fetchData();
+        return;
+      }
+
+      setEditingMemberId(null);
+    } catch (error) {
+      console.error('Error updating member:', error);
+      alert('Failed to update member');
+      fetchData();
+    } finally {
+      setSavingMemberId(null);
     }
   };
 
@@ -358,27 +452,62 @@ export default function RotaGroupMembersPage() {
                                   initial={{ opacity: 0, height: 0 }}
                                   animate={{ opacity: 1, height: "auto" }}
                                   exit={{ opacity: 0, height: 0 }}
-                                  className="mt-3 flex flex-wrap gap-1.5"
+                                  className="mt-3 space-y-2"
                                 >
-                                  {group.roles.map((role) => {
-                                    const roleSelected = selectedRoles[emp.id]?.includes(role);
-                                    return (
-                                      <button
-                                        key={role}
-                                        type="button"
-                                        onClick={() => toggleRole(emp.id, role)}
-                                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-all font-medium ${
-                                          roleSelected
-                                            ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/40'
-                                            : 'bg-muted text-muted-foreground border border-border hover:border-blue-500/30'
-                                        }`}
-                                      >
-                                        {roleSelected && <Check className="w-3 h-3" />}
-                                        <Briefcase className="w-3 h-3" />
-                                        {role}
-                                      </button>
-                                    );
-                                  })}
+                                  {group.roles.length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                                        <Briefcase className="w-3 h-3" /> Roles:
+                                      </p>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {group.roles.map((role) => {
+                                          const roleSelected = selectedRoles[emp.id]?.includes(role);
+                                          return (
+                                            <button
+                                              key={role}
+                                              type="button"
+                                              onClick={() => toggleRole(emp.id, role)}
+                                              className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-all font-medium ${
+                                                roleSelected
+                                                  ? 'bg-blue-500 text-white border border-blue-500'
+                                                  : 'bg-muted text-muted-foreground border border-border hover:border-blue-500/30'
+                                              }`}
+                                            >
+                                              {roleSelected && <Check className="w-3 h-3" />}
+                                              {role}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {(group.requiredSkills || []).length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                                        <Award className="w-3 h-3" /> Skills:
+                                      </p>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {group.requiredSkills.map((skill) => {
+                                          const skillSelected = selectedSkills[emp.id]?.includes(skill);
+                                          return (
+                                            <button
+                                              key={skill}
+                                              type="button"
+                                              onClick={() => toggleSkill(emp.id, skill)}
+                                              className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-all font-medium ${
+                                                skillSelected
+                                                  ? 'bg-emerald-500 text-white border border-emerald-500'
+                                                  : 'bg-muted text-muted-foreground border border-border hover:border-emerald-500/30'
+                                              }`}
+                                            >
+                                              {skillSelected && <Check className="w-3 h-3" />}
+                                              {skill}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
                                 </motion.div>
                               )}
                             </AnimatePresence>
@@ -422,56 +551,187 @@ export default function RotaGroupMembersPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {members.map((member, index) => (
-                    <motion.div 
-                      key={member.id} 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                      className="p-4 hover:bg-muted/30 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-foreground">{member.Employee.User.name}</div>
-                          <div className="text-sm text-muted-foreground">{member.Employee.User.email}</div>
-                          {(member.Employee.Location || member.Employee.Department) && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                              {member.Employee.Location && (
-                                <span className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  {member.Employee.Location.name}
-                                </span>
+                  {members.map((member, index) => {
+                    const isEditing = editingMemberId === member.employeeId;
+                    const isSaving = savingMemberId === member.employeeId;
+                    
+                    return (
+                      <motion.div 
+                        key={member.id} 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className={`p-4 transition-colors ${
+                          isEditing 
+                            ? 'bg-blue-500/5 border-l-2 border-l-blue-500' 
+                            : 'hover:bg-muted/30'
+                        }`}
+                      >
+                        {/* Member Header */}
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-foreground">{member.Employee.User.name}</div>
+                            <div className="text-sm text-muted-foreground">{member.Employee.User.email}</div>
+                            {(member.Employee.Location || member.Employee.Department) && (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                {member.Employee.Location && (
+                                  <span className="flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    {member.Employee.Location.name}
+                                  </span>
+                                )}
+                                {member.Employee.Department && (
+                                  <span className="flex items-center gap-1">
+                                    <Building2 className="w-3 h-3" />
+                                    {member.Employee.Department.name}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  onClick={() => cancelEditingMember()}
+                                  disabled={isSaving}
+                                  className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                                  title="Cancel"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => saveMemberChanges(member)}
+                                  disabled={isSaving}
+                                  className="p-2 rounded-lg text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 transition-all"
+                                  title="Save changes"
+                                >
+                                  {isSaving ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Check className="w-4 h-4" />
+                                  )}
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => startEditingMember(member)}
+                                  className="p-2 rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-all"
+                                  title="Edit roles & skills"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => removeMember(member.employeeId)}
+                                  className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
+                                  title="Remove member"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Roles Section */}
+                        <div className="mb-3">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Briefcase className="w-3.5 h-3.5 text-blue-500" />
+                            <span className="text-xs font-medium text-muted-foreground">Roles</span>
+                          </div>
+                          {isEditing && group ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {group.roles.map((role) => {
+                                const isAssigned = (member.assignedRoles || []).includes(role);
+                                return (
+                                  <button
+                                    key={role}
+                                    type="button"
+                                    onClick={() => toggleMemberRole(member, role)}
+                                    className={`px-2.5 py-1 text-xs rounded-full border transition-all font-medium ${
+                                      isAssigned
+                                        ? 'bg-blue-500 text-white border-blue-500'
+                                        : 'bg-muted text-muted-foreground border-border hover:border-blue-500/50'
+                                    }`}
+                                  >
+                                    {isAssigned && <Check className="w-3 h-3 inline mr-1" />}
+                                    {role}
+                                  </button>
+                                );
+                              })}
+                              {group.roles.length === 0 && (
+                                <span className="text-xs text-muted-foreground italic">No roles defined for this group</span>
                               )}
-                              {member.Employee.Department && (
-                                <span className="flex items-center gap-1">
-                                  <Building2 className="w-3 h-3" />
-                                  {member.Employee.Department.name}
-                                </span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {(member.assignedRoles || []).length > 0 ? (
+                                member.assignedRoles.map((role) => (
+                                  <span
+                                    key={role}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs rounded-full border border-blue-500/20 font-medium"
+                                  >
+                                    {role}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">No roles assigned</span>
                               )}
                             </div>
                           )}
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {member.assignedRoles.map((role) => (
-                              <span
-                                key={role}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs rounded-full border border-emerald-500/20 font-medium"
-                              >
-                                <Briefcase className="w-3 h-3" />
-                                {role}
-                              </span>
-                            ))}
-                          </div>
                         </div>
-                        <button
-                          onClick={() => removeMember(member.employeeId)}
-                          className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-500 transition-all"
-                          title="Remove member"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))}
+
+                        {/* Skills Section */}
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Award className="w-3.5 h-3.5 text-emerald-500" />
+                            <span className="text-xs font-medium text-muted-foreground">Skills</span>
+                          </div>
+                          {isEditing && group ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {(group.requiredSkills || []).map((skill) => {
+                                const hasSkill = (member.assignedSkills || []).includes(skill);
+                                return (
+                                  <button
+                                    key={skill}
+                                    type="button"
+                                    onClick={() => toggleMemberSkill(member, skill)}
+                                    className={`px-2.5 py-1 text-xs rounded-full border transition-all font-medium ${
+                                      hasSkill
+                                        ? 'bg-emerald-500 text-white border-emerald-500'
+                                        : 'bg-muted text-muted-foreground border-border hover:border-emerald-500/50'
+                                    }`}
+                                  >
+                                    {hasSkill && <Check className="w-3 h-3 inline mr-1" />}
+                                    {skill}
+                                  </button>
+                                );
+                              })}
+                              {(group.requiredSkills || []).length === 0 && (
+                                <span className="text-xs text-muted-foreground italic">No skills defined for this group</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {(member.assignedSkills || []).length > 0 ? (
+                                member.assignedSkills.map((skill) => (
+                                  <span
+                                    key={skill}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs rounded-full border border-emerald-500/20 font-medium"
+                                  >
+                                    {skill}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted-foreground italic">No skills assigned</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               )}
             </div>

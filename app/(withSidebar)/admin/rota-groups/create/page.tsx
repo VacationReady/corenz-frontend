@@ -18,6 +18,9 @@ import {
   Palette,
   Sparkles
 } from 'lucide-react';
+import { RotaGroupIconPicker } from '@/components/rota/RotaGroupIconPicker';
+import { RotaGroupColorPicker } from '@/components/rota/RotaGroupColorPicker';
+import { getRotaGroupIcon } from '@/lib/rota-group-icons';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/Input';
@@ -119,7 +122,7 @@ export default function CreateRotaGroupPage() {
     description: '',
     locationId: '',
     departmentId: '',
-    icon: '🏭',
+    icon: 'warehouse',
     color: '#3B82F6',
     roles: [] as string[],
     requiredSkills: [] as string[],
@@ -233,8 +236,7 @@ export default function CreateRotaGroupPage() {
     setFormData({ ...formData, optionalTags: formData.optionalTags.filter(t => t !== tag) });
   };
 
-  const emojiOptions = ['🏭', '🏪', '🍞', '🏥', '🏢', '📦', '🚛', '🏗️', '⚙️', '🔧'];
-  const colorOptions = ['#3B82F6', '#2563EB', '#1D4ED8', '#10B981', '#059669', '#6366F1', '#4F46E5', '#14B8A6'];
+  const SelectedIcon = getRotaGroupIcon(formData.icon);
 
   return (
     <div className="w-full min-h-screen bg-content-panel">
@@ -300,24 +302,11 @@ export default function CreateRotaGroupPage() {
                     <Palette className="w-4 h-4 text-blue-500" />
                     Icon
                   </Label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {emojiOptions.map((emoji) => (
-                      <motion.button
-                        key={emoji}
-                        type="button"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setFormData({ ...formData, icon: emoji })}
-                        className={`text-xl p-2.5 rounded-lg transition-all ${
-                          formData.icon === emoji
-                            ? 'bg-blue-500/20 border-2 border-blue-500 shadow-md'
-                            : 'bg-muted/50 border border-border hover:bg-muted'
-                        }`}
-                      >
-                        {emoji}
-                      </motion.button>
-                    ))}
-                  </div>
+                  <RotaGroupIconPicker
+                    value={formData.icon}
+                    onChange={(icon) => setFormData({ ...formData, icon })}
+                    color={formData.color}
+                  />
                 </div>
 
                 <div className="space-y-1.5">
@@ -325,23 +314,10 @@ export default function CreateRotaGroupPage() {
                     <Palette className="w-4 h-4 text-blue-500" />
                     Color Theme
                   </Label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {colorOptions.map((color) => (
-                      <motion.button
-                        key={color}
-                        type="button"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setFormData({ ...formData, color })}
-                        className={`h-10 rounded-lg transition-all ${
-                          formData.color === color
-                            ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background shadow-lg'
-                            : 'hover:shadow-md'
-                        }`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
+                  <RotaGroupColorPicker
+                    value={formData.color}
+                    onChange={(color) => setFormData({ ...formData, color })}
+                  />
                 </div>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { z } from 'zod';
 const addMemberSchema = z.object({
   employeeId: z.string(),
   assignedRoles: z.array(z.string()).default([]),
+  assignedSkills: z.array(z.string()).default([]),
 });
 
 const addMultipleMembersSchema = z.object({
@@ -158,11 +159,13 @@ export async function POST(
             rotaGroupId: id,
             employeeId: member.employeeId,
             assignedRoles: member.assignedRoles,
+            assignedSkills: member.assignedSkills,
             isActive: true,
             addedBy: session.user.id,
           },
           update: {
             assignedRoles: member.assignedRoles,
+            assignedSkills: member.assignedSkills,
             isActive: true,
             addedBy: session.user.id,
           },

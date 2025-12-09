@@ -309,6 +309,8 @@ export default function EmployeeSchedulePage() {
     );
   }
 
+  const now = new Date();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -391,69 +393,73 @@ export default function EmployeeSchedulePage() {
                 <p className="text-gray-400">You have no scheduled shifts for this week.</p>
               </div>
             ) : (
-              shifts.map((shift) => (
-                <div
-                  key={shift.id}
-                  className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-5 hover:bg-white/15 transition-all"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-center gap-4">
-                        <div className={`${shift.isVirtualShift ? 'bg-purple-500/20' : 'bg-blue-500/20'} p-3 rounded-lg`}>
-                          <Clock className="w-6 h-6 text-blue-400" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-white font-semibold text-lg">
-                              {format(new Date(shift.startTime), 'EEEE, MMMM d')}
-                            </h3>
-                            {shift.isVirtualShift && (
-                              <span className="px-2 py-0.5 bg-purple-500/30 text-purple-300 text-xs font-medium rounded-full border border-purple-500/50">
-                                Working Pattern
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-gray-300">
-                            {format(new Date(shift.startTime), 'h:mm a')} -{' '}
-                            {format(new Date(shift.endTime), 'h:mm a')}
-                          </p>
-                        </div>
-                      </div>
+              shifts.map((shift) => {
+                const hasShiftStarted = new Date(shift.startTime) <= now;
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pl-14">
-                        {shift.role && (
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-purple-400" />
-                            <span className="text-gray-300 text-sm">{shift.role}</span>
+                return (
+                  <div
+                    key={shift.id}
+                    className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-5 hover:bg-white/15 transition-all"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 space-y-3">
+                        <div className="flex items-center gap-4">
+                          <div className={`${shift.isVirtualShift ? 'bg-purple-500/20' : 'bg-blue-500/20'} p-3 rounded-lg`}>
+                            <Clock className="w-6 h-6 text-blue-400" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-white font-semibold text-lg">
+                                {format(new Date(shift.startTime), 'EEEE, MMMM d')}
+                              </h3>
+                              {shift.isVirtualShift && (
+                                <span className="px-2 py-0.5 bg-purple-500/30 text-purple-300 text-xs font-medium rounded-full border border-purple-500/50">
+                                  Working Pattern
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-gray-300">
+                              {format(new Date(shift.startTime), 'h:mm a')} -{' '}
+                              {format(new Date(shift.endTime), 'h:mm a')}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pl-14">
+                          {shift.role && (
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-purple-400" />
+                              <span className="text-gray-300 text-sm">{shift.role}</span>
+                            </div>
+                          )}
+                          {shift.location && (
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-green-400" />
+                              <span className="text-gray-300 text-sm">{shift.location.name}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {shift.notes && (
+                          <div className="pl-14">
+                            <p className="text-gray-400 text-sm italic">"{shift.notes}"</p>
                           </div>
                         )}
-                        {shift.location && (
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-green-400" />
-                            <span className="text-gray-300 text-sm">{shift.location.name}</span>
-                          </div>
-                        )}
                       </div>
 
-                      {shift.notes && (
-                        <div className="pl-14">
-                          <p className="text-gray-400 text-sm italic">"{shift.notes}"</p>
-                        </div>
+                      {!shift.isVirtualShift && !hasShiftStarted && (
+                        <button
+                          onClick={() => setSelectedShift(shift)}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-semibold transition-all flex items-center gap-2"
+                        >
+                          <ArrowRightLeft className="w-4 h-4" />
+                          Request Swap
+                        </button>
                       )}
                     </div>
-
-                    {!shift.isVirtualShift && (
-                      <button
-                        onClick={() => setSelectedShift(shift)}
-                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-lg font-semibold transition-all flex items-center gap-2"
-                      >
-                        <ArrowRightLeft className="w-4 h-4" />
-                        Request Swap
-                      </button>
-                    )}
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}

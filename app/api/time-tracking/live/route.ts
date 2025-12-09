@@ -108,6 +108,9 @@ export async function GET(req: NextRequest) {
             User: {
               select: {
                 name: true,
+                email: true,
+                firstName: true,
+                lastName: true,
               },
             },
             Location: {
@@ -133,6 +136,8 @@ export async function GET(req: NextRequest) {
             id: true,
             name: true,
             email: true,
+            firstName: true,
+            lastName: true,
           },
         },
         Location: {
@@ -170,9 +175,14 @@ export async function GET(req: NextRequest) {
         hoursWorked = Number((duration / (1000 * 60 * 60)).toFixed(2));
       }
 
+      const displayName =
+        (emp.User.firstName || emp.User.lastName)
+          ? `${emp.User.firstName ?? ''} ${emp.User.lastName ?? ''}`.trim()
+          : emp.User.name || emp.User.email || 'Unknown';
+
       return {
         id: emp.id,
-        name: emp.User.name || 'Unknown',
+        name: displayName,
         email: emp.User.email,
         department: emp.Department?.name,
         location: emp.Location?.name,
@@ -189,14 +199,22 @@ export async function GET(req: NextRequest) {
     const totalClockedOut = totalEmployees - totalClockedIn;
 
     // Build recent activity feed
-    const recentActivityFeed = recentActivity.map((entry) => ({
-      employeeName: entry.Employee?.User.name || 'Unknown',
-      action: entry.status === 'ACTIVE' ? 'CLOCKED_IN' : 'CLOCKED_OUT',
-      location: entry.Employee?.Location?.name,
-      timestamp: entry.clockInTime,
-      clockInTime: entry.clockInTime,
-      clockOutTime: entry.clockOutTime,
-    }));
+    const recentActivityFeed = recentActivity.map((entry) => {
+      const user = entry.Employee?.User;
+      const displayName =
+        user && (user.firstName || user.lastName)
+          ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
+          : user?.name || user?.email || 'Unknown';
+
+      return {
+        employeeName: displayName,
+        action: entry.status === 'ACTIVE' ? 'CLOCKED_IN' : 'CLOCKED_OUT',
+        location: entry.Employee?.Location?.name,
+        timestamp: entry.clockInTime,
+        clockInTime: entry.clockInTime,
+        clockOutTime: entry.clockOutTime,
+      };
+    });
 
     return NextResponse.json({
       summary: {

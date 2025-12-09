@@ -16,6 +16,7 @@ import {
   Search,
   LayoutGrid
 } from 'lucide-react';
+import { getRotaGroupIcon } from '@/lib/rota-group-icons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
@@ -210,12 +211,15 @@ export default function RotaGroupsPage() {
                   {/* Header with Icon */}
                   <div className="flex items-start gap-3 mb-4">
                     <div
-                      className="text-3xl p-2.5 rounded-xl flex-shrink-0"
+                      className="p-2.5 rounded-xl flex-shrink-0"
                       style={{
                         backgroundColor: group.color ? `${group.color}15` : 'rgba(59, 130, 246, 0.1)',
                       }}
                     >
-                      {group.icon || '📋'}
+                      {(() => {
+                        const IconComponent = getRotaGroupIcon(group.icon);
+                        return <IconComponent className="w-7 h-7" style={{ color: group.color || '#3B82F6' }} />;
+                      })()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-semibold text-card-foreground mb-0.5 truncate">

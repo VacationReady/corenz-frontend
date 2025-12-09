@@ -19,7 +19,11 @@ import {
   Trash2,
   Search,
   Check,
+  Pencil,
 } from 'lucide-react';
+import { RotaGroupIconPicker } from '@/components/rota/RotaGroupIconPicker';
+import { RotaGroupColorPicker } from '@/components/rota/RotaGroupColorPicker';
+import { getRotaGroupIcon } from '@/lib/rota-group-icons';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -54,6 +58,7 @@ interface Member {
   id: string;
   employeeId: string;
   assignedRoles: string[];
+  assignedSkills: string[];
   Employee: Employee;
 }
 
@@ -85,8 +90,6 @@ interface EditRotaGroupModalProps {
   onSuccess: () => void;
 }
 
-const emojiOptions = ['🏭', '🏪', '🍞', '🏥', '🏢', '📦', '🚛', '🏗️', '⚙️', '🔧', '👷', '🎯', '📋', '🗓️'];
-const colorOptions = ['#3B82F6', '#2563EB', '#1D4ED8', '#10B981', '#059669', '#6366F1', '#4F46E5', '#14B8A6', '#F59E0B', '#EF4444'];
 
 export default function EditRotaGroupModal({
   isOpen,
@@ -104,13 +107,16 @@ export default function EditRotaGroupModal({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string[]>>({});
+  const [selectedSkills, setSelectedSkills] = useState<Record<string, string[]>>({});
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     locationId: '',
     departmentId: '',
-    icon: '🏭',
+    icon: 'warehouse',
     color: '#3B82F6',
     roles: [] as string[],
     requiredSkills: [] as string[],
@@ -129,7 +135,7 @@ export default function EditRotaGroupModal({
         description: group.description || '',
         locationId: group.locationId || group.Location?.id || '',
         departmentId: group.departmentId || group.Department?.id || '',
-        icon: group.icon || '🏭',
+        icon: group.icon || 'warehouse',
         color: group.color || '#3B82F6',
         roles: group.roles || [],
         requiredSkills: group.requiredSkills || [],
@@ -231,11 +237,18 @@ export default function EditRotaGroupModal({
       const newRoles = { ...selectedRoles };
       delete newRoles[employeeId];
       setSelectedRoles(newRoles);
+      const newSkills = { ...selectedSkills };
+      delete newSkills[employeeId];
+      setSelectedSkills(newSkills);
     } else {
       newSelected.add(employeeId);
       setSelectedRoles({
         ...selectedRoles,
         [employeeId]: formData.roles || [],
+      });
+      setSelectedSkills({
+        ...selectedSkills,
+        [employeeId]: formData.requiredSkills || [],
       });
     }
     setSelectedEmployees(newSelected);
@@ -253,6 +266,18 @@ export default function EditRotaGroupModal({
     });
   };
 
+  const toggleSkill = (employeeId: string, skill: string) => {
+    const currentSkills = selectedSkills[employeeId] || [];
+    const newSkills = currentSkills.includes(skill)
+      ? currentSkills.filter((s) => s !== skill)
+      : [...currentSkills, skill];
+
+    setSelectedSkills({
+      ...selectedSkills,
+      [employeeId]: newSkills,
+    });
+  };
+
   const addSelectedMembers = async () => {
     if (!group || selectedEmployees.size === 0) return;
 
@@ -260,6 +285,7 @@ export default function EditRotaGroupModal({
       const membersToAdd = Array.from(selectedEmployees).map((empId) => ({
         employeeId: empId,
         assignedRoles: selectedRoles[empId] || [],
+        assignedSkills: selectedSkills[empId] || [],
       }));
 
       const response = await fetch(`/api/rota-groups/${group.id}/members`, {
@@ -326,6 +352,86 @@ export default function EditRotaGroupModal({
         description: 'Something went wrong',
         variant: 'destructive',
       });
+    }
+  };
+
+  const startEditingMember = (member: Member) => {
+    setEditingMemberId(member.employeeId);
+  };
+
+  const cancelEditingMember = () => {
+    setEditingMemberId(null);
+  };
+
+  const toggleMemberRole = (member: Member, role: string) => {
+    const currentRoles = member.assignedRoles || [];
+    const newRoles = currentRoles.includes(role)
+      ? currentRoles.filter((r) => r !== role)
+      : [...currentRoles, role];
+    
+    // Update local state immediately for responsiveness
+    setMembers(members.map((m) => 
+      m.employeeId === member.employeeId 
+        ? { ...m, assignedRoles: newRoles }
+        : m
+    ));
+  };
+
+  const toggleMemberSkill = (member: Member, skill: string) => {
+    const currentSkills = member.assignedSkills || [];
+    const newSkills = currentSkills.includes(skill)
+      ? currentSkills.filter((s) => s !== skill)
+      : [...currentSkills, skill];
+    
+    // Update local state immediately for responsiveness
+    setMembers(members.map((m) => 
+      m.employeeId === member.employeeId 
+        ? { ...m, assignedSkills: newSkills }
+        : m
+    ));
+  };
+
+  const saveMemberChanges = async (member: Member) => {
+    if (!group) return;
+
+    setSavingMemberId(member.employeeId);
+    try {
+      const response = await fetch(`/api/rota-groups/${group.id}/members/${member.employeeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assignedRoles: member.assignedRoles,
+          assignedSkills: member.assignedSkills,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast({
+          title: 'Failed to update member',
+          description: error.error || 'Something went wrong',
+          variant: 'destructive',
+        });
+        // Refresh to get correct state
+        fetchEmployees();
+        return;
+      }
+
+      toast({
+        title: 'Member updated',
+        description: `${member.Employee.User.name}'s roles and skills have been updated`,
+      });
+      setEditingMemberId(null);
+    } catch (error) {
+      console.error('Error updating member:', error);
+      toast({
+        title: 'Failed to update member',
+        description: 'Something went wrong',
+        variant: 'destructive',
+      });
+      fetchEmployees();
+    } finally {
+      setSavingMemberId(null);
     }
   };
 
@@ -438,6 +544,8 @@ export default function EditRotaGroupModal({
     setErrors({});
     setSelectedEmployees(new Set());
     setSelectedRoles({});
+    setSelectedSkills({});
+    setEditingMemberId(null);
     setSearchTerm('');
     onClose();
   };
@@ -456,10 +564,13 @@ export default function EditRotaGroupModal({
         <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-xl border-b border-border p-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div
-              className="text-3xl p-3 rounded-xl"
+              className="p-3 rounded-xl"
               style={{ backgroundColor: formData.color ? `${formData.color}15` : 'rgba(59, 130, 246, 0.1)' }}
             >
-              {formData.icon || '📋'}
+              {(() => {
+                const IconComponent = getRotaGroupIcon(formData.icon);
+                return <IconComponent className="w-7 h-7" style={{ color: formData.color || '#3B82F6' }} />;
+              })()}
             </div>
             <div>
               <h2 className="text-2xl font-bold text-foreground tracking-tight">Edit Rota Group</h2>
@@ -552,22 +663,11 @@ export default function EditRotaGroupModal({
                       <Palette className="w-4 h-4 text-blue-500" />
                       Icon
                     </Label>
-                    <div className="grid grid-cols-7 gap-1.5">
-                      {emojiOptions.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, icon: emoji })}
-                          className={`text-lg p-2 rounded-lg transition-all ${
-                            formData.icon === emoji
-                              ? 'bg-blue-500/20 border-2 border-blue-500 shadow-md'
-                              : 'bg-muted/50 border border-border hover:bg-muted'
-                          }`}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
+                    <RotaGroupIconPicker
+                      value={formData.icon}
+                      onChange={(icon) => setFormData({ ...formData, icon })}
+                      color={formData.color}
+                    />
                   </div>
 
                   <div className="space-y-1.5">
@@ -575,21 +675,10 @@ export default function EditRotaGroupModal({
                       <Palette className="w-4 h-4 text-blue-500" />
                       Color Theme
                     </Label>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {colorOptions.map((color) => (
-                        <button
-                          key={color}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, color })}
-                          className={`h-8 rounded-lg transition-all ${
-                            formData.color === color
-                              ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background shadow-lg'
-                              : 'hover:shadow-md'
-                          }`}
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                    </div>
+                    <RotaGroupColorPicker
+                      value={formData.color}
+                      onChange={(color) => setFormData({ ...formData, color })}
+                    />
                   </div>
                 </div>
               </div>
@@ -874,28 +963,60 @@ export default function EditRotaGroupModal({
                           </div>
                         </div>
 
-                        {selectedEmployees.has(emp.id) && formData.roles.length > 0 && (
-                          <div className="mt-2 pt-2 border-t border-border">
-                            <p className="text-xs text-muted-foreground mb-1.5">Assign roles:</p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {formData.roles.map((role) => (
-                                <button
-                                  key={role}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleRole(emp.id, role);
-                                  }}
-                                  className={`px-2 py-0.5 text-xs rounded-full border transition-all ${
-                                    (selectedRoles[emp.id] || []).includes(role)
-                                      ? 'bg-blue-500 text-white border-blue-500'
-                                      : 'bg-muted text-muted-foreground border-border hover:border-blue-500/50'
-                                  }`}
-                                >
-                                  {role}
-                                </button>
-                              ))}
-                            </div>
+                        {selectedEmployees.has(emp.id) && (formData.roles.length > 0 || formData.requiredSkills.length > 0) && (
+                          <div className="mt-2 pt-2 border-t border-border space-y-2">
+                            {formData.roles.length > 0 && (
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <Briefcase className="w-3 h-3" /> Assign roles:
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {formData.roles.map((role) => (
+                                    <button
+                                      key={role}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleRole(emp.id, role);
+                                      }}
+                                      className={`px-2 py-0.5 text-xs rounded-full border transition-all ${
+                                        (selectedRoles[emp.id] || []).includes(role)
+                                          ? 'bg-blue-500 text-white border-blue-500'
+                                          : 'bg-muted text-muted-foreground border-border hover:border-blue-500/50'
+                                      }`}
+                                    >
+                                      {role}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {formData.requiredSkills.length > 0 && (
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                                  <Award className="w-3 h-3" /> Assign skills:
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {formData.requiredSkills.map((skill) => (
+                                    <button
+                                      key={skill}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleSkill(emp.id, skill);
+                                      }}
+                                      className={`px-2 py-0.5 text-xs rounded-full border transition-all ${
+                                        (selectedSkills[emp.id] || []).includes(skill)
+                                          ? 'bg-emerald-500 text-white border-emerald-500'
+                                          : 'bg-muted text-muted-foreground border-border hover:border-emerald-500/50'
+                                      }`}
+                                    >
+                                      {skill}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -924,42 +1045,171 @@ export default function EditRotaGroupModal({
                     <p className="text-sm text-muted-foreground/70">Add employees from the list above</p>
                   </div>
                 ) : (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {members.map((member) => (
-                      <motion.div
-                        key={member.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center justify-between p-3 bg-card rounded-lg border border-border hover:border-emerald-500/30 transition-all"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">{member.Employee.User.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {member.assignedRoles.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {member.assignedRoles.map((role) => (
-                                  <span
-                                    key={role}
-                                    className="px-2 py-0.5 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-500/20"
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                    {members.map((member) => {
+                      const isEditing = editingMemberId === member.employeeId;
+                      const isSaving = savingMemberId === member.employeeId;
+                      
+                      return (
+                        <motion.div
+                          key={member.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className={`p-4 bg-card rounded-lg border transition-all ${
+                            isEditing 
+                              ? 'border-blue-500/50 shadow-lg shadow-blue-500/10' 
+                              : 'border-border hover:border-emerald-500/30'
+                          }`}
+                        >
+                          {/* Member Header */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-foreground truncate">{member.Employee.User.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{member.Employee.User.email}</p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {isEditing ? (
+                                <>
+                                  <button
+                                    onClick={() => cancelEditingMember()}
+                                    disabled={isSaving}
+                                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                                    title="Cancel"
                                   >
-                                    {role}
-                                  </span>
-                                ))}
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => saveMemberChanges(member)}
+                                    disabled={isSaving}
+                                    className="p-2 rounded-lg text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 transition-all"
+                                    title="Save changes"
+                                  >
+                                    {isSaving ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Check className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => startEditingMember(member)}
+                                    className="p-2 rounded-lg text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-all"
+                                    title="Edit roles & skills"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => removeMember(member.employeeId)}
+                                    className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
+                                    title="Remove member"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Roles Section */}
+                          <div className="mb-3">
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <Briefcase className="w-3.5 h-3.5 text-blue-500" />
+                              <span className="text-xs font-medium text-muted-foreground">Roles</span>
+                            </div>
+                            {isEditing ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {formData.roles.map((role) => {
+                                  const isAssigned = (member.assignedRoles || []).includes(role);
+                                  return (
+                                    <button
+                                      key={role}
+                                      type="button"
+                                      onClick={() => toggleMemberRole(member, role)}
+                                      className={`px-2.5 py-1 text-xs rounded-full border transition-all font-medium ${
+                                        isAssigned
+                                          ? 'bg-blue-500 text-white border-blue-500'
+                                          : 'bg-muted text-muted-foreground border-border hover:border-blue-500/50'
+                                      }`}
+                                    >
+                                      {isAssigned && <Check className="w-3 h-3 inline mr-1" />}
+                                      {role}
+                                    </button>
+                                  );
+                                })}
+                                {formData.roles.length === 0 && (
+                                  <span className="text-xs text-muted-foreground italic">No roles defined for this group</span>
+                                )}
                               </div>
                             ) : (
-                              <span className="text-xs text-muted-foreground">No roles assigned</span>
+                              <div className="flex flex-wrap gap-1">
+                                {(member.assignedRoles || []).length > 0 ? (
+                                  member.assignedRoles.map((role) => (
+                                    <span
+                                      key={role}
+                                      className="px-2 py-0.5 text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full border border-blue-500/20"
+                                    >
+                                      {role}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">No roles assigned</span>
+                                )}
+                              </div>
                             )}
                           </div>
-                        </div>
-                        <button
-                          onClick={() => removeMember(member.employeeId)}
-                          className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
-                          title="Remove member"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </motion.div>
-                    ))}
+
+                          {/* Skills Section */}
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <Award className="w-3.5 h-3.5 text-emerald-500" />
+                              <span className="text-xs font-medium text-muted-foreground">Skills</span>
+                            </div>
+                            {isEditing ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {formData.requiredSkills.map((skill) => {
+                                  const hasSkill = (member.assignedSkills || []).includes(skill);
+                                  return (
+                                    <button
+                                      key={skill}
+                                      type="button"
+                                      onClick={() => toggleMemberSkill(member, skill)}
+                                      className={`px-2.5 py-1 text-xs rounded-full border transition-all font-medium ${
+                                        hasSkill
+                                          ? 'bg-emerald-500 text-white border-emerald-500'
+                                          : 'bg-muted text-muted-foreground border-border hover:border-emerald-500/50'
+                                      }`}
+                                    >
+                                      {hasSkill && <Check className="w-3 h-3 inline mr-1" />}
+                                      {skill}
+                                    </button>
+                                  );
+                                })}
+                                {formData.requiredSkills.length === 0 && (
+                                  <span className="text-xs text-muted-foreground italic">No skills defined for this group</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {(member.assignedSkills || []).length > 0 ? (
+                                  member.assignedSkills.map((skill) => (
+                                    <span
+                                      key={skill}
+                                      className="px-2 py-0.5 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-500/20"
+                                    >
+                                      {skill}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">No skills assigned</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

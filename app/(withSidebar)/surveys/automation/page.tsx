@@ -374,8 +374,10 @@ export default function SurveyAutomationPage() {
                 </p>
                 <Button asChild variant="outline" size="sm" className="w-full">
                   <Link href="/surveys/automation/new?template=monthly-satisfaction">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    Create
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <Calendar className="w-3 h-3" />
+                      <span>Create</span>
+                    </span>
                   </Link>
                 </Button>
               </div>
@@ -387,8 +389,10 @@ export default function SurveyAutomationPage() {
                 </p>
                 <Button asChild variant="outline" size="sm" className="w-full">
                   <Link href="/surveys/automation/new?template=new-hire-checkin">
-                    <Users className="w-3 h-3 mr-1" />
-                    Create
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <Users className="w-3 h-3" />
+                      <span>Create</span>
+                    </span>
                   </Link>
                 </Button>
               </div>
@@ -400,8 +404,10 @@ export default function SurveyAutomationPage() {
                 </p>
                 <Button asChild variant="outline" size="sm" className="w-full">
                   <Link href="/surveys/automation/new?template=anniversary-review">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Create
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <Clock className="w-3 h-3" />
+                      <span>Create</span>
+                    </span>
                   </Link>
                 </Button>
               </div>

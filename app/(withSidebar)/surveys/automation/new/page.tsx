@@ -242,9 +242,9 @@ export default function CreateAutomationPage() {
       }}
     >
       <div className="max-w-4xl mx-auto space-y-6">
-        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-900 text-white">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.08),_transparent_55%)]" />
-          <CardContent className="relative z-10 flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between">
+        <div className="relative overflow-hidden rounded-3xl border border-slate-900/70 bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 text-white shadow-xl">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.12),_transparent_55%)]" />
+          <div className="relative z-10 flex flex-col gap-5 p-6 text-sm leading-relaxed md:flex-row md:items-center md:justify-between">
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-white">
                 <Sparkles className="h-3 w-3" /> Automated survey journeys
@@ -294,8 +294,8 @@ export default function CreateAutomationPage() {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">

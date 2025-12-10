@@ -103,13 +103,20 @@ export default function ClockWidget({
     try {
       let locationData;
 
+      // Attempt to get location if GPS is configured, but don't block on failure
+      // HRIS Best Practice: Never block clock-in due to GPS failure
       if (requireGpsLocation) {
-        const position = await getCurrentLocation();
-        locationData = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        };
+        try {
+          const position = await getCurrentLocation();
+          locationData = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          };
+        } catch (locationError) {
+          console.warn('Could not capture GPS location:', locationError);
+          // Continue without location - backend will flag for review
+        }
       }
 
       const needsPhoto = photoRequirement === 'CLOCK_IN' || photoRequirement === 'CLOCK_IN_OUT';
@@ -181,13 +188,20 @@ export default function ClockWidget({
     try {
       let locationData;
 
+      // Attempt to get location if GPS is configured, but don't block on failure
+      // HRIS Best Practice: Never block clock-out due to GPS failure
       if (requireGpsLocation) {
-        const position = await getCurrentLocation();
-        locationData = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        };
+        try {
+          const position = await getCurrentLocation();
+          locationData = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          };
+        } catch (locationError) {
+          console.warn('Could not capture GPS location:', locationError);
+          // Continue without location - backend will flag for review
+        }
       }
 
       const needsPhoto = photoRequirement === 'CLOCK_IN_OUT';

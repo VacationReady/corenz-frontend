@@ -41,6 +41,9 @@ export default async function DebugFormsPage() {
           Department_User_departmentIdToDepartment: true,
         },
       },
+      // Include Employee's own department and job role (may differ from User's)
+      Department: true,
+      JobRole: true,
     },
   });
 
@@ -111,12 +114,20 @@ export default async function DebugFormsPage() {
                 <strong>Role:</strong> {sampleEmployee.User?.role}
               </p>
               <p>
-                <strong>Department:</strong>{" "}
-                {sampleEmployee.User?.Department_User_departmentIdToDepartment?.name || "None"}
+                <strong>Department (Employee):</strong>{" "}
+                {sampleEmployee.Department?.name || "None"} (ID: {sampleEmployee.Department?.id || "N/A"})
               </p>
               <p>
-                <strong>Job Role:</strong>{" "}
-                {sampleEmployee.User?.JobRole?.name || "None"}
+                <strong>Department (User):</strong>{" "}
+                {sampleEmployee.User?.Department_User_departmentIdToDepartment?.name || "None"} (ID: {sampleEmployee.User?.Department_User_departmentIdToDepartment?.id || "N/A"})
+              </p>
+              <p>
+                <strong>Job Role (Employee):</strong>{" "}
+                {sampleEmployee.JobRole?.name || "None"} (ID: {sampleEmployee.JobRole?.id || "N/A"})
+              </p>
+              <p>
+                <strong>Job Role (User):</strong>{" "}
+                {sampleEmployee.User?.JobRole?.name || "None"} (ID: {sampleEmployee.User?.JobRole?.id || "N/A"})
               </p>
             </div>
           ) : (
@@ -177,9 +188,9 @@ export default async function DebugFormsPage() {
                     <p>
                       Dept match:{" "}
                       {form.visibleToDepartments.length === 0 ||
-                      (sampleEmployee.User?.Department_User_departmentIdToDepartment?.id &&
+                      ((sampleEmployee.Department?.id || sampleEmployee.User?.Department_User_departmentIdToDepartment?.id) &&
                         form.visibleToDepartments.includes(
-                          sampleEmployee.User.Department_User_departmentIdToDepartment.id,
+                          sampleEmployee.Department?.id || sampleEmployee.User?.Department_User_departmentIdToDepartment?.id || '',
                         ))
                         ? "Yes"
                         : "No"}
@@ -187,9 +198,9 @@ export default async function DebugFormsPage() {
                     <p>
                       Job role match:{" "}
                       {form.visibleToJobRoles.length === 0 ||
-                      (sampleEmployee.User?.JobRole?.id &&
+                      ((sampleEmployee.JobRole?.id || sampleEmployee.User?.JobRole?.id) &&
                         form.visibleToJobRoles.includes(
-                          sampleEmployee.User.JobRole.id,
+                          sampleEmployee.JobRole?.id || sampleEmployee.User?.JobRole?.id || '',
                         ))
                         ? "Yes"
                         : "No"}

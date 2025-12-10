@@ -83,19 +83,14 @@ export default function ClockScreen() {
     setActionLoading(true);
 
     try {
-      // Request location permission if not granted
+      // Request location permission if not granted, but don't block on failure
+      // HRIS Best Practice: Never block clock-in due to GPS failure
       if (locationStatus !== 'available') {
         const granted = await requestLocationPermission();
-        if (!granted) {
-          Alert.alert(
-            'Location Required',
-            'Location permission is required to clock in. Please enable it in settings.',
-            [{ text: 'OK' }]
-          );
-          setActionLoading(false);
-          return;
+        if (granted) {
+          setLocationStatus('available');
         }
-        setLocationStatus('available');
+        // Continue even if permission not granted - backend will flag for review
       }
 
       // Attempt clock in (handles offline mode automatically)

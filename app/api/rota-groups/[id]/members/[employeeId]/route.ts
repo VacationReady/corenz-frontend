@@ -19,15 +19,35 @@ export async function GET(
     const { id, employeeId } = await params;
     const session = await auth();
     
-    if (!session?.user?.companyId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Get requesting user's employee record with role
+    const requestingEmployee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        companyId: true,
+        User: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!requestingEmployee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
+
+    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
 
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
         id,
-        companyId: session.user.companyId,
+        companyId: requestingEmployee.companyId,
       },
     });
 
@@ -36,6 +56,25 @@ export async function GET(
         { error: 'Rota group not found' },
         { status: 404 }
       );
+    }
+
+    // Non-admin/manager users can only view their own membership or if they are a member
+    if (!isAdminOrManager && employeeId !== requestingEmployee.id) {
+      const membership = await prisma.rotaGroupMember.findUnique({
+        where: {
+          rotaGroupId_employeeId: {
+            rotaGroupId: id,
+            employeeId: requestingEmployee.id,
+          },
+        },
+      });
+
+      if (!membership || !membership.isActive) {
+        return NextResponse.json(
+          { error: 'You do not have permission to view this member' },
+          { status: 403 }
+        );
+      }
     }
 
     const member = await prisma.rotaGroupMember.findUnique({
@@ -87,8 +126,35 @@ export async function PUT(
     const { id, employeeId } = await params;
     const session = await auth();
     
-    if (!session?.user?.companyId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get requesting user's employee record with role
+    const requestingEmployee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        companyId: true,
+        User: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!requestingEmployee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
+
+    // Only ADMIN or MANAGER can update member roles
+    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
+    if (!isAdminOrManager) {
+      return NextResponse.json(
+        { error: 'You do not have permission to update member roles' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -98,7 +164,7 @@ export async function PUT(
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
         id: id,
-        companyId: session.user.companyId,
+        companyId: requestingEmployee.companyId,
       },
     });
 
@@ -132,6 +198,25 @@ export async function PUT(
       },
     });
 
+    // Create audit log
+    await prisma.globalAuditLog.create({
+      data: {
+        id: `audit-${Date.now()}-${Math.random()}`,
+        actorId: session.user.id,
+        companyId: requestingEmployee.companyId,
+        action: 'UPDATED',
+        entityType: 'EMPLOYEE',
+        entityId: employeeId,
+        metadata: {
+          type: 'ROTA_GROUP_MEMBER_UPDATED',
+          rotaGroupId: id,
+          rotaGroupName: rotaGroup.name,
+          employeeId: employeeId,
+          changes: validatedData,
+        },
+      },
+    });
+
     return NextResponse.json({ member });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -157,15 +242,42 @@ export async function DELETE(
     const { id, employeeId } = await params;
     const session = await auth();
     
-    if (!session?.user?.companyId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get requesting user's employee record with role
+    const requestingEmployee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        companyId: true,
+        User: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!requestingEmployee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
+
+    // Only ADMIN or MANAGER can remove members from rota groups
+    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
+    if (!isAdminOrManager) {
+      return NextResponse.json(
+        { error: 'You do not have permission to remove members from rota groups' },
+        { status: 403 }
+      );
     }
 
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
         id: id,
-        companyId: session.user.companyId,
+        companyId: requestingEmployee.companyId,
       },
     });
 
@@ -207,6 +319,24 @@ export async function DELETE(
       },
       data: {
         isActive: false,
+      },
+    });
+
+    // Create audit log
+    await prisma.globalAuditLog.create({
+      data: {
+        id: `audit-${Date.now()}-${Math.random()}`,
+        actorId: session.user.id,
+        companyId: requestingEmployee.companyId,
+        action: 'DELETED',
+        entityType: 'EMPLOYEE',
+        entityId: employeeId,
+        metadata: {
+          type: 'ROTA_GROUP_MEMBER_REMOVED',
+          rotaGroupId: id,
+          rotaGroupName: rotaGroup.name,
+          employeeId: employeeId,
+        },
       },
     });
 

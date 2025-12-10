@@ -49,6 +49,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Parse optional reconciliation enforcement flag (default: true for production safety)
+    const requireReconciliation = body.requireReconciliation !== false;
+
     // Fetch approved timesheets for the period
     const timesheets = await prisma.timesheet.findMany({
       where: {
@@ -77,7 +80,15 @@ export async function POST(req: NextRequest) {
             },
           },
         },
-        TimesheetEntries: true,
+        TimesheetEntries: {
+          select: {
+            id: true,
+            regularHours: true,
+            overtimeHours: true,
+            publicHolidayHours: true,
+            reconciliationStatus: true,
+          },
+        },
       },
     });
 
@@ -100,22 +111,45 @@ export async function POST(req: NextRequest) {
     // Calculate payroll for each timesheet
     const calculations = [];
     const errors = [];
+    const skippedTimesheets: Array<{ timesheetId: string; employeeName: string; reason: string }> = [];
+
+    // Reconciliation statuses that are safe for payroll
+    const PAYROLL_SAFE_STATUSES = ['APPROVED', 'ADJUSTED'];
 
     for (const timesheet of timesheets) {
       try {
         const employee = timesheet.Employee;
         const entries = timesheet.TimesheetEntries;
 
-        // Sum hours from entries
-        const regularHours = entries.reduce(
+        // Check reconciliation status of all entries
+        const unreconciledEntries = entries.filter(
+          (e) => !PAYROLL_SAFE_STATUSES.includes(e.reconciliationStatus || 'PENDING')
+        );
+
+        if (requireReconciliation && unreconciledEntries.length > 0) {
+          const employeeName = `${employee.User.firstName} ${employee.User.lastName}`;
+          skippedTimesheets.push({
+            timesheetId: timesheet.id,
+            employeeName,
+            reason: `${unreconciledEntries.length} entry/entries not reconciled (status: ${Array.from(new Set(unreconciledEntries.map(e => e.reconciliationStatus || 'PENDING'))).join(', ')})`,
+          });
+          continue; // Skip this timesheet
+        }
+
+        // Sum hours from entries (only reconciled entries if enforcement is on)
+        const entriesToProcess = requireReconciliation
+          ? entries.filter((e) => PAYROLL_SAFE_STATUSES.includes(e.reconciliationStatus || 'PENDING'))
+          : entries;
+
+        const regularHours = entriesToProcess.reduce(
           (sum, e) => sum + parseFloat(e.regularHours?.toString() || '0'),
           0
         );
-        const overtimeHours = entries.reduce(
+        const overtimeHours = entriesToProcess.reduce(
           (sum, e) => sum + parseFloat(e.overtimeHours?.toString() || '0'),
           0
         );
-        const publicHolidayHours = entries.reduce(
+        const publicHolidayHours = entriesToProcess.reduce(
           (sum, e) => sum + parseFloat(e.publicHolidayHours?.toString() || '0'),
           0
         );
@@ -180,6 +214,8 @@ export async function POST(req: NextRequest) {
       calculations,
       summary,
       validationErrors: errors,
+      skippedTimesheets,
+      reconciliationEnforced: requireReconciliation,
     });
   } catch (error) {
     console.error('Payroll calculation error:', error);

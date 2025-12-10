@@ -28,8 +28,47 @@ export async function GET(
     const { id } = await params;
     const session = await auth();
     
-    if (!session?.user?.companyId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get requesting user's employee record with role
+    const requestingEmployee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        companyId: true,
+        User: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!requestingEmployee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
+
+    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
+
+    // Non-admin/manager users can only view coverage if they are a member
+    if (!isAdminOrManager) {
+      const membership = await prisma.rotaGroupMember.findUnique({
+        where: {
+          rotaGroupId_employeeId: {
+            rotaGroupId: id,
+            employeeId: requestingEmployee.id,
+          },
+        },
+      });
+
+      if (!membership || !membership.isActive) {
+        return NextResponse.json(
+          { error: 'You do not have permission to view this rota group\'s coverage' },
+          { status: 403 }
+        );
+      }
     }
 
     const { searchParams } = new URL(request.url);
@@ -44,7 +83,7 @@ export async function GET(
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
         id,
-        companyId: session.user.companyId,
+        companyId: requestingEmployee.companyId,
       },
       include: {
         Members: {

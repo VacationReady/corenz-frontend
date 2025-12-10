@@ -385,9 +385,11 @@ export async function getShiftsWithActualsForDay(
     departmentId?: string;
     employeeId?: string;
     locationId?: string;
+    timezone?: string;
   }
 ): Promise<ShiftWithActuals[]> {
-  const timeZone = 'Pacific/Auckland';
+  // Use provided timezone or default to Pacific/Auckland for backwards compatibility
+  const timeZone = options?.timezone || 'Pacific/Auckland';
   const zonedDate = toZonedTime(date, timeZone);
   const zonedStart = startOfDay(zonedDate);
   const zonedEnd = endOfDay(zonedDate);

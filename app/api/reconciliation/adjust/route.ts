@@ -57,7 +57,13 @@ export async function POST(req: NextRequest) {
     // Verify entry belongs to same company
     const entry = await prisma.timesheetEntry.findUnique({
       where: { id: data.entryId },
-      include: { Timesheet: { select: { companyId: true } } },
+      select: {
+        id: true,
+        breakMinutes: true,
+        scheduledStartTime: true,
+        scheduledEndTime: true,
+        Timesheet: { select: { companyId: true } },
+      },
     });
 
     if (!entry || entry.Timesheet.companyId !== employee.companyId) {
@@ -85,7 +91,25 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const hours = differenceInMinutes(newEndTime, newStartTime) / 60 - (entry.breakMinutes / 60);
+      // Validate start < end
+      if (newStartTime >= newEndTime) {
+        return NextResponse.json(
+          { error: 'Start time must be before end time' },
+          { status: 400 }
+        );
+      }
+
+      // Guard against undefined breakMinutes (default to 0)
+      const breakMinutes = entry.breakMinutes ?? 0;
+      const hours = differenceInMinutes(newEndTime, newStartTime) / 60 - (breakMinutes / 60);
+
+      // Validate computed hours is a valid number
+      if (!Number.isFinite(hours) || hours < 0) {
+        return NextResponse.json(
+          { error: 'Invalid time range results in invalid hours calculation' },
+          { status: 400 }
+        );
+      }
 
       // Calculate new variance if linked to shift
       let varianceMinutes = null;

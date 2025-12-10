@@ -23,15 +23,35 @@ export async function GET(
     const { id } = await params;
     const session = await auth();
     
-    if (!session?.user?.companyId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Get requesting user's employee record with role
+    const requestingEmployee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        companyId: true,
+        User: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!requestingEmployee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
+
+    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
 
     // Verify rota group exists and belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
         id,
-        companyId: session.user.companyId,
+        companyId: requestingEmployee.companyId,
       },
     });
 
@@ -40,6 +60,25 @@ export async function GET(
         { error: 'Rota group not found' },
         { status: 404 }
       );
+    }
+
+    // Non-admin/manager users can only view members if they are a member themselves
+    if (!isAdminOrManager) {
+      const membership = await prisma.rotaGroupMember.findUnique({
+        where: {
+          rotaGroupId_employeeId: {
+            rotaGroupId: id,
+            employeeId: requestingEmployee.id,
+          },
+        },
+      });
+
+      if (!membership || !membership.isActive) {
+        return NextResponse.json(
+          { error: 'You do not have permission to view this rota group\'s members' },
+          { status: 403 }
+        );
+      }
     }
 
     const members = await prisma.rotaGroupMember.findMany({
@@ -97,8 +136,35 @@ export async function POST(
     const { id } = await params;
     const session = await auth();
     
-    if (!session?.user?.companyId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get requesting user's employee record with role
+    const requestingEmployee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        companyId: true,
+        User: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!requestingEmployee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
+
+    // Only ADMIN or MANAGER can add members to rota groups
+    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
+    if (!isAdminOrManager) {
+      return NextResponse.json(
+        { error: 'You do not have permission to add members to rota groups' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -117,7 +183,7 @@ export async function POST(
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
         id: id,
-        companyId: session.user.companyId,
+        companyId: requestingEmployee.companyId,
       },
     });
 
@@ -133,7 +199,7 @@ export async function POST(
     const employees = await prisma.employee.findMany({
       where: {
         id: { in: employeeIds },
-        companyId: session.user.companyId,
+        companyId: requestingEmployee.companyId,
         isActive: true,
       },
     });
@@ -185,6 +251,25 @@ export async function POST(
         });
       })
     );
+
+    // Create audit log
+    await prisma.globalAuditLog.create({
+      data: {
+        id: `audit-${Date.now()}-${Math.random()}`,
+        actorId: session.user.id,
+        companyId: requestingEmployee.companyId,
+        action: 'UPDATED',
+        entityType: 'EMPLOYEE',
+        entityId: id,
+        metadata: {
+          type: 'ROTA_GROUP_MEMBERS_ADDED',
+          rotaGroupId: id,
+          rotaGroupName: rotaGroup.name,
+          addedEmployeeIds: employeeIds,
+          memberCount: results.length,
+        },
+      },
+    });
 
     return NextResponse.json({ members: results }, { status: 201 });
   } catch (error) {

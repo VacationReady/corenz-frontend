@@ -73,17 +73,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate GPS if required (using type-safe helper)
-    if (isGpsLocationRequired(settings) && !data.location) {
-      return NextResponse.json(
-        { error: 'GPS location is required for clock in' },
-        { status: 400 }
-      );
-    }
+    // Track if GPS was expected but not provided (for flagging, not blocking)
+    // HRIS Best Practice: Never block clock-in due to GPS failure - employees must be able to record time
+    // Instead, flag entries without location for manager review
+    const gpsExpectedButMissing = isGpsLocationRequired(settings) && !data.location;
 
     // Verify geofence if configured - but don't block clock-in on failure
-    let locationVerificationFailed = false;
-    let locationWarning = '';
+    let locationVerificationFailed = gpsExpectedButMissing;
+    let locationWarning = gpsExpectedButMissing ? 'GPS location could not be captured' : '';
     if (data.location && settings?.geofenceLocations) {
       const geofences = settings.geofenceLocations as any[];
       const verification = verifyClockLocation(data.location, geofences, {
@@ -126,7 +123,7 @@ export async function POST(req: NextRequest) {
     const clockInLocationData = data.location ? {
       ...data.location,
       verificationFailed: locationVerificationFailed,
-    } : undefined;
+    } : (gpsExpectedButMissing ? { verificationFailed: true, captureError: 'Location unavailable' } : undefined);
 
     // Create clock entry
     const clockEntry = await prisma.clockEntry.create({
@@ -150,6 +147,7 @@ export async function POST(req: NextRequest) {
         ? locationWarning 
         : 'Clocked in successfully',
       warning: locationVerificationFailed ? locationWarning : undefined,
+      locationCaptured: !!data.location,
     });
   } catch (error) {
     console.error('Clock in error:', error);

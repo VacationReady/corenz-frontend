@@ -39,6 +39,9 @@ export async function GET(
               Department_User_departmentIdToDepartment: true,
             },
           },
+          // Include Employee's own department and job role (may differ from User's)
+          Department: true,
+          JobRole: true,
         },
       });
 
@@ -51,9 +54,10 @@ export async function GET(
       const user = employee.User;
 
       const userRole = user?.role || "EMPLOYEE";
-      const userDepartmentId = user?.Department_User_departmentIdToDepartment?.id?.trim(); // ✅ trim for safety
+      // Check both Employee and User for department/job role (Employee takes precedence)
+      const userDepartmentId = (employee.Department?.id || user?.Department_User_departmentIdToDepartment?.id)?.trim();
       // Use job role ID for matching - forms store job role IDs, not names
-      const userJobRoleId = user?.JobRole?.id;
+      const userJobRoleId = employee.JobRole?.id || user?.JobRole?.id;
 
       console.log("🔍 Role:", userRole);
       console.log("🏢 Department ID:", userDepartmentId);
@@ -80,27 +84,33 @@ export async function GET(
           formDebug?.visibleToDepartments?.includes(userDepartmentId),
       );
 
+      // Visibility logic: User must match ALL selected criteria
+      // - If form has no departments selected (empty array), it's visible to all departments
+      // - If form has no job roles selected (empty array), it's visible to all job roles
       visibilityFilter = {
         AND: [
+          // Role filter: must match one of the selected roles, or form has no role restrictions
           {
             OR: [
               { visibleToRoles: { isEmpty: true } },
               { visibleToRoles: { has: userRole } },
-
+            ],
+          },
+          // Department filter
+          {
+            OR: [
+              { visibleToDepartments: { isEmpty: true } },
               ...(userDepartmentId
-                ? [
-                    {
-                      visibleToDepartments: { has: userDepartmentId },
-                    },
-                  ]
+                ? [{ visibleToDepartments: { has: userDepartmentId } }]
                 : []),
-
+            ],
+          },
+          // Job role filter
+          {
+            OR: [
+              { visibleToJobRoles: { isEmpty: true } },
               ...(userJobRoleId
-                ? [
-                    {
-                      visibleToJobRoles: { has: userJobRoleId },
-                    },
-                  ]
+                ? [{ visibleToJobRoles: { has: userJobRoleId } }]
                 : []),
             ],
           },

@@ -31,6 +31,9 @@ export default async function EmployeeLayout({
           Department_User_departmentIdToDepartment: true,
         },
       },
+      // Include Employee's own department and job role (may differ from User's)
+      Department: true,
+      JobRole: true,
       EmployeeOffboarding: true,
     },
   });
@@ -58,9 +61,10 @@ export default async function EmployeeLayout({
   }
 
   const userRole = employee.User?.role || "EMPLOYEE";
-  const userDepartmentId = employee.User?.Department_User_departmentIdToDepartment?.id?.trim();
+  // Check both Employee and User for department/job role (Employee takes precedence)
+  const userDepartmentId = (employee.Department?.id || employee.User?.Department_User_departmentIdToDepartment?.id)?.trim();
   // Use job role ID for matching - forms store job role IDs, not names
-  const userJobRoleId = employee.User?.JobRole?.id;
+  const userJobRoleId = employee.JobRole?.id || employee.User?.JobRole?.id;
 
   // Fetch forms with proper filter (EXCLUDE SURVEYS)
   // Visibility logic: User must match ALL selected criteria

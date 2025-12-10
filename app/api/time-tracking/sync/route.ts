@@ -106,18 +106,14 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
-          // Validate GPS if required (using canonical field name)
-          if (settings?.requireGpsLocation && !entry.latitude && !entry.longitude) {
-            failed.push({
-              localId: entry.localId,
-              error: 'GPS location is required',
-            });
-            continue;
-          }
+          // Track if GPS was expected but not provided (for flagging, not blocking)
+          // HRIS Best Practice: Never block clock-in due to GPS failure - employees must be able to record time
+          // Instead, flag entries without location for manager review
+          const gpsExpectedButMissing = settings?.requireGpsLocation && !entry.latitude && !entry.longitude;
 
           // Verify geofence if configured - don't block sync on failure, just flag it
-          let locationVerificationFailed = false;
-          let locationWarning = '';
+          let locationVerificationFailed = gpsExpectedButMissing || false;
+          let locationWarning = gpsExpectedButMissing ? 'GPS location could not be captured' : '';
           if (entry.latitude && entry.longitude && settings?.geofenceLocations) {
             const geofences = settings.geofenceLocations as any[];
             const verification = verifyClockLocation(
@@ -168,16 +164,18 @@ export async function POST(req: NextRequest) {
             notes = notes ? `${notes} | ${locationWarning}` : locationWarning;
           }
 
+          // Build location data with verification status
+          const clockInLocationData = entry.latitude && entry.longitude
+            ? { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy, verificationFailed: locationVerificationFailed }
+            : (gpsExpectedButMissing ? { verificationFailed: true, captureError: 'Location unavailable' } : undefined);
+
           // Create clock entry
           const clockEntry = await prisma.clockEntry.create({
             data: {
               employeeId: employee.id,
               companyId: employee.companyId,
               clockInTime,
-              clockInLocation:
-                entry.latitude && entry.longitude
-                  ? { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy, verificationFailed: locationVerificationFailed }
-                  : undefined,
+              clockInLocation: clockInLocationData,
               clockInPhotoUrl,
               notes,
               status: 'ACTIVE',
@@ -212,9 +210,12 @@ export async function POST(req: NextRequest) {
             continue;
           }
 
+          // Track if GPS was expected but not provided (for flagging, not blocking)
+          const clockOutGpsExpectedButMissing = settings?.requireGpsLocation && !entry.latitude && !entry.longitude;
+
           // Verify geofence if configured - don't block sync on failure, just flag it
-          let clockOutLocationVerificationFailed = false;
-          let clockOutLocationWarning = '';
+          let clockOutLocationVerificationFailed = clockOutGpsExpectedButMissing || false;
+          let clockOutLocationWarning = clockOutGpsExpectedButMissing ? 'GPS location could not be captured' : '';
           if (entry.latitude && entry.longitude && settings?.geofenceLocations) {
             const geofences = settings.geofenceLocations as any[];
             const verification = verifyClockLocation(
@@ -264,15 +265,17 @@ export async function POST(req: NextRequest) {
             clockOutNotes = clockOutNotes ? `${clockOutNotes} | ${clockOutLocationWarning}` : clockOutLocationWarning;
           }
 
+          // Build clock-out location data with verification status
+          const clockOutLocationData = entry.latitude && entry.longitude
+            ? { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy, verificationFailed: clockOutLocationVerificationFailed }
+            : (clockOutGpsExpectedButMissing ? { verificationFailed: true, captureError: 'Location unavailable' } : undefined);
+
           // Update clock entry
           const updatedEntry = await prisma.clockEntry.update({
             where: { id: activeEntry.id },
             data: {
               clockOutTime,
-              clockOutLocation:
-                entry.latitude && entry.longitude
-                  ? { lat: entry.latitude, lng: entry.longitude, accuracy: entry.accuracy, verificationFailed: clockOutLocationVerificationFailed }
-                  : undefined,
+              clockOutLocation: clockOutLocationData,
               clockOutPhotoUrl,
               status: 'COMPLETED',
               notes: clockOutNotes,

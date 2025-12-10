@@ -28,15 +28,35 @@ export async function GET(
     const { id } = await params;
     const session = await auth();
     
-    if (!session?.user?.companyId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Get requesting user's employee record with role
+    const requestingEmployee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        companyId: true,
+        User: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!requestingEmployee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
+
+    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
 
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
         id: id,
-        companyId: session.user.companyId,
+        companyId: requestingEmployee.companyId,
       },
     });
 
@@ -45,6 +65,25 @@ export async function GET(
         { error: 'Rota group not found' },
         { status: 404 }
       );
+    }
+
+    // Non-admin/manager users can only view requirements if they are a member
+    if (!isAdminOrManager) {
+      const membership = await prisma.rotaGroupMember.findUnique({
+        where: {
+          rotaGroupId_employeeId: {
+            rotaGroupId: id,
+            employeeId: requestingEmployee.id,
+          },
+        },
+      });
+
+      if (!membership || !membership.isActive) {
+        return NextResponse.json(
+          { error: 'You do not have permission to view this rota group\'s requirements' },
+          { status: 403 }
+        );
+      }
     }
 
     const { searchParams } = new URL(request.url);
@@ -88,8 +127,35 @@ export async function POST(
     const { id } = await params;
     const session = await auth();
     
-    if (!session?.user?.companyId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get requesting user's employee record with role
+    const requestingEmployee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        companyId: true,
+        User: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!requestingEmployee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
+
+    // Only ADMIN or MANAGER can create shift requirements
+    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
+    if (!isAdminOrManager) {
+      return NextResponse.json(
+        { error: 'You do not have permission to create shift requirements' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -108,7 +174,7 @@ export async function POST(
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
         id: id,
-        companyId: session.user.companyId,
+        companyId: requestingEmployee.companyId,
       },
     });
 
@@ -141,12 +207,31 @@ export async function POST(
         return prisma.shiftRequirement.create({
           data: {
             ...req,
-            companyId: session.user.companyId,
+            companyId: requestingEmployee.companyId,
             rotaGroupId: id,
           },
         });
       })
     );
+
+    // Create audit log
+    await prisma.globalAuditLog.create({
+      data: {
+        id: `audit-${Date.now()}-${Math.random()}`,
+        actorId: session.user.id,
+        companyId: requestingEmployee.companyId,
+        action: 'CREATED',
+        entityType: 'EMPLOYEE',
+        entityId: id,
+        metadata: {
+          type: 'SHIFT_REQUIREMENTS_CREATED',
+          rotaGroupId: id,
+          rotaGroupName: rotaGroup.name,
+          requirementCount: results.length,
+          requirements: requirements.map(r => ({ role: r.role, dayOfWeek: r.dayOfWeek })),
+        },
+      },
+    });
 
     return NextResponse.json({ requirements: results }, { status: 201 });
   } catch (error) {
@@ -173,15 +258,42 @@ export async function DELETE(
     const { id } = await params;
     const session = await auth();
     
-    if (!session?.user?.companyId) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get requesting user's employee record with role
+    const requestingEmployee = await prisma.employee.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        companyId: true,
+        User: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!requestingEmployee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
+
+    // Only ADMIN or MANAGER can delete shift requirements
+    const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
+    if (!isAdminOrManager) {
+      return NextResponse.json(
+        { error: 'You do not have permission to delete shift requirements' },
+        { status: 403 }
+      );
     }
 
     // Verify rota group belongs to company
     const rotaGroup = await prisma.rotaGroup.findUnique({
       where: {
         id: id,
-        companyId: session.user.companyId,
+        companyId: requestingEmployee.companyId,
       },
     });
 
@@ -203,8 +315,27 @@ export async function DELETE(
     if (dayOfWeek !== null) where.dayOfWeek = parseInt(dayOfWeek);
     if (role) where.role = role;
 
-    await prisma.shiftRequirement.deleteMany({
+    const deleteResult = await prisma.shiftRequirement.deleteMany({
       where,
+    });
+
+    // Create audit log
+    await prisma.globalAuditLog.create({
+      data: {
+        id: `audit-${Date.now()}-${Math.random()}`,
+        actorId: session.user.id,
+        companyId: requestingEmployee.companyId,
+        action: 'DELETED',
+        entityType: 'EMPLOYEE',
+        entityId: id,
+        metadata: {
+          type: 'SHIFT_REQUIREMENTS_DELETED',
+          rotaGroupId: id,
+          rotaGroupName: rotaGroup.name,
+          deletedCount: deleteResult.count,
+          filters: { dayOfWeek, role },
+        },
+      },
     });
 
     return NextResponse.json({ success: true });

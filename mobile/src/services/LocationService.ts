@@ -34,19 +34,37 @@ export async function requestLocationPermission(): Promise<boolean> {
 
 /**
  * Get current GPS location
+ * Returns null if location cannot be obtained (never throws)
+ * HRIS Best Practice: Never block clock operations due to GPS failure
  */
 export async function getCurrentLocation(): Promise<LocationCoordinates | null> {
   try {
     // Check if location services are enabled
     const enabled = await Location.hasServicesEnabledAsync();
     if (!enabled) {
-      throw new Error('Location services are disabled');
+      console.warn('Location services are disabled - continuing without GPS');
+      return null;
     }
 
-    // Get current position with high accuracy
-    const location = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
+    // Check permission status
+    const { status } = await Location.getForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.warn('Location permission not granted - continuing without GPS');
+      return null;
+    }
+
+    // Get current position with high accuracy, with timeout
+    const location = await Promise.race([
+      Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
+    ]);
+
+    if (!location) {
+      console.warn('Location request timed out - continuing without GPS');
+      return null;
+    }
 
     return {
       latitude: location.coords.latitude,
@@ -54,8 +72,9 @@ export async function getCurrentLocation(): Promise<LocationCoordinates | null> 
       accuracy: location.coords.accuracy || undefined,
     };
   } catch (error) {
-    console.error('Error getting current location:', error);
-    throw error;
+    console.warn('Could not capture GPS location:', error);
+    // Return null instead of throwing - clock operations should never be blocked
+    return null;
   }
 }
 

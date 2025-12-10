@@ -91,17 +91,30 @@ export default function ChangeReasonModal({
     return Boolean(reason && reason.trim() !== "");
   });
 
+  // Filter to only show changes that require a reason
+  const changesRequiringReason = changes.filter(changeRequiresReason);
+
+  // If no changes require a reason, auto-submit with empty reasons
+  useEffect(() => {
+    if (isOpen && changesRequiringReason.length === 0 && changes.length > 0) {
+      onSubmit({});
+    }
+  }, [isOpen, changesRequiringReason.length, changes.length, onSubmit]);
+
   if (!isOpen) return null;
+
+  // Don't render modal if no changes require reasons
+  if (changesRequiringReason.length === 0) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Please provide a reason for each change</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
-          {changes.map((change, index) => (
+          {changesRequiringReason.map((change, index) => (
             <div key={index} className="border rounded-lg p-4">
               <div className="mb-3">
                 <h4 className="font-medium text-gray-900">

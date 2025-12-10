@@ -639,6 +639,130 @@ interface RenderFieldOptions {
   };
 }
 
+interface SignatureCanvasFieldProps {
+  fieldId: string;
+  readOnly?: boolean;
+  setValue: (name: string, value: any, options?: { shouldDirty?: boolean }) => void;
+}
+
+function SignatureCanvasField({ fieldId, readOnly, setValue }: SignatureCanvasFieldProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+
+  // Resize canvas to match container and set up proper scaling
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const resizeCanvas = () => {
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      // Set the canvas internal resolution to match the display size
+      canvas.width = rect.width * dpr;
+      canvas.height = 128 * dpr; // h-32 = 128px
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.scale(dpr, dpr);
+        ctx.strokeStyle = "#111827";
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+      }
+    };
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, []);
+
+  const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement> | MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (readOnly) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!ctx) return;
+
+    setIsDrawing(true);
+    const { x, y } = getCanvasCoords(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  useEffect(() => {
+    if (!isDrawing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!ctx) return;
+
+      const { x, y } = getCanvasCoords(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    };
+
+    const handleMouseUp = () => {
+      setIsDrawing(false);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        try {
+          setValue(`${fieldId}.drawn`, canvas.toDataURL("image/png"), { shouldDirty: true });
+        } catch { }
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDrawing, fieldId, setValue]);
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!ctx || !canvas) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setValue(`${fieldId}.drawn`, "", { shouldDirty: true });
+  };
+
+  return (
+    <div className="border rounded p-3 bg-white">
+      <div ref={containerRef} className="w-full">
+        <canvas
+          ref={canvasRef}
+          className="w-full h-32 cursor-crosshair"
+          style={{ touchAction: "none" }}
+          onMouseDown={handleMouseDown}
+        />
+      </div>
+      <div className="flex items-center justify-between mt-1">
+        <div className="text-xs text-gray-500">Draw your signature above (mouse or touch).</div>
+        <button
+          type="button"
+          className="text-xs text-blue-600 hover:underline"
+          onClick={clearCanvas}
+          disabled={readOnly}
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function renderField(
   field: FormField,
   register: any,
@@ -696,56 +820,11 @@ export function renderField(
               onChange={(e) => setValue(`${field.id}.typed`, e.target.value, { shouldDirty: true })}
             />
           ) : (
-            <div className="border rounded p-3 bg-white">
-              <canvas
-                id={`sig-${field.id}`}
-                className="w-full h-32"
-                style={{ touchAction: "none" }}
-                onMouseDown={(e) => {
-                  const c = e.currentTarget as HTMLCanvasElement;
-                  const rect = c.getBoundingClientRect();
-                  const ctx = c.getContext("2d");
-                  if (!ctx) return;
-                  let drawing = true;
-                  ctx.strokeStyle = "#111827";
-                  ctx.lineWidth = 2;
-                  ctx.beginPath();
-                  ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-                  const move = (ev: MouseEvent) => {
-                    if (!drawing) return;
-                    ctx.lineTo(ev.clientX - rect.left, ev.clientY - rect.top);
-                    ctx.stroke();
-                  };
-                  const up = () => {
-                    drawing = false;
-                    window.removeEventListener("mousemove", move);
-                    window.removeEventListener("mouseup", up);
-                    try {
-                      setValue(`${field.id}.drawn`, c.toDataURL("image/png"), { shouldDirty: true });
-                    } catch { }
-                  };
-                  window.addEventListener("mousemove", move);
-                  window.addEventListener("mouseup", up);
-                }}
-              />
-              <div className="flex items-center justify-between mt-1">
-                <div className="text-xs text-gray-500">Draw your signature above (mouse or touch).</div>
-                <button
-                  type="button"
-                  className="text-xs text-blue-600 hover:underline"
-                  onClick={() => {
-                    const c = document.getElementById(`sig-${field.id}`) as HTMLCanvasElement | null;
-                    if (!c) return;
-                    const ctx = c.getContext("2d");
-                    if (!ctx) return;
-                    ctx.clearRect(0, 0, c.width, c.height);
-                    setValue(`${field.id}.drawn`, "", { shouldDirty: true });
-                  }}
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
+            <SignatureCanvasField
+              fieldId={field.id}
+              readOnly={readOnly}
+              setValue={setValue}
+            />
           )}
         </div>
       );

@@ -48,7 +48,14 @@ export interface PayrollExportOptions {
   employeeIds?: string[];
   departmentIds?: string[];
   exportedBy: string;
+  /** If true, skip reconciliation check (requires bypassReason) */
+  bypassReconciliationCheck?: boolean;
+  /** Required reason when bypassing reconciliation check */
+  bypassReason?: string;
 }
+
+// Reconciliation statuses that are safe for payroll export
+const PAYROLL_SAFE_STATUSES = ['APPROVED', 'ADJUSTED'];
 
 export interface ValidationResult {
   isValid: boolean;
@@ -83,6 +90,8 @@ export class PayrollExportService {
       employeeIds,
       departmentIds,
       exportedBy,
+      bypassReconciliationCheck = false,
+      bypassReason,
     } = options;
 
     console.log(`[PayrollExport] Starting export for company ${companyId}, period ${formatDate(payPeriodStart, 'yyyy-MM-dd')} to ${formatDate(payPeriodEnd, 'yyyy-MM-dd')}`);
@@ -102,9 +111,60 @@ export class PayrollExportService {
       throw new Error('No approved timesheets found for the specified period');
     }
 
+    // Initialize warnings array early for reconciliation bypass logging
+    const warnings: string[] = [];
+
+    // STEP 1.5: ✅ PRODUCTION SAFETY - Check reconciliation status before export
+    const reconciliationIssues: Array<{
+      timesheetId: string;
+      employeeName: string;
+      unreconciledCount: number;
+      statuses: string[];
+    }> = [];
+
+    for (const timesheet of timesheets) {
+      const entries = timesheet.TimesheetEntries || [];
+      const unreconciledEntries = entries.filter(
+        (e: any) => !PAYROLL_SAFE_STATUSES.includes(e.reconciliationStatus || 'PENDING')
+      );
+
+      if (unreconciledEntries.length > 0) {
+        const employeeName = timesheet.Employee?.User?.name || 'Unknown';
+        reconciliationIssues.push({
+          timesheetId: timesheet.id,
+          employeeName,
+          unreconciledCount: unreconciledEntries.length,
+          statuses: Array.from(new Set(unreconciledEntries.map((e: any) => e.reconciliationStatus || 'PENDING'))),
+        });
+      }
+    }
+
+    if (reconciliationIssues.length > 0 && !bypassReconciliationCheck) {
+      const issuesSummary = reconciliationIssues
+        .map(i => `${i.employeeName}: ${i.unreconciledCount} entries (${i.statuses.join(', ')})`)
+        .join('; ');
+      throw new Error(
+        `Payroll export blocked: ${reconciliationIssues.length} timesheet(s) have unreconciled entries. ` +
+        `Details: ${issuesSummary}. ` +
+        `Please reconcile all entries before export, or explicitly bypass with a reason.`
+      );
+    }
+
+    // Log bypass if used
+    if (reconciliationIssues.length > 0 && bypassReconciliationCheck) {
+      console.warn(
+        `[PayrollExport] Reconciliation check bypassed by ${exportedBy}. ` +
+        `Reason: ${bypassReason || 'No reason provided'}. ` +
+        `Affected timesheets: ${reconciliationIssues.length}`
+      );
+      warnings.push(
+        `RECONCILIATION BYPASS: ${reconciliationIssues.length} timesheet(s) exported with unreconciled entries. ` +
+        `Reason: ${bypassReason || 'No reason provided'}`
+      );
+    }
+
     // STEP 2: Build export records for each employee
     const exportRecords: NZPayrollExportRecord[] = [];
-    const warnings: string[] = [];
 
     for (const timesheet of timesheets) {
       try {

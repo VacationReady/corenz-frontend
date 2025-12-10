@@ -32,6 +32,9 @@ const exportRequestSchema = z.object({
   // Legacy support
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  // Reconciliation bypass options
+  bypassReconciliationCheck: z.boolean().optional(),
+  bypassReason: z.string().optional(),
 });
 
 // Types are now imported from the export service
@@ -167,6 +170,8 @@ export async function POST(req: NextRequest) {
       employeeIds,
       departmentIds: data.departmentIds,
       exportedBy: employee.id,
+      bypassReconciliationCheck: data.bypassReconciliationCheck,
+      bypassReason: data.bypassReason,
     });
 
     console.log(`[API] Export completed: ${result.filename}, ${result.recordCount} records`);

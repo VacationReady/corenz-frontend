@@ -18,8 +18,13 @@ import {
   logTenantViolationAttempt,
 } from '@/lib/tenant-validation';
 
+// Reconciliation statuses that are safe for approval
+const APPROVAL_SAFE_STATUSES = ['APPROVED', 'ADJUSTED'];
+
 const approveSchema = z.object({
   comments: z.string().optional(),
+  bypassReconciliationCheck: z.boolean().optional(),
+  bypassReason: z.string().optional(),
 });
 
 export async function POST(
@@ -76,6 +81,12 @@ export async function POST(
             },
           },
         },
+        TimesheetEntries: {
+          select: {
+            id: true,
+            reconciliationStatus: true,
+          },
+        },
       },
     });
 
@@ -94,6 +105,60 @@ export async function POST(
         },
       });
       return NextResponse.json({ error: 'Timesheet not found' }, { status: 404 });
+    }
+
+    // ✅ PRODUCTION SAFETY: Check reconciliation status of all entries before approval
+    const unreconciledEntries = timesheet.TimesheetEntries.filter(
+      (entry: { reconciliationStatus: string | null }) =>
+        !APPROVAL_SAFE_STATUSES.includes(entry.reconciliationStatus || 'PENDING')
+    );
+
+    if (unreconciledEntries.length > 0 && !data.bypassReconciliationCheck) {
+      const unreconciledStatuses = Array.from(
+        new Set(unreconciledEntries.map((e: { reconciliationStatus: string | null }) => e.reconciliationStatus || 'PENDING'))
+      );
+      return NextResponse.json(
+        {
+          error: 'Cannot approve timesheet with unreconciled entries',
+          details: {
+            unreconciledCount: unreconciledEntries.length,
+            statuses: unreconciledStatuses,
+            message: `${unreconciledEntries.length} timesheet entry/entries have not been reconciled (status: ${unreconciledStatuses.join(', ')}). Please reconcile all entries before approval, or explicitly bypass with a reason.`,
+          },
+          requiresBypass: true,
+        },
+        { status: 422 }
+      );
+    }
+
+    // If bypassing reconciliation check, log it for audit trail
+    if (unreconciledEntries.length > 0 && data.bypassReconciliationCheck) {
+      console.warn(
+        `[Timesheet Approval] Reconciliation check bypassed for timesheet ${id} by user ${session.user.id}. Reason: ${data.bypassReason || 'No reason provided'}. Unreconciled entries: ${unreconciledEntries.length}`
+      );
+      
+      // Create audit log for bypass
+      await prisma.globalAuditLog.create({
+        data: {
+          id: `audit-reconciliation-bypass-${Date.now()}`,
+          actorId: session.user.id,
+          companyId: requestingEmployee.companyId,
+          action: 'UPDATED',
+          entityType: 'EMPLOYEE',
+          entityId: timesheet.employeeId,
+          metadata: {
+            type: 'RECONCILIATION_BYPASS',
+            timesheetId: id,
+            unreconciledCount: unreconciledEntries.length,
+            unreconciledStatuses: Array.from(
+              new Set(unreconciledEntries.map((e: { reconciliationStatus: string | null }) => e.reconciliationStatus || 'PENDING'))
+            ),
+            bypassReason: data.bypassReason || 'No reason provided',
+            bypassedBy: session.user.id,
+            bypassedAt: new Date().toISOString(),
+          },
+        },
+      });
     }
 
     // Find active stage and user's decision

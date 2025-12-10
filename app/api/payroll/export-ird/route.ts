@@ -15,6 +15,9 @@ import { flattenPayrollRecord } from '@/types/nz-payroll-export';
 
 const prisma = new PrismaClient();
 
+// Reconciliation statuses that are safe for IRD payroll export
+const PAYROLL_SAFE_STATUSES = ['APPROVED', 'ADJUSTED'];
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -23,7 +26,16 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { companyId, periodStart, periodEnd, paymentDate, format = 'CSV', employeeIds } = body;
+    const { 
+      companyId, 
+      periodStart, 
+      periodEnd, 
+      paymentDate, 
+      format = 'CSV', 
+      employeeIds,
+      bypassReconciliationCheck = false,
+      bypassReason,
+    } = body;
 
     // Validate required fields
     if (!companyId || !periodStart || !periodEnd || !paymentDate) {
@@ -94,6 +106,73 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         error: 'No payroll calculations found for the period',
       }, { status: 404 });
+    }
+
+    // ✅ PRODUCTION SAFETY: Check reconciliation status before IRD export
+    const reconciliationIssues: Array<{
+      employeeId: string;
+      employeeName: string;
+      unreconciledCount: number;
+      statuses: string[];
+    }> = [];
+
+    for (const calc of calculations) {
+      const entries = calc.Timesheet?.TimesheetEntries || [];
+      const unreconciledEntries = entries.filter(
+        (e: any) => !PAYROLL_SAFE_STATUSES.includes(e.reconciliationStatus || 'PENDING')
+      );
+
+      if (unreconciledEntries.length > 0) {
+        const employeeName = `${calc.Employee.User.firstName} ${calc.Employee.User.lastName}`;
+        reconciliationIssues.push({
+          employeeId: calc.employeeId,
+          employeeName,
+          unreconciledCount: unreconciledEntries.length,
+          statuses: Array.from(new Set(unreconciledEntries.map((e: any) => e.reconciliationStatus || 'PENDING'))),
+        });
+      }
+    }
+
+    if (reconciliationIssues.length > 0 && !bypassReconciliationCheck) {
+      return NextResponse.json({
+        error: 'IRD payroll export blocked: unreconciled timesheet entries',
+        details: {
+          affectedEmployees: reconciliationIssues.length,
+          issues: reconciliationIssues,
+          message: `${reconciliationIssues.length} employee(s) have unreconciled timesheet entries. Please reconcile all entries before IRD export, or explicitly bypass with a reason.`,
+        },
+        requiresBypass: true,
+      }, { status: 422 });
+    }
+
+    // Log bypass if used
+    if (reconciliationIssues.length > 0 && bypassReconciliationCheck) {
+      console.warn(
+        `[IRD Export] Reconciliation check bypassed by user ${session.user.id}. ` +
+        `Reason: ${bypassReason || 'No reason provided'}. ` +
+        `Affected employees: ${reconciliationIssues.length}`
+      );
+
+      // Create audit log for bypass
+      await prisma.globalAuditLog.create({
+        data: {
+          id: `audit-ird-reconciliation-bypass-${Date.now()}`,
+          actorId: session.user.id,
+          companyId,
+          action: 'CREATED',
+          entityType: 'EMPLOYEE',
+          entityId: `ird-export-${Date.now()}`,
+          metadata: {
+            type: 'IRD_EXPORT_RECONCILIATION_BYPASS',
+            periodStart,
+            periodEnd,
+            affectedEmployees: reconciliationIssues.length,
+            issues: reconciliationIssues,
+            bypassReason: bypassReason || 'No reason provided',
+            bypassedAt: new Date().toISOString(),
+          },
+        },
+      });
     }
 
     // Validate payroll data

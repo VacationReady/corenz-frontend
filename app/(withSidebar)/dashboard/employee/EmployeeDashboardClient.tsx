@@ -4,7 +4,7 @@ import React from "react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
-import { TodaysShiftWidget } from "@/components/dashboard/TodaysShiftWidget";
+import { TodaysShiftWidgetCompact } from "@/components/dashboard/TodaysShiftWidgetCompact";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { Calendar } from "lucide-react";
@@ -81,23 +81,57 @@ function UpcomingLeave({ employeeId }: { employeeId: string }) {
 
 export default function EmployeeDashboardClient({
   employeeId,
+  section,
 }: {
   employeeId?: string;
+  section?: "top" | "bottom";
 }) {
+  // Top row: Today's Shift + Upcoming Leave
+  if (section === "top") {
+    return (
+      <>
+        {employeeId && (
+          <EnhancedWidget size="small" delay={0.1}>
+            <TodaysShiftWidgetCompact employeeId={employeeId} />
+          </EnhancedWidget>
+        )}
+        {employeeId && (
+          <EnhancedWidget size="small" delay={0.15}>
+            <UpcomingLeave employeeId={employeeId} />
+          </EnhancedWidget>
+        )}
+      </>
+    );
+  }
+
+  // Bottom row: Action Items (News is rendered separately in parent)
+  if (section === "bottom") {
+    return (
+      <>
+        {employeeId && (
+          <EnhancedWidget size="medium" delay={0.25}>
+            <UnifiedActionItems employeeId={employeeId} />
+          </EnhancedWidget>
+        )}
+      </>
+    );
+  }
+
+  // Default: render all (backwards compatibility)
   return (
     <>
       {employeeId && (
-        <EnhancedWidget size="medium" delay={0.15}>
-          <TodaysShiftWidget employeeId={employeeId} />
+        <EnhancedWidget size="small" delay={0.1}>
+          <TodaysShiftWidgetCompact employeeId={employeeId} />
         </EnhancedWidget>
       )}
       {employeeId && (
-        <EnhancedWidget size="medium" delay={0.2}>
+        <EnhancedWidget size="small" delay={0.15}>
           <UpcomingLeave employeeId={employeeId} />
         </EnhancedWidget>
       )}
       {employeeId && (
-        <EnhancedWidget size="large" delay={0.25}>
+        <EnhancedWidget size="medium" delay={0.25}>
           <UnifiedActionItems employeeId={employeeId} />
         </EnhancedWidget>
       )}

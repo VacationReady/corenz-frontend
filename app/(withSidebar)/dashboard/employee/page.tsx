@@ -75,20 +75,24 @@ export default async function EmployeeDashboard() {
           </div>
         </div>
 
-        {/* Main Content - Bento Grid */}
+        {/* Main Content - Two Row Layout */}
         <div className="flex-1 p-4 pt-0">
-          <div className="bento-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+          {/* Top Row: Leave Balance, Today's Shift, Upcoming Leave */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {employeeId && (
-              <EnhancedWidget size="medium" delay={0.05}>
+              <EnhancedWidget size="small" delay={0.05}>
                 <LeaveSummaryCard employeeId={employeeId} />
               </EnhancedWidget>
             )}
-            
-            <EnhancedWidget size="medium" delay={0.1}>
-              <NewsWidget limit={3} />
+            <EmployeeDashboardClient employeeId={employeeId} section="top" />
+          </div>
+          
+          {/* Bottom Row: Action Items & News (can stretch) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <EmployeeDashboardClient employeeId={employeeId} section="bottom" />
+            <EnhancedWidget size="medium" delay={0.2}>
+              <NewsWidget limit={4} />
             </EnhancedWidget>
-
-            <EmployeeDashboardClient employeeId={employeeId} />
           </div>
         </div>
       </div>

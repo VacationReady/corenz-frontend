@@ -77,6 +77,7 @@ export interface ShiftWithActuals {
     clockInTime: Date;
     clockOutTime: Date | null;
     matchConfidence: number | null;
+    shiftId?: string | null;
   } | null;
   timesheetEntry?: {
     id: string;
@@ -85,6 +86,7 @@ export interface ShiftWithActuals {
     hours: number;
     reconciliationStatus: string;
     reconciliationNotes: string | null;
+    shiftId?: string | null;
   } | null;
   variance: {
     minutes: number;
@@ -474,10 +476,72 @@ export async function getShiftsWithActualsForDay(
     },
   });
 
+  // Get all timesheet entries for this day (including unlinked ones)
+  // This handles manual entries that weren't auto-matched to shifts
+  const allTimesheetEntries = await prisma.timesheetEntry.findMany({
+    where: {
+      Timesheet: { companyId },
+      date: {
+        gte: dayStart,
+        lte: dayEnd,
+      },
+      ...(options?.employeeId ? { Timesheet: { employeeId: options.employeeId, companyId } } : {}),
+    },
+    include: {
+      Timesheet: {
+        select: {
+          employeeId: true,
+          approvalStatus: true,
+        },
+      },
+    },
+  });
+
+  // Create a map of employeeId -> timesheet entries for quick lookup
+  const timesheetEntriesByEmployee = new Map<string, typeof allTimesheetEntries>();
+  for (const entry of allTimesheetEntries) {
+    const empId = entry.Timesheet.employeeId;
+    if (!timesheetEntriesByEmployee.has(empId)) {
+      timesheetEntriesByEmployee.set(empId, []);
+    }
+    timesheetEntriesByEmployee.get(empId)!.push(entry);
+  }
+
+  // Create a map of employeeId -> clock entries for quick lookup
+  const clockEntriesByEmployee = new Map<string, typeof unmatchedClockEntries>();
+  for (const entry of unmatchedClockEntries) {
+    const empId = entry.employeeId;
+    if (!clockEntriesByEmployee.has(empId)) {
+      clockEntriesByEmployee.set(empId, []);
+    }
+    clockEntriesByEmployee.get(empId)!.push(entry);
+  }
+
   // Build result
   const results: ShiftWithActuals[] = shifts.map((shift) => {
-    const clockEntry = shift.ClockEntries[0] || null;
-    const timesheetEntry = shift.TimesheetEntries[0] || null;
+    // First try directly linked entries
+    let clockEntry = shift.ClockEntries[0] || null;
+    let timesheetEntry = shift.TimesheetEntries[0] || null;
+
+    // If no directly linked entries, try to find unlinked entries for this employee
+    // This handles manual entries that weren't auto-matched due to large time variance
+    if (!clockEntry && !timesheetEntry && shift.employeeId) {
+      // Look for unlinked timesheet entries for this employee on this day
+      const employeeTimesheetEntries = timesheetEntriesByEmployee.get(shift.employeeId) || [];
+      const unlinkedTimesheetEntry = employeeTimesheetEntries.find(e => !e.shiftId);
+      
+      if (unlinkedTimesheetEntry) {
+        timesheetEntry = unlinkedTimesheetEntry as any;
+      }
+
+      // Look for unlinked clock entries for this employee on this day
+      const employeeClockEntries = clockEntriesByEmployee.get(shift.employeeId) || [];
+      const unlinkedClockEntry = employeeClockEntries.find(e => !e.shiftId);
+      
+      if (unlinkedClockEntry) {
+        clockEntry = unlinkedClockEntry as any;
+      }
+    }
 
     // Calculate variance
     let variance = { minutes: 0, type: 'NO_SHOW' as VarianceType, startVarianceMinutes: 0, endVarianceMinutes: 0 };
@@ -510,6 +574,11 @@ export async function getShiftsWithActualsForDay(
         endVarianceMinutes: v.endVariance,
       };
       reconciliationStatus = (timesheetEntry.reconciliationStatus as ReconciliationStatus) || 'PENDING';
+      
+      // Also check if parent timesheet is approved (for entries that were approved before this fix)
+      if (reconciliationStatus === 'PENDING' && (timesheetEntry as any).Timesheet?.approvalStatus === 'APPROVED') {
+        reconciliationStatus = 'APPROVED';
+      }
     } else if (!clockEntry && !timesheetEntry) {
       // Check if shift is in the past
       if (shift.endTime < new Date()) {
@@ -539,6 +608,7 @@ export async function getShiftsWithActualsForDay(
         clockInTime: clockEntry.clockInTime,
         clockOutTime: clockEntry.clockOutTime,
         matchConfidence: clockEntry.matchConfidence,
+        shiftId: clockEntry.shiftId,
       } : null,
       timesheetEntry: timesheetEntry ? {
         id: timesheetEntry.id,
@@ -547,6 +617,7 @@ export async function getShiftsWithActualsForDay(
         hours: parseFloat(timesheetEntry.hours.toString()),
         reconciliationStatus: timesheetEntry.reconciliationStatus,
         reconciliationNotes: timesheetEntry.reconciliationNotes,
+        shiftId: timesheetEntry.shiftId,
       } : null,
       variance,
       reconciliationStatus,

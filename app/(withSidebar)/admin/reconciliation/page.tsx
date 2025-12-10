@@ -21,6 +21,7 @@ import {
   RefreshCw,
   Building2,
   TrendingUp,
+  Link2,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -42,6 +43,7 @@ import {
   ReconciliationAddEntryDialog,
   EditClockEntryDialog,
   StatsDetailModal,
+  LinkToShiftDialog,
 } from '@/components/reconciliation';
 import type { VarianceType, DetailType } from '@/components/reconciliation';
 
@@ -71,6 +73,7 @@ interface ReconciliationEntry {
     clockInTime: Date;
     clockOutTime: Date | null;
     matchConfidence: number | null;
+    shiftId?: string | null;
   } | null;
   timesheetEntry?: {
     id: string;
@@ -79,6 +82,7 @@ interface ReconciliationEntry {
     hours: number;
     reconciliationStatus: string;
     reconciliationNotes: string | null;
+    shiftId?: string | null;
   } | null;
   variance: {
     minutes: number;
@@ -143,6 +147,16 @@ export default function ReconciliationHubPage() {
 
   // Stats detail modal
   const [statsDetailType, setStatsDetailType] = useState<DetailType | null>(null);
+
+  // Link to shift dialog
+  const [linkToShiftEntry, setLinkToShiftEntry] = useState<{
+    entryType: 'clock' | 'timesheet';
+    entryId: string;
+    entryStartTime: Date;
+    entryEndTime: Date;
+    employeeId: string;
+    employeeName: string;
+  } | null>(null);
   
   const { toast } = useToast();
   
@@ -634,6 +648,31 @@ export default function ReconciliationHubPage() {
                       {/* Actions */}
                       {entry.timesheetEntry && (
                         <div className="mt-2 flex justify-end gap-2">
+                          {/* Link to Shift button - show when entry is not linked to a shift */}
+                          {!entry.timesheetEntry.shiftId && entry.shift.employeeId && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const employeeName = entry.shift.employee?.User?.name ||
+                                  `${entry.shift.employee?.User?.firstName || ''} ${entry.shift.employee?.User?.lastName || ''}`.trim() ||
+                                  'Unknown';
+                                setLinkToShiftEntry({
+                                  entryType: 'timesheet',
+                                  entryId: entry.timesheetEntry!.id,
+                                  entryStartTime: entry.timesheetEntry!.startTime,
+                                  entryEndTime: entry.timesheetEntry!.endTime,
+                                  employeeId: entry.shift.employeeId!,
+                                  employeeName,
+                                });
+                              }}
+                              className="h-9 border-violet-500/30 text-violet-600 hover:bg-violet-500/10 rounded-xl"
+                              title="Link this time entry to a scheduled shift for reconciliation tracking"
+                            >
+                              <Link2 className="mr-2 h-4 w-4" />
+                              Link to Shift
+                            </Button>
+                          )}
                           {/* Edit Clock Entry button */}
                           {entry.clockEntry && (
                             <Button
@@ -777,6 +816,30 @@ export default function ReconciliationHubPage() {
           onShiftClick={(shiftId, date) => {
             setStatsDetailType(null);
             handleDateSelect(date);
+          }}
+        />
+      )}
+
+      {/* Link to Shift Dialog */}
+      {linkToShiftEntry && selectedDate && (
+        <LinkToShiftDialog
+          open={!!linkToShiftEntry}
+          onOpenChange={(open) => {
+            if (!open) {
+              setLinkToShiftEntry(null);
+            }
+          }}
+          entryType={linkToShiftEntry.entryType}
+          entryId={linkToShiftEntry.entryId}
+          entryStartTime={linkToShiftEntry.entryStartTime}
+          entryEndTime={linkToShiftEntry.entryEndTime}
+          employeeId={linkToShiftEntry.employeeId}
+          employeeName={linkToShiftEntry.employeeName}
+          date={selectedDate}
+          onSuccess={async () => {
+            setLinkToShiftEntry(null);
+            await fetchDayData(selectedDate);
+            await fetchStats();
           }}
         />
       )}

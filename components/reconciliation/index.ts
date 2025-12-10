@@ -7,6 +7,7 @@ export { default as ReconciliationStats } from './ReconciliationStats';
 export { default as ReconciliationAddEntryDialog } from './ReconciliationAddEntryDialog';
 export { default as EditClockEntryDialog } from './EditClockEntryDialog';
 export { default as StatsDetailModal } from './StatsDetailModal';
+export { default as LinkToShiftDialog } from './LinkToShiftDialog';
 
 // Re-export types
 export type { VarianceType } from './VarianceBadge';

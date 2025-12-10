@@ -149,7 +149,7 @@ export default function ReconciliationStats({ stats, className, onCardClick }: R
         label="Pending"
         value={stats.pendingReconciliation}
         subValue="Need review"
-        color="amber"
+        color="blue"
         onClick={() => onCardClick?.('pending')}
       />
       
@@ -158,7 +158,7 @@ export default function ReconciliationStats({ stats, className, onCardClick }: R
         label="Approved"
         value={stats.approvedCount}
         subValue="Ready for payroll"
-        color="emerald"
+        color="blue"
         onClick={() => onCardClick?.('approved')}
       />
       
@@ -167,7 +167,7 @@ export default function ReconciliationStats({ stats, className, onCardClick }: R
         label="Flagged"
         value={stats.flaggedCount}
         subValue="Require attention"
-        color="rose"
+        color="blue"
         onClick={() => onCardClick?.('flagged')}
       />
       
@@ -175,7 +175,7 @@ export default function ReconciliationStats({ stats, className, onCardClick }: R
         icon={XCircle}
         label="No Shows"
         value={stats.noShowCount}
-        color="rose"
+        color="blue"
         onClick={() => onCardClick?.('no_shows')}
       />
       
@@ -183,7 +183,7 @@ export default function ReconciliationStats({ stats, className, onCardClick }: R
         icon={TrendingUp}
         label="Avg Variance"
         value={`${stats.averageVarianceMinutes}m`}
-        color="violet"
+        color="blue"
         onClick={() => onCardClick?.('variance')}
       />
       
@@ -201,7 +201,7 @@ export default function ReconciliationStats({ stats, className, onCardClick }: R
         label="Actual Hours"
         value={stats.totalActualHours.toFixed(1)}
         subValue={hoursDiffDisplay}
-        color={hoursDiff >= 0 ? 'emerald' : 'rose'}
+        color="blue"
         trend={hoursDiff >= 0 ? 'up' : 'down'}
         onClick={() => onCardClick?.('actual_hours')}
       />

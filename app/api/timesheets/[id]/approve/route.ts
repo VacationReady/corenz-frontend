@@ -295,6 +295,17 @@ export async function POST(
           throw new TenantValidationError('Timesheet not found or access denied');
         }
 
+        // Update all timesheet entries' reconciliation status to APPROVED
+        // This ensures the reconciliation page shows the correct status
+        await prisma.timesheetEntry.updateMany({
+          where: { timesheetId: id },
+          data: {
+            reconciliationStatus: 'APPROVED',
+            reconciledBy: requestingEmployee.id,
+            reconciledAt: new Date(),
+          },
+        });
+
         await cancelPendingTimesheetApprovalActionItems(timesheet.id);
 
         // Notify employee

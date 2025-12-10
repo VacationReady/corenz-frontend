@@ -33,6 +33,13 @@ interface TimesheetApprovalModalProps {
   onDecline: () => void | Promise<void>;
 }
 
+interface ScheduledShift {
+  startTime: string;
+  endTime: string;
+  breakDuration: number;
+  role?: string | null;
+}
+
 interface TimesheetEntry {
   id: string;
   date: string;
@@ -43,6 +50,7 @@ interface TimesheetEntry {
   notes?: string | null;
   isOvertime: boolean;
   entryType: "CLOCK" | "MANUAL" | "ADJUSTED";
+  scheduledShift?: ScheduledShift | null;
 }
 
 interface TimesheetDetails {
@@ -296,7 +304,7 @@ export function TimesheetApprovalModal({
                         {item.label}
                       </p>
                       <p className={cn("text-xl font-bold tabular-nums", item.color)}>
-                        {item.value.toFixed(1)}h
+                        {item.value.toFixed(2)}h
                       </p>
                     </div>
                   ))}
@@ -308,7 +316,7 @@ export function TimesheetApprovalModal({
                     </div>
                     <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
                       <strong className="font-semibold">Overtime hours:</strong> This timesheet includes{" "}
-                      <span className="font-bold">{details.hours.overtime.toFixed(1)}</span> hours of overtime.
+                      <span className="font-bold">{details.hours.overtime.toFixed(2)}</span> hours of overtime.
                     </p>
                   </div>
                 )}
@@ -329,7 +337,7 @@ export function TimesheetApprovalModal({
                     <div>
                       <p className="text-sm text-slate-500 dark:text-slate-400">
                         {details.cost.payType === 'HOURLY' && details.cost.hourlyRate 
-                          ? `$${details.cost.hourlyRate.toFixed(2)}/hr × ${details.hours.total.toFixed(1)}h`
+                          ? `$${details.cost.hourlyRate.toFixed(2)}/hr × ${details.hours.total.toFixed(2)}h`
                           : details.cost.payType === 'SALARY' 
                             ? 'Salaried Employee'
                             : 'Estimated cost'
@@ -358,37 +366,49 @@ export function TimesheetApprovalModal({
                     </span>
                   )}
                 </div>
-                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                <div className="space-y-2 max-h-[280px] overflow-y-auto">
                   {details.entries.slice(0, 10).map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex items-center gap-3 p-2.5 rounded-xl bg-white/60 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50"
+                      className="p-2.5 rounded-xl bg-white/60 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/50"
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-slate-800 dark:text-white text-sm">
-                            {format(new Date(entry.date), "EEE, MMM d")}
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-slate-800 dark:text-white text-sm">
+                              {format(new Date(entry.date), "EEE, MMM d")}
+                            </p>
+                            {entry.entryType === "CLOCK" && (
+                              <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-1.5 py-0.5 rounded">
+                                Clock
+                              </span>
+                            )}
+                            {entry.isOvertime && (
+                              <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">
+                                OT
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <span className="font-medium text-slate-600 dark:text-slate-300">Actual:</span>{" "}
+                            {formatTime(entry.startTime)} - {formatTime(entry.endTime)}
+                            {entry.breakMinutes > 0 && ` • ${entry.breakMinutes}min break`}
                           </p>
-                          {entry.entryType === "CLOCK" && (
-                            <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-1.5 py-0.5 rounded">
-                              Clock
-                            </span>
-                          )}
-                          {entry.isOvertime && (
-                            <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">
-                              OT
-                            </span>
+                          {/* Show scheduled shift for comparison */}
+                          {entry.scheduledShift && (
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                              <span className="font-medium">Scheduled:</span>{" "}
+                              {formatTime(entry.scheduledShift.startTime)} - {formatTime(entry.scheduledShift.endTime)}
+                              {entry.scheduledShift.breakDuration > 0 && ` • ${entry.scheduledShift.breakDuration}min break`}
+                              {entry.scheduledShift.role && ` • ${entry.scheduledShift.role}`}
+                            </p>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {formatTime(entry.startTime)} - {formatTime(entry.endTime)}
-                          {entry.breakMinutes > 0 && ` • ${entry.breakMinutes}min break`}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-slate-800 dark:text-white text-sm">
-                          {entry.hours.toFixed(2)}h
-                        </p>
+                        <div className="text-right">
+                          <p className="font-bold text-slate-800 dark:text-white text-sm">
+                            {entry.hours.toFixed(2)}h
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ))}

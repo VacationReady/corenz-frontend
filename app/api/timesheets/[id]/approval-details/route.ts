@@ -9,6 +9,17 @@ import {
 } from '@/lib/tenant-validation';
 import { format } from 'date-fns';
 
+/**
+ * Get employee display name with fallback to firstName/lastName
+ */
+function getEmployeeName(user: { name?: string | null; firstName?: string | null; lastName?: string | null }): string {
+  if (user.name) return user.name;
+  if (user.firstName || user.lastName) {
+    return [user.firstName, user.lastName].filter(Boolean).join(' ');
+  }
+  return 'Unknown';
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -48,6 +59,8 @@ export async function GET(
             User: {
               select: {
                 name: true,
+                firstName: true,
+                lastName: true,
                 email: true,
                 profileImageUrl: true,
               },
@@ -73,6 +86,19 @@ export async function GET(
             notes: true,
             isOvertime: true,
             entryType: true,
+            shiftId: true,
+            scheduledStartTime: true,
+            scheduledEndTime: true,
+            Shift: {
+              select: {
+                id: true,
+                startTime: true,
+                endTime: true,
+                breakDuration: true,
+                notes: true,
+                role: true,
+              },
+            },
           },
         },
         ClockEntries: {
@@ -131,7 +157,7 @@ export async function GET(
         id: timesheet.id,
         employee: {
           id: timesheet.Employee.id,
-          name: timesheet.Employee.User.name || 'Unknown',
+          name: getEmployeeName(timesheet.Employee.User),
           email: timesheet.Employee.User.email || '',
           profileImageUrl: timesheet.Employee.User.profileImageUrl,
           department: timesheet.Employee.Department?.name,
@@ -162,6 +188,18 @@ export async function GET(
           notes: entry.notes,
           isOvertime: entry.isOvertime,
           entryType: entry.entryType,
+          // Scheduled shift info for comparison
+          scheduledShift: entry.Shift ? {
+            startTime: entry.Shift.startTime.toISOString(),
+            endTime: entry.Shift.endTime.toISOString(),
+            breakDuration: entry.Shift.breakDuration,
+            role: entry.Shift.role,
+          } : entry.scheduledStartTime && entry.scheduledEndTime ? {
+            startTime: entry.scheduledStartTime.toISOString(),
+            endTime: entry.scheduledEndTime.toISOString(),
+            breakDuration: 0,
+            role: null,
+          } : null,
         })),
         submittedAt: timesheet.submittedAt?.toISOString(),
         notes: undefined, // Timesheet model doesn't have notes field

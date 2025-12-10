@@ -3,9 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
-import { PageShell } from "@/components/ui/PageShell";
-import DashboardGrid from "@/components/ui/DashboardGrid";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
+import { EnhancedWidget } from "@/components/ui/EnhancedWidget";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
@@ -281,46 +280,76 @@ export default function ManagerDashboardClient({ firstName }: ManagerDashboardCl
   const title = firstName ? `Hi ${firstName}` : "Manager Dashboard";
 
   return (
-    <PageShell
-      title={title}
-      breadcrumbs={{
-        items: [
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Manager" },
-        ],
-      }}
-      action={
-        <div className="flex items-center gap-2">
-          {employeeId && (
-            <Link href={`/employees/${employeeId}/overview`}>
-              <Button size="sm" variant="outline" icon={<User className="h-4 w-4" />}>View profile</Button>
-            </Link>
-          )}
-          <div className="relative">
-            <input
-              aria-label="Search team"
-              type="text"
-              placeholder="Search team"
-              className="w-64 rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <Search className="absolute right-3 top-2.5 w-4 h-4 text-muted-foreground" />
+    <div className="h-full">
+      <div className="relative z-10 flex flex-col w-full h-full overflow-y-auto">
+        {/* Compact Hero Header */}
+        <div className="p-4">
+          <div className="glass-premium rounded-2xl shadow-premium p-5 hover-lift-premium transition-premium">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-primary">{title}</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Dashboard &rsaquo; Manager
+                </p>
+              </div>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
+                {employeeId && (
+                  <Link href={`/employees/${employeeId}/overview`}>
+                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-premium">
+                      <User className="h-4 w-4 mr-2" /> View profile
+                    </Button>
+                  </Link>
+                )}
+                <div className="relative">
+                  <input
+                    aria-label="Search team"
+                    type="text"
+                    placeholder="Search team"
+                    className="w-full sm:w-64 glass-subtle rounded-2xl border-white/20 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30 transition-premium"
+                  />
+                  <Search className="absolute right-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                </div>
+                <Link href="/employees">
+                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-premium">
+                    <UserPlus className="h-4 w-4 mr-2" /> Add Employee
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
-        <Link href="/employees">
-          <Button size="sm" icon={<UserPlus className="h-4 w-4" />}>
-            Add Employee
-          </Button>
-        </Link>
         </div>
-      }
-    >
-      <DashboardGrid>
-        {employeeId && <LeaveSummaryCard employeeId={employeeId} />}
-        <MetricsSummary />
-        <TeamAbsenceOverview />
-        <TeamInsights />
-        <UnifiedActionItems employeeId={employeeId} isManager={true} className="md:col-span-2" />
-        <NewsWidget limit={3} />
-      </DashboardGrid>
-    </PageShell>
+
+        {/* Main Content - Bento Grid */}
+        <div className="flex-1 p-4 pt-0">
+          <div className="bento-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+            {employeeId && (
+              <EnhancedWidget size="medium" delay={0.05}>
+                <LeaveSummaryCard employeeId={employeeId} />
+              </EnhancedWidget>
+            )}
+            
+            <EnhancedWidget size="medium" delay={0.1}>
+              <MetricsSummary />
+            </EnhancedWidget>
+
+            <EnhancedWidget size="medium" delay={0.15}>
+              <TeamAbsenceOverview />
+            </EnhancedWidget>
+
+            <EnhancedWidget size="medium" delay={0.2}>
+              <TeamInsights />
+            </EnhancedWidget>
+
+            <EnhancedWidget size="large" delay={0.25}>
+              <UnifiedActionItems employeeId={employeeId} isManager={true} />
+            </EnhancedWidget>
+
+            <EnhancedWidget size="large" delay={0.3}>
+              <NewsWidget limit={3} />
+            </EnhancedWidget>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

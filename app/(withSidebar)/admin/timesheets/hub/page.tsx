@@ -97,6 +97,8 @@ export default function AdminTimesheetHubPage() {
   const [editingEntry, setEditingEntry] = useState<TimesheetEntry | null>(null);
   const [showAuditTrail, setShowAuditTrail] = useState(false);
   const [auditTimesheetId, setAuditTimesheetId] = useState<string | null>(null);
+  const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
+  const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   // Statistics
@@ -283,6 +285,9 @@ export default function AdminTimesheetHubPage() {
   };
 
   const handleIndividualApprove = async (timesheetId: string) => {
+    // Set loading state for this specific button
+    setApprovingIds(prev => new Set(prev).add(timesheetId));
+    
     try {
       const response = await fetch("/api/timesheets/bulk-approve", {
         method: "POST",
@@ -294,18 +299,42 @@ export default function AdminTimesheetHubPage() {
 
       if (!response.ok) throw new Error("Failed to approve timesheet");
 
+      // Find the timesheet to get employee name for the toast
+      const approvedTimesheet = timesheets.find(t => t.id === timesheetId);
+      
+      // Start fade-out animation
+      setFadingOutIds(prev => new Set(prev).add(timesheetId));
+      
+      // Show success toast with employee name
       toast({
-        title: "Success",
-        description: "Timesheet approved",
+        title: "✓ Timesheet Approved",
+        description: approvedTimesheet 
+          ? `${approvedTimesheet.employeeName}'s timesheet has been approved`
+          : "Timesheet approved successfully",
       });
 
-      fetchData();
+      // Wait for animation to complete, then remove from list
+      setTimeout(() => {
+        setTimesheets(prev => prev.filter(t => t.id !== timesheetId));
+        setFadingOutIds(prev => {
+          const next = new Set(prev);
+          next.delete(timesheetId);
+          return next;
+        });
+      }, 300);
+      
       setPreviewSheet(null);
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to approve timesheet",
         variant: "destructive",
+      });
+    } finally {
+      setApprovingIds(prev => {
+        const next = new Set(prev);
+        next.delete(timesheetId);
+        return next;
       });
     }
   };
@@ -549,7 +578,11 @@ export default function AdminTimesheetHubPage() {
                   {filteredTimesheets.map((timesheet) => (
                     <div
                       key={timesheet.id}
-                      className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20 hover:bg-white/10 md:flex-row md:items-center"
+                      className={`flex flex-col gap-4 rounded-2xl border p-4 transition-all duration-300 md:flex-row md:items-center ${
+                        fadingOutIds.has(timesheet.id)
+                          ? "opacity-0 scale-95 border-emerald-500/50 bg-emerald-500/10"
+                          : "opacity-100 scale-100 border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                      }`}
                     >
                       <div className="flex items-center gap-4">
                         {showBulkActions && (
@@ -635,10 +668,17 @@ export default function AdminTimesheetHubPage() {
                           <Button
                             variant="default"
                             size="sm"
-                            className="bg-emerald-500 hover:bg-emerald-600"
+                            className="bg-emerald-500 hover:bg-emerald-600 min-w-[36px]"
                             onClick={() => handleIndividualApprove(timesheet.id)}
+                            disabled={approvingIds.has(timesheet.id) || fadingOutIds.has(timesheet.id)}
                           >
-                            <Check className="h-4 w-4" />
+                            {approvingIds.has(timesheet.id) ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : fadingOutIds.has(timesheet.id) ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
                           </Button>
                         )}
                       </div>

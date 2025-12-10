@@ -9,6 +9,7 @@ import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { Calendar } from "lucide-react";
 import Link from "next/link";
+import { EnhancedWidget } from "@/components/ui/EnhancedWidget";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -85,9 +86,21 @@ export default function EmployeeDashboardClient({
 }) {
   return (
     <>
-      {employeeId && <TodaysShiftWidget employeeId={employeeId} />}
-      {employeeId && <UpcomingLeave employeeId={employeeId} />}
-      {employeeId && <UnifiedActionItems employeeId={employeeId} className="md:col-span-2" />}
+      {employeeId && (
+        <EnhancedWidget size="medium" delay={0.15}>
+          <TodaysShiftWidget employeeId={employeeId} />
+        </EnhancedWidget>
+      )}
+      {employeeId && (
+        <EnhancedWidget size="medium" delay={0.2}>
+          <UpcomingLeave employeeId={employeeId} />
+        </EnhancedWidget>
+      )}
+      {employeeId && (
+        <EnhancedWidget size="large" delay={0.25}>
+          <UnifiedActionItems employeeId={employeeId} />
+        </EnhancedWidget>
+      )}
     </>
   );
 }

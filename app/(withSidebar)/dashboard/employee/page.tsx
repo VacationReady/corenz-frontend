@@ -8,6 +8,8 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { User } from "lucide-react";
 import { EnhancedWidget } from "@/components/ui/EnhancedWidget";
+import { Avatar } from "@/components/ui/Avatar";
+import { getDownloadUrl } from "@/lib/getDownloadUrl";
 
 export default async function EmployeeDashboard() {
   const session = await auth();
@@ -44,10 +46,24 @@ export default async function EmployeeDashboard() {
 
   const user = userId ? await prisma.user.findUnique({
     where: { id: userId },
-    select: { firstName: true },
+    select: {
+      firstName: true,
+      lastName: true,
+      name: true,
+      profileImageUrl: true,
+    },
   }) : null;
 
-  const title = user?.firstName ? `Hi ${user.firstName}` : "Employee Dashboard";
+  const fullName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    user?.name ||
+    "User";
+
+  const avatarUrl = user?.profileImageUrl
+    ? await getDownloadUrl(user.profileImageUrl)
+    : null;
+
+  const displayFirstName = user?.firstName || "User";
 
   return (
     <div className="h-full">
@@ -56,11 +72,25 @@ export default async function EmployeeDashboard() {
         <div className="p-4">
           <div className="glass-premium rounded-2xl shadow-premium p-5 hover-lift-premium transition-premium">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-primary">{title}</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Dashboard &rsaquo; Employee
-                </p>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute -inset-1.5 bg-gradient-to-br from-primary to-[hsl(var(--sunset-2))] rounded-full opacity-60 blur-md" />
+                  <Avatar
+                    src={avatarUrl ?? undefined}
+                    name={fullName}
+                    size={56}
+                    className="relative border-2 border-white shadow-premium"
+                  />
+                </div>
+
+                <div>
+                  <h1 className="text-2xl font-bold text-primary">
+                    Hi, {displayFirstName}!
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Dashboard &rsaquo; Employee
+                  </p>
+                </div>
               </div>
               {employeeId && (
                 <div className="flex items-center gap-2">

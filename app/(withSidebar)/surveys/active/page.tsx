@@ -394,7 +394,7 @@ export default function ActiveSurveysPage() {
 
                     <div className="flex items-center gap-2">
                       <Button asChild variant="outline" size="sm">
-                        <Link href={`/surveys/${survey.id}`}>
+                        <Link href={`/surveys/${survey.id}`} className="flex items-center">
                           <Eye className="w-4 h-4 mr-2" />
                           View Details
                         </Link>
@@ -403,11 +403,11 @@ export default function ActiveSurveysPage() {
                   </div>
                 </CardHeader>
 
-                <div className="absolute inset-y-4 right-4 flex translate-x-10 flex-col items-stretch gap-2 rounded-2xl bg-background/80 px-3 py-3 text-xs shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100">
+                <div className="absolute bottom-4 right-4 flex translate-x-10 flex-col items-stretch gap-2 rounded-2xl bg-background/80 px-3 py-3 text-xs shadow-depth-2 backdrop-blur-xl opacity-0 transition-all duration-300 pointer-events-none group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100">
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="justify-start"
+                    className="justify-start pointer-events-auto"
                     onClick={() => handleSendReminder(survey.id)}
                   >
                     <RefreshCw className="w-4 h-4 mr-2" />
@@ -417,7 +417,7 @@ export default function ActiveSurveysPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="justify-start"
+                      className="justify-start pointer-events-auto"
                       onClick={() => handlePauseSurvey(survey.id)}
                     >
                       <Pause className="w-4 h-4 mr-2" />
@@ -427,7 +427,7 @@ export default function ActiveSurveysPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="justify-start"
+                      className="justify-start pointer-events-auto"
                       onClick={() => handleResumeSurvey(survey.id)}
                     >
                       <Play className="w-4 h-4 mr-2" />
@@ -438,7 +438,7 @@ export default function ActiveSurveysPage() {
                     asChild
                     size="sm"
                     variant="ghost"
-                    className="justify-start"
+                    className="justify-start pointer-events-auto"
                   >
                     <Link href={`/surveys/analytics/${survey.id}`}>
                       <TrendingUp className="w-4 h-4 mr-2" />

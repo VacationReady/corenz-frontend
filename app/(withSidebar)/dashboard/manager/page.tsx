@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import ManagerDashboardClient from "./ManagerDashboardClient";
+import { getDownloadUrl } from "@/lib/getDownloadUrl";
 
 export default async function ManagerDashboardPage() {
   const session = await auth();
@@ -9,8 +10,28 @@ export default async function ManagerDashboardPage() {
   
   const user = userId ? await prisma.user.findUnique({
     where: { id: userId },
-    select: { firstName: true }
+    select: {
+      firstName: true,
+      lastName: true,
+      name: true,
+      profileImageUrl: true,
+    },
   }) : null;
 
-  return <ManagerDashboardClient firstName={user?.firstName} />;
+  const fullName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    user?.name ||
+    "User";
+
+  const avatarUrl = user?.profileImageUrl
+    ? await getDownloadUrl(user.profileImageUrl)
+    : null;
+
+  return (
+    <ManagerDashboardClient
+      firstName={user?.firstName}
+      fullName={fullName}
+      avatarUrl={avatarUrl}
+    />
+  );
 }

@@ -26,7 +26,8 @@ interface FormField {
   helpText?: string;
   appearance?: string;
   optionItems?: Array<{ label: string; value: string; iconName?: string }>;
-  validation?: { required?: boolean };
+  options?: string[];
+  validation?: { required?: boolean; min?: number; max?: number };
 }
 
 interface FormSection {
@@ -45,14 +46,39 @@ export function FormRenderer({
   // Parse the schema to extract sections and fields
   const sections: FormSection[] = schema?.sections || [];
   
-  // Build all fields for validation
+  // Build all interactive fields (exclude layout-only fields) for validation
   const allFields: FormField[] = sections.flatMap(section => section.fields || []);
+  const inputFields: FormField[] = allFields.filter(
+    (field) => !["sectionHeader", "description", "divider", "pageBreak"].includes(String(field.type)),
+  );
   
   // Build validation schema
   const buildValidationSchema = () => {
     const shape: Record<string, any> = {};
-    allFields.forEach((field) => {
-      if (field.required || field.validation?.required) {
+    inputFields.forEach((field) => {
+      const isRequired = field.required || field.validation?.required;
+
+      // Checkbox groups can return arrays or strings depending on how RHF is wired
+      if (field.type === "checkbox") {
+        if (isRequired) {
+          shape[field.id] = z
+            .any()
+            .refine(
+              (value) => {
+                if (Array.isArray(value)) return value.length > 0;
+                if (typeof value === "string") return value.trim().length > 0;
+                return false;
+              },
+              `${field.label} is required`,
+            );
+        } else {
+          shape[field.id] = z.any().optional();
+        }
+        return;
+      }
+
+      // Default to simple string validation for other field types
+      if (isRequired) {
         shape[field.id] = z.string().min(1, `${field.label} is required`);
       } else {
         shape[field.id] = z.string().optional();
@@ -69,16 +95,23 @@ export function FormRenderer({
     formState: { errors },
   } = useForm({ 
     resolver: zodResolver(formSchema),
-    defaultValues: allFields.reduce((acc, field) => {
-      acc[field.id] = "";
+    defaultValues: inputFields.reduce((acc, field) => {
+      if (field.type === "checkbox") {
+        acc[field.id] = [];
+      } else {
+        acc[field.id] = "";
+      }
       return acc;
-    }, {} as Record<string, string>)
+    }, {} as Record<string, any>)
   });
 
   const watchedValues = useWatch({ control });
 
   const renderField = (field: FormField) => {
     const baseClasses = "w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50";
+    const optionItems =
+      field.optionItems ||
+      (field.options || []).map((label) => ({ label, value: label }));
     
     switch (field.type) {
       case "chips":
@@ -138,6 +171,152 @@ export function FormRenderer({
         }
         break;
       
+      case "checkbox":
+        return (
+          <div className="space-y-2">
+            {optionItems?.map((option) => (
+              <label
+                key={option.value}
+                className="flex items-center gap-2 cursor-pointer text-sm text-gray-900"
+              >
+                <input
+                  type="checkbox"
+                  value={option.value}
+                  {...register(field.id)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        );
+
+      case "radio":
+        return (
+          <div className="space-y-2">
+            {optionItems?.map((option) => (
+              <label
+                key={option.value}
+                className="flex items-center gap-2 cursor-pointer text-sm text-gray-900"
+              >
+                <input
+                  type="radio"
+                  value={option.value}
+                  {...register(field.id)}
+                  className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        );
+
+      case "select":
+        return (
+          <select
+            className={baseClasses}
+            defaultValue=""
+            {...register(field.id)}
+          >
+            <option value="" disabled>
+              {field.placeholder || "Select an option"}
+            </option>
+            {optionItems?.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        );
+
+      case "rating": {
+        const min = field.validation?.min ?? 1;
+        const max = field.validation?.max ?? 5;
+        const current = watchedValues[field.id] || Math.round((min + max) / 2);
+        return (
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={min}
+              max={max}
+              step={1}
+              {...register(field.id)}
+              className="w-full"
+            />
+            <span className="text-sm text-gray-700 w-8 text-right">
+              {current}
+            </span>
+          </div>
+        );
+      }
+
+      case "slider": {
+        const min = field.validation?.min ?? 0;
+        const max = field.validation?.max ?? 100;
+        const current = watchedValues[field.id] || Math.round((min + max) / 2);
+        return (
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={min}
+              max={max}
+              {...register(field.id)}
+              className="w-full"
+            />
+            <span className="text-sm text-gray-700 w-10 text-right">
+              {current}
+            </span>
+          </div>
+        );
+      }
+
+      case "date":
+        return (
+          <Input
+            type="date"
+            placeholder={field.placeholder}
+            {...register(field.id)}
+          />
+        );
+
+      case "time":
+        return (
+          <Input
+            type="time"
+            placeholder={field.placeholder}
+            {...register(field.id)}
+          />
+        );
+
+      case "number":
+        return (
+          <Input
+            type="number"
+            placeholder={field.placeholder}
+            {...register(field.id)}
+          />
+        );
+
+      case "currency":
+        return (
+          <Input
+            type="number"
+            inputMode="decimal"
+            placeholder={field.placeholder}
+            {...register(field.id)}
+          />
+        );
+
+      case "percentage":
+        return (
+          <Input
+            type="number"
+            inputMode="decimal"
+            placeholder={field.placeholder}
+            {...register(field.id)}
+          />
+        );
+
       case "textarea":
         return (
           <Textarea
@@ -146,7 +325,7 @@ export function FormRenderer({
             {...register(field.id)}
           />
         );
-      
+
       case "text":
       case "email":
       default:
@@ -186,30 +365,64 @@ export function FormRenderer({
 
           {/* Section Fields */}
           <div className="space-y-6">
-            {section.fields?.map((field) => (
-              <div key={field.id} className="space-y-2">
-                <label className="block text-sm font-medium text-gray-900">
-                  {field.label}
-                  {(field.required || field.validation?.required) && (
-                    <span className="text-red-500 ml-1">*</span>
+            {section.fields?.map((field) => {
+              const isLayoutOnly = [
+                "sectionHeader",
+                "description",
+                "divider",
+                "pageBreak",
+              ].includes(String(field.type));
+
+              if (isLayoutOnly) {
+                return (
+                  <div key={field.id} className="space-y-2">
+                    {field.type === "sectionHeader" && (
+                      <h4 className="text-base font-semibold text-gray-900">
+                        {field.label}
+                      </h4>
+                    )}
+                    {field.type === "description" && (
+                      <p className="text-sm text-gray-600">
+                        {field.helpText || field.placeholder || field.label}
+                      </p>
+                    )}
+                    {field.type === "divider" && (
+                      <div className="border-t border-gray-200" />
+                    )}
+                    {field.type === "pageBreak" && (
+                      <div className="text-xs uppercase tracking-wide text-gray-400">
+                        Page break
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div key={field.id} className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-900">
+                    {field.label}
+                    {(field.required || field.validation?.required) && (
+                      <span className="text-red-500 ml-1">*</span>
+                    )}
+                  </label>
+
+                  {field.helpText && (
+                    <p className="text-xs text-gray-500 mb-2">
+                      {field.helpText}
+                    </p>
                   )}
-                </label>
-                
-                {field.helpText && (
-                  <p className="text-xs text-gray-500 mb-2">
-                    {field.helpText}
-                  </p>
-                )}
-                
-                {renderField(field)}
-                
-                {errors[field.id] && (
-                  <p className="text-red-500 text-xs">
-                    {errors[field.id]?.message as string}
-                  </p>
-                )}
-              </div>
-            ))}
+
+                  {renderField(field)}
+
+                  {errors[field.id] && (
+                    <p className="text-red-500 text-xs">
+                      {errors[field.id]?.message as string}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       ))}

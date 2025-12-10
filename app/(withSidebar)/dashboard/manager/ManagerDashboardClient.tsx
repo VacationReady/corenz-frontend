@@ -21,6 +21,7 @@ import Button from "@/components/ui/Button";
 import Link from "next/link";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 import { User } from "lucide-react";
+import { Avatar } from "@/components/ui/Avatar";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -250,9 +251,15 @@ function TeamInsights() {
 
 interface ManagerDashboardClientProps {
   firstName?: string | null;
+  fullName?: string | null;
+  avatarUrl?: string | null;
 }
 
-export default function ManagerDashboardClient({ firstName }: ManagerDashboardClientProps) {
+export default function ManagerDashboardClient({
+  firstName,
+  fullName,
+  avatarUrl,
+}: ManagerDashboardClientProps) {
   const { data: session } = useSession();
   const sessionEmployeeId = (session?.user as any)?.employeeId as string | undefined;
   const [employeeId, setEmployeeId] = useState<string | undefined>(sessionEmployeeId);
@@ -277,7 +284,7 @@ export default function ManagerDashboardClient({ firstName }: ManagerDashboardCl
     return () => { active = false; };
   }, [session, employeeId]);
 
-  const title = firstName ? `Hi ${firstName}` : "Manager Dashboard";
+  const title = firstName ? `Hi, ${firstName}!` : "Manager Dashboard";
 
   return (
     <div className="h-full">
@@ -286,11 +293,23 @@ export default function ManagerDashboardClient({ firstName }: ManagerDashboardCl
         <div className="p-4">
           <div className="glass-premium rounded-2xl shadow-premium p-5 hover-lift-premium transition-premium">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-primary">{title}</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Dashboard &rsaquo; Manager
-                </p>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute -inset-1.5 bg-gradient-to-br from-primary to-[hsl(var(--sunset-2))] rounded-full opacity-60 blur-md" />
+                  <Avatar
+                    src={avatarUrl ?? undefined}
+                    name={fullName ?? firstName ?? "User"}
+                    size={56}
+                    className="relative border-2 border-white shadow-premium"
+                  />
+                </div>
+
+                <div>
+                  <h1 className="text-2xl font-bold text-primary">{title}</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Dashboard &rsaquo; Manager
+                  </p>
+                </div>
               </div>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
                 {employeeId && (

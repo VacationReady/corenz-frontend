@@ -132,7 +132,7 @@ export default function EmployeeFormPage() {
           </Button>
         </div>
 
-        {form.formType === "DATA_SCREEN" ? (
+        {form.formType === "DATA_SCREEN" || form.formType === "FORM" ? (
           <EnhancedFormRenderer
             formId={form.id}
             employeeId={employeeId}

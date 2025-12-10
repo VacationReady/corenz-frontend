@@ -339,6 +339,25 @@ export function FieldEditor({
           </div>
         )}
 
+        {/* Multiple selection toggle for checkbox groups */}
+        {field.type === "checkbox" && (
+          <div className="flex items-center gap-3 py-2">
+            <Checkbox
+              id={`multiple-${field.id}`}
+              checked={field.multiple !== false}
+              onCheckedChange={(v: boolean) =>
+                onChange({ ...field, multiple: Boolean(v) })
+              }
+            />
+            <label
+              htmlFor={`multiple-${field.id}`}
+              className="text-sm text-slate-700 cursor-pointer select-none"
+            >
+              Allow multiple selections
+            </label>
+          </div>
+        )}
+
         {/* Required toggle */}
         {capabilities.supportsRequiredToggle && (
           <div className="flex items-center gap-3 py-2">

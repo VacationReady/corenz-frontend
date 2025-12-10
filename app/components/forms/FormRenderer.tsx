@@ -27,6 +27,7 @@ interface FormField {
   appearance?: string;
   optionItems?: Array<{ label: string; value: string; iconName?: string }>;
   options?: string[];
+  multiple?: boolean;
   validation?: { required?: boolean; min?: number; max?: number };
 }
 
@@ -58,8 +59,18 @@ export function FormRenderer({
     inputFields.forEach((field) => {
       const isRequired = field.required || field.validation?.required;
 
-      // Checkbox groups can return arrays or strings depending on how RHF is wired
       if (field.type === "checkbox") {
+        // Single-select checkbox behaves like radio (string value)
+        if (field.multiple === false) {
+          if (isRequired) {
+            shape[field.id] = z.string().min(1, `${field.label} is required`);
+          } else {
+            shape[field.id] = z.string().optional();
+          }
+          return;
+        }
+
+        // Multi-select checkbox can return arrays or strings depending on how RHF is wired
         if (isRequired) {
           shape[field.id] = z
             .any()
@@ -97,7 +108,7 @@ export function FormRenderer({
     resolver: zodResolver(formSchema),
     defaultValues: inputFields.reduce((acc, field) => {
       if (field.type === "checkbox") {
-        acc[field.id] = [];
+        acc[field.id] = field.multiple === false ? "" : [];
       } else {
         acc[field.id] = "";
       }
@@ -171,7 +182,31 @@ export function FormRenderer({
         }
         break;
       
-      case "checkbox":
+      case "checkbox": {
+        const isMultiple = field.multiple !== false;
+
+        if (isMultiple) {
+          return (
+            <div className="space-y-2">
+              {optionItems?.map((option) => (
+                <label
+                  key={option.value}
+                  className="flex items-center gap-2 cursor-pointer text-sm text-gray-900"
+                >
+                  <input
+                    type="checkbox"
+                    value={option.value}
+                    {...register(field.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+          );
+        }
+
+        // Single-select checkbox behaves like a radio group visually
         return (
           <div className="space-y-2">
             {optionItems?.map((option) => (
@@ -180,16 +215,17 @@ export function FormRenderer({
                 className="flex items-center gap-2 cursor-pointer text-sm text-gray-900"
               >
                 <input
-                  type="checkbox"
+                  type="radio"
                   value={option.value}
                   {...register(field.id)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span>{option.label}</span>
               </label>
             ))}
           </div>
         );
+      }
 
       case "radio":
         return (

@@ -164,6 +164,22 @@ export default function FormBuilder({ onSave, initialData }: FormBuilderProps) {
 
   // Custom collision detection that prefers section droppables but falls back to canvas
   const customCollisionDetection = useCallback((args: Parameters<typeof rectIntersection>[0]) => {
+    const activeData = args?.active?.data?.current as { kind?: string } | undefined;
+
+    if (!activeData || activeData.kind !== "palette") {
+      const pointerCollisions = pointerWithin(args);
+      if (pointerCollisions.length > 0) {
+        return pointerCollisions;
+      }
+
+      const rectCollisions = rectIntersection(args);
+      if (rectCollisions.length > 0) {
+        return rectCollisions;
+      }
+
+      return [];
+    }
+
     // First try pointer within - more accurate for nested droppables
     const pointerCollisions = pointerWithin(args);
     if (pointerCollisions.length > 0) {

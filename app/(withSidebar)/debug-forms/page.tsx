@@ -177,9 +177,9 @@ export default async function DebugFormsPage() {
                     <p>
                       Dept match:{" "}
                       {form.visibleToDepartments.length === 0 ||
-                      (sampleEmployee.User?.Department_User_departmentIdToDepartment?.name &&
+                      (sampleEmployee.User?.Department_User_departmentIdToDepartment?.id &&
                         form.visibleToDepartments.includes(
-                          sampleEmployee.User.Department_User_departmentIdToDepartment.name,
+                          sampleEmployee.User.Department_User_departmentIdToDepartment.id,
                         ))
                         ? "Yes"
                         : "No"}
@@ -187,9 +187,9 @@ export default async function DebugFormsPage() {
                     <p>
                       Job role match:{" "}
                       {form.visibleToJobRoles.length === 0 ||
-                      (sampleEmployee.User?.JobRole?.name &&
+                      (sampleEmployee.User?.JobRole?.id &&
                         form.visibleToJobRoles.includes(
-                          sampleEmployee.User.JobRole.name,
+                          sampleEmployee.User.JobRole.id,
                         ))
                         ? "Yes"
                         : "No"}

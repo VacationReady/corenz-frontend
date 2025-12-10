@@ -88,6 +88,21 @@ export function FormRenderer({
         return;
       }
 
+      if (field.type === "select" && field.multiple) {
+        // Multi-select dropdown returns array of values
+        if (isRequired) {
+          shape[field.id] = z
+            .any()
+            .refine(
+              (value) => Array.isArray(value) && value.length > 0,
+              `${field.label} is required`,
+            );
+        } else {
+          shape[field.id] = z.any().optional();
+        }
+        return;
+      }
+
       // Default to simple string validation for other field types
       if (isRequired) {
         shape[field.id] = z.string().min(1, `${field.label} is required`);
@@ -109,6 +124,8 @@ export function FormRenderer({
     defaultValues: inputFields.reduce((acc, field) => {
       if (field.type === "checkbox") {
         acc[field.id] = field.multiple === false ? "" : [];
+      } else if (field.type === "select" && field.multiple) {
+        acc[field.id] = [];
       } else {
         acc[field.id] = "";
       }
@@ -247,16 +264,20 @@ export function FormRenderer({
           </div>
         );
 
-      case "select":
+      case "select": {
+        const isMulti = field.multiple === true;
         return (
           <select
             className={baseClasses}
-            defaultValue=""
+            defaultValue={isMulti ? undefined : ""}
+            multiple={isMulti}
             {...register(field.id)}
           >
-            <option value="" disabled>
-              {field.placeholder || "Select an option"}
-            </option>
+            {!isMulti && (
+              <option value="" disabled>
+                {field.placeholder || "Select an option"}
+              </option>
+            )}
             {optionItems?.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -264,6 +285,7 @@ export function FormRenderer({
             ))}
           </select>
         );
+      }
 
       case "rating": {
         const min = field.validation?.min ?? 1;

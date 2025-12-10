@@ -59,21 +59,30 @@ export default async function EmployeeLayout({
 
   const userRole = employee.User?.role || "EMPLOYEE";
   const userDepartmentId = employee.User?.Department_User_departmentIdToDepartment?.id?.trim();
-  const userJobRole = employee.User?.JobRole?.name;
+  // Use job role ID for matching - forms store job role IDs, not names
+  const userJobRoleId = employee.User?.JobRole?.id;
 
   // Fetch forms with proper filter (EXCLUDE SURVEYS)
+  // Visibility logic: User must match ALL selected criteria
+  // - If form has no departments selected (empty array), it's visible to all departments
+  // - If form has no job roles selected (empty array), it's visible to all job roles
+  // - If employee has no department/job role assigned, they can only see forms with empty filters for that criteria
   let forms = await prisma.form.findMany({
     where: {
       companyId: employee.companyId || "",
       isActive: true,
       formType: { not: "SURVEY" }, // EXCLUDE SURVEY FORMS FROM EMPLOYEE PROFILES
       AND: [
+        // Role filter: must match one of the selected roles, or form has no role restrictions
         {
           OR: [
             { visibleToRoles: { isEmpty: true } },
             { visibleToRoles: { has: userRole } },
           ],
         },
+        // Department filter: must match if form has departments AND employee has a department
+        // If form has no departments selected, visible to all
+        // If employee has no department, only see forms with no department restrictions
         {
           OR: [
             { visibleToDepartments: { isEmpty: true } },
@@ -82,11 +91,14 @@ export default async function EmployeeLayout({
               : []),
           ],
         },
+        // Job role filter: must match if form has job roles AND employee has a job role
+        // If form has no job roles selected, visible to all
+        // If employee has no job role, only see forms with no job role restrictions
         {
           OR: [
             { visibleToJobRoles: { isEmpty: true } },
-            ...(userJobRole
-              ? [{ visibleToJobRoles: { has: userJobRole } }]
+            ...(userJobRoleId
+              ? [{ visibleToJobRoles: { has: userJobRoleId } }]
               : []),
           ],
         },

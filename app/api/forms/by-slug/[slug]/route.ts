@@ -52,11 +52,12 @@ export async function GET(
 
       const userRole = user?.role || "EMPLOYEE";
       const userDepartmentId = user?.Department_User_departmentIdToDepartment?.id?.trim(); // ✅ trim for safety
-      const userJobRole = user?.JobRole?.name;
+      // Use job role ID for matching - forms store job role IDs, not names
+      const userJobRoleId = user?.JobRole?.id;
 
       console.log("🔍 Role:", userRole);
       console.log("🏢 Department ID:", userDepartmentId);
-      console.log("🛠 Job Role:", userJobRole);
+      console.log("🛠 Job Role ID:", userJobRoleId);
 
       // ✅ TEMP: manually test department match
     const formDebug = await prisma.form.findFirst({
@@ -94,10 +95,10 @@ export async function GET(
                   ]
                 : []),
 
-              ...(userJobRole
+              ...(userJobRoleId
                 ? [
                     {
-                      visibleToJobRoles: { has: userJobRole },
+                      visibleToJobRoles: { has: userJobRoleId },
                     },
                   ]
                 : []),

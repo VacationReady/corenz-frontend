@@ -372,17 +372,22 @@ function renderPreviewField(
         />
       );
 
-    case "select":
+    case "select": {
+      const isMulti = field.multiple !== false && field.multiple !== undefined;
       return (
         <select 
           className={baseInput} 
-          defaultValue=""
+          defaultValue={isMulti ? undefined : ""}
+          multiple={isMulti}
+          size={isMulti ? Math.min(4, Math.max(2, (field.options || []).length)) : undefined}
           onFocus={handleFocus}
           onBlur={handleBlur}
         >
-          <option value="" disabled className="text-muted-foreground">
-            {field.placeholder || "Select an option"}
-          </option>
+          {!isMulti && (
+            <option value="" disabled className="text-muted-foreground">
+              {field.placeholder || "Select an option"}
+            </option>
+          )}
           {field.options?.map((opt, i) => (
             <option key={i} value={opt}>
               {opt}
@@ -390,6 +395,7 @@ function renderPreviewField(
           ))}
         </select>
       );
+    }
 
     case "radio":
       return (

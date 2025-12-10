@@ -189,22 +189,25 @@ function EmployeeMultiSelect({
           </span>
         ) : (
           <div className="flex flex-wrap gap-1.5 flex-1">
-            {selectedEmployees.map(emp => (
-              <span
-                key={emp.id}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-medium animate-in fade-in zoom-in-95 duration-200"
-              >
-                {emp.User.name}
-                <button
-                  type="button"
-                  onClick={(e) => removeEmployee(emp.id, e)}
-                  className="ml-0.5 hover:text-primary-foreground hover:bg-primary rounded-full p-0.5 transition-colors duration-150"
-                  aria-label={`Remove ${emp.User.name}`}
+            {selectedEmployees.map(emp => {
+              const displayName = (emp.User && emp.User.name) || (emp.User && emp.User.email) || 'Unknown';
+              return (
+                <span
+                  key={emp.id}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-medium animate-in fade-in zoom-in-95 duration-200"
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
+                  {displayName}
+                  <button
+                    type="button"
+                    onClick={(e) => removeEmployee(emp.id, e)}
+                    className="ml-0.5 hover:text-primary-foreground hover:bg-primary rounded-full p-0.5 transition-colors duration-150"
+                    aria-label={`Remove ${displayName}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              );
+            })}
           </div>
         )}
         <ChevronsUpDown className={cn(
@@ -379,6 +382,18 @@ export default function CreateShiftModal({
     notes: '',
     requiresConfirmation: false,
   });
+
+  // When the modal is opened with a preselected date (e.g. by clicking a day in the rota
+  // calendar), pre-fill the start/end times so the user only needs to tweak the time.
+  useEffect(() => {
+    if (isOpen && preselectedDate) {
+      setFormData(prev => ({
+        ...prev,
+        startTime: format(preselectedDate, "yyyy-MM-dd'T'09:00"),
+        endTime: format(preselectedDate, "yyyy-MM-dd'T'17:00"),
+      }));
+    }
+  }, [isOpen, preselectedDate]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 

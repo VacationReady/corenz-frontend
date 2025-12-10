@@ -843,14 +843,19 @@ export function renderField(
 
     // dropdown/select
     case "dropdown":
-    case "select":
+    case "select": {
+      const isMulti = field.multiple === true;
       return (
         <select
           className={baseInput}
           disabled={readOnly}
+          multiple={isMulti}
+          defaultValue={isMulti ? undefined : ""}
           {...register(field.id, { required: field.required })}
         >
-          <option value="">{field.placeholder || "Select an option"}</option>
+          {!isMulti && (
+            <option value="">{field.placeholder || "Select an option"}</option>
+          )}
           {field.options?.map((opt, i) => (
             <option key={i} value={opt}>
               {opt}
@@ -858,6 +863,7 @@ export function renderField(
           ))}
         </select>
       );
+    }
 
     // radio group
     case "radio":

@@ -112,6 +112,11 @@ export function TodaysShiftWidgetCompact({ employeeId }: { employeeId: string })
       ) : (
         <div className="space-y-3">
           {/* Shift times */}
+          {data?.hasWorkedToday && !isClockedIn && data?.completedClockEntry && (
+            <div className="text-xs text-green-600 dark:text-green-400">
+              Shift completed
+            </div>
+          )}
           <div className="flex items-center justify-between text-sm">
             <span className="font-semibold text-primary">
               {data.shift 

@@ -95,6 +95,23 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Check for a completed clock entry for today (covers completed shifts)
+    const completedClockEntry = await prisma.clockEntry.findFirst({
+      where: {
+        employeeId,
+        status: 'COMPLETED',
+        clockInTime: {
+          gte: todayStart,
+          lte: todayEnd,
+        },
+      },
+      orderBy: {
+        clockInTime: 'desc',
+      },
+    });
+
+    const hasWorkedToday = !!(activeClockEntry || completedClockEntry);
+
     // Determine which working pattern to use (prioritize assignment with effective date)
     const activeWorkingPattern = employee?.EmployeeWorkingPatternAssignment?.[0]?.WorkingPattern || employee?.WorkingPattern;
 
@@ -181,8 +198,10 @@ export async function GET(req: NextRequest) {
       shift: shift || null,
       workingPattern,
       activeClockEntry,
+      completedClockEntry,
+      hasWorkedToday,
       date: today.toISOString(),
-      isWorkingDay: !!(shift || workingPattern),
+      isWorkingDay: !!(shift || workingPattern || hasWorkedToday),
     };
 
     console.log('[Today API] Final response:', response);

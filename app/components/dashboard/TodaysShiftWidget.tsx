@@ -92,6 +92,11 @@ export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
         </div>
       ) : (
         <div className="space-y-4">
+          {data?.hasWorkedToday && !data?.activeClockEntry && data?.completedClockEntry && (
+            <div className="text-sm font-medium text-green-600 dark:text-green-400">
+              Shift completed
+            </div>
+          )}
           {/* Show shift times or working pattern */}
           <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-100 dark:border-blue-900">
             <div className="flex items-center justify-between mb-2">

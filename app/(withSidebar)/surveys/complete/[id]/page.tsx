@@ -42,7 +42,6 @@ export default function SurveyCompletePage({ params }: SurveyCompletePageProps) 
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [completed, setCompleted] = useState(false);
   const [surveyId, setSurveyId] = useState<string>("");
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const [questionCount, setQuestionCount] = useState<number | undefined>();
@@ -143,34 +142,6 @@ export default function SurveyCompletePage({ params }: SurveyCompletePageProps) 
     );
   }
 
-  if (completed) {
-    return (
-      <PageShell
-        title="Survey Completed"
-        description="Thank you for your feedback"
-        icon={<CheckCircle className="w-6 h-6" />}
-      >
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mb-6" />
-            <h2 className="text-2xl font-semibold mb-4">Survey Completed!</h2>
-            <p className="text-muted-foreground mb-8 max-w-md">
-              Thank you for taking the time to complete this survey. Your feedback is valuable and helps us improve our organization.
-            </p>
-            <div className="flex gap-4">
-              <Button onClick={() => router.push("/dashboard")} variant="primary">
-                Return to Dashboard
-              </Button>
-              <Button onClick={() => router.push("/surveys")} variant="outline">
-                View All Surveys
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </PageShell>
-    );
-  }
-
   if (!survey) {
     return (
       <PageShell
@@ -197,7 +168,7 @@ export default function SurveyCompletePage({ params }: SurveyCompletePageProps) 
         isOpen={showSuccessAnimation}
         onClose={() => {
           setShowSuccessAnimation(false);
-          setCompleted(true);
+          router.push("/dashboard");
         }}
         surveyName={survey.name}
         questionCount={questionCount}

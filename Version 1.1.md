@@ -186,8 +186,28 @@ Resolved clock-out timeout issues on first attempts by ensuring Prisma database 
 
 ## 47. Timesheet Approval Modal Enhancement
 
-Enabled timesheet approvals directly from the dashboard action items widget and action-items page with a beautiful, modern modal. The modal displays employee details, hours breakdown, cost estimates, and individual time entries with scheduled shift comparisons, eliminating the need to navigate to the timesheet hub for approvals.
+Enabled timesheet approvals directly from the dashboard action items widget and action-items page with a beautiful, modern modal. The modal displays employee details, hours breakdown, cost estimates, and individual time entries with scheduled shift comparisons, eliminating the need to navigate to the timesheet hub for approvals. Fixed employee name display to use firstName/lastName fallback when name field is null, standardized all hours formatting to 2 decimal places for payroll accuracy, and added scheduled shift information for approver context.
 
 ## 48. Timesheet Hub Approval UX Improvements
 
 Enhanced the timesheet approval experience with smooth fade-out animations, loading states on approve buttons, and personalized success notifications. Replaced jarring page refreshes with optimistic UI updates that provide immediate visual feedback when approving individual timesheets.
+
+## 49. Dashboard Layout Consistency Improvements
+
+Refactored employee and manager dashboards to achieve a compact, consistent look and feel similar to the admin dashboard. Reorganized the employee dashboard into a two-row layout with Leave Balance, Today's Shift, and Upcoming Leave in the top row, and Action Items and News in the bottom row. Created a compact version of the Today's Shift widget to reduce vertical space and eliminate unnecessary white space. Added user avatars to dashboard headers for a more personalized experience.
+
+## 50. Payroll Export Zod Validation Fix
+
+Fixed payroll export Zod validation errors by normalizing legacy request fields (`startDate`/`endDate` → `payPeriodStart`/`payPeriodEnd`) and uppercase format values (`CSV`/`JSON`/`EXCEL` → lowercase) before schema validation, ensuring existing admin/payroll UI calls succeed without modification.
+
+## 51. Manual Entry Approval Workflow Fix
+
+Fixed manual entry approval workflow to properly trigger re-approval when new entries are added to already-submitted timesheets, preventing mismatched approval status display and ensuring managers receive action items for updated timesheets.
+
+## 52. Timesheet Hub Multiple Entries Indicator
+
+Added multiple entries indicator badge to timesheet hub, displaying "X entries" for timesheets with more than one entry to improve manager visibility and approval workflow clarity.
+
+## 53. Form Builder Mood Icon Picker Enhancement
+
+Enhanced form builder chips/multiselect elements with an intuitive Lucide React icon picker, allowing users to associate mood-based icons (happy, sad, neutral, etc.) with each option for more visual survey and form building.

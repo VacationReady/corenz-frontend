@@ -10,8 +10,10 @@ import {
   TrendingUp,
   AlertTriangle,
   XCircle,
+  ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { DetailType } from './StatsDetailModal';
 
 interface ReconciliationStatsProps {
   stats: {
@@ -26,6 +28,7 @@ interface ReconciliationStatsProps {
     totalActualHours: number;
   };
   className?: string;
+  onCardClick?: (type: DetailType) => void;
 }
 
 interface StatCardProps {
@@ -35,9 +38,11 @@ interface StatCardProps {
   subValue?: string;
   color: 'primary' | 'emerald' | 'amber' | 'rose' | 'violet' | 'blue';
   trend?: 'up' | 'down' | 'neutral';
+  onClick?: () => void;
+  interactive?: boolean;
 }
 
-function StatCard({ icon: Icon, label, value, subValue, color, trend }: StatCardProps) {
+function StatCard({ icon: Icon, label, value, subValue, color, trend, onClick, interactive = true }: StatCardProps) {
   const colorClasses = {
     primary: 'from-primary/20 to-primary/5 border-primary/30',
     emerald: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30',
@@ -45,6 +50,15 @@ function StatCard({ icon: Icon, label, value, subValue, color, trend }: StatCard
     rose: 'from-rose-500/20 to-rose-500/5 border-rose-500/30',
     violet: 'from-violet-500/20 to-violet-500/5 border-violet-500/30',
     blue: 'from-blue-500/20 to-blue-500/5 border-blue-500/30',
+  };
+
+  const hoverClasses = {
+    primary: 'hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10',
+    emerald: 'hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-500/10',
+    amber: 'hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-500/10',
+    rose: 'hover:border-rose-500/50 hover:shadow-lg hover:shadow-rose-500/10',
+    violet: 'hover:border-violet-500/50 hover:shadow-lg hover:shadow-violet-500/10',
+    blue: 'hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10',
   };
 
   const iconColors = {
@@ -60,9 +74,16 @@ function StatCard({ icon: Icon, label, value, subValue, color, trend }: StatCard
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={interactive && onClick ? { scale: 1.02 } : undefined}
+      whileTap={interactive && onClick ? { scale: 0.98 } : undefined}
+      onClick={onClick}
       className={cn(
-        'relative overflow-hidden rounded-2xl p-4 border bg-gradient-to-br',
-        colorClasses[color]
+        'relative overflow-hidden rounded-2xl p-4 border bg-gradient-to-br transition-all duration-200',
+        colorClasses[color],
+        interactive && onClick && [
+          'cursor-pointer',
+          hoverClasses[color],
+        ]
       )}
     >
       <div className="flex items-start justify-between">
@@ -93,11 +114,18 @@ function StatCard({ icon: Icon, label, value, subValue, color, trend }: StatCard
           )} />
         </div>
       )}
+
+      {/* Click indicator */}
+      {interactive && onClick && (
+        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </div>
+      )}
     </motion.div>
   );
 }
 
-export default function ReconciliationStats({ stats, className }: ReconciliationStatsProps) {
+export default function ReconciliationStats({ stats, className, onCardClick }: ReconciliationStatsProps) {
   const matchRate = stats.totalShifts > 0 
     ? Math.round((stats.matchedShifts / stats.totalShifts) * 100) 
     : 0;
@@ -113,6 +141,7 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         value={stats.totalShifts}
         subValue={`${matchRate}% matched`}
         color="blue"
+        onClick={() => onCardClick?.('total_shifts')}
       />
       
       <StatCard
@@ -120,7 +149,8 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         label="Pending"
         value={stats.pendingReconciliation}
         subValue="Need review"
-        color="blue"
+        color="amber"
+        onClick={() => onCardClick?.('pending')}
       />
       
       <StatCard
@@ -128,7 +158,8 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         label="Approved"
         value={stats.approvedCount}
         subValue="Ready for payroll"
-        color="blue"
+        color="emerald"
+        onClick={() => onCardClick?.('approved')}
       />
       
       <StatCard
@@ -136,21 +167,24 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         label="Flagged"
         value={stats.flaggedCount}
         subValue="Require attention"
-        color="blue"
+        color="rose"
+        onClick={() => onCardClick?.('flagged')}
       />
       
       <StatCard
         icon={XCircle}
         label="No Shows"
         value={stats.noShowCount}
-        color="blue"
+        color="rose"
+        onClick={() => onCardClick?.('no_shows')}
       />
       
       <StatCard
         icon={TrendingUp}
         label="Avg Variance"
         value={`${stats.averageVarianceMinutes}m`}
-        color="blue"
+        color="violet"
+        onClick={() => onCardClick?.('variance')}
       />
       
       <StatCard
@@ -159,6 +193,7 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         value={stats.totalScheduledHours.toFixed(1)}
         subValue="Total for period"
         color="blue"
+        onClick={() => onCardClick?.('scheduled_hours')}
       />
       
       <StatCard
@@ -166,8 +201,9 @@ export default function ReconciliationStats({ stats, className }: Reconciliation
         label="Actual Hours"
         value={stats.totalActualHours.toFixed(1)}
         subValue={hoursDiffDisplay}
-        color="blue"
+        color={hoursDiff >= 0 ? 'emerald' : 'rose'}
         trend={hoursDiff >= 0 ? 'up' : 'down'}
+        onClick={() => onCardClick?.('actual_hours')}
       />
     </div>
   );

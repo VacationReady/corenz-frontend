@@ -982,6 +982,8 @@ export default function FilterableDataTable({
                 to: range.end ? range.end.toISOString() : undefined,
               },
             }));
+            // Auto-apply date preset selection for immediate UX feedback
+            applyColumnFilterChanges(columnKey);
           };
 
           return (

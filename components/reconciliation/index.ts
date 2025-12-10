@@ -6,8 +6,10 @@ export { default as AdjustmentDialog } from './AdjustmentDialog';
 export { default as ReconciliationStats } from './ReconciliationStats';
 export { default as ReconciliationAddEntryDialog } from './ReconciliationAddEntryDialog';
 export { default as EditClockEntryDialog } from './EditClockEntryDialog';
+export { default as StatsDetailModal } from './StatsDetailModal';
 
 // Re-export types
 export type { VarianceType } from './VarianceBadge';
+export type { DetailType } from './StatsDetailModal';
 
 

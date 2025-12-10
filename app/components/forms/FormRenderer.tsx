@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
+import { MoodIcon } from "@/components/ui/MoodIconPicker";
 
 interface FormRendererProps {
   schema: any;
@@ -24,7 +25,7 @@ interface FormField {
   placeholder?: string;
   helpText?: string;
   appearance?: string;
-  optionItems?: Array<{ label: string; value: string }>;
+  optionItems?: Array<{ label: string; value: string; iconName?: string }>;
   validation?: { required?: boolean };
 }
 
@@ -103,11 +104,21 @@ export function FormRenderer({
                         className="sr-only"
                       />
                       <div className="flex items-center justify-between w-full">
-                        <span className={`text-sm font-medium ${
-                          isSelected ? 'text-blue-700' : 'text-gray-900'
-                        }`}>
-                          {option.label}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {option.iconName && (
+                            <MoodIcon 
+                              name={option.iconName} 
+                              className={`h-5 w-5 ${
+                                isSelected ? 'text-blue-600' : 'text-gray-500'
+                              }`} 
+                            />
+                          )}
+                          <span className={`text-sm font-medium ${
+                            isSelected ? 'text-blue-700' : 'text-gray-900'
+                          }`}>
+                            {option.label}
+                          </span>
+                        </div>
                         <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center transition-all ${
                           isSelected 
                             ? 'border-blue-500 bg-blue-500' 

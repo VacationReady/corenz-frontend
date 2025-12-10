@@ -41,8 +41,9 @@ import {
   VarianceBadge,
   ReconciliationAddEntryDialog,
   EditClockEntryDialog,
+  StatsDetailModal,
 } from '@/components/reconciliation';
-import type { VarianceType } from '@/components/reconciliation';
+import type { VarianceType, DetailType } from '@/components/reconciliation';
 
 interface ReconciliationEntry {
   shift: {
@@ -139,6 +140,9 @@ export default function ReconciliationHubPage() {
     shift: ReconciliationEntry['shift'];
     employeeName: string;
   } | null>(null);
+
+  // Stats detail modal
+  const [statsDetailType, setStatsDetailType] = useState<DetailType | null>(null);
   
   const { toast } = useToast();
   
@@ -380,7 +384,10 @@ export default function ReconciliationHubPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <ReconciliationStats stats={stats} />
+          <ReconciliationStats 
+            stats={stats} 
+            onCardClick={(type) => setStatsDetailType(type)}
+          />
         </motion.div>
       )}
 
@@ -755,6 +762,21 @@ export default function ReconciliationHubPage() {
               await fetchDayData(selectedDate);
               await fetchStats();
             }
+          }}
+        />
+      )}
+
+      {/* Stats Detail Modal */}
+      {statsDetailType && (
+        <StatsDetailModal
+          isOpen={!!statsDetailType}
+          onClose={() => setStatsDetailType(null)}
+          type={statsDetailType}
+          startDate={weekStart}
+          endDate={weekEnd}
+          onShiftClick={(shiftId, date) => {
+            setStatsDetailType(null);
+            handleDateSelect(date);
           }}
         />
       )}

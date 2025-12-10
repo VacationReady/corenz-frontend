@@ -7,6 +7,7 @@ import Checkbox from "@/components/ui/Checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Plus, X, ChevronDown, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MoodIconPicker, MoodIcon } from "@/components/ui/MoodIconPicker";
 
 export function FieldEditor({
   field,
@@ -64,7 +65,7 @@ export function FieldEditor({
     onChange({ ...field, optionItems: newItems });
   };
 
-  const updateOptionItem = (index: number, key: 'label' | 'value', value: string) => {
+  const updateOptionItem = (index: number, key: 'label' | 'value' | 'iconName', value: string | undefined) => {
     const newItems = [...optionItems];
     newItems[index] = { ...newItems[index], [key]: value };
     onChange({ ...field, optionItems: newItems });
@@ -236,10 +237,14 @@ export function FieldEditor({
               {optionItems.map((item, index) => (
                 <div key={index} className="p-2 bg-slate-50 rounded-lg space-y-1.5">
                   <div className="flex items-center gap-1.5">
+                    <MoodIconPicker
+                      value={item.iconName}
+                      onChange={(iconName) => updateOptionItem(index, 'iconName', iconName)}
+                    />
                     <Input
                       value={item.label}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateOptionItem(index, 'label', e.target.value)}
-                      placeholder="Display text (e.g. 😀 Great)"
+                      placeholder="Display text (e.g. Great)"
                       className="flex-1 h-8 bg-white border-slate-200 text-sm"
                     />
                     {optionItems.length > 1 && (
@@ -273,7 +278,7 @@ export function FieldEditor({
             )}
 
             <p className="text-xs text-slate-400 mt-2">
-              💡 Add emojis to labels for mood/rating style options
+              💡 Click the + button to add mood icons to your options
             </p>
           </div>
         )}

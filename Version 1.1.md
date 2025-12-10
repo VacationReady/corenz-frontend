@@ -103,3 +103,91 @@ Enhanced the shift creation and editing modals with a prominent blocking UI that
 ## 26. Shift Deletion with Employee Notification
 
 Added the ability to delete shifts (both published and draft) from the rota page with a dedicated delete modal. For published shifts, managers must provide a reason for deletion and can optionally notify the assigned employee via email. The notification email includes shift details (date, time, location, department) and the cancellation reason, ensuring employees are properly informed when their scheduled shifts are cancelled.
+
+## 27. Login Error Handling Fix
+
+Fixed login authentication errors failing silently with no error message. In NextAuth v5, signIn() can return ok:true even for invalid credentials, causing a brief sidebar flash before redirecting back to login. Updated the login flow to always verify the session is valid before redirecting and properly display "Invalid email or password" when authentication fails.
+
+## 28. Employee Hard Delete Foreign Key Constraint Fix
+
+Fixed the employee hard delete functionality failing with a foreign key constraint violation on ClockEntry_employeeId_fkey. Added comprehensive cleanup of all related records including ClockEntry, Timesheet, Shift, SurveyRecipient, SurveyResponse, TransactionalChangeRequest, and other models that reference employees but lack cascade deletes. Increased transaction timeout to accommodate the additional cleanup operations.
+
+## 29. Input Field Icon Overlap Fix
+
+Fixed text field icons overlapping with input text by updating the Input component's padding styles. Changed from using px-4 to explicit pl-4 pr-4 in base styles, allowing tailwind-merge to properly override individual padding sides when pl-10 is passed via className for icon positioning.
+
+## 30. Break Duration Input Field Fix
+
+Fixed the Break Duration (minutes) field in the rota Create Shift modal to allow the initial 0 to be fully cleared and overwritten. The field now accepts an empty value while editing instead of forcing it back to 0, enabling users to type new values without the leading zero persisting.
+
+## 31. Multi-Employee Shift Department Assignment Fix
+
+Fixed an issue where creating shifts for multiple employees with different departments resulted in all shifts showing as "Unassigned" in the Department Breakdown. Each shift now correctly inherits the department and location from its assigned employee, and the UI displays "Multiple departments (Dept1, Dept2)" with a helpful note that each shift uses the employee's own department.
+
+## 32. Rota Modals UI Modernization
+
+Modernized the entire rota modal system with a cohesive dark theme featuring gradient backgrounds, rounded corners, and improved visual hierarchy. Fixed the delete shift modal z-index issue so it appears above the shift details dialog, removed the white box around shift details by making the dialog transparent, and updated all modals (Create, Edit, Delete, Shift Swap, View Full Day) with consistent slate color schemes, icon containers, and smooth animations.
+
+## 33. Employees Status Column Simplification
+
+Removed the redundant "Active" badge from the employees list status column. Active employees now only show their activation state (Pending/Activated), since inclusion in the non-archived list already indicates they are active. Archived employees continue to show the "Archived" badge along with their activation state.
+
+## 34. Rota Groups UI Modernization
+
+Modernized all rota groups pages (create, listing, members, requirements) with a cohesive blue theme matching the "Create Rota Group" header. Replaced old icons with Lucide React icons throughout, added framer-motion animations for smooth transitions, and implemented modern form sections with collapsible components. The listing page now features animated cards with color bars, the members page includes dual-panel layout with role selection, and the requirements page has collapsible day sections with priority badges.
+
+## 35. News Article Author Display and Avatar Fixes
+
+Fixed corrupt avatar images on news article pages by implementing proper Supabase URL signing for profile images, similar to cover images. Updated author name formatting to display "Michael Dowdle" instead of "michael.dowdle" by combining firstName and lastName fields with proper fallbacks to the name field and email prefix.
+
+## 36. Surveys Automation Quick Start Guide Icon Alignment
+
+Improved the Quick Start Guide buttons on the /surveys/automation page by repositioning icons to the left of the "Create" text. Icons now appear cleanly aligned with proper spacing instead of overlapping the first letter, providing a better user experience and clearer visual hierarchy.
+
+## 37. Surveys Automation Create Page Hero Contrast Fix
+
+Fixed the hero section on the /surveys/automation/new page where text and buttons were nearly invisible due to white-on-white styling. Replaced the glass card wrapper with a dedicated dark gradient container to ensure strong contrast, making the header text and action buttons clearly readable against the background.
+
+## 38. Rota Groups Available Employees List Fix
+
+Fixed the rota groups member management page showing "All employees are already members" for new groups by updating the employee data fetch to use the current API response shape. The page now correctly normalizes the flattened employee data into the expected nested structure, ensuring all active employees appear in the "Available Employees" list for selection.
+
+## 39. Employee Rota Group Assignment for Shift-Based Patterns
+
+Enhanced the Add Employee modal to automatically assign employees to rota groups when a shift-based working pattern is selected. When creating an employee with a "SHIFT_BASED" pattern, a checkbox dropdown appears allowing selection of relevant rota groups for shift scheduling. The selected groups are automatically applied to the employee upon creation, streamlining the onboarding process for shift workers.
+
+## 40. Rota Groups Edit Modal with Member Management
+
+Replaced the 404 edit route with a modern modal-based editor for rota groups. The new edit page features tabbed interface for group details and member management, inline editing of member roles and skills, and uses icon/color picker components for consistent styling. Members can be added with role/skill assignment, and existing members can be edited directly within the modal with save/cancel actions.
+
+## 41. Employee Schedule Swap Restriction for Past Shifts
+
+Fixed the employee schedule page to prevent swap requests for past shifts. The Request Swap button is now hidden for shifts that have already started, aligning the UI with existing backend safeguards and ensuring employees can only request swaps for upcoming shifts.
+
+## 42. Live Attendance Names Fix
+
+Updated the live attendance API to display employee first and last names instead of "Unknown" by building the display name from firstName/lastName fields with sensible fallbacks to User.name or email.
+
+## 43. Rota Groups Lucide Icon Integration
+
+Replaced emoji-based icons with Lucide React icons across the rota groups interface. Added searchable icon picker and expanded color palette with 28 theme colors, providing a more professional and consistent visual experience that matches the event-manager styling.
+
+## 44. Individual Member Role and Skill Editing
+
+Enhanced rota group management with granular control over individual member assignments. Added `assignedSkills` field to database schema and updated both the edit modal and dedicated members page to support inline editing of roles and skills for each member, allowing per-member customization beyond group-level defaults.
+
+## 45. Timesheet Display and Alignment Improvements
+
+Fixed timesheet display issues by moving current period timesheets from "Past Timesheets" to the "Current Period" section, ensuring all pending, approved, and declined timesheets appear in their correct period. Also corrected alignment of Total, Regular, and Overtime hours in timesheet cards by standardizing label lengths and adding consistent spacing.
+
+## 46. Clock Out Timeout Fix
+
+Resolved clock-out timeout issues on first attempts by ensuring Prisma database connections are established before heavy operations and making timesheet auto-submission fire-and-forget. This prevents connection delays and workflow creation from blocking the clock-out response.
+
+## 47. Timesheet Approval Modal Enhancement
+
+Enabled timesheet approvals directly from the dashboard action items widget and action-items page with a beautiful, modern modal. The modal displays employee details, hours breakdown, cost estimates, and individual time entries with scheduled shift comparisons, eliminating the need to navigate to the timesheet hub for approvals.
+
+## 48. Timesheet Hub Approval UX Improvements
+
+Enhanced the timesheet approval experience with smooth fade-out animations, loading states on approve buttons, and personalized success notifications. Replaced jarring page refreshes with optimistic UI updates that provide immediate visual feedback when approving individual timesheets.

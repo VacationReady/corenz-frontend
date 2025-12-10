@@ -297,12 +297,34 @@ export default function ReconciliationHubPage() {
     });
   }, [dayData, statusFilter, searchQuery]);
 
+  // Get approvable entries count (entries with timesheet data that aren't already approved)
+  const approvableSelectedCount = useMemo(() => {
+    return filteredEntries.filter(
+      (e) => selectedEntries.has(e.shift.id) && 
+             e.timesheetEntry && 
+             e.reconciliationStatus !== 'APPROVED'
+    ).length;
+  }, [filteredEntries, selectedEntries]);
+
   // Bulk actions
   const handleBulkApprove = async () => {
     if (selectedEntries.size === 0) return;
     
     try {
-      const entryIds = Array.from(selectedEntries);
+      // Get timesheet entry IDs for selected shifts that have timesheet entries
+      const entryIds = filteredEntries
+        .filter((e) => selectedEntries.has(e.shift.id) && e.timesheetEntry)
+        .map((e) => e.timesheetEntry!.id);
+      
+      if (entryIds.length === 0) {
+        toast({
+          title: 'No Entries to Approve',
+          description: 'Selected entries do not have timesheet data yet. Clock entries need to be processed first.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       const response = await fetch('/api/reconciliation/bulk-approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -329,22 +351,23 @@ export default function ReconciliationHubPage() {
     }
   };
 
-  const toggleEntrySelection = (entryId: string) => {
+  const toggleEntrySelection = (shiftId: string) => {
     setSelectedEntries((prev) => {
       const next = new Set(prev);
-      if (next.has(entryId)) {
-        next.delete(entryId);
+      if (next.has(shiftId)) {
+        next.delete(shiftId);
       } else {
-        next.add(entryId);
+        next.add(shiftId);
       }
       return next;
     });
   };
 
   const selectAllEntries = () => {
+    // Select all entries that have actual time data (clock or timesheet)
     const ids = filteredEntries
-      .filter((e) => e.timesheetEntry?.id)
-      .map((e) => e.timesheetEntry!.id);
+      .filter((e) => e.clockEntry || e.timesheetEntry)
+      .map((e) => e.shift.id);
     setSelectedEntries(new Set(ids));
   };
 
@@ -517,15 +540,21 @@ export default function ReconciliationHubPage() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-muted/50 rounded-xl px-3 py-2"
                   >
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm font-medium text-foreground">
                       {selectedEntries.size} selected
                     </span>
+                    {approvableSelectedCount > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        ({approvableSelectedCount} can be approved)
+                      </span>
+                    )}
                     <Button
                       size="sm"
                       onClick={handleBulkApprove}
-                      className="rounded-xl bg-emerald-500 hover:bg-emerald-600"
+                      disabled={approvableSelectedCount === 0}
+                      className="rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50"
                     >
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Bulk Approve
@@ -602,30 +631,44 @@ export default function ReconciliationHubPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredEntries.map((entry, index) => (
+                {filteredEntries.map((entry, index) => {
+                  const hasActualData = entry.clockEntry || entry.timesheetEntry;
+                  const isSelected = selectedEntries.has(entry.shift.id);
+                  const isApproved = entry.reconciliationStatus === 'APPROVED';
+                  
+                  return (
                   <motion.div
                     key={entry.shift.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="relative"
+                    className={cn(
+                      'relative flex gap-3 items-start',
+                      isSelected && 'ring-2 ring-primary/30 rounded-2xl bg-primary/5'
+                    )}
                   >
-                    {/* Selection checkbox */}
-                    {entry.timesheetEntry && (
-                      <div className="absolute top-4 left-4 z-10">
+                    {/* Selection checkbox - visible for all entries with actual data */}
+                    <div className="flex-shrink-0 pt-4 pl-3">
+                      {hasActualData ? (
                         <input
                           type="checkbox"
-                          checked={selectedEntries.has(entry.timesheetEntry.id)}
-                          onChange={() => toggleEntrySelection(entry.timesheetEntry!.id)}
-                          className="h-5 w-5 rounded border-2 border-border text-primary focus:ring-primary cursor-pointer"
+                          checked={isSelected}
+                          onChange={() => toggleEntrySelection(entry.shift.id)}
+                          disabled={isApproved}
+                          className={cn(
+                            'h-5 w-5 rounded border-2 text-primary focus:ring-primary cursor-pointer transition-all',
+                            isApproved 
+                              ? 'border-emerald-300 bg-emerald-100 cursor-not-allowed opacity-60' 
+                              : 'border-border hover:border-primary'
+                          )}
+                          title={isApproved ? 'Already approved' : 'Select for bulk action'}
                         />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="h-5 w-5" /> // Spacer for alignment
+                      )}
+                    </div>
                     
-                    <div className={cn(
-                      'pl-10',
-                      entry.timesheetEntry && selectedEntries.has(entry.timesheetEntry.id) && 'ring-2 ring-primary/30 rounded-2xl'
-                    )}>
+                    <div className="flex-1 min-w-0">
                       <ShiftActualComparison
                         shift={entry.shift}
                         actual={entry.clockEntry || entry.timesheetEntry ? {
@@ -739,7 +782,8 @@ export default function ReconciliationHubPage() {
                       )}
                     </div>
                   </motion.div>
-                ))}
+                );
+                })}
               </div>
             )}
           </div>

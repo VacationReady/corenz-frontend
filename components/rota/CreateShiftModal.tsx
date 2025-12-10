@@ -123,11 +123,20 @@ function EmployeeMultiSelect({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.User.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.User.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (emp.Department?.name?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredEmployees = employees.filter((emp) => {
+    const query = searchQuery.toLowerCase();
+    if (!query) return true;
+
+    const name = (emp.User && emp.User.name ? emp.User.name : '').toLowerCase();
+    const email = (emp.User && emp.User.email ? emp.User.email : '').toLowerCase();
+    const departmentName = (emp.Department && emp.Department.name ? emp.Department.name : '').toLowerCase();
+
+    return (
+      name.includes(query) ||
+      email.includes(query) ||
+      departmentName.includes(query)
+    );
+  });
 
   const toggleEmployee = useCallback((employeeId: string) => {
     if (selectedIds.includes(employeeId)) {
@@ -276,6 +285,9 @@ function EmployeeMultiSelect({
               {/* Employee options */}
               {filteredEmployees.map((emp, index) => {
                 const isSelected = selectedIds.includes(emp.id);
+                const displayName = (emp.User && emp.User.name) || (emp.User && emp.User.email) || 'Unknown';
+                const initial = displayName.charAt(0).toUpperCase();
+
                 return (
                   <button
                     key={emp.id}
@@ -292,12 +304,12 @@ function EmployeeMultiSelect({
                     style={{ animationDelay: `${index * 20}ms` }}
                   >
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground text-sm font-semibold shrink-0 shadow-sm">
-                      {emp.User.name.charAt(0).toUpperCase()}
+                      {initial}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{emp.User.name}</div>
+                      <div className="font-medium truncate">{displayName}</div>
                       <div className="text-xs text-muted-foreground truncate">
-                        {emp.Department?.name || emp.User.email}
+                        {emp.Department?.name || (emp.User && emp.User.email) || ''}
                       </div>
                     </div>
                     <div className={cn(

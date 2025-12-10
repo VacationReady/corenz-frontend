@@ -128,6 +128,8 @@ const createEmployeeSchema = z.object({
     },
     z.number().int().nonnegative(),
   ),
+  // Allow employee to book leave on public holidays (for contractors without public holiday entitlement)
+  canBookPublicHolidays: z.boolean().optional().default(false),
 });
 
 /**
@@ -474,6 +476,7 @@ export async function POST(req: NextRequest) {
       sickLeaveDays,
       alternativeHolidayDays,
       publicHolidayEntitlement,
+      canBookPublicHolidays,
     } = createEmployeeSchema.parse(body);
     
     // Extract rotaGroupIds separately (not in schema to keep it optional)
@@ -602,6 +605,8 @@ export async function POST(req: NextRequest) {
         publicHolidaysPerYear: publicHolidayEntitlement,
         // Initialize sick leave balance with the annual entitlement
         sickLeaveBalance: sickLeaveDays * 8, // Convert to hours (8 hours per day)
+        // Public holiday leave booking permission
+        canBookPublicHolidays: canBookPublicHolidays ?? false,
       },
     });
 

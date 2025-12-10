@@ -211,3 +211,55 @@ Added multiple entries indicator badge to timesheet hub, displaying "X entries" 
 ## 53. Form Builder Mood Icon Picker Enhancement
 
 Enhanced form builder chips/multiselect elements with an intuitive Lucide React icon picker, allowing users to associate mood-based icons (happy, sad, neutral, etc.) with each option for more visual survey and form building.
+
+## 54. Bulk Actions Card Recommendation
+
+Reviewed the existing bulk actions module and recommended adding a sixth card, "Issue Policies & Documents," to enable targeted document assignment and acknowledgement tracking for specific employees, complementing the current five cards and completing the 3×2 layout.
+
+## 55. Reconciliation Status Fix and Link to Shift Feature
+
+Fixed reconciliation page showing "No Show" and "Pending" for approved timesheet entries by updating the approval API to set TimesheetEntry.reconciliationStatus and enhancing shift-matcher to find unlinked entries by employee. Added a "Link to Shift" dialog with tooltip for manually linking time entries to scheduled shifts when auto-match fails due to large time variance.
+
+## 56. Reconciliation Cards Blue Color Standardization
+
+Standardized all reconciliation stat cards to use the same blue color scheme as the "Total Shifts" card for a cohesive visual appearance across the Shift Reconciliation dashboard. Updated all card colors (Pending, Approved, Flagged, No Shows, Avg Variance, Scheduled Hours, Actual Hours) to use the blue theme instead of their previous varied colors (amber, emerald, rose, violet).
+
+## 57. Rota Group Selection Null Safety Fix
+
+Fixed a TypeError when selecting rota groups in the shift creation modal by making the employee filtering logic null-safe. The error occurred because group member data could contain null name/email/department values, which were being passed to toLowerCase(). Added null checks and fallbacks to ensure string methods are only called on valid values, preventing the "Something went wrong" error and allowing smooth group-based employee selection.
+
+## 58. Reconciliation Bulk Selection UX Improvements
+
+Improved the bulk selection interface on the reconciliation page by adding visible checkboxes to all entries with actual time data (clock or timesheet), not just those with timesheet entries. Checkboxes now appear on the left side of each entry with clear visual states for approved vs pending entries. The bulk approve button shows the count of approvable entries and is disabled when none can be approved, providing better user feedback and preventing confusion about which entries can be bulk approved.
+
+## 59. Rota Employee Selection Chip Name Display Fix
+
+Fixed an issue where selecting employees from a rota group in the shift creation modal displayed selected chips as just "x" icons instead of employee names. The multi-select component now uses the same display name logic for selected chips as the dropdown (name → email → "Unknown"), ensuring employee names are always visible after selection.
+
+## 60. Rota Day Click Auto-Set Date in Create Shift Modal
+
+Improved the rota calendar shift creation workflow by automatically setting the clicked day’s date in the create shift modal. When a user clicks on a day in the rota calendar, the modal now pre-fills the start and end datetime fields with that date at 09:00–17:00, so the user only needs to adjust the time rather than re-selecting the date.
+
+## 61. Form Builder Canvas Drag-and-Drop Upward Reordering Fix
+
+Fixed the form builder canvas drag-and-drop logic to allow moving elements upward within sections. The collision detection now distinguishes between palette drags (which still prefer section containers) and existing field drags (which use per-field collision), enabling reordering both up and down while preserving the existing behavior for adding new fields.
+
+## 62. Form Visibility Filtering Bug Fixes
+
+Fixed critical bugs preventing data screens from appearing in employee profiles by correcting the visibility filtering logic. Fixed job role matching to use IDs instead of names, updated queries to check both Employee and User models for department/job role assignments, and standardized the visibility filter to use AND logic between criteria across all endpoints.
+
+## 63. Form Builder Multi-Select Dropdowns
+
+Enhanced the form builder with multi-select functionality for dropdown fields, allowing users to enable multiple selections on standard select elements. Added a toggle in the field editor, updated preview rendering to show multi-select behavior, and wired the feature through both standard and enhanced form renderers for consistent behavior across forms and surveys.
+
+## 64. GPS Location Non-Blocking Clock-In/Out
+
+Fixed GPS location requirements blocking employee clock-in/out operations across all APIs. Updated clock-in, clock-out, and sync routes to gracefully handle GPS failures by flagging entries for manager review instead of blocking time recording. Modified frontend components to continue with clock operations when location is unavailable, ensuring employees can always record their work hours regardless of GPS status.
+
+## 65. Reconciliation Production Readiness Fixes
+
+Fixed three critical production readiness issues in the reconciliation system: (1) Custom adjustments can write NaN hours by adding breakMinutes to the select clause and validating time ranges, (2) Reconciliation day endpoint now uses company timezone instead of hardcoded NZ and filters unmatched entries server-side with pagination, (3) Payroll calculation now checks reconciliationStatus before including entries, skipping unreconciled timesheets with detailed reporting.
+
+## 66. Rota Groups API Authorization Hardening
+
+Implemented comprehensive role-based authorization and audit logging across all `/api/rota-groups` endpoints to prevent unauthorized schedule manipulation and data exposure. Only ADMIN or MANAGER roles can create, update, or delete rota groups and their members/requirements, while non-admin users are restricted to viewing groups they are active members of. Added audit logging for all create/update/delete operations with detailed metadata for compliance tracking.

@@ -1,9 +1,10 @@
 // lib/validateLeaveRequest.ts
 
 import { prisma } from "@/lib/prisma";
-import { eachDayOfInterval, subMonths } from "date-fns";
+import { eachDayOfInterval, subMonths, format } from "date-fns";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { checkNegativeBalanceAllowed } from "@/lib/accrualEngine";
+import { getNZPublicHolidayInfo } from "@/lib/public-holiday-checker";
 import dayjs from "dayjs";
 
 /**
@@ -134,6 +135,36 @@ export async function validateLeaveRequest({
         );
       }
     }
+  }
+
+  // ── PUBLIC HOLIDAY CHECK ────────────────────────────
+  // Check if employee is allowed to book leave on public holidays
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { canBookPublicHolidays: true },
+  });
+
+  // Default: employees cannot book leave on public holidays
+  const canBookPublicHolidays = employee?.canBookPublicHolidays ?? false;
+
+  if (!canBookPublicHolidays) {
+    const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
+    
+    for (const date of datesInRange) {
+      const holidayInfo = await getNZPublicHolidayInfo(date, companyId);
+      
+      if (holidayInfo) {
+        const dateString = format(date, 'yyyy-MM-dd');
+        console.error(
+          `❌ Public holiday detected on ${dateString} (${holidayInfo.holidayName}), throwing error.`,
+        );
+        throw new Error(
+          `Cannot book leave on ${dateString} - this is a public holiday (${holidayInfo.holidayName}). Public holidays are already paid time off.`,
+        );
+      }
+    }
+  } else {
+    console.log("ℹ️ Employee is allowed to book leave on public holidays (canBookPublicHolidays=true).");
   }
 
   // ── CALCULATE DAYS FOR THIS REQUEST ────────────────

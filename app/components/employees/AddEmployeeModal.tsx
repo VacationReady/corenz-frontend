@@ -492,6 +492,8 @@ export default function AddEmployeeModal({
     // 90-day trial period fields
     ninetyDayTrialPeriod: false,
     trialPeriodAccepted: false,
+    // Public holiday leave booking (for contractors who don't get public holidays as paid leave)
+    canBookPublicHolidays: false,
     // Rota group assignments for shift-based patterns
     rotaGroupIds: [] as string[],
   });
@@ -1291,6 +1293,8 @@ export default function AddEmployeeModal({
         trialPeriodAcceptedAt: formData.ninetyDayTrialPeriod && formData.trialPeriodAccepted
           ? new Date().toISOString()
           : "",
+        // Public holiday leave booking
+        canBookPublicHolidays: formData.canBookPublicHolidays,
         // Rota group assignments for shift-based patterns
         rotaGroupIds: formData.rotaGroupIds.length > 0 ? formData.rotaGroupIds : undefined,
       };
@@ -1366,6 +1370,8 @@ export default function AddEmployeeModal({
         workPermitType: "",
         ninetyDayTrialPeriod: false,
         trialPeriodAccepted: false,
+        // Public holiday leave booking
+        canBookPublicHolidays: false,
         // Rota groups
         rotaGroupIds: [],
       });
@@ -2746,6 +2752,43 @@ export default function AddEmployeeModal({
                             className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
                           />
                           <p className="text-xs text-muted-foreground">NZ: 11 + regional</p>
+                        </div>
+                      </div>
+
+                      {/* Public Holiday Leave Booking */}
+                      <div className="pt-4 border-t border-muted/30">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Label htmlFor="canBookPublicHolidays" className="text-sm font-medium text-foreground cursor-pointer">
+                                Allow leave booking on public holidays
+                              </Label>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="w-4 h-4 text-muted-foreground cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs p-4 glass-ultra rounded-xl">
+                                    <p className="text-sm">
+                                      Enable this for contractors or employees who don&apos;t receive public holidays as paid time off.
+                                      By default, employees cannot book leave on public holidays (e.g., Christmas Day) as these are already paid days off.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">For contractors without public holiday entitlement</p>
+                          </div>
+                          <Switch
+                            id="canBookPublicHolidays"
+                            checked={formData.canBookPublicHolidays}
+                            onChange={(checked: boolean) => {
+                              setFormData({
+                                ...formData,
+                                canBookPublicHolidays: checked
+                              });
+                            }}
+                          />
                         </div>
                       </div>
                     </FormSection>

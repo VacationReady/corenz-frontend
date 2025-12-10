@@ -484,6 +484,7 @@ model Employee {
   sickLeaveDaysPerYear             Decimal?                           @default(10) @db.Decimal(4, 1) // NZ minimum: 10 days after 6 months
   alternativeHolidayBalance        Decimal?                           @default(0) @db.Decimal(5, 1) // Earned when working public holidays
   publicHolidaysPerYear            Int?                               @default(11) // NZ: 11 national + regional holidays
+  canBookPublicHolidays            Boolean                            @default(false) // Allow employee to book leave on public holidays (e.g., contractors)
   // Audit Fields
   taxCodeLastUpdated               DateTime?
   kiwiSaverLastUpdated             DateTime?

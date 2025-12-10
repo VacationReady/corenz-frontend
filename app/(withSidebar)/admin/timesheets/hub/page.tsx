@@ -630,6 +630,11 @@ export default function AdminTimesheetHubPage() {
                               Salaried
                             </Badge>
                           )}
+                          {timesheet.entries && timesheet.entries.length > 1 && (
+                            <Badge variant="outline" className="text-xs text-blue-400 border-blue-400/30">
+                              {timesheet.entries.length} entries
+                            </Badge>
+                          )}
                           {!timesheet.submittedAt && (
                             <Badge variant="secondary" className="text-xs bg-amber-500/20 text-amber-400">
                               Draft

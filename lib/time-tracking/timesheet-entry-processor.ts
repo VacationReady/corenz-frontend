@@ -308,10 +308,91 @@ export async function autoSubmitTimesheet(
       return false;
     }
 
-    // Skip if already submitted
+    // If already submitted, we need to re-trigger the approval workflow
+    // This handles the case where new entries are added to an already-submitted timesheet
     if (timesheet.submittedAt) {
-      console.log(`[Auto-Submit] Timesheet ${timesheetId} already submitted, skipping`);
-      return true;
+      console.log(`[Auto-Submit] Timesheet ${timesheetId} already submitted - checking if re-approval needed`);
+      
+      // Check if there are existing approval stages
+      const existingStages = await prisma.timesheetApprovalStage.findMany({
+        where: { timesheetId },
+        include: {
+          Decisions: true,
+        },
+      });
+      
+      // If there are existing stages and all are approved, we need to reset for re-approval
+      // If there are pending stages, we should update the action items with new totals
+      const allApproved = existingStages.length > 0 && existingStages.every(
+        stage => stage.status === 'APPROVED'
+      );
+      const hasDeclined = existingStages.some(stage => stage.status === 'DECLINED');
+      
+      if (allApproved || hasDeclined) {
+        console.log(`[Auto-Submit] Timesheet ${timesheetId} was ${allApproved ? 'approved' : 'declined'} - resetting for re-approval`);
+        
+        // Cancel existing action items
+        await cancelPendingTimesheetApprovalActionItems(timesheetId);
+        
+        // Delete existing approval stages (cascade deletes decisions)
+        await prisma.timesheetApprovalStage.deleteMany({
+          where: { timesheetId },
+        });
+        
+        // Reset timesheet status
+        await prisma.timesheet.update({
+          where: { id: timesheetId },
+          data: {
+            approvalStatus: 'PENDING',
+            approvedAt: null,
+            approvedBy: null,
+            submittedAt: new Date(), // Update submission time
+          },
+        });
+        
+        // Continue to create new approval workflow below
+      } else if (existingStages.length > 0) {
+        // There are pending stages - update action items with new totals
+        console.log(`[Auto-Submit] Timesheet ${timesheetId} has pending approval stages - updating action items`);
+        
+        const employeeName = timesheet.Employee?.User
+          ? `${timesheet.Employee.User.firstName ?? ''} ${timesheet.Employee.User.lastName ?? ''}`.trim() ||
+            timesheet.Employee.User.name ||
+            'Employee'
+          : 'Employee';
+        
+        // Find active decisions and update their action items
+        for (const stage of existingStages) {
+          if (stage.isActive && stage.status === 'PENDING') {
+            for (const decision of stage.Decisions) {
+              if (decision.isActive && decision.status === 'PENDING') {
+                const assignedToId = await resolveActionItemAssigneeUserId(decision.approverId);
+                if (assignedToId) {
+                  await upsertTimesheetApprovalActionItem({
+                    companyId,
+                    assignedToId,
+                    relatedEmployeeId: employeeId,
+                    timesheetId,
+                    decisionId: decision.id,
+                    stageId: stage.id,
+                    stageName: stage.name,
+                    periodStart: timesheet.periodStart,
+                    periodEnd: timesheet.periodEnd,
+                    totalHours: Number(timesheet.totalHours),
+                    employeeName,
+                  });
+                  console.log(`[Auto-Submit] Updated action item for decision ${decision.id}`);
+                }
+              }
+            }
+          }
+        }
+        
+        return true;
+      } else {
+        // No existing stages but timesheet was submitted - create new workflow
+        console.log(`[Auto-Submit] Timesheet ${timesheetId} submitted but no approval stages - creating workflow`);
+      }
     }
 
     // Skip if no entries

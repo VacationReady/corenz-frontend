@@ -58,9 +58,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Parse and validate request
     const body = await req.json();
-    const data = exportRequestSchema.parse(body);
+
+    const singleDepartmentId =
+      typeof body.departmentId === "string" && body.departmentId !== "all"
+        ? body.departmentId
+        : undefined;
+
+    const normalizedBody = {
+      ...body,
+      payPeriodStart: body.payPeriodStart ?? body.startDate,
+      payPeriodEnd: body.payPeriodEnd ?? body.endDate,
+      format:
+        typeof body.format === "string"
+          ? body.format.toLowerCase()
+          : body.format,
+      departmentIds:
+        body.departmentIds ?? (singleDepartmentId ? [singleDepartmentId] : undefined),
+    };
+
+    const data = exportRequestSchema.parse(normalizedBody);
 
     // Support legacy field names
     const payPeriodStart = data.payPeriodStart || data.startDate;

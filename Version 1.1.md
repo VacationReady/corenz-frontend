@@ -269,3 +269,11 @@ Implemented comprehensive role-based authorization and audit logging across all 
 Tightened security across employee onboarding and activation flows following a production readiness audit. Activation emails can now only be sent by ADMIN or SUPER_ADMIN users, and activation token generation uses an explicit `randomUUID` import from Node's crypto module for consistent, environment-safe behaviour.
 
 Removed client-controlled company headers from employee list fetches so tenancy is always derived server-side from the authenticated session, preventing cross-tenant header manipulation. The onboarding dashboard now uses a secure internal base URL helper, forwards authentication cookies on server-side fetches, and handles 401 responses with proper redirects to protect onboarding telemetry data.
+
+## 68. Public Holiday Leave Booking Prevention
+
+Implemented a comprehensive system to prevent employees from booking leave on public holidays, with an employee-level override option for contractors. Added a new `canBookPublicHolidays` field to the Employee model (defaults to false), integrated public holiday validation into the leave request workflow, and updated the Add Employee modal with a toggle to enable this setting for contractors who don't receive public holidays as paid time off.
+
+## 69. Unified Auth Token Refresh Endpoint
+
+Implemented a dedicated `/api/auth/refresh` endpoint that safely refreshes NextAuth JWT session tokens for both web and mobile clients. The endpoint validates the existing token, confirms the user is still active, and issues a new token with an extended expiry, returning it as a secure httpOnly cookie for web clients and as a `sessionToken` value in the JSON response for mobile clients.

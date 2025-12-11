@@ -132,7 +132,7 @@ export default function QuickLeaveBookingModal({
       let iterations = 0;
 
       while (hasMore && iterations < 20) {
-        const url: string = `/api/employees?limit=100${
+        const url: string = `/api/employees?scope=direct&limit=100${
           cursor ? `&cursor=${cursor}` : ""
         }`;
         const empRes: Response = await fetch(url, { cache: "no-store" });

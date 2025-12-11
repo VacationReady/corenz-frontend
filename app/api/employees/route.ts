@@ -258,26 +258,39 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // Access control: ADMIN can list all; MANAGER limited to direct and indirect reports
+    // Access control: ADMIN can list all; MANAGER limited to reports
     if (session.user.role === "MANAGER") {
       // Special case: allow managers to fetch their OWN employee record when explicitly queried
       if (userId && userId === session.user.id) {
         // Do not apply team restriction; self-lookup is allowed
+      } else if (scope === "direct") {
+        // Only direct reports (single level)
+        const directReports = await prisma.user.findMany({
+          where: {
+            managerId: session.user.id,
+            companyId: session.user.companyId,
+          },
+          select: { id: true },
+        });
+
+        const directIds = directReports.map((u) => u.id);
+
+        whereCondition.user = {
+          ...(whereCondition.user || {}),
+          id: { in: directIds.length > 0 ? directIds : ["no-match"] },
+        };
       } else {
-        // Get all direct and indirect reports using iterative approach
+        // Default manager scope: all direct and indirect reports
         const allSubordinateUserIds = await getAllSubordinatesIterative(
           session.user.id,
           session.user.companyId,
         );
 
-        // Note: Managers should NOT see themselves in the employee list, only their reports
-        // This makes it clear this is a team management view
         const allowedUserIds = allSubordinateUserIds;
 
-        // Combine with any existing whereCondition
         whereCondition.user = {
           ...(whereCondition.user || {}),
-          id: { in: allowedUserIds.length > 0 ? allSubordinateUserIds : ["no-match"] }, // Ensure empty array doesn't return all
+          id: { in: allowedUserIds.length > 0 ? allSubordinateUserIds : ["no-match"] },
         };
       }
     } else if (session.user.role === "EMPLOYEE") {

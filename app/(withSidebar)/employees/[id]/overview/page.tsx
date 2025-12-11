@@ -102,7 +102,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           JobRole: { select: { name: true } },
           Department_User_departmentIdToDepartment: { select: { name: true } },
           User: {
-            select: { firstName: true, lastName: true },
+            select: { id: true, firstName: true, lastName: true },
           },
           PermissionProfile: {
             select: {
@@ -191,9 +191,20 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
     },
   ];
 
-  const managerName = employee.User.User
-    ? `${employee.User.User.firstName ?? ""} ${employee.User.User.lastName ?? ""}`.trim() || null
-    : null;
+  // Only show manager if they have an active Employee record (prevents orphaned manager references)
+  let managerName: string | null = null;
+  if (employee.User.User?.id) {
+    const managerEmployee = await prisma.employee.findFirst({
+      where: {
+        userId: employee.User.User.id,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    if (managerEmployee) {
+      managerName = `${employee.User.User.firstName ?? ""} ${employee.User.User.lastName ?? ""}`.trim() || null;
+    }
+  }
 
   const departmentName = employee.Department?.name || employee.User.Department_User_departmentIdToDepartment?.name || null;
 

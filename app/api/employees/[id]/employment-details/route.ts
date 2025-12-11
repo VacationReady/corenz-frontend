@@ -34,6 +34,21 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    // Only include manager if they have an active Employee record (prevents orphaned references)
+    let validatedManager: { id: string; firstName: string | null; lastName: string | null } | null = null;
+    if (employee.User?.User?.id) {
+      const managerEmployee = await prisma.employee.findFirst({
+        where: {
+          userId: employee.User.User.id,
+          isActive: true,
+        },
+        select: { id: true },
+      });
+      if (managerEmployee) {
+        validatedManager = employee.User.User;
+      }
+    }
+
     return NextResponse.json({
       employmentType: employee.employmentType,
       contractType: employee.contractType,
@@ -41,7 +56,7 @@ export async function GET(
       locationId: employee.locationId,
       startDate: employee.startDate,
       department: employee.Department,
-      manager: employee.User?.User,
+      manager: validatedManager,
       isActive: employee.isActive,
     });
   } catch (e: any) {

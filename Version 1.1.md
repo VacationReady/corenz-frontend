@@ -281,3 +281,7 @@ Implemented a dedicated `/api/auth/refresh` endpoint that safely refreshes NextA
 ## 70. Calendar Leave Booking Manager Scope and Employee Loading
 
 Updated the employees API and calendar Book Leave flow so managers can only book leave for their own direct reports (via a `scope=direct` mode) and the Quick Leave Booking modal now uses paginated employee fetching that correctly handles the new `{ data, pagination }` response format for large teams.
+
+## 71. Orphaned Manager Reference Validation
+
+Fixed a data consistency issue where deleted employees could still appear as managers on profile pages. The employee overview page and employment-details API now validate that a manager's User record has an associated active Employee before displaying their name. This prevents orphaned `managerId` references (from hard-deleted users) from showing stale manager names while the employment details page showed "No Manager".

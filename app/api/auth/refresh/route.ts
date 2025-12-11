@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const isWebClient = !!cookieToken;
     
     // Get token from appropriate source
-    let token: string | null = cookieToken;
+    let token: string | null = cookieToken ?? null;
     if (!token) {
       try {
         const body = await request.json();

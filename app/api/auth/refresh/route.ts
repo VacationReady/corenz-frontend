@@ -3,14 +3,61 @@ import { decode, encode } from "next-auth/jwt";
 import { env } from "@/lib/env.server";
 import { prisma } from "@/lib/prisma";
 
+// Session duration constants
+const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days
+const SESSION_MAX_AGE_MS = SESSION_MAX_AGE_SECONDS * 1000;
+
 /**
- * Refresh JWT token endpoint for mobile apps.
- * Extends token expiration if token is still valid.
+ * Get token from request - supports both cookie-based (web) and body-based (mobile) auth
+ */
+async function getTokenFromRequest(request: NextRequest): Promise<string | null> {
+  // First, try to get token from httpOnly cookie (web clients)
+  const isProduction = process.env.NODE_ENV === "production";
+  const cookieName = isProduction 
+    ? "__Secure-next-auth.session-token" 
+    : "next-auth.session-token";
+  
+  const cookieToken = request.cookies.get(cookieName)?.value;
+  if (cookieToken) {
+    return cookieToken;
+  }
+  
+  // Fallback: try to get token from request body (mobile clients)
+  try {
+    const body = await request.json();
+    return body.token || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Refresh JWT token endpoint.
+ * Supports both:
+ * - Web clients: Token from httpOnly cookie, refreshed cookie in response
+ * - Mobile clients: Token in request body, new token in response body
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { token } = body;
+    // Determine if this is a web (cookie) or mobile (body) request
+    const isProduction = process.env.NODE_ENV === "production";
+    const cookieName = isProduction 
+      ? "__Secure-next-auth.session-token" 
+      : "next-auth.session-token";
+    
+    const cookieToken = request.cookies.get(cookieName)?.value;
+    const isWebClient = !!cookieToken;
+    
+    // Get token from appropriate source
+    let token: string | null = cookieToken;
+    if (!token) {
+      try {
+        const body = await request.json();
+        token = body.token;
+      } catch {
+        // No body or invalid JSON
+      }
+    }
 
     if (!token) {
       return NextResponse.json(
@@ -75,13 +122,35 @@ export async function POST(request: NextRequest) {
       },
       secret: env.NEXTAUTH_SECRET,
       salt: env.NEXTAUTH_SECRET,
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: SESSION_MAX_AGE_SECONDS,
     });
 
+    const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_MS).toISOString();
+
+    // For web clients, set the new token as an httpOnly cookie
+    if (isWebClient) {
+      const response = NextResponse.json({
+        success: true,
+        expires: expiresAt,
+        // Don't include token in body for web - it's in the cookie
+      });
+
+      response.cookies.set(cookieName, newToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: "lax",
+        path: "/",
+        maxAge: SESSION_MAX_AGE_SECONDS,
+      });
+
+      return response;
+    }
+
+    // For mobile clients, return token in response body
     return NextResponse.json({
       success: true,
       sessionToken: newToken,
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      expires: expiresAt,
     });
   } catch (error) {
     console.error("[auth-refresh] Refresh error:", error);

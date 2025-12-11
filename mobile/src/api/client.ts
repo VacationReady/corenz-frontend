@@ -5,11 +5,17 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BAS
 const SESSION_TOKEN_KEY = 'next-auth.session-token';
 const SESSION_COOKIE_NAME = 'next-auth.session-token';
 
-// Web fallback for SecureStore (which only works on native)
+/**
+ * Secure storage wrapper for API client.
+ * - Native (iOS/Android): Uses expo-secure-store (encrypted keychain storage)
+ * - Web: Returns null - httpOnly cookies are used instead (browser handles automatically)
+ */
 const storage = {
   async getItem(key: string): Promise<string | null> {
     if (Platform.OS === 'web') {
-      return localStorage.getItem(key);
+      // Web uses httpOnly cookies - no localStorage access needed
+      // Cookies are sent automatically by browser with credentials: "include"
+      return null;
     }
     return SecureStore.getItemAsync(key);
   },

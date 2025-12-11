@@ -124,29 +124,54 @@ export default function QuickLeaveBookingModal({
 
   const fetchData = async () => {
     try {
-      const [empRes, catRes] = await Promise.all([
-        fetch("/api/employees?limit=1000"),
-        fetch("/api/event-categories"),
-      ]);
+      const categoriesPromise = fetch("/api/event-categories");
 
-      if (empRes.ok) {
-        const empData = await empRes.json();
-        const employeeList = empData.data || [];
-        const mappedEmployees = employeeList.map((emp: any) => ({
-          id: emp.id,
-          user: {
-            firstName: emp.firstName,
-            lastName: emp.lastName,
-            name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || null,
-            profileImageUrl: emp.profileImageUrl,
-          },
-          department: emp.departmentName ? { name: emp.departmentName } : null,
-        }));
-        setEmployees(mappedEmployees);
-      } else {
-        toast.error("Failed to load employees");
+      let allEmployees: any[] = [];
+      let cursor: string | null = null;
+      let hasMore = true;
+      let iterations = 0;
+
+      while (hasMore && iterations < 20) {
+        const url: string = `/api/employees?limit=100${
+          cursor ? `&cursor=${cursor}` : ""
+        }`;
+        const empRes: Response = await fetch(url, { cache: "no-store" });
+
+        if (!empRes.ok) {
+          toast.error("Failed to load employees");
+          allEmployees = [];
+          break;
+        }
+
+        const empData: any = await empRes.json();
+        const employeePage = Array.isArray(empData)
+          ? empData
+          : (empData.data || []);
+        allEmployees = allEmployees.concat(employeePage);
+
+        if (empData.pagination) {
+          cursor = empData.pagination.cursor;
+          hasMore = empData.pagination.hasMore;
+        } else {
+          hasMore = false;
+        }
+
+        iterations += 1;
       }
 
+      const mappedEmployees = allEmployees.map((emp: any) => ({
+        id: emp.id,
+        user: {
+          firstName: emp.firstName,
+          lastName: emp.lastName,
+          name: `${emp.firstName || ""} ${emp.lastName || ""}`.trim() || null,
+          profileImageUrl: emp.profileImageUrl,
+        },
+        department: emp.departmentName ? { name: emp.departmentName } : null,
+      }));
+      setEmployees(mappedEmployees);
+
+      const catRes = await categoriesPromise;
       if (catRes.ok) {
         const catData = await catRes.json();
         setCategories(catData);

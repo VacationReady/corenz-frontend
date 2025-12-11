@@ -15,7 +15,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { randomBytes } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 
@@ -302,6 +302,11 @@ export async function sendActivationEmailAction(employeeId: string) {
     return { success: false, error: "Unauthorized" };
   }
 
+  // Only ADMIN or SUPER_ADMIN can send activation emails (privilege escalation prevention)
+  if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
+    return { success: false, error: "Forbidden: Admin access required" };
+  }
+
   try {
     // Verify employee belongs to company and get user data
     const employee = await prisma.employee.findFirst({
@@ -324,7 +329,7 @@ export async function sendActivationEmailAction(employeeId: string) {
       where: { userId: employee.User.id },
       update: { token: activationToken },
       create: { 
-        id: crypto.randomUUID(), 
+        id: randomUUID(), 
         userId: employee.User.id, 
         token: activationToken 
       },

@@ -47,19 +47,26 @@ const nextConfig = {
           { key: "Permissions-Policy", value: "geolocation=(self), camera=(self)" },
         ],
       },
-      // CORS headers for mobile app
+      // CORS headers for mobile app and web clients
+      // SECURITY: In production, CORS origin MUST be explicitly set via environment variables
+      // Never use "*" with credentials in production as it allows any origin to make authenticated requests
       {
         source: "/api/:path*",
         headers: [
           { key: "Access-Control-Allow-Credentials", value: "true" },
           { 
             key: "Access-Control-Allow-Origin", 
+            // CRITICAL: When using credentials, origin cannot be "*"
+            // Development: Allow localhost origins for testing
+            // Production: MUST set CORS_ALLOWED_ORIGINS or MOBILE_APP_ORIGIN env vars
             value: isDev 
-              ? "*" 
-              : (process.env.MOBILE_APP_ORIGIN || process.env.NEXT_PUBLIC_APP_URL || "https://your-production-domain.com")
+              ? (process.env.CORS_ALLOWED_ORIGINS || "http://localhost:3000")
+              : (process.env.CORS_ALLOWED_ORIGINS || process.env.MOBILE_APP_ORIGIN || process.env.NEXT_PUBLIC_APP_URL)
           },
           { key: "Access-Control-Allow-Methods", value: "GET,DELETE,PATCH,POST,PUT,OPTIONS" },
           { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, Cookie" },
+          // Prevent browsers from caching preflight responses too long
+          { key: "Access-Control-Max-Age", value: "86400" },
         ],
       },
     ];

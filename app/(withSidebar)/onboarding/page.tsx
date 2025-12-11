@@ -1,32 +1,48 @@
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { getAppBaseUrl } from "@/lib/email/template";
+
+/**
+ * Server-side fetch helper that forwards authentication cookies.
+ * Uses getAppBaseUrl() for secure base URL derivation with proper fallbacks.
+ */
+async function fetchWithAuth(endpoint: string) {
+  const baseUrl = getAppBaseUrl();
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.toString();
+  
+  const res = await fetch(`${baseUrl}${endpoint}`, {
+    cache: "no-store",
+    headers: {
+      Cookie: cookieHeader,
+    },
+  });
+  
+  // Handle auth errors - redirect to login
+  if (res.status === 401) {
+    redirect("/login?callbackUrl=/onboarding");
+  }
+  
+  if (!res.ok) {
+    console.error(`[onboarding] ${endpoint} failed with status ${res.status}`);
+    return { error: true };
+  }
+  
+  return res.json();
+}
 
 async function fetchDashboard() {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/onboarding/dashboard`,
-    {
-      cache: "no-store",
-    },
-  );
-  if (!res.ok) {
-    return { error: true } as any;
-  }
-  return res.json();
+  return fetchWithAuth("/api/onboarding/dashboard");
 }
 
 async function fetchTelemetry() {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || ""}/api/onboarding/telemetry`,
-      { cache: "no-store" },
-    );
-    if (!res.ok) {
-      return { error: true } as any;
-    }
-    return res.json();
+    return await fetchWithAuth("/api/onboarding/telemetry");
   } catch (error) {
     console.error("Telemetry fetch error:", error);
-    return { error: true } as any;
+    return { error: true };
   }
 }
 

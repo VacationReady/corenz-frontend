@@ -242,11 +242,11 @@ function EmployeesContent(props: EmployeesClientProps) {
       const limit = 50; // Load 50 employees per page
       
       // Fetch employees only (departments and jobRoles come from server props)
-      const headers: HeadersInit = {};
-      if (session?.user?.companyId) {
-        headers["x-company-id"] = session.user.companyId;
-      }
-      const empRes = await fetch(`/api/employees?status=${status}&limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`, { headers });
+      // Note: Company ID is derived server-side from the authenticated session.
+      // We do NOT send x-company-id from the client to prevent cross-tenant manipulation.
+      const empRes = await fetch(`/api/employees?status=${status}&limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`, {
+        credentials: "include",
+      });
 
       // Employees (new paginated format)
       if (empRes.ok) {

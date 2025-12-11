@@ -1,7 +1,7 @@
 # Security Controls - PeopleCore HR System
 
-**Last Updated**: November 19, 2025  
-**Version**: 1.0  
+**Last Updated**: December 11, 2025  
+**Version**: 1.1  
 **Status**: Production
 
 ---
@@ -43,9 +43,34 @@ This document defines the security controls enforced across the PeopleCore HR sy
 
 ### Session Management
 
-**Provider**: NextAuth.js v4  
+**Provider**: NextAuth.js v5  
 **Session Type**: JWT (JSON Web Tokens)  
 **Session Duration**: 30 days (configurable)
+
+### Session Security Enhancements (v1.1)
+
+#### httpOnly Cookie Migration
+- **Web Platform**: Sessions are now stored in httpOnly cookies (not accessible to JavaScript)
+- **Mobile Platform**: Sessions stored in encrypted SecureStore (iOS Keychain / Android Keystore)
+- **XSS Protection**: Tokens cannot be stolen via XSS attacks on web
+- **CSRF Protection**: SameSite=Lax cookie attribute prevents CSRF attacks
+
+#### Automatic Token Refresh
+- Sessions are automatically refreshed before expiration
+- Web: Refresh runs every hour via background interval
+- Mobile: Refresh triggered on app foreground
+- Refresh extends session by 30 days from refresh time
+
+#### Session Revocation
+- Custom `/api/auth/signout` endpoint clears httpOnly cookies
+- Logout clears all tenant-scoped localStorage data (filter preferences)
+- Audit logging captures signout events with user ID, company ID, timestamp, and IP
+- **Future Enhancement**: Token blacklist for immediate revocation of compromised tokens
+
+#### Tenant-Scoped Data Isolation
+- Filter preferences are namespaced by `companyId` (e.g., `documents-filters:{companyId}`)
+- Tenant switch automatically clears filters to prevent cross-tenant data leakage
+- Logout clears all tenant-scoped localStorage keys
 
 ### Authentication Flow
 
@@ -620,15 +645,24 @@ Monitor for:
 
 ## Future Enhancements
 
+### Completed Security Improvements (v1.1)
+
+1. ✅ **httpOnly Cookie Migration**: Web sessions now use httpOnly cookies (XSS protection)
+2. ✅ **CORS Hardening**: Explicit origin configuration required in production
+3. ✅ **Automatic Token Refresh**: Sessions refresh automatically before expiration
+4. ✅ **Session Revocation**: Custom signout endpoint with audit logging
+5. ✅ **Tenant-Scoped Persistence**: Filter preferences namespaced by company ID
+6. ✅ **Rate Limiting**: Login endpoints rate-limited (5 attempts per 15 minutes)
+
 ### Planned Security Improvements
 
-1. **Rate Limiting**: Prevent brute force attacks
+1. **Token Blacklist**: Immediate revocation of compromised tokens
 2. **IP Whitelisting**: Restrict access by IP range
 3. **MFA (Multi-Factor Authentication)**: Additional authentication layer
 4. **API Key Authentication**: For service-to-service calls
 5. **Fine-Grained Permissions**: Attribute-based access control (ABAC)
 6. **Data Encryption at Rest**: Encrypt sensitive fields in database
-7. **Security Headers**: CSP, HSTS, X-Frame-Options
+7. **Device Fingerprinting**: Track and alert on new device logins
 
 ### Security Roadmap
 

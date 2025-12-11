@@ -263,3 +263,9 @@ Fixed three critical production readiness issues in the reconciliation system: (
 ## 66. Rota Groups API Authorization Hardening
 
 Implemented comprehensive role-based authorization and audit logging across all `/api/rota-groups` endpoints to prevent unauthorized schedule manipulation and data exposure. Only ADMIN or MANAGER roles can create, update, or delete rota groups and their members/requirements, while non-admin users are restricted to viewing groups they are active members of. Added audit logging for all create/update/delete operations with detailed metadata for compliance tracking.
+
+## 67. Onboarding and Employees Security Hardening
+
+Tightened security across employee onboarding and activation flows following a production readiness audit. Activation emails can now only be sent by ADMIN or SUPER_ADMIN users, and activation token generation uses an explicit `randomUUID` import from Node's crypto module for consistent, environment-safe behaviour.
+
+Removed client-controlled company headers from employee list fetches so tenancy is always derived server-side from the authenticated session, preventing cross-tenant header manipulation. The onboarding dashboard now uses a secure internal base URL helper, forwards authentication cookies on server-side fetches, and handles 401 responses with proper redirects to protect onboarding telemetry data.

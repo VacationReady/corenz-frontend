@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -1675,8 +1676,16 @@ function DocumentsContent() {
 }
 
 export default function DocumentsPageClient() {
+  const { data: session } = useSession();
+  const companyId = session?.user?.companyId;
+  
   return (
-    <FilterProvider persistenceKey="documents-filters" enableUrlSync={true} enableLocalStorage={true}>
+    <FilterProvider 
+      persistenceKey="documents-filters" 
+      enableUrlSync={true} 
+      enableLocalStorage={true}
+      companyId={companyId}
+    >
       <DocumentsContent />
     </FilterProvider>
   );

@@ -70,6 +70,7 @@ interface FilterProviderProps {
   persistenceKey?: string; // e.g., "documents-filters" - enables URL and localStorage persistence
   enableUrlSync?: boolean; // Default: true when persistenceKey is provided
   enableLocalStorage?: boolean; // Default: true when persistenceKey is provided
+  companyId?: string; // Required for tenant-scoped localStorage persistence
 }
 
 /**
@@ -164,9 +165,24 @@ function deserializeFiltersFromUrl(searchParams: URLSearchParams): Partial<Filte
 }
 
 /**
- * Serialize filters to localStorage
+ * Build tenant-scoped localStorage key
+ * Format: {baseKey}:{companyId} to prevent cross-tenant filter leakage
  */
-function saveFiltersToLocalStorage(key: string, filters: FilterState) {
+function getTenantScopedKey(baseKey: string, companyId?: string): string {
+  if (!companyId) {
+    console.warn("[FilterProvider] No companyId provided for tenant-scoped persistence. Filters will not be persisted to localStorage.");
+    return "";
+  }
+  return `${baseKey}:${companyId}`;
+}
+
+/**
+ * Serialize filters to localStorage with tenant scoping
+ */
+function saveFiltersToLocalStorage(key: string, filters: FilterState, companyId?: string) {
+  const scopedKey = getTenantScopedKey(key, companyId);
+  if (!scopedKey) return; // Don't persist without tenant scope
+  
   try {
     const serialized = JSON.stringify({
       ...filters,
@@ -175,18 +191,21 @@ function saveFiltersToLocalStorage(key: string, filters: FilterState) {
         to: filters.dateRange.to?.toISOString(),
       },
     });
-    localStorage.setItem(key, serialized);
+    localStorage.setItem(scopedKey, serialized);
   } catch (error) {
     console.warn("Failed to save filters to localStorage:", error);
   }
 }
 
 /**
- * Deserialize filters from localStorage
+ * Deserialize filters from localStorage with tenant scoping
  */
-function loadFiltersFromLocalStorage(key: string): Partial<FilterState> | null {
+function loadFiltersFromLocalStorage(key: string, companyId?: string): Partial<FilterState> | null {
+  const scopedKey = getTenantScopedKey(key, companyId);
+  if (!scopedKey) return null; // Don't load without tenant scope
+  
   try {
-    const stored = localStorage.getItem(key);
+    const stored = localStorage.getItem(scopedKey);
     if (!stored) return null;
     
     const parsed = JSON.parse(stored);
@@ -208,18 +227,73 @@ function loadFiltersFromLocalStorage(key: string): Partial<FilterState> | null {
   }
 }
 
+/**
+ * Clear all filter persistence keys for a given base key across all tenants
+ * Call this on logout to prevent stale filters
+ */
+export function clearFilterPersistence(baseKey: string) {
+  if (typeof window === "undefined") return;
+  
+  try {
+    // Clear all keys matching the pattern {baseKey}:*
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(`${baseKey}:`)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    // Also clear legacy non-scoped key if it exists
+    localStorage.removeItem(baseKey);
+  } catch (error) {
+    console.warn("Failed to clear filter persistence:", error);
+  }
+}
+
+/**
+ * Clear all document filter persistence (convenience function for logout)
+ */
+export function clearAllFilterPersistence() {
+  if (typeof window === "undefined") return;
+  
+  // Clear known filter persistence keys
+  const knownFilterKeys = [
+    "documents-filters",
+    "employees-filters",
+    "calendar-filters",
+    "offboarding-filters",
+    "news-filters",
+  ];
+  
+  knownFilterKeys.forEach(key => clearFilterPersistence(key));
+}
+
 export function FilterProvider({
   children,
   initialFilters,
   persistenceKey,
   enableUrlSync = !!persistenceKey,
   enableLocalStorage = !!persistenceKey,
+  companyId,
 }: FilterProviderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isInitialMount = useRef(true);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentCompanyIdRef = useRef(companyId);
+  
+  // Track companyId changes to clear filters on tenant switch
+  useEffect(() => {
+    if (currentCompanyIdRef.current && companyId && currentCompanyIdRef.current !== companyId) {
+      // Tenant switched - clear filters to prevent cross-tenant data leakage
+      console.log("[FilterProvider] Tenant switched, clearing filters");
+      dispatch({ type: "CLEAR_FILTERS" });
+    }
+    currentCompanyIdRef.current = companyId;
+  }, [companyId]);
   
   // Hydrate filters from URL or localStorage before first render
   const hydratedInitialState = useMemo(() => {
@@ -231,16 +305,16 @@ export function FilterProvider({
         const urlFilters = deserializeFiltersFromUrl(searchParams);
         if (Object.keys(urlFilters).length > 0) {
           hydratedFilters = { ...hydratedFilters, ...urlFilters };
-        } else if (enableLocalStorage && typeof window !== "undefined") {
-          // Priority 2: localStorage (fallback)
-          const storedFilters = loadFiltersFromLocalStorage(persistenceKey);
+        } else if (enableLocalStorage && typeof window !== "undefined" && companyId) {
+          // Priority 2: localStorage (fallback) - only if companyId is available
+          const storedFilters = loadFiltersFromLocalStorage(persistenceKey, companyId);
           if (storedFilters) {
             hydratedFilters = { ...hydratedFilters, ...storedFilters };
           }
         }
-      } else if (enableLocalStorage && typeof window !== "undefined") {
-        // No URL sync, just use localStorage
-        const storedFilters = loadFiltersFromLocalStorage(persistenceKey);
+      } else if (enableLocalStorage && typeof window !== "undefined" && companyId) {
+        // No URL sync, just use localStorage - only if companyId is available
+        const storedFilters = loadFiltersFromLocalStorage(persistenceKey, companyId);
         if (storedFilters) {
           hydratedFilters = { ...hydratedFilters, ...storedFilters };
         }
@@ -307,9 +381,9 @@ export function FilterProvider({
         router.replace(newUrl, { scroll: false });
       }
       
-      // Sync to localStorage
-      if (enableLocalStorage) {
-        saveFiltersToLocalStorage(persistenceKey, filters);
+      // Sync to localStorage (only if companyId is available for tenant scoping)
+      if (enableLocalStorage && companyId) {
+        saveFiltersToLocalStorage(persistenceKey, filters, companyId);
       }
     }, 150); // Small debounce to batch rapid changes
     
@@ -318,7 +392,7 @@ export function FilterProvider({
         clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, [filters, persistenceKey, enableUrlSync, enableLocalStorage, router, pathname]);
+  }, [filters, persistenceKey, enableUrlSync, enableLocalStorage, router, pathname, companyId]);
 
   const contextValue = useMemo(
     () => ({

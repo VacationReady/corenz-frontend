@@ -112,9 +112,11 @@ Query parameters:
 - `dateFrom` - ISO date string
 - `dateTo` - ISO date string
 
-### localStorage Format
+### localStorage Format (Tenant-Scoped)
 
-Key: `documents-filters`
+Key: `documents-filters:{companyId}` (e.g., `documents-filters:abc123`)
+
+**Security Note**: Filter persistence is now tenant-scoped to prevent cross-tenant data leakage. The `companyId` is appended to the key to ensure filters from one tenant cannot be loaded by another.
 
 Value: JSON serialized FilterState with ISO date strings:
 ```json
@@ -247,6 +249,22 @@ The implementation handles edge cases:
 - SSR/hydration mismatches
 
 All errors are caught and logged with graceful fallback to default state.
+
+## Security Considerations
+
+### Tenant Isolation (Added December 2025)
+
+- **Namespaced Keys**: All filter persistence keys are namespaced by `companyId`
+- **Tenant Switch**: Filters are automatically cleared when switching tenants
+- **Logout Clearing**: All tenant-scoped filter keys are cleared on logout
+- **No Cross-Tenant Leakage**: Users cannot accidentally load filters from another company
+
+### Logout Behavior
+
+On logout, the following cleanup occurs:
+1. All `{filterKey}:{companyId}` localStorage entries are removed
+2. Legacy non-scoped keys are also cleared for backward compatibility
+3. URL parameters are not affected (user may bookmark filtered views)
 
 ## Future Enhancements
 

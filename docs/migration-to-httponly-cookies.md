@@ -111,13 +111,13 @@ const storage = {
 
 ## Testing Checklist
 
-- [ ] Web login works with httpOnly cookies
-- [ ] Mobile login still works with SecureStore
-- [ ] Session persists across page refreshes (web)
-- [ ] Logout clears cookies properly
-- [ ] CORS allows credentials from correct origin
-- [ ] Token refresh works on both platforms
-- [ ] API requests include cookies automatically (web)
+- [x] Web login works with httpOnly cookies
+- [x] Mobile login still works with SecureStore
+- [x] Session persists across page refreshes (web)
+- [x] Logout clears cookies properly
+- [x] CORS allows credentials from correct origin
+- [x] Token refresh works on both platforms
+- [x] API requests include cookies automatically (web)
 
 ## CORS Configuration
 
@@ -141,22 +141,24 @@ If issues arise, you can temporarily revert by:
 
 ## Timeline Recommendation
 
-### Phase 1: Parallel Implementation (Current)
-- ✅ Web login endpoint created
-- ✅ Web auth module created
+### Phase 1: Parallel Implementation ✅ COMPLETE
+- ✅ Web login endpoint created (`/api/auth/web-login`)
+- ✅ Web auth module created (`mobile/src/api/auth-web.ts`)
 - ✅ Login screen detects platform
-- ⏳ API client needs update for web
+- ✅ API client updated for web (credentials: "include")
 
-### Phase 2: Full Migration (Recommended: 1-2 weeks)
-- Update API client to use cookies on web
-- Update all session checks to use web auth
-- Remove localStorage fallback
-- Test thoroughly
+### Phase 2: Full Migration ✅ COMPLETE (December 2025)
+- ✅ API client uses cookies on web
+- ✅ All session checks delegate to web auth on web platform
+- ✅ localStorage fallback removed from auth storage
+- ✅ Automatic token refresh implemented
+- ✅ Custom signout endpoint with cookie clearing
+- ✅ CORS hardened with explicit origins
 
-### Phase 3: Cleanup (Recommended: 1 month after Phase 2)
-- Remove unused localStorage code
-- Update documentation
-- Consider deprecating mobile-login endpoint (or keep for API clients)
+### Phase 3: Cleanup (Recommended: January 2026)
+- Remove unused localStorage code paths
+- Update remaining documentation
+- Keep mobile-login endpoint for native mobile apps
 
 ## Security Comparison
 

@@ -4,7 +4,7 @@
 
 ### Storage Strategy
 - **Native (iOS/Android)**: Uses `expo-secure-store` - encrypted, secure keychain storage ✅
-- **Web**: Falls back to `localStorage` - accessible to JavaScript ⚠️
+- **Web**: Uses httpOnly cookies - not accessible to JavaScript ✅ (Updated December 2025)
 
 ### Token Characteristics
 - **Type**: JWT (JSON Web Token)
@@ -36,17 +36,19 @@
 
 ### ⚠️ Security Concerns & Mitigations
 
-#### 1. localStorage on Web (XSS Vulnerability)
+#### 1. Web Session Security ✅ RESOLVED
 
-**Risk**: If your web app has an XSS vulnerability, attackers could steal tokens from localStorage.
+**Previous Risk**: localStorage was accessible to JavaScript, vulnerable to XSS attacks.
 
-**Mitigations**:
+**Resolution (December 2025)**:
+- ✅ Migrated to httpOnly cookies for web platform
+- ✅ Cookies are not accessible to JavaScript
+- ✅ SameSite=Lax attribute prevents CSRF attacks
 - ✅ Content Security Policy (CSP) headers configured
 - ✅ XSS protection headers enabled
 - ✅ Input sanitization required for all user inputs
-- ⚠️ **Recommendation**: Consider httpOnly cookies for web (requires separate endpoint)
 
-**Current Risk Level**: **Medium** - Acceptable for most applications with proper CSP
+**Current Risk Level**: **Low** - httpOnly cookies provide strong XSS protection
 
 #### 2. Long Token Expiration (30 days)
 
@@ -140,14 +142,15 @@ Access-Control-Allow-Origin: process.env.MOBILE_APP_ORIGIN || "https://your-app-
 
 Before deploying to production:
 
-- [ ] Update CORS origin in `next.config.js` (line 54)
-- [ ] Set `NEXTAUTH_SECRET` to a strong random value
-- [ ] Enable HTTPS only (already configured via HSTS)
-- [ ] Review and test rate limiting
-- [ ] Implement token refresh in mobile app
+- [x] Update CORS origin in `next.config.js` - now requires explicit `CORS_ALLOWED_ORIGINS` env var
+- [ ] Set `NEXTAUTH_SECRET` to a strong random value (32+ characters)
+- [x] Enable HTTPS only (already configured via HSTS)
+- [x] Review and test rate limiting (5 attempts per 15 minutes)
+- [x] Implement token refresh in mobile app (automatic refresh every hour)
 - [ ] Set up monitoring for failed login attempts
-- [ ] Configure CSP for production (already done)
-- [ ] Test logout functionality clears tokens
+- [x] Configure CSP for production (already done)
+- [x] Test logout functionality clears tokens (custom signout endpoint)
+- [x] Tenant-scoped filter persistence (prevents cross-tenant data leakage)
 
 ## Conclusion
 

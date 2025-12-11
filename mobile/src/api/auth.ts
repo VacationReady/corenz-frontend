@@ -1,34 +1,56 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+import * as WebAuth from "./auth-web";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? process.env.API_BASE_URL;
 const SESSION_TOKEN_KEY = "next-auth.session-token";
 
-// Web fallback for SecureStore (which only works on native)
+/**
+ * Secure storage wrapper.
+ * - Native (iOS/Android): Uses expo-secure-store (encrypted keychain storage)
+ * - Web: No longer uses localStorage - httpOnly cookies are used instead
+ *        (cookies are managed by the browser, not accessible to JS)
+ */
 const storage = {
   async getItem(key: string): Promise<string | null> {
     if (Platform.OS === "web") {
-      return localStorage.getItem(key);
+      // Web uses httpOnly cookies - no localStorage access needed
+      // Session is validated via cookie sent automatically by browser
+      return null;
     }
     return SecureStore.getItemAsync(key);
   },
   async setItem(key: string, value: string): Promise<void> {
     if (Platform.OS === "web") {
-      localStorage.setItem(key, value);
+      // Web uses httpOnly cookies - no localStorage storage
+      // Cookie is set by server response, not client-side
+      console.warn("[auth] Web platform should not store tokens in localStorage. Using httpOnly cookies instead.");
       return;
     }
     return SecureStore.setItemAsync(key, value);
   },
   async deleteItem(key: string): Promise<void> {
     if (Platform.OS === "web") {
-      localStorage.removeItem(key);
+      // Web uses httpOnly cookies - clear via signout endpoint
+      // No localStorage to clear
       return;
     }
     return SecureStore.deleteItemAsync(key);
   },
 };
 
+/**
+ * Sign in with email and password.
+ * - Web: Uses httpOnly cookies via web-login endpoint (XSS-safe)
+ * - Mobile: Uses SecureStore via mobile-login endpoint
+ */
 export async function signInWithCredentials(email: string, password: string) {
+  // Web platform uses httpOnly cookie-based auth
+  if (Platform.OS === "web") {
+    return WebAuth.signInWithCredentials(email, password);
+  }
+  
+  // Mobile platform uses SecureStore-based auth
   if (!API_BASE_URL) {
     console.error("❌ API_BASE_URL is not configured!");
     throw new Error("API configuration missing");
@@ -68,7 +90,7 @@ export async function signInWithCredentials(email: string, password: string) {
       throw new Error(data.error || "Login failed");
     }
 
-    // Store the session token securely
+    // Store the session token securely (mobile only)
     if (data.sessionToken) {
       await storage.setItem(SESSION_TOKEN_KEY, data.sessionToken);
       console.log("✅ Session token stored successfully");
@@ -107,7 +129,18 @@ export async function signInWithCredentials(email: string, password: string) {
   }
 }
 
+/**
+ * Get current session.
+ * - Web: Uses httpOnly cookies (browser sends automatically)
+ * - Mobile: Uses stored token from SecureStore
+ */
 export async function getSession() {
+  // Web platform uses httpOnly cookie-based session
+  if (Platform.OS === "web") {
+    return WebAuth.getSession();
+  }
+  
+  // Mobile platform uses SecureStore-based session
   if (!API_BASE_URL) {
     console.error("❌ API_BASE_URL is not configured!");
     throw new Error("API configuration missing");
@@ -190,13 +223,24 @@ export async function requestPasswordReset(email: string) {
   }
 }
 
+/**
+ * Sign out and clear session.
+ * - Web: Clears httpOnly cookie via signout endpoint
+ * - Mobile: Clears SecureStore token
+ */
 export async function signOut() {
+  // Web platform uses httpOnly cookie-based signout
+  if (Platform.OS === "web") {
+    return WebAuth.signOut();
+  }
+  
+  // Mobile platform clears SecureStore
   try {
     // Clear the stored session token
     await storage.deleteItem(SESSION_TOKEN_KEY);
     console.log("✅ Session token cleared");
 
-    // Optionally notify the server (don't wait for response)
+    // Notify the server to invalidate the session
     if (API_BASE_URL) {
       fetch(`${API_BASE_URL}/api/auth/signout`, {
         method: "POST",

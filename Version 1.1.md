@@ -277,3 +277,7 @@ Implemented a comprehensive system to prevent employees from booking leave on pu
 ## 69. Unified Auth Token Refresh Endpoint
 
 Implemented a dedicated `/api/auth/refresh` endpoint that safely refreshes NextAuth JWT session tokens for both web and mobile clients. The endpoint validates the existing token, confirms the user is still active, and issues a new token with an extended expiry, returning it as a secure httpOnly cookie for web clients and as a `sessionToken` value in the JSON response for mobile clients.
+
+## 70. Calendar Leave Booking Manager Scope and Employee Loading
+
+Updated the employees API and calendar Book Leave flow so managers can only book leave for their own direct reports (via a `scope=direct` mode) and the Quick Leave Booking modal now uses paginated employee fetching that correctly handles the new `{ data, pagination }` response format for large teams.

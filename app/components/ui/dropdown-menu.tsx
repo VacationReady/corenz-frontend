@@ -98,6 +98,8 @@ export function DropdownMenuItem({
   disabled?: boolean;
   icon?: React.ReactNode;
 }) {
+  const firedRef = useRef(false);
+
   return (
     <Menu.Item disabled={disabled}>
       {({ active, disabled: itemDisabled }) => {
@@ -111,20 +113,44 @@ export function DropdownMenuItem({
           className,
         );
         
-        const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        const invoke = (event: React.SyntheticEvent) => {
           if (itemDisabled) return;
           onSelect?.(event);
           if (onClick) onClick();
+        };
+
+        const handleMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
+          if (firedRef.current) return;
+          firedRef.current = true;
+          invoke(event);
+          queueMicrotask(() => {
+            firedRef.current = false;
+          });
+        };
+
+        const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+          if (firedRef.current) return;
+          invoke(event);
         };
         
         if (asChild && React.isValidElement(children)) {
           const element = children as React.ReactElement<any>;
           return React.cloneElement(element, {
             className: cn(element.props.className, classes),
+            onMouseDown: (event: any) => {
+              if (firedRef.current) return;
+              firedRef.current = true;
+              invoke(event);
+              if (typeof element.props.onMouseDown === "function") {
+                element.props.onMouseDown(event);
+              }
+              queueMicrotask(() => {
+                firedRef.current = false;
+              });
+            },
             onClick: (event: any) => {
-              if (itemDisabled) return;
-              onSelect?.(event);
-              if (onClick) onClick();
+              if (firedRef.current) return;
+              invoke(event);
               if (typeof element.props.onClick === "function") {
                 element.props.onClick(event);
               }
@@ -134,6 +160,7 @@ export function DropdownMenuItem({
         return (
           <button 
             type="button"
+            onMouseDown={handleMouseDown}
             onClick={handleClick} 
             className={classes} 
             disabled={itemDisabled}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { OffboardingType, TaskCategory } from "@prisma/client";
+import { sendAccessRevocationEmail } from "@/lib/email/access-revocation";
 
 export async function POST(
   req: NextRequest,
@@ -23,6 +24,7 @@ export async function POST(
       noticePeriodDays,
       resignationDate,
       removeAccessImmediately,
+      sendAccessRevokedEmail,
       handoverRequired,
       handoverAssignedTo,
       exitInterviewRequired,
@@ -195,9 +197,28 @@ export async function POST(
       },
     });
 
+    // Send access revocation email if requested
+    let accessRevokedEmailSent = false;
+    if (removeAccessImmediately && sendAccessRevokedEmail && employee.User) {
+      const employeeName = [employee.User.firstName, employee.User.lastName]
+        .filter(Boolean)
+        .join(" ") || employee.User.email;
+      
+      try {
+        accessRevokedEmailSent = await sendAccessRevocationEmail({
+          employeeName,
+          employeeEmail: employee.User.email,
+        });
+        console.log(`[offboard] Access revocation email sent to ${employee.User.email}:`, accessRevokedEmailSent);
+      } catch (emailError) {
+        console.error("[offboard] Failed to send access revocation email:", emailError);
+      }
+    }
+
     return NextResponse.json({
       message: "Offboarding process started successfully",
       offboardingId: offboardingRecord.id,
+      accessRevokedEmailSent,
     });
   } catch (error) {
     console.error("Error starting offboarding:", error);

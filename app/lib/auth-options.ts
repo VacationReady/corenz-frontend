@@ -55,6 +55,16 @@ export const authConfig = {
               companyId: true,
               firstName: true,
               lastName: true,
+              Employee: {
+                select: {
+                  EmployeeOffboarding: {
+                    select: {
+                      accessRemovedAt: true,
+                      removeAccessImmediately: true,
+                    },
+                  },
+                },
+              },
             },
           });
 
@@ -68,6 +78,17 @@ export const authConfig = {
             if (!candidate.password) continue;
             const ok = await bcrypt.compare(credentials.password as string, candidate.password);
             if (ok) {
+              // Check if user's access has been revoked via offboarding
+              const offboarding = candidate.Employee?.EmployeeOffboarding;
+              if (offboarding?.accessRemovedAt || offboarding?.removeAccessImmediately) {
+                console.warn("[auth] User access has been revoked:", {
+                  userId: candidate.id,
+                  email: candidate.email,
+                  accessRemovedAt: offboarding.accessRemovedAt,
+                });
+                throw new Error("AccessRevoked");
+              }
+
               // Validate that companyId exists
               if (!candidate.companyId || candidate.companyId.trim() === "") {
                 console.error("[auth] User authenticated but has invalid companyId:", {
@@ -97,6 +118,10 @@ export const authConfig = {
           console.warn("[auth] Invalid password for", emailInput);
           return null;
         } catch (e) {
+          // Re-throw AccessRevoked error so NextAuth can handle it properly
+          if (e instanceof Error && e.message === "AccessRevoked") {
+            throw e;
+          }
           console.error("[auth] authorize error", e);
           return null;
         }

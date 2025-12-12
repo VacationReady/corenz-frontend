@@ -248,6 +248,7 @@ interface OffboardingFormData {
   noticePeriodDays: string;
   resignationDate: Date | null;
   removeAccessImmediately: boolean;
+  sendAccessRevokedEmail: boolean;
   handoverRequired: boolean;
   handoverAssignedTo: string;
   exitInterviewRequired: boolean;
@@ -334,6 +335,7 @@ export default function OffboardingModal({
     noticePeriodDays: "",
     resignationDate: null,
     removeAccessImmediately: false,
+    sendAccessRevokedEmail: false,
     handoverRequired: false,
     handoverAssignedTo: "",
     exitInterviewRequired: false,
@@ -457,6 +459,7 @@ export default function OffboardingModal({
         noticePeriodDays: "",
         resignationDate: null,
         removeAccessImmediately: false,
+        sendAccessRevokedEmail: false,
         handoverRequired: false,
         handoverAssignedTo: "",
         exitInterviewRequired: false,
@@ -539,6 +542,7 @@ export default function OffboardingModal({
           : null,
         resignationDate: formData.resignationDate,
         removeAccessImmediately: formData.removeAccessImmediately,
+        sendAccessRevokedEmail: formData.removeAccessImmediately && formData.sendAccessRevokedEmail,
         handoverRequired: formData.handoverRequired,
         handoverAssignedTo: formData.handoverAssignedTo,
         exitInterviewRequired: formData.exitInterviewRequired,
@@ -1126,12 +1130,38 @@ export default function OffboardingModal({
                           <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20"
+                            className="space-y-4"
                           >
-                            <AlertCircle className="w-4 h-4 text-amber-600" />
-                            <p className="text-sm text-amber-700 dark:text-amber-400">
-                              Access will be revoked immediately upon starting offboarding
-                            </p>
+                            <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                              <AlertCircle className="w-4 h-4 text-amber-600" />
+                              <p className="text-sm text-amber-700 dark:text-amber-400">
+                                Access will be revoked immediately upon starting offboarding
+                              </p>
+                            </div>
+
+                            {/* Email notification toggle */}
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-blue-500/10">
+                                  <Send className="w-4 h-4 text-blue-500" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">Notify employee via email</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Send an email informing them their access has been removed and to contact HR for documentation
+                                  </p>
+                                </div>
+                              </div>
+                              <Checkbox
+                                checked={formData.sendAccessRevokedEmail}
+                                onCheckedChange={(checked) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    sendAccessRevokedEmail: checked as boolean,
+                                  }))
+                                }
+                              />
+                            </div>
                           </motion.div>
                         )}
                       </div>

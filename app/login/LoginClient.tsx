@@ -52,7 +52,9 @@ export default function LoginClient() {
         ? "This email is already linked to a different sign-in method. Please use that provider or contact support."
         : urlError === "AccessDenied"
           ? "Access denied. Please contact your administrator."
-          : "Unable to sign in. Please try again.";
+          : urlError === "AccessRevoked"
+            ? "Your access to PeopleCore has been removed. Please contact HR for any documentation or information."
+            : "Unable to sign in. Please try again.";
     setError(message);
   }, [search]);
 
@@ -79,7 +81,9 @@ export default function LoginClient() {
               ? "This email is already linked to a different sign-in method. Please use that provider or contact support."
               : res.error === "AccessDenied"
                 ? "Access denied. Please contact your administrator."
-                : "Unable to sign in. Please try again.";
+                : res.error === "AccessRevoked"
+                  ? "Your access to PeopleCore has been removed. Please contact HR for any documentation or information."
+                  : "Unable to sign in. Please try again.";
         setError(message);
         return;
       }

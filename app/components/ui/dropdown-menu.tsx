@@ -61,7 +61,7 @@ export function DropdownMenu({
               <Portal>
                 <Menu.Items
                   className={cn(
-                    "fixed z-50 min-w-[200px] p-1.5 rounded-2xl",
+                    "fixed z-[9999] min-w-[200px] p-1.5 rounded-2xl",
                     "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl",
                     "shadow-xl shadow-black/10 dark:shadow-black/30",
                     "border border-border/50 dark:border-slate-700/50",
@@ -100,47 +100,70 @@ export function DropdownMenuItem({
 }) {
   const firedRef = useRef(false);
 
+  const invoke = (event: React.SyntheticEvent, itemDisabled: boolean) => {
+    if (itemDisabled) return;
+    onSelect?.(event);
+    if (onClick) onClick();
+  };
+
+  // Prefer HeadlessUI's native Menu.Item-as-element pattern for reliable events.
+  if (!asChild) {
+    return (
+      <Menu.Item
+        as="button"
+        type="button"
+        disabled={disabled}
+        onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+          if (firedRef.current) return;
+          firedRef.current = true;
+          invoke(event, disabled);
+          queueMicrotask(() => {
+            firedRef.current = false;
+          });
+        }}
+        onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+          if (firedRef.current) return;
+          invoke(event, disabled);
+        }}
+        className={({ active, disabled: itemDisabled }) =>
+          cn(
+            "w-full flex items-center gap-3 text-left px-3 py-2.5 text-sm font-medium rounded-xl",
+            "transition-all duration-200 ease-out",
+            active && !itemDisabled
+              ? "bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 text-foreground"
+              : "text-foreground/80 hover:text-foreground",
+            itemDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+            className,
+          )
+        }
+      >
+        {icon && <span className="flex-shrink-0">{icon}</span>}
+        {children}
+      </Menu.Item>
+    );
+  }
+
   return (
     <Menu.Item disabled={disabled}>
       {({ active, disabled: itemDisabled }) => {
         const classes = cn(
           "w-full flex items-center gap-3 text-left px-3 py-2.5 text-sm font-medium rounded-xl",
           "transition-all duration-200 ease-out",
-          active && !itemDisabled 
-            ? "bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 text-foreground" 
+          active && !itemDisabled
+            ? "bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 text-foreground"
             : "text-foreground/80 hover:text-foreground",
           itemDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
           className,
         );
-        
-        const invoke = (event: React.SyntheticEvent) => {
-          if (itemDisabled) return;
-          onSelect?.(event);
-          if (onClick) onClick();
-        };
 
-        const handleMouseDown = (event: React.MouseEvent<HTMLButtonElement>) => {
-          if (firedRef.current) return;
-          firedRef.current = true;
-          invoke(event);
-          queueMicrotask(() => {
-            firedRef.current = false;
-          });
-        };
-
-        const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-          if (firedRef.current) return;
-          invoke(event);
-        };
-        
-        if (asChild && React.isValidElement(children)) {
+        if (React.isValidElement(children)) {
           const element = children as React.ReactElement<any>;
           return React.cloneElement(element, {
             className: cn(element.props.className, classes),
             onMouseDown: (event: any) => {
               if (firedRef.current) return;
               firedRef.current = true;
-              invoke(event);
+              invoke(event, itemDisabled);
               if (typeof element.props.onMouseDown === "function") {
                 element.props.onMouseDown(event);
               }
@@ -150,20 +173,31 @@ export function DropdownMenuItem({
             },
             onClick: (event: any) => {
               if (firedRef.current) return;
-              invoke(event);
+              invoke(event, itemDisabled);
               if (typeof element.props.onClick === "function") {
                 element.props.onClick(event);
               }
             },
           });
         }
+
         return (
-          <button 
+          <button
             type="button"
-            onMouseDown={handleMouseDown}
-            onClick={handleClick} 
-            className={classes} 
+            className={classes}
             disabled={itemDisabled}
+            onMouseDown={(event) => {
+              if (firedRef.current) return;
+              firedRef.current = true;
+              invoke(event, itemDisabled);
+              queueMicrotask(() => {
+                firedRef.current = false;
+              });
+            }}
+            onClick={(event) => {
+              if (firedRef.current) return;
+              invoke(event, itemDisabled);
+            }}
           >
             {icon && <span className="flex-shrink-0">{icon}</span>}
             {children}

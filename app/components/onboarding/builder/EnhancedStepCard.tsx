@@ -344,6 +344,7 @@ export function EnhancedStepCard({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
@@ -353,30 +354,17 @@ export function EnhancedStepCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onSelect={(e: React.SyntheticEvent) => {
-                    e.preventDefault();
-                    onDuplicate();
-                  }}
-                >
+                <DropdownMenuItem onClick={onDuplicate}>
                   <Copy className="w-4 h-4 mr-2" />
                   Duplicate
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={(e: React.SyntheticEvent) => {
-                    e.preventDefault();
-                    toggleAdvanced();
-                  }}
-                >
+                <DropdownMenuItem onClick={toggleAdvanced}>
                   <Settings2 className="w-4 h-4 mr-2" />
                   {isAdvanced ? "Hide advanced" : "Advanced settings"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onSelect={(e: React.SyntheticEvent) => {
-                    e.preventDefault();
-                    onRemove();
-                  }}
+                  onClick={onRemove}
                   className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />

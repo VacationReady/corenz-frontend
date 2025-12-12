@@ -299,3 +299,7 @@ Implemented immediate access revocation for offboarded employees with proper log
 ## 73. Onboarding Template Simulation and Live Preview Form Rendering
 
 Fixed onboarding template builder Simulation Mode and Live Preview to render the actual selected form fields for "fill-form" steps instead of placeholder fields. Added a dedicated FormSchemaPreview component that fetches the selected form schema and renders real fields, supporting both legacy and v2 form schemas. Checklist-style steps now display their configured metadata items rather than generic placeholders.
+
+## 74. Onboarding Template Builder Dropdown Menu Actions Fix
+
+Fixed dropdown menu actions (Delete, Duplicate, Advanced settings) not working in the onboarding template builder. The issue was caused by HeadlessUI's Portal conflicting with Radix Dialog's event handling. Removed the Portal implementation and switched to inline absolute positioning with proper event propagation handling, ensuring menu items fire correctly when clicked.

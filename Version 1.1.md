@@ -62,6 +62,12 @@ Completely redesigned the Create/Edit Working Pattern modal with a modern, spaci
 
 ## 16. Timed Day Type for Working Patterns
 
+Added support for time-based day types (Morning, Afternoon) in working patterns with a redesigned day selector grid. Users can now specify exact hours for timed days via new time inputs, and the UI displays visual time indicators and calculates weekly totals automatically.
+
+## 17. Offboarding Datepicker Navigation Fix
+
+Fixed datepicker navigation in Offboarding modal that prevented moving from December 2025 into January 2026. The right arrow now remains enabled and allows navigation to future dates by explicitly setting a wide year range (2000–2100) on the shared Calendar component.
+
 Added a new "Timed" day type option for working patterns that enables precise start/end time configuration with configurable break deductions. Unlike "Full Day" or "Half Day" which use fixed assumptions, Timed days auto-calculate actual hours worked (e.g., 09:00-17:00 with 30min break = 7.5h). This integrates with leave deductions (deducts actual hours), overtime calculations (uses pattern hours as threshold), and leave accrual (calculates day fractions based on hours). Ideal for ad-hoc shifts, variable schedules, and accurate overtime tracking.
 
 ## 17. Employee List Actions Menu Restricted to Admins
@@ -285,3 +291,7 @@ Updated the employees API and calendar Book Leave flow so managers can only book
 ## 71. Orphaned Manager Reference Validation
 
 Fixed a data consistency issue where deleted employees could still appear as managers on profile pages. The employee overview page and employment-details API now validate that a manager's User record has an associated active Employee before displaying their name. This prevents orphaned `managerId` references (from hard-deleted users) from showing stale manager names while the employment details page showed "No Manager".
+
+## 72. Offboarding Access Revocation and Email Notification
+
+Implemented immediate access revocation for offboarded employees with proper login blocking and optional email notification. The auth system now checks for revoked access and displays a specific error message at login, while the offboarding modal includes a conditional toggle to send employees an email informing them their access has been removed and to contact HR for documentation.

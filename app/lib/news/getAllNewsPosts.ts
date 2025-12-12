@@ -5,6 +5,40 @@ type ReactionCounts = Record<string, number>;
 
 export async function getAllNewsPosts(companyId?: string, userId?: string) {
   await ensurePrismaConnected();
+
+  const signAvatarUrl = async (avatarUrl: string | null | undefined): Promise<string | null> => {
+    if (!avatarUrl) return null;
+
+    if (
+      /^https?:\/\//i.test(avatarUrl) &&
+      avatarUrl.includes("/object/sign/") &&
+      avatarUrl.includes("/documents/")
+    ) {
+      try {
+        const after = avatarUrl.split("/documents/")[1] || "";
+        const path = after.split("?")[0] || "";
+        if (path) {
+          const { data, error } = await supabase.storage
+            .from("documents")
+            .createSignedUrl(path, 60 * 10);
+          if (!error) return data?.signedUrl ?? avatarUrl;
+        }
+      } catch {}
+      return avatarUrl;
+    }
+
+    if (!/^https?:\/\//i.test(avatarUrl)) {
+      try {
+        const { data, error } = await supabase.storage
+          .from("documents")
+          .createSignedUrl(avatarUrl, 60 * 10);
+        if (!error) return data?.signedUrl ?? avatarUrl;
+      } catch {}
+    }
+
+    return avatarUrl;
+  };
+
   const posts = await prisma.newsPost.findMany({
     where: {
       publishedAt: { not: null },
@@ -66,6 +100,8 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
       }
     }
 
+    const signedAvatar = await signAvatarUrl(post.User?.profileImageUrl);
+
     return {
       id: post.id,
       title: post.title,
@@ -88,7 +124,10 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
       isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
       userReaction:
         post.reactions.find((reaction) => reaction.userId === userId)?.reaction ?? null,
-      User: post.User,
+      User: {
+        ...post.User,
+        profileImageUrl: signedAvatar,
+      },
     };
   }));
 }

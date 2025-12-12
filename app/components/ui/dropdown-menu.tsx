@@ -98,14 +98,6 @@ export function DropdownMenuItem({
   disabled?: boolean;
   icon?: React.ReactNode;
 }) {
-  const firedRef = useRef(false);
-
-  const invoke = (event: React.SyntheticEvent, itemDisabled: boolean) => {
-    if (itemDisabled) return;
-    onSelect?.(event);
-    if (onClick) onClick();
-  };
-
   // Prefer HeadlessUI's native Menu.Item-as-element pattern for reliable events.
   if (!asChild) {
     return (
@@ -113,17 +105,10 @@ export function DropdownMenuItem({
         as="button"
         type="button"
         disabled={disabled}
-        onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
-          if (firedRef.current) return;
-          firedRef.current = true;
-          invoke(event, disabled);
-          queueMicrotask(() => {
-            firedRef.current = false;
-          });
-        }}
         onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-          if (firedRef.current) return;
-          invoke(event, disabled);
+          if (disabled) return;
+          onSelect?.(event);
+          if (onClick) onClick();
         }}
         className={({ active, disabled: itemDisabled }) =>
           cn(
@@ -143,6 +128,12 @@ export function DropdownMenuItem({
     );
   }
 
+  const invoke = (event: React.SyntheticEvent, itemDisabled: boolean) => {
+    if (itemDisabled) return;
+    onSelect?.(event);
+    if (onClick) onClick();
+  };
+
   return (
     <Menu.Item disabled={disabled}>
       {({ active, disabled: itemDisabled }) => {
@@ -160,19 +151,7 @@ export function DropdownMenuItem({
           const element = children as React.ReactElement<any>;
           return React.cloneElement(element, {
             className: cn(element.props.className, classes),
-            onMouseDown: (event: any) => {
-              if (firedRef.current) return;
-              firedRef.current = true;
-              invoke(event, itemDisabled);
-              if (typeof element.props.onMouseDown === "function") {
-                element.props.onMouseDown(event);
-              }
-              queueMicrotask(() => {
-                firedRef.current = false;
-              });
-            },
             onClick: (event: any) => {
-              if (firedRef.current) return;
               invoke(event, itemDisabled);
               if (typeof element.props.onClick === "function") {
                 element.props.onClick(event);
@@ -186,16 +165,7 @@ export function DropdownMenuItem({
             type="button"
             className={classes}
             disabled={itemDisabled}
-            onMouseDown={(event) => {
-              if (firedRef.current) return;
-              firedRef.current = true;
-              invoke(event, itemDisabled);
-              queueMicrotask(() => {
-                firedRef.current = false;
-              });
-            }}
             onClick={(event) => {
-              if (firedRef.current) return;
               invoke(event, itemDisabled);
             }}
           >

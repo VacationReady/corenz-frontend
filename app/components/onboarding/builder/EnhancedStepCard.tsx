@@ -354,17 +354,17 @@ export function EnhancedStepCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); onDuplicate(); }}>
+                <DropdownMenuItem onClick={onDuplicate}>
                   <Copy className="w-4 h-4 mr-2" />
                   Duplicate
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); toggleAdvanced(); }}>
+                <DropdownMenuItem onClick={toggleAdvanced}>
                   <Settings2 className="w-4 h-4 mr-2" />
                   {isAdvanced ? "Hide advanced" : "Advanced settings"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onSelect={(e) => { e.stopPropagation(); onRemove(); }}
+                  onClick={onRemove}
                   className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />

@@ -37,6 +37,9 @@ import {
   Mail,
   Phone,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Maximize2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -57,17 +60,19 @@ import {
   assignMeasuredPositions,
 } from "./org-chart-utils";
 
-const NODE_WIDTH = 288;
-const NODE_HEIGHT = 224;
-const HORIZONTAL_SPACING = 40; // Reduced for tighter sibling spacing
-const ROOT_HORIZONTAL_SPACING = 120; // Reasonable spacing between separate trees
-const VERTICAL_SPACING = 80; // Increased for better visual hierarchy
-const HORIZONTAL_MARGIN = 96;
-const VERTICAL_MARGIN_TOP = 48;
-const VERTICAL_MARGIN_BOTTOM = 120;
-const MIN_ZOOM = 0.6;
-const MAX_ZOOM = 1.6;
+// Compact node dimensions for better visibility
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 140;
+const HORIZONTAL_SPACING = 24;
+const ROOT_HORIZONTAL_SPACING = 48;
+const VERTICAL_SPACING = 40;
+const HORIZONTAL_MARGIN = 32;
+const VERTICAL_MARGIN_TOP = 24;
+const VERTICAL_MARGIN_BOTTOM = 48;
+const MIN_ZOOM = 0.3;
+const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.1;
+const DEFAULT_ZOOM = 0.6;
 
 const isArrayBufferLike = (value: unknown): value is ArrayBufferLike =>
   typeof value === "object" &&
@@ -185,7 +190,8 @@ function OrgChartPageClient() {
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<OrgEmployee | null>(
     null,
@@ -759,8 +765,19 @@ function OrgChartPageClient() {
   };
 
   const handleZoomReset = () => {
-    setZoom(1);
+    setZoom(DEFAULT_ZOOM);
   };
+
+  const handleFitToScreen = useCallback(() => {
+    if (!layout.width || !layout.height) return;
+    // Estimate available viewport (subtract header/filters space)
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth - 300 : 1200;
+    const viewportHeight = typeof window !== 'undefined' ? window.innerHeight - 350 : 600;
+    const scaleX = viewportWidth / layout.width;
+    const scaleY = viewportHeight / layout.height;
+    const optimalZoom = Math.min(scaleX, scaleY, MAX_ZOOM);
+    setZoom(Math.max(MIN_ZOOM, parseFloat(optimalZoom.toFixed(2))));
+  }, [layout.width, layout.height]);
 
   const handleOpenContact = useCallback((employee: OrgEmployee) => {
     setSelectedContact(employee);
@@ -1449,119 +1466,99 @@ function OrgChartPageClient() {
         </div>
       }
     >
-      <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          {stats.map(({ label, value, icon: Icon, tone }) => (
-            <div
-              key={label}
-              className="glass-subtle rounded-3xl border border-glass px-6 py-5 shadow-depth-1"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {label}
-                  </p>
-                  <p className="mt-1 text-2xl font-semibold text-foreground">
-                    {value}
-                  </p>
+      <div className="space-y-3">
+        {/* Compact stats bar + collapsible filters */}
+        <div className="glass-subtle rounded-2xl border border-glass px-4 py-3 shadow-depth-1">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Inline stats */}
+            <div className="flex flex-wrap items-center gap-4">
+              {stats.map(({ label, value, icon: Icon, tone }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg bg-muted/60", tone)}>
+                    <Icon className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-lg font-semibold text-foreground">{value}</span>
+                    <span className="text-xs text-muted-foreground">{label}</span>
+                  </div>
                 </div>
-                <div
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/60",
-                    tone,
+              ))}
+              <Badge variant="outline" className="border-primary/40 bg-primary/5 text-primary text-xs">
+                Showing {visibleEmployees} of {totalEmployees}
+              </Badge>
+              {isFiltered && (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                  Filtered
+                </span>
+              )}
+            </div>
+            
+            {/* Filter toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFiltersExpanded(!filtersExpanded)}
+              className="gap-1.5"
+            >
+              <Filter className="h-3.5 w-3.5" />
+              Filters
+              {filtersExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
+
+          {/* Collapsible filters */}
+          {filtersExpanded && (
+            <div className="mt-3 pt-3 border-t border-glass/50">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <Input
+                  placeholder="Search name, role, department..."
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  className="h-9"
+                />
+                <MultiSelect
+                  options={departmentOptions.map((dept) => ({
+                    label: dept.label,
+                    value: dept.value,
+                  }))}
+                  value={selectedDepartments}
+                  onValueChange={setSelectedDepartments}
+                  placeholder="Departments"
+                />
+                <MultiSelect
+                  options={jobRoleOptions.map((role) => ({
+                    label: role.label,
+                    value: role.value,
+                  }))}
+                  value={selectedJobRoles}
+                  onValueChange={setSelectedJobRoles}
+                  placeholder="Job roles"
+                />
+                <div className="flex gap-2">
+                  <Select value={roleFilter} onValueChange={setRoleFilter}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Role type" />
+                    </SelectTrigger>
+                    <SelectContent className="z-50">
+                      <SelectItem value="all">All roles</SelectItem>
+                      <SelectItem value="ADMIN">Admins</SelectItem>
+                      <SelectItem value="MANAGER">Managers</SelectItem>
+                      <SelectItem value="EMPLOYEE">Employees</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {isFiltered && (
+                    <Button variant="outline" size="sm" onClick={handleClearFilters} className="h-9 shrink-0">
+                      Clear
+                    </Button>
                   )}
-                >
-                  <Icon className="h-5 w-5" />
                 </div>
               </div>
             </div>
-          ))}
+          )}
         </div>
 
-        <div className="glass-subtle relative z-20 rounded-3xl border border-glass p-6 shadow-depth-1">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Filter className="h-4 w-4" />
-            Refine your org chart
-          </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground/80">
-                Search team members
-              </label>
-              <Input
-                placeholder="Search by name, role or department"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground/80">
-                Departments
-              </label>
-              <MultiSelect
-                options={departmentOptions.map((dept) => ({
-                  label: dept.label,
-                  value: dept.value,
-                }))}
-                value={selectedDepartments}
-                onValueChange={setSelectedDepartments}
-                placeholder="Filter by department(s)"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground/80">
-                Job roles
-              </label>
-              <MultiSelect
-                options={jobRoleOptions.map((role) => ({
-                  label: role.label,
-                  value: role.value,
-                }))}
-                value={selectedJobRoles}
-                onValueChange={setSelectedJobRoles}
-                placeholder="Filter by job role(s)"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground/80">
-                Role type
-              </label>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All roles" />
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  <SelectItem value="all">All roles</SelectItem>
-                  <SelectItem value="ADMIN">Admins</SelectItem>
-                  <SelectItem value="MANAGER">Managers</SelectItem>
-                  <SelectItem value="EMPLOYEE">Individual contributors</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <Badge variant="outline" className="border-primary/40 bg-primary/5 text-primary">
-                Showing {visibleEmployees} of {totalEmployees} people
-              </Badge>
-              {isFiltered ? (
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
-                  Filters active
-                </span>
-              ) : (
-                <span className="text-xs">No filters applied</span>
-              )}
-            </div>
-            {isFiltered && (
-              <Button variant="ghost" onClick={handleClearFilters}>
-                Reset filters
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <div className="glass-strong relative z-10 rounded-3xl border border-glass/60 p-4 shadow-depth-1">
+        {/* Main chart area - takes remaining space */}
+        <div className="glass-strong relative z-10 rounded-2xl border border-glass/60 p-3 shadow-depth-1" style={{ minHeight: 'calc(100vh - 280px)' }}>
           {loading ? (
             <div className="flex min-h-[320px] items-center justify-center">
               <LoadingSpinner size="lg" showText text="Loading org chart" />
@@ -1602,45 +1599,60 @@ function OrgChartPageClient() {
               }
             />
           ) : (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <span>Zoom</span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleZoomOut}
-                      disabled={zoom <= MIN_ZOOM}
-                      aria-label="Zoom out"
-                    >
-                      <ZoomOut className="h-4 w-4" />
-                    </Button>
-                    <span className="w-14 text-center text-xs font-semibold text-foreground">
-                      {Math.round(zoom * 100)}%
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={handleZoomIn}
-                      disabled={zoom >= MAX_ZOOM}
-                      aria-label="Zoom in"
-                    >
-                      <ZoomIn className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleZoomReset}
-                      disabled={zoom === 1}
-                      aria-label="Reset zoom"
-                    >
-                      Reset
-                    </Button>
-                  </div>
+            <div className="space-y-2">
+              {/* Compact zoom controls */}
+              <div className="flex items-center justify-between gap-2 px-1">
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={handleZoomOut}
+                    disabled={zoom <= MIN_ZOOM}
+                    aria-label="Zoom out"
+                  >
+                    <ZoomOut className="h-3.5 w-3.5" />
+                  </Button>
+                  <span className="w-12 text-center text-xs font-medium text-muted-foreground">
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={handleZoomIn}
+                    disabled={zoom >= MAX_ZOOM}
+                    aria-label="Zoom in"
+                  >
+                    <ZoomIn className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={handleZoomReset}
+                    disabled={zoom === DEFAULT_ZOOM}
+                    aria-label="Reset zoom"
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs gap-1"
+                    onClick={handleFitToScreen}
+                    aria-label="Fit to screen"
+                  >
+                    <Maximize2 className="h-3 w-3" />
+                    Fit
+                  </Button>
                 </div>
+                <span className="text-xs text-muted-foreground">
+                  Scroll to pan • Click card for details
+                </span>
               </div>
-              <div className="relative overflow-x-auto overflow-y-visible">
+              {/* Chart canvas with max height */}
+              <div className="relative overflow-auto" style={{ maxHeight: 'calc(100vh - 320px)' }}>
                 <div
                   className="relative mx-auto"
                   style={{
@@ -1783,7 +1795,6 @@ function OrgNodeCard({
   onContactRequest: (employee: OrgEmployee) => void;
 }) {
   const directReports = node.children.length;
-  const managerLabel = node.managerName ?? "Reports to leadership";
 
   return (
     <div
@@ -1796,16 +1807,16 @@ function OrgNodeCard({
       }}
     >
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        whileHover={{ scale: 1.02 }}
-        transition={{ duration: 0.3 }}
+        whileHover={{ scale: 1.03 }}
+        transition={{ duration: 0.2 }}
         className={cn(
           "group relative h-full w-full cursor-pointer overflow-hidden",
-          "glass-premium rounded-3xl shadow-premium",
-          "transition-all duration-300 hover-lift-premium",
-          "border border-white/40",
-          node.isMatch && "ring-2 ring-primary/60 ring-offset-2 ring-offset-background",
+          "bg-white/95 backdrop-blur-sm rounded-xl shadow-md",
+          "transition-all duration-200 hover:shadow-lg",
+          "border border-slate-200/80",
+          node.isMatch && "ring-2 ring-primary/60 ring-offset-1",
         )}
         role="button"
         tabIndex={0}
@@ -1818,186 +1829,58 @@ function OrgNodeCard({
           }
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
-
-        <div className="relative p-6 h-full flex flex-col">
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute -inset-1 bg-gradient-to-br from-primary to-[hsl(var(--sunset-2))] rounded-xl opacity-50 blur" />
-                <Avatar
-                  src={node.profileImageUrl ?? undefined}
-                  name={node.fullName}
-                  size={52}
-                  className="relative shadow-premium border-2 border-white"
-                />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-base text-foreground truncate" title={node.fullName}>
-                  {node.fullName}
-                </p>
-                <p className="text-sm text-muted-foreground truncate" title={node.jobTitle ?? undefined}>
-                  {node.jobTitle ?? "Role not assigned"}
-                </p>
-                {node.permissionProfileName && (
-                  <span
-                    className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full bg-primary/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary"
-                    title={node.permissionProfileName}
-                  >
-                    <Sparkles className="h-3 w-3" />
-                    <span className="truncate">{node.permissionProfileName}</span>
-                  </span>
-                )}
-              </div>
+        {/* Compact card content */}
+        <div className="relative p-3 h-full flex flex-col">
+          {/* Header: Avatar + Name + Role badge */}
+          <div className="flex items-start gap-2.5 mb-2">
+            <Avatar
+              src={node.profileImageUrl ?? undefined}
+              name={node.fullName}
+              size={36}
+              className="shrink-0 border border-slate-200"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-sm text-foreground truncate leading-tight" title={node.fullName}>
+                {node.fullName}
+              </p>
+              <p className="text-xs text-muted-foreground truncate leading-tight" title={node.jobTitle ?? undefined}>
+                {node.jobTitle ?? "No role"}
+              </p>
             </div>
-
-            <Badge
-              variant="outline"
+            <span
               className={cn(
-                "shrink-0 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap",
-                "bg-gradient-to-r border-0 shadow-md",
-                node.role === "ADMIN" && "from-primary/20 to-primary/10 text-primary",
-                node.role === "MANAGER" && "from-amber-500/20 to-amber-500/10 text-amber-600",
-                node.role === "EMPLOYEE" && "from-slate-500/20 to-slate-500/10 text-slate-600",
+                "shrink-0 px-1.5 py-0.5 text-[9px] font-semibold uppercase rounded",
+                node.role === "ADMIN" && "bg-primary/10 text-primary",
+                node.role === "MANAGER" && "bg-amber-500/10 text-amber-600",
+                node.role === "EMPLOYEE" && "bg-slate-500/10 text-slate-500",
               )}
             >
-              {roleLabels[node.role]}
-            </Badge>
+              {node.role === "EMPLOYEE" ? "IC" : node.role.slice(0, 3)}
+            </span>
           </div>
 
-          <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent mb-3" />
-
-          <div className="space-y-2 text-sm flex-1">
-            <div className="flex items-center gap-2 group/item">
-              <Building2 className="h-4 w-4 text-muted-foreground/70 group-hover/item:text-primary transition-colors" />
-              <span className="truncate text-muted-foreground group-hover/item:text-foreground transition-colors">
-                {node.department ?? "No department"}
-              </span>
+          {/* Compact info rows */}
+          <div className="space-y-1 text-xs flex-1">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Building2 className="h-3 w-3 shrink-0" />
+              <span className="truncate">{node.department ?? "No dept"}</span>
             </div>
-
-            <div className="flex items-center gap-2 group/item">
-              <UserCircle2 className="h-4 w-4 text-muted-foreground/70 group-hover/item:text-primary transition-colors" />
-              <span className="truncate text-muted-foreground group-hover/item:text-foreground transition-colors">
-                {managerLabel}
-              </span>
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <UserCircle2 className="h-3 w-3 shrink-0" />
+              <span className="truncate">{node.managerName ?? "Leadership"}</span>
             </div>
-
-            <div className="flex items-center gap-2 group/item">
-              <Briefcase className="h-4 w-4 text-muted-foreground/70 group-hover/item:text-primary transition-colors" />
-              {directReports === 0 ? (
-                <span className="text-muted-foreground">No direct reports</span>
-              ) : (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
-                      onClick={(event) => event.stopPropagation()}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.stopPropagation();
-                        }
-                      }}
-                    >
-                      {directReports} direct {directReports === 1 ? "report" : "reports"}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-80 max-h-80 overflow-y-auto p-4">
-                    <p className="text-sm font-semibold text-foreground">Direct reports</p>
-                    <div className="mt-3 space-y-3">
-                      {node.children.map((report) => (
-                        <div key={report.id} className="flex items-start gap-3">
-                          <Avatar
-                            src={report.profileImageUrl ?? undefined}
-                            name={report.fullName}
-                            size={40}
-                          />
-                          <div className="min-w-0 space-y-1">
-                            <p className="truncate text-sm font-medium text-foreground" title={report.fullName}>
-                              {report.fullName}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground" title={report.jobTitle ?? undefined}>
-                              {report.jobTitle ?? "Role not assigned"}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground" title={report.department ?? undefined}>
-                              {report.department ?? "No department"}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                              <span className="truncate" title={report.email}>
-                                {report.email}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                              <span className="truncate" title={report.phone ?? undefined}>
-                                {report.phone ?? "Not provided"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 group/item">
-              <GitBranch className="h-4 w-4 text-muted-foreground/70 group-hover/item:text-primary transition-colors" />
-              {node.children.length === 0 ? (
-                <span className="text-muted-foreground">No indirect reports</span>
-              ) : (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="truncate text-left font-medium text-primary underline-offset-2 hover:underline"
-                      onClick={(event) => event.stopPropagation()}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.stopPropagation();
-                        }
-                      }}
-                    >
-                      {getIndirectReports(node).length} indirect
-                      {getIndirectReports(node).length === 1 ? " report" : " reports"}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-80 max-h-80 overflow-y-auto p-4">
-                    <p className="text-sm font-semibold text-foreground">Indirect reports</p>
-                    <div className="mt-3 space-y-3">
-                      {getIndirectReports(node).map((report) => (
-                        <div key={report.id} className="flex items-start gap-3">
-                          <Avatar
-                            src={report.profileImageUrl ?? undefined}
-                            name={report.fullName}
-                            size={40}
-                          />
-                          <div className="min-w-0 space-y-1">
-                            <p className="truncate text-sm font-medium text-foreground" title={report.fullName}>
-                              {report.fullName}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground" title={report.jobTitle ?? undefined}>
-                              {report.jobTitle ?? "Role not assigned"}
-                            </p>
-                            <p className="truncate text-xs text-muted-foreground" title={report.department ?? undefined}>
-                              {report.department ?? "No department"}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
-            </div>
+            {directReports > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3 w-3 shrink-0 text-primary" />
+                <span className="text-primary font-medium">{directReports} report{directReports !== 1 ? 's' : ''}</span>
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-[hsl(var(--sunset-2))]/10" />
+          {/* Hover hint */}
+          <div className="absolute bottom-1.5 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="text-[10px] text-muted-foreground">Click for details</span>
+          </div>
         </div>
       </motion.div>
     </div>

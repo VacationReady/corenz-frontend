@@ -6,9 +6,9 @@ import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import NewsChip from "../ui/NewsChip";
+import { Avatar } from "@/components/ui/Avatar";
 import {
   Clock,
-  User,
   Eye,
   Share2,
   Bookmark,
@@ -402,17 +402,12 @@ export default function NewsSpotlightCard({
 
                 {/* Author Info */}
                 <div className="flex items-center gap-3 pt-1">
-                  {post.author.avatar ? (
-                    <img
-                      src={post.author.avatar}
-                      alt={getAuthorName(post.author)}
-                      className="w-9 h-9 rounded-full object-cover ring-2 ring-border"
-                    />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ring-2 ring-border">
-                      <User className="w-4 h-4 text-primary" />
-                    </div>
-                  )}
+                  <Avatar
+                    src={post.author.avatar}
+                    name={getAuthorName(post.author)}
+                    size={36}
+                    className="ring-2 ring-border"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">
                       {getAuthorName(post.author)}

@@ -6,11 +6,11 @@ import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
 import NewsTag from "../ui/NewsTag";
+import { Avatar } from "@/components/ui/Avatar";
 import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  User,
   Share2,
   Bookmark,
   Eye,
@@ -328,17 +328,12 @@ export default function NewsHero({
                 {/* Meta */}
                 <div className="flex flex-wrap items-center gap-4 text-white/60 text-sm">
                   <div className="flex items-center gap-2">
-                    {currentPost.author.avatar ? (
-                      <img
-                        src={currentPost.author.avatar}
-                        alt=""
-                        className="w-7 h-7 rounded-full border-2 border-white/20"
-                      />
-                    ) : (
-                      <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-                        <User className="w-4 h-4 text-white/70" />
-                      </div>
-                    )}
+                    <Avatar
+                      src={currentPost.author.avatar}
+                      name={currentPost.author.name || currentPost.author.email}
+                      size={28}
+                      className="border-2 border-white/20"
+                    />
                     <span className="text-white/80 font-medium">
                       {currentPost.author.name || currentPost.author.email}
                     </span>

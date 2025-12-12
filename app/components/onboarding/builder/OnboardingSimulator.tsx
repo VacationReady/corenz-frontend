@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import Checkbox from "@/components/ui/Checkbox";
 import { Label } from "@/components/ui/label";
+import { FormSchemaPreview } from "@/components/forms/FormSchemaPreview";
 import confetti from "canvas-confetti";
 import {
   X,
@@ -48,6 +49,7 @@ import {
   Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
 
 interface OnboardingSimulatorProps {
   isOpen: boolean;
@@ -582,6 +584,18 @@ function SimulatedStepContent({
   const color = STEP_COLORS[step?.type] || "from-gray-500 to-gray-600";
   const title = step?.title?.trim() || "Untitled Step";
   const description = step?.description?.trim() || "";
+  const metadata = normalizeStepMetadata(step?.type || "", step?.metadata);
+
+  const checklistItems =
+    step?.type === "equipment-checklist" && Array.isArray((metadata as any).items)
+      ? ((metadata as any).items as any[])
+      : step?.type === "system-access" && Array.isArray((metadata as any).systems)
+        ? ((metadata as any).systems as any[])
+        : step?.type === "training-assignment" && Array.isArray((metadata as any).modules)
+          ? ((metadata as any).modules as any[])
+          : step?.type === "compliance-training" && Array.isArray((metadata as any).courses)
+            ? ((metadata as any).courses as any[])
+            : null;
 
   return (
     <Card className="overflow-hidden">
@@ -650,18 +664,35 @@ function SimulatedStepContent({
 
           {step?.type === "fill-form" && (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Sample Field 1</Label>
-                <Input placeholder="Enter value..." />
-              </div>
-              <div className="space-y-2">
-                <Label>Sample Field 2</Label>
-                <Input placeholder="Enter value..." />
-              </div>
-              <div className="space-y-2">
-                <Label>Notes</Label>
-                <Textarea placeholder="Enter notes..." rows={3} />
-              </div>
+              {typeof (metadata as any)?.guidance === "string" &&
+                (metadata as any).guidance.trim().length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {(metadata as any).guidance.trim()}
+                  </p>
+                )}
+              {step?.formId ? (
+                <FormSchemaPreview formId={step.formId} disabled={false} />
+              ) : Array.isArray(step?.formFields) && step.formFields.length > 0 ? (
+                <div className="space-y-4">
+                  {step.formFields.map((field: any, idx: number) => (
+                    <div key={field?.label || idx} className="space-y-2">
+                      <Label>{String(field?.label || `Field ${idx + 1}`)}</Label>
+                      {String(field?.type || "text") === "textarea" ? (
+                        <Textarea placeholder="Enter value..." rows={3} />
+                      ) : (
+                        <Input
+                          type={String(field?.type || "text") === "date" ? "date" : "text"}
+                          placeholder="Enter value..."
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No form selected.
+                </div>
+              )}
             </div>
           )}
 
@@ -682,14 +713,40 @@ function SimulatedStepContent({
             </Card>
           )}
 
-          {(step?.type === "equipment-checklist" || step?.type === "system-access" || step?.type === "training-assignment" || step?.type === "compliance-training") && (
+          {(step?.type === "equipment-checklist" ||
+            step?.type === "system-access" ||
+            step?.type === "training-assignment" ||
+            step?.type === "compliance-training") && (
             <div className="space-y-3">
-              {["Item 1", "Item 2", "Item 3"].map((item, i) => (
-                <Label key={i} className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                  <Checkbox />
-                  <span>{item}</span>
-                </Label>
-              ))}
+              {step?.type === "system-access" &&
+                typeof (metadata as any)?.instructions === "string" &&
+                (metadata as any).instructions.trim().length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {(metadata as any).instructions.trim()}
+                  </p>
+                )}
+              {Array.isArray(checklistItems) && checklistItems.length > 0 ? (
+                checklistItems.map((item: any, i: number) => (
+                  <Label
+                    key={String(item?.id || item?.label || i)}
+                    className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    <Checkbox />
+                    <span>
+                      {String(item?.label || `Item ${i + 1}`)}
+                      {item?.notes ? (
+                        <span className="block text-xs text-muted-foreground">
+                          {String(item.notes)}
+                        </span>
+                      ) : null}
+                    </span>
+                  </Label>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No items configured.
+                </div>
+              )}
             </div>
           )}
 

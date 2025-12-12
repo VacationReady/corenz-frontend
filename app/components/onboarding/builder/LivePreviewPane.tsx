@@ -9,6 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { FormSchemaPreview } from "@/components/forms/FormSchemaPreview";
 import {
   Eye,
   Smartphone,
@@ -35,6 +37,7 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { normalizeStepMetadata } from "@/lib/onboarding/stepMetadata";
 
 interface LivePreviewPaneProps {
   step: any | null;
@@ -181,6 +184,18 @@ function StepPreviewContent({ step }: { step: any }) {
   const Icon = STEP_ICONS[step.type] || FileText;
   const title = step.title?.trim() || "Untitled Step";
   const description = step.description?.trim() || "No description provided";
+  const metadata = normalizeStepMetadata(step?.type || "", step?.metadata);
+
+  const checklistItems =
+    step?.type === "equipment-checklist" && Array.isArray((metadata as any).items)
+      ? ((metadata as any).items as any[])
+      : step?.type === "system-access" && Array.isArray((metadata as any).systems)
+        ? ((metadata as any).systems as any[])
+        : step?.type === "training-assignment" && Array.isArray((metadata as any).modules)
+          ? ((metadata as any).modules as any[])
+          : step?.type === "compliance-training" && Array.isArray((metadata as any).courses)
+            ? ((metadata as any).courses as any[])
+            : null;
 
   return (
     <div className="space-y-4">
@@ -233,16 +248,36 @@ function StepPreviewContent({ step }: { step: any }) {
 
       {step.type === "fill-form" && (
         <div className="space-y-3">
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-sm">Field example</Label>
-              <Input placeholder="Enter value..." disabled />
+          {typeof (metadata as any)?.guidance === "string" &&
+            (metadata as any).guidance.trim().length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {(metadata as any).guidance.trim()}
+              </p>
+            )}
+          {step?.formId ? (
+            <FormSchemaPreview formId={step.formId} disabled />
+          ) : Array.isArray(step?.formFields) && step.formFields.length > 0 ? (
+            <div className="space-y-3">
+              {step.formFields.map((field: any, idx: number) => (
+                <div key={field?.label || idx} className="space-y-1.5">
+                  <Label className="text-sm">
+                    {String(field?.label || `Field ${idx + 1}`)}
+                  </Label>
+                  {String(field?.type || "text") === "textarea" ? (
+                    <Textarea placeholder="Enter value..." disabled rows={3} />
+                  ) : (
+                    <Input
+                      placeholder="Enter value..."
+                      disabled
+                      type={String(field?.type || "text") === "date" ? "date" : "text"}
+                    />
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">Another field</Label>
-              <Input placeholder="Enter value..." disabled />
-            </div>
-          </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">No form selected.</div>
+          )}
           <Button disabled className="w-full">Submit & Continue</Button>
         </div>
       )}
@@ -267,13 +302,29 @@ function StepPreviewContent({ step }: { step: any }) {
 
       {(step.type === "equipment-checklist" || step.type === "system-access" || step.type === "training-assignment" || step.type === "compliance-training") && (
         <div className="space-y-3">
+          {step?.type === "system-access" &&
+            typeof (metadata as any)?.instructions === "string" &&
+            (metadata as any).instructions.trim().length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {(metadata as any).instructions.trim()}
+              </p>
+            )}
           <div className="space-y-2">
-            {["Item 1", "Item 2", "Item 3"].map((item, i) => (
-              <Label key={i} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                <Checkbox disabled />
-                <span className="text-sm">{item}</span>
-              </Label>
-            ))}
+            {Array.isArray(checklistItems) && checklistItems.length > 0 ? (
+              checklistItems.map((item: any, i: number) => (
+                <Label
+                  key={String(item?.id || item?.label || i)}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <Checkbox disabled />
+                  <span className="text-sm">
+                    {String(item?.label || `Item ${i + 1}`)}
+                  </span>
+                </Label>
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">No items configured.</div>
+            )}
           </div>
           <Button disabled className="w-full">Save Progress</Button>
         </div>

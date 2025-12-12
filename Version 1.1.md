@@ -295,3 +295,7 @@ Fixed a data consistency issue where deleted employees could still appear as man
 ## 72. Offboarding Access Revocation and Email Notification
 
 Implemented immediate access revocation for offboarded employees with proper login blocking and optional email notification. The auth system now checks for revoked access and displays a specific error message at login, while the offboarding modal includes a conditional toggle to send employees an email informing them their access has been removed and to contact HR for documentation.
+
+## 73. Onboarding Template Simulation and Live Preview Form Rendering
+
+Fixed onboarding template builder Simulation Mode and Live Preview to render the actual selected form fields for "fill-form" steps instead of placeholder fields. Added a dedicated FormSchemaPreview component that fetches the selected form schema and renders real fields, supporting both legacy and v2 form schemas. Checklist-style steps now display their configured metadata items rather than generic placeholders.

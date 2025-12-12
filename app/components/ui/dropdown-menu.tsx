@@ -13,7 +13,7 @@ export function DropdownMenu({
   children,
   align = "right",
 }: DropdownMenuProps) {
-  const buttonRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLElement | null>(null);
   const [positionStyles, setPositionStyles] = useState<React.CSSProperties>({});
 
   // Find trigger and content from children
@@ -23,6 +23,10 @@ export function DropdownMenu({
   const contentChild = React.Children.toArray(children).find(
     (child) => React.isValidElement(child) && child.type === DropdownMenuContent
   );
+
+  const content = React.isValidElement(contentChild)
+    ? (contentChild.props as any).children
+    : null;
 
   return (
     <Menu as="div" className="relative inline-block text-left">
@@ -42,8 +46,8 @@ export function DropdownMenu({
 
         return (
           <>
-            <Menu.Button ref={buttonRef as any} as="div" className="inline-block">
-              {triggerChild}
+            <Menu.Button ref={buttonRef as any} as={Fragment}>
+              {triggerChild as any}
             </Menu.Button>
             <Transition
               as={Fragment}
@@ -66,7 +70,7 @@ export function DropdownMenu({
                   )}
                   style={positionStyles}
                 >
-                  {contentChild}
+                  {content}
                 </Menu.Items>
               </Portal>
             </Transition>
@@ -145,17 +149,35 @@ export function DropdownMenuItem({
 
 // Radix UI-style compatibility exports
 export const DropdownMenuTrigger = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean }
+  HTMLElement,
+  React.HTMLAttributes<HTMLElement> & { asChild?: boolean }
 >(({ children, asChild, ...props }, ref) => {
   if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children as React.ReactElement<any>, {
+    const child = children as React.ReactElement<any>;
+    const childProps = child.props || {};
+    const mergedProps: any = {
+      ...childProps,
       ...props,
-      ...(children.props || {}),
-    });
+      className: cn(childProps.className, props.className),
+      style: { ...(childProps.style || {}), ...(props.style || {}) },
+      onClick: (event: any) => {
+        if (typeof props.onClick === "function") props.onClick(event);
+        if (typeof childProps.onClick === "function") childProps.onClick(event);
+      },
+      onKeyDown: (event: any) => {
+        if (typeof props.onKeyDown === "function") props.onKeyDown(event);
+        if (typeof childProps.onKeyDown === "function") childProps.onKeyDown(event);
+      },
+    };
+
+    if (ref) {
+      mergedProps.ref = ref as any;
+    }
+
+    return React.cloneElement(child, mergedProps);
   }
   return (
-    <div ref={ref} {...props}>
+    <div ref={ref as any} {...props}>
       {children}
     </div>
   );

@@ -31,7 +31,7 @@ export function PageShell({
   const resolvedBreadcrumbs = breadcrumbs ?? autoBreadcrumbs;
 
   return (
-    <div className={clsx("w-full min-h-screen", className)}>
+    <div className={clsx("w-full min-h-screen flex flex-col", className)}>
       {/* Sticky Header */}
       <div className="sticky top-0 z-10">
         <div
@@ -81,7 +81,7 @@ export function PageShell({
       </div>
 
       {/* Content Area */}
-      <div className="px-8 py-6">{children}</div>
+      <div className="px-8 py-6 flex-1 flex flex-col">{children}</div>
     </div>
   );
 }

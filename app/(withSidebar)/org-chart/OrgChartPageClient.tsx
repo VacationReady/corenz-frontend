@@ -1466,7 +1466,7 @@ function OrgChartPageClient() {
         </div>
       }
     >
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3 h-full">
         {/* Compact stats bar + collapsible filters */}
         <div className="glass-subtle rounded-2xl border border-glass px-4 py-3 shadow-depth-1">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1558,7 +1558,7 @@ function OrgChartPageClient() {
         </div>
 
         {/* Main chart area - takes remaining space */}
-        <div className="glass-strong relative z-10 rounded-2xl border border-glass/60 p-3 shadow-depth-1" style={{ minHeight: 'calc(100vh - 280px)' }}>
+        <div className="glass-strong relative z-10 rounded-2xl border border-glass/60 p-3 shadow-depth-1 flex-1 flex flex-col" style={{ minHeight: 'calc(100vh - 280px)' }}>
           {loading ? (
             <div className="flex min-h-[320px] items-center justify-center">
               <LoadingSpinner size="lg" showText text="Loading org chart" />
@@ -1599,7 +1599,7 @@ function OrgChartPageClient() {
               }
             />
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 flex-1 flex flex-col">
               {/* Compact zoom controls */}
               <div className="flex items-center justify-between gap-2 px-1">
                 <div className="flex items-center gap-1.5">
@@ -1651,8 +1651,8 @@ function OrgChartPageClient() {
                   Scroll to pan • Click card for details
                 </span>
               </div>
-              {/* Chart canvas with max height */}
-              <div className="relative overflow-auto" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+              {/* Chart canvas - fills available space */}
+              <div className="relative overflow-auto flex-1" style={{ minHeight: '400px' }}>
                 <div
                   className="relative mx-auto"
                   style={{

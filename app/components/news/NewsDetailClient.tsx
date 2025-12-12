@@ -9,6 +9,7 @@ import NewsContentRenderer from "./NewsContentRenderer";
 import NewsContentTipTapRenderer from "./NewsContentTipTapRenderer";
 import DeleteNewsButton from "./DeleteNewsButton";
 import NewsSpotlightCard from "./NewsSpotlightCard";
+import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { toast } from "sonner";
@@ -465,17 +466,12 @@ export default function NewsDetailClient({
                 {/* Meta */}
                 <div className="flex flex-wrap items-center gap-4 text-white/70">
                   <div className="flex items-center gap-3">
-                    {post.author.avatar ? (
-                      <img
-                        src={post.author.avatar}
-                        alt={getAuthorName()}
-                        className="w-12 h-12 rounded-full border-2 border-white/30"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                        <User className="w-6 h-6 text-white/70" />
-                      </div>
-                    )}
+                    <Avatar
+                      src={post.author.avatar}
+                      name={getAuthorName()}
+                      size={48}
+                      className="border-2 border-white/30"
+                    />
                     <div>
                       <p className="font-semibold text-white">{getAuthorName()}</p>
                       {post.author.role && (
@@ -810,17 +806,11 @@ export default function NewsDetailClient({
                 Written by
               </p>
               <div className="flex items-center gap-3 mb-4">
-                {post.author.avatar ? (
-                  <img
-                    src={post.author.avatar}
-                    alt={getAuthorName()}
-                    className="w-14 h-14 rounded-full"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                    <User className="w-7 h-7 text-primary" />
-                  </div>
-                )}
+                <Avatar
+                  src={post.author.avatar}
+                  name={getAuthorName()}
+                  size={56}
+                />
                 <div>
                   <p className="font-semibold text-foreground">{getAuthorName()}</p>
                   {post.author.role && (

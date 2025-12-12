@@ -80,6 +80,7 @@ export function DropdownMenu({
 export function DropdownMenuItem({
   children,
   onClick,
+  onSelect,
   className,
   asChild = false,
   disabled = false,
@@ -87,6 +88,7 @@ export function DropdownMenuItem({
 }: {
   children: React.ReactNode;
   onClick?: () => void;
+  onSelect?: (event: React.SyntheticEvent) => void;
   className?: string;
   asChild?: boolean;
   disabled?: boolean;
@@ -105,21 +107,22 @@ export function DropdownMenuItem({
           className,
         );
         
-        const handleClick = () => {
-          if (!itemDisabled && onClick) {
-            onClick();
-          }
+        const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+          if (itemDisabled) return;
+          onSelect?.(event);
+          if (onClick) onClick();
         };
         
         if (asChild && React.isValidElement(children)) {
           const element = children as React.ReactElement<any>;
           return React.cloneElement(element, {
             className: cn(element.props.className, classes),
-            onClick: () => {
+            onClick: (event: any) => {
               if (itemDisabled) return;
+              onSelect?.(event);
               if (onClick) onClick();
               if (typeof element.props.onClick === "function") {
-                element.props.onClick();
+                element.props.onClick(event);
               }
             },
           });

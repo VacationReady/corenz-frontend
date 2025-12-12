@@ -354,7 +354,7 @@ export function EnhancedStepCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem
-                  onSelect={(e) => {
+                  onSelect={(e: React.SyntheticEvent) => {
                     e.preventDefault();
                     onDuplicate();
                   }}
@@ -363,7 +363,7 @@ export function EnhancedStepCard({
                   Duplicate
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onSelect={(e) => {
+                  onSelect={(e: React.SyntheticEvent) => {
                     e.preventDefault();
                     toggleAdvanced();
                   }}
@@ -373,7 +373,7 @@ export function EnhancedStepCard({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onSelect={(e) => {
+                  onSelect={(e: React.SyntheticEvent) => {
                     e.preventDefault();
                     onRemove();
                   }}

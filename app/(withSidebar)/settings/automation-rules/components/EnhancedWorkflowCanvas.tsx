@@ -37,6 +37,15 @@ import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -52,7 +61,7 @@ import {
   Layout, Grid3x3, Circle, Layers, AlertTriangle,
   Lock, Unlock, PlayCircleIcon, Pause,
   Undo, Redo, Copy, CheckCircle2, XCircle,
-  AlertCircle, Sparkles
+  AlertCircle, Sparkles, Check, ChevronsUpDown
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -116,6 +125,7 @@ function EnhancedWorkflowCanvasInner({
   const [nodes, setNodes, onNodesChange] = useNodesState(workflow?.nodes || []);
   const [edges, setEdges, onEdgesChange] = useEdgesState(workflow?.edges || []);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [notificationRecipientOpen, setNotificationRecipientOpen] = useState(false);
   const [showPalette, setShowPalette] = useState(!previewMode && !readOnly);
   const [showProperties, setShowProperties] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -142,6 +152,10 @@ function EnhancedWorkflowCanvasInner({
   const employees = referenceData.employees;
   const documentTypes = referenceData.documentTypes;
   const templates = referenceData.templates;
+
+  const sortedEmployees = useMemo(() => {
+    return [...(employees || [])].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [employees]);
   
   // Validation logic - memoized for performance
   const nodeValidation = useMemo(() => {
@@ -1095,25 +1109,188 @@ function EnhancedWorkflowCanvasInner({
                         {config.recipientType || 'employee'}
                       </div>
                     ) : (
-                      <Select
-                        value={config.recipientType || 'employee'}
-                        onValueChange={(value) => 
-                          handleNodeUpdate(selectedNode.id, { 
-                            config: { ...config, recipientType: value } 
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="employee">Employee</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="hr">HR Team</SelectItem>
-                          <SelectItem value="buddy">Buddy</SelectItem>
-                          <SelectItem value="all_employees">All Employees</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Popover open={notificationRecipientOpen} onOpenChange={setNotificationRecipientOpen}>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            role="combobox"
+                            aria-expanded={notificationRecipientOpen}
+                            className={cn(
+                              "w-full flex items-center justify-between rounded-md border bg-background px-3 py-2 text-sm",
+                              "hover:bg-accent hover:text-accent-foreground"
+                            )}
+                          >
+                            <span className="truncate">
+                              {(() => {
+                                const type = config.recipientType || "employee";
+                                if (type === "employee") return "Employee (trigger subject)";
+                                if (type === "manager") return "Manager";
+                                if (type === "hr") return "HR Team";
+                                if (type === "buddy") return "Buddy";
+                                if (type === "all_employees") return "All Employees";
+                                if (type === "specific") {
+                                  const selectedEmail = Array.isArray(config.recipients) ? config.recipients[0] : undefined;
+                                  const selected = sortedEmployees.find((e) => e.email === selectedEmail || e.id === config.recipientEmployeeId);
+                                  return selected?.name || selectedEmail || "Select employee…";
+                                }
+                                return String(type);
+                              })()}
+                            </span>
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[360px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Search employees..." />
+                            <CommandList>
+                              <CommandEmpty>No results found.</CommandEmpty>
+                              <CommandGroup heading="Roles">
+                                <CommandItem
+                                  value="Employee (trigger subject)"
+                                  onSelect={() => {
+                                    handleNodeUpdate(selectedNode.id, {
+                                      config: {
+                                        ...config,
+                                        recipientType: "employee",
+                                        recipients: undefined,
+                                        recipientEmployeeId: undefined,
+                                      },
+                                    });
+                                    setNotificationRecipientOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      (config.recipientType || "employee") === "employee" ? "opacity-100" : "opacity-0",
+                                    )}
+                                  />
+                                  Employee (trigger subject)
+                                </CommandItem>
+                                <CommandItem
+                                  value="Manager"
+                                  onSelect={() => {
+                                    handleNodeUpdate(selectedNode.id, {
+                                      config: {
+                                        ...config,
+                                        recipientType: "manager",
+                                        recipients: undefined,
+                                        recipientEmployeeId: undefined,
+                                      },
+                                    });
+                                    setNotificationRecipientOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      config.recipientType === "manager" ? "opacity-100" : "opacity-0",
+                                    )}
+                                  />
+                                  Manager
+                                </CommandItem>
+                                <CommandItem
+                                  value="HR Team"
+                                  onSelect={() => {
+                                    handleNodeUpdate(selectedNode.id, {
+                                      config: {
+                                        ...config,
+                                        recipientType: "hr",
+                                        recipients: undefined,
+                                        recipientEmployeeId: undefined,
+                                      },
+                                    });
+                                    setNotificationRecipientOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      config.recipientType === "hr" ? "opacity-100" : "opacity-0",
+                                    )}
+                                  />
+                                  HR Team
+                                </CommandItem>
+                                <CommandItem
+                                  value="Buddy"
+                                  onSelect={() => {
+                                    handleNodeUpdate(selectedNode.id, {
+                                      config: {
+                                        ...config,
+                                        recipientType: "buddy",
+                                        recipients: undefined,
+                                        recipientEmployeeId: undefined,
+                                      },
+                                    });
+                                    setNotificationRecipientOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      config.recipientType === "buddy" ? "opacity-100" : "opacity-0",
+                                    )}
+                                  />
+                                  Buddy
+                                </CommandItem>
+                                <CommandItem
+                                  value="All Employees"
+                                  onSelect={() => {
+                                    handleNodeUpdate(selectedNode.id, {
+                                      config: {
+                                        ...config,
+                                        recipientType: "all_employees",
+                                        recipients: undefined,
+                                        recipientEmployeeId: undefined,
+                                      },
+                                    });
+                                    setNotificationRecipientOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      config.recipientType === "all_employees" ? "opacity-100" : "opacity-0",
+                                    )}
+                                  />
+                                  All Employees
+                                </CommandItem>
+                              </CommandGroup>
+                              <CommandGroup heading="Employees">
+                                {sortedEmployees.map((employee) => (
+                                  <CommandItem
+                                    key={employee.id}
+                                    value={`${employee.name} ${employee.email}`}
+                                    onSelect={() => {
+                                      handleNodeUpdate(selectedNode.id, {
+                                        config: {
+                                          ...config,
+                                          recipientType: "specific",
+                                          recipients: employee.email ? [employee.email] : [],
+                                          recipientEmployeeId: employee.id,
+                                        },
+                                      });
+                                      setNotificationRecipientOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        (config.recipientType === "specific" &&
+                                          (config.recipientEmployeeId === employee.id ||
+                                            (Array.isArray(config.recipients) && config.recipients[0] === employee.email)))
+                                          ? "opacity-100"
+                                          : "opacity-0",
+                                      )}
+                                    />
+                                    <span className="truncate">{employee.name}</span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     )}
                   </div>
                   

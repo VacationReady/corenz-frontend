@@ -211,6 +211,7 @@ export default function QuickReportBuilder({
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["user"]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [fieldsBeforeTemplate, setFieldsBeforeTemplate] = useState<string[] | null>(null);
   const [showAllFields, setShowAllFields] = useState(false);
   
   const debouncedSearch = useDebounce(searchTerm, 200);
@@ -254,19 +255,35 @@ export default function QuickReportBuilder({
       return { ...prev, selectedFields: newFields };
     });
     setSelectedTemplate(null);
+    setFieldsBeforeTemplate(null);
   }, []);
 
   // Handle template selection
   const selectTemplate = useCallback((templateId: string) => {
+    if (selectedTemplate === templateId) {
+      const restored = fieldsBeforeTemplate || [...REQUIRED_FIELDS];
+      setSelectedTemplate(null);
+      setFieldsBeforeTemplate(null);
+      setConfig((prev) => ({
+        ...prev,
+        selectedFields: Array.from(new Set([...REQUIRED_FIELDS, ...restored])),
+      }));
+      return;
+    }
+
     const template = quickTemplates.find((t) => t.id === templateId);
     if (!template) return;
+
+    if (selectedTemplate === null) {
+      setFieldsBeforeTemplate(config.selectedFields);
+    }
 
     setSelectedTemplate(templateId);
     setConfig((prev) => ({
       ...prev,
       selectedFields: Array.from(new Set([...REQUIRED_FIELDS, ...template.fields])),
     }));
-  }, []);
+  }, [config.selectedFields, fieldsBeforeTemplate, selectedTemplate]);
 
   // Handle navigation
   const handleNext = useCallback(() => {

@@ -11,7 +11,6 @@ import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
 import NewsEditor from "@/components/news/NewsEditor";
 import NewsContentTipTapRenderer from "@/components/news/NewsContentTipTapRenderer";
-import AudienceCampaignPanel from "@/components/news/AudienceCampaignPanel";
 import NewsChip from "@/components/ui/NewsChip";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -36,7 +35,6 @@ import {
   Image as ImageIcon,
   FileText,
   Settings2,
-  Users,
   Pin,
   Star,
   Mail,
@@ -189,7 +187,6 @@ export default function CreateNewsPostPage() {
     roles?: string[];
     locations?: string[];
   }>({ type: "all" });
-  const [refreshKey, setRefreshKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittingAction, setSubmittingAction] = useState<
     "draft" | "publish" | null
@@ -442,10 +439,6 @@ export default function CreateNewsPostPage() {
     return input;
   }
 
-  const handleAudienceRefresh = () => {
-    setRefreshKey((prev) => prev + 1);
-  };
-
   // Keep latest draft snapshot
   useEffect(() => {
     latestDraftRef.current = {
@@ -588,10 +581,6 @@ export default function CreateNewsPostPage() {
       restorePromptedRef.current = true;
     }
   }, [autosaveKey]);
-
-  useEffect(() => {
-    handleAudienceRefresh();
-  }, []);
 
   // Section Header Component
   const SectionHeader = ({ 
@@ -1159,21 +1148,6 @@ export default function CreateNewsPostPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
-
-            {/* Audience Panel */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <AudienceCampaignPanel
-                value={audience}
-                onChange={setAudience}
-                refreshKey={refreshKey}
-                showScheduling={false}
-                showNotifications={false}
-              />
             </motion.div>
           </div>
         </div>

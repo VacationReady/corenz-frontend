@@ -303,3 +303,15 @@ Fixed onboarding template builder Simulation Mode and Live Preview to render the
 ## 74. Onboarding Template Builder Dropdown Menu Actions Fix
 
 Fixed dropdown menu actions (Delete, Duplicate, Advanced settings) not working in the onboarding template builder. The issue was caused by HeadlessUI's Portal conflicting with Radix Dialog's event handling. Removed the Portal implementation and switched to inline absolute positioning with proper event propagation handling, ensuring menu items fire correctly when clicked.
+
+## 75. Quick Report Builder Template Toggle Deselect
+
+Updated the Quick Report Builder in `/reports/builder-new` so clicking an already-selected quick-start template toggles it off. When deselected, the builder restores the user's previous field selection and removes the fields that were auto-applied by the template (while keeping required fields).
+
+## 76. Automation Rules Employee Searchable Recipient Dropdown
+
+Replaced the generic "email recipient" dropdown in automation rules with a searchable employee list. The dropdown now renders an alphabetically sorted list of active employees with an in-dropdown search bar, while preserving existing role-based recipient options (Manager, HR Team, Buddy, All Employees).
+
+## 77. Org Chart UX Refactor for Enhanced Visibility
+
+Refactored the org chart page to dramatically improve visibility and reduce scrolling. Implemented compact inline stats, collapsible filters, smaller node cards (200×140px), lower default zoom (60%), and a fit-to-screen button, allowing users to see significantly more employees at once without excessive scrolling.

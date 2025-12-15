@@ -164,9 +164,14 @@ export function useActiveEmployees(): UseReferenceDataResult<{
       }
 
       const result = await response.json();
-      const employees = Array.isArray(result)
+      const employees = (Array.isArray(result)
         ? result
-        : (Array.isArray(result?.data) ? result.data : []);
+        : (Array.isArray(result?.data) ? result.data : [])) as Array<{
+        id: string;
+        email: string;
+        firstName?: string | null;
+        lastName?: string | null;
+      }>;
       setData(
         employees.map(e => ({
           id: e.id,

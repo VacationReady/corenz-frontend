@@ -59,9 +59,12 @@ export async function GET(
 
     const isAdminOrManager = ['ADMIN', 'MANAGER'].includes(requestingEmployee.User.role);
 
-    // Fetch shift with related data
-    const shift = await prisma.shift.findUnique({
-      where: { id: id },
+    // Fetch shift with related data - tenant-scoped query to prevent cross-tenant data exposure
+    const shift = await prisma.shift.findFirst({
+      where: { 
+        id: id,
+        companyId: requestingEmployee.companyId,
+      },
       include: {
         Template: true,
         ShiftSwapRequests: {
@@ -79,11 +82,6 @@ export async function GET(
 
     if (!shift) {
       return NextResponse.json({ error: 'Shift not found' }, { status: 404 });
-    }
-
-    // Check company scoping
-    if (shift.companyId !== requestingEmployee.companyId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Check permissions
@@ -204,17 +202,16 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized to update shifts' }, { status: 403 });
     }
 
-    const shift = await prisma.shift.findUnique({
-      where: { id: id },
+    // Tenant-scoped query to prevent cross-tenant data exposure
+    const shift = await prisma.shift.findFirst({
+      where: { 
+        id: id,
+        companyId: requestingEmployee.companyId,
+      },
     });
 
     if (!shift) {
       return NextResponse.json({ error: 'Shift not found' }, { status: 404 });
-    }
-
-    // Check company scoping
-    if (shift.companyId !== requestingEmployee.companyId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Build update data
@@ -384,8 +381,12 @@ export async function DELETE(
     }
 
     // Fetch shift with employee and company details for email notification
-    const shift = await prisma.shift.findUnique({
-      where: { id: id },
+    // Tenant-scoped query to prevent cross-tenant data exposure
+    const shift = await prisma.shift.findFirst({
+      where: { 
+        id: id,
+        companyId: requestingEmployee.companyId,
+      },
       include: {
         Employee: {
           include: {
@@ -407,11 +408,6 @@ export async function DELETE(
 
     if (!shift) {
       return NextResponse.json({ error: 'Shift not found' }, { status: 404 });
-    }
-
-    // Check company scoping
-    if (shift.companyId !== requestingEmployee.companyId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Get company name for email

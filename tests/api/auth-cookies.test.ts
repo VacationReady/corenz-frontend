@@ -1,7 +1,6 @@
-/**
- * @jest-environment node
- */
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import "./setupEnv";
+import test from "node:test";
+import assert from "node:assert/strict";
 import {
   getSessionCookieName,
   getSessionCookieNames,
@@ -11,153 +10,128 @@ import {
   COOKIE_NAMES,
 } from "../../app/lib/auth-cookies";
 
-describe("auth-cookies utility", () => {
-  describe("getSessionCookieName", () => {
-    it("returns v5 secure cookie name in production", () => {
-      const name = getSessionCookieName(true);
-      expect(name).toBe("__Secure-authjs.session-token");
-    });
+test("auth-cookies utility", async (t) => {
+  await t.test("getSessionCookieName returns v5 secure cookie name in production", () => {
+    const name = getSessionCookieName(true);
+    assert.equal(name, "__Secure-authjs.session-token");
+  });
 
-    it("returns v5 non-secure cookie name in development", () => {
-      const name = getSessionCookieName(false);
-      expect(name).toBe("authjs.session-token");
+  await t.test("getSessionCookieName returns v5 non-secure cookie name in development", () => {
+    const name = getSessionCookieName(false);
+    assert.equal(name, "authjs.session-token");
+  });
+
+  await t.test("getSessionCookieNames returns all secure variants first in production", () => {
+    const names = getSessionCookieNames(true);
+    assert.deepEqual(names, [
+      "__Secure-authjs.session-token",
+      "__Secure-next-auth.session-token",
+      "authjs.session-token",
+      "next-auth.session-token",
+    ]);
+    assert.equal(names[0], "__Secure-authjs.session-token");
+  });
+
+  await t.test("getSessionCookieNames returns non-secure variants in development", () => {
+    const names = getSessionCookieNames(false);
+    assert.deepEqual(names, [
+      "authjs.session-token",
+      "next-auth.session-token",
+    ]);
+    assert.equal(names[0], "authjs.session-token");
+  });
+
+  await t.test("getSessionCookieNames includes legacy v4 cookie names for backward compatibility", () => {
+    const prodNames = getSessionCookieNames(true);
+    const devNames = getSessionCookieNames(false);
+    
+    assert.ok(prodNames.includes("__Secure-next-auth.session-token"));
+    assert.ok(devNames.includes("next-auth.session-token"));
+  });
+
+  await t.test("getAllSessionCookieNames returns all four cookie name variants", () => {
+    const names = getAllSessionCookieNames();
+    assert.equal(names.length, 4);
+    assert.ok(names.includes("__Secure-authjs.session-token"));
+    assert.ok(names.includes("authjs.session-token"));
+    assert.ok(names.includes("__Secure-next-auth.session-token"));
+    assert.ok(names.includes("next-auth.session-token"));
+  });
+
+  await t.test("getSessionCookieOptions returns correct options for production", () => {
+    const options = getSessionCookieOptions(true);
+    assert.deepEqual(options, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
     });
   });
 
-  describe("getSessionCookieNames", () => {
-    it("returns all secure variants first in production", () => {
-      const names = getSessionCookieNames(true);
-      expect(names).toEqual([
-        "__Secure-authjs.session-token",
-        "__Secure-next-auth.session-token",
-        "authjs.session-token",
-        "next-auth.session-token",
-      ]);
-      // v5 should be first (preferred)
-      expect(names[0]).toBe("__Secure-authjs.session-token");
-    });
-
-    it("returns non-secure variants in development", () => {
-      const names = getSessionCookieNames(false);
-      expect(names).toEqual([
-        "authjs.session-token",
-        "next-auth.session-token",
-      ]);
-      // v5 should be first (preferred)
-      expect(names[0]).toBe("authjs.session-token");
-    });
-
-    it("includes legacy v4 cookie names for backward compatibility", () => {
-      const prodNames = getSessionCookieNames(true);
-      const devNames = getSessionCookieNames(false);
-      
-      expect(prodNames).toContain("__Secure-next-auth.session-token");
-      expect(devNames).toContain("next-auth.session-token");
+  await t.test("getSessionCookieOptions returns correct options for development", () => {
+    const options = getSessionCookieOptions(false);
+    assert.deepEqual(options, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/",
     });
   });
 
-  describe("getAllSessionCookieNames", () => {
-    it("returns all four cookie name variants", () => {
-      const names = getAllSessionCookieNames();
-      expect(names).toHaveLength(4);
-      expect(names).toContain("__Secure-authjs.session-token");
-      expect(names).toContain("authjs.session-token");
-      expect(names).toContain("__Secure-next-auth.session-token");
-      expect(names).toContain("next-auth.session-token");
-    });
+  await t.test("getClearCookieOptions includes maxAge: 0 and past expires date", () => {
+    const options = getClearCookieOptions(true);
+    assert.equal(options.maxAge, 0);
+    assert.deepEqual(options.expires, new Date(0));
+    assert.equal(options.httpOnly, true);
   });
 
-  describe("getSessionCookieOptions", () => {
-    it("returns correct options for production", () => {
-      const options = getSessionCookieOptions(true);
-      expect(options).toEqual({
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: "/",
-      });
-    });
-
-    it("returns correct options for development", () => {
-      const options = getSessionCookieOptions(false);
-      expect(options).toEqual({
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        path: "/",
-      });
-    });
-  });
-
-  describe("getClearCookieOptions", () => {
-    it("includes maxAge: 0 and past expires date", () => {
-      const options = getClearCookieOptions(true);
-      expect(options.maxAge).toBe(0);
-      expect(options.expires).toEqual(new Date(0));
-      expect(options.httpOnly).toBe(true);
-    });
-  });
-
-  describe("COOKIE_NAMES constants", () => {
-    it("exports all cookie name constants", () => {
-      expect(COOKIE_NAMES.V5).toBe("authjs.session-token");
-      expect(COOKIE_NAMES.V5_SECURE).toBe("__Secure-authjs.session-token");
-      expect(COOKIE_NAMES.V4).toBe("next-auth.session-token");
-      expect(COOKIE_NAMES.V4_SECURE).toBe("__Secure-next-auth.session-token");
-    });
+  await t.test("COOKIE_NAMES exports all cookie name constants", () => {
+    assert.equal(COOKIE_NAMES.V5, "authjs.session-token");
+    assert.equal(COOKIE_NAMES.V5_SECURE, "__Secure-authjs.session-token");
+    assert.equal(COOKIE_NAMES.V4, "next-auth.session-token");
+    assert.equal(COOKIE_NAMES.V4_SECURE, "__Secure-next-auth.session-token");
   });
 });
 
-describe("auth cookie migration scenarios", () => {
-  describe("signout clears legacy cookies", () => {
-    it("getAllSessionCookieNames includes legacy v4 names for clearing", () => {
-      const names = getAllSessionCookieNames();
-      // Both legacy names should be included so signout clears them
-      expect(names).toContain("next-auth.session-token");
-      expect(names).toContain("__Secure-next-auth.session-token");
-    });
+test("auth cookie migration scenarios", async (t) => {
+  await t.test("getAllSessionCookieNames includes legacy v4 names for clearing", () => {
+    const names = getAllSessionCookieNames();
+    assert.ok(names.includes("next-auth.session-token"));
+    assert.ok(names.includes("__Secure-next-auth.session-token"));
   });
 
-  describe("login sets v5 cookie name", () => {
-    it("getSessionCookieName returns v5 name (not legacy v4)", () => {
-      const prodName = getSessionCookieName(true);
-      const devName = getSessionCookieName(false);
-      
-      // Should use v5 naming, not v4
-      expect(prodName).toBe("__Secure-authjs.session-token");
-      expect(prodName).not.toBe("__Secure-next-auth.session-token");
-      
-      expect(devName).toBe("authjs.session-token");
-      expect(devName).not.toBe("next-auth.session-token");
-    });
+  await t.test("getSessionCookieName returns v5 name (not legacy v4)", () => {
+    const prodName = getSessionCookieName(true);
+    const devName = getSessionCookieName(false);
+    
+    assert.equal(prodName, "__Secure-authjs.session-token");
+    assert.notEqual(prodName, "__Secure-next-auth.session-token");
+    
+    assert.equal(devName, "authjs.session-token");
+    assert.notEqual(devName, "next-auth.session-token");
   });
 
-  describe("reading supports both v5 and legacy v4", () => {
-    it("getSessionCookieNames includes both v5 and v4 for reading", () => {
-      const prodNames = getSessionCookieNames(true);
-      const devNames = getSessionCookieNames(false);
-      
-      // Production should include both secure variants
-      expect(prodNames).toContain("__Secure-authjs.session-token");
-      expect(prodNames).toContain("__Secure-next-auth.session-token");
-      
-      // Development should include both non-secure variants
-      expect(devNames).toContain("authjs.session-token");
-      expect(devNames).toContain("next-auth.session-token");
-    });
+  await t.test("getSessionCookieNames includes both v5 and v4 for reading", () => {
+    const prodNames = getSessionCookieNames(true);
+    const devNames = getSessionCookieNames(false);
+    
+    assert.ok(prodNames.includes("__Secure-authjs.session-token"));
+    assert.ok(prodNames.includes("__Secure-next-auth.session-token"));
+    
+    assert.ok(devNames.includes("authjs.session-token"));
+    assert.ok(devNames.includes("next-auth.session-token"));
+  });
 
-    it("v5 cookie names come before v4 (preferred order)", () => {
-      const prodNames = getSessionCookieNames(true);
-      const devNames = getSessionCookieNames(false);
-      
-      // v5 should be checked first
-      const prodV5Index = prodNames.indexOf("__Secure-authjs.session-token");
-      const prodV4Index = prodNames.indexOf("__Secure-next-auth.session-token");
-      expect(prodV5Index).toBeLessThan(prodV4Index);
-      
-      const devV5Index = devNames.indexOf("authjs.session-token");
-      const devV4Index = devNames.indexOf("next-auth.session-token");
-      expect(devV5Index).toBeLessThan(devV4Index);
-    });
+  await t.test("v5 cookie names come before v4 (preferred order)", () => {
+    const prodNames = getSessionCookieNames(true);
+    const devNames = getSessionCookieNames(false);
+    
+    const prodV5Index = prodNames.indexOf("__Secure-authjs.session-token");
+    const prodV4Index = prodNames.indexOf("__Secure-next-auth.session-token");
+    assert.ok(prodV5Index < prodV4Index);
+    
+    const devV5Index = devNames.indexOf("authjs.session-token");
+    const devV4Index = devNames.indexOf("next-auth.session-token");
+    assert.ok(devV5Index < devV4Index);
   });
 });

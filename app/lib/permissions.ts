@@ -1,7 +1,7 @@
 import { User, PermissionProfile } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
-export type PermissionAction = "read" | "edit" | "delete";
+export type PermissionAction = "read" | "edit" | "delete" | "approve";
 
 export type ScreenPermissions = Record<string, PermissionAction[]>;
 
@@ -24,7 +24,7 @@ const ADMIN_BASE_PERMISSIONS: ScreenPermissions = {
   onboarding: ["read", "edit", "delete"],
   offboarding: ["read", "edit", "delete"],
   forms: ["read", "edit", "delete"],
-  "leave-requests": ["read", "edit", "delete"],
+  "leave-requests": ["read", "edit", "delete", "approve"],
   "working-patterns": ["read", "edit", "delete"],
   departments: ["read", "edit", "delete"],
   "job-roles": ["read", "edit", "delete"],
@@ -42,7 +42,7 @@ export const DEFAULT_PERMISSIONS: Record<string, ScreenPermissions> = {
     reports: ["read"],
     "org-chart": ["read"],
     news: ["read"],
-    "leave-requests": ["read", "edit"],
+    "leave-requests": ["read", "edit", "approve"],
     "working-patterns": ["read"],
     onboarding: ["read"],
     offboarding: ["read"],
@@ -163,7 +163,7 @@ export function getDefaultPermissionsForRole(role: string): ScreenPermissions {
  */
 export function validatePermissions(permissions: ScreenPermissions): boolean {
   const availableScreens = getAvailableScreens();
-  const availableActions: PermissionAction[] = ["read", "edit", "delete"];
+  const availableActions: PermissionAction[] = ["read", "edit", "delete", "approve"];
 
   for (const [screen, actions] of Object.entries(permissions)) {
     // Check if screen is valid
@@ -243,6 +243,7 @@ export function getActionDisplayName(action: PermissionAction): string {
     read: "View",
     edit: "Edit",
     delete: "Delete",
+    approve: "Approve",
   };
 
   return actionNames[action];

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { decode, encode } from "next-auth/jwt";
 import { env } from "@/lib/env.server";
 import { prisma } from "@/lib/prisma";
+import { getSessionCookieName, getSessionCookieNames, getSessionCookieOptions } from "@/lib/auth-cookies";
 
 // Session duration constants
 const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days
@@ -9,17 +10,19 @@ const SESSION_MAX_AGE_MS = SESSION_MAX_AGE_SECONDS * 1000;
 
 /**
  * Get token from request - supports both cookie-based (web) and body-based (mobile) auth
+ * Checks all known cookie names (v5 and legacy v4) for backward compatibility
  */
 async function getTokenFromRequest(request: NextRequest): Promise<string | null> {
   // First, try to get token from httpOnly cookie (web clients)
+  // Check all known cookie names for backward compatibility during migration
   const isProduction = process.env.NODE_ENV === "production";
-  const cookieName = isProduction 
-    ? "__Secure-next-auth.session-token" 
-    : "next-auth.session-token";
+  const cookieNames = getSessionCookieNames(isProduction);
   
-  const cookieToken = request.cookies.get(cookieName)?.value;
-  if (cookieToken) {
-    return cookieToken;
+  for (const cookieName of cookieNames) {
+    const cookieToken = request.cookies.get(cookieName)?.value;
+    if (cookieToken) {
+      return cookieToken;
+    }
   }
   
   // Fallback: try to get token from request body (mobile clients)
@@ -41,11 +44,14 @@ export async function POST(request: NextRequest) {
   try {
     // Determine if this is a web (cookie) or mobile (body) request
     const isProduction = process.env.NODE_ENV === "production";
-    const cookieName = isProduction 
-      ? "__Secure-next-auth.session-token" 
-      : "next-auth.session-token";
+    const cookieNames = getSessionCookieNames(isProduction);
     
-    const cookieToken = request.cookies.get(cookieName)?.value;
+    // Check all known cookie names for backward compatibility
+    let cookieToken: string | undefined;
+    for (const name of cookieNames) {
+      cookieToken = request.cookies.get(name)?.value;
+      if (cookieToken) break;
+    }
     const isWebClient = !!cookieToken;
     
     // Get token from appropriate source
@@ -127,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_MS).toISOString();
 
-    // For web clients, set the new token as an httpOnly cookie
+    // For web clients, set the new token as an httpOnly cookie using v5 naming
     if (isWebClient) {
       const response = NextResponse.json({
         success: true,
@@ -135,11 +141,10 @@ export async function POST(request: NextRequest) {
         // Don't include token in body for web - it's in the cookie
       });
 
-      response.cookies.set(cookieName, newToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: "lax",
-        path: "/",
+      // Always write using v5 cookie name
+      const v5CookieName = getSessionCookieName(isProduction);
+      response.cookies.set(v5CookieName, newToken, {
+        ...getSessionCookieOptions(isProduction),
         maxAge: SESSION_MAX_AGE_SECONDS,
       });
 

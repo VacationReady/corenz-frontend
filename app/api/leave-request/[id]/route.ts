@@ -6,6 +6,7 @@ import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { z } from "zod";
 import { processDecision } from "@/lib/advanceLeaveApproval";
 import { roundToTwoDecimals, addWithPrecision } from "@/lib/decimalPrecision";
+import { hasPermission, UserWithProfile } from "@/lib/permissions";
 
 const leaveRequestActionSchema = z.object({
   action: z.enum(["approve", "decline"], {
@@ -122,14 +123,40 @@ export async function PATCH(
 ) {
   const session = await auth();
 
-  if (!session?.user || !["ADMIN", "MANAGER"].includes(session.user.role)) {
+  if (!session?.user || !session.user.companyId) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
-      { status: 403 },
+      { status: 401 },
     );
   }
 
   const { id: leaveId } = await context.params;
+
+  // Fetch user with permission profile for centralized authorization
+  const userWithProfile = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { PermissionProfile: true },
+  });
+
+  if (!userWithProfile) {
+    return NextResponse.json(
+      { success: false, error: "User not found" },
+      { status: 401 },
+    );
+  }
+
+  const permissionUser: UserWithProfile = {
+    ...userWithProfile,
+    permissionProfile: userWithProfile.PermissionProfile,
+  };
+
+  // Check leave approval permission via centralized permission system
+  if (!hasPermission(permissionUser, "leave-requests", "approve")) {
+    return NextResponse.json(
+      { success: false, error: "You do not have permission to approve or decline leave requests" },
+      { status: 403 },
+    );
+  }
 
   try {
     const { action, decisionId } = leaveRequestActionSchema.parse(await req.json());
@@ -356,11 +383,21 @@ export async function DELETE(
       );
     }
 
-    const isAdminOrManager = ["ADMIN", "MANAGER"].includes(session.user.role);
+    // Fetch user with permission profile for centralized authorization
+    const userWithProfile = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { PermissionProfile: true },
+    });
+
+    const permissionUser: UserWithProfile = userWithProfile
+      ? { ...userWithProfile, permissionProfile: userWithProfile.PermissionProfile }
+      : { id: session.user.id, role: session.user.role } as UserWithProfile;
+
+    const canDeleteAny = hasPermission(permissionUser, "leave-requests", "delete");
     const isOwnRequest = leave.Employee?.User?.id === session.user.id;
 
-    // Employees can only delete their own PENDING requests
-    if (!isAdminOrManager) {
+    // Users without delete permission can only delete their own PENDING requests
+    if (!canDeleteAny) {
       if (!isOwnRequest) {
         return NextResponse.json(
           { success: false, error: "You can only delete your own leave requests" },

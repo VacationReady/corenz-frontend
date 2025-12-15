@@ -539,18 +539,76 @@ export async function POST(req: NextRequest) {
     const hashedPassword = ""; // Leave blank for activation
 
     // ✅ Handle manager linking safely (capture manager's User.id)
+    // Use tenant-scoped query to prevent cross-tenant ID leakage
     let managerUserId: string | null = null;
     if (managerId && managerId.trim() !== "") {
-      const managerEmployee = await prisma.employee.findUnique({
-        where: { id: managerId },
-        select: { userId: true, companyId: true },
+      const managerEmployee = await prisma.employee.findFirst({
+        where: { id: managerId, companyId },
+        select: { userId: true },
       });
 
-      if (managerEmployee?.userId && managerEmployee.companyId === companyId) {
-        managerUserId = managerEmployee.userId;
-      } else {
-        console.warn(
-          `Manager Employee ID ${managerId} missing or cross-company. Skipping manager link.`,
+      if (!managerEmployee) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid manager: the specified manager does not exist or belongs to a different company.",
+          },
+          { status: 400 },
+        );
+      }
+      managerUserId = managerEmployee.userId;
+    }
+
+    // ✅ Validate tenant-scoped foreign keys to prevent cross-tenant linking
+    if (departmentId) {
+      const dept = await prisma.department.findFirst({
+        where: { id: departmentId, companyId },
+        select: { id: true },
+      });
+      if (!dept) {
+        return NextResponse.json(
+          { success: false, error: "Invalid department: does not exist or belongs to a different company." },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (jobRoleId) {
+      const jobRole = await prisma.jobRole.findFirst({
+        where: { id: jobRoleId, companyId },
+        select: { id: true },
+      });
+      if (!jobRole) {
+        return NextResponse.json(
+          { success: false, error: "Invalid job role: does not exist or belongs to a different company." },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (locationId) {
+      // Locations can be company-specific or global (companyId: null)
+      const location = await prisma.location.findFirst({
+        where: { id: locationId, OR: [{ companyId }, { companyId: null }] },
+        select: { id: true },
+      });
+      if (!location) {
+        return NextResponse.json(
+          { success: false, error: "Invalid location: does not exist or belongs to a different company." },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (workingPatternId) {
+      const pattern = await prisma.workingPattern.findFirst({
+        where: { id: workingPatternId, companyId },
+        select: { id: true },
+      });
+      if (!pattern) {
+        return NextResponse.json(
+          { success: false, error: "Invalid working pattern: does not exist or belongs to a different company." },
+          { status: 400 },
         );
       }
     }
@@ -626,40 +684,35 @@ export async function POST(req: NextRequest) {
     // ✅ Auto-promote manager and apply Manager permission profile within company
     //    - Only elevate EMPLOYEE to MANAGER
     //    - Never downgrade an ADMIN to MANAGER
-    if (managerId && managerId.trim() !== "") {
+    if (managerUserId) {
       try {
-        const mgr = await prisma.employee.findUnique({
-          where: { id: managerId },
-          select: { userId: true, companyId: true },
+        // Ensure the new employee points to this manager as their line manager
+        // managerUserId was already validated above with tenant-scoped query
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { managerId: managerUserId },
         });
-        if (mgr?.userId && mgr.companyId === companyId) {
-          // Ensure the new employee points to this manager as their line manager
+
+        const mgrUser = await prisma.user.findUnique({
+          where: { id: managerUserId },
+          select: { role: true },
+        });
+        if (mgrUser?.role === "EMPLOYEE") {
+          const managerProfile = await prisma.permissionProfile.findFirst({
+            where: {
+              companyId,
+              name: { equals: "Manager", mode: "insensitive" },
+            },
+            select: { id: true },
+          });
+
           await prisma.user.update({
-            where: { id: user.id },
-            data: { managerId: mgr.userId },
+            where: { id: managerUserId },
+            data: {
+              role: "MANAGER",
+              ...(managerProfile ? { permissionProfileId: managerProfile.id } : {}),
+            },
           });
-
-          const mgrUser = await prisma.user.findUnique({
-            where: { id: mgr.userId },
-            select: { role: true },
-          });
-          if (mgrUser?.role === "EMPLOYEE") {
-            const managerProfile = await prisma.permissionProfile.findFirst({
-              where: {
-                companyId,
-                name: { equals: "Manager", mode: "insensitive" },
-              },
-              select: { id: true },
-            });
-
-            await prisma.user.update({
-              where: { id: mgr.userId },
-              data: {
-                role: "MANAGER",
-                ...(managerProfile ? { permissionProfileId: managerProfile.id } : {}),
-              },
-            });
-          }
         }
       } catch (e) {
         console.warn("Failed to auto-promote manager role:", e);

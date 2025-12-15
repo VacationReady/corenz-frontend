@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { encode } from "next-auth/jwt";
 import { env } from "@/lib/env.server";
 import { rateLimit } from "@/lib/rate-limit";
+import { getSessionCookieName, getSessionCookieOptions } from "@/lib/auth-cookies";
 
 // Rate limiting: 5 attempts per 15 minutes per IP
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -126,9 +127,7 @@ export async function POST(request: NextRequest) {
 
     // Set httpOnly cookie (not accessible to JavaScript - XSS protection)
     const isProduction = process.env.NODE_ENV === "production";
-    const cookieName = isProduction 
-      ? "__Secure-next-auth.session-token" 
-      : "next-auth.session-token";
+    const cookieName = getSessionCookieName(isProduction);
 
     const response = NextResponse.json({
       success: true,
@@ -142,17 +141,10 @@ export async function POST(request: NextRequest) {
       expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     });
 
-    // Set secure, httpOnly cookie
+    // Set secure, httpOnly cookie using v5 naming convention
     response.cookies.set(cookieName, token, {
-      httpOnly: true, // Not accessible to JavaScript - prevents XSS attacks
-      secure: isProduction, // Only send over HTTPS in production
-      sameSite: "lax", // CSRF protection
-      path: "/",
+      ...getSessionCookieOptions(isProduction),
       maxAge: 30 * 24 * 60 * 60, // 30 days
-      ...(isProduction && {
-        // __Host- prefix requires these settings
-        domain: undefined, // No domain (more secure)
-      }),
     });
 
     return response;

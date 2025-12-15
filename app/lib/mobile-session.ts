@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { decode } from "next-auth/jwt";
 import { auth } from "@/lib/auth-options";
 import { env } from "@/lib/env.server";
+import { getAllSessionCookieNames } from "@/lib/auth-cookies";
 
 interface MobileSession {
   user: {
@@ -28,11 +29,8 @@ export async function getMobileSession(req: NextRequest): Promise<MobileSession 
   // If no session, try to get JWT from Cookie header (mobile app sends this)
   const cookieHeader = req.headers.get("cookie");
   if (cookieHeader) {
-    // Try different possible cookie names
-    const cookieNames = [
-      "next-auth.session-token",
-      "__Secure-next-auth.session-token",
-    ];
+    // Try all known cookie names (v5 and legacy v4) for backward compatibility
+    const cookieNames = getAllSessionCookieNames();
 
     for (const cookieName of cookieNames) {
       const match = cookieHeader.match(new RegExp(`${cookieName}=([^;]+)`));

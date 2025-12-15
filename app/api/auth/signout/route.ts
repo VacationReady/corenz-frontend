@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { decode } from "next-auth/jwt";
 import { env } from "@/lib/env.server";
+import { getSessionCookieNames, getAllSessionCookieNames, getClearCookieOptions } from "@/lib/auth-cookies";
 
 // Note: Filter persistence is cleared client-side in auth-web.ts signOut()
 // Server-side clearing is not possible since localStorage is client-only
@@ -16,12 +17,15 @@ import { env } from "@/lib/env.server";
 export async function POST(request: NextRequest) {
   try {
     const isProduction = process.env.NODE_ENV === "production";
-    const cookieName = isProduction 
-      ? "__Secure-next-auth.session-token" 
-      : "next-auth.session-token";
+    const cookieNames = getSessionCookieNames(isProduction);
     
     // Try to get user info from token for audit logging
-    const cookieToken = request.cookies.get(cookieName)?.value;
+    // Check all known cookie names for backward compatibility
+    let cookieToken: string | undefined;
+    for (const name of cookieNames) {
+      cookieToken = request.cookies.get(name)?.value;
+      if (cookieToken) break;
+    }
     let userId: string | null = null;
     let companyId: string | null = null;
     
@@ -61,50 +65,33 @@ export async function POST(request: NextRequest) {
       message: "Signed out successfully",
     });
 
-    // Clear the session cookie by setting it to expire immediately
-    response.cookies.set(cookieName, "", {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 0, // Expire immediately
-      expires: new Date(0), // Set to past date
-    });
-
-    // Also clear the non-secure version in case it exists
-    if (isProduction) {
-      response.cookies.set("next-auth.session-token", "", {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 0,
-        expires: new Date(0),
+    // Clear ALL known session cookies (v5 and legacy v4) to ensure complete cleanup
+    const allCookieNames = getAllSessionCookieNames();
+    for (const name of allCookieNames) {
+      // Use appropriate secure flag based on cookie name prefix
+      const isSecureCookie = name.startsWith("__Secure-");
+      response.cookies.set(name, "", {
+        ...getClearCookieOptions(isSecureCookie),
       });
     }
 
     return response;
   } catch (error) {
     console.error("[auth-signout] Signout error:", error);
-    // Even on error, try to clear the cookie
+    // Even on error, try to clear all cookies
     const response = NextResponse.json(
       { success: false, error: "An error occurred during signout" },
       { status: 500 }
     );
     
-    const isProduction = process.env.NODE_ENV === "production";
-    const cookieName = isProduction 
-      ? "__Secure-next-auth.session-token" 
-      : "next-auth.session-token";
-    
-    response.cookies.set(cookieName, "", {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 0,
-      expires: new Date(0),
-    });
+    // Clear ALL known session cookies even on error
+    const allCookieNames = getAllSessionCookieNames();
+    for (const name of allCookieNames) {
+      const isSecureCookie = name.startsWith("__Secure-");
+      response.cookies.set(name, "", {
+        ...getClearCookieOptions(isSecureCookie),
+      });
+    }
     
     return response;
   }

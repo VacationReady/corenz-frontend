@@ -1,5 +1,7 @@
 // lib/computedHandlers.ts
 
+ import { roundToTwoDecimals, subtractWithPrecision } from "@/lib/decimalPrecision";
+
 type ComputedFieldHandler = (item: any) => any;
 
 type ComputedFieldRegistry = {
@@ -18,7 +20,7 @@ export const computedHandlers: ComputedFieldRegistry = {
         (item.totalDays || 0) +
         (item.daysAllocated || 0) +
         (item.carryoverDays || 0);
-      return total - (item.usedDays || 0);
+      return subtractWithPrecision(roundToTwoDecimals(total), roundToTwoDecimals(item.usedDays || 0));
     },
     "_computed.jobRoleName": (item) => {
       // Access through Employee relation

@@ -2,6 +2,7 @@ import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getMobileSession } from "@/lib/mobile-session";
 import { hasPermission } from "@/lib/permissions";
+ import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
 export const runtime = "nodejs";
 
@@ -179,14 +180,16 @@ export async function GET(req: NextRequest) {
                 },
               });
 
-              const remaining = entitlement.totalDays + entitlement.carryoverDays - entitlement.usedDays;
+              const remaining = roundToTwoDecimals(
+                (entitlement.totalDays + entitlement.carryoverDays) - entitlement.usedDays,
+              );
 
               return {
                 id: entitlement.id,
                 policyId: entitlement.eventCategoryId,
                 policyName: entitlement.EventCategory?.name || "Leave",
-                totalAllowance: entitlement.totalDays + entitlement.carryoverDays,
-                used: entitlement.usedDays,
+                totalAllowance: roundToTwoDecimals(entitlement.totalDays + entitlement.carryoverDays),
+                used: roundToTwoDecimals(entitlement.usedDays),
                 remaining: Math.max(0, remaining),
                 pending: pendingLeaveCount,
               };
@@ -202,15 +205,15 @@ export async function GET(req: NextRequest) {
         
         if (employee.annualLeaveBalance !== null) {
           const balanceInHours = Number(employee.annualLeaveBalance || 0);
-          const remainingDays = Math.round((balanceInHours / HOURS_PER_DAY) * 10) / 10; // 1 decimal place
+          const remainingDays = roundToTwoDecimals(balanceInHours / HOURS_PER_DAY);
           const totalDays = 20; // Default NZ annual leave (4 weeks)
-          const usedDays = Math.max(0, totalDays - remainingDays);
+          const usedDays = Math.max(0, roundToTwoDecimals(totalDays - remainingDays));
 
           basicBalances.push({
             id: "annual-leave",
             policyId: "annual-leave",
             policyName: "Annual Leave",
-            totalAllowance: totalDays,
+            totalAllowance: roundToTwoDecimals(totalDays),
             used: usedDays,
             remaining: remainingDays,
             pending: 0,
@@ -220,9 +223,9 @@ export async function GET(req: NextRequest) {
         if (employee.sickLeaveBalance !== null) {
           const balanceInHours = Number(employee.sickLeaveBalance || 0);
           const entitlementInHours = Number(employee.sickLeaveEntitlement || 80); // Default 80 hours = 10 days
-          const remainingDays = Math.round((balanceInHours / HOURS_PER_DAY) * 10) / 10;
-          const totalDays = Math.round((entitlementInHours / HOURS_PER_DAY) * 10) / 10;
-          const usedDays = Math.max(0, totalDays - remainingDays);
+          const remainingDays = roundToTwoDecimals(balanceInHours / HOURS_PER_DAY);
+          const totalDays = roundToTwoDecimals(entitlementInHours / HOURS_PER_DAY);
+          const usedDays = Math.max(0, roundToTwoDecimals(totalDays - remainingDays));
 
           basicBalances.push({
             id: "sick-leave",

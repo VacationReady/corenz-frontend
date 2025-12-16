@@ -23,6 +23,9 @@ interface MultiSelectProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   autoOpen?: boolean;
+  includeAllOption?: boolean;
+  allOptionLabel?: string;
+  allOptionValue?: string;
   className?: string;
 }
 
@@ -39,6 +42,9 @@ export function MultiSelect({
   searchable = false,
   searchPlaceholder = "Search...",
   autoOpen = false,
+  includeAllOption = true,
+  allOptionLabel,
+  allOptionValue = "all",
   className,
 }: MultiSelectProps) {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -66,16 +72,21 @@ export function MultiSelect({
     return () => cancelAnimationFrame(raf);
   }, [autoOpen]);
 
-  // ✅ Dynamically determine "All" label & value
-  const isDepartment = placeholder.toLowerCase().includes("department");
-  const allOption = {
-    label: isDepartment ? "All Departments" : "All Job Roles",
-    value: "all",
-  };
+  const allOption = useMemo<Option | null>(() => {
+    if (!includeAllOption) return null;
+    const normalizedPlaceholder = placeholder.toLowerCase();
+    const isDepartment = normalizedPlaceholder.includes("department");
+    const isJobRole = normalizedPlaceholder.includes("job role") || normalizedPlaceholder.includes("job roles");
 
-  // ✅ Ensure "All" is included at the top of the options list if not provided by API
+    return {
+      label: allOptionLabel ?? (isDepartment ? "All Departments" : isJobRole ? "All Job Roles" : "All"),
+      value: allOptionValue,
+    };
+  }, [allOptionLabel, allOptionValue, includeAllOption, placeholder]);
+
   const fullOptions = useMemo(() => {
-    const hasAll = options.some((opt) => opt.value === "all");
+    if (!allOption) return options;
+    const hasAll = options.some((opt) => opt.value === allOption.value);
     return hasAll ? options : [allOption, ...options];
   }, [options, allOption]);
 
@@ -83,46 +94,35 @@ export function MultiSelect({
     if (!searchable) return fullOptions;
     const normalizedQuery = query.trim().toLowerCase();
     if (!normalizedQuery) return fullOptions;
-    return fullOptions.filter((option) =>
-      option.value === allOption.value
-        ? true
-        : option.label.toLowerCase().includes(normalizedQuery),
-    );
-  }, [fullOptions, query, searchable, allOption.value]);
-
-  console.log("Options (final):", fullOptions);
-  console.log("Selected (values):", resolvedSelected);
+    return fullOptions.filter((option) => {
+      if (allOption && option.value === allOption.value) return true;
+      return option.label.toLowerCase().includes(normalizedQuery);
+    });
+  }, [allOption, fullOptions, query, searchable]);
 
   const toggleValue = (value: string) => {
     if (disabled) return;
-    console.log("Clicked:", value);
-    console.log("Selected before:", resolvedSelected);
 
-    if (value === allOption.value) {
-      // ✅ Reset to just "all"
+    if (allOption && value === allOption.value) {
       handleChange([allOption.value]);
-      console.log("Reset to ALL:", [allOption.value]);
-    } else {
-      // ✅ Remove "all" if selecting a specific
-      let updated = resolvedSelected.filter((v) => v !== allOption.value);
-
-      if (updated.includes(value)) {
-        updated = updated.filter((v) => v !== value);
-        console.log("Deselected:", value, "→", updated);
-      } else {
-        updated = [...updated, value];
-        console.log("Added:", value, "→", updated);
-      }
-
-      // ✅ If none selected, fallback to "all"
-      if (updated.length === 0) {
-        updated = [allOption.value];
-        console.log("Fallback to ALL:", updated);
-      }
-
-      handleChange(updated);
-      console.log("Selected after:", updated);
+      return;
     }
+
+    let updated = allOption
+      ? resolvedSelected.filter((v) => v !== allOption.value)
+      : [...resolvedSelected];
+
+    if (updated.includes(value)) {
+      updated = updated.filter((v) => v !== value);
+    } else {
+      updated = [...updated, value];
+    }
+
+    if (allOption && updated.length === 0) {
+      updated = [allOption.value];
+    }
+
+    handleChange(updated);
   };
 
   // ✅ Map selected values to display labels

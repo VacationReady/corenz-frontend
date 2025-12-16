@@ -4,6 +4,7 @@ import { buildDynamicQuery, attachComputedFields } from "@/lib/queryBuilder";
 import { getFieldByKey } from "@/lib/hrReportFields";
 import { auth } from "@/lib/auth-options";
 import { z } from "zod";
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 import { resolveReportingTimeConfig } from "@/lib/reportingTimeConfig";
 import { deserializeFilterGroup, normalizeFilterGroupInput, addRuleToGroup, createFilterRule } from "@/lib/reportFilters";
 import type { FilterGroup } from "@/lib/reportFilters";
@@ -221,6 +222,15 @@ function flattenToOriginalPaths(
                     if (idx === 0) {
                         console.log(`🔄 Defaulted null numeric field ${originalField} to 0`);
                     }
+                }
+            }
+
+            // Normalize floating-point artifacts for common numeric fields (e.g. leave days)
+            // so values never display like 2.699999999999999.
+            if (typeof value === "number") {
+                const fieldName = originalField.split(".").pop() || "";
+                if (/days|hours|amount|balance|rate/i.test(fieldName)) {
+                    value = roundToTwoDecimals(value);
                 }
             }
             

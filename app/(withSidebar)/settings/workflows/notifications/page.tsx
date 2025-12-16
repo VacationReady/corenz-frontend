@@ -169,11 +169,33 @@ export default function TransactionalNotificationsPage() {
         const [d, r, e] = await Promise.all([
           fetch('/api/departments').then(r => r.json()).catch(() => []),
           fetch('/api/job-roles').then(r => r.json()).catch(() => []),
-          fetch('/api/employees?status=active').then(r => r.json()).catch(() => []),
+          fetch('/api/employees?status=active&limit=all').then(r => r.json()).catch(() => []),
         ]);
         setDepartments(Array.isArray(d) ? d : []);
         setJobRoles(Array.isArray(r) ? r : []);
-        setEmployees(Array.isArray(e) ? e.map((x: any) => ({ id: x.id, name: `${x.firstName ?? ''} ${x.lastName ?? ''}`.trim(), departmentId: x.departmentId })) : []);
+
+        const employeeRows = Array.isArray(e)
+          ? e
+          : (e && Array.isArray((e as any).data) ? (e as any).data : []);
+
+        const normalizedEmployees = Array.isArray(employeeRows)
+          ? employeeRows
+              .map((x: any) => {
+                const firstName = x.firstName ?? x.User?.firstName;
+                const lastName = x.lastName ?? x.User?.lastName;
+                const email = x.email ?? x.User?.email;
+                const name = `${firstName ?? ''} ${lastName ?? ''}`.trim() || email || x.id;
+                return {
+                  id: x.id,
+                  name,
+                  departmentId: x.departmentId,
+                };
+              })
+              .filter((x: any) => x && x.id && x.name)
+              .sort((a: any, b: any) => String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' }))
+          : [];
+
+        setEmployees(normalizedEmployees);
       })();
     }, []);
 
@@ -236,13 +258,19 @@ export default function TransactionalNotificationsPage() {
 
                 {(row.type === 'DEPARTMENT' || row.type === 'EMPLOYEE') && (
                   <MultiSelect
-                    options={(row.type === 'DEPARTMENT' ? filteredEmployees : employees).filter(e => e && e.id && e.name).map((e) => ({ label: e.name, value: e.id }))}
+                    options={(row.type === 'DEPARTMENT' ? filteredEmployees : employees)
+                      .filter(e => e && e.id && e.name)
+                      .map((e) => ({ label: e.name, value: e.id }))
+                      .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))}
                     selected={row.employeeIds ?? []}
                     onChange={(ids) => {
                       const next = [...rows];
                       next[idx] = { ...row, employeeIds: ids };
                       setRows(next);
                     }}
+                    searchable
+                    searchPlaceholder="Search employees..."
+                    includeAllOption={false}
                     placeholder={row.type === 'DEPARTMENT' ? 'Select 1+ employees (required)' : 'Select employees'}
                   />
                 )}

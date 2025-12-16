@@ -862,28 +862,12 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
         companyId: action.companyId,
       });
 
-      // Step 2: Create leave request (same as API)
-      const newLeaveRequest = await prisma.leaveRequest.create({
-        data: {
-          id: crypto.randomUUID(),
-          Employee: { connect: { id: pending.data.employeeId } },
-          User_LeaveRequest_requesterIdToUser: { connect: { id: action.userId } },
-          EventCategory: { connect: { id: category.id } },
-          Company: { connect: { id: action.companyId } },
-          startDate: new Date(pending.data.startDate),
-          endDate: new Date(pending.data.endDate),
-          dayType: "FULL_DAY",
-          reason: "Booked via AI Assistant by admin",
-          paidStatus: category.name === "Sick Leave" ? "PAID" : null,
-          updatedAt: new Date(),
-        },
-      });
-
-      // Step 3: Auto-approve for admin (same as API)
+      // Step 2: Calculate leave deduction before transaction
+      const startDateObj = new Date(pending.data.startDate);
+      const endDateObj = new Date(pending.data.endDate);
       const totalDays: number[] = [];
-      let currentDate = new Date(newLeaveRequest.startDate);
-      const endInclusive = new Date(newLeaveRequest.endDate);
-      const exclusiveEnd = new Date(endInclusive);
+      let currentDate = new Date(startDateObj);
+      const exclusiveEnd = new Date(endDateObj);
       exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
 
       while (currentDate <= exclusiveEnd) {
@@ -894,13 +878,13 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
 
       const totalDeduction = totalDays.reduce((sum, d) => sum + d, 0);
 
-      // Check balance first (outside transaction)
-      const entitlement = await prisma.leaveEntitlement.findFirst({
+      // Step 3: Check balance before transaction to provide helpful error message
+      const entitlementCheck = await prisma.leaveEntitlement.findFirst({
         where: { employeeId: pending.data.employeeId, eventCategoryId: category.id },
       });
 
-      if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
-        const available = entitlement ? entitlement.totalDays - entitlement.usedDays : 0;
+      if (!entitlementCheck || entitlementCheck.totalDays - entitlementCheck.usedDays < totalDeduction) {
+        const available = entitlementCheck ? entitlementCheck.totalDays - entitlementCheck.usedDays : 0;
         clearPendingAction(action.userId, action.companyId);
         return {
           success: true,
@@ -908,13 +892,41 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
         };
       }
 
+      // Step 4: Execute entire operation in a single transaction to prevent orphaned records
       const approved = await prisma.$transaction(async (tx) => {
+        // Re-check entitlement inside transaction for consistency
+        const entitlement = await tx.leaveEntitlement.findFirst({
+          where: { employeeId: pending.data.employeeId, eventCategoryId: category.id },
+        });
 
+        if (!entitlement || entitlement.totalDays - entitlement.usedDays < totalDeduction) {
+          throw new Error("Insufficient leave balance.");
+        }
+
+        // Create leave request inside transaction
+        const newLeaveRequest = await tx.leaveRequest.create({
+          data: {
+            id: crypto.randomUUID(),
+            Employee: { connect: { id: pending.data.employeeId } },
+            User_LeaveRequest_requesterIdToUser: { connect: { id: action.userId } },
+            EventCategory: { connect: { id: category.id } },
+            Company: { connect: { id: action.companyId } },
+            startDate: startDateObj,
+            endDate: endDateObj,
+            dayType: "FULL_DAY",
+            reason: "Booked via AI Assistant by admin",
+            paidStatus: category.name === "Sick Leave" ? "PAID" : null,
+            updatedAt: new Date(),
+          },
+        });
+
+        // Update entitlement
         await tx.leaveEntitlement.update({
           where: { id: entitlement.id },
           data: { usedDays: entitlement.usedDays + totalDeduction },
         });
 
+        // Approve leave request
         return tx.leaveRequest.update({
           where: { id: newLeaveRequest.id },
           data: { approvalStatus: "APPROVED", approvedById: action.userId },

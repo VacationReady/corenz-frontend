@@ -312,6 +312,22 @@ Updated the Quick Report Builder in `/reports/builder-new` so clicking an alread
 
 Replaced the generic "email recipient" dropdown in automation rules with a searchable employee list. The dropdown now renders an alphabetically sorted list of active employees with an in-dropdown search bar, while preserving existing role-based recipient options (Manager, HR Team, Buddy, All Employees).
 
+## 81. Leave Request Approval Centralized Authorization
+
+Refactored `/api/leave-request/[id]` to use centralized permission system instead of hardcoded role checks. Extended permission model with "approve" action for leave requests and replaced `["ADMIN","MANAGER"].includes()` checks with `hasPermission()` calls, ensuring consistent authorization across all endpoints.
+
+## 78. Shifts API Cross-Tenant Security Hardening
+
+Fixed cross-tenant data exposure vulnerability in `/api/shifts/[id]` by replacing `findUnique({ where: { id } })` queries with tenant-scoped `findFirst({ where: { id, companyId } })` across all handlers. This prevents attackers from discovering shift existence through timing attacks and eliminates cross-tenant data leakage while maintaining existing permission checks.
+
 ## 77. Org Chart UX Refactor for Enhanced Visibility
 
 Refactored the org chart page to dramatically improve visibility and reduce scrolling. Implemented compact inline stats, collapsible filters, smaller node cards (200×140px), lower default zoom (60%), and a fit-to-screen button, allowing users to see significantly more employees at once without excessive scrolling.
+
+## 79. NextAuth v5 Cookie Name Migration
+
+Fixed silent login/logout/session inconsistencies by updating custom auth endpoints to use NextAuth v5 cookie names (`authjs.session-token`) instead of legacy v4 names. Created centralized cookie utilities that read from both v5 and v4 names for backward compatibility while always writing v5 names, ensuring complete session cleanup on signout.
+
+## 80. Employees API Cross-Tenant Security Hardening
+
+Fixed cross-tenant manager linking vulnerability in `/api/employees` by replacing `findUnique({ where: { id } })` manager lookups with tenant-scoped `findFirst({ where: { id, companyId } })`. Added comprehensive tenant validation for all foreign keys (departmentId, jobRoleId, locationId, workingPatternId) and created extensive cross-tenant security tests.

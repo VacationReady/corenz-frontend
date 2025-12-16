@@ -4,6 +4,7 @@ import { FormField } from "@/api/forms/[id]/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, Sparkles, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
+import { evaluate } from "mathjs";
 
 export function FormPreviewEnhanced({ fields }: { fields: FormField[] }) {
   const [fieldValues, setFieldValues] = useState<Record<string, number>>({});
@@ -29,7 +30,7 @@ export function FormPreviewEnhanced({ fields }: { fields: FormField[] }) {
     try {
       const sanitized = result.replace(/[^0-9+\-*/.() ]/g, '');
       if (sanitized && /^[0-9+\-*/.() ]+$/.test(sanitized)) {
-        const evaluated = eval(sanitized);
+        const evaluated = evaluate(sanitized);
         const precision = field.calculationConfig?.precision ?? 2;
         const format = field.calculationConfig?.format || "number";
         

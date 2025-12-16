@@ -158,6 +158,7 @@ export default function FieldPlacementModal({
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [fields, setFields] = useState<Field[]>([]);
   const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [draggingFromPalette, setDraggingFromPalette] = useState<"SIGNATURE" | "NAME" | "JOB_ROLE" | null>(null);
   const dragOffsetRef = useRef<{ dx: number; dy: number } | null>(null);
   const resizingRef = useRef<{ idx: number; handle: string; startX: number; startY: number; startField: Field } | null>(null);
   const rafIdRef = useRef<number | null>(null);
@@ -289,14 +290,47 @@ export default function FieldPlacementModal({
     setIsDirty(hasChanged);
   }, [fields, initialFields]);
 
-  const addField = (type: "SIGNATURE" | "NAME" | "JOB_ROLE") => {
+  const addField = (type: "SIGNATURE" | "NAME" | "JOB_ROLE", dropX?: number, dropY?: number) => {
     // Increased default height slightly to prevent icon cutoff
-    const base = { pageNumber: 1, x: 0.1, y: 0.1, width: 0.25, height: 0.1 } as Field;
+    // Use drop position if provided, otherwise default to top-left
+    const x = dropX !== undefined ? dropX : 0.1;
+    const y = dropY !== undefined ? dropY : 0.1;
+    const base = { pageNumber: 1, x, y, width: 0.25, height: 0.1 } as Field;
     const label = type === "SIGNATURE" ? "Signature" : type === "NAME" ? "Name" : "Job Role";
     setFields((prev) => [
       ...prev,
       { ...base, label, assignedEmployeeId: selectedAssignee || undefined },
     ]);
+  };
+
+  const handlePaletteDragStart = (type: "SIGNATURE" | "NAME" | "JOB_ROLE") => {
+    setDraggingFromPalette(type);
+  };
+
+  const handlePaletteDragEnd = () => {
+    setDraggingFromPalette(null);
+  };
+
+  const handleDocumentDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!draggingFromPalette || !contentRef.current) return;
+    
+    const rect = contentRef.current.getBoundingClientRect();
+    // Calculate drop position as percentage of document
+    let x = (e.clientX - rect.left) / rect.width;
+    let y = (e.clientY - rect.top) / rect.height;
+    // Clamp to valid range
+    x = Math.min(Math.max(0.05, x), 0.95);
+    y = Math.min(Math.max(0.05, y), 0.95);
+    
+    addField(draggingFromPalette, x, y);
+    setDraggingFromPalette(null);
+  };
+
+  const handleDocumentDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (draggingFromPalette) {
+      e.preventDefault(); // Allow drop
+    }
   };
 
   const handleClose = () => {
@@ -488,6 +522,8 @@ export default function FieldPlacementModal({
                 <div
                   ref={contentRef}
                   className="relative bg-white shadow-lg mx-auto"
+                  onDrop={handleDocumentDrop}
+                  onDragOver={handleDocumentDragOver}
                   style={{
                     // Aspect ratio accounts for all pages stacked vertically
                     aspectRatio: pdfAspectRatio ? `${pdfAspectRatio / pdfPageCount}` : `${8.5 / (11 * pdfPageCount)}`,
@@ -577,7 +613,10 @@ export default function FieldPlacementModal({
                     <button
                       key={item.type}
                       type="button"
-                      className="w-full flex items-center justify-between border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-left py-3 px-3 rounded-xl transition-all group outline-none focus:ring-2 focus:ring-primary/20"
+                      draggable
+                      onDragStart={() => handlePaletteDragStart(item.type)}
+                      onDragEnd={handlePaletteDragEnd}
+                      className="w-full flex items-center justify-between border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-left py-3 px-3 rounded-xl transition-all group outline-none focus:ring-2 focus:ring-primary/20 cursor-grab active:cursor-grabbing"
                       onClick={() => addField(item.type)}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">

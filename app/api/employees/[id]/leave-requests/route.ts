@@ -271,23 +271,6 @@ export async function POST(
       companyId: session.user.companyId,
     });
 
-    const newLeaveRequest = await prisma.leaveRequest.create({
-      data: {
-        id: crypto.randomUUID(),
-        Employee: { connect: { id: employeeId } },
-        User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
-        EventCategory: { connect: { id: EventCategoryId } },
-        Company: { connect: { id: session.user.companyId } },
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        dayType: dayType ?? "FULL_DAY",
-        reason: reason ?? "",
-        paidStatus:
-          EventCategoryName === "Sick Leave" ? (paidStatus ?? "PAID") : null,
-        updatedAt: new Date(),
-      },
-    });
-    
     // Auto-approve immediately when created by ADMIN or SUPER_ADMIN
     if (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") {
       try {
@@ -307,12 +290,13 @@ export async function POST(
         const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
 
         if (enforceEntitlement) {
-          // Calculate deduction and enforce entitlement check
+          // Calculate deduction before transaction
+          const startDateObj = new Date(startDate);
+          const endDateObj = new Date(endDate);
           const totalDays: number[] = [];
-          let currentDate = new Date(newLeaveRequest.startDate);
-          const endInclusive = new Date(newLeaveRequest.endDate);
+          let currentDate = new Date(startDateObj);
           // Deduction uses inclusive range of away days (return-to-work exclusive)
-          const exclusiveEnd = new Date(endInclusive);
+          const exclusiveEnd = new Date(endDateObj);
           exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
 
           while (currentDate <= exclusiveEnd) {
@@ -323,6 +307,7 @@ export async function POST(
 
           const totalDeduction = totalDays.reduce((sum, d) => sum + d, 0);
 
+          // Execute entire operation in a single transaction to prevent orphaned records
           const approved = await prisma.$transaction(async (tx) => {
             const entitlement = await tx.leaveEntitlement.findFirst({
               where: { employeeId, eventCategoryId: EventCategoryId },
@@ -332,9 +317,57 @@ export async function POST(
               throw new Error("Insufficient leave balance.");
             }
 
+            // Create leave request inside transaction
+            const newLeaveRequest = await tx.leaveRequest.create({
+              data: {
+                id: crypto.randomUUID(),
+                Employee: { connect: { id: employeeId } },
+                User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
+                EventCategory: { connect: { id: EventCategoryId } },
+                Company: { connect: { id: session.user.companyId } },
+                startDate: startDateObj,
+                endDate: endDateObj,
+                dayType: dayType ?? "FULL_DAY",
+                reason: reason ?? "",
+                paidStatus:
+                  EventCategoryName === "Sick Leave" ? (paidStatus ?? "PAID") : null,
+                updatedAt: new Date(),
+              },
+            });
+
+            // Update entitlement
             await tx.leaveEntitlement.update({
               where: { id: entitlement.id },
               data: { usedDays: entitlement.usedDays + totalDeduction },
+            });
+
+            // Approve leave request
+            return tx.leaveRequest.update({
+              where: { id: newLeaveRequest.id },
+              data: { approvalStatus: "APPROVED", approvedById: session.user.id },
+            });
+          });
+
+          return NextResponse.json({ success: true, data: approved });
+        } else {
+          // Entitlement not enforced - create and approve in single transaction
+          console.log("ℹ️ Entitlement enforcement disabled for this event type. Auto-approving without balance check.");
+          const approved = await prisma.$transaction(async (tx) => {
+            const newLeaveRequest = await tx.leaveRequest.create({
+              data: {
+                id: crypto.randomUUID(),
+                Employee: { connect: { id: employeeId } },
+                User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
+                EventCategory: { connect: { id: EventCategoryId } },
+                Company: { connect: { id: session.user.companyId } },
+                startDate: new Date(startDate),
+                endDate: new Date(endDate),
+                dayType: dayType ?? "FULL_DAY",
+                reason: reason ?? "",
+                paidStatus:
+                  EventCategoryName === "Sick Leave" ? (paidStatus ?? "PAID") : null,
+                updatedAt: new Date(),
+              },
             });
 
             return tx.leaveRequest.update({
@@ -344,21 +377,30 @@ export async function POST(
           });
 
           return NextResponse.json({ success: true, data: approved });
-        } else {
-          // Entitlement not enforced - just approve without balance check/deduction
-          console.log("ℹ️ Entitlement enforcement disabled for this event type. Auto-approving without balance check.");
-          const approved = await prisma.leaveRequest.update({
-            where: { id: newLeaveRequest.id },
-            data: { approvalStatus: "APPROVED", approvedById: session.user.id },
-          });
-
-          return NextResponse.json({ success: true, data: approved });
         }
       } catch (e: any) {
         console.error("Auto-approve by admin failed:", e);
         // Fall through to workflow path if deduction failed for any reason
       }
     }
+
+    // Non-admin path: create leave request for workflow approval
+    const newLeaveRequest = await prisma.leaveRequest.create({
+      data: {
+        id: crypto.randomUUID(),
+        Employee: { connect: { id: employeeId } },
+        User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
+        EventCategory: { connect: { id: EventCategoryId } },
+        Company: { connect: { id: session.user.companyId } },
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        dayType: dayType ?? "FULL_DAY",
+        reason: reason ?? "",
+        paidStatus:
+          EventCategoryName === "Sick Leave" ? (paidStatus ?? "PAID") : null,
+        updatedAt: new Date(),
+      },
+    });
 
     // Resolve workflow for this request
     const employeeLite = {

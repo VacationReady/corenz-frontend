@@ -87,6 +87,10 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
         // Only filter on Employee if we have conditions to apply
         ...(Object.keys(employeeConditions).length > 0 && { Employee: employeeConditions }),
         ...(filters.eventCategoryId && { eventCategoryId: filters.eventCategoryId }),
+        // Filter to only Annual Leave category
+        EventCategory: {
+          name: { in: ["Annual Leave", "Annual", "Holiday", "Vacation"] },
+        },
       };
 
       const entitlements = await prisma.leaveEntitlement.findMany({
@@ -104,19 +108,30 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
             : { updatedAt: "desc" },
       });
 
+      // Helper to round to 2 decimal places to avoid floating point precision issues
+      const round2 = (n: number | null | undefined) => {
+        if (n === null || n === undefined) return 0;
+        return Math.round(n * 100) / 100;
+      };
+
       // Map to a clean, serializable shape with a stable computed field name
       let rows = entitlements.map((record) => {
-        const total = (record.totalDays || 0) + (record.carryoverDays || 0) + (record.daysAllocated || 0);
-        const remainingEntitlement = total - (record.usedDays || 0);
+        const totalDays = round2(record.totalDays);
+        const usedDays = round2(record.usedDays);
+        const carryoverDays = round2(record.carryoverDays);
+        const daysAllocated = round2(record.daysAllocated);
+        const total = totalDays + carryoverDays + daysAllocated;
+        const remainingEntitlement = round2(total - usedDays);
         const jobRoleName = record.Employee?.JobRole?.name ?? null;
+        const departmentName = record.Employee?.Department?.name ?? null;
         return {
           id: record.id,
           employeeId: record.employeeId,
           companyId: record.companyId,
           LeaveEntitlement: {
-            totalDays: record.totalDays,
-            usedDays: record.usedDays,
-            carryoverDays: record.carryoverDays ?? 0,
+            totalDays,
+            usedDays,
+            carryoverDays,
           },
           Employee: record.Employee
             ? {
@@ -140,7 +155,7 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
           EventCategory: record.EventCategory
             ? { id: record.EventCategory.id, name: record.EventCategory.name }
             : null,
-          _computed: { remainingEntitlement, jobRoleName },
+          _computed: { remainingEntitlement, jobRoleName, departmentName },
         };
       });
 

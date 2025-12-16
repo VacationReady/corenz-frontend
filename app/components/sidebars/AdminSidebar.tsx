@@ -52,33 +52,17 @@ export default function AdminSidebar({
   const isMobile = variant === "mobile";
 
   const brandName = branding.shortName || branding.name;
-  const brandLogo = branding.squareLogoUrl || branding.logoUrl || null;
 
   const handleLogout = () => {
     onMobileNavigate?.();
     void signOut({ callbackUrl: getLogoutCallbackUrl() });
   };
 
-  const logoElement = brandLogo ? (
-    <img
-      src={brandLogo}
-      alt={`${brandName} logo`}
-      className="w-full h-full object-contain"
-    />
-  ) : (
-    <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-depth-1">
-      <span className="text-primary-foreground font-bold text-sm">
-        {branding.initials}
-      </span>
-    </div>
-  );
-
   return (
     <div className={isMobile ? "h-full w-full" : "h-full p-2"}>
       <SidebarContainer collapsed={collapsed} variant={variant}>
         <SidebarHeader
-          logo={logoElement}
-          title={brandName}
+          title="PeopleCore"
           collapsed={collapsed}
           onToggle={variant === "desktop" ? toggleSidebar : undefined}
           onClose={onMobileClose}

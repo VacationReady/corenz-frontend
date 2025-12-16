@@ -27,7 +27,6 @@ export default function ManagerSidebar({
   const navPadding = isMobile ? "px-2" : "px-2";
 
   const brandName = branding.shortName || branding.name;
-  const brandLogo = branding.squareLogoUrl || branding.logoUrl || null;
 
   const handleLogout = () => {
     onMobileNavigate?.();
@@ -62,27 +61,11 @@ export default function ManagerSidebar({
               href="/dashboard"
               onClick={() => onMobileNavigate?.()}
               className="flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-              aria-label={`Go to ${brandName} dashboard`}
+              aria-label="Go to PeopleCore dashboard"
             >
-              <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center mr-3 shadow-warm overflow-hidden">
-                {brandLogo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={brandLogo}
-                    alt={`${brandName} logo`}
-                    className="h-6 w-6 object-contain"
-                  />
-                ) : (
-                  <span className="text-primary-foreground font-bold text-sm">
-                    {branding.initials}
-                  </span>
-                )}
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-foreground">
-                  {brandName}
-                </h2>
-              </div>
+              <h2 className="text-base font-bold text-foreground">
+                PeopleCore
+              </h2>
             </Link>
             {isMobile && onMobileClose && (
               <button

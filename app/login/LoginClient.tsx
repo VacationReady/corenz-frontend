@@ -179,23 +179,9 @@ export default function LoginClient() {
         />
 
         <div className="relative mb-6 text-center">
-          {logoSrc ? (
-            <div className="mb-4 flex justify-center">
-              {/* Integrated logo pill that feels part of the card */}
-              <div
-                className="inline-flex items-center justify-center rounded-full px-6 py-3 shadow-sm ring-1 ring-white/60 bg-white/80 backdrop-blur-md"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={logoSrc}
-                  alt={`${brandName} logo`}
-                  className="h-8 w-auto"
-                />
-              </div>
-            </div>
-          ) : (
-            <h1 className="text-2xl font-bold text-primary">{brandName}</h1>
-          )}
+          <div className="mb-4 flex justify-center">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">peoplecore</h1>
+          </div>
           <p className="text-sm text-gray-600 dark:text-gray-300">
             {loginSubtitle}
           </p>

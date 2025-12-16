@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageShell } from "@/components/ui/PageShell";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
@@ -815,8 +815,10 @@ function OffboardingContent() {
 
 export default function OffboardingPage() {
   return (
-    <FilterProvider>
-      <OffboardingContent />
-    </FilterProvider>
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+      <FilterProvider>
+        <OffboardingContent />
+      </FilterProvider>
+    </Suspense>
   );
 }

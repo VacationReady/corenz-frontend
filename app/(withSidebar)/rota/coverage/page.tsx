@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, AlertTriangle, CheckCircle, ChevronLeft, ChevronRight, Users, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
@@ -41,7 +41,7 @@ interface CoverageData {
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export default function CoverageDashboardPage() {
+function CoverageDashboardContent() {
   const searchParams = useSearchParams();
   const groupId = searchParams.get('groupId');
 
@@ -317,5 +317,17 @@ export default function CoverageDashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CoverageDashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="w-full min-h-screen bg-content-panel p-8 flex items-center justify-center">
+        <div className="text-foreground text-lg">Loading coverage analysis...</div>
+      </div>
+    }>
+      <CoverageDashboardContent />
+    </Suspense>
   );
 }

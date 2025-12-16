@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAppBaseUrl } from "@/lib/email/template";
 
+// Force dynamic rendering since this page uses cookies()
+export const dynamic = "force-dynamic";
+
 /**
  * Server-side fetch helper that forwards authentication cookies.
  * Uses getAppBaseUrl() for secure base URL derivation with proper fallbacks.

@@ -409,19 +409,20 @@ export const AutomationFlowBuilder: React.FC<FlowBuilderProps> = ({
     const withIds = <T extends { id?: string }>(items: T[] | undefined) =>
       (items || []).map((item) => (item?.id ? item : { ...item, id: uuidv4() }));
 
-    const needsBackfill =
-      (formData.conditions || []).some((c: any) => !c?.id) ||
-      (formData.actions || []).some((a: any) => !a?.id);
+    setFormData((prev: any) => {
+      const needsBackfill =
+        (prev?.conditions || []).some((c: any) => !c?.id) ||
+        (prev?.actions || []).some((a: any) => !a?.id);
 
-    if (needsBackfill) {
-      setFormData({
-        ...formData,
-        conditions: withIds(formData.conditions as any),
-        actions: withIds(formData.actions as any),
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      if (!needsBackfill) return prev;
+
+      return {
+        ...prev,
+        conditions: withIds(prev.conditions as any),
+        actions: withIds(prev.actions as any),
+      };
+    });
+  }, [formData.conditions, formData.actions, setFormData]);
 
   // Memoize stable ID arrays for dnd-kit
   const conditionIds = useMemo(

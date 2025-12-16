@@ -63,6 +63,7 @@ import {
   Undo, Redo, Copy, CheckCircle2, XCircle,
   AlertCircle, Sparkles, Check, ChevronsUpDown
 } from "lucide-react";
+import { z } from "zod";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getLayoutedElements, getGridLayout, getCircularLayout, getLaneLayout, detectCycles, LayoutOptions } from "@/lib/workflows/autoLayout";
@@ -658,19 +659,132 @@ function EnhancedWorkflowCanvasInner({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    event.target.value = "";
+
+    const WorkflowImportSchema = z
+      .object({
+        nodes: z.array(z.unknown()).optional(),
+        edges: z.array(z.unknown()).optional(),
+        metadata: z.unknown().optional(),
+      })
+      .passthrough();
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = JSON.parse(e.target?.result as string);
-        setNodes(data.nodes || []);
-        setEdges(data.edges || []);
-        toast.success('Workflow imported successfully');
+        const json = JSON.parse(e.target?.result as string);
+        const parsed = WorkflowImportSchema.safeParse(json);
+
+        if (!parsed.success) {
+          toast.error("Failed to import workflow", {
+            description: "Invalid workflow JSON format",
+          });
+          return;
+        }
+
+        const rawNodes = parsed.data.nodes ?? [];
+        const rawEdges = parsed.data.edges ?? [];
+
+        let nonObjectNodes = 0;
+        let nodesMissingId = 0;
+        let duplicateNodeIds = 0;
+        const seenNodeIds = new Set<string>();
+        const rawNodeIds = new Set<string>();
+        const exampleIssues: string[] = [];
+
+        for (const n of rawNodes) {
+          if (!n || typeof n !== "object") {
+            nonObjectNodes++;
+            if (exampleIssues.length < 3) exampleIssues.push("node: invalid object");
+            continue;
+          }
+
+          const idValue = (n as any).id;
+          const id = idValue === undefined || idValue === null ? "" : String(idValue);
+          if (!id) {
+            nodesMissingId++;
+            if (exampleIssues.length < 3) exampleIssues.push("node: missing id");
+            continue;
+          }
+
+          if (seenNodeIds.has(id)) {
+            duplicateNodeIds++;
+            if (exampleIssues.length < 3) exampleIssues.push(`node '${id}': duplicate id`);
+          }
+          seenNodeIds.add(id);
+          rawNodeIds.add(id);
+        }
+
+        let nonObjectEdges = 0;
+        let edgesMissingEndpoints = 0;
+        let edgesDangling = 0;
+
+        for (const edge of rawEdges) {
+          if (!edge || typeof edge !== "object") {
+            nonObjectEdges++;
+            if (exampleIssues.length < 3) exampleIssues.push("edge: invalid object");
+            continue;
+          }
+
+          const source = (edge as any).source;
+          const target = (edge as any).target;
+          if (!source || !target) {
+            edgesMissingEndpoints++;
+            const edgeIdRaw = (edge as any).id;
+            const edgeLabel = edgeIdRaw ? `edge '${String(edgeIdRaw)}'` : "edge";
+            if (exampleIssues.length < 3) exampleIssues.push(`${edgeLabel}: missing source/target`);
+            continue;
+          }
+
+          const sourceId = String(source);
+          const targetId = String(target);
+          if (!rawNodeIds.has(sourceId) || !rawNodeIds.has(targetId)) {
+            edgesDangling++;
+            const edgeIdRaw = (edge as any).id;
+            const edgeLabel = edgeIdRaw ? `edge '${String(edgeIdRaw)}'` : "edge";
+            if (exampleIssues.length < 3) {
+              exampleIssues.push(`${edgeLabel}: references unknown node(s) (${sourceId} -> ${targetId})`);
+            }
+          }
+        }
+
+        const { nodesSafe, edgesSafe } = sanitizeNodesAndEdges(rawNodes as any, rawEdges as any);
+        const droppedEdges = rawEdges.length - edgesSafe.length;
+
+        setSelectedNode(null);
+        setNodes(nodesSafe);
+        setEdges(edgesSafe);
+
+        setTimeout(() => {
+          if (nodesSafe.length > 0) {
+            fitView({ padding: 0.2, duration: 300 });
+          }
+        }, 100);
+
+        const fixes: string[] = [];
+        if (nonObjectNodes > 0) fixes.push(`${nonObjectNodes} invalid node(s)`);
+        if (nodesMissingId > 0) fixes.push(`${nodesMissingId} node(s) missing id`);
+        if (duplicateNodeIds > 0) fixes.push(`${duplicateNodeIds} duplicate node id(s)`);
+        if (nonObjectEdges > 0) fixes.push(`${nonObjectEdges} invalid edge(s)`);
+        if (edgesMissingEndpoints > 0) fixes.push(`${edgesMissingEndpoints} edge(s) missing source/target`);
+        if (edgesDangling > 0) fixes.push(`${edgesDangling} edge(s) referencing unknown nodes`);
+        if (droppedEdges > 0) fixes.push(`${droppedEdges} edge(s) dropped`);
+
+        toast.success("Workflow imported", {
+          description:
+            fixes.length > 0
+              ? `Loaded ${nodesSafe.length} node(s) and ${edgesSafe.length} edge(s). Fixed: ${fixes.join(", ")}.${exampleIssues.length > 0 ? ` Examples: ${exampleIssues.join("; ")}.` : ""}`
+              : `Loaded ${nodesSafe.length} node(s) and ${edgesSafe.length} edge(s).`,
+          duration: 5000,
+        });
       } catch (error) {
-        toast.error('Failed to import workflow');
+        toast.error("Failed to import workflow", {
+          description: "Invalid JSON file",
+        });
       }
     };
     reader.readAsText(file);
-  }, [setNodes, setEdges]);
+  }, [setNodes, setEdges, sanitizeNodesAndEdges, setSelectedNode, fitView]);
 
   // Test workflow execution via API with enhanced toast guidance
   const testWorkflow = async () => {

@@ -302,8 +302,8 @@ export function useUsers(limit: number = 100): UseReferenceDataResult<{ id: stri
       const users = Array.isArray(result) ? result : [];
       setData(users.map(u => ({ 
         id: u.id, 
-        name: `${u.firstName} ${u.lastName}`.trim(),
-        email: u.email 
+        name: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email || '',
+        email: u.email || '' 
       })));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load users';

@@ -119,12 +119,13 @@ export function DataTable<TData, TValue>({
   });
 
   const selectedRows = table.getSelectedRowModel().rows.map((r) => r.original as TData);
+  const selectedRowIdsKey = table.getSelectedRowModel().rows.map((r) => r.id).join(",");
 
   // Notify consumer when selection changes
   useEffect(() => {
     if (onSelectionChange) onSelectionChange(selectedRows);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(table.getState().rowSelection)]);
+  }, [selectedRowIdsKey, onSelectionChange]);
 
   // Notify consumer when filtered rows change
   useEffect(() => {

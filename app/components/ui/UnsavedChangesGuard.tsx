@@ -2,6 +2,7 @@
 
 import {
   ReactNode,
+  type ComponentProps,
   createContext,
   useCallback,
   useContext,
@@ -9,7 +10,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import {
   Dialog,
@@ -20,10 +22,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type Router = ReturnType<typeof useRouter>;
+type PushArgs = Parameters<Router["push"]>;
+type ReplaceArgs = Parameters<Router["replace"]>;
+
 interface UnsavedChangesContextValue {
   dirty: boolean;
   markDirty: () => void;
   markSaved: () => void;
+  requestNavigation: (action: () => void) => void;
 }
 
 const UnsavedChangesContext = createContext<UnsavedChangesContextValue | null>(
@@ -66,6 +73,8 @@ export default function UnsavedChangesGuard({
   onStay,
 }: UnsavedChangesGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [dirty, setDirty] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -73,8 +82,8 @@ export default function UnsavedChangesGuard({
   const closingActionRef = useRef<"stay" | "discard" | null>(null);
   const bypassRef = useRef(false);
   const dirtyRef = useRef(dirty);
-  const actualPushRef = useRef<typeof router.push | null>(null);
   const [tenantName, setTenantName] = useState<string | null>(null);
+  const lastStableUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     dirtyRef.current = dirty;
@@ -104,6 +113,12 @@ export default function UnsavedChangesGuard({
   useEffect(() => {
     onDirtyChange?.(dirty);
   }, [dirty, onDirtyChange]);
+
+  const search = searchParams?.toString() ?? "";
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    lastStableUrlRef.current = window.location.href;
+  }, [pathname, search]);
 
   const markDirty = useCallback(() => {
     setDirty(prev => (prev ? prev : true));
@@ -149,6 +164,24 @@ export default function UnsavedChangesGuard({
     setDialogOpen(true);
   }, []);
 
+  const requestNavigation = useCallback(
+    (action: () => void) => {
+      if (!dirtyRef.current || bypassRef.current) {
+        action();
+        return;
+      }
+
+      openConfirmation(() => {
+        bypassRef.current = true;
+        action();
+        setTimeout(() => {
+          bypassRef.current = false;
+        }, 50);
+      });
+    },
+    [openConfirmation],
+  );
+
   useEffect(() => {
     const handleDocumentClick = (event: MouseEvent) => {
       if (!dirtyRef.current || bypassRef.current) return;
@@ -173,50 +206,35 @@ export default function UnsavedChangesGuard({
 
       event.preventDefault();
 
-      openConfirmation(() => {
-        const performPush = actualPushRef.current;
-        if (performPush) {
-          bypassRef.current = true;
-          performPush(href);
-          setTimeout(() => {
-            bypassRef.current = false;
-          }, 0);
-        } else {
-          window.location.href = href;
-        }
+      requestNavigation(() => {
+        router.push(href);
       });
     };
 
     document.addEventListener("click", handleDocumentClick);
     return () => document.removeEventListener("click", handleDocumentClick);
-  }, [openConfirmation]);
+  }, [requestNavigation, router]);
 
   useEffect(() => {
-    const actualPush = router.push.bind(router);
-    actualPushRef.current = actualPush;
+    const handlePopState = () => {
+      if (!dirtyRef.current || bypassRef.current) return;
+      const fallbackUrl = lastStableUrlRef.current;
+      if (!fallbackUrl) return;
 
-    const guardedPush: typeof router.push = ((href, options) => {
-      if (!dirtyRef.current || bypassRef.current) {
-        return actualPush(href, options);
+      try {
+        window.history.pushState(null, "", fallbackUrl);
+      } catch {
+        return;
       }
 
-      openConfirmation(() => {
-        bypassRef.current = true;
-        actualPush(href, options);
-        setTimeout(() => {
-          bypassRef.current = false;
-        }, 0);
+      requestNavigation(() => {
+        window.history.back();
       });
-
-      return;
-    }) as typeof router.push;
-
-    (router as any).push = guardedPush;
-
-    return () => {
-      (router as any).push = actualPush;
     };
-  }, [openConfirmation, router]);
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [requestNavigation]);
 
   useEffect(() => {
     if (dialogOpen || !closingActionRef.current) return;
@@ -251,6 +269,7 @@ export default function UnsavedChangesGuard({
     dirty,
     markDirty,
     markSaved,
+    requestNavigation,
   };
 
   return (
@@ -286,5 +305,66 @@ export default function UnsavedChangesGuard({
         </DialogContent>
       </Dialog>
     </UnsavedChangesContext.Provider>
+  );
+}
+
+export function useGuardedNavigation() {
+  const router = useRouter();
+  const unsaved = useUnsavedChangesContext();
+
+  const runGuarded = useCallback(
+    (action: () => void) => {
+      if (!unsaved) {
+        action();
+        return;
+      }
+      unsaved.requestNavigation(action);
+    },
+    [unsaved],
+  );
+
+  const push = useCallback(
+    (...args: PushArgs) => {
+      runGuarded(() => router.push(...args));
+    },
+    [router, runGuarded],
+  );
+
+  const replace = useCallback(
+    (...args: ReplaceArgs) => {
+      runGuarded(() => router.replace(...args));
+    },
+    [router, runGuarded],
+  );
+
+  const back = useCallback(() => {
+    runGuarded(() => router.back());
+  }, [router, runGuarded]);
+
+  return { push, replace, back };
+}
+
+export function GuardedLink({
+  href,
+  onClick,
+  ...props
+}: Omit<ComponentProps<typeof Link>, "href"> & {
+  href: string;
+}) {
+  const { push } = useGuardedNavigation();
+
+  return (
+    <Link
+      {...props}
+      href={href}
+      data-bypass-unsaved
+      onClick={(event) => {
+        onClick?.(event);
+        if (event.defaultPrevented) return;
+        event.stopPropagation();
+        event.preventDefault();
+        push(href);
+      }}
+    />
   );
 }

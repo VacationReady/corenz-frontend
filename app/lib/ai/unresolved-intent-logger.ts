@@ -163,10 +163,24 @@ export async function getUnresolvedIntents(params: {
       if (!file.endsWith(".jsonl")) continue;
       
       const content = await fs.readFile(path.join(logDir, file), "utf-8");
-      const entries = content.split("\n")
-        .filter(line => line.trim())
-        .map(line => JSON.parse(line));
-      
+      const entries: any[] = [];
+      let skippedLines = 0;
+
+      for (const line of content.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        try {
+          entries.push(JSON.parse(trimmed));
+        } catch {
+          skippedLines++;
+        }
+      }
+
+      if (skippedLines > 0) {
+        console.warn(`[Intent Logger] Skipped ${skippedLines} malformed log line(s) in ${file}`);
+      }
+
       logs.push(...entries);
     }
     

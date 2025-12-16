@@ -68,7 +68,16 @@ export function QuickSetupHub({
   useEffect(() => {
     // Load wizard completion status from localStorage
     const savedProgress = localStorage.getItem("setupWizardProgress");
-    const progress = savedProgress ? JSON.parse(savedProgress) : {};
+    let progress: Record<string, any> = {};
+    if (savedProgress) {
+      try {
+        progress = JSON.parse(savedProgress);
+        if (!progress || typeof progress !== "object") progress = {};
+      } catch {
+        progress = {};
+        localStorage.removeItem("setupWizardProgress");
+      }
+    }
 
     const initialWizards: SetupWizard[] = [
       {

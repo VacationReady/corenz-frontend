@@ -159,19 +159,9 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
         .replace(/\s+/g, " ")
         .toLocaleLowerCase();
 
-    const toLastNameFirst = (fullName: string) => {
-      const cleaned = fullName.trim().replace(/\s+/g, " ");
-      if (!cleaned) return "";
-      const parts = cleaned.split(" ").filter(Boolean);
-      if (parts.length <= 1) return cleaned;
-      const lastName = parts[parts.length - 1];
-      const firstNames = parts.slice(0, -1).join(" ");
-      return `${lastName}, ${firstNames}`;
-    };
-
     return [...filteredEmployees].sort((a, b) => {
-      const aKey = toSortableName(toLastNameFirst(a.fullName));
-      const bKey = toSortableName(toLastNameFirst(b.fullName));
+      const aKey = toSortableName(a.fullName);
+      const bKey = toSortableName(b.fullName);
       if (aKey < bKey) return -1;
       if (aKey > bKey) return 1;
 

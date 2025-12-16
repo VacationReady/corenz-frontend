@@ -968,7 +968,7 @@ export default function AnalyticsDashboard() {
             <div className="grid gap-6 xl:grid-cols-3">
               {/* Department Breakdown */}
               <motion.div variants={itemVariants}>
-                <Card className="h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                <Card className="!h-[480px] min-h-[480px] max-h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
                   <CardHeader className="pb-3 flex-shrink-0 border-b border-muted/20">
                     <SectionHeader
                       icon={Building2}
@@ -977,8 +977,8 @@ export default function AnalyticsDashboard() {
                       iconColor="text-violet-500"
                     />
                   </CardHeader>
-                  <CardContent className="flex-1 overflow-hidden p-0">
-                    <ScrollArea className="h-full">
+                  <CardContent className="flex-1 min-h-0 overflow-hidden p-0">
+                    <ScrollArea className="h-full max-h-full">
                       <div className="p-4 space-y-2">
                         {(data.breakdowns.byDepartment ?? []).length === 0 ? (
                           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -1014,7 +1014,7 @@ export default function AnalyticsDashboard() {
 
               {/* Location & Employment Mix */}
               <motion.div variants={itemVariants}>
-                <Card className="h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                <Card className="!h-[480px] min-h-[480px] max-h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
                   <CardHeader className="pb-3 flex-shrink-0 border-b border-muted/20">
                     <SectionHeader
                       icon={MapPin}
@@ -1023,7 +1023,7 @@ export default function AnalyticsDashboard() {
                       iconColor="text-cyan-500"
                     />
                   </CardHeader>
-                  <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
+                  <CardContent className="flex-1 min-h-0 overflow-hidden p-0 flex flex-col">
                     {/* Pie Chart with Employment Legend */}
                     <div className="flex-shrink-0 p-4 pb-0">
                       <div className="flex items-center gap-4">
@@ -1130,8 +1130,8 @@ export default function AnalyticsDashboard() {
                     </div>
 
                     {/* Locations list */}
-                    <div className="flex-1 overflow-hidden">
-                      <ScrollArea className="h-full">
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                      <ScrollArea className="h-full max-h-full">
                         <div className="px-4 pb-4 space-y-2">
                           {locationData.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -1168,7 +1168,7 @@ export default function AnalyticsDashboard() {
 
               {/* Job Roles */}
               <motion.div variants={itemVariants}>
-                <Card className="h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                <Card className="!h-[480px] min-h-[480px] max-h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
                   <CardHeader className="pb-3 flex-shrink-0 border-b border-muted/20">
                     <SectionHeader
                       icon={Briefcase}
@@ -1177,8 +1177,8 @@ export default function AnalyticsDashboard() {
                       iconColor="text-amber-500"
                     />
                   </CardHeader>
-                  <CardContent className="flex-1 overflow-hidden p-0">
-                    <ScrollArea className="h-full">
+                  <CardContent className="flex-1 min-h-0 overflow-hidden p-0">
+                    <ScrollArea className="h-full max-h-full">
                       <div className="p-4 space-y-2">
                         {(data.breakdowns.byJobRole ?? []).length === 0 ? (
                           <div className="flex flex-col items-center justify-center py-12 text-center">

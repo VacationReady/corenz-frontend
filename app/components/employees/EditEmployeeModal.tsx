@@ -152,6 +152,38 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
     );
   }, [employees, searchQuery]);
 
+  const sortedEmployees = useMemo(() => {
+    const toSortableName = (name: string) =>
+      name
+        .trim()
+        .replace(/\s+/g, " ")
+        .toLocaleLowerCase();
+
+    const toLastNameFirst = (fullName: string) => {
+      const cleaned = fullName.trim().replace(/\s+/g, " ");
+      if (!cleaned) return "";
+      const parts = cleaned.split(" ").filter(Boolean);
+      if (parts.length <= 1) return cleaned;
+      const lastName = parts[parts.length - 1];
+      const firstNames = parts.slice(0, -1).join(" ");
+      return `${lastName}, ${firstNames}`;
+    };
+
+    return [...filteredEmployees].sort((a, b) => {
+      const aKey = toSortableName(toLastNameFirst(a.fullName));
+      const bKey = toSortableName(toLastNameFirst(b.fullName));
+      if (aKey < bKey) return -1;
+      if (aKey > bKey) return 1;
+
+      const aDept = toSortableName(a.departmentName ?? "");
+      const bDept = toSortableName(b.departmentName ?? "");
+      if (aDept < bDept) return -1;
+      if (aDept > bDept) return 1;
+
+      return a.id.localeCompare(b.id);
+    });
+  }, [filteredEmployees]);
+
   const handleSelectEmployee = (employee: MinimalEmployeeForEdit) => {
     setSelectedEmployee(employee);
     setStep("screens");
@@ -300,7 +332,7 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
                         )}
                       </motion.div>
                     ) : (
-                      filteredEmployees.map((employee, index) => (
+                      sortedEmployees.map((employee, index) => (
                         <motion.button
                           key={employee.id}
                           initial={{ opacity: 0, y: 10 }}
@@ -324,7 +356,9 @@ export default function EditEmployeeModal({ open, onOpenChange }: EditEmployeeMo
                               {employee.fullName}
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
-                              {[employee.jobRoleName, employee.departmentName].filter(Boolean).join(" • ") || "No details"}
+                              {[employee.jobRoleName, employee.departmentName]
+                                .filter(Boolean)
+                                .join(" • ") || "No details"}
                             </p>
                           </div>
                           <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />

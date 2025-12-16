@@ -208,6 +208,38 @@ function EnhancedWorkflowCanvasInner({
     return validationMap;
   }, [nodes]);
 
+  // Keep node UI validation state in sync with the current nodeValidation map.
+  // This prevents stale validation rings when nodes are edited after initial load.
+  useEffect(() => {
+    setNodes((nds) => {
+      let changed = false;
+
+      const nextNodes = nds.map((node) => {
+        const nextErrors = nodeValidation.get(node.id)?.errors || [];
+        const currentErrors = Array.isArray((node.data as any)?.validationErrors)
+          ? (((node.data as any).validationErrors as string[]) || [])
+          : [];
+
+        const sameErrors =
+          currentErrors.length === nextErrors.length &&
+          currentErrors.every((err, idx) => err === nextErrors[idx]);
+
+        if (sameErrors) return node;
+        changed = true;
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            validationErrors: nextErrors,
+          },
+        };
+      });
+
+      return changed ? nextNodes : nds;
+    });
+  }, [nodeValidation, setNodes]);
+
   // Helpers to ensure ReactFlow receives valid, unique nodes/edges
   const sanitizeNodesAndEdges = useCallback((rawNodes: Node[] = [], rawEdges: Edge[] = []) => {
     const nodeIds = new Set<string>();

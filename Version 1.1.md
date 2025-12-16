@@ -367,3 +367,23 @@ Fixed a critical security vulnerability in document status queries where acknowl
 ## 82. Document Status Cache Key Collision Fix
 
 Fixed a cache key collision bug that could leak user-specific document status data between employees by including the employee ID in the cache key generation, preventing employees from the same company from accessing each other's cached acknowledgement and signature status.
+
+## 86. Leave Days Decimal Precision Fix
+
+Fixed floating-point precision artifacts in leave day calculations and reporting. Updated the reporting API (/api/reports/query) to round numeric leave fields (days/hours/balance/rate) to 2 decimal places before returning data. Applied the same 2dp rounding to computed entitlement fields (_computed.remainingEntitlement) and leave balance endpoints (/api/leave-request?scope=balances) to ensure consistent display across reports, dashboards, and leave management screens.
+
+## 87. Rota Week Navigation Data Fetching Fix
+
+Fixed an issue where navigating to previous weeks in the rota calendar showed no shifts even though shifts existed. The dateRange state was static and never updated when navigating weeks, so the API always fetched current week data. Added onDateRangeChange callback to RotaCalendar and connected it to the parent page's setDateRange to re-fetch shifts for the selected week/month.
+
+## 84. PeopleCore Logo and Branding Updates
+
+Updated the PeopleCore logo styling across the application to match the website branding. The login page now displays "peoplecore" in lowercase bold text instead of the previous logo image/pill styling. All sidebar components (Admin, Manager, Employee) were updated to remove the logo icon and display "PeopleCore" as text only for a cleaner, consistent branding experience.
+
+## 85. Notifications Employee Recipient Dropdown Fix
+
+Fixed the advanced recipient configuration in transactional notifications where selecting "Employee(s)" incorrectly rendered a "All job roles" dropdown instead of an employee list. The employee picker now shows an alphabetical, searchable dropdown of all active employees without any "All …" pseudo-options. Updated the shared MultiSelect component to make the built-in "All …" option opt-in, preventing similar issues in other pickers.
+
+## 86. Teams Warehouse Icon Fix
+
+Updated the Teams list in the Rota Groups / Teams panel to render the proper Lucide React Warehouse icon when a rota group's icon is set to "warehouse" instead of displaying the literal text. Added an icon mapping helper that preserves existing emoji support while rendering known icon keys as components.

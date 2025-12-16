@@ -39,6 +39,31 @@ import { apiClient } from "@/lib/apiClient";
 import { useSession } from "next-auth/react";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 
+function parseCalendarDate(value: unknown): Date {
+  if (value instanceof Date) return value;
+  if (typeof value === "string") {
+    const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+      const year = Number(m[1]);
+      const month = Number(m[2]);
+      const day = Number(m[3]);
+      return new Date(year, month - 1, day);
+    }
+    return new Date(value);
+  }
+  return new Date(String(value ?? ""));
+}
+
+function formatDateEnglish(value: unknown): string {
+  const d = parseCalendarDate(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(d);
+}
+
 function EntitlementProjection({
   employeeId,
   eventCategoryId,
@@ -196,8 +221,8 @@ export default function AdminDashboardClient({
             </div>
             <div className="text-sm space-y-1">
               <div>
-                Dates: {new Date(detail.startDate).toLocaleDateString()} {" \u2192 "}
-                {new Date(detail.endDate).toLocaleDateString()}
+                Dates: {formatDateEnglish(detail.startDate)} {" \u2192 "}
+                {formatDateEnglish(detail.endDate)}
               </div>
               {detail.reason && <div>Reason: {detail.reason}</div>}
               {detail.employee?.department && (
@@ -695,8 +720,8 @@ export default function AdminDashboardClient({
                           {ev.employee?.name ?? ev.title}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {new Date(ev.start).toLocaleDateString()} {" \u2022 "}
-                          {ev.reason || ev.title}
+                          {formatDateEnglish(ev.start)} {" \u2022 "}
+                          {ev.categoryName || (typeof ev.title === "string" ? ev.title.split(" - ")?.[0] : null) || "Event"}
                         </p>
                       </div>
                     </li>
@@ -809,7 +834,7 @@ export default function AdminDashboardClient({
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{ns.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          Start: {new Date(ns.startDate).toLocaleDateString()} {ns.department ? `â€¢ ${ns.department}` : ""}
+                          Start: {formatDateEnglish(ns.startDate)} {ns.department ? `â€¢ ${ns.department}` : ""}
                         </p>
                       </div>
                       <div className="shrink-0 text-right">

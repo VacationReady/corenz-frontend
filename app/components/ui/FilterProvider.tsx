@@ -30,7 +30,8 @@ type FilterAction =
   | { type: "UPDATE_FILTER"; key: keyof FilterState; value: any }
   | { type: "CLEAR_FILTERS" }
   | { type: "CLEAR_FILTER"; key: keyof FilterState }
-  | { type: "SET_FILTERS"; filters: Partial<FilterState> };
+  | { type: "SET_FILTERS"; filters: Partial<FilterState> }
+  | { type: "HYDRATE"; filters: FilterState };
 
 function filterReducer(state: FilterState, action: FilterAction): FilterState {
   switch (action.type) {
@@ -39,6 +40,8 @@ function filterReducer(state: FilterState, action: FilterAction): FilterState {
         ...state,
         [action.key]: action.value,
       };
+    case "HYDRATE":
+      return action.filters;
     case "CLEAR_FILTERS":
       return initialFilterState;
     case "CLEAR_FILTER":
@@ -282,9 +285,16 @@ export function FilterProvider({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isInitialMount = useRef(true);
+  const hasHydratedRef = useRef(false);
+  const skipNextSyncRef = useRef(false);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentCompanyIdRef = useRef(companyId);
-  
+
+  const [filters, dispatch] = useReducer(filterReducer, {
+    ...initialFilterState,
+    ...initialFilters,
+  });
+
   // Track companyId changes to clear filters on tenant switch
   useEffect(() => {
     if (currentCompanyIdRef.current && companyId && currentCompanyIdRef.current !== companyId) {
@@ -294,38 +304,59 @@ export function FilterProvider({
     }
     currentCompanyIdRef.current = companyId;
   }, [companyId]);
-  
-  // Hydrate filters from URL or localStorage before first render
-  const hydratedInitialState = useMemo(() => {
-    let hydratedFilters = { ...initialFilterState, ...initialFilters };
-    
-    if (persistenceKey) {
-      // Priority 1: URL params (for bookmarkable views)
-      if (enableUrlSync && searchParams) {
-        const urlFilters = deserializeFiltersFromUrl(searchParams);
-        if (Object.keys(urlFilters).length > 0) {
-          hydratedFilters = { ...hydratedFilters, ...urlFilters };
-        } else if (enableLocalStorage && typeof window !== "undefined" && companyId) {
-          // Priority 2: localStorage (fallback) - only if companyId is available
-          const storedFilters = loadFiltersFromLocalStorage(persistenceKey, companyId);
-          if (storedFilters) {
-            hydratedFilters = { ...hydratedFilters, ...storedFilters };
-          }
-        }
-      } else if (enableLocalStorage && typeof window !== "undefined" && companyId) {
-        // No URL sync, just use localStorage - only if companyId is available
-        const storedFilters = loadFiltersFromLocalStorage(persistenceKey, companyId);
-        if (storedFilters) {
-          hydratedFilters = { ...hydratedFilters, ...storedFilters };
-        }
-      }
+
+  useEffect(() => {
+    if (hasHydratedRef.current) return;
+
+    if (!persistenceKey) {
+      hasHydratedRef.current = true;
+      return;
     }
-    
-    return hydratedFilters;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - only run once on mount
-  
-  const [filters, dispatch] = useReducer(filterReducer, hydratedInitialState);
+
+    let hydratedFilters: FilterState = {
+      ...initialFilterState,
+      ...initialFilters,
+    };
+
+    const urlFilters = enableUrlSync && searchParams
+      ? deserializeFiltersFromUrl(searchParams)
+      : {};
+
+    const hasUrlFilters = Object.keys(urlFilters).length > 0;
+
+    if (hasUrlFilters) {
+      hydratedFilters = { ...hydratedFilters, ...urlFilters };
+      skipNextSyncRef.current = true;
+      dispatch({ type: "HYDRATE", filters: hydratedFilters });
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    if (enableLocalStorage) {
+      if (typeof window === "undefined" || !companyId) {
+        return;
+      }
+
+      const storedFilters = loadFiltersFromLocalStorage(persistenceKey, companyId);
+      if (storedFilters) {
+        hydratedFilters = { ...hydratedFilters, ...storedFilters };
+        skipNextSyncRef.current = true;
+        dispatch({ type: "HYDRATE", filters: hydratedFilters });
+      }
+
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    hasHydratedRef.current = true;
+  }, [
+    companyId,
+    enableLocalStorage,
+    enableUrlSync,
+    initialFilters,
+    persistenceKey,
+    searchParams,
+  ]);
 
   const updateFilter = useCallback<
     <K extends keyof FilterState>(key: K, value: FilterState[K]) => void
@@ -361,6 +392,11 @@ export function FilterProvider({
     // Skip sync on initial mount - we just hydrated
     if (isInitialMount.current) {
       isInitialMount.current = false;
+      return;
+    }
+
+    if (skipNextSyncRef.current) {
+      skipNextSyncRef.current = false;
       return;
     }
     

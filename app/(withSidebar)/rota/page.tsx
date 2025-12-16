@@ -23,6 +23,7 @@ import {
   RefreshCw,
   Clock,
   X,
+  Warehouse,
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
@@ -77,6 +78,19 @@ interface RotaGroup {
     ShiftRequirements: number;
   };
 }
+
+ function renderRotaGroupIcon(icon?: string, color?: string) {
+   if (!icon) return '📋';
+
+   const trimmed = icon.trim();
+   const key = trimmed.toLowerCase();
+
+   if (key === 'warehouse') {
+     return <Warehouse className="h-6 w-6" style={color ? { color } : undefined} />;
+   }
+
+   return trimmed;
+ }
 
 // Live Attendance types
 interface EmployeeStatus {
@@ -1122,7 +1136,7 @@ export default function RotaPage() {
                           backgroundColor: group.color ? `${group.color}20` : 'rgba(59, 130, 246, 0.2)',
                         }}
                       >
-                        {group.icon || '📋'}
+                        {renderRotaGroupIcon(group.icon, group.color)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-foreground truncate">{group.name}</h4>

@@ -93,7 +93,7 @@ export function DataTable<TData, TValue>({
 
     return columns.map(attachFilterFn);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(columns)]);
+  }, [columns]);
 
   const columnsWithSelection = useMemo(
     () => (selectionColumn ? ([selectionColumn, ...enhancedColumns] as ColumnDef<TData, TValue>[]) : enhancedColumns),

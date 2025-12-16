@@ -372,7 +372,9 @@ export async function GET(req: NextRequest) {
         { id: "asc" },
       ],
       take: fetchAll ? undefined : (limit! + 1), // Fetch one extra to determine if there are more results
-      skip: skip,
+      // Support both cursor-based and offset-based pagination
+      // Cursor takes precedence if provided (for backward compatibility)
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : { skip: skip }),
     });
 
     // Determine if there are more results

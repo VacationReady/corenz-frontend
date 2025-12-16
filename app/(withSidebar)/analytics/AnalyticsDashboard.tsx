@@ -967,17 +967,17 @@ export default function AnalyticsDashboard() {
             {/* Breakdown Cards Grid */}
             <div className="grid gap-6 xl:grid-cols-3">
               {/* Department Breakdown */}
-              <motion.div variants={itemVariants}>
-                <Card className="!h-[480px] min-h-[480px] max-h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
-                  <CardHeader className="pb-3 flex-shrink-0 border-b border-muted/20">
+              <motion.div variants={itemVariants} className="h-[480px]">
+                <div className="h-full flex flex-col overflow-hidden rounded-3xl border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <div className="pb-3 flex-shrink-0 border-b border-muted/20 px-6 pt-5">
                     <SectionHeader
                       icon={Building2}
                       title="By Department"
                       description="Active headcount distribution"
                       iconColor="text-violet-500"
                     />
-                  </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-auto p-4 space-y-2">
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
                     {(data.breakdowns.byDepartment ?? []).length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-3">
@@ -1004,22 +1004,22 @@ export default function AnalyticsDashboard() {
                         />
                       ))
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
 
               {/* Location & Employment Mix */}
-              <motion.div variants={itemVariants}>
-                <Card className="!h-[480px] min-h-[480px] max-h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
-                  <CardHeader className="pb-3 flex-shrink-0 border-b border-muted/20">
+              <motion.div variants={itemVariants} className="h-[480px]">
+                <div className="h-full flex flex-col overflow-hidden rounded-3xl border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <div className="pb-3 flex-shrink-0 border-b border-muted/20 px-6 pt-5">
                     <SectionHeader
                       icon={MapPin}
                       title="Location & Employment"
                       description="Geographic and contract distribution"
                       iconColor="text-cyan-500"
                     />
-                  </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-auto p-0 flex flex-col">
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-y-auto p-0 flex flex-col">
                     {/* Pie Chart with Employment Legend */}
                     <div className="flex-shrink-0 p-4 pb-0">
                       <div className="flex items-center gap-4">
@@ -1154,22 +1154,22 @@ export default function AnalyticsDashboard() {
                         ))
                       )}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
 
               {/* Job Roles */}
-              <motion.div variants={itemVariants}>
-                <Card className="!h-[480px] min-h-[480px] max-h-[480px] flex flex-col overflow-hidden border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
-                  <CardHeader className="pb-3 flex-shrink-0 border-b border-muted/20">
+              <motion.div variants={itemVariants} className="h-[480px]">
+                <div className="h-full flex flex-col overflow-hidden rounded-3xl border-0 shadow-xl shadow-black/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl">
+                  <div className="pb-3 flex-shrink-0 border-b border-muted/20 px-6 pt-5">
                     <SectionHeader
                       icon={Briefcase}
                       title="Job Roles"
                       description="Talent distribution by role"
                       iconColor="text-amber-500"
                     />
-                  </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-auto p-4 space-y-2">
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
                     {(data.breakdowns.byJobRole ?? []).length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3">
@@ -1196,8 +1196,8 @@ export default function AnalyticsDashboard() {
                         />
                       ))
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
             </div>
 

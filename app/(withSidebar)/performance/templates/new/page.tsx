@@ -46,6 +46,12 @@ export default function NewTemplatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
+ 
+  const breadcrumbItems = [
+    { label: "Performance", href: "/performance" },
+    { label: "Templates", href: "/performance/templates" },
+    { label: "Create Template", isCurrentPage: true },
+  ];
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
@@ -159,6 +165,7 @@ export default function NewTemplatePage() {
       title="Create Performance Template"
       description="Build a custom template for performance management"
       icon={<LayoutTemplate className="h-6 w-6" />}
+      breadcrumbs={{ items: breadcrumbItems }}
     >
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Progress Stepper */}

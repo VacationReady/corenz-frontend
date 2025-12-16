@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,6 +30,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ProfileUpdateSuccessAnimation } from "@/components/animations";
+import { useEmployeeSummary } from "@/hooks/useEmployeeSummary";
+import type { BreadcrumbItem } from "@/components/ui/Breadcrumb";
 
 interface KeyResult {
   id: string;
@@ -63,6 +65,10 @@ export default function CreateObjectivePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const employeeId = searchParams?.get("employeeId");
+
+  const { employee: employeeSummary } = useEmployeeSummary(employeeId ?? undefined, {
+    enabled: !!employeeId,
+  });
 
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -185,12 +191,34 @@ export default function CreateObjectivePage() {
     CRITICAL: { color: "bg-rose-100 text-rose-700 border-rose-200", label: "Critical Priority" },
   };
 
+  const breadcrumbs = useMemo(() => {
+    if (employeeId) {
+      const employeeName = employeeSummary?.fullName || `Employee ${employeeId}`;
+      const items: BreadcrumbItem[] = [
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Employees", href: "/employees" },
+        { label: employeeName, href: `/employees/${employeeId}/overview` },
+        { label: "Performance", href: `/employees/${employeeId}/performance?tab=objectives` },
+        { label: "Create Objective", isCurrentPage: true },
+      ];
+      return { items };
+    }
+
+    const items: BreadcrumbItem[] = [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Performance", href: "/performance?tab=objectives" },
+      { label: "Create Objective", isCurrentPage: true },
+    ];
+    return { items };
+  }, [employeeId, employeeSummary?.fullName]);
+
   if (!session) {
     return (
       <PageShell
         title="Create Objective"
         description="Set goals and track progress"
         icon={<Target className="h-6 w-6" />}
+        breadcrumbs={breadcrumbs}
       >
         <div className="flex flex-col items-center justify-center py-24">
           <motion.div
@@ -209,6 +237,7 @@ export default function CreateObjectivePage() {
       title="Create Objective"
       description={employeeId ? "Create a personal objective for this employee" : "Set organizational goals and track progress"}
       icon={<Target className="h-6 w-6" />}
+      breadcrumbs={breadcrumbs}
     >
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
         <motion.div 

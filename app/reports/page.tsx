@@ -31,11 +31,21 @@ import {
   ArrowRight,
   RefreshCw,
   Download,
-  Filter
+  Filter,
+  Grid3X3,
+  List
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { SendHistoryModal } from "@/components/reports/SendHistoryModal";
 import { cn } from "@/lib/utils";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/Table";
 
 interface SavedReport {
   id: number;
@@ -59,6 +69,7 @@ export default function ReportsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const router = useRouter();
   const breadcrumbs = useBreadcrumbs();
 
@@ -507,6 +518,33 @@ export default function ReportsPage() {
               <span className="text-sm text-muted-foreground font-medium">
                 {filteredReports.length} report{filteredReports.length !== 1 ? "s" : ""}
               </span>
+              
+              {/* View Toggle */}
+              <div className="flex items-center bg-muted/50 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={cn(
+                    "p-2 rounded-md transition-all",
+                    viewMode === "grid" 
+                      ? "bg-background shadow-sm text-primary" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "p-2 rounded-md transition-all",
+                    viewMode === "list" 
+                      ? "bg-background shadow-sm text-primary" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+
               <Button
                 variant="outline"
                 size="sm"
@@ -616,155 +654,254 @@ export default function ReportsPage() {
             )}
           </motion.div>
         ) : (
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
-          >
-            <AnimatePresence mode="popLayout">
-              {filteredReports.map((report) => (
-                <motion.div
-                  key={report.id}
-                  variants={cardVariants}
-                  layout
-                  exit={{ opacity: 0, scale: 0.9 }}
-                >
-                  <div className="glass-premium rounded-2xl overflow-hidden shadow-premium hover:shadow-depth-4 transition-all duration-300 group h-full flex flex-col">
-                    {/* Card Header */}
-                    <div className="p-5 pb-4 flex-1">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                            <BarChart3 className="h-5 w-5" />
+          <AnimatePresence mode="wait">
+            {viewMode === "grid" ? (
+              <motion.div 
+                key="grid"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit={{ opacity: 0 }}
+                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
+              >
+                <AnimatePresence mode="popLayout">
+                  {filteredReports.map((report) => (
+                    <motion.div
+                      key={report.id}
+                      variants={cardVariants}
+                      layout
+                      exit={{ opacity: 0, scale: 0.9 }}
+                    >
+                      <div className="glass-premium rounded-2xl overflow-hidden shadow-premium hover:shadow-depth-4 transition-all duration-300 group h-full flex flex-col">
+                        {/* Card Header */}
+                        <div className="p-5 pb-4 flex-1">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                                <BarChart3 className="h-5 w-5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                                  {report.name}
+                                </h3>
+                              </div>
+                            </div>
+                            <Badge 
+                              variant="secondary"
+                              className="text-xs font-medium bg-primary/10 text-primary border-0 whitespace-nowrap"
+                            >
+                              {report.category}
+                            </Badge>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+
+                          {/* Meta Info */}
+                          <div className="space-y-2.5 mt-4">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <User className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span className="truncate">{report.createdBy?.email || "Unknown"}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span>Created {format(new Date(report.createdAt), "MMM d, yyyy")}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <FileText className="h-3.5 w-3.5 flex-shrink-0" />
+                              <span>
+                                {Array.isArray(report.fields) 
+                                  ? `${report.fields.length} field${report.fields.length !== 1 ? 's' : ''}`
+                                  : "Custom fields"
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Card Actions */}
+                        <div className="border-t border-white/20 p-4 bg-white/30 dark:bg-black/10">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewReport(report)}
+                                className="h-9 px-4 rounded-lg glass-subtle border-white/20 hover:border-primary/30 hover:bg-primary/5"
+                              >
+                                <Eye className="w-4 h-4 mr-1.5" />
+                                View
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                onClick={() => setSelectedReportForHistory({ id: report.id, name: report.name })}
+                                className="h-9 px-3 rounded-lg hover:bg-white/50"
+                              >
+                                <History className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            
+                            {/* More Actions Dropdown */}
+                            <div className="relative">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-9 w-9 p-0 rounded-lg hover:bg-white/50"
+                                onClick={() => setActiveMenu(activeMenu === report.id ? null : report.id)}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                              
+                              <AnimatePresence>
+                                {activeMenu === report.id && (
+                                  <>
+                                    <motion.div
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      exit={{ opacity: 0 }}
+                                      className="fixed inset-0 z-40"
+                                      onClick={() => setActiveMenu(null)}
+                                    />
+                                    <motion.div
+                                      initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                                      exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                                      className="absolute right-0 bottom-full mb-2 w-44 glass-premium rounded-xl shadow-depth-3 py-2 z-50"
+                                    >
+                                      <button
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-white/50 transition-colors"
+                                        onClick={() => {
+                                          handleViewReport(report);
+                                          setActiveMenu(null);
+                                        }}
+                                      >
+                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                        Open Report
+                                      </button>
+                                      <button
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-white/50 transition-colors"
+                                        onClick={() => {
+                                          setSelectedReportForHistory({ id: report.id, name: report.name });
+                                          setActiveMenu(null);
+                                        }}
+                                      >
+                                        <History className="h-4 w-4 text-muted-foreground" />
+                                        Send History
+                                      </button>
+                                      <div className="border-t border-white/20 my-2" />
+                                      <button
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                                        disabled={deletingIds.includes(report.id)}
+                                        onClick={() => handleDelete(report.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                        {deletingIds.includes(report.id) ? "Deleting..." : "Delete Report"}
+                                      </button>
+                                    </motion.div>
+                                  </>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="glass-premium rounded-2xl overflow-hidden shadow-premium"
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 hover:bg-muted/30 border-b border-white/10">
+                      <TableHead className="font-semibold">Name</TableHead>
+                      <TableHead className="font-semibold">Category</TableHead>
+                      <TableHead className="font-semibold">Fields</TableHead>
+                      <TableHead className="font-semibold">Created By</TableHead>
+                      <TableHead className="font-semibold">Date</TableHead>
+                      <TableHead className="w-[100px] text-right font-semibold">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredReports.map((report, index) => (
+                      <motion.tr
+                        key={report.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        onClick={() => handleViewReport(report)}
+                        className="cursor-pointer hover:bg-primary/5 transition-colors group border-b border-white/10"
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-md">
+                              <BarChart3 className="h-4 w-4" />
+                            </div>
+                            <span className="font-medium text-foreground group-hover:text-primary transition-colors">
                               {report.name}
-                            </h3>
+                            </span>
                           </div>
-                        </div>
-                        <Badge 
-                          variant="secondary"
-                          className="text-xs font-medium bg-primary/10 text-primary border-0 whitespace-nowrap"
-                        >
-                          {report.category}
-                        </Badge>
-                      </div>
-
-                      {/* Meta Info */}
-                      <div className="space-y-2.5 mt-4">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <User className="h-3.5 w-3.5 flex-shrink-0" />
-                          <span className="truncate">{report.createdBy?.email || "Unknown"}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                          <span>Created {format(new Date(report.createdAt), "MMM d, yyyy")}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                          <span>
-                            {Array.isArray(report.fields) 
-                              ? `${report.fields.length} field${report.fields.length !== 1 ? 's' : ''}`
-                              : "Custom fields"
-                            }
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card Actions */}
-                    <div className="border-t border-white/20 p-4 bg-white/30 dark:bg-black/10">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleViewReport(report)}
-                            className="h-9 px-4 rounded-lg glass-subtle border-white/20 hover:border-primary/30 hover:bg-primary/5"
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="secondary"
+                            className="text-xs font-medium bg-primary/10 text-primary border-0"
                           >
-                            <Eye className="w-4 h-4 mr-1.5" />
-                            View
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => setSelectedReportForHistory({ id: report.id, name: report.name })}
-                            className="h-9 px-3 rounded-lg hover:bg-white/50"
-                          >
-                            <History className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        
-                        {/* More Actions Dropdown */}
-                        <div className="relative">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-9 w-9 p-0 rounded-lg hover:bg-white/50"
-                            onClick={() => setActiveMenu(activeMenu === report.id ? null : report.id)}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                          
-                          <AnimatePresence>
-                            {activeMenu === report.id && (
-                              <>
-                                <motion.div
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  exit={{ opacity: 0 }}
-                                  className="fixed inset-0 z-40"
-                                  onClick={() => setActiveMenu(null)}
-                                />
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                                  exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                                  className="absolute right-0 bottom-full mb-2 w-44 glass-premium rounded-xl shadow-depth-3 py-2 z-50"
-                                >
-                                  <button
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-white/50 transition-colors"
-                                    onClick={() => {
-                                      handleViewReport(report);
-                                      setActiveMenu(null);
-                                    }}
-                                  >
-                                    <Eye className="h-4 w-4 text-muted-foreground" />
-                                    Open Report
-                                  </button>
-                                  <button
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground hover:bg-white/50 transition-colors"
-                                    onClick={() => {
-                                      setSelectedReportForHistory({ id: report.id, name: report.name });
-                                      setActiveMenu(null);
-                                    }}
-                                  >
-                                    <History className="h-4 w-4 text-muted-foreground" />
-                                    Send History
-                                  </button>
-                                  <div className="border-t border-white/20 my-2" />
-                                  <button
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-                                    disabled={deletingIds.includes(report.id)}
-                                    onClick={() => handleDelete(report.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    {deletingIds.includes(report.id) ? "Deleting..." : "Delete Report"}
-                                  </button>
-                                </motion.div>
-                              </>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
+                            {report.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {Array.isArray(report.fields) 
+                            ? `${report.fields.length} field${report.fields.length !== 1 ? 's' : ''}`
+                            : "Custom fields"
+                          }
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {report.createdBy?.email || "Unknown"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(report.createdAt), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleViewReport(report)}
+                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setSelectedReportForHistory({ id: report.id, name: report.name })}
+                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDelete(report.id)}
+                              disabled={deletingIds.includes(report.id)}
+                              className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </TableBody>
+                </Table>
+              </motion.div>
+            )}
+          </AnimatePresence>
         )}
       </div>
 

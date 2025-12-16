@@ -1,13 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -25,7 +22,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/Badge";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { toast } from "sonner";
-import { Users, Shield, Mail, Filter } from "lucide-react";
+import { Users, Shield, Mail, Filter, X, Check } from "lucide-react";
 import { usePerformanceReferenceData } from "@/hooks/usePerformanceReferenceData";
 import { cn } from "@/lib/utils";
 
@@ -165,6 +162,12 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
   const currentEmployeesPage = paginatedEmployees[participantPage] ?? [];
 
   const step = wizardSteps[currentStepIndex];
+
+  const canNavigateToStep = (targetIndex: number) => {
+    if (loading) return false;
+    if (targetIndex <= currentStepIndex) return true;
+    return targetIndex === currentStepIndex + 1;
+  };
 
   const resetForm = () => {
     setName("");
@@ -306,39 +309,111 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Create Review Cycle
-          </DialogTitle>
-          <DialogDescription>
-            {wizardSteps.map((wizardStep, index) => (
-              <div key={wizardStep.key} className="mt-2 flex items-center gap-2 text-sm">
-                <div
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                    index === currentStepIndex
-                      ? "bg-primary text-primary-foreground"
-                      : index < currentStepIndex
-                      ? "bg-green-100 text-green-700"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {index + 1}
-                </div>
-                <div>
-                  <p className="font-medium">{wizardStep.title}</p>
-                  <p className="text-xs text-muted-foreground">{wizardStep.description}</p>
-                </div>
-              </div>
-            ))}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        rawContent
+        className="p-0 border-0 shadow-2xl max-w-4xl max-h-[90vh] rounded-3xl overflow-hidden flex flex-col bg-gradient-to-br from-slate-50 via-white to-indigo-50/50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900"
+      >
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-gradient-to-br from-indigo-400/15 to-sky-400/15 rounded-full blur-3xl" />
+          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-gradient-to-tr from-violet-400/10 to-fuchsia-400/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 right-0 w-48 h-48 bg-gradient-to-l from-indigo-300/10 to-transparent rounded-full blur-2xl" />
+        </div>
 
-        <div className="space-y-6 py-4">
-          {step.key === "details" && (
-            <div className="space-y-6">
+        <div className="relative flex flex-col h-full">
+          <div className="relative px-6 pt-6 pb-5 border-b border-slate-200/60 dark:border-slate-800/60">
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="absolute right-5 top-5 z-10 p-2 rounded-xl text-slate-400 hover:text-slate-600 bg-white/50 hover:bg-white/80 dark:text-slate-400 dark:hover:text-slate-200 dark:bg-slate-800/50 dark:hover:bg-slate-700/80 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <X className="w-4 h-4" />
+              <span className="sr-only">Close</span>
+            </button>
+
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/20 text-white">
+                <Users className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Create Review Cycle</h2>
+                <p className="text-sm text-slate-600 dark:text-slate-300">Define details, choose participants, then launch.</p>
+              </div>
+              <div className="ml-auto hidden sm:flex items-center">
+                <Badge variant="outline" className="bg-white/60 dark:bg-white/5">
+                  Step {currentStepIndex + 1} of {wizardSteps.length}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-3">
+              {wizardSteps.map((wizardStep, index) => {
+                const isActive = index === currentStepIndex;
+                const isComplete = index < currentStepIndex;
+
+                return (
+                  <button
+                    key={wizardStep.key}
+                    type="button"
+                    disabled={!canNavigateToStep(index)}
+                    onClick={() => {
+                      if (index <= currentStepIndex) {
+                        setCurrentStepIndex(index);
+                        return;
+                      }
+
+                      const currentKey = wizardSteps[currentStepIndex].key;
+                      if (!validateStep(currentKey)) {
+                        return;
+                      }
+                      setCurrentStepIndex(index);
+                    }}
+                    className={cn(
+                      "group flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all",
+                      "bg-white/60 dark:bg-white/5",
+                      isActive
+                        ? "border-primary/40 shadow-sm"
+                        : isComplete
+                        ? "border-emerald-200/60 dark:border-emerald-900/40 hover:border-emerald-300/60"
+                        : "border-slate-200/60 dark:border-slate-800/60 hover:border-slate-300/60 dark:hover:border-slate-700/60",
+                      !canNavigateToStep(index) && "opacity-70 cursor-not-allowed",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-xl text-xs font-semibold transition-colors",
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : isComplete
+                          ? "bg-emerald-500 text-white"
+                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+                      )}
+                    >
+                      {isComplete ? <Check className="w-4 h-4" /> : index + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <p className={cn("text-sm font-semibold", isActive ? "text-slate-900 dark:text-white" : "text-slate-800 dark:text-slate-100")}>
+                        {wizardStep.title}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{wizardStep.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="relative px-6 py-5 flex-1 overflow-y-auto">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={step.key}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                {step.key === "details" && (
+            <div className="space-y-6 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/60 dark:bg-white/5 p-5 shadow-sm">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="name">Cycle name *</Label>
@@ -347,12 +422,16 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="e.g., H1 2025 Performance Reviews"
+                    className="h-10 rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type">Cycle type</Label>
                   <Select value={type} onValueChange={(value: any) => setType(value)}>
-                    <SelectTrigger id="type">
+                    <SelectTrigger
+                      id="type"
+                      className="h-10 rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -374,6 +453,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                   onChange={(event) => setDescription(event.target.value)}
                   placeholder="Outline objectives and expectations for this review cycle"
                   rows={3}
+                  className="rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
                 />
               </div>
 
@@ -381,7 +461,10 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                 <div className="space-y-2">
                   <Label htmlFor="template">Template</Label>
                   <Select value={templateId} onValueChange={setTemplateId}>
-                    <SelectTrigger id="template">
+                    <SelectTrigger
+                      id="template"
+                      className="h-10 rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
+                    >
                       <SelectValue placeholder="Select a template" />
                     </SelectTrigger>
                     <SelectContent>
@@ -401,6 +484,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                     type="date"
                     value={selfReviewDeadline}
                     onChange={(event) => setSelfReviewDeadline(event.target.value)}
+                    className="h-10 rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
                   />
                 </div>
               </div>
@@ -413,6 +497,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                     type="date"
                     value={startDate}
                     onChange={(event) => setStartDate(event.target.value)}
+                    className="h-10 rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
                   />
                 </div>
                 <div className="space-y-2">
@@ -422,6 +507,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                     type="date"
                     value={endDate}
                     onChange={(event) => setEndDate(event.target.value)}
+                    className="h-10 rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
                   />
                 </div>
               </div>
@@ -434,6 +520,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                     type="date"
                     value={managerReviewDeadline}
                     onChange={(event) => setManagerReviewDeadline(event.target.value)}
+                    className="h-10 rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
                   />
                 </div>
                 <div className="space-y-2">
@@ -443,11 +530,12 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                     type="date"
                     value={peerReviewDeadline}
                     onChange={(event) => setPeerReviewDeadline(event.target.value)}
+                    className="h-10 rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2 rounded-lg border p-4">
+              <div className="space-y-2 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/40 dark:bg-white/5 p-4">
                 <div className="flex items-center space-x-3">
                   <Checkbox
                     id="anonymousPeers"
@@ -466,7 +554,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
           )}
 
           {step.key === "audience" && (
-            <div className="space-y-6">
+            <div className="space-y-6 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/60 dark:bg-white/5 p-5 shadow-sm">
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label>Selection strategy</Label>
@@ -485,7 +573,10 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                 <div className="space-y-2">
                   <Label htmlFor="status">Employment status</Label>
                   <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-                    <SelectTrigger id="status">
+                    <SelectTrigger
+                      id="status"
+                      className="h-10 rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -506,6 +597,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                       setSearchQuery(event.target.value);
                       setParticipantPage(0);
                     }}
+                    className="h-10 rounded-xl bg-white/60 dark:bg-white/5 border-slate-200/60 dark:border-slate-800/60"
                   />
                 </div>
               </div>
@@ -537,7 +629,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border bg-muted/40 p-3 text-sm">
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/40 dark:bg-white/5 p-3 text-sm">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
                   <span>
@@ -555,7 +647,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                     <h4 className="font-medium">Participants</h4>
                     <Badge variant="outline">Page {participantPage + 1}</Badge>
                   </div>
-                  <div className="rounded-lg border">
+                  <div className="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 overflow-hidden">
                     {employeesLoading ? (
                       <div className="py-8 text-center text-sm text-muted-foreground">Loading employees…</div>
                     ) : currentEmployeesPage.length === 0 ? (
@@ -566,7 +658,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                         return (
                           <label
                             key={employee.id}
-                            className="flex cursor-pointer items-center justify-between border-b px-4 py-3 last:border-b-0 hover:bg-muted/60"
+                            className="flex cursor-pointer items-center justify-between border-b border-slate-200/60 dark:border-slate-800/60 px-4 py-3 last:border-b-0 hover:bg-white/40 dark:hover:bg-white/5"
                           >
                             <div>
                               <p className="font-medium">
@@ -627,8 +719,8 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
           )}
 
           {step.key === "review" && (
-            <div className="space-y-6">
-              <div className="rounded-lg border p-4">
+            <div className="space-y-6 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/60 dark:bg-white/5 p-5 shadow-sm">
+              <div className="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/40 dark:bg-white/5 p-4">
                 <h4 className="font-semibold">Cycle summary</h4>
                 <div className="mt-3 grid gap-2 text-sm">
                   <div className="flex items-center justify-between">
@@ -656,7 +748,7 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-lg border p-4">
+              <div className="space-y-3 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/40 dark:bg-white/5 p-4">
                 <h4 className="font-semibold">Notifications</h4>
                 <div className="flex items-center space-x-3">
                   <Checkbox id="sendEmail" checked={sendEmail} onCheckedChange={(checked) => setSendEmail(!!checked)} />
@@ -670,27 +762,36 @@ export function CreateReviewCycleDialog({ open, onOpenChange, onSuccess }: Creat
                 </p>
               </div>
 
-              <div className="rounded-lg border bg-muted/30 p-4 text-xs text-muted-foreground">
+              <div className="rounded-2xl border border-slate-200/60 dark:border-slate-800/60 bg-white/30 dark:bg-white/5 p-4 text-xs text-muted-foreground">
                 Once launched, this cycle will appear in the performance workspace and progress tracking dashboards. You can
                 make adjustments or pause the cycle from the review management page at any time.
               </div>
             </div>
           )}
-        </div>
-
-        <DialogFooter className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" disabled={currentStepIndex === 0 || loading} onClick={goToPreviousStep}>
-              Back
-            </Button>
-            <Button onClick={goToNextStep} disabled={loading}>
-              {currentStepIndex === wizardSteps.length - 1 ? "Launch cycle" : "Continue"}
-            </Button>
+              </motion.div>
+            </AnimatePresence>
           </div>
-        </DialogFooter>
+
+          <div className="relative px-6 py-4 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/60 dark:bg-slate-950/40 backdrop-blur">
+            <div className="flex items-center justify-between gap-3">
+              <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>
+                Cancel
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" disabled={currentStepIndex === 0 || loading} onClick={goToPreviousStep}>
+                  Back
+                </Button>
+                <Button
+                  onClick={goToNextStep}
+                  disabled={loading}
+                  className="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-indigo-500/20"
+                >
+                  {currentStepIndex === wizardSteps.length - 1 ? "Launch cycle" : "Continue"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

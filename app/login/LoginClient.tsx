@@ -106,42 +106,8 @@ export default function LoginClient() {
         return;
       }
 
-      // If user has an active onboarding instance, redirect to their in-progress step
-      // Note: There's also a server-side check in /dashboard/employee as a fallback
-      try {
-        const userId = session?.user?.id as string | undefined;
-        const companyScopedEmployee = async (): Promise<string | null> => {
-          if (!userId) return null;
-          const resp = await fetch(`/api/employees?status=active&userId=${encodeURIComponent(userId)}`);
-          if (!resp.ok) {
-            console.warn("Failed to fetch employee for onboarding check:", resp.status);
-            return null;
-          }
-          const list = await resp.json();
-          const first = Array.isArray(list) ? list[0] : null;
-          return first?.id || null;
-        };
-
-        const empId = await companyScopedEmployee();
-        if (empId) {
-          const onboardingRes = await fetch(`/api/onboarding/instances/employee/${empId}`);
-          if (onboardingRes.ok) {
-            const instances = await onboardingRes.json();
-            const latest = Array.isArray(instances) ? instances[0] : null;
-            const hasActive = latest?.OnboardingStepInstance?.some((s: any) => s.status !== "completed");
-            if (hasActive) {
-              router.push(`/${empId}/onboarding`);
-              return;
-            }
-          } else {
-            console.warn("Failed to fetch onboarding instances:", onboardingRes.status);
-          }
-        }
-      } catch (err) {
-        console.warn("Error checking onboarding status:", err);
-        // Continue to dashboard - server-side check will catch this
-      }
-
+      // Onboarding check is handled server-side in /dashboard/employee/page.tsx
+      // Navigate immediately - no need to block on supplementary fetches
       if (role === "ADMIN" || role === "SUPER_ADMIN") {
         router.push("/dashboard/admin");
       } else if (role === "MANAGER") {

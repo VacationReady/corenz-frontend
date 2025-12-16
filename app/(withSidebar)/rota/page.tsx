@@ -197,7 +197,7 @@ export default function RotaPage() {
   const { data: session, status } = useSession();
   const { toast } = useToast();
 
-  const [dateRange] = useState(() => ({
+  const [dateRange, setDateRange] = useState(() => ({
     start: startOfWeek(new Date(), { weekStartsOn: 1 }),
     end: endOfWeek(new Date(), { weekStartsOn: 1 }),
   }));
@@ -876,6 +876,7 @@ export default function RotaPage() {
                 }}
                 onShiftDelete={openDeleteModal}
                 onViewFullDay={(date, dayShifts) => handleViewFullDay(date, dayShifts as ShiftRecord[])}
+                onDateRangeChange={(start, end) => setDateRange({ start, end })}
                 showActions
                 hideViewToggle
               />

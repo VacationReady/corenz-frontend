@@ -91,6 +91,7 @@ interface RotaCalendarProps {
   onShiftEdit?: (shift: Shift) => void;
   onShiftDelete?: (shiftId: string) => void;
   onViewFullDay?: (date: Date, shifts: Shift[]) => void;
+  onDateRangeChange?: (start: Date, end: Date) => void;
   showActions?: boolean;
   hideViewToggle?: boolean;
 }
@@ -105,6 +106,7 @@ export default function RotaCalendar({
   onShiftEdit,
   onShiftDelete,
   onViewFullDay,
+  onDateRangeChange,
   showActions = true,
   hideViewToggle = false,
 }: RotaCalendarProps) {
@@ -132,23 +134,48 @@ export default function RotaCalendar({
 
   // Navigate dates
   const goToPrevious = () => {
+    let newDate: Date;
     if (currentView === 'week') {
-      setCurrentDate(subWeeks(currentDate, 1));
+      newDate = subWeeks(currentDate, 1);
+      setCurrentDate(newDate);
+      onDateRangeChange?.(
+        startOfWeek(newDate, { weekStartsOn: 1 }),
+        endOfWeek(newDate, { weekStartsOn: 1 })
+      );
     } else {
-      setCurrentDate(subMonths(currentDate, 1));
+      newDate = subMonths(currentDate, 1);
+      setCurrentDate(newDate);
+      onDateRangeChange?.(startOfMonth(newDate), endOfMonth(newDate));
     }
   };
 
   const goToNext = () => {
+    let newDate: Date;
     if (currentView === 'week') {
-      setCurrentDate(addWeeks(currentDate, 1));
+      newDate = addWeeks(currentDate, 1);
+      setCurrentDate(newDate);
+      onDateRangeChange?.(
+        startOfWeek(newDate, { weekStartsOn: 1 }),
+        endOfWeek(newDate, { weekStartsOn: 1 })
+      );
     } else {
-      setCurrentDate(addMonths(currentDate, 1));
+      newDate = addMonths(currentDate, 1);
+      setCurrentDate(newDate);
+      onDateRangeChange?.(startOfMonth(newDate), endOfMonth(newDate));
     }
   };
 
   const goToToday = () => {
-    setCurrentDate(new Date());
+    const newDate = new Date();
+    setCurrentDate(newDate);
+    if (currentView === 'week') {
+      onDateRangeChange?.(
+        startOfWeek(newDate, { weekStartsOn: 1 }),
+        endOfWeek(newDate, { weekStartsOn: 1 })
+      );
+    } else {
+      onDateRangeChange?.(startOfMonth(newDate), endOfMonth(newDate));
+    }
   };
 
   // Get shifts for a specific date

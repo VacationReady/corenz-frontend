@@ -372,7 +372,7 @@ export default function NewsDetailClient({
                 alt={post.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-black/20" />
               <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
             </>
           ) : (
@@ -396,9 +396,10 @@ export default function NewsDetailClient({
                 onClick={() => router.push("/news")}
                 className={cn(
                   "flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm",
-                  "bg-white/10 backdrop-blur-md text-white hover:bg-white/20",
-                  "border border-white/20 transition-all"
+                  "bg-black/40 backdrop-blur-md text-white hover:bg-black/50",
+                  "border border-white/30 transition-all shadow-lg"
                 )}
+                style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to News</span>
@@ -410,15 +411,17 @@ export default function NewsDetailClient({
                   animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-2"
                 >
-                  <Link href={`/news/${post.slug}/edit`}>
-                    <button className={cn(
+                  <Link 
+                    href={`/news/${post.slug}/edit`} 
+                    className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm",
-                      "bg-white/10 backdrop-blur-md text-white hover:bg-white/20",
-                      "border border-white/20 transition-all"
-                    )}>
-                      <Edit className="w-4 h-4" />
-                      <span>Edit</span>
-                    </button>
+                      "bg-black/40 backdrop-blur-md text-white hover:bg-black/50",
+                      "border border-white/30 transition-all shadow-lg"
+                    )}
+                    style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span>Edit</span>
                   </Link>
                   <DeleteNewsButton slug={post.slug} variant="icon" />
                 </motion.div>
@@ -451,7 +454,8 @@ export default function NewsDetailClient({
                   {post.tags.slice(0, 3).map((tag) => (
                     <span
                       key={tag}
-                      className="px-3 py-1.5 bg-white/10 backdrop-blur-sm text-white/90 text-xs font-medium rounded-full border border-white/20"
+                      className="px-3 py-1.5 bg-black/30 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30 shadow-md"
+                      style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
                     >
                       {tag}
                     </span>
@@ -459,41 +463,47 @@ export default function NewsDetailClient({
                 </div>
 
                 {/* Title */}
-                <h1 className="text-4xl lg:text-6xl font-bold text-white leading-tight tracking-tight max-w-4xl">
+                <h1 
+                  className="text-4xl lg:text-6xl font-bold text-white leading-tight tracking-tight max-w-4xl"
+                  style={{ textShadow: "0 2px 8px rgba(0,0,0,0.5)" }}
+                >
                   {post.title}
                 </h1>
 
                 {/* Meta */}
-                <div className="flex flex-wrap items-center gap-4 text-white/70">
+                <div 
+                  className="flex flex-wrap items-center gap-4 text-white"
+                  style={{ textShadow: "0 1px 4px rgba(0,0,0,0.7)" }}
+                >
                   <div className="flex items-center gap-3">
                     <Avatar
                       src={post.author.avatar}
                       name={getAuthorName()}
                       size={48}
-                      className="border-2 border-white/30"
+                      className="border-2 border-white/50 shadow-lg"
                     />
                     <div>
                       <p className="font-semibold text-white">{getAuthorName()}</p>
                       {post.author.role && (
-                        <p className="text-sm text-white/60">{post.author.role}</p>
+                        <p className="text-sm text-white/90">{post.author.role}</p>
                       )}
                     </div>
                   </div>
-                  <span className="w-1 h-1 rounded-full bg-white/30 hidden sm:block" />
+                  <span className="w-1 h-1 rounded-full bg-white/50 hidden sm:block" />
                   {post.publishedAt && (
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-4 h-4" />
                       <span>{format(new Date(post.publishedAt), "MMMM dd, yyyy")}</span>
                     </div>
                   )}
-                  <span className="w-1 h-1 rounded-full bg-white/30 hidden sm:block" />
+                  <span className="w-1 h-1 rounded-full bg-white/50 hidden sm:block" />
                   {post.readTime && (
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-4 h-4" />
                       <span>{post.readTime} min read</span>
                     </div>
                   )}
-                  <span className="w-1 h-1 rounded-full bg-white/30 hidden sm:block" />
+                  <span className="w-1 h-1 rounded-full bg-white/50 hidden sm:block" />
                   <div className="flex items-center gap-1.5">
                     <Eye className="w-4 h-4" />
                     <span>{viewCount.toLocaleString()} views</span>

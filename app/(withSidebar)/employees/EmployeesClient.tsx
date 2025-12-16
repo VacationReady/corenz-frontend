@@ -105,8 +105,8 @@ function EmployeesContent(props: EmployeesClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   
-  // Initialize with server-provided data
-  const [employees, setEmployees] = useState<Employee[]>(sortEmployees(props.initialEmployees));
+  // Initialize with server-provided data (already sorted alphabetically from server)
+  const [employees, setEmployees] = useState<Employee[]>(props.initialEmployees);
   const [departments] = useState<any[]>(props.departments);
   const [jobRoles] = useState<any[]>(props.jobRoles);
   const [isModalOpen, setModalOpen] = useState(false);
@@ -208,11 +208,11 @@ function EmployeesContent(props: EmployeesClientProps) {
   
   // Pagination state (initialized from server)
   const [pagination, setPagination] = useState<{
-    cursor: string | null;
+    skip: number;
     hasMore: boolean;
     loading: boolean;
   }>({
-    cursor: props.initialPagination.cursor,
+    skip: props.initialEmployees.length,
     hasMore: props.initialPagination.hasMore,
     loading: false,
   });
@@ -232,19 +232,19 @@ function EmployeesContent(props: EmployeesClientProps) {
   const fetchData = async (status = "all", reset = true) => {
     setError("");
     if (reset) {
-      setPagination({ cursor: null, hasMore: false, loading: true });
+      setPagination({ skip: 0, hasMore: false, loading: true });
     } else {
       setPagination(prev => ({ ...prev, loading: true }));
     }
     
     try {
-      const cursor = reset ? "" : pagination.cursor || "";
+      const skip = reset ? 0 : pagination.skip;
       const limit = 50; // Load 50 employees per page
       
       // Fetch employees only (departments and jobRoles come from server props)
       // Note: Company ID is derived server-side from the authenticated session.
       // We do NOT send x-company-id from the client to prevent cross-tenant manipulation.
-      const empRes = await fetch(`/api/employees?status=${status}&limit=${limit}${cursor ? `&cursor=${cursor}` : ""}`, {
+      const empRes = await fetch(`/api/employees?status=${status}&limit=${limit}&skip=${skip}`, {
         credentials: "include",
       });
 
@@ -257,17 +257,17 @@ function EmployeesContent(props: EmployeesClientProps) {
           ? response 
           : (response.data || []);
         
-        const paginationData = response.pagination || { cursor: null, hasMore: false };
+        const paginationData = response.pagination || { skip: 0, hasMore: false };
         
         if (reset) {
-          setEmployees(sortEmployees(employeesData));
+          setEmployees(employeesData);
         } else {
-          // Append to existing employees
-          setEmployees(prev => sortEmployees([...prev, ...employeesData]));
+          // Append to existing employees - data is already sorted from API
+          setEmployees(prev => [...prev, ...employeesData]);
         }
         
         setPagination({
-          cursor: paginationData.cursor,
+          skip: paginationData.skip,
           hasMore: paginationData.hasMore,
           loading: false,
         });

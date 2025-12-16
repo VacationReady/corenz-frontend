@@ -209,6 +209,8 @@ export async function GET(req: NextRequest) {
           100, // Max 100 per page
         );
     const cursor = searchParams.get("cursor") || undefined;
+    const skipParam = searchParams.get("skip");
+    const skip = skipParam ? parseInt(skipParam, 10) : 0;
 
     // Base scoping
     const whereCondition: any = { companyId: session.user.companyId };
@@ -364,9 +366,13 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      orderBy: { id: "desc" },
+      orderBy: [
+        { User: { firstName: "asc" } },
+        { User: { lastName: "asc" } },
+        { id: "asc" },
+      ],
       take: fetchAll ? undefined : (limit! + 1), // Fetch one extra to determine if there are more results
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      skip: skip,
     });
 
     // Determine if there are more results
@@ -435,6 +441,7 @@ export async function GET(req: NextRequest) {
       pagination: {
         limit,
         cursor: nextCursor,
+        skip: skip + results.length,
         hasMore,
       },
     });

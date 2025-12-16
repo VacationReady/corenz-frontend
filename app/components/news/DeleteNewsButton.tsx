@@ -41,9 +41,10 @@ export default function DeleteNewsButton({ slug, variant = "default" }: Props) {
         onClick={handleDelete}
         disabled={loading}
         className={cn(
-          "p-2 rounded-full transition-all",
-          "bg-white/10 backdrop-blur-md text-white",
-          "hover:bg-red-500/20 hover:text-red-300",
+          "p-2.5 rounded-xl transition-all shadow-lg",
+          "bg-black/40 backdrop-blur-md text-white",
+          "hover:bg-red-500/60 hover:text-white",
+          "border border-white/30",
           "disabled:opacity-50 disabled:cursor-not-allowed"
         )}
         title="Delete post"

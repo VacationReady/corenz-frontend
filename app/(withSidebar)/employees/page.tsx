@@ -79,7 +79,11 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
           },
         },
       },
-      orderBy: { id: "desc" },
+      orderBy: [
+        { User: { firstName: "asc" } },
+        { User: { lastName: "asc" } },
+        { id: "asc" },
+      ],
       take: limit + 1,
     });
 

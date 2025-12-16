@@ -42,6 +42,7 @@ interface JobRole {
 
 interface Employee {
   id: string;
+  userId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -91,6 +92,10 @@ export function SendReportModal({
   const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"groups" | "individuals">("groups");
   const [employeeSearch, setEmployeeSearch] = useState("");
+
+  const employeeIdToUserId = useMemo(() => {
+    return new Map(employees.map((emp) => [emp.id, emp.userId] as const));
+  }, [employees]);
 
   useEffect(() => {
     if (isOpen) {
@@ -245,7 +250,13 @@ export function SendReportModal({
           reportName,
           departments: selectedDepartments,
           jobRoles: selectedJobRoles,
-          employees: selectedEmployees,
+          employees: Array.from(
+            new Set(
+              selectedEmployees.map(
+                (employeeId) => employeeIdToUserId.get(employeeId) ?? employeeId
+              )
+            )
+          ),
           format,
           subject,
           messageBody,

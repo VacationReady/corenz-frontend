@@ -1002,8 +1002,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
             label="This Period"
             value={stats.totalLeaveRequests}
             subtext="requests"
-            gradient="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200/50"
-            iconBg="bg-gradient-to-br from-emerald-500 to-emerald-600"
+            gradient="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200/50"
+            iconBg="bg-gradient-to-br from-blue-500 to-blue-600"
             delay={0.15}
           />
           <StatCard
@@ -1011,8 +1011,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
             label="People"
             value={stats.totalPeopleOff}
             subtext="unique"
-            gradient="bg-gradient-to-br from-violet-50 to-violet-100/50 border-violet-200/50"
-            iconBg="bg-gradient-to-br from-violet-500 to-violet-600"
+            gradient="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200/50"
+            iconBg="bg-gradient-to-br from-blue-500 to-blue-600"
             delay={0.2}
           />
           <StatCard
@@ -1020,8 +1020,8 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
             label="Blackouts"
             value={stats.totalBlackouts}
             subtext="blocked"
-            gradient="bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-200/50"
-            iconBg="bg-gradient-to-br from-amber-500 to-amber-600"
+            gradient="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200/50"
+            iconBg="bg-gradient-to-br from-blue-500 to-blue-600"
             delay={0.25}
           />
         </motion.div>

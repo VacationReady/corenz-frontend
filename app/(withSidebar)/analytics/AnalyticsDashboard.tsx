@@ -977,37 +977,33 @@ export default function AnalyticsDashboard() {
                       iconColor="text-violet-500"
                     />
                   </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-hidden p-0">
-                    <ScrollArea className="h-full max-h-full">
-                      <div className="p-4 space-y-2">
-                        {(data.breakdowns.byDepartment ?? []).length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-3">
-                              <Building2 className="w-6 h-6 text-violet-500/50" />
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              No department data available
-                            </p>
-                          </div>
-                        ) : (
-                          (data.breakdowns.byDepartment ?? []).map((dept, index) => (
-                            <BreakdownListItem
-                              key={dept.id ?? dept.name}
-                              name={dept.name}
-                              active={dept.active}
-                              total={dept.total}
-                              index={index}
-                              onClick={() => handleDrillDown(
-                                "department",
-                                dept.id || "unassigned",
-                                `${dept.name} Department`,
-                                `All employees in ${dept.name}`
-                              )}
-                            />
-                          ))
-                        )}
+                  <CardContent className="flex-1 min-h-0 overflow-auto p-4 space-y-2">
+                    {(data.breakdowns.byDepartment ?? []).length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center mb-3">
+                          <Building2 className="w-6 h-6 text-violet-500/50" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          No department data available
+                        </p>
                       </div>
-                    </ScrollArea>
+                    ) : (
+                      (data.breakdowns.byDepartment ?? []).map((dept, index) => (
+                        <BreakdownListItem
+                          key={dept.id ?? dept.name}
+                          name={dept.name}
+                          active={dept.active}
+                          total={dept.total}
+                          index={index}
+                          onClick={() => handleDrillDown(
+                            "department",
+                            dept.id || "unassigned",
+                            `${dept.name} Department`,
+                            `All employees in ${dept.name}`
+                          )}
+                        />
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1023,7 +1019,7 @@ export default function AnalyticsDashboard() {
                       iconColor="text-cyan-500"
                     />
                   </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-hidden p-0 flex flex-col">
+                  <CardContent className="flex-1 min-h-0 overflow-auto p-0 flex flex-col">
                     {/* Pie Chart with Employment Legend */}
                     <div className="flex-shrink-0 p-4 pb-0">
                       <div className="flex items-center gap-4">
@@ -1130,37 +1126,33 @@ export default function AnalyticsDashboard() {
                     </div>
 
                     {/* Locations list */}
-                    <div className="flex-1 min-h-0 overflow-hidden">
-                      <ScrollArea className="h-full max-h-full">
-                        <div className="px-4 pb-4 space-y-2">
-                          {locationData.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-8 text-center">
-                              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-2">
-                                <MapPin className="w-5 h-5 text-cyan-500/50" />
-                              </div>
-                              <p className="text-sm text-muted-foreground">
-                                No location data available
-                              </p>
-                            </div>
-                          ) : (
-                            locationData.map((location, index) => (
-                              <BreakdownListItem
-                                key={location.id ?? location.name}
-                                name={location.name}
-                                active={location.active}
-                                total={location.total}
-                                index={index}
-                                onClick={() => handleDrillDown(
-                                  "location",
-                                  location.id || "unassigned",
-                                  `${location.name} Location`,
-                                  `All employees at ${location.name}`
-                                )}
-                              />
-                            ))
-                          )}
+                    <div className="flex-1 min-h-0 overflow-auto px-4 pb-4 space-y-2">
+                      {locationData.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-center">
+                          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center mb-2">
+                            <MapPin className="w-5 h-5 text-cyan-500/50" />
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            No location data available
+                          </p>
                         </div>
-                      </ScrollArea>
+                      ) : (
+                        locationData.map((location, index) => (
+                          <BreakdownListItem
+                            key={location.id ?? location.name}
+                            name={location.name}
+                            active={location.active}
+                            total={location.total}
+                            index={index}
+                            onClick={() => handleDrillDown(
+                              "location",
+                              location.id || "unassigned",
+                              `${location.name} Location`,
+                              `All employees at ${location.name}`
+                            )}
+                          />
+                        ))
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1177,37 +1169,33 @@ export default function AnalyticsDashboard() {
                       iconColor="text-amber-500"
                     />
                   </CardHeader>
-                  <CardContent className="flex-1 min-h-0 overflow-hidden p-0">
-                    <ScrollArea className="h-full max-h-full">
-                      <div className="p-4 space-y-2">
-                        {(data.breakdowns.byJobRole ?? []).length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3">
-                              <Briefcase className="w-6 h-6 text-amber-500/50" />
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              Assign job roles to see breakdown
-                            </p>
-                          </div>
-                        ) : (
-                          (data.breakdowns.byJobRole ?? []).map((role, index) => (
-                            <BreakdownListItem
-                              key={role.id ?? role.name}
-                              name={role.name}
-                              active={role.active}
-                              total={role.total}
-                              index={index}
-                              onClick={() => handleDrillDown(
-                                "jobRole",
-                                role.id || "unassigned",
-                                `${role.name} Role`,
-                                `All employees with ${role.name} role`
-                              )}
-                            />
-                          ))
-                        )}
+                  <CardContent className="flex-1 min-h-0 overflow-auto p-4 space-y-2">
+                    {(data.breakdowns.byJobRole ?? []).length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3">
+                          <Briefcase className="w-6 h-6 text-amber-500/50" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Assign job roles to see breakdown
+                        </p>
                       </div>
-                    </ScrollArea>
+                    ) : (
+                      (data.breakdowns.byJobRole ?? []).map((role, index) => (
+                        <BreakdownListItem
+                          key={role.id ?? role.name}
+                          name={role.name}
+                          active={role.active}
+                          total={role.total}
+                          index={index}
+                          onClick={() => handleDrillDown(
+                            "jobRole",
+                            role.id || "unassigned",
+                            `${role.name} Role`,
+                            `All employees with ${role.name} role`
+                          )}
+                        />
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>

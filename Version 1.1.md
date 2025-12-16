@@ -374,6 +374,14 @@ Fixed floating-point precision artifacts in leave day calculations and reporting
 
 ## 87. Rota Week Navigation Data Fetching Fix
 
+## 88. Report Template Icons Modernization
+
+## 89. Annual Leave Report Total Count and Pagination Fix
+
+Fixed the Annual Leave Balances report showing "50 records" instead of the actual total count (77) by updating the report definition to return total count alongside paginated data. Added a prominent "Show all data" banner that appears when there are more rows than displayed, with a button to expand view (up to 500 rows) and clear messaging about total records available.
+
+Updated the report library template icons to use semantic Lucide React icons instead of emojis, ensuring visual consistency with the rest of the reports section. Each template now displays an icon that meaningfully represents its purpose (e.g., Palmtree for annual leave, Shield for right-to-work expiries, BarChart for headcount reports).
+
 Fixed an issue where navigating to previous weeks in the rota calendar showed no shifts even though shifts existed. The dateRange state was static and never updated when navigating weeks, so the API always fetched current week data. Added onDateRangeChange callback to RotaCalendar and connected it to the parent page's setDateRange to re-fetch shifts for the selected week/month.
 
 ## 84. PeopleCore Logo and Branding Updates
@@ -387,3 +395,35 @@ Fixed the advanced recipient configuration in transactional notifications where 
 ## 86. Teams Warehouse Icon Fix
 
 Updated the Teams list in the Rota Groups / Teams panel to render the proper Lucide React Warehouse icon when a rota group's icon is set to "warehouse" instead of displaying the literal text. Added an icon mapping helper that preserves existing emoji support while rendering known icon keys as components.
+
+## 88. Automation Rules Workflow Validation UI Sync and Import Safety
+
+Fixed workflow node validation UI becoming stale after edits by syncing nodeValidation errors into node.data.validationErrors whenever validation changes, ensuring red error rings always match the "Test workflow" validation. Also hardened the import workflow feature with Zod schema validation and comprehensive sanitization to prevent invalid/duplicate node IDs or dangling edges from breaking ReactFlow.
+
+## 89. FilterProvider Hydration Late Arrival Fix
+
+Fixed FilterProvider hydration failing when companyId, searchParams, or persistenceKey arrive after mount by replacing the empty-deps useMemo with a guarded HYDRATE reducer action and an effect that hydrates exactly once when inputs are available. This ensures URL and tenant-scoped localStorage filters are applied even during async tenant/session loads.
+
+## 90. DataTable JSON.stringify Columns Dependency Fix
+
+Fixed DataTable component crashing when columns contain non-serializable or circular values by removing the fragile JSON.stringify(columns) dependency. The enhancedColumns memo now depends on columns directly, preventing "Converting circular structure to JSON" errors and requiring callers to memoize columns for stability.
+
+## 91. Automation Rules Import Workflow Sanitization and Validation
+
+Hardened workflow import with Zod schema validation and comprehensive sanitization to prevent invalid/duplicate node IDs or dangling edges from breaking ReactFlow. The import now validates JSON shape, runs sanitizeNodesAndEdges before setting ReactFlow state, and shows a toast summarizing any fixes/dropped invalid edges with concrete examples.
+
+## 92. Admin Dashboard Calendar Widget Event Type and Date Format Fixes
+
+Fixed the admin dashboard calendar widget to display event category/type (e.g., "Annual Leave") instead of leave request notes, and updated date formatting to English style (DD/MM/YYYY) instead of American (MM/DD/YYYY). Added a safe date parser for YYYY-MM-DD strings and applied English locale formatting across the widget, leave detail dialog, and new starters modal.
+
+## 93. Edit Employee Modal Alphabetical List Sorting
+
+Updated the Edit Employee modal to display the employee list in alphabetical order by first name, with case-insensitive sorting and deterministic tie-breakers by department and ID. The list is now consistently ordered instead of reflecting the arbitrary order returned by the paginated API.
+
+## 94. Reports Preview Filter Dropdown Multi-Select Fix
+
+Fixed the department filter dropdown in /reports/preview that was closing immediately on checkbox selection, preventing multi-select functionality. Added onPointerDownOutside and onInteractOutside handlers to prevent the Radix UI popover from closing when clicking inside, and updated the click-outside detection to account for popover portals. Users can now select multiple departments and click Apply to filter results.
+
+## 95. AutomationFlowBuilder ID Backfill Re-Trigger Fix
+
+Fixed drag-and-drop reordering breaking for legacy automation rules where conditions/actions lacked stable IDs. The backfill effect now re-runs when conditions or actions arrays change and uses a guarded functional update to stop once all items have IDs, preventing undefined dnd-kit IDs like "condition-undefined".

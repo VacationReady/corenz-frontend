@@ -689,7 +689,7 @@ function ReportsPreviewClientInner() {
           }),
         );
 
-        const result = await resilientPost<{ data: unknown[]; error?: string }>(
+        const result = await resilientPost<{ data: unknown[]; total?: number; error?: string }>(
           "/api/reports/generate",
           {
             reportType: reportTypeParam,
@@ -724,7 +724,8 @@ function ReportsPreviewClientInner() {
         }
         
         const results = Array.isArray(result.data?.data) ? result.data.data : [];
-        return { results, totalCount: results.length };
+        const totalCount = typeof result.data?.total === "number" ? result.data.total : results.length;
+        return { results, totalCount };
       }
 
       const sortToSend =

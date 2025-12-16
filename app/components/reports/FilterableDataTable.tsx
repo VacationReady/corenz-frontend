@@ -405,11 +405,14 @@ export default function FilterableDataTable({
     if (typeof document === "undefined") return;
     const handleClickOutside = (event: MouseEvent) => {
       if (!tableWrapperRef.current) return;
-      if (!tableWrapperRef.current.contains(event.target as Node)) {
-        setOpenFilters(new Set());
-        setDraftColumnFilters({});
-        setDraftAdvancedFilters({});
-      }
+      const target = event.target as HTMLElement;
+      // Don't close if clicking inside the table wrapper
+      if (tableWrapperRef.current.contains(target)) return;
+      // Don't close if clicking inside a Radix popover (rendered in portal)
+      if (target.closest('[data-radix-popper-content-wrapper]')) return;
+      setOpenFilters(new Set());
+      setDraftColumnFilters({});
+      setDraftAdvancedFilters({});
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -1281,6 +1284,8 @@ export default function FilterableDataTable({
                                 align="start" 
                                 sideOffset={8}
                                 className="w-80 rounded-xl border border-gray-200 bg-white p-0 shadow-2xl"
+                                onPointerDownOutside={(e) => e.preventDefault()}
+                                onInteractOutside={(e) => e.preventDefault()}
                               >
                                 {renderColumnDraft(column.accessorKey)}
                               </PopoverContent>
@@ -1328,6 +1333,31 @@ export default function FilterableDataTable({
           </table>
         </div>
       </div>
+
+      {/* Show all data banner when there are more rows than currently displayed */}
+      {hasTotal && effectiveTotalCount > pageRows.length && (
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-amber-800">
+            <svg className="h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>
+              Showing <strong>{pageRows.length.toLocaleString()}</strong> of <strong>{effectiveTotalCount.toLocaleString()}</strong> total records.
+              {effectiveTotalCount <= 500 && " To view all data, increase rows per page or use the Full Export option."}
+              {effectiveTotalCount > 500 && " Use the Full Export option to download all records."}
+            </span>
+          </div>
+          {effectiveTotalCount <= 500 && (
+            <button
+              type="button"
+              onClick={() => changePageSize(Math.min(500, effectiveTotalCount))}
+              className="shrink-0 rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+            >
+              Show all {effectiveTotalCount.toLocaleString()} rows
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">

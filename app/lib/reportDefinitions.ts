@@ -3,11 +3,16 @@ import { prisma } from "@/lib/prisma";
 
 type SortOrder = "asc" | "desc";
 
+type ReportQueryResult = {
+  data: any[];
+  total: number;
+};
+
 type ReportQueryFn = (
   filters: Record<string, any>,
   pagination: Record<string, any>,
   context: { companyId: string }
-) => Promise<any>;
+) => Promise<any[] | ReportQueryResult>;
 
 interface ReportDefinition {
   name: string;
@@ -93,6 +98,9 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
         },
       };
 
+      // Get total count first (before pagination)
+      const totalCount = await prisma.leaveEntitlement.count({ where });
+
       const entitlements = await prisma.leaveEntitlement.findMany({
         where,
         include: {
@@ -175,7 +183,7 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
         });
       }
 
-      return rows;
+      return { data: rows, total: totalCount };
     },
   },
   sickLeaveUsageYTD: {

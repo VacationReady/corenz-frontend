@@ -4,30 +4,37 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Library, 
-  BarChart3, 
-  ExternalLink, 
-  Loader2, 
-  Search, 
-  X,
+  AlertTriangle,
   ArrowLeft,
-  Sparkles,
-  Play,
-  Settings2,
-  Star,
-  Users,
-  Calendar,
+  BarChart3,
+  CalendarClock,
+  CalendarDays,
+  Car,
+  CheckCircle2,
+  ClipboardList,
   Clock,
-  FileText,
-  TrendingUp,
+  Clock3,
+  CreditCard,
+  DollarSign,
+  DoorOpen,
+  ExternalLink,
+  Globe2,
+  GraduationCap,
+  Hourglass,
+  Library,
+  Palmtree,
+  Play,
+  Search,
+  Settings,
+  Settings2,
+  Shield,
+  Sparkles,
+  Thermometer,
+  Zap,
   Building2,
-  Briefcase,
-  Filter,
-  ChevronRight,
-  Zap
-} from "lucide-react";
+  X
+ } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { PageShell } from "@/components/ui/PageShell";
@@ -35,6 +42,8 @@ import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
 import type { ReportLibraryEntry } from "@/lib/reportLibrary";
 import { hrCategories, hrReportFields } from "@/lib/hrReportFields";
 import { cn } from "@/lib/utils";
+
+import type { LucideIcon } from "lucide-react";
 
 interface LibraryResponse {
   data: ReportLibraryEntry[];
@@ -64,15 +73,47 @@ const engineColors: Record<ReportLibraryEntry["engine"], { bg: string; text: str
   },
 };
 
-// Category icon mapping
-const categoryIcons: Record<string, React.ReactNode> = {
-  "people": <Users className="w-5 h-5" />,
-  "compliance": <FileText className="w-5 h-5" />,
-  "leave": <Calendar className="w-5 h-5" />,
-  "time": <Clock className="w-5 h-5" />,
-  "payroll": <TrendingUp className="w-5 h-5" />,
-  "organisation": <Building2 className="w-5 h-5" />,
-  "custom": <Sparkles className="w-5 h-5" />,
+const templateIconMap: Record<string, LucideIcon> = {
+  "annual-leave-balances": Palmtree,
+  "on-leave-today": CalendarDays,
+  "upcoming-leave": CalendarClock,
+  "pending-leave-approvals": Settings,
+  "low-leave-balances": AlertTriangle,
+  "sick-leave-usage": Thermometer,
+  "new-starters": Sparkles,
+  "missing-payroll-details": CreditCard,
+  "kiwisaver-summary": Globe2,
+  "right-to-work-expiries": Shield,
+  "driver-licence-expiries": Car,
+  "training-expiries": GraduationCap,
+  "department-roster": Building2,
+  "headcount-by-department": BarChart3,
+  "offboarding-pipeline": DoorOpen,
+  "approved-timesheets": CheckCircle2,
+  "pending-timesheet-approvals": Hourglass,
+  "overtime-hours-report": Clock,
+  "time-entries-detailed": Clock3,
+  "timesheet-approval-audit": ClipboardList,
+  "rejected-timesheets": X,
+  "payroll-export": DollarSign
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: "spring" as const, stiffness: 300, damping: 25 },
+  },
 };
 
 export default function ReportsLibraryPage() {
@@ -111,7 +152,6 @@ export default function ReportsLibraryPage() {
     };
   }, []);
 
-  // Filter entries based on search and category
   const filteredEntries = useMemo(() => {
     let results = [...entries];
     
@@ -145,25 +185,6 @@ export default function ReportsLibraryPage() {
     });
     return byCategory;
   }, [filteredEntries]);
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.05 }
-    }
-  };
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      scale: 1,
-      transition: { type: "spring" as const, stiffness: 300, damping: 25 }
-    }
-  };
 
   const getFieldLabel = (key: string) => {
     const meta = hrReportFields.find((f) => f.field === key);
@@ -211,7 +232,8 @@ export default function ReportsLibraryPage() {
     };
 
     const engineStyle = engineColors[entry.engine];
-    const isHovered = hoveredCard === entry.id;
+
+    const TemplateIcon = templateIconMap[entry.id];
 
     return (
       <motion.div
@@ -227,7 +249,11 @@ export default function ReportsLibraryPage() {
           <div className="p-5 flex-1">
             <div className="flex items-start gap-4 mb-4">
               <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/10 to-blue-500/10 flex items-center justify-center text-3xl shadow-depth-1 flex-shrink-0">
-                {entry.icon}
+                {TemplateIcon ? (
+                  <TemplateIcon className="w-7 h-7" />
+                ) : (
+                  entry.icon
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">

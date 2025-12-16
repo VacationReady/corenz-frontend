@@ -50,11 +50,16 @@ export async function POST(req: Request) {
     const definition = reportDefinitions[reportType as keyof typeof reportDefinitions];
     const companyId = session.user.companyId;
 
-    const data = await definition.query(normalizedFilters, normalizedPagination, {
+    const result = await definition.query(normalizedFilters, normalizedPagination, {
       companyId,
     });
 
-    return NextResponse.json({ data });
+    // Handle both legacy array returns and new { data, total } format
+    if (Array.isArray(result)) {
+      return NextResponse.json({ data: result, total: result.length });
+    }
+    
+    return NextResponse.json({ data: result.data, total: result.total });
   } catch (error) {
     console.error("Error generating report:", error);
     if (error instanceof z.ZodError) {

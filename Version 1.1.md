@@ -316,6 +316,34 @@ Replaced the generic "email recipient" dropdown in automation rules with a searc
 
 Refactored `/api/leave-request/[id]` to use centralized permission system instead of hardcoded role checks. Extended permission model with "approve" action for leave requests and replaced `["ADMIN","MANAGER"].includes()` checks with `hasPermission()` calls, ensuring consistent authorization across all endpoints.
 
+## 88. Employee Document Signature Disclaimer Update
+
+Updated the electronic signature disclaimer text on the employee document signing UI to use clearer, more comprehensive language while preserving the existing blue outlined styling and layout.
+
+## 82. Form Builder Calculation Security Fix
+
+Fixed a critical security vulnerability in form field calculations by replacing the unsafe `eval()` function with the secure `mathjs.evaluate()` method. The existing sanitization layer remains as additional protection, and all output formatting (currency, percentage, number) is preserved while eliminating the code injection risk.
+
+## 83. Leave Booking Transaction Race Condition Fix
+
+Fixed critical race condition bug in AI action executor and leave-requests API where leave requests were created outside transactions. Wrapped entire booking operation (entitlement check → request creation → balance deduction → approval) in single `$transaction` to prevent orphaned records if any step fails.
+
+## 84. Annual Leave Balances Report Fixes
+
+Fixed Annual Leave Balances template report to filter only Annual Leave categories instead of showing all leave types. Added floating point precision rounding (2 decimal places) to resolve display issues like "4.200000000000001". Department and job role display now works correctly since only properly populated Annual Leave entitlements are returned.
+
+## 85. E-Signature Field Drag-and-Drop Positioning Fix
+
+Fixed e-signature field placement to use exact drop location instead of defaulting to top-left position. Implemented proper drag-and-drop from palette to document with position calculation based on drop coordinates, ensuring fields appear where users drop them.
+
+## 86. E-Signature Field Delete and Size Fixes
+
+Enabled field deletion by fixing the X button click handler with proper event propagation and pointer-events. Reduced default field size from 25%×10% to 15%×4% for a more compact, proportional appearance that better fits document layouts.
+
+## 87. E-Signature Timestamp Overlap Fix
+
+Fixed signature timestamp positioning in PDF stamping to render below the signature instead of overlapping. Updated PDF coordinate calculation to place timestamp with proper padding beneath the signature area for both drawn and typed signatures.
+
 ## 78. Shifts API Cross-Tenant Security Hardening
 
 Fixed cross-tenant data exposure vulnerability in `/api/shifts/[id]` by replacing `findUnique({ where: { id } })` queries with tenant-scoped `findFirst({ where: { id, companyId } })` across all handlers. This prevents attackers from discovering shift existence through timing attacks and eliminates cross-tenant data leakage while maintaining existing permission checks.
@@ -331,3 +359,11 @@ Fixed silent login/logout/session inconsistencies by updating custom auth endpoi
 ## 80. Employees API Cross-Tenant Security Hardening
 
 Fixed cross-tenant manager linking vulnerability in `/api/employees` by replacing `findUnique({ where: { id } })` manager lookups with tenant-scoped `findFirst({ where: { id, companyId } })`. Added comprehensive tenant validation for all foreign keys (departmentId, jobRoleId, locationId, workingPatternId) and created extensive cross-tenant security tests.
+
+## 81. Document Status API Tenant Isolation Fix
+
+Fixed a critical security vulnerability in document status queries where acknowledgements and signatures could be accessed across tenant boundaries. Updated the queries to use tenant-filtered document IDs from the documents query instead of raw request IDs, ensuring proper multi-tenant isolation for document acknowledgements and signatures.
+
+## 82. Document Status Cache Key Collision Fix
+
+Fixed a cache key collision bug that could leak user-specific document status data between employees by including the employee ID in the cache key generation, preventing employees from the same company from accessing each other's cached acknowledgement and signature status.

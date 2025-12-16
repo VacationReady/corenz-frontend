@@ -270,7 +270,7 @@ function createCacheClient(): CacheClient {
  * Document status cache instance
  * 
  * TTL: 60 seconds
- * Key format: doc-status:{companyId}:{sortedDocIds}
+ * Key format: doc-status:{companyId}:{employeeId}:{sortedDocIds}
  */
 export const documentStatusCache = createCacheClient();
 
@@ -279,21 +279,25 @@ export const documentStatusCache = createCacheClient();
  */
 export function generateDocumentStatusCacheKey(
     companyId: string,
+    employeeId: string,
     documentIds: string[]
 ): string {
     // Sort IDs to ensure consistent cache keys
     const sortedIds = [...documentIds].sort();
-    return `doc-status:${companyId}:${sortedIds.join(",")}`;
+    return `doc-status:${companyId}:${employeeId}:${sortedIds.join(",")}`;
 }
 
 /**
  * Helper to invalidate all document status cache entries for a specific document
+ * If employeeId is provided, only invalidates that employee's cache entries
  */
 export async function invalidateDocumentStatusCache(
     companyId: string,
-    documentId: string
+    documentId: string,
+    employeeId?: string
 ): Promise<void> {
-    const pattern = `doc-status:${companyId}:*${documentId}*`;
+    const employeePattern = employeeId ?? '*';
+    const pattern = `doc-status:${companyId}:${employeePattern}:*${documentId}*`;
     await documentStatusCache.deletePattern(pattern);
 }
 

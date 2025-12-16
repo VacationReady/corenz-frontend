@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
     // 4. Check cache before database queries
     const cacheKey = generateDocumentStatusCacheKey(
       session.user.companyId,
+      employee.id,
       documentIds
     );
 
@@ -127,10 +128,14 @@ export async function POST(req: NextRequest) {
       documents.map((doc) => [doc.id, doc])
     );
 
-    // 6. Batch fetch acknowledgements for all documents
+    // Extract tenant-filtered document IDs to ensure acknowledgements/signatures
+    // are only queried for documents that passed the companyId filter
+    const tenantDocumentIds = documents.map((doc) => doc.id);
+
+    // 6. Batch fetch acknowledgements for tenant-filtered documents only
     const acknowledgements = await prisma.documentAcknowledgement.findMany({
       where: {
-        documentId: { in: documentIds },
+        documentId: { in: tenantDocumentIds },
         employeeId: employee.id,
       },
       select: {
@@ -142,10 +147,10 @@ export async function POST(req: NextRequest) {
       acknowledgements.map((ack) => ack.documentId)
     );
 
-    // 7. Batch fetch signatures for all documents
+    // 7. Batch fetch signatures for tenant-filtered documents only
     const signatures = await prisma.documentSignatureArtifact.findMany({
       where: {
-        documentId: { in: documentIds },
+        documentId: { in: tenantDocumentIds },
         employeeId: employee.id,
       },
       select: {

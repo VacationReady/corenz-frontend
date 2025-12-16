@@ -173,6 +173,7 @@ export async function POST(req: NextRequest) {
     const realIp = req.headers.get("x-real-ip");
     const ipAddress = (forwardedFor?.split(",")[0]?.trim() || realIp || undefined);
     const userAgent = req.headers.get("user-agent") || undefined;
+    const signedAt = new Date();
 
     const createdArtifact = await prisma.documentSignatureArtifact.create({
       data: {
@@ -324,12 +325,15 @@ export async function POST(req: NextRequest) {
                 });
               }
               // Add timestamp below the signature
-              page.drawText(new Date().toLocaleString(), { 
-                x: x - w / 2 + 4, 
-                y: y - h / 2 + 4, 
-                size: 8, 
-                font, 
-                color: rgb(0.4, 0.4, 0.4) 
+              const timestampFontSize = 8;
+              const timestampPadding = 2;
+              const timestampY = Math.max(0, y - h / 2 - timestampFontSize - timestampPadding);
+              page.drawText(signedAt.toLocaleString(), {
+                x: x - w / 2 + 4,
+                y: timestampY,
+                size: timestampFontSize,
+                font,
+                color: rgb(0.4, 0.4, 0.4),
               });
             }
             
@@ -398,7 +402,7 @@ export async function POST(req: NextRequest) {
         method,
         typedText: method === "TYPED" ? typedText : undefined,
         artifactUrl,
-        signedAt: new Date().toISOString(),
+        signedAt: signedAt.toISOString(),
       },
       stampedUrl: (document as any).stampedUrl || null,
     });

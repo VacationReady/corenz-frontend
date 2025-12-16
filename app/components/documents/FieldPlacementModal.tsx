@@ -295,7 +295,7 @@ export default function FieldPlacementModal({
     // Use drop position if provided, otherwise default to top-left
     const x = dropX !== undefined ? dropX : 0.1;
     const y = dropY !== undefined ? dropY : 0.1;
-    const base = { pageNumber: 1, x, y, width: 0.25, height: 0.1 } as Field;
+    const base = { pageNumber: 1, x, y, width: 0.15, height: 0.04 } as Field;
     const label = type === "SIGNATURE" ? "Signature" : type === "NAME" ? "Name" : "Job Role";
     setFields((prev) => [
       ...prev,
@@ -586,9 +586,16 @@ export default function FieldPlacementModal({
                         </div>
                         <button
                           type="button"
-                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white/80 bg-white/90 text-slate-500 shadow-sm flex items-center justify-center hover:text-slate-900 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute -top-2 -right-2 w-5 h-5 rounded-full border border-white/80 bg-white/90 text-slate-500 shadow-sm flex items-center justify-center hover:text-slate-900 hover:bg-red-50 z-30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto"
                           aria-label="Remove field"
-                          onPointerDown={(e) => e.stopPropagation()} 
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
+                          onPointerUp={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
                           onClick={(ev) => {
                             ev.stopPropagation();
                             ev.preventDefault();

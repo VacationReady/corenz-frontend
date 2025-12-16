@@ -93,11 +93,10 @@ export default function ModernSignatureCapture({
         <div className="text-sm text-blue-900">
           <p className="font-medium mb-1">Legally Binding Signature</p>
           <p className="text-blue-700">
-            This electronic signature is legally binding under the{" "}
-            <span className="font-semibold">
-              Electronic Transactions Act 2002 (NZ)
-            </span>
-            . By signing, you confirm your identity and agreement to the document terms.
+            By signing electronically, you agree that your electronic signature identifies you,
+            indicates your approval of this document, and constitutes your consent to conduct
+            this transaction electronically. Your electronic signature will have the same legal
+            effect as a handwritten signature under New Zealand law.
           </p>
         </div>
       </motion.div>

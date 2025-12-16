@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageShell } from "@/components/ui/PageShell";
 import {
@@ -34,7 +34,7 @@ interface SurveyCompletePageProps {
   params: Promise<{ id: string }>;
 }
 
-export default function SurveyCompletePage({ params }: SurveyCompletePageProps) {
+function SurveyCompletePageContent({ params }: SurveyCompletePageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const actionItemId = searchParams?.get("actionItemId");
@@ -277,5 +277,13 @@ export default function SurveyCompletePage({ params }: SurveyCompletePageProps) 
         </div>
       </PageShell>
     </>
+  );
+}
+
+export default function SurveyCompletePage({ params }: SurveyCompletePageProps) {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading survey...</div>}>
+      <SurveyCompletePageContent params={params} />
+    </Suspense>
   );
 }

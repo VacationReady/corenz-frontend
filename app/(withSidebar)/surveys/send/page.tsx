@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageShell } from "@/components/ui/PageShell";
@@ -194,7 +194,7 @@ const targetingOptions = [
   },
 ];
 
-export default function SendSurveyPage() {
+function SendSurveyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
@@ -1617,5 +1617,13 @@ export default function SendSurveyPage() {
         </motion.div>
       </div>
     </PageShell>
+  );
+}
+
+export default function SendSurveyPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+      <SendSurveyPageContent />
+    </Suspense>
   );
 }

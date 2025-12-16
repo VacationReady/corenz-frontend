@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import {
   usePathname,
   useRouter,
@@ -276,7 +276,7 @@ function EmptyLeaveState() {
 
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 
-export default function LeavePage() {
+function LeavePageContent() {
   const params = useParams();
   const employeeId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
   const searchParams = useSearchParams();
@@ -699,5 +699,13 @@ export default function LeavePage() {
         onSubmitted={handleCreateSuccess}
       />
     </div>
+  );
+}
+
+export default function LeavePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading leave...</div>}>
+      <LeavePageContent />
+    </Suspense>
   );
 }

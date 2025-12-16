@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
-export default function TenantSwitchPage() {
+function TenantSwitchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -102,5 +102,20 @@ export default function TenantSwitchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function TenantSwitchPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50">
+        <div className="glass rounded-3xl p-8 shadow-glass text-center max-w-md">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-purple-600 border-t-transparent"></div>
+          <p className="text-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <TenantSwitchContent />
+    </Suspense>
   );
 }

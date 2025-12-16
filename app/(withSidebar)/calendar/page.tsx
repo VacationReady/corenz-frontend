@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useRef, useRef as useMutableRef, useMemo, useCallback } from "react";
+import { useEffect, useState, useRef, useRef as useMutableRef, useMemo, useCallback, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -1419,7 +1419,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
   );
 }
 
-export default function CalendarPage() {
+function CalendarPageContent() {
   const searchParams = useSearchParams();
   const departmentParam = searchParams?.get("department") || "";
   const queryParam = searchParams?.get("q") || "";
@@ -1438,5 +1438,13 @@ export default function CalendarPage() {
     <FilterProvider initialFilters={initialFilters}>
       <CalendarPageInner initialView={initialView} />
     </FilterProvider>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading calendar...</div>}>
+      <CalendarPageContent />
+    </Suspense>
   );
 }

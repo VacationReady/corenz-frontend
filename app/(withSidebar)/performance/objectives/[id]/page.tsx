@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -72,7 +72,7 @@ const itemVariants = {
   }
 };
 
-export default function ObjectiveDetailPage({ params }: ObjectiveDetailPageProps) {
+function ObjectiveDetailPageContent({ params }: ObjectiveDetailPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
@@ -798,5 +798,13 @@ export default function ObjectiveDetailPage({ params }: ObjectiveDetailPageProps
         fieldName="Objective"
       />
     </PageShell>
+  );
+}
+
+export default function ObjectiveDetailPage({ params }: ObjectiveDetailPageProps) {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading objective...</div>}>
+      <ObjectiveDetailPageContent params={params} />
+    </Suspense>
   );
 }

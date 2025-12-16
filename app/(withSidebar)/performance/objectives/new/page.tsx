@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -60,7 +60,7 @@ const itemVariants = {
   }
 };
 
-export default function CreateObjectivePage() {
+function CreateObjectivePageContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -671,5 +671,13 @@ export default function CreateObjectivePage() {
         fieldName="Objective"
       />
     </PageShell>
+  );
+}
+
+export default function CreateObjectivePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+      <CreateObjectivePageContent />
+    </Suspense>
   );
 }

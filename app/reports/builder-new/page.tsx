@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -95,7 +95,7 @@ const categoryConfig: Record<string, { icon: React.ReactNode; color: string; bgC
 
 type WizardType = "quick" | "full" | null;
 
-export default function NewReportBuilderPage() {
+function NewReportBuilderPageContent() {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -745,6 +745,14 @@ export default function NewReportBuilderPage() {
         </motion.div>
       </div>
     </PageShell>
+  );
+}
+
+export default function NewReportBuilderPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+      <NewReportBuilderPageContent />
+    </Suspense>
   );
 }
 

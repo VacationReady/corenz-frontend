@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,7 +42,7 @@ const STEPS = [
   { id: 5, label: "Build", description: "Design template", icon: Layers },
 ];
 
-export default function NewTemplatePage() {
+function NewTemplatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
@@ -461,5 +461,13 @@ export default function NewTemplatePage() {
         fieldName="Template"
       />
     </PageShell>
+  );
+}
+
+export default function NewTemplatePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+      <NewTemplatePageContent />
+    </Suspense>
   );
 }

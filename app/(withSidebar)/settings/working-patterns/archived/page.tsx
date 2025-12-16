@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition, Suspense } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -149,7 +149,7 @@ const useDecoratedPatterns = (patterns: WorkingPattern[]): DecoratedPattern[] =>
     [patterns],
   );
 
-export default function ArchivedWorkingPatternsPage() {
+function ArchivedWorkingPatternsPageContent() {
   const [patterns, setPatterns] = useState<WorkingPattern[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingActions, setPendingActions] = useState<Record<string, "restore" | "delete">>({});
@@ -584,5 +584,13 @@ export default function ArchivedWorkingPatternsPage() {
         )}
       </div>
     </PageShell>
+  );
+}
+
+export default function ArchivedWorkingPatternsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
+      <ArchivedWorkingPatternsPageContent />
+    </Suspense>
   );
 }

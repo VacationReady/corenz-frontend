@@ -223,6 +223,23 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
   const canEdit =
     session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
 
+  const startDateDisplay = useMemo(() => {
+    if (!form?.startDate) return "";
+    const raw = String(form.startDate);
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+      const y = raw.slice(0, 4);
+      const m = raw.slice(5, 7);
+      const d = raw.slice(8, 10);
+      return `${d}-${m}-${y}`;
+    }
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) return "";
+    const y = String(parsed.getFullYear());
+    const m = String(parsed.getMonth() + 1).padStart(2, "0");
+    const d = String(parsed.getDate()).padStart(2, "0");
+    return `${d}-${m}-${y}`;
+  }, [form?.startDate]);
+
   // Helper function to get employee display name
   const getEmployeeDisplayName = (emp: { firstName?: string | null; lastName?: string | null; email: string }) =>
     (emp.firstName || emp.lastName)
@@ -590,6 +607,11 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
                   )}
                 />
               </div>
+              {!!startDateDisplay && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {startDateDisplay}
+                </div>
+              )}
             </FormField>
 
             {/* Manager */}

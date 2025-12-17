@@ -109,6 +109,31 @@ export async function PATCH(
         updates[key] = body[key as string];
       }
     }
+
+    if (Object.prototype.hasOwnProperty.call(updates, "startDate")) {
+      const rawStartDate = updates.startDate as unknown;
+      if (rawStartDate === "" || rawStartDate === null) {
+        updates.startDate = null;
+      } else if (typeof rawStartDate === "string") {
+        const trimmed = rawStartDate.trim();
+        const iso = /^\d{4}-\d{2}-\d{2}$/.test(trimmed)
+          ? `${trimmed}T00:00:00.000Z`
+          : trimmed;
+        const parsed = new Date(iso);
+        if (Number.isNaN(parsed.getTime())) {
+          return NextResponse.json(
+            { error: "Invalid startDate" },
+            { status: 400 },
+          );
+        }
+        updates.startDate = parsed;
+      } else {
+        return NextResponse.json(
+          { error: "Invalid startDate" },
+          { status: 400 },
+        );
+      }
+    }
     const reasons = (body as any).reasons as Record<string, string> | undefined;
 
     // Compute diffs and enforce reasons

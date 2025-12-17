@@ -63,7 +63,6 @@ import {
   getCategoryColor,
   getHeatLevel,
   getDayTypeLabel,
-  calculateDurationLabel,
   getStatusColorConfig,
   mapLeaveRequestToEvent,
   filterUpcomingEvents,
@@ -198,6 +197,7 @@ function LeavePageContent() {
   // Data State
   const [leaveEvents, setLeaveEvents] = useState<EventInput[]>([]);
   const [dailyCounts, setDailyCounts] = useState<DailyCounts>({});
+  const [sickDayOfWeekCounts, setSickDayOfWeekCounts] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]); // M T W T F S S
   const [balances, setBalances] = useState<BalanceItem[]>([]);
   const [sickLeaveStatus, setSickLeaveStatus] = useState<SickLeaveStatus | null>(null);
   const [tenantTimeSettings, setTenantTimeSettings] = useState<TenantTimeSettings>(() =>
@@ -347,12 +347,13 @@ function LeavePageContent() {
         // Cache the events
         eventsCacheRef.current = { key: cacheKey, data: events };
 
-        // Calculate daily counts for heatmap (sick only if enabled)
+        // Calculate daily counts and day-of-week counts for heatmap (sick only if enabled)
         if (showSickHeatmap) {
           const sickEvents = rawEvents.filter(
             (e: any) => e.isSick || e.leaveType === "SICK"
           );
           const counts: DailyCounts = {};
+          const dayOfWeekCounts = [0, 0, 0, 0, 0, 0, 0]; // M T W T F S S
           const rangeStart = new Date(fetchInfo.startStr);
           const rangeEnd = new Date(fetchInfo.endStr);
           
@@ -367,11 +368,17 @@ function LeavePageContent() {
             for (let d = new Date(cur); d <= last; d.setDate(d.getDate() + 1)) {
               const key = dateKey(d);
               counts[key] = (counts[key] || 0) + 1;
+              // Convert JS day (0=Sun) to MTWTFSS index (0=Mon)
+              const jsDay = d.getDay();
+              const mtwtfssIndex = jsDay === 0 ? 6 : jsDay - 1;
+              dayOfWeekCounts[mtwtfssIndex]++;
             }
           }
           setDailyCounts(counts);
+          setSickDayOfWeekCounts(dayOfWeekCounts);
         } else {
           setDailyCounts({});
+          setSickDayOfWeekCounts([0, 0, 0, 0, 0, 0, 0]);
         }
 
         // Store all events for reference
@@ -428,14 +435,13 @@ function LeavePageContent() {
       const props = content.event.extendedProps as LeaveEventExtendedProps;
       const categoryName = props.categoryName || "Leave";
       const Icon = getEventCategoryIcon(props.categoryIconKey);
-      const statusConfig = getStatusColorConfig(props.approvalStatus);
 
       return (
         <div
           className={cn(
             "flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer transition-all",
             "hover:ring-2 hover:ring-primary/30",
-            props.isSick && "bg-amber-500/20"
+            props.isSick && "bg-red-500/20"
           )}
           onClick={() => {
             setSelectedEvent(props);
@@ -444,17 +450,6 @@ function LeavePageContent() {
         >
           <Icon className="w-3 h-3 flex-shrink-0" />
           <span className="text-[10px] font-medium truncate">{categoryName}</span>
-          {statusConfig && (
-            <span
-              className={cn(
-                "text-[8px] px-1 py-0.5 rounded font-medium ml-auto",
-                statusConfig.bgClass,
-                statusConfig.textClass
-              )}
-            >
-              {statusConfig.label}
-            </span>
-          )}
         </div>
       );
     },
@@ -776,9 +771,47 @@ function LeavePageContent() {
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 rounded bg-red-500" />
-                  <span>Declined</span>
+                  <span>Sick / Declined</span>
                 </div>
               </div>
+
+              {/* Sick Heatmap - MTWTFSS row */}
+              {showSickHeatmap && (
+                <div className="pt-3 border-t border-border/30">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">Sick days by weekday:</span>
+                    <div className="flex items-center gap-1">
+                      {["M", "T", "W", "T", "F", "S", "S"].map((day, idx) => {
+                        const count = sickDayOfWeekCounts[idx];
+                        const maxCount = Math.max(...sickDayOfWeekCounts, 1);
+                        const intensity = count / maxCount;
+                        // Green (low) to red (high) gradient
+                        const bgColor = count === 0
+                          ? "bg-green-200 dark:bg-green-900/40"
+                          : intensity < 0.33
+                            ? "bg-green-300 dark:bg-green-700/60"
+                            : intensity < 0.66
+                              ? "bg-amber-400 dark:bg-amber-600/70"
+                              : "bg-red-500 dark:bg-red-600/80";
+                        return (
+                          <div
+                            key={idx}
+                            className={cn(
+                              "w-7 h-7 rounded flex flex-col items-center justify-center text-[10px] font-medium transition-colors",
+                              bgColor,
+                              count > 0 ? "text-white" : "text-muted-foreground"
+                            )}
+                            title={`${day}: ${count} sick day${count !== 1 ? "s" : ""}`}
+                          >
+                            <span>{day}</span>
+                            {count > 0 && <span className="text-[8px]">{count}</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

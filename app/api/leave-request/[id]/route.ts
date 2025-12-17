@@ -7,6 +7,7 @@ import { z } from "zod";
 import { processDecision } from "@/lib/advanceLeaveApproval";
 import { roundToTwoDecimals, addWithPrecision } from "@/lib/decimalPrecision";
 import { hasPermission, UserWithProfile } from "@/lib/permissions";
+import { recordSickLeaveUsage, reverseSickLeaveUsage, daysToHours } from "@/lib/leave/nz-sick-leave-ledger";
 
 const leaveRequestActionSchema = z.object({
   action: z.enum(["approve", "decline"], {
@@ -255,8 +256,43 @@ export async function PATCH(
           });
         });
       } else {
-        // Entitlement not enforced - just approve without balance check/deduction
-        console.log("ℹ️ Entitlement enforcement disabled for this event type. Approving without balance check.");
+        // Entitlement not enforced - check if this is sick leave to deduct from sick leave balance
+        const isSickLeave = (leave as any).leaveType === "SICK" || 
+          leave.EventCategory?.name?.toLowerCase().includes("sick");
+        
+        if (isSickLeave) {
+          // Calculate sick leave days to deduct
+          let sickDays = 0;
+          let currentDate = new Date(leave.startDate);
+          const endDate = new Date(leave.endDate);
+          const exclusiveEnd = new Date(endDate);
+          exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+
+          while (currentDate <= exclusiveEnd) {
+            const deduction = await calculateLeaveDeduction(leave.employeeId, currentDate);
+            sickDays += deduction;
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+
+          sickDays = roundToTwoDecimals(sickDays);
+          
+          if (sickDays > 0) {
+            const sickHours = daysToHours(sickDays);
+            try {
+              await recordSickLeaveUsage(
+                prisma as any,
+                leave.employeeId,
+                sickHours,
+                leaveId,
+                session.user.id
+              );
+            } catch (sickLeaveError: any) {
+              console.error("Failed to record sick leave usage:", sickLeaveError);
+              // Don't block approval if sick leave recording fails
+            }
+          }
+        }
+        
         updatedLeaveRequest = await prisma.leaveRequest.update({
           where: { id: leaveId },
           data: { approvalStatus: "APPROVED", approvedById: session.user.id },
@@ -414,39 +450,57 @@ export async function DELETE(
 
     // If the leave was APPROVED, we need to return the deducted days to entitlement
     if (leave.approvalStatus === "APPROVED") {
-      // Calculate how many days were deducted
-      const totalDays: number[] = [];
-      let currentDate = new Date(leave.startDate);
-      const endDate = new Date(leave.endDate);
-      const exclusiveEnd = new Date(endDate);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+      // Check if this is sick leave
+      const isSickLeave = (leave as any).leaveType === "SICK" || 
+        leave.EventCategory?.name?.toLowerCase().includes("sick");
+      
+      if (isSickLeave) {
+        // Reverse sick leave usage from the ledger
+        try {
+          await reverseSickLeaveUsage(
+            prisma as any,
+            leave.employeeId,
+            leaveId,
+            session.user.id
+          );
+        } catch (sickLeaveError: any) {
+          console.error("Failed to reverse sick leave usage:", sickLeaveError);
+        }
+      } else {
+        // Calculate how many days were deducted for regular leave
+        const totalDays: number[] = [];
+        let currentDate = new Date(leave.startDate);
+        const endDate = new Date(leave.endDate);
+        const exclusiveEnd = new Date(endDate);
+        exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
 
-      while (currentDate <= exclusiveEnd) {
-        const deduction = await calculateLeaveDeduction(
-          leave.employeeId,
-          currentDate,
-        );
-        totalDays.push(deduction);
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
+        while (currentDate <= exclusiveEnd) {
+          const deduction = await calculateLeaveDeduction(
+            leave.employeeId,
+            currentDate,
+          );
+          totalDays.push(deduction);
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
 
-      const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
+        const totalDeduction = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
 
-      // Return the days to the entitlement
-      const entitlement = await prisma.leaveEntitlement.findFirst({
-        where: {
-          employeeId: leave.employeeId,
-          eventCategoryId: leave.eventCategoryId,
-        },
-      });
-
-      if (entitlement && totalDeduction > 0) {
-        await prisma.leaveEntitlement.update({
-          where: { id: entitlement.id },
-          data: { 
-            usedDays: Math.max(0, roundToTwoDecimals(entitlement.usedDays - totalDeduction))
+        // Return the days to the entitlement
+        const entitlement = await prisma.leaveEntitlement.findFirst({
+          where: {
+            employeeId: leave.employeeId,
+            eventCategoryId: leave.eventCategoryId,
           },
         });
+
+        if (entitlement && totalDeduction > 0) {
+          await prisma.leaveEntitlement.update({
+            where: { id: entitlement.id },
+            data: { 
+              usedDays: Math.max(0, roundToTwoDecimals(entitlement.usedDays - totalDeduction))
+            },
+          });
+        }
       }
     }
 

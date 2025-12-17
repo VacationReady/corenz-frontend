@@ -236,11 +236,15 @@ export function mapLeaveRequestToEvent(
     };
   }
 
-  // Determine color based on status if colorByStatus is true
+  // Determine color based on status and sick leave
   let backgroundColor = "#3b82f6"; // Default blue
   let borderColor = "#2563eb";
   
-  if (options.colorByStatus) {
+  // Sick leave always shows red regardless of status
+  if (isSick) {
+    backgroundColor = "#ef4444";
+    borderColor = "#dc2626";
+  } else if (options.colorByStatus) {
     const status = (leave.approvalStatus || "").toLowerCase();
     if (status === "approved") {
       backgroundColor = "#22c55e";
@@ -252,9 +256,6 @@ export function mapLeaveRequestToEvent(
       backgroundColor = "#ef4444";
       borderColor = "#dc2626";
     }
-  } else if (isSick) {
-    backgroundColor = "#f59e0b";
-    borderColor = "#d97706";
   }
 
   return {

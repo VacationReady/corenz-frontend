@@ -479,3 +479,11 @@ Improved the Add Employee Modal by implementing a quality-of-life feature that a
 119. Calendar Day Action Sheet Cancel Button Visibility
 
 Fixed the Cancel button visibility issue in the calendar day-click modal by darkening the button styling. The button now uses slate-coloured borders and text (border-slate-300 dark:border-slate-600, text-slate-700 dark:text-slate-300) ensuring it remains clearly visible against the glassmorphism background without requiring hover interaction. Reverted unnecessary layout changes to maintain the original modal structure.
+
+120. Prevent Overlapping Full-Day Leave Bookings
+
+Implemented server-side validation to prevent employees from having overlapping full-day leave events (e.g., sickness and holiday) on the same date(s). The validateLeaveRequest function now checks for existing PENDING or APPROVED leave requests within the requested date range and blocks creation if an overlap is detected. Updated all booking entry points (individual, bulk, and AI-assisted) to enforce this rule consistently. Enhanced UI error messaging to display clear, modern toasts that explain why booking was blocked, including the conflicting event type and dates, helping users understand what to do next.
+
+121. Employee Leave Calendar Refactor
+
+Refactored the employee leave page from a list view into a flagship FullCalendar-based calendar interface while preserving the existing URL and employee profile layout. Extracted shared calendar helpers into reusable modules for both company-wide and employee-scoped calendars, eliminating code duplication. Added comprehensive features including a Sheet details drawer for event inspection, filters for upcoming-only and type (All/Sick/Other), a balances panel showing entitlements and stored balances, sick leave status display, and an optional sickness heatmap toggle. Implemented range-driven event fetching with proper tenant isolation and RBAC, and integrated the existing AddLeaveRequestDialog for booking leave.

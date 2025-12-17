@@ -241,8 +241,8 @@ function MetricCardEnhanced({
   change,
   trend,
   icon: Icon,
-  iconColor = "text-primary",
-  bgGradient = "from-primary/5 to-primary/10",
+  iconColor = "text-sky-500",
+  bgGradient = "from-sky-500/10 to-sky-500/5",
   onClick,
   delay = 0,
 }: {
@@ -267,6 +267,7 @@ function MetricCardEnhanced({
       whileHover={onClick ? "hover" : undefined}
       custom={delay}
       transition={{ delay: delay * 0.1 }}
+      className="h-full"
     >
       <motion.div
         variants={onClick ? cardHoverVariants : undefined}
@@ -275,6 +276,7 @@ function MetricCardEnhanced({
         onClick={onClick}
         className={`
           relative overflow-hidden rounded-2xl p-5
+          h-full
           bg-gradient-to-br ${bgGradient}
           border border-white/50 dark:border-white/10
           backdrop-blur-xl shadow-lg shadow-black/5
@@ -291,13 +293,15 @@ function MetricCardEnhanced({
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <p className="text-3xl font-bold text-foreground tracking-tight">{value}</p>
-            {change && (
-              <div className="flex items-center gap-1.5">
-                <TrendIcon className={`w-4 h-4 ${trendColor}`} />
-                <span className={`text-sm font-semibold ${trendColor}`}>{change}</span>
-                <span className="text-xs text-muted-foreground">vs last period</span>
-              </div>
-            )}
+            <div className="min-h-[20px]">
+              {change && (
+                <div className="flex items-center gap-1.5">
+                  <TrendIcon className={`w-4 h-4 ${trendColor}`} />
+                  <span className={`text-sm font-semibold ${trendColor}`}>{change}</span>
+                  <span className="text-xs text-muted-foreground">vs last period</span>
+                </div>
+              )}
+            </div>
           </div>
           <div className={`p-3 rounded-xl bg-white/60 dark:bg-white/10 shadow-inner`}>
             <Icon className={`w-6 h-6 ${iconColor}`} />
@@ -827,15 +831,15 @@ export default function AnalyticsDashboard() {
             animate="visible"
           >
             {/* Metric Cards Grid */}
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
               <MetricCardEnhanced
                 title="Active Headcount"
                 value={latestHeadcount.toLocaleString()}
                 change={formattedHeadcountChange}
                 trend={headcountTrend}
                 icon={Users}
-                iconColor="text-primary"
-                bgGradient="from-primary/10 to-primary/5"
+                iconColor="text-sky-500"
+                bgGradient="from-sky-500/10 to-sky-500/5"
                 onClick={() => handleDrillDown("all", "all", "All Active Employees", "Complete list of all active employees")}
                 delay={0}
               />
@@ -843,8 +847,8 @@ export default function AnalyticsDashboard() {
                 title="New Hires (30d)"
                 value={data.metrics.newHiresLast30Days.toLocaleString()}
                 icon={UserPlus}
-                iconColor="text-emerald-500"
-                bgGradient="from-emerald-500/10 to-emerald-500/5"
+                iconColor="text-sky-500"
+                bgGradient="from-sky-500/10 to-sky-500/5"
                 onClick={() => handleDrillDown("newHires", "newHires", "New Hires (Last 30 Days)", "Employees who started recently")}
                 delay={1}
               />
@@ -852,8 +856,8 @@ export default function AnalyticsDashboard() {
                 title="Departures (30d)"
                 value={data.metrics.departuresLast30Days.toLocaleString()}
                 icon={UserMinus}
-                iconColor="text-rose-500"
-                bgGradient="from-rose-500/10 to-rose-500/5"
+                iconColor="text-sky-500"
+                bgGradient="from-sky-500/10 to-sky-500/5"
                 onClick={() => handleDrillDown("departures", "departures", "Recent Departures", "Employees who left recently")}
                 delay={2}
               />
@@ -869,24 +873,24 @@ export default function AnalyticsDashboard() {
                 title="Attrition Rate (90d)"
                 value={data.metrics.attritionRate90d !== null ? `${data.metrics.attritionRate90d.toFixed(1)}%` : "—"}
                 icon={TrendingDown}
-                iconColor="text-rose-500"
-                bgGradient="from-rose-500/10 to-rose-500/5"
+                iconColor="text-sky-500"
+                bgGradient="from-sky-500/10 to-sky-500/5"
                 delay={4}
               />
               <MetricCardEnhanced
                 title="Retention Rate (90d)"
                 value={data.metrics.retentionRate90d !== null ? `${data.metrics.retentionRate90d.toFixed(1)}%` : "—"}
                 icon={Target}
-                iconColor="text-emerald-500"
-                bgGradient="from-emerald-500/10 to-emerald-500/5"
+                iconColor="text-sky-500"
+                bgGradient="from-sky-500/10 to-sky-500/5"
                 delay={5}
               />
               <MetricCardEnhanced
                 title="Contracts Expiring (60d)"
                 value={data.metrics.upcomingContractEndings60d.toLocaleString()}
                 icon={CalendarClock}
-                iconColor="text-amber-500"
-                bgGradient="from-amber-500/10 to-amber-500/5"
+                iconColor="text-sky-500"
+                bgGradient="from-sky-500/10 to-sky-500/5"
                 onClick={() => handleDrillDown("contractsExpiring", "contractsExpiring", "Contracts Expiring", "Contracts expiring in next 60 days")}
                 delay={6}
               />

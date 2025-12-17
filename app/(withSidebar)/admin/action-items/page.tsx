@@ -292,7 +292,7 @@ export default function AdminActionItemsPage() {
   return (
     <PageShell
       title="Action Items Hub"
-      description="Global overview of all outstanding work across your organization"
+      description="Global overview of all outstanding people tasks across your organisation"
       breadcrumbs={breadcrumbs}
       action={
         <div className="flex items-center gap-2">

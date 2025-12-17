@@ -10,6 +10,7 @@ import {
   CalendarCheck2,
   UserPlus,
   ArrowRight,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +33,9 @@ import EditEmployeeModal from "@/components/employees/EditEmployeeModal";
 import { StageTimeline } from "@/components/approvals/StageTimeline";
 import { labelForField, formatAuditValue } from "@/lib/audit-field-labels";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/Badge";
+import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { Input } from "@/components/ui/Input";
 import { useApi, useBatchedApi } from "@/hooks/useApi";
@@ -695,37 +699,76 @@ export default function AdminDashboardClient({
                       new Date(a.start).getTime() - new Date(b.start).getTime(),
                   )
                   .slice(0, 4)
-                  .map((ev) => (
-                    <li
-                      key={ev.id}
-                      className="flex items-center gap-3 hover:bg-muted/40 rounded-lg px-2 py-1 cursor-pointer"
-                      onClick={() => {
-                        try {
-                          const d = new Date(ev.start);
-                          const y = d.getFullYear();
-                          const m = String(d.getMonth() + 1).padStart(2, "0");
-                          const day = String(d.getDate()).padStart(2, "0");
-                          const iso = `${y}-${m}-${day}`;
-                          router.push(`/calendar?date=${iso}`);
-                        } catch (_err) { }
-                      }}
-                    >
-                      <Avatar
-                        size={32}
-                        name={ev.employee?.name}
-                        src={ev.employee?.profileImageUrl}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {ev.employee?.name ?? ev.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {formatDateEnglish(ev.start)} {" \u2022 "}
-                          {ev.categoryName || (typeof ev.title === "string" ? ev.title.split(" - ")?.[0] : null) || "Event"}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
+                  .map((ev) => {
+                    const Icon = getEventCategoryIcon(ev.categoryIconKey);
+                    const endDate = ev.end ? parseCalendarDate(ev.end) : parseCalendarDate(ev.start);
+                    const adjustedEnd = new Date(endDate);
+                    adjustedEnd.setDate(adjustedEnd.getDate() - 1);
+                    const displayEnd = adjustedEnd >= parseCalendarDate(ev.start) ? adjustedEnd : parseCalendarDate(ev.start);
+                    return (
+                      <Popover key={ev.id}>
+                        <PopoverTrigger asChild>
+                          <li className="flex items-center gap-3 hover:bg-muted/40 rounded-lg px-2 py-1 cursor-pointer">
+                            <Avatar
+                              size={32}
+                              name={ev.employee?.name}
+                              src={ev.employee?.profileImageUrl}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {ev.employee?.name ?? ev.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {formatDateEnglish(ev.start)} {" \u2022 "}
+                                {ev.categoryName || (typeof ev.title === "string" ? ev.title.split(" - ")?.[0] : null) || "Event"}
+                              </p>
+                            </div>
+                          </li>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" className="w-80 rounded-xl shadow-xl border-border/50 p-0 overflow-hidden">
+                          <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar src={ev.employee?.profileImageUrl ?? null} name={ev.employee?.name ?? null} size={40} className="ring-2 ring-white shadow-lg" />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-sm truncate">{ev.employee?.name || ev.title}</div>
+                                {ev.employee?.department ? (
+                                  <div className="text-xs text-muted-foreground truncate">{ev.employee.department}</div>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="p-4 space-y-3">
+                            {ev.categoryName ? (
+                              <Badge className="!text-xs flex items-center gap-1.5 w-fit">
+                                <Icon className="h-3.5 w-3.5" />{ev.categoryName}
+                              </Badge>
+                            ) : null}
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <CalendarIcon className="h-4 w-4 text-primary" />
+                              <span>
+                                {formatDateEnglish(ev.start)} – {formatDateEnglish(displayEnd)}
+                              </span>
+                            </div>
+                            {ev.reason ? (
+                              <div className="text-sm text-muted-foreground p-2.5 bg-muted/50 rounded-lg italic">
+                                "{String(ev.reason)}"
+                              </div>
+                            ) : null}
+                            {ev.employee?.id ? (
+                              <div className="pt-2 flex gap-2 border-t border-border/50">
+                                <Button asChild variant="secondary" size="sm" className="flex-1">
+                                  <a href={`/employees/${ev.employee.id}/leave`}>View Leave</a>
+                                </Button>
+                                <Button asChild variant="outline" size="sm" className="flex-1">
+                                  <a href={`/employees/${ev.employee.id}/overview`}>Profile</a>
+                                </Button>
+                              </div>
+                            ) : null}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    );
+                  })}
               </ul>
             )}
           </div>

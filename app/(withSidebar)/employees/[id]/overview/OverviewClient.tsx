@@ -307,13 +307,55 @@ export default function OverviewClient({
           </TooltipProvider>
         </QuickInfoCard>
 
+        {/* Emergency Contacts */}
+        <QuickInfoCard
+          href={`/employees/${employeeId}/emergency-contacts`}
+          title="Emergency Contacts"
+          icon={Phone}
+          iconColor="from-primary to-blue-500"
+          delay={0.35}
+        >
+          {emergencyContacts.length > 0 ? (
+            <div className="space-y-3">
+              {emergencyContacts.slice(0, 2).map((contact) => (
+                <div key={contact.id} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4 text-primary dark:text-blue-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {contact.name}
+                      {contact.relationship && (
+                        <span className="text-muted-foreground font-normal"> • {contact.relationship}</span>
+                      )}
+                    </p>
+                    {contact.phone && (
+                      <p className="text-xs text-muted-foreground truncate">{contact.phone}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {emergencyContacts.length > 2 && (
+                <p className="text-xs text-muted-foreground">
+                  +{emergencyContacts.length - 2} more contacts
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="py-4 text-center">
+              <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No contacts recorded</p>
+            </div>
+          )}
+        </QuickInfoCard>
+
         {/* Absence & Sick Leave */}
         <QuickInfoCard
           href={`/employees/${employeeId}/leave`}
           title="Absence & Sick Leave"
           icon={Thermometer}
-          iconColor="from-amber-500 to-orange-500"
-          delay={0.3}
+          iconColor="from-primary to-blue-500"
+          delay={0.35}
         >
           {sickLeaveData ? (
             <div className="space-y-3">
@@ -364,54 +406,11 @@ export default function OverviewClient({
           )}
         </QuickInfoCard>
 
-        {/* Emergency Contacts */}
-        <QuickInfoCard
-          href={`/employees/${employeeId}/emergency-contacts`}
-          title="Emergency Contacts"
-          icon={Phone}
-          iconColor="from-primary to-blue-500"
-          delay={0.35}
-        >
-          {emergencyContacts.length > 0 ? (
-            <div className="space-y-3">
-              {emergencyContacts.slice(0, 2).map((contact) => (
-                <div key={contact.id} className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
-                    <Users className="w-4 h-4 text-primary dark:text-blue-400" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {contact.name}
-                      {contact.relationship && (
-                        <span className="text-muted-foreground font-normal"> • {contact.relationship}</span>
-                      )}
-                    </p>
-                    {contact.phone && (
-                      <p className="text-xs text-muted-foreground truncate">{contact.phone}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {emergencyContacts.length > 2 && (
-                <p className="text-xs text-muted-foreground">
-                  +{emergencyContacts.length - 2} more contacts
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="py-4 text-center">
-              <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No contacts recorded</p>
-            </div>
-          )}
-        </QuickInfoCard>
-
-        {/* Leave Balances - Full Width */}
+        {/* Leave Balances */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.35 }}
-          className="md:col-span-2"
+          transition={{ duration: 0.4, delay: 0.4 }}
         >
           <div className="glass-card rounded-2xl overflow-hidden shadow-depth-2">
             <div className="relative px-5 py-4 border-b border-white/20 dark:border-white/10">

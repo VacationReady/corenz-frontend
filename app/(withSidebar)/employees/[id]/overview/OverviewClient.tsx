@@ -411,18 +411,19 @@ export default function OverviewClient({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.4 }}
+          className="h-full"
         >
-          <div className="glass-card rounded-2xl overflow-hidden shadow-depth-2">
+          <div className="glass-card rounded-2xl overflow-hidden shadow-depth-2 h-full flex flex-col">
             <div className="relative px-5 py-4 border-b border-white/20 dark:border-white/10">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-blue-500/5 pointer-events-none" />
               <div className="relative flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 shadow-sm">
                   <Calendar className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="font-semibold text-foreground">Leave Balances</h3>
+                <h3 className="font-semibold text-foreground">Annual Leave Balance</h3>
               </div>
             </div>
-            <div className="p-5">
+            <div className="p-5 flex-1">
               {leaveBalanceComponent}
             </div>
           </div>

@@ -419,3 +419,11 @@ Fixed workflow node validation UI becoming stale after edits by syncing nodeVali
 104. Analytics KPI Cards Alignment and Colour Standardisation
 
 Standardised all analytics dashboard KPI cards to use the same blue gradient theme as the "Avg Tenure" card for visual consistency. Fixed card alignment issues by reserving space for the change indicator and adding proper grid stretching, ensuring all cards align neatly in rows regardless of content length.
+
+105. NZ Sick Leave Ledger Refactor (Anniversary Grants)
+
+Refactored New Zealand sick leave to a production-grade, Holidays Act compliant ledger-based model with 6-month eligibility, 10-day anniversary grants, and 20-day cap enforcement. Added booking and approval guards to prevent pre-eligibility sick leave requests, plus a safe, idempotent migration script (with dry-run reporting) to backfill opening balances. Included comprehensive tests, documentation, and CI enforcement to prevent any future direct `sickLeaveBalance` writes outside the ledger helpers.
+
+106. NZ Sick Leave Booking UX, Permissions, and Calendar Support
+
+Integrated the NZ sick leave model into the leave booking experience with a first-class sick leave flow, clear eligibility/balance messaging, and sick leave badges/filters across leave views. Added a structured sickness reason dropdown and enforced server-side validation for sick leave requests. Updated access rules so only admins (and managers for direct reports) can register sick leave, including from the calendar booking modal, while employees cannot self-toggle sick leave.

@@ -306,6 +306,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
           leaveEntitlements={leaveEntitlementsForPanel}
           employeeId={employee.id}
           isAdminOrManager={canEditEntitlements}
+          eventCategoryNameAllowList={["Annual Leave"]}
         />
       }
     />

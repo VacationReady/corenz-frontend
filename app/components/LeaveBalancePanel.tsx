@@ -26,6 +26,7 @@ interface LeaveBalancePanelProps {
   isAdminOrManager?: boolean;
   /** Whether the current user is booking leave for themselves */
   isBookingForSelf?: boolean;
+  eventCategoryNameAllowList?: string[];
 }
 
 import { useTenantFetch } from "@/hooks/useTenantFetch";
@@ -35,9 +36,24 @@ export default function LeaveBalancePanel({
   employeeId,
   isAdminOrManager = false,
   isBookingForSelf = true,
+  eventCategoryNameAllowList,
 }: LeaveBalancePanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
-  const [entitlements, setEntitlements] = useState(leaveEntitlements);
+  const normalizedAllowList = (eventCategoryNameAllowList ?? []).map((name) =>
+    name.trim().toLowerCase(),
+  );
+  const filterEntitlements = (items: LeaveEntitlement[]) => {
+    if (!normalizedAllowList.length) return items;
+    return items.filter((entitlement) =>
+      normalizedAllowList.includes(
+        (entitlement.eventCategory?.name ?? "").trim().toLowerCase(),
+      ),
+    );
+  };
+
+  const [entitlements, setEntitlements] = useState(() =>
+    filterEntitlements(leaveEntitlements),
+  );
   const tenantFetch = useTenantFetch();
 
   const refreshEntitlements = async () => {
@@ -45,7 +61,7 @@ export default function LeaveBalancePanel({
       const res = await tenantFetch(`/api/employees/${employeeId}/entitlement`);
       if (res.ok) {
         const data = await res.json();
-        setEntitlements(data);
+        setEntitlements(filterEntitlements(data));
       } else {
         console.error("Failed to refresh entitlements.");
       }

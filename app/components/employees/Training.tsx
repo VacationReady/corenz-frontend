@@ -169,7 +169,7 @@ export default function Training({ employeeId }: { employeeId: string }) {
   const [employeeName, setEmployeeName] = useState("Employee");
   
   // UI state
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
 

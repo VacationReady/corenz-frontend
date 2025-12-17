@@ -69,7 +69,7 @@ export default function ReportsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const router = useRouter();
   const breadcrumbs = useBreadcrumbs();
 

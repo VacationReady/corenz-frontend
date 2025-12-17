@@ -180,7 +180,7 @@ export default function EmploymentChecks({ employeeId }: { employeeId: string })
   const [dragActive, setDragActive] = useState(false);
   
   // UI state
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   

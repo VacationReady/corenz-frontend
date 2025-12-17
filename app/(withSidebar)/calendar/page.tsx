@@ -70,6 +70,16 @@ import {
   formatTenantDate,
   type TenantTimeSettings,
 } from "@/lib/calendar/timezone";
+import {
+  dateKey,
+  utcDateKey,
+  getCategoryColor,
+  getHeatLevel,
+  getHeatAlpha,
+  getDayCellClassNames,
+  type DailyCounts,
+  type DailyCategoryCounts,
+} from "@/lib/calendar/calendar-helpers";
 import AddHolidayModal from "./AddHolidayModal";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { cn } from "@/lib/utils";
@@ -638,19 +648,9 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     })();
   }, []);
 
-  const dateKey = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const utcDateKey = (d: Date) =>
-    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  // dateKey and utcDateKey are now imported from calendar-helpers
 
-  const getHeatLevel = (count: number) => {
-    if (count >= 7) return 5;
-    if (count >= 5) return 4;
-    if (count >= 4) return 3;
-    if (count >= 3) return 2;
-    if (count >= 1) return 1;
-    return 0;
-  };
+  // getHeatLevel is now imported from calendar-helpers
 
   const dayCellClassNames = (arg: any) => {
     const d = arg.date as Date;
@@ -798,19 +798,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     );
   };
 
-  const getCategoryColor = (name: string) => {
-    const key = (name || "").toLowerCase();
-    if (key.includes("annual") || key.includes("holiday")) return "cz-chip-modern--annual";
-    if (key.includes("sick")) return "cz-chip-modern--sick";
-    if (key.includes("training")) return "cz-chip-modern--training";
-    if (key.includes("maternity") || key.includes("parent")) return "cz-chip-modern--parental";
-    if (key.includes("compassion") || key.includes("bereave")) return "cz-chip-modern--compassion";
-    if (key.includes("doctor")) return "cz-chip-modern--medical";
-    if (key.includes("dentist")) return "cz-chip-modern--medical";
-    if (key.includes("unpaid")) return "cz-chip-modern--unpaid";
-    if (key.includes("toil") || key.includes("lieu")) return "cz-chip-modern--toil";
-    return "cz-chip-modern--default";
-  };
+  // getCategoryColor is now imported from calendar-helpers
 
   const formatEventRange = (start: string, end?: string) => {
     const startLabel = formatTenantDate(start, tenantTimeSettings, "d MMM yyyy");

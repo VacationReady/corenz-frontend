@@ -273,6 +273,146 @@ async function processCompany(companyId: string) {
   }
 }
 
+/**
+ * Process 90-day trial period reminders for all companies
+ * Sends email notifications to manager/admin/both based on employee settings
+ */
+async function processTrialPeriodReminders() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Find all employees with active trial periods who haven't been notified yet
+  const employeesWithTrials = await prisma.employee.findMany({
+    where: {
+      ninetyDayTrialPeriod: true,
+      trialPeriodEndDate: { not: null },
+      trialNotificationSent: false,
+      trialNotifyDaysBefore: { not: null },
+      isActive: true,
+    },
+    include: {
+      User: true,
+      Company: true,
+    },
+  });
+
+  let notificationsSent = 0;
+
+  for (const employee of employeesWithTrials) {
+    if (!employee.trialPeriodEndDate || !employee.trialNotifyDaysBefore) continue;
+
+    // Calculate when notification should be sent
+    const notifyDate = new Date(employee.trialPeriodEndDate);
+    notifyDate.setDate(notifyDate.getDate() - employee.trialNotifyDaysBefore);
+    notifyDate.setHours(0, 0, 0, 0);
+
+    // Check if today is the notification date
+    if (today.getTime() !== notifyDate.getTime()) continue;
+
+    const employeeName = `${employee.User?.firstName ?? "Unknown"} ${employee.User?.lastName ?? ""}`.trim();
+    const daysRemaining = employee.trialNotifyDaysBefore;
+    const trialEndDate = employee.trialPeriodEndDate.toLocaleDateString("en-NZ", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const recipients: string[] = [];
+    const notifyRecipient = employee.trialNotifyRecipient || "MANAGER";
+
+    // Get manager email if needed
+    if (notifyRecipient === "MANAGER" || notifyRecipient === "BOTH") {
+      if (employee.User?.managerId) {
+        const manager = await prisma.user.findUnique({
+          where: { id: employee.User.managerId },
+          select: { email: true, firstName: true },
+        });
+        if (manager?.email) {
+          recipients.push(manager.email);
+        }
+      }
+    }
+
+    // Get admin emails if needed
+    if (notifyRecipient === "ADMIN" || notifyRecipient === "BOTH") {
+      const admins = await prisma.user.findMany({
+        where: {
+          companyId: employee.companyId,
+          role: { in: ["ADMIN", "SUPER_ADMIN"] },
+        },
+        select: { email: true },
+      });
+      recipients.push(...admins.map((a) => a.email));
+    }
+
+    // Remove duplicates
+    const uniqueRecipients = [...new Set(recipients)];
+
+    if (uniqueRecipients.length === 0) {
+      console.log(`⚠️ No recipients for trial period reminder - ${employeeName}`);
+      continue;
+    }
+
+    // Send email to each recipient
+    for (const recipient of uniqueRecipients) {
+      try {
+        const { html, text } = renderPeopleCoreEmail({
+          preheader: `90-day trial period ending soon for ${employeeName}`,
+          title: "90-Day Trial Period Reminder",
+          intro: [
+            "Hello,",
+            `This is a reminder that the 90-day trial period for ${employeeName} is ending soon.`,
+          ],
+          sections: [
+            {
+              title: "Trial Period Details",
+              description: [
+                `Employee: ${employeeName}`,
+                `Trial End Date: ${trialEndDate}`,
+                `Days Remaining: ${daysRemaining} day(s)`,
+              ],
+            },
+            {
+              title: "Action Required",
+              description: [
+                "Please review the employee's performance and make a decision regarding their continued employment before the trial period ends.",
+                "Under the NZ Employment Relations Act 2000, any decision to end employment must be communicated before the 90-day period expires.",
+              ],
+            },
+          ],
+          outro: [
+            "Please take appropriate action.",
+            "Regards,",
+            "PeopleCore HRIS",
+          ],
+        });
+
+        await resend.emails.send({
+          from: "noreply@peoplecore.co.nz",
+          to: recipient,
+          subject: `⚠️ Trial Period Ending: ${employeeName} - ${daysRemaining} days remaining`,
+          html,
+          text,
+        });
+
+        console.log(`✅ Sent trial period reminder to ${recipient} for ${employeeName}`);
+        notificationsSent++;
+      } catch (error) {
+        console.error(`Failed to send trial period reminder to ${recipient}:`, error);
+      }
+    }
+
+    // Mark notification as sent
+    await prisma.employee.update({
+      where: { id: employee.id },
+      data: { trialNotificationSent: true },
+    });
+  }
+
+  return notificationsSent;
+}
+
 // Shared processing logic for both GET and POST
 async function processExpiryAlerts() {
   try {
@@ -283,9 +423,14 @@ async function processExpiryAlerts() {
       await processCompany(id);
     }
 
+    // Process trial period reminders (runs across all companies)
+    const trialNotificationsSent = await processTrialPeriodReminders();
+    console.log(`📧 Trial period reminders sent: ${trialNotificationsSent}`);
+
     return NextResponse.json({
-      message: "Expiry alerts and form invitations sent successfully.",
+      message: "Expiry alerts, form invitations, and trial reminders sent successfully.",
       companiesProcessed: companyIds.length,
+      trialNotificationsSent,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

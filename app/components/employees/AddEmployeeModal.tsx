@@ -37,7 +37,7 @@ import { fetchWithCsrf } from "@/lib/csrf";
 import { prepareSensitiveDataForTransmission } from "@/lib/crypto";
 import { AddEmployeeModalErrorBoundary } from "./AddEmployeeModalErrorBoundary";
 import { roundToTwoDecimals } from "@/lib/decimalPrecision";
-import { RefreshCw, User, Users, Briefcase, Calendar, Shield, Building2, MapPin, FileText, DollarSign, Phone, Heart, CheckCircle2, ChevronRight, Sparkles, Check } from "lucide-react";
+import { RefreshCw, User, Users, Briefcase, Calendar, Shield, Building2, MapPin, FileText, DollarSign, Phone, Heart, CheckCircle2, ChevronRight, Sparkles, Check, Bell } from "lucide-react";
 
 // 👇 Toggle
 import { Switch } from "@/components/ui/switch";
@@ -492,6 +492,8 @@ export default function AddEmployeeModal({
     // 90-day trial period fields
     ninetyDayTrialPeriod: false,
     trialPeriodAccepted: false,
+    trialNotifyRecipient: "MANAGER" as "MANAGER" | "ADMIN" | "BOTH",
+    trialNotifyDaysBefore: "7",
     // Public holiday leave booking (for contractors who don't get public holidays as paid leave)
     canBookPublicHolidays: false,
     // Rota group assignments for shift-based patterns
@@ -1310,6 +1312,8 @@ export default function AddEmployeeModal({
         trialPeriodAcceptedAt: formData.ninetyDayTrialPeriod && formData.trialPeriodAccepted
           ? new Date().toISOString()
           : "",
+        trialNotifyRecipient: formData.ninetyDayTrialPeriod ? formData.trialNotifyRecipient : undefined,
+        trialNotifyDaysBefore: formData.ninetyDayTrialPeriod ? parseInt(formData.trialNotifyDaysBefore || "7", 10) : undefined,
         // Public holiday leave booking
         canBookPublicHolidays: formData.canBookPublicHolidays,
         // Rota group assignments for shift-based patterns
@@ -1387,6 +1391,8 @@ export default function AddEmployeeModal({
         workPermitType: "",
         ninetyDayTrialPeriod: false,
         trialPeriodAccepted: false,
+        trialNotifyRecipient: "MANAGER" as "MANAGER" | "ADMIN" | "BOTH",
+        trialNotifyDaysBefore: "7",
         // Public holiday leave booking
         canBookPublicHolidays: false,
         // Rota groups
@@ -2468,6 +2474,82 @@ export default function AddEmployeeModal({
                                   Acknowledgement required before proceeding
                                 </motion.p>
                               )}
+
+                              {/* Trial Period Notification Settings */}
+                              <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="mt-4 p-4 rounded-xl bg-white/50 dark:bg-white/5 border border-blue-200/50 dark:border-blue-800/30 space-y-4"
+                              >
+                                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                  <Bell className="w-4 h-4 text-blue-500" />
+                                  Trial Period Reminder
+                                </div>
+                                
+                                <div className="space-y-3">
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground mb-1.5 block">
+                                      Who should be notified before the trial ends?
+                                    </Label>
+                                    <Select
+                                      value={formData.trialNotifyRecipient}
+                                      onValueChange={(value: "MANAGER" | "ADMIN" | "BOTH") =>
+                                        setFormData({ ...formData, trialNotifyRecipient: value })
+                                      }
+                                    >
+                                      <SelectTrigger className="h-10 rounded-xl border-muted/50 bg-white/80 dark:bg-white/10">
+                                        <SelectValue placeholder="Select recipient" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="MANAGER">
+                                          <div className="flex items-center gap-2">
+                                            <User className="w-4 h-4 text-emerald-500" />
+                                            <span>Line Manager</span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="ADMIN">
+                                          <div className="flex items-center gap-2">
+                                            <Shield className="w-4 h-4 text-violet-500" />
+                                            <span>Admin / HR</span>
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="BOTH">
+                                          <div className="flex items-center gap-2">
+                                            <Users className="w-4 h-4 text-blue-500" />
+                                            <span>Both Manager & Admin</span>
+                                          </div>
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground mb-1.5 block">
+                                      Days before trial ends to send reminder
+                                    </Label>
+                                    <div className="flex items-center gap-2">
+                                      <Input
+                                        type="number"
+                                        inputMode="numeric"
+                                        min={1}
+                                        max={30}
+                                        value={formData.trialNotifyDaysBefore}
+                                        onChange={(e) =>
+                                          setFormData({ ...formData, trialNotifyDaysBefore: e.target.value })
+                                        }
+                                        className="h-10 w-20 rounded-xl border-muted/50 bg-white/80 dark:bg-white/10 text-center"
+                                      />
+                                      <span className="text-sm text-muted-foreground">days before</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <p className="text-xs text-muted-foreground/80 flex items-start gap-1.5 pt-1">
+                                  <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                                  An email reminder will be sent to the selected recipient(s) before the 90-day trial period ends.
+                                </p>
+                              </motion.div>
                             </motion.div>
                           )}
                         </AnimatePresence>

@@ -130,6 +130,12 @@ const createEmployeeSchema = z.object({
   ),
   // Allow employee to book leave on public holidays (for contractors without public holiday entitlement)
   canBookPublicHolidays: z.boolean().optional().default(false),
+  // 90-day trial period fields (NZ Employment Relations Act 2000)
+  ninetyDayTrialPeriod: z.boolean().optional().default(false),
+  trialPeriodAccepted: z.boolean().optional().default(false),
+  trialPeriodAcceptedAt: optionalTrimmedString,
+  trialNotifyRecipient: z.enum(["MANAGER", "ADMIN", "BOTH"]).optional(),
+  trialNotifyDaysBefore: z.number().int().min(1).max(30).optional(),
 });
 
 /**
@@ -499,6 +505,11 @@ export async function POST(req: NextRequest) {
       alternativeHolidayDays,
       publicHolidayEntitlement,
       canBookPublicHolidays,
+      ninetyDayTrialPeriod,
+      trialPeriodAccepted,
+      trialPeriodAcceptedAt,
+      trialNotifyRecipient,
+      trialNotifyDaysBefore,
     } = createEmployeeSchema.parse(body);
     
     // Extract rotaGroupIds separately (not in schema to keep it optional)
@@ -694,6 +705,16 @@ export async function POST(req: NextRequest) {
         ),
         // Public holiday leave booking permission
         canBookPublicHolidays: canBookPublicHolidays ?? false,
+        // 90-day trial period fields (NZ Employment Relations Act 2000)
+        ninetyDayTrialPeriod: ninetyDayTrialPeriod ?? false,
+        trialPeriodAccepted: trialPeriodAccepted ?? false,
+        trialPeriodAcceptedAt: trialPeriodAcceptedAt ? new Date(trialPeriodAcceptedAt) : undefined,
+        // Calculate trial end date (90 days from start)
+        trialPeriodEndDate: ninetyDayTrialPeriod
+          ? new Date(new Date(startDate).getTime() + 90 * 24 * 60 * 60 * 1000)
+          : undefined,
+        trialNotifyRecipient: ninetyDayTrialPeriod ? trialNotifyRecipient : undefined,
+        trialNotifyDaysBefore: ninetyDayTrialPeriod ? trialNotifyDaysBefore : undefined,
       },
     });
 

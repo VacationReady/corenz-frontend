@@ -467,3 +467,15 @@ Corrected the team metrics calculation in the manager dashboard to use employee 
 116. Bank Payroll Auto-Calculation Infinite Loop Prevention
 
 Resolved a subtle infinite loop risk in BankPayrollClient.tsx where two useEffect hooks for auto-calculating salary from hourly rate and vice versa could trigger each other when the working pattern changed. Added an auto-calculation guard ref to prevent circular updates and tightened the effects to only run when the appropriate source field was edited. Improved the working pattern change handler to intelligently reselect a source field when only one compensation value is populated, ensuring calculations continue to work after pattern changes without flickering or unnecessary re-renders.
+
+117. Admin Dashboard Approvals Real-time Updates
+
+Enhanced the Admin Dashboard approvals section to ensure real-time updates after approve or decline actions. Refactored the CompactApprovalsList component to refresh its data immediately after actions and trigger SWR cache mutation for the dashboard metrics endpoint, keeping the pending approvals badge count synchronised across the interface.
+
+118. Add Employee Modal Holiday Year Auto-population
+
+Improved the Add Employee Modal by implementing a quality-of-life feature that automatically populates the holiday year field based on the employee's start date. When a start date is entered, the holiday year defaults to the same month and day (e.g., 6 December start date sets holiday year to 6 December) while remaining editable. Additionally removed unnecessary leave entitlement fields for sick leave, alternative holidays, and public holidays as these follow standard NZ requirements and do not require individual configuration.
+
+119. Calendar Day Action Sheet Cancel Button Visibility
+
+Fixed the Cancel button visibility issue in the calendar day-click modal by darkening the button styling. The button now uses slate-coloured borders and text (border-slate-300 dark:border-slate-600, text-slate-700 dark:text-slate-300) ensuring it remains clearly visible against the glassmorphism background without requiring hover interaction. Reverted unnecessary layout changes to maintain the original modal structure.

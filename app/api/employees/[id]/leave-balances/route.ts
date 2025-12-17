@@ -1,0 +1,238 @@
+import { prisma, ensurePrismaConnected } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth-options";
+import {
+  canAccessLeaveRequests,
+  createAuthContext,
+} from "@/lib/authz";
+
+export const runtime = "nodejs";
+
+/**
+ * GET /api/employees/[id]/leave-balances
+ * 
+ * Returns leave balances for an employee including:
+ * - Leave entitlements by category (from LeaveEntitlement table)
+ * - Stored balances from Employee record (annualLeaveBalance, sickLeaveBalance)
+ * 
+ * Response shape matches a normalized list to allow UI to render consistently.
+ */
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id: employeeId } = await context.params;
+    await ensurePrismaConnected();
+
+    // 1. Authentication
+    const session = await auth();
+    if (!session?.user?.id || !session.user.companyId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthenticated" },
+        { status: 401 },
+      );
+    }
+
+    // 2. Create auth context
+    const authContext = createAuthContext(session);
+    if (!authContext) {
+      return NextResponse.json(
+        { success: false, error: "Invalid session" },
+        { status: 401 },
+      );
+    }
+
+    // 3. Verify employee exists and belongs to same company (tenant isolation)
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: {
+        id: true,
+        companyId: true,
+        annualLeaveBalance: true,
+        sickLeaveBalance: true,
+        alternativeDaysBalance: true,
+      },
+    });
+
+    if (!employee) {
+      return NextResponse.json(
+        { success: false, error: "Employee not found" },
+        { status: 404 },
+      );
+    }
+
+    if (employee.companyId !== session.user.companyId) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Cross-tenant access denied" },
+        { status: 403 },
+      );
+    }
+
+    // 4. Authorization check
+    const hasAccess = await canAccessLeaveRequests(authContext, employeeId);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Forbidden: You do not have permission to view this employee's leave balances" 
+        },
+        { status: 403 },
+      );
+    }
+
+    // 5. Fetch leave entitlements with category information
+    const entitlements = await prisma.leaveEntitlement.findMany({
+      where: {
+        employeeId,
+        companyId: session.user.companyId,
+      },
+      include: {
+        EventCategory: {
+          select: {
+            id: true,
+            name: true,
+            iconKey: true,
+          },
+        },
+      },
+      orderBy: {
+        EventCategory: {
+          name: "asc",
+        },
+      },
+    });
+
+    // 6. Calculate pending leave for each category
+    const pendingByCategory = await prisma.leaveRequest.groupBy({
+      by: ["eventCategoryId"],
+      where: {
+        employeeId,
+        companyId: session.user.companyId,
+        approvalStatus: "PENDING",
+      },
+      _count: {
+        id: true,
+      },
+    });
+    
+    const pendingCountMap = new Map(
+      pendingByCategory.map((p) => [p.eventCategoryId, p._count.id])
+    );
+
+    // 7. Build normalized response
+    interface BalanceItem {
+      id: string;
+      type: "entitlement" | "stored";
+      categoryId: string | null;
+      categoryName: string;
+      categoryIconKey: string | null;
+      remaining: number;
+      used: number;
+      total: number | null; // Only shown when derived from explicit entitlement
+      pending: number;
+      carryover: number;
+      carryoverExpiry: string | null;
+    }
+
+    const balances: BalanceItem[] = [];
+
+    // Add entitlements from LeaveEntitlement table
+    for (const ent of entitlements) {
+      const remaining = Math.max(0, ent.totalDays - ent.usedDays);
+      balances.push({
+        id: ent.id,
+        type: "entitlement",
+        categoryId: ent.eventCategoryId,
+        categoryName: ent.EventCategory.name,
+        categoryIconKey: ent.EventCategory.iconKey ?? null,
+        remaining,
+        used: ent.usedDays,
+        total: ent.totalDays,
+        pending: pendingCountMap.get(ent.eventCategoryId) ?? 0,
+        carryover: ent.carryoverDays,
+        carryoverExpiry: ent.carryoverExpiry?.toISOString() ?? null,
+      });
+    }
+
+    // Check if sick leave is already covered by entitlements
+    const hasSickEntitlement = balances.some(
+      (b) => b.categoryName.toLowerCase().includes("sick")
+    );
+
+    // Add stored sick leave balance if not covered by entitlements
+    if (!hasSickEntitlement && employee.sickLeaveBalance !== null) {
+      const sickBalance = Number(employee.sickLeaveBalance);
+      // Convert hours to days (8 hours per day per NZ standard)
+      const sickDays = sickBalance / 8;
+      balances.push({
+        id: `stored-sick-${employeeId}`,
+        type: "stored",
+        categoryId: null,
+        categoryName: "Sick Leave",
+        categoryIconKey: "thermometer",
+        remaining: sickDays,
+        used: 0, // We don't track used for stored balances
+        total: null, // Stored balance - no explicit total
+        pending: 0,
+        carryover: 0,
+        carryoverExpiry: null,
+      });
+    }
+
+    // Check if annual leave is already covered by entitlements
+    const hasAnnualEntitlement = balances.some(
+      (b) => b.categoryName.toLowerCase().includes("annual")
+    );
+
+    // Add stored annual leave balance if not covered by entitlements
+    if (!hasAnnualEntitlement && employee.annualLeaveBalance !== null) {
+      const annualBalance = Number(employee.annualLeaveBalance);
+      // Convert hours to days (8 hours per day per NZ standard)
+      const annualDays = annualBalance / 8;
+      balances.push({
+        id: `stored-annual-${employeeId}`,
+        type: "stored",
+        categoryId: null,
+        categoryName: "Annual Leave",
+        categoryIconKey: "palmtree",
+        remaining: annualDays,
+        used: 0,
+        total: null, // Stored balance - no explicit total
+        pending: 0,
+        carryover: 0,
+        carryoverExpiry: null,
+      });
+    }
+
+    // Add alternative days if any
+    if (employee.alternativeDaysBalance > 0) {
+      balances.push({
+        id: `stored-alt-${employeeId}`,
+        type: "stored",
+        categoryId: null,
+        categoryName: "Alternative Days",
+        categoryIconKey: "calendar",
+        remaining: employee.alternativeDaysBalance,
+        used: 0,
+        total: null,
+        pending: 0,
+        carryover: 0,
+        carryoverExpiry: null,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      balances,
+    });
+  } catch (error) {
+    console.error("[LEAVE_BALANCES_GET]", error);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+export const dynamic = "force-dynamic";

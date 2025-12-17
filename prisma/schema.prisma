@@ -506,6 +506,9 @@ model Employee {
   trialPeriodEndDate               DateTime?
   trialPeriodAccepted              Boolean                            @default(false)
   trialPeriodAcceptedAt            DateTime?
+  trialNotifyRecipient             String?                            // MANAGER, ADMIN, or BOTH
+  trialNotifyDaysBefore            Int?                               // Days before trial end to send reminder
+  trialNotificationSent            Boolean                            @default(false)
   Document                         Document[]
   DocumentAcknowledgement          DocumentAcknowledgement[]
   DocumentSignatureArtifact        DocumentSignatureArtifact[]

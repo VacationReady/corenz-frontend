@@ -1,15 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
-import {
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, useRef, Suspense } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import listPlugin from "@fullcalendar/list";
+import { EventInput, EventSourceFuncArg } from "@fullcalendar/core";
+import type { EventContentArg } from "@fullcalendar/core";
 import {
   CalendarDays,
   Plus,
@@ -21,6 +23,12 @@ import {
   AlertCircle,
   Filter,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Grid3X3,
+  List,
+  Flame,
+  Thermometer,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,6 +36,7 @@ import AddLeaveRequestDialog from "@/components/AddLeaveRequestDialog";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Card } from "@/components/ui/Card";
 import {
   Select,
   SelectContent,
@@ -36,148 +45,445 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/switch";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { isAdminOrManager } from "@/lib/roles";
 import EmployeeFormCard from "@/components/employees/EmployeeFormCard";
 import EmployeePageHeader from "@/components/employees/EmployeePageHeader";
 import { cn } from "@/lib/utils";
+import { getEventCategoryIcon } from "@/lib/event-category-icons";
+import {
+  dateKey,
+  getCategoryColor,
+  getHeatLevel,
+  getDayTypeLabel,
+  calculateDurationLabel,
+  getStatusColorConfig,
+  mapLeaveRequestToEvent,
+  filterUpcomingEvents,
+  type DailyCounts,
+  type LeaveEventExtendedProps,
+} from "@/lib/calendar/calendar-helpers";
+import {
+  resolveTenantTimeSettings,
+  formatTenantDate,
+  type TenantTimeSettings,
+} from "@/lib/calendar/timezone";
 
-type RawLeaveRequest = {
+import { useTenantFetch } from "@/hooks/useTenantFetch";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface BalanceItem {
   id: string;
-  startDate: string | Date;
-  endDate: string | Date;
-  dayType?: string | null;
-  approvalStatus?: string | null;
-  EventCategory?: { id: string; name: string } | null;
-  eventCategory?: { id: string; name: string } | null;
-  leaveType?: string | null;
-  isSick?: boolean;
-};
-
-type LeaveRequest = RawLeaveRequest & {
-  start: Date;
-  end: Date;
+  type: "entitlement" | "stored";
+  categoryId: string | null;
   categoryName: string;
-  isSick: boolean;
-};
-
-const dayTypeLabels: Record<string, string> = {
-  FULL_DAY: "Full day",
-  HALF_DAY_AM: "Half day (AM)",
-  HALF_DAY_PM: "Half day (PM)",
-};
-
-function normalizeLeave(leave: RawLeaveRequest): LeaveRequest {
-  const start = new Date(leave.startDate);
-  const end = new Date(leave.endDate);
-  const categoryName =
-    leave.EventCategory?.name ?? leave.eventCategory?.name ?? "Leave";
-  
-  // Determine if this is sick leave using first-class leaveType field or isSick flag
-  const isSick = leave.isSick === true || 
-    leave.leaveType === "SICK" || 
-    categoryName.toLowerCase().includes("sick");
-
-  return {
-    ...leave,
-    start,
-    end,
-    categoryName,
-    isSick,
-  };
+  categoryIconKey: string | null;
+  remaining: number;
+  used: number;
+  total: number | null;
+  pending: number;
+  carryover: number;
+  carryoverExpiry: string | null;
 }
 
-function formatRange(start: Date, end: Date) {
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return "Dates unavailable";
-  }
-
-  const startLabel = format(start, "EEE d MMM yyyy");
-  const endLabel = format(end, "EEE d MMM yyyy");
-  if (startLabel === endLabel) {
-    return startLabel;
-  }
-  return `${startLabel} → ${endLabel}`;
+interface SickLeaveStatus {
+  availableDays: number;
+  isEligibleToday: boolean;
+  eligibleFrom: string | null;
+  nextGrantDate: string | null;
+  capDays: number;
+  dayLengthHours: number;
 }
 
-function getDayTypeLabel(dayType?: string | null) {
-  if (!dayType) return null;
-  return dayTypeLabels[dayType] ?? dayType.replace(/_/g, " ");
-}
+// ============================================================================
+// Balance Card Component
+// ============================================================================
 
-function calculateDuration(
-  start: Date,
-  end: Date,
-  dayType?: string | null,
-) {
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return "-";
-  }
-
-  if (dayType === "HALF_DAY_AM" || dayType === "HALF_DAY_PM") {
-    return "0.5 day";
-  }
-
-  const diffMs = end.getTime() - start.getTime();
-  const days = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1);
-  return `${days} day${days === 1 ? "" : "s"}`;
-}
-
-function getStatusConfig(status?: string | null) {
-  if (!status) return null;
-  const normalized = status.toLowerCase();
-  
-  if (normalized === "approved") {
-    return { 
-      label: "Approved", 
-      variant: "secondary" as const,
-      icon: CheckCircle2,
-      color: "text-green-600 dark:text-green-400",
-      bgColor: "bg-green-100 dark:bg-green-900/30"
-    };
-  }
-  if (normalized === "declined") {
-    return { 
-      label: "Declined", 
-      variant: "destructive" as const,
-      icon: XCircle,
-      color: "text-red-600 dark:text-red-400",
-      bgColor: "bg-red-100 dark:bg-red-900/30"
-    };
-  }
-  return {
-    label: normalized.charAt(0).toUpperCase() + normalized.slice(1),
-    variant: "outline" as const,
-    icon: AlertCircle,
-    color: "text-amber-600 dark:text-amber-400",
-    bgColor: "bg-amber-100 dark:bg-amber-900/30"
-  };
-}
-
-// Leave Item Card Component
-function LeaveItemCard({ 
-  leave, 
-  index, 
-  canDelete = false,
-  onDelete,
-}: { 
-  leave: LeaveRequest; 
+function BalanceCard({
+  balance,
+  index,
+}: {
+  balance: BalanceItem;
   index: number;
-  canDelete?: boolean;
-  onDelete?: (id: string) => void;
 }) {
-  const statusConfig = getStatusConfig(leave.approvalStatus);
-  const dayTypeLabel = getDayTypeLabel(leave.dayType);
-  const StatusIcon = statusConfig?.icon;
-  const [isDeleting, setIsDeleting] = useState(false);
+  const Icon = getEventCategoryIcon(balance.categoryIconKey);
+  const hasTotal = balance.total !== null;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30"
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <Icon className="w-4 h-4 text-primary" />
+        </div>
+        <span className="font-medium text-sm">{balance.categoryName}</span>
+        {balance.type === "stored" && (
+          <Badge variant="outline" className="text-[10px] ml-auto">
+            Stored
+          </Badge>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <span className="text-muted-foreground text-xs">Remaining</span>
+          <p className="font-semibold text-lg text-primary">{balance.remaining.toFixed(1)}</p>
+        </div>
+        {hasTotal ? (
+          <div>
+            <span className="text-muted-foreground text-xs">Total</span>
+            <p className="font-medium">{balance.total?.toFixed(1)}</p>
+          </div>
+        ) : (
+          <div>
+            <span className="text-muted-foreground text-xs">Used</span>
+            <p className="font-medium">{balance.used.toFixed(1)}</p>
+          </div>
+        )}
+      </div>
+      {balance.pending > 0 && (
+        <div className="mt-2 pt-2 border-t border-muted/30">
+          <span className="text-xs text-amber-600 dark:text-amber-400">
+            {balance.pending} pending request{balance.pending > 1 ? "s" : ""}
+          </span>
+        </div>
+      )}
+    </motion.div>
+  );
+}
 
-  const handleDelete = async () => {
+// ============================================================================
+// Main Page Component
+// ============================================================================
+
+function LeavePageContent() {
+  const params = useParams();
+  const employeeId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
+  const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
+  const tenantFetch = useTenantFetch();
+  const calendarRef = useRef<FullCalendar | null>(null);
+  const eventsCacheRef = useRef<{ key: string; data: EventInput[] } | null>(null);
+
+  // Determine if user is booking for themselves
+  const currentUserEmployeeId = (session?.user as any)?.employeeId;
+  const isBookingForSelf = currentUserEmployeeId ? currentUserEmployeeId === employeeId : false;
+  const isPrivileged = isAdminOrManager(session);
+
+  // UI State
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<"dayGridMonth" | "listMonth">("dayGridMonth");
+  const [currentTitle, setCurrentTitle] = useState("");
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  // Filters
+  const [upcomingOnly, setUpcomingOnly] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "sick" | "other">("all");
+  const [showSickHeatmap, setShowSickHeatmap] = useState(false);
+
+  // Data State
+  const [leaveEvents, setLeaveEvents] = useState<EventInput[]>([]);
+  const [dailyCounts, setDailyCounts] = useState<DailyCounts>({});
+  const [balances, setBalances] = useState<BalanceItem[]>([]);
+  const [sickLeaveStatus, setSickLeaveStatus] = useState<SickLeaveStatus | null>(null);
+  const [tenantTimeSettings, setTenantTimeSettings] = useState<TenantTimeSettings>(() =>
+    resolveTenantTimeSettings(null, null)
+  );
+
+  // Sheet State
+  const [selectedEvent, setSelectedEvent] = useState<LeaveEventExtendedProps | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Auth Error State
+  const [authError, setAuthError] = useState<{
+    type: "unauthorized" | "forbidden" | "not_found";
+    message: string;
+  } | null>(null);
+
+  // Load tenant time settings
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/settings/public-holidays");
+        if (res.ok) {
+          const data = await res.json();
+          const template = data?.template ?? null;
+          const region = data?.region ?? null;
+          setTenantTimeSettings(resolveTenantTimeSettings(template, region));
+        }
+      } catch {
+        // Use default settings
+      }
+    })();
+  }, []);
+
+  // Load balances
+  useEffect(() => {
+    if (sessionStatus === "loading" || !employeeId) return;
+
+    (async () => {
+      try {
+        const res = await tenantFetch(`/api/employees/${employeeId}/leave-balances`);
+        if (res.ok) {
+          const data = await res.json();
+          setBalances(data.balances || []);
+        }
+      } catch (err) {
+        console.error("Failed to load balances:", err);
+      }
+    })();
+  }, [employeeId, sessionStatus, refreshToken]);
+
+  // Load sick leave status
+  useEffect(() => {
+    if (sessionStatus === "loading" || !employeeId) return;
+
+    (async () => {
+      try {
+        const res = await tenantFetch(`/api/employees/${employeeId}/sick-leave-status`);
+        if (res.ok) {
+          const data = await res.json();
+          setSickLeaveStatus(data);
+        }
+      } catch (err) {
+        console.error("Failed to load sick leave status:", err);
+      }
+    })();
+  }, [employeeId, sessionStatus, refreshToken]);
+
+  // Fetch leave events for calendar
+  const fetchLeaveEvents = useCallback(
+    async (
+      fetchInfo: EventSourceFuncArg,
+      successCallback: (events: EventInput[]) => void,
+      failureCallback: (error: any) => void
+    ) => {
+      try {
+        const cacheKey = `${fetchInfo.startStr}|${fetchInfo.endStr}|${typeFilter}`;
+
+        // Check cache
+        if (eventsCacheRef.current?.key === cacheKey) {
+          let events = eventsCacheRef.current.data;
+          if (upcomingOnly) {
+            events = filterUpcomingEvents(events as any) as EventInput[];
+          }
+          successCallback(events);
+          return;
+        }
+
+        const params = new URLSearchParams({
+          from: fetchInfo.startStr,
+          to: fetchInfo.endStr,
+        });
+
+        // Add status filter - fetch APPROVED + PENDING
+        params.set("status", "APPROVED");
+        
+        // Add type filter
+        if (typeFilter === "sick") {
+          params.set("isSick", "true");
+        } else if (typeFilter === "other") {
+          params.set("isSick", "false");
+        }
+
+        const res = await tenantFetch(
+          `/api/employees/${employeeId}/leave-requests?${params.toString()}`
+        );
+
+        if (res.status === 401) {
+          setAuthError({
+            type: "unauthorized",
+            message: "You need to be logged in to view leave requests.",
+          });
+          successCallback([]);
+          return;
+        }
+
+        if (res.status === 403) {
+          const data = await res.json().catch(() => ({}));
+          setAuthError({
+            type: "forbidden",
+            message: data.error ?? "You don't have permission to view this employee's leave requests.",
+          });
+          successCallback([]);
+          return;
+        }
+
+        if (res.status === 404) {
+          setAuthError({
+            type: "not_found",
+            message: "Employee not found.",
+          });
+          successCallback([]);
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error(`Request failed with status ${res.status}`);
+        }
+
+        const payload = await res.json();
+        const rawEvents = Array.isArray(payload) ? payload : [];
+
+        // Map to FullCalendar events with colorByStatus
+        let events = rawEvents.map((leave: any) =>
+          mapLeaveRequestToEvent(leave, { colorByStatus: true })
+        );
+
+        // Cache the events
+        eventsCacheRef.current = { key: cacheKey, data: events };
+
+        // Calculate daily counts for heatmap (sick only if enabled)
+        if (showSickHeatmap) {
+          const sickEvents = rawEvents.filter(
+            (e: any) => e.isSick || e.leaveType === "SICK"
+          );
+          const counts: DailyCounts = {};
+          const rangeStart = new Date(fetchInfo.startStr);
+          const rangeEnd = new Date(fetchInfo.endStr);
+          
+          for (const ev of sickEvents) {
+            const start = new Date(ev.startDate);
+            const end = new Date(ev.endDate || ev.startDate);
+            const cur = new Date(Math.max(start.getTime(), rangeStart.getTime()));
+            const last = new Date(Math.min(end.getTime(), rangeEnd.getTime()));
+            cur.setHours(0, 0, 0, 0);
+            last.setHours(0, 0, 0, 0);
+
+            for (let d = new Date(cur); d <= last; d.setDate(d.getDate() + 1)) {
+              const key = dateKey(d);
+              counts[key] = (counts[key] || 0) + 1;
+            }
+          }
+          setDailyCounts(counts);
+        } else {
+          setDailyCounts({});
+        }
+
+        // Store all events for reference
+        setLeaveEvents(events);
+
+        // Apply upcoming filter if enabled
+        if (upcomingOnly) {
+          events = filterUpcomingEvents(events as any) as EventInput[];
+        }
+
+        setLoading(false);
+        successCallback(events);
+      } catch (error) {
+        console.error("Failed to fetch leave events:", error);
+        setLoading(false);
+        failureCallback(error);
+      }
+    },
+    [employeeId, typeFilter, upcomingOnly, showSickHeatmap, tenantFetch]
+  );
+
+  // Event sources for FullCalendar
+  const eventSources = useMemo(
+    () => [{ id: "leave", events: fetchLeaveEvents }],
+    [fetchLeaveEvents]
+  );
+
+  // Day cell class names for heatmap
+  const dayCellClassNames = useCallback(
+    (arg: any) => {
+      if (!showSickHeatmap) return ["cz-daycell"];
+      
+      const d = arg.date as Date;
+      const key = dateKey(d);
+      const count = dailyCounts[key] || 0;
+      const level = getHeatLevel(count);
+      const today = new Date();
+      const isToday = today.toDateString() === d.toDateString();
+      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+
+      return [
+        "cz-daycell",
+        level > 0 && `cz-daycell--heat-${level}`,
+        isToday && "cz-daycell--today",
+        isWeekend && "cz-daycell--weekend",
+      ].filter((v): v is string => Boolean(v));
+    },
+    [dailyCounts, showSickHeatmap]
+  );
+
+  // Event content renderer
+  const renderEventContent = useCallback(
+    (content: EventContentArg) => {
+      const props = content.event.extendedProps as LeaveEventExtendedProps;
+      const categoryName = props.categoryName || "Leave";
+      const Icon = getEventCategoryIcon(props.categoryIconKey);
+      const statusConfig = getStatusColorConfig(props.approvalStatus);
+
+      return (
+        <div
+          className={cn(
+            "flex items-center gap-1.5 px-2 py-1 rounded-md cursor-pointer transition-all",
+            "hover:ring-2 hover:ring-primary/30",
+            props.isSick && "bg-amber-500/20"
+          )}
+          onClick={() => {
+            setSelectedEvent(props);
+            setSheetOpen(true);
+          }}
+        >
+          <Icon className="w-3 h-3 flex-shrink-0" />
+          <span className="text-[10px] font-medium truncate">{categoryName}</span>
+          {statusConfig && (
+            <span
+              className={cn(
+                "text-[8px] px-1 py-0.5 rounded font-medium ml-auto",
+                statusConfig.bgClass,
+                statusConfig.textClass
+              )}
+            >
+              {statusConfig.label}
+            </span>
+          )}
+        </div>
+      );
+    },
+    []
+  );
+
+  // Refresh calendar and data
+  const refresh = useCallback(() => {
+    eventsCacheRef.current = null;
+    setRefreshToken((t) => t + 1);
+    calendarRef.current?.getApi().refetchEvents();
+  }, []);
+
+  // Handle view change
+  const handleChangeView = (viewName: "dayGridMonth" | "listMonth") => {
+    setCurrentView(viewName);
+    calendarRef.current?.getApi().changeView(viewName);
+  };
+
+  // Handle delete leave request
+  const handleDeleteEvent = async () => {
+    if (!selectedEvent?.leaveRequestId) return;
+    
     if (!confirm("Delete this leave request? This action cannot be undone.")) {
       return;
     }
 
-    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/leave-request/${leave.id}`, {
+      const res = await fetch(`/api/leave-request/${selectedEvent.leaveRequestId}`, {
         method: "DELETE",
       });
 
@@ -187,352 +493,21 @@ function LeaveItemCard({
       }
 
       toast.success("Leave request deleted");
-      onDelete?.(leave.id);
+      setSheetOpen(false);
+      setSelectedEvent(null);
+      refresh();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete leave request");
-    } finally {
-      setIsDeleting(false);
     }
   };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: index * 0.05 }}
-      className={cn(
-        "group relative p-4 rounded-2xl transition-all duration-200",
-        "bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10",
-        "border border-white/30 dark:border-white/10 hover:border-primary/20",
-        "shadow-sm hover:shadow-md"
-      )}
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className={cn(
-            "flex items-center justify-center w-10 h-10 rounded-xl shrink-0",
-            statusConfig?.bgColor
-          )}>
-            {StatusIcon && <StatusIcon className={cn("w-5 h-5", statusConfig?.color)} />}
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-foreground">
-                {leave.isSick ? "Sick Leave" : leave.categoryName}
-              </span>
-              {leave.isSick && (
-                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                  Sick
-                </Badge>
-              )}
-              {statusConfig && (
-                <Badge variant={statusConfig.variant} className="text-xs">
-                  {statusConfig.label}
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-              <Calendar className="w-3.5 h-3.5" />
-              {formatRange(leave.start, leave.end)}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col items-start gap-1 text-sm sm:items-end sm:text-right">
-            {dayTypeLabel && (
-              <Badge variant="outline" className="text-xs">
-                {dayTypeLabel}
-              </Badge>
-            )}
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="w-3.5 h-3.5" />
-              {calculateDuration(leave.start, leave.end, leave.dayType)}
-            </span>
-          </div>
-          {canDelete && (
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-lg",
-                "text-muted-foreground hover:text-destructive",
-                "hover:bg-destructive/10 transition-all",
-                "opacity-0 group-hover:opacity-100",
-                isDeleting && "opacity-50 cursor-not-allowed"
-              )}
-              title="Delete leave request"
-            >
-              <Trash2 className={cn("w-4 h-4", isDeleting && "animate-pulse")} />
-            </button>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// Empty State Component
-function EmptyLeaveState() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center justify-center py-12 text-center"
-    >
-      <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/20 mb-4">
-        <CalendarDays className="w-8 h-8 text-primary dark:text-blue-400" />
-      </div>
-      <h3 className="text-lg font-semibold text-foreground mb-2">No Leave Scheduled</h3>
-      <p className="text-sm text-muted-foreground max-w-sm">
-        There's no current or upcoming leave scheduled. Click the button above to book new leave.
-      </p>
-    </motion.div>
-  );
-}
-
-import { useTenantFetch } from "@/hooks/useTenantFetch";
-
-function LeavePageContent() {
-  const params = useParams();
-  const employeeId = Array.isArray(params?.id) ? params.id[0] : (params?.id as string);
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const tenantFetch = useTenantFetch();
-  
-  // Determine if user is booking for themselves
-  // Check if the user's linked employee ID matches the page's employee ID
-  // If user has no employeeId (e.g. super admin), they're always booking for someone else
-  const currentUserEmployeeId = (session?.user as any)?.employeeId;
-  const isBookingForSelf = currentUserEmployeeId ? currentUserEmployeeId === employeeId : false;
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [authError, setAuthError] = useState<{
-    type: "unauthorized" | "forbidden" | "not_found";
-    message: string;
-  } | null>(null);
-  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
-  const [refreshToken, setRefreshToken] = useState(0);
-
-  const searchParamsString = useMemo(
-    () => (searchParams ? searchParams.toString() : ""),
-    [searchParams],
-  );
-
-  const limitParam = searchParams?.get("limit") ?? null;
-  const upcomingParam = searchParams?.get("upcoming") ?? null;
-  const typeParam = searchParams?.get("type") ?? null; // "all" | "sick" | "other"
-
-  const limit = useMemo(() => {
-    const parsed = Number.parseInt(limitParam ?? "", 10);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return Math.min(parsed, 10);
-    }
-    return 3;
-  }, [limitParam]);
-
-  const upcomingQueryValue = useMemo(() => {
-    if (!upcomingParam) return "true";
-    return upcomingParam === "false" ? "false" : "true";
-  }, [upcomingParam]);
-
-  const upcomingOnly = upcomingQueryValue !== "false";
-  
-  // Type filter: "all" | "sick" | "other"
-  const typeFilter = useMemo(() => {
-    if (typeParam === "sick" || typeParam === "other") return typeParam;
-    return "all";
-  }, [typeParam]);
-
-  useEffect(() => {
-    if (status === "loading") return;
-
-    const controller = new AbortController();
-    let active = true;
-
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      setAuthError(null);
-
-      try {
-        const query = new URLSearchParams();
-        query.set("limit", String(limit));
-        if (upcomingQueryValue) {
-          query.set("upcoming", upcomingQueryValue);
-        }
-        // Add isSick filter if type is specified
-        if (typeFilter === "sick") {
-          query.set("isSick", "true");
-        } else if (typeFilter === "other") {
-          query.set("isSick", "false");
-        }
-
-        const queryString = query.toString();
-        const res = await tenantFetch(
-          `/api/employees/${employeeId}/leave-requests${queryString ? `?${queryString}` : ""}`,
-          { signal: controller.signal },
-        );
-
-        if (res.status === 401) {
-          if (!active) return;
-          setAuthError({
-            type: "unauthorized",
-            message: "You need to be logged in to view leave requests.",
-          });
-          setLeaves([]);
-          return;
-        }
-
-        if (res.status === 403) {
-          if (!active) return;
-          const data = await res.json().catch(() => ({}));
-          setAuthError({
-            type: "forbidden",
-            message:
-              data.error ??
-              "You don't have permission to view this employee's leave requests.",
-          });
-          setLeaves([]);
-          return;
-        }
-
-        if (res.status === 404) {
-          if (!active) return;
-          setAuthError({
-            type: "not_found",
-            message: "Employee not found.",
-          });
-          setLeaves([]);
-          return;
-        }
-
-        if (!res.ok) {
-          throw new Error(`Request failed with status ${res.status}`);
-        }
-
-        const payload = await res.json();
-        if (!active) return;
-
-        const normalized = Array.isArray(payload)
-          ? payload.map((item: RawLeaveRequest) => normalizeLeave(item))
-          : [];
-
-        setLeaves(normalized);
-      } catch (err) {
-        if (!active || controller.signal.aborted) {
-          return;
-        }
-        console.error("[LeavePage] Failed to load leave requests", err);
-        setError("We couldn't load leave requests. Please try again.");
-        setLeaves([]);
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
-    load();
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [employeeId, limit, upcomingQueryValue, typeFilter, refreshToken]);
-
-  const { currentLeaves, upcomingLeaves } = useMemo(() => {
-    const now = new Date();
-    const current: LeaveRequest[] = [];
-    const upcomingList: LeaveRequest[] = [];
-
-    leaves.forEach((leave) => {
-      if (
-        Number.isNaN(leave.start.getTime()) ||
-        Number.isNaN(leave.end.getTime())
-      ) {
-        upcomingList.push(leave);
-        return;
-      }
-
-      if (leave.start <= now && leave.end >= now) {
-        current.push(leave);
-      } else {
-        upcomingList.push(leave);
-      }
-    });
-
-    return { currentLeaves: current, upcomingLeaves: upcomingList };
-  }, [leaves]);
-
-  const nothingScheduled =
-    !loading && currentLeaves.length === 0 && upcomingLeaves.length === 0;
-
-  const updateQuery = useCallback(
-    (updates: Record<string, string | null | undefined>) => {
-      if (!pathname) {
-        return;
-      }
-
-      const params = new URLSearchParams(searchParamsString);
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value === undefined || value === null || value === "") {
-          params.delete(key);
-        } else {
-          params.set(key, value);
-        }
-      });
-      const next = params.toString();
-      router.replace(next ? `${pathname}?${next}` : pathname, {
-        scroll: false,
-      });
-    },
-    [pathname, router, searchParamsString],
-  );
-
-  const refresh = useCallback(() => {
-    setRefreshToken((token) => token + 1);
-  }, []);
-
-  const handleToggleUpcoming = useCallback(
-    (checked: boolean) => {
-      updateQuery({ upcoming: checked ? "true" : "false" });
-    },
-    [updateQuery],
-  );
-
-  const handleLimitChange = useCallback(
-    (value: string) => {
-      updateQuery({ limit: value });
-    },
-    [updateQuery],
-  );
-
-  const handleTypeChange = useCallback(
-    (value: string) => {
-      updateQuery({ type: value === "all" ? null : value });
-    },
-    [updateQuery],
-  );
-
-  const handleCreateSuccess = useCallback(() => {
-    refresh();
-  }, [refresh]);
-
-  const isPrivileged = isAdminOrManager(session);
-
-  const limitOptions = ["3", "5", "10"];
 
   // Authorization error state
   if (authError) {
     return (
-      <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">
+      <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">
         <EmployeePageHeader
-          title="Leave Management"
-          description="Review current and upcoming leave for this employee"
+          title="Leave Calendar"
+          description="View and manage leave for this employee"
           icon={Calendar}
           iconColor="from-primary to-blue-500"
         />
@@ -557,9 +532,7 @@ function LeavePageContent() {
               {authError.message}
             </p>
             {authError.type === "unauthorized" && (
-              <Button onClick={() => router.push("/api/auth/signin")}>
-                Sign In
-              </Button>
+              <Button onClick={() => router.push("/api/auth/signin")}>Sign In</Button>
             )}
             {(authError.type === "forbidden" || authError.type === "not_found") && (
               <Button variant="outline" onClick={() => router.push("/employees")}>
@@ -573,13 +546,14 @@ function LeavePageContent() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">
-        <EmployeePageHeader
-          title="Leave Management"
-          description="Review current and upcoming leave for this employee"
-          icon={Calendar}
-          iconColor="from-primary to-blue-500"
-          action={
+    <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6">
+      {/* Header */}
+      <EmployeePageHeader
+        title="Leave Calendar"
+        description="View and manage leave for this employee"
+        icon={Calendar}
+        iconColor="from-primary to-blue-500"
+        action={
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -599,160 +573,357 @@ function LeavePageContent() {
         }
       />
 
-      {/* Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between glass-subtle rounded-2xl p-4"
-      >
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Filter className="w-4 h-4" />
-            <span>Filters:</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={upcomingOnly}
-              onChange={handleToggleUpcoming}
-              aria-label="Only show current and upcoming leave"
-            />
-            <span className="text-sm text-muted-foreground">Upcoming only</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">Type:</span>
-            <Select value={typeFilter} onValueChange={handleTypeChange}>
-              <SelectTrigger className="h-9 w-28 rounded-xl">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="sick">Sick only</SelectItem>
-                <SelectItem value="other">Non-sick</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Show:</span>
-          <Select value={String(limit)} onValueChange={handleLimitChange}>
-            <SelectTrigger className="h-9 w-24 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {limitOptions.map((option) => (
-                <SelectItem key={option} value={option}>
-                  {option} items
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </motion.div>
-
-      {/* Error Alert */}
-      {error && (
+      {/* Balances Panel */}
+      {balances.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm"
         >
-          <span className="text-destructive">{error}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refresh}
-            disabled={loading}
+          <EmployeeFormCard
+            title="Leave Balances"
+            description="Current entitlements and balances"
+            icon={CalendarDays}
+            iconColor="from-primary/20 to-blue-500/20"
           >
-            Try again
-          </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {balances.map((balance, index) => (
+                <BalanceCard key={balance.id} balance={balance} index={index} />
+              ))}
+            </div>
+          </EmployeeFormCard>
         </motion.div>
       )}
 
-      {/* Current Leave Section */}
-      <EmployeeFormCard
-        title="Current Leave"
-        description="Leave currently in progress"
-        icon={CalendarDays}
-        iconColor="from-primary/20 to-blue-500/20"
-        delay={0.15}
-      >
-        {loading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-20 w-full rounded-2xl" />
-            <Skeleton className="h-20 w-full rounded-2xl" />
+      {/* Sick Leave Status */}
+      {sickLeaveStatus && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/20">
+              <Thermometer className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <span className="font-medium text-sm">Sick Leave Status</span>
+              <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                <span>
+                  <strong className="text-foreground">{sickLeaveStatus.availableDays}</strong> days available
+                </span>
+                {sickLeaveStatus.isEligibleToday ? (
+                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Eligible
+                  </span>
+                ) : sickLeaveStatus.eligibleFrom ? (
+                  <span className="text-amber-600 dark:text-amber-400">
+                    Eligible from {sickLeaveStatus.eligibleFrom}
+                  </span>
+                ) : null}
+              </div>
+            </div>
           </div>
-        ) : currentLeaves.length === 0 ? (
-          <div className="py-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              No one is currently on leave
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <AnimatePresence>
-              {currentLeaves.map((leave, index) => (
-                <LeaveItemCard 
-                  key={leave.id} 
-                  leave={leave} 
-                  index={index}
-                  canDelete={isPrivileged}
-                  onDelete={refresh}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-      </EmployeeFormCard>
-
-      {/* Upcoming Leave Section */}
-      <EmployeeFormCard
-        title="Upcoming Leave"
-        description="Scheduled future leave"
-        icon={Calendar}
-        iconColor="from-primary/20 to-blue-500/20"
-        delay={0.2}
-      >
-        {loading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-20 w-full rounded-2xl" />
-            <Skeleton className="h-20 w-full rounded-2xl" />
-          </div>
-        ) : upcomingLeaves.length === 0 ? (
-          <div className="py-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              No upcoming leave scheduled
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <AnimatePresence>
-              {upcomingLeaves.map((leave, index) => (
-                <LeaveItemCard 
-                  key={leave.id} 
-                  leave={leave} 
-                  index={index}
-                  canDelete={isPrivileged}
-                  onDelete={refresh}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-      </EmployeeFormCard>
-
-      {/* Empty State for both */}
-      {nothingScheduled && !loading && (
-        <EmptyLeaveState />
+        </motion.div>
       )}
 
+      {/* Calendar Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+      >
+        <Card className="border-border/50 shadow-xl shadow-black/5 overflow-hidden">
+          {/* Calendar Controls */}
+          <div className="p-4 border-b border-border/50 bg-gradient-to-r from-card via-card to-muted/10">
+            <div className="flex flex-col gap-4">
+              {/* Top Row - Navigation and View Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                {/* Navigation */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center rounded-lg border border-border/50 bg-background/50 overflow-hidden">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => calendarRef.current?.getApi().prev()}
+                      className="rounded-none h-8 px-2"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => calendarRef.current?.getApi().today()}
+                      className="rounded-none h-8 px-3 border-x border-border/30 font-medium"
+                    >
+                      Today
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => calendarRef.current?.getApi().next()}
+                      className="rounded-none h-8 px-2"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <motion.h2
+                    key={currentTitle}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-sm font-semibold"
+                  >
+                    {currentTitle}
+                  </motion.h2>
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center rounded-lg border border-border/50 bg-background/50 p-0.5">
+                    <Button
+                      variant={currentView === "dayGridMonth" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => handleChangeView("dayGridMonth")}
+                      className={cn(
+                        "rounded-md h-7 px-2.5 gap-1 text-xs",
+                        currentView === "dayGridMonth" && "bg-primary text-primary-foreground"
+                      )}
+                    >
+                      <Grid3X3 className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Month</span>
+                    </Button>
+                    <Button
+                      variant={currentView === "listMonth" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => handleChangeView("listMonth")}
+                      className={cn(
+                        "rounded-md h-7 px-2.5 gap-1 text-xs",
+                        currentView === "listMonth" && "bg-primary text-primary-foreground"
+                      )}
+                    >
+                      <List className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">List</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters Row */}
+              <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-border/30">
+                <div className="flex items-center gap-2 text-sm">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Filters:</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={upcomingOnly}
+                    onChange={(checked) => {
+                      setUpcomingOnly(checked);
+                      eventsCacheRef.current = null;
+                      calendarRef.current?.getApi().refetchEvents();
+                    }}
+                  />
+                  <span className="text-sm text-muted-foreground">Upcoming only</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Type:</span>
+                  <Select
+                    value={typeFilter}
+                    onValueChange={(value: "all" | "sick" | "other") => {
+                      setTypeFilter(value);
+                      eventsCacheRef.current = null;
+                      calendarRef.current?.getApi().refetchEvents();
+                    }}
+                  >
+                    <SelectTrigger className="h-8 w-28 rounded-lg text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="sick">Sick only</SelectItem>
+                      <SelectItem value="other">Non-sick</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2 ml-auto">
+                  <Flame className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Sick heatmap</span>
+                  <Switch
+                    checked={showSickHeatmap}
+                    onChange={(checked) => {
+                      setShowSickHeatmap(checked);
+                      eventsCacheRef.current = null;
+                      calendarRef.current?.getApi().refetchEvents();
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Legend */}
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                <span className="text-muted-foreground">Legend:</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-green-500" />
+                  <span>Approved</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-amber-500" />
+                  <span>Pending</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-red-500" />
+                  <span>Declined</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Calendar */}
+          <div className="bg-card">
+            {loading && sessionStatus === "loading" ? (
+              <div className="p-8">
+                <Skeleton className="h-[400px] w-full rounded-xl" />
+              </div>
+            ) : (
+              <div className="calendar-wrapper">
+                <FullCalendar
+                  ref={calendarRef}
+                  plugins={[dayGridPlugin, interactionPlugin, listPlugin]}
+                  initialView="dayGridMonth"
+                  headerToolbar={false}
+                  datesSet={(arg) => {
+                    setCurrentTitle(arg.view?.title || "");
+                  }}
+                  eventSources={eventSources}
+                  eventContent={renderEventContent}
+                  dayCellClassNames={dayCellClassNames}
+                  fixedWeekCount={false}
+                  dayMaxEvents={4}
+                  eventDisplay="block"
+                  height="auto"
+                  timeZone={tenantTimeSettings.timeZone}
+                />
+              </div>
+            )}
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Event Details Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              {selectedEvent?.categoryIconKey && (
+                (() => {
+                  const Icon = getEventCategoryIcon(selectedEvent.categoryIconKey);
+                  return <Icon className="w-5 h-5 text-primary" />;
+                })()
+              )}
+              Leave Details
+            </SheetTitle>
+          </SheetHeader>
+
+          {selectedEvent && (
+            <div className="mt-6 space-y-6">
+              {/* Category & Status */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Badge className={cn("text-xs", getCategoryColor(selectedEvent.categoryName || ""))}>
+                    {selectedEvent.categoryName || "Leave"}
+                  </Badge>
+                  {selectedEvent.isSick && (
+                    <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700">
+                      Sick Leave
+                    </Badge>
+                  )}
+                </div>
+                {(() => {
+                  const statusConfig = getStatusColorConfig(selectedEvent.approvalStatus);
+                  if (!statusConfig) return null;
+                  return (
+                    <div className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm", statusConfig.bgClass)}>
+                      {selectedEvent.approvalStatus === "APPROVED" && <CheckCircle2 className="w-4 h-4" />}
+                      {selectedEvent.approvalStatus === "PENDING" && <AlertCircle className="w-4 h-4" />}
+                      {selectedEvent.approvalStatus === "DECLINED" && <XCircle className="w-4 h-4" />}
+                      <span className={cn("font-medium", statusConfig.textClass)}>{statusConfig.label}</span>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Day Type */}
+              {selectedEvent.dayType && (
+                <div>
+                  <span className="text-sm text-muted-foreground">Day Type</span>
+                  <p className="font-medium">{getDayTypeLabel(selectedEvent.dayType)}</p>
+                </div>
+              )}
+
+              {/* Reason */}
+              {selectedEvent.reason && (
+                <div>
+                  <span className="text-sm text-muted-foreground">Reason</span>
+                  <p className="text-sm mt-1 p-3 bg-muted/30 rounded-lg italic">
+                    "{selectedEvent.reason}"
+                  </p>
+                </div>
+              )}
+
+              {/* Sick Reason */}
+              {selectedEvent.sickReason && (
+                <div>
+                  <span className="text-sm text-muted-foreground">Sick Leave Reason</span>
+                  <p className="text-sm mt-1 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                    {selectedEvent.sickReason}
+                  </p>
+                </div>
+              )}
+
+              {/* Paid Status */}
+              {selectedEvent.paidStatus && (
+                <div>
+                  <span className="text-sm text-muted-foreground">Paid Status</span>
+                  <p className="font-medium">{selectedEvent.paidStatus}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <SheetFooter className="mt-8 gap-2">
+            {isPrivileged && selectedEvent && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteEvent}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </Button>
+            )}
+            <SheetClose asChild>
+              <Button variant="outline" size="sm">
+                Close
+              </Button>
+            </SheetClose>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* Book Leave Dialog */}
       <AddLeaveRequestDialog
         employeeId={employeeId}
         isAdminOrManager={Boolean(isPrivileged)}
         isBookingForSelf={isBookingForSelf}
         open={dialogOpen}
         setOpen={setDialogOpen}
-        onSubmitted={handleCreateSuccess}
+        onSubmitted={refresh}
+        sickLeaveData={sickLeaveStatus}
       />
     </div>
   );
@@ -760,7 +931,7 @@ function LeavePageContent() {
 
 export default function LeavePage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading leave...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading leave calendar...</div>}>
       <LeavePageContent />
     </Suspense>
   );

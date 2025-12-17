@@ -65,6 +65,7 @@ export default function LeaveSummaryCard({
         <AddLeaveRequestDialog
           employeeId={employeeId}
           isAdminOrManager={Boolean(isAdminOrManager)}
+          isBookingForSelf={true}
           open={modalOpen}
           setOpen={setModalOpen}
         />

@@ -24,6 +24,8 @@ interface LeaveBalancePanelProps {
   leaveEntitlements: LeaveEntitlement[];
   employeeId: string;
   isAdminOrManager?: boolean;
+  /** Whether the current user is booking leave for themselves */
+  isBookingForSelf?: boolean;
 }
 
 import { useTenantFetch } from "@/hooks/useTenantFetch";
@@ -32,6 +34,7 @@ export default function LeaveBalancePanel({
   leaveEntitlements,
   employeeId,
   isAdminOrManager = false,
+  isBookingForSelf = true,
 }: LeaveBalancePanelProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [entitlements, setEntitlements] = useState(leaveEntitlements);
@@ -89,6 +92,7 @@ export default function LeaveBalancePanel({
         <AddLeaveRequestDialog
           employeeId={employeeId}
           isAdminOrManager={isAdminOrManager}
+          isBookingForSelf={isBookingForSelf}
         />
         {isAdminOrManager && (
           <Button

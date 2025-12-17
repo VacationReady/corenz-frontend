@@ -48,9 +48,22 @@ interface SickLeaveData {
   dayLengthHours: number;
 }
 
+// Predefined sick leave reasons per NZ standards
+const SICK_LEAVE_REASONS = [
+  { value: "illness", label: "Personal illness" },
+  { value: "injury", label: "Personal injury" },
+  { value: "dependent_illness", label: "Caring for dependent (illness)" },
+  { value: "dependent_injury", label: "Caring for dependent (injury)" },
+  { value: "bereavement", label: "Bereavement" },
+  { value: "family_violence", label: "Family violence leave" },
+  { value: "other", label: "Other" },
+] as const;
+
 interface AddLeaveRequestDialogProps {
   employeeId: string;
   isAdminOrManager: boolean;
+  /** Whether the current user is booking leave for themselves */
+  isBookingForSelf?: boolean;
   open?: boolean;
   setOpen?: (value: boolean) => void;
   onSubmitted?: () => void;
@@ -67,11 +80,15 @@ type EventCategory = {
 export default function AddLeaveRequestDialog({
   employeeId,
   isAdminOrManager,
+  isBookingForSelf = true,
   open,
   setOpen,
   onSubmitted,
   sickLeaveData,
 }: AddLeaveRequestDialogProps) {
+  // Sick leave toggle is only visible to admins/managers booking for someone else
+  // Employees cannot book sick leave for themselves, managers cannot book sick for themselves
+  const canBookSickLeave = isAdminOrManager && !isBookingForSelf;
   const [isOpen, setIsOpen] = useState(false);
   const isControlled = open !== undefined && setOpen !== undefined;
   const modalOpen = isControlled ? open : isOpen;
@@ -349,7 +366,8 @@ export default function AddLeaveRequestDialog({
 
               {/* Content Area */}
               <div className="px-8 pb-8 space-y-6">
-                {/* Sick Leave Toggle - First Class */}
+                {/* Sick Leave Toggle - Only visible to admins/managers booking for others */}
+                {canBookSickLeave && (
                 <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -358,7 +376,7 @@ export default function AddLeaveRequestDialog({
                       </div>
                       <div>
                         <Label className="text-sm font-semibold text-foreground">Sick Leave</Label>
-                        <p className="text-xs text-muted-foreground">Toggle on if you're unwell</p>
+                        <p className="text-xs text-muted-foreground">Register sick leave for this employee</p>
                       </div>
                     </div>
                     <Switch
@@ -384,17 +402,22 @@ export default function AddLeaveRequestDialog({
                               {effectiveSickLeaveData.availableDays} days
                             </span>
                           </div>
-                          {effectiveSickLeaveData.isEligibleToday ? (
+                          {effectiveSickLeaveData.isEligibleToday || effectiveSickLeaveData.availableDays > 0 ? (
                             <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
                               <CheckCircle2 className="w-4 h-4" />
                               <span>Eligible for sick leave</span>
                             </div>
-                          ) : (
+                          ) : effectiveSickLeaveData.eligibleFrom ? (
                             <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                               <AlertCircle className="w-4 h-4" />
                               <span>
                                 Not eligible until {effectiveSickLeaveData.eligibleFrom}
                               </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>Not yet eligible for sick leave</span>
                             </div>
                           )}
                         </div>
@@ -402,8 +425,9 @@ export default function AddLeaveRequestDialog({
                     )}
                   </AnimatePresence>
                 </div>
+                )}
 
-                {/* Leave Type Selection - Only show when NOT sick leave */}
+                {/* Leave Type Selection - Only show when NOT sick leave or when canBookSickLeave is false */}
                 <AnimatePresence>
                   {!isSickLeave && (
                     <motion.div
@@ -567,12 +591,18 @@ export default function AddLeaveRequestDialog({
                           <Label className="text-sm font-medium text-foreground/80">
                             Reason for Sickness <span className="text-primary">*</span>
                           </Label>
-                          <Input
-                            value={sickReason}
-                            onChange={(e) => setSickReason(e.target.value)}
-                            placeholder="E.g. Flu, injury, etc."
-                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
-                          />
+                          <Select value={sickReason} onValueChange={setSickReason}>
+                            <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all">
+                              <SelectValue placeholder="Select reason" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {SICK_LEAVE_REASONS.map((reason) => (
+                                <SelectItem key={reason.value} value={reason.value}>
+                                  {reason.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                         
                         <div className="space-y-2">

@@ -300,6 +300,11 @@ function LeavePageContent() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const tenantFetch = useTenantFetch();
+  
+  // Determine if user is booking for themselves
+  // Check if the user's linked employee ID matches the page's employee ID
+  const currentUserEmployeeId = (session?.user as any)?.employeeId;
+  const isBookingForSelf = currentUserEmployeeId === employeeId || !currentUserEmployeeId;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -743,6 +748,7 @@ function LeavePageContent() {
       <AddLeaveRequestDialog
         employeeId={employeeId}
         isAdminOrManager={Boolean(isPrivileged)}
+        isBookingForSelf={isBookingForSelf}
         open={dialogOpen}
         setOpen={setDialogOpen}
         onSubmitted={handleCreateSuccess}

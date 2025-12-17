@@ -19,6 +19,9 @@ export default function LeaveBalanceClientWidget({
   const role = session?.user?.role ?? null;
   const isAdminOrManager =
     role === "ADMIN" || role === "MANAGER" || role === "SUPER_ADMIN";
+  // Dashboard widget is always for the current user (self)
+  const isBookingForSelf = true;
+  
   return (
     <Card>
       <div className="border-b p-4">
@@ -29,10 +32,12 @@ export default function LeaveBalanceClientWidget({
           employeeId={employeeId}
           leaveEntitlements={leaveEntitlements}
           isAdminOrManager={Boolean(isAdminOrManager)}
+          isBookingForSelf={isBookingForSelf}
         />
         <AddLeaveRequestDialog
           employeeId={employeeId}
           isAdminOrManager={Boolean(isAdminOrManager)}
+          isBookingForSelf={isBookingForSelf}
         />
       </div>
     </Card>

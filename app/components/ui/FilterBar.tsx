@@ -190,7 +190,7 @@ export function FilterBar({
               className="flex items-center gap-2"
             >
               <Filter className="w-4 h-4" />
-              Filters
+              {config.advancedFiltersLabel ?? "Filters"}
               {isFiltered && (
                 <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 text-xs flex items-center justify-center">
                   !

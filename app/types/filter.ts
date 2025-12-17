@@ -34,6 +34,7 @@ export interface FilterConfig {
   showDocumentTypeFilter?: boolean;
   showAuthorFilter?: boolean;
   showCategoryFilter?: boolean;
+  advancedFiltersLabel?: string;
   customFilters?: CustomFilter[];
 }
 

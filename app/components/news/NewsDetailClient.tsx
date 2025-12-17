@@ -131,6 +131,7 @@ export default function NewsDetailClient({
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
+  const [floatingHeaderActive, setFloatingHeaderActive] = useState(false);
 
   // Scroll progress
   const { scrollY } = useScroll();
@@ -152,6 +153,7 @@ export default function NewsDetailClient({
       );
       setReadProgress(progress);
       setShowScrollTop(scrollTop > 500);
+      setFloatingHeaderActive(scrollTop > 120);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -338,7 +340,10 @@ export default function NewsDetailClient({
       {/* Floating Header (appears on scroll) */}
       <motion.header
         style={{ opacity: headerOpacity }}
-        className="fixed top-0 left-0 right-0 z-40 bg-card/80 backdrop-blur-xl border-b border-border/50"
+        className={cn(
+          "fixed top-0 left-0 right-0 z-40 bg-card/80 backdrop-blur-xl border-b border-border/50",
+          floatingHeaderActive ? "pointer-events-auto" : "pointer-events-none",
+        )}
       >
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">

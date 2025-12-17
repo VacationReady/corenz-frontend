@@ -105,6 +105,7 @@ const entityTypeOptions = [
   { value: "SSO_CONFIG", label: "SSO Configuration" },
   { value: "SCIM_CONFIG", label: "SCIM Configuration" },
   { value: "BRANDING_CONFIG", label: "Branding Configuration" },
+  { value: "ANNOUNCEMENT", label: "Announcements" },
   { value: "EMPLOYEE", label: "Employee Records" },
   { value: "EMERGENCY_CONTACT", label: "Emergency Contacts" },
   { value: "EMPLOYMENT_CHECK", label: "Employment Checks" },
@@ -397,6 +398,8 @@ export default function AuditLogPage() {
         return <Settings className="w-4 h-4" />;
       case "DOCUMENT_TYPE":
         return <FileText className="w-4 h-4" />;
+      case "ANNOUNCEMENT":
+        return <Bell className="w-4 h-4" />;
       case "AUTOMATION_RULE":
         return <Zap className="w-4 h-4" />;
       case "NOTIFICATION_CHANNEL":
@@ -448,6 +451,17 @@ export default function AuditLogPage() {
       entityTypeOptions.find((opt) => opt.value === entityType)?.label ||
       entityType
     );
+  };
+
+  const getAnnouncementSummary = (log: AuditLogEntry) => {
+    if (log.entityType !== "ANNOUNCEMENT") return null;
+    const subject = typeof log.changes?.subject === "string" ? log.changes.subject : "Announcement";
+    const recipientsCount =
+      typeof log.metadata?.recipientsCount === "number" ? log.metadata.recipientsCount : null;
+    return {
+      subject,
+      recipientsCount,
+    };
   };
 
   const getEmployeeName = (log: AuditLogEntry) => {
@@ -757,7 +771,9 @@ export default function AuditLogPage() {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">
-                            {formatEntityType(log.entityType)}
+                            {log.entityType === "ANNOUNCEMENT"
+                              ? getAnnouncementSummary(log)?.subject || formatEntityType(log.entityType)
+                              : formatEntityType(log.entityType)}
                           </span>
                           {getActionBadge(log.action)}
                           {(log.entityType === "EMPLOYEE" || log.metadata?.employeeId) && (
@@ -765,6 +781,12 @@ export default function AuditLogPage() {
                               → {getEmployeeName(log)}
                             </span>
                           )}
+                          {log.entityType === "ANNOUNCEMENT" &&
+                            typeof log.metadata?.recipientsCount === "number" && (
+                              <span className="text-sm text-muted-foreground">
+                                to {log.metadata.recipientsCount}
+                              </span>
+                            )}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           by {log.actor?.name || log.actor?.email || "System"} •{" "}
@@ -861,6 +883,26 @@ export default function AuditLogPage() {
                       {format(new Date(selectedLog.timestamp), "PPpp")}
                     </div>
                   </div>
+                  {selectedLog.entityType === "ANNOUNCEMENT" && (
+                    <div className="col-span-2 space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium">Recipients</Label>
+                        <div className="text-sm bg-muted p-2 rounded">
+                          {typeof selectedLog.metadata?.recipientsCount === "number"
+                            ? `${selectedLog.metadata.recipientsCount} recipient(s)`
+                            : "(unknown)"}
+                        </div>
+                      </div>
+                      {Array.isArray(selectedLog.metadata?.recipients) && (
+                        <div>
+                          <Label className="text-sm font-medium">Recipient IDs</Label>
+                          <pre className="text-sm bg-muted p-4 rounded mt-2 overflow-auto max-h-40">
+                            {JSON.stringify(selectedLog.metadata.recipients, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {(selectedLog.entityType === "EMPLOYEE" || selectedLog.metadata?.employeeId) && (
                     <div className="col-span-2">
                       <Label className="text-sm font-medium">Employee</Label>

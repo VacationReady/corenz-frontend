@@ -1126,15 +1126,16 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
+                      className="relative z-50"
                     >
-                      <div className="pt-3 border-t border-border/30">
+                      <div className="pt-3 border-t border-border/30 overflow-visible">
                         <FilterBar
                           config={{
                             searchPlaceholder: "Search people or leave...",
                             showDepartmentFilter: false,
                             showCategoryFilter: categoryOptions.length > 0,
                             showLocationFilter: locationOptions.length > 0,
+                            advancedFiltersLabel: "More Filters",
                           }}
                           departmentOptions={departments.map((dept) => ({ label: dept.name, value: dept.name }))}
                           categoryOptions={categoryOptions}

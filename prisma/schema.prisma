@@ -2255,6 +2255,7 @@ enum AuditEntityType {
   EMPLOYMENT_CHECK
   DRIVER_LICENSE
   TRAINING_RECORD
+  ANNOUNCEMENT
 }
 
 enum AutomationExecutionStatus {

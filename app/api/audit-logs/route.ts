@@ -54,7 +54,8 @@ export async function GET(req: Request) {
       whereClause.actorId = validatedParams.actorId;
     }
 
-    // Filter by employeeId (matches entityId for EMPLOYEE type OR metadata.employeeId)
+    // Filter by employeeId (matches entityId for EMPLOYEE type OR metadata.employeeId
+    // OR announcement recipient list stored in metadata.recipients)
     if (validatedParams.employeeId) {
       whereClause.OR = [
         {
@@ -65,6 +66,12 @@ export async function GET(req: Request) {
           metadata: {
             path: ["employeeId"],
             equals: validatedParams.employeeId,
+          },
+        },
+        {
+          metadata: {
+            path: ["recipients"],
+            array_contains: [validatedParams.employeeId],
           },
         },
       ];
@@ -198,6 +205,7 @@ export async function POST(req: Request) {
     const AuditLogCreateSchema = z.object({
       entityType: z.enum([
         "LEAVE_POLICY",
+        "LEAVE_REQUEST",
         "PERMISSION_PROFILE",
         "EVENT_RULE",
         "DOCUMENT_TYPE",
@@ -211,6 +219,7 @@ export async function POST(req: Request) {
         "EMPLOYMENT_CHECK",
         "DRIVER_LICENSE",
         "TRAINING_RECORD",
+        "ANNOUNCEMENT",
       ]),
       entityId: z.string(),
       action: z.enum([
@@ -224,30 +233,23 @@ export async function POST(req: Request) {
       metadata: z.any().optional(),
     });
 
-    const validatedData = AuditLogCreateSchema.parse(body);
+    const data = AuditLogCreateSchema.parse(body);
 
-    const auditLog = await prisma.globalAuditLog.create({
+    const created = await prisma.globalAuditLog.create({
       data: {
         id: crypto.randomUUID(),
-        ...validatedData,
-        companyId: session.user.companyId,
+        entityType: data.entityType as any,
+        entityId: data.entityId,
+        action: data.action as any,
         actorId: session.user.id,
-        actorType: "USER",
-      },
-      include: {
-        User: {
-          select: {
-            id: true,
-            name: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
+        actorType: (session.user as any)?.role === "SYSTEM" ? "SYSTEM" : "USER",
+        changes: data.changes,
+        metadata: data.metadata,
+        companyId: session.user.companyId,
       },
     });
 
-    return NextResponse.json(auditLog, { status: 201 });
+    return NextResponse.json(created, { status: 201 });
   } catch (error) {
     console.error("POST /api/audit-logs error:", error);
 

@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
-import { createAuditLogs, formatDiffsForFormData } from "@/lib/audit-helpers";
+import { auditLog } from "@/lib/audit";
 
 const payloadSchema = z.object({
   employeeIds: z.array(z.string().uuid()).min(1),
@@ -164,27 +164,6 @@ export async function POST(request: Request) {
           seenEmails.add(normalizedEmail);
         }
 
-        const diffs = formatDiffsForFormData({
-          subject,
-          previewText: previewText ?? null,
-          body: messageBody,
-          ctaLabel: ctaLabel ?? null,
-          ctaUrl: ctaUrl ?? null,
-        });
-
-        const reasons = diffs.reduce<Record<string, string>>((acc, diff) => {
-          acc[diff.field] = reason;
-          return acc;
-        }, {});
-
-        await createAuditLogs({
-          companyId: session.user.companyId,
-          employeeId: employee.id,
-          section: "communication",
-          diffs,
-          reasons,
-          changedById: session.user.id,
-        });
       } catch (error: any) {
         console.error("[bulk-actions/messaging]", error);
         failures.push({
@@ -193,6 +172,34 @@ export async function POST(request: Request) {
         });
       }
     }
+
+    const successfulEmployeeIds = employeeIds.filter(
+      (id) => !failures.some((failure) => failure.employeeId === id)
+    );
+
+    await auditLog({
+      entityType: "ANNOUNCEMENT",
+      entityId: crypto.randomUUID(),
+      action: "CREATED",
+      actorId: session.user.id,
+      actorType: "USER",
+      companyId: session.user.companyId,
+      changes: {
+        subject,
+        previewText: previewText ?? null,
+        body: messageBody,
+        ctaLabel: ctaLabel ?? null,
+        ctaUrl: ctaUrl ?? null,
+        reason,
+      },
+      metadata: {
+        channel: "email",
+        recipients: successfulEmployeeIds,
+        recipientsCount: successfulEmployeeIds.length,
+        attemptedRecipientsCount: employeeIds.length,
+        failuresCount: failures.length,
+      },
+    });
 
     return NextResponse.json({
       ok: true,

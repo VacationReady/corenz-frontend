@@ -7,12 +7,8 @@ import {
   Users, 
   MapPin, 
   Building2, 
-  Calendar, 
-  User,
   Search,
-  ChevronRight,
   Mail,
-  Clock,
   Briefcase,
   BadgeCheck,
   AlertCircle,
@@ -178,35 +174,6 @@ export function EmployeeListModal({
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "—";
-    return new Date(dateString).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric"
-    });
-  };
-
-  const getTenureMonths = (startDate?: string) => {
-    if (!startDate) return null;
-    const start = new Date(startDate);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - start.getTime());
-    const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
-    return diffMonths;
-  };
-
-  const getTenureLabel = (startDate?: string) => {
-    const months = getTenureMonths(startDate);
-    if (months === null) return "Unknown";
-    if (months < 1) return "< 1 month";
-    if (months < 12) return `${months} month${months > 1 ? "s" : ""}`;
-    const years = Math.floor(months / 12);
-    const remainingMonths = months % 12;
-    if (remainingMonths === 0) return `${years} year${years > 1 ? "s" : ""}`;
-    return `${years}y ${remainingMonths}m`;
   };
 
   const getInitials = (firstName?: string, lastName?: string) => {
@@ -459,15 +426,6 @@ export function EmployeeListModal({
                             <h3 className="font-semibold text-foreground truncate">
                               {employee.firstName} {employee.lastName}
                             </h3>
-                            <Badge 
-                              className={`text-xs ${
-                                employee.isActive 
-                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" 
-                                  : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/30"
-                              }`}
-                            >
-                              {employee.isActive ? "Active" : "Inactive"}
-                            </Badge>
                           </div>
                           <div className="flex items-center gap-2 mt-1">
                             <Mail className="w-3.5 h-3.5 text-muted-foreground" />
@@ -505,37 +463,8 @@ export function EmployeeListModal({
                           )}
                         </div>
 
-                        {/* Tenure & Actions */}
+                        {/* Actions */}
                         <div className="flex items-center gap-3">
-                          {employee.startDate && (
-                            <div className="hidden lg:flex flex-col items-end">
-                              <div className="flex items-center gap-1.5 text-sm">
-                                <Clock className="w-3.5 h-3.5 text-primary" />
-                                <span className="font-medium text-foreground">
-                                  {getTenureLabel(employee.startDate)}
-                                </span>
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                Since {formatDate(employee.startDate)}
-                              </span>
-                            </div>
-                          )}
-                          
-                          {/* Employment type badges */}
-                          <div className="hidden xl:flex flex-col gap-1">
-                            {employee.employmentType && (
-                              <Badge variant="outline" className="text-xs whitespace-nowrap">
-                                {employee.employmentType}
-                              </Badge>
-                            )}
-                            {employee.contractType && (
-                              <Badge variant="outline" className="text-xs whitespace-nowrap">
-                                {employee.contractType}
-                              </Badge>
-                            )}
-                          </div>
-
-                          {/* View Profile Link */}
                           <Link href={`/employees/${employee.id}`}>
                             <motion.div
                               whileHover={{ scale: 1.1 }}

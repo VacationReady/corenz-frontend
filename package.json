@@ -15,7 +15,8 @@
     "evaluate-finetune": "tsx scripts/evaluate-finetune.ts",
     "mobile": "cd mobile && npx expo start",
     "mobile:ios": "cd mobile && npx expo run:ios",
-    "mobile:android": "cd mobile && npx expo run:android"
+    "mobile:android": "cd mobile && npx expo run:android",
+    "migrate:nz-sick-leave": "tsx scripts/migrate-nz-sick-leave.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"

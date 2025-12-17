@@ -683,8 +683,15 @@ export async function POST(req: NextRequest) {
         sickLeaveDaysPerYear: sickLeaveDays,
         alternativeHolidayBalance: alternativeHolidayDays,
         publicHolidaysPerYear: publicHolidayEntitlement,
-        // Initialize sick leave balance with the annual entitlement
-        sickLeaveBalance: sickLeaveDays * 8, // Convert to hours (8 hours per day)
+        // NZ SICK LEAVE REFACTOR: Do NOT seed sickLeaveBalance.
+        // Sick leave is now anniversary-grant based per Holidays Act 2003.
+        // Balance starts at 0 and is granted via the ledger system after 6 months.
+        // See lib/leave/nz-sick-leave-ledger.ts
+        sickLeaveBalance: 0,
+        // Set eligibility date (6 months from start)
+        sickLeaveEligibilityDate: new Date(
+          new Date(startDate).setMonth(new Date(startDate).getMonth() + 6)
+        ),
         // Public holiday leave booking permission
         canBookPublicHolidays: canBookPublicHolidays ?? false,
       },

@@ -2,7 +2,8 @@ import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getMobileSession } from "@/lib/mobile-session";
 import { hasPermission } from "@/lib/permissions";
- import { roundToTwoDecimals } from "@/lib/decimalPrecision";
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
+import { applySickLeaveGrants, getSickLeaveStatus, hoursToDisplayDays } from "@/lib/leave/nz-sick-leave-ledger";
 
 export const runtime = "nodejs";
 
@@ -67,12 +68,17 @@ export async function GET(req: NextRequest) {
         where: { userId: session.user.id },
         select: { 
           id: true,
+          companyId: true,
           departmentId: true,
           jobRoleId: true,
           locationId: true,
           annualLeaveBalance: true,
           sickLeaveBalance: true,
           sickLeaveEntitlement: true,
+          employmentStartDate: true,
+          startDate: true,
+          sickLeaveEligibilityDate: true,
+          sickLeaveLastGrantDate: true,
         },
       });
 
@@ -221,10 +227,39 @@ export async function GET(req: NextRequest) {
         }
         
         if (employee.sickLeaveBalance !== null) {
-          const balanceInHours = Number(employee.sickLeaveBalance || 0);
-          const entitlementInHours = Number(employee.sickLeaveEntitlement || 80); // Default 80 hours = 10 days
-          const remainingDays = roundToTwoDecimals(balanceInHours / HOURS_PER_DAY);
-          const totalDays = roundToTwoDecimals(entitlementInHours / HOURS_PER_DAY);
+          // NZ SICK LEAVE: Apply any pending grants before returning balance
+          try {
+            await applySickLeaveGrants(prisma as any, employee.id, new Date());
+          } catch (grantError) {
+            console.error("Failed to apply sick leave grants:", grantError);
+          }
+
+          // Re-fetch updated balance after grants
+          const updatedEmployee = await prisma.employee.findUnique({
+            where: { id: employee.id },
+            select: {
+              sickLeaveBalance: true,
+              sickLeaveEligibilityDate: true,
+              sickLeaveLastGrantDate: true,
+              employmentStartDate: true,
+              startDate: true,
+              companyId: true,
+            },
+          });
+
+          const sickLeaveStatus = getSickLeaveStatus({
+            id: employee.id,
+            companyId: updatedEmployee?.companyId || employee.companyId,
+            employmentStartDate: updatedEmployee?.employmentStartDate || employee.employmentStartDate,
+            startDate: updatedEmployee?.startDate || employee.startDate,
+            sickLeaveBalance: updatedEmployee?.sickLeaveBalance || 0,
+            sickLeaveEligibilityDate: updatedEmployee?.sickLeaveEligibilityDate || null,
+            sickLeaveLastGrantDate: updatedEmployee?.sickLeaveLastGrantDate || null,
+          } as any);
+
+          const balanceInHours = Number(updatedEmployee?.sickLeaveBalance || 0);
+          const remainingDays = hoursToDisplayDays(balanceInHours);
+          const totalDays = 10; // NZ annual entitlement
           const usedDays = Math.max(0, roundToTwoDecimals(totalDays - remainingDays));
 
           basicBalances.push({
@@ -235,6 +270,11 @@ export async function GET(req: NextRequest) {
             used: usedDays,
             remaining: remainingDays,
             pending: 0,
+            // NZ Sick Leave eligibility info
+            isEligible: sickLeaveStatus.isEligible,
+            eligibleFrom: sickLeaveStatus.eligibilityDate?.toISOString().split('T')[0] || null,
+            nextGrantDate: sickLeaveStatus.nextGrantDate?.toISOString().split('T')[0] || null,
+            daysUntilNextGrant: sickLeaveStatus.daysUntilNextGrant,
           });
         }
         

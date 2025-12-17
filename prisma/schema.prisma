@@ -476,11 +476,19 @@ model Employee {
   taxExemptionReason               String? // Reason if tax exempt or special rate
   // Leave Balances (Holidays Act 2003)
   annualLeaveBalance               Decimal                            @default(0) @db.Decimal(8, 2)
-  sickLeaveBalance                 Decimal                            @default(80) @db.Decimal(8, 2)
+  /// Sick leave balance in HOURS. This is a CACHE - source of truth is LeaveBalanceLedger.
+  /// Updated exclusively via lib/leave/nz-sick-leave-ledger.ts helper functions.
+  /// DO NOT write directly to this field outside the ledger helper.
+  sickLeaveBalance                 Decimal                            @default(0) @db.Decimal(8, 2)
   alternativeDaysBalance           Int                                @default(0)
   annualLeaveAccrualRate           Decimal?                           @default(0.08) @db.Decimal(4, 2)
   sickLeaveEntitlement             Decimal?                           @default(80) @db.Decimal(4, 1)
   employmentStartDate              DateTime?
+  // NZ Sick Leave Eligibility & Grant Tracking (Holidays Act 2003)
+  /// Date employee becomes eligible for sick leave (6 months after employment start)
+  sickLeaveEligibilityDate         DateTime?
+  /// Date of last sick leave grant (used to calculate next anniversary grant)
+  sickLeaveLastGrantDate           DateTime?
   // NZ Leave Compliance Fields (Holidays Act 2003 - Annual Leave, Sick Leave, Alternative Holidays)
   sickLeaveDaysPerYear             Decimal?                           @default(10) @db.Decimal(4, 1) // NZ minimum: 10 days after 6 months
   alternativeHolidayBalance        Decimal?                           @default(0) @db.Decimal(5, 1) // Earned when working public holidays
@@ -541,6 +549,7 @@ model Employee {
   OvertimeAuditLogs                OvertimeAuditLog[]
   PayrollCalculations              PayrollCalculation[]
   OnboardingReminders              OnboardingReminder[]
+  LeaveBalanceLedger               LeaveBalanceLedger[]
 
   @@unique([companyId, irdNumber])
   @@index([companyId, isActive])
@@ -1198,6 +1207,57 @@ model LeaveRequest {
   EventCategory                        EventCategory        @relation(fields: [eventCategoryId], references: [id])
   User_LeaveRequest_requesterIdToUser  User                 @relation("LeaveRequest_requesterIdToUser", fields: [requesterId], references: [id])
   EventSubcategory                     EventSubcategory?    @relation(fields: [sickReasonId], references: [id])
+}
+
+// ============================================
+// NZ SICK LEAVE LEDGER (Holidays Act 2003)
+// ============================================
+
+/// Ledger-based sick leave balance tracking for NZ compliance.
+/// This is the single source of truth for sick leave balance changes.
+/// Employee.sickLeaveBalance is a cache updated only via this ledger.
+model LeaveBalanceLedger {
+  id             String                @id @default(cuid())
+  employeeId     String
+  companyId      String
+  leaveType      LeaveBalanceLedgerType
+  eventType      LeaveBalanceLedgerEvent
+  /// Change in balance (hours). Positive for grants, negative for usage.
+  deltaHours     Decimal               @db.Decimal(8, 2)
+  /// Balance after this transaction (hours)
+  balanceAfter   Decimal               @db.Decimal(8, 2)
+  /// For grants: the eligibility/anniversary date this grant applies to
+  grantDate      DateTime?
+  /// Idempotency key to prevent duplicate ledger entries
+  /// Format: SICK_GRANT:<employeeId>:<grantDate> or SICK_USAGE:<leaveRequestId>
+  idempotencyKey String
+  /// Reference to source entity (e.g., leaveRequestId for USAGE)
+  sourceRef      String?
+  /// Human-readable description
+  description    String?
+  /// Who created this entry
+  createdBy      String?
+  createdAt      DateTime              @default(now())
+
+  Employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([idempotencyKey])
+  @@index([employeeId, leaveType])
+  @@index([employeeId, createdAt])
+  @@index([companyId, leaveType, createdAt])
+}
+
+enum LeaveBalanceLedgerType {
+  SICK_LEAVE
+  // Future: ANNUAL_LEAVE, ALTERNATIVE_HOLIDAY, etc.
+}
+
+enum LeaveBalanceLedgerEvent {
+  OPENING_BALANCE // Migration only
+  GRANT           // Anniversary grant (10 days)
+  USAGE           // Leave taken
+  CAP_CLAMP       // Balance capped at 20 days
+  ADJUSTMENT      // Manual HR adjustment
 }
 
 model Location {

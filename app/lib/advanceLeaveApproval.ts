@@ -3,6 +3,7 @@ import { ApprovalStatus, ApprovalStageMode } from "@prisma/client";
 import { notifyApproversForStage, notifyRequesterStatusChange } from "./approvalNotifications";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { roundToTwoDecimals, addWithPrecision } from "@/lib/decimalPrecision";
+import { recordSickLeaveUsage, applySickLeaveGrants, daysToHours } from "@/lib/leave/nz-sick-leave-ledger";
 
 async function _activateNextApproverSequential(stageId: string) {
   const next = await prisma.leaveApprovalDecision.findFirst({
@@ -214,10 +215,49 @@ export async function processDecision({
 
     // Only enforce entitlement for Annual Leave by default (unless explicitly configured)
     const isAnnualLeave = lrFull.EventCategory.name.toLowerCase().includes("annual leave");
+    const isSickLeave = lrFull.EventCategory.name.toLowerCase().includes("sick");
     const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
 
+    // NZ SICK LEAVE: Handle sick leave via ledger system (Holidays Act 2003)
+    if (isSickLeave && lrFull.approvalStatus !== "APPROVED") {
+      const totalDays: number[] = [];
+      let currentDate = new Date(lrFull.startDate);
+      const endDate = new Date(lrFull.endDate);
+      const exclusiveEnd = new Date(endDate);
+      exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+
+      while (currentDate <= exclusiveEnd) {
+        const deduction = await calculateLeaveDeduction(
+          lrFull.employeeId,
+          currentDate,
+          tx,
+        );
+        totalDays.push(deduction);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      const totalDeductionDays = roundToTwoDecimals(totalDays.reduce((sum, val) => sum + val, 0));
+      
+      if (totalDeductionDays > 0) {
+        // Apply any pending grants first, then record usage
+        try {
+          await applySickLeaveGrants(prisma as any, lrFull.employeeId, new Date(), actorUserId);
+          await recordSickLeaveUsage(
+            prisma as any,
+            lrFull.employeeId,
+            daysToHours(totalDeductionDays),
+            lrFull.id,
+            actorUserId
+          );
+          console.log(`✅ Sick leave usage recorded via ledger: ${totalDeductionDays} days`);
+        } catch (sickLeaveError: any) {
+          console.error("❌ Failed to record sick leave usage:", sickLeaveError);
+          throw new Error(sickLeaveError.message || "Failed to deduct sick leave balance.");
+        }
+      }
+    }
     // Only perform deduction if the request is not already approved AND entitlement is enforced
-    if (lrFull.approvalStatus !== "APPROVED" && enforceEntitlement) {
+    else if (lrFull.approvalStatus !== "APPROVED" && enforceEntitlement) {
       const totalDays: number[] = [];
       let currentDate = new Date(lrFull.startDate);
       const endDate = new Date(lrFull.endDate);

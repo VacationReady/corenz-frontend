@@ -5,6 +5,7 @@ import { eachDayOfInterval, subMonths, format } from "date-fns";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { checkNegativeBalanceAllowed } from "@/lib/accrualEngine";
 import { getNZPublicHolidayInfo } from "@/lib/public-holiday-checker";
+import { isEligibleForSickLeave, getSickLeaveStatus, applySickLeaveGrants } from "@/lib/leave/nz-sick-leave-ledger";
 import dayjs from "dayjs";
 
 /**
@@ -134,6 +135,56 @@ export async function validateLeaveRequest({
           `The date ${dateString} is blocked due to a company blackout.`,
         );
       }
+    }
+  }
+
+  // ── NZ SICK LEAVE ELIGIBILITY CHECK (Holidays Act 2003) ────────────────
+  // Sick leave requires 6 months continuous employment before eligibility
+  const isSickLeave = eventCategory.name.toLowerCase().includes("sick");
+  
+  if (isSickLeave) {
+    const employeeForSickLeave = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { 
+        id: true,
+        companyId: true,
+        employmentStartDate: true, 
+        startDate: true,
+        sickLeaveBalance: true,
+        sickLeaveEligibilityDate: true,
+        sickLeaveLastGrantDate: true,
+      },
+    });
+
+    if (employeeForSickLeave) {
+      // Apply any pending grants before checking eligibility
+      try {
+        await applySickLeaveGrants(prisma as any, employeeId, startDate);
+      } catch (grantError) {
+        console.error("Failed to apply sick leave grants:", grantError);
+        // Continue with validation even if grants fail
+      }
+
+      const isEligible = isEligibleForSickLeave(employeeForSickLeave as any, startDate);
+      
+      if (!isEligible) {
+        const status = getSickLeaveStatus(employeeForSickLeave as any, startDate);
+        const eligibleFromDate = status.eligibilityDate 
+          ? format(status.eligibilityDate, 'yyyy-MM-dd')
+          : 'unknown';
+        
+        console.error(`❌ Employee not eligible for sick leave until ${eligibleFromDate}`);
+        
+        // Return structured error for UI handling
+        const error = new Error(
+          `You are not yet eligible for sick leave. Eligibility begins on ${eligibleFromDate} after 6 months of continuous employment.`
+        );
+        (error as any).code = 'SICK_LEAVE_NOT_ELIGIBLE';
+        (error as any).eligibleFrom = eligibleFromDate;
+        throw error;
+      }
+      
+      console.log("✅ Employee is eligible for sick leave.");
     }
   }
 

@@ -285,6 +285,9 @@ export async function calculatePayroll(
   const employmentStartDate = employee.employmentStartDate || employee.startDate || new Date();
   const totalHours = input.regularHours + (input.overtimeHours || 0) + (input.publicHolidayHours || 0);
   
+  // NZ SICK LEAVE REFACTOR: Sick leave is now anniversary-grant based, not accrued per pay period.
+  // Only annual leave accrues per pay period. Sick leave is handled by the ledger system.
+  // See lib/leave/nz-sick-leave-ledger.ts for the new sick leave entitlement engine.
   const leaveResult = calculateLeaveAccrual({
     grossEarnings: grossPay,
     hoursWorked: totalHours,
@@ -297,18 +300,21 @@ export async function calculatePayroll(
     currentSickLeaveBalance: employee.sickLeaveBalance
       ? parseFloat(employee.sickLeaveBalance.toString())
       : 0,
+    // Flag to skip sick leave accrual (NZ anniversary-grant model)
+    skipSickLeaveAccrual: true,
   });
   
   if (leaveResult.warnings.length > 0) {
     warnings.push(...leaveResult.warnings);
   }
   
-  // Update leave balances
+  // Update leave balances - ONLY annual leave (sick leave managed by ledger)
   await prismaClient.employee.update({
     where: { id: employee.id },
     data: {
       annualLeaveBalance: leaveResult.updatedAnnualLeaveBalance,
-      sickLeaveBalance: leaveResult.updatedSickLeaveBalance,
+      // NOTE: sickLeaveBalance is NOT updated here - it's managed by the ledger system
+      // See lib/leave/nz-sick-leave-ledger.ts
       leaveBalanceLastUpdated: new Date(),
     },
   });

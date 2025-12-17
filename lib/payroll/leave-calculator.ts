@@ -72,6 +72,14 @@ export interface LeaveAccrualParams {
   
   /** Current sick leave balance */
   currentSickLeaveBalance?: number;
+  
+  /**
+   * Skip sick leave accrual calculation.
+   * NZ SICK LEAVE REFACTOR: Sick leave is now anniversary-grant based per
+   * Holidays Act 2003, not accrued per pay period. Set to true to use the
+   * new ledger-based system. See lib/leave/nz-sick-leave-ledger.ts.
+   */
+  skipSickLeaveAccrual?: boolean;
 }
 
 export interface LeaveAccrualResult {
@@ -155,8 +163,11 @@ export function calculateLeaveAccrual(
     contractedWeeklyHours
   );
   
-  // Calculate sick leave accrual (if qualified)
-  const sickLeaveAccrued = qualifiesForSickLeave
+  // Calculate sick leave accrual (if qualified and not skipped)
+  // NZ SICK LEAVE REFACTOR: When skipSickLeaveAccrual is true, sick leave is
+  // managed by the anniversary-grant ledger system, not per-period accrual.
+  const skipSickLeave = params.skipSickLeaveAccrual ?? false;
+  const sickLeaveAccrued = (!skipSickLeave && qualifiesForSickLeave)
     ? calculateSickLeaveAccrual(hoursWorked, contractedWeeklyHours)
     : 0;
   
@@ -165,7 +176,7 @@ export function calculateLeaveAccrual(
   const updatedSickLeaveBalance = currentSickLeaveBalance + sickLeaveAccrued;
   
   // Add warnings
-  if (!qualifiesForSickLeave) {
+  if (!skipSickLeave && !qualifiesForSickLeave) {
     warnings.push(`Employee needs ${SICK_LEAVE_QUALIFICATION_MONTHS} months employment to qualify for sick leave`);
   }
   

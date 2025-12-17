@@ -361,7 +361,7 @@ export function CompensationBulkActionDialog({
 
   const formatCurrency = (value: number | null) => {
     if (value === null) return "—";
-    return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+    return new Intl.NumberFormat("en-NZ", { style: "currency", currency: "NZD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
   };
 
   const exportToCSV = useCallback(() => {
@@ -492,7 +492,7 @@ export function CompensationBulkActionDialog({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Amount {mode === "percent" ? "(%)" : "(£)"}</Label>
+              <Label className="text-sm font-medium">Amount {mode === "percent" ? "(%)" : "($)"}</Label>
               <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={mode === "percent" ? "e.g. 5" : "e.g. 1500"} type="number" step="0.01" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" />
               <p className="text-xs text-muted-foreground">{mode === "percent" ? "Use negative values to decrease" : "Enter amount to add or subtract"}</p>
             </div>

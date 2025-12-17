@@ -457,6 +457,7 @@ model Employee {
   siteLocation                     String?
   irdNumber                        String?
   taxCode                          TaxCode?
+  role                             Role                               @default(EMPLOYEE)
   // Overtime configuration (NZ Employment Relations Act 2000 compliance)
   overtimeEligible                 Boolean                            @default(true)
   overtimeThreshold                Decimal?                           @db.Decimal(5, 2) // Override company default

@@ -858,6 +858,7 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
         eventCategoryId: category.id,
         startDate: new Date(pending.data.startDate),
         endDate: new Date(pending.data.endDate),
+        dayType: "FULL_DAY",
         isAdmin: true, // AI Assistant is admin action
         companyId: action.companyId,
       });
@@ -1116,6 +1117,7 @@ async function executeBulkLeaveBooking(action: AIAction, pendingData: any): Prom
         eventCategoryId: categoryId,
         startDate,
         endDate,
+        dayType: "FULL_DAY",
         companyId: action.companyId,
       });
 

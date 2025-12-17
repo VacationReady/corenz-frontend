@@ -94,6 +94,7 @@ export async function POST(request: Request) {
           eventCategoryId,
           startDate: start,
           endDate: end,
+          dayType: dayType ?? "FULL_DAY",
           companyId: session.user.companyId,
           isAdmin: true,
         });

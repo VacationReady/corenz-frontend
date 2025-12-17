@@ -152,90 +152,90 @@ export default function DayActionSheet({
             animate="visible"
             className="px-2 pb-6"
           >
-            {/* Header */}
-            <motion.div variants={itemVariants} className="mb-6">
-              <SheetHeader className="text-left">
-                <div className="flex items-center gap-3 mb-2">
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-                    className="p-2.5 bg-gradient-to-br from-primary/20 to-violet-500/20 rounded-xl"
-                  >
-                    <Calendar className="w-5 h-5 text-primary" />
-                  </motion.div>
-                  <div>
-                    <SheetTitle className="text-xl font-bold">
-                      {selectedDate ? format(selectedDate, "EEEE") : "Select Action"}
-                    </SheetTitle>
-                    {selectedDate && (
-                      <p className="text-sm text-muted-foreground">
-                        {format(selectedDate, "d MMMM yyyy")}
-                      </p>
-                    )}
+              {/* Header */}
+              <motion.div variants={itemVariants} className="mb-6">
+                <SheetHeader className="text-left">
+                  <div className="flex items-center gap-3 mb-2">
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
+                      className="p-2.5 bg-gradient-to-br from-primary/20 to-violet-500/20 rounded-xl"
+                    >
+                      <Calendar className="w-5 h-5 text-primary" />
+                    </motion.div>
+                    <div>
+                      <SheetTitle className="text-xl font-bold">
+                        {selectedDate ? format(selectedDate, "EEEE") : "Select Action"}
+                      </SheetTitle>
+                      {selectedDate && (
+                        <p className="text-sm text-muted-foreground">
+                          {format(selectedDate, "d MMMM yyyy")}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Date Tags */}
-                {selectedDate && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {isToday && (
-                      <motion.span
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium"
-                      >
-                        <Sparkles className="h-3 w-3" />
-                        Today
-                      </motion.span>
-                    )}
-                    {isWeekend && (
-                      <motion.span
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.05 }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium"
-                      >
-                        <Clock className="h-3 w-3" />
-                        Weekend
-                      </motion.span>
-                    )}
-                  </div>
-                )}
+                  {/* Date Tags */}
+                  {selectedDate && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {isToday && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium"
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Today
+                        </motion.span>
+                      )}
+                      {isWeekend && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.05 }}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium"
+                        >
+                          <Clock className="h-3 w-3" />
+                          Weekend
+                        </motion.span>
+                      )}
+                    </div>
+                  )}
 
-                <SheetDescription className="text-muted-foreground mt-3">
-                  Choose an action for this day
-                </SheetDescription>
-              </SheetHeader>
-            </motion.div>
+                  <SheetDescription className="text-muted-foreground mt-3">
+                    Choose an action for this day
+                  </SheetDescription>
+                </SheetHeader>
+              </motion.div>
 
-            {/* Action Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <ActionCard
-                icon={<Palmtree className="w-7 h-7 text-white" />}
-                iconBg="bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/30"
-                title="Book Leave"
-                description="Schedule time off for an employee on this day"
-                onClick={handleBookLeave}
-                hoverColor="hover:border-emerald-300 dark:hover:border-emerald-700"
-              />
+              {/* Action Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ActionCard
+                  icon={<Palmtree className="w-7 h-7 text-white" />}
+                  iconBg="bg-gradient-to-br from-blue-600 to-blue-700 shadow-blue-500/30"
+                  title="Book Leave"
+                  description="Schedule time off for an employee on this day"
+                  onClick={handleBookLeave}
+                  hoverColor="hover:border-blue-300 dark:hover:border-blue-700"
+                />
 
-              <ActionCard
-                icon={<ShieldBan className="w-7 h-7 text-white" />}
-                iconBg="bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-500/30"
-                title="Block Day"
-                description="Prevent any leave bookings for this day"
-                onClick={handleBlockDay}
-                hoverColor="hover:border-rose-300 dark:hover:border-rose-700"
-              />
-            </div>
+                <ActionCard
+                  icon={<ShieldBan className="w-7 h-7 text-white" />}
+                  iconBg="bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-500/30"
+                  title="Block Day"
+                  description="Prevent any leave bookings for this day"
+                  onClick={handleBlockDay}
+                  hoverColor="hover:border-rose-300 dark:hover:border-rose-700"
+                />
+              </div>
 
             {/* Cancel Button */}
             <motion.div variants={itemVariants} className="mt-6">
               <Button
                 variant="outline"
                 onClick={() => setOpen(false)}
-                className="w-full h-12 rounded-2xl border-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                className="w-full h-12 rounded-2xl border-2 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:text-foreground hover:bg-muted/50 transition-all"
               >
                 Cancel
               </Button>

@@ -359,7 +359,7 @@ export default function QuickLeaveBookingModal({
             <AnimatePresence>
               {showSuccess && (
                 <motion.div
-                  className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600"
+                  className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 1.1 }}
@@ -395,7 +395,7 @@ export default function QuickLeaveBookingModal({
 
             {/* Header */}
             <div className="relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600" />
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700" />
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iNCIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
               
               <div className="relative px-6 py-6">
@@ -453,7 +453,7 @@ export default function QuickLeaveBookingModal({
               {/* Employee Selection */}
               <motion.div variants={itemVariants} className="space-y-2">
                 <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-violet-500" />
+                  <Users className="w-4 h-4 text-blue-600" />
                   Employee <span className="text-rose-500">*</span>
                 </Label>
                 <div className="relative">
@@ -464,9 +464,9 @@ export default function QuickLeaveBookingModal({
                       "w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 transition-all duration-200",
                       "bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800",
                       employeeSearchOpen
-                        ? "border-violet-500 ring-4 ring-violet-500/20"
-                        : "border-slate-200 dark:border-slate-700 hover:border-violet-300",
-                      selectedEmployee && "border-violet-200 bg-violet-50/50 dark:bg-violet-900/20"
+                        ? "border-blue-600 ring-4 ring-blue-600/20"
+                        : "border-slate-200 dark:border-slate-700 hover:border-blue-300",
+                      selectedEmployee && "border-blue-200 bg-blue-50/50 dark:bg-blue-900/20"
                     )}
                   >
                     {selectedEmp ? (
@@ -474,14 +474,14 @@ export default function QuickLeaveBookingModal({
                         <div className="relative">
                           <Avatar className="w-10 h-10 border-2 border-white shadow-md">
                             <AvatarImage src={selectedEmp.user?.profileImageUrl || undefined} />
-                            <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-white text-sm font-semibold">
+                            <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-700 text-white text-sm font-semibold">
                               {getInitials(getEmployeeName(selectedEmp))}
                             </AvatarFallback>
                           </Avatar>
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center"
+                            className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-600 rounded-full border-2 border-white flex items-center justify-center"
                           >
                             <Check className="w-2.5 h-2.5 text-white" />
                           </motion.div>
@@ -530,7 +530,7 @@ export default function QuickLeaveBookingModal({
                               onChange={(e) => setEmployeeSearch(e.target.value)}
                               placeholder="Search by name or department..."
                               autoFocus
-                              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border-0 text-sm focus:ring-2 focus:ring-violet-500/30 outline-none transition-all"
+                              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border-0 text-sm focus:ring-2 focus:ring-blue-600/30 outline-none transition-all"
                             />
                           </div>
                         </div>
@@ -553,7 +553,7 @@ export default function QuickLeaveBookingModal({
                                 className={cn(
                                   "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-150",
                                   selectedEmployee === emp.id
-                                    ? "bg-violet-100 dark:bg-violet-900/40"
+                                    ? "bg-blue-100 dark:bg-blue-900/40"
                                     : "hover:bg-slate-100 dark:hover:bg-slate-700/50"
                                 )}
                               >
@@ -574,7 +574,7 @@ export default function QuickLeaveBookingModal({
                                   )}
                                 </div>
                                 {selectedEmployee === emp.id && (
-                                  <Check className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                                  <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                 )}
                               </button>
                             ))
@@ -589,7 +589,7 @@ export default function QuickLeaveBookingModal({
               {/* Leave Type */}
               <motion.div variants={itemVariants} className="space-y-2">
                 <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4 text-violet-500" />
+                  <CalendarDays className="w-4 h-4 text-blue-600" />
                   Leave Type <span className="text-rose-500">*</span>
                 </Label>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -598,7 +598,7 @@ export default function QuickLeaveBookingModal({
                       "h-auto py-3.5 px-4 rounded-2xl border-2 transition-all duration-200",
                       "bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800",
                       selectedCategory
-                        ? "border-violet-200 bg-violet-50/50 dark:bg-violet-900/20"
+                        ? "border-blue-200 bg-blue-50/50 dark:bg-blue-900/20"
                         : "border-slate-200 dark:border-slate-700"
                     )}
                   >
@@ -611,18 +611,18 @@ export default function QuickLeaveBookingModal({
                         <SelectItem
                           key={cat.id}
                           value={cat.id}
-                          className="py-3 px-4 cursor-pointer rounded-xl my-1 focus:bg-violet-50 dark:focus:bg-violet-900/30"
+                          className="py-3 px-4 cursor-pointer rounded-xl my-1 focus:bg-blue-50 dark:focus:bg-blue-900/30"
                         >
                           <div className="flex items-center gap-3">
                             <div
                               className="p-2 rounded-lg"
                               style={{
-                                backgroundColor: cat.color ? `${cat.color}20` : "#8b5cf620",
+                                backgroundColor: cat.color ? `${cat.color}20` : "#2563eb20",
                               }}
                             >
                               <Icon
                                 className="w-4 h-4"
-                                style={{ color: cat.color || "#8b5cf6" }}
+                                style={{ color: cat.color || "#2563eb" }}
                               />
                             </div>
                             <span className="font-medium">{cat.name}</span>
@@ -637,7 +637,7 @@ export default function QuickLeaveBookingModal({
               {/* Date Range */}
               <motion.div variants={itemVariants} className="space-y-3">
                 <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-violet-500" />
+                  <Calendar className="w-4 h-4 text-blue-600" />
                   Date Range <span className="text-rose-500">*</span>
                 </Label>
                 <div className="grid grid-cols-2 gap-3">
@@ -649,7 +649,7 @@ export default function QuickLeaveBookingModal({
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      className="h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-violet-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 transition-all"
+                      className="h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-blue-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/20 transition-all"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -661,7 +661,7 @@ export default function QuickLeaveBookingModal({
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                       min={startDate}
-                      className="h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-violet-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 transition-all"
+                      className="h-12 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-blue-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/20 transition-all"
                     />
                   </div>
                 </div>
@@ -676,17 +676,17 @@ export default function QuickLeaveBookingModal({
                     exit={{ opacity: 0, height: 0, marginTop: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/30 dark:to-indigo-900/30 border border-violet-200 dark:border-violet-800">
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/30 dark:to-blue-950/30 border border-blue-200 dark:border-blue-800">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-violet-100 dark:bg-violet-800/50 rounded-xl">
-                            <CalendarCheck className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                          <div className="p-2 bg-blue-100 dark:bg-blue-800/50 rounded-xl">
+                            <CalendarCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-violet-900 dark:text-violet-100">
+                            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
                               {formatDate(startDate)} → {formatDate(endDate)}
                             </p>
-                            <p className="text-xs text-violet-600 dark:text-violet-300">
+                            <p className="text-xs text-blue-600 dark:text-blue-300">
                               {selectedCat?.name || "Leave"}
                             </p>
                           </div>
@@ -696,11 +696,11 @@ export default function QuickLeaveBookingModal({
                             key={daysDiff}
                             initial={{ scale: 1.2 }}
                             animate={{ scale: 1 }}
-                            className="text-2xl font-bold text-violet-700 dark:text-violet-300"
+                            className="text-2xl font-bold text-blue-700 dark:text-blue-300"
                           >
                             {daysDiff}
                           </motion.p>
-                          <p className="text-xs text-violet-600 dark:text-violet-400">
+                          <p className="text-xs text-blue-600 dark:text-blue-400">
                             {daysDiff === 1 ? "day" : "days"}
                           </p>
                         </div>
@@ -762,7 +762,7 @@ export default function QuickLeaveBookingModal({
                   onChange={(e) => setReason(e.target.value)}
                   placeholder={isSickCategory ? "Add any additional notes..." : "Add any notes about this leave..."}
                   rows={2}
-                  className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-violet-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 transition-all resize-none text-sm placeholder:text-slate-400"
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-blue-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-600/20 transition-all resize-none text-sm placeholder:text-slate-400"
                 />
               </motion.div>
 
@@ -786,9 +786,9 @@ export default function QuickLeaveBookingModal({
                   disabled={loading || !isFormValid}
                   className={cn(
                     "flex-1 h-12 rounded-2xl font-semibold transition-all duration-300",
-                    "bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600",
-                    "hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500",
-                    "text-white shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40",
+                    "bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700",
+                    "hover:from-blue-500 hover:via-blue-500 hover:to-blue-600",
+                    "text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40",
                     "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
                   )}
                 >

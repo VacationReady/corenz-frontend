@@ -265,6 +265,24 @@ export default function AddLeaveRequestDialog({
       }
 
       if (!res.ok || data.success === false) {
+        if (data?.code === "LEAVE_OVERLAP_FULL_DAY") {
+          const attemptedType = isSickLeave
+            ? "Sick leave"
+            : (selectedCategory?.name ?? "Leave");
+          const conflictType = data?.conflict?.eventCategoryName ?? "another leave event";
+          const start = typeof data?.conflict?.startDate === "string"
+            ? data.conflict.startDate.slice(0, 10)
+            : null;
+          const end = typeof data?.conflict?.endDate === "string"
+            ? data.conflict.endDate.slice(0, 10)
+            : null;
+
+          toast.error(`Can’t book ${attemptedType} on these dates`, {
+            description: `This employee already has ${conflictType}${start && end ? ` (${start} to ${end})` : ""}. You can’t have sickness and holiday on the same day. Edit or remove the existing event, or choose different dates.`,
+          });
+          return;
+        }
+
         const errorMessage =
           data?.error ||
           `Failed to submit leave request. Status: ${res.status}`;

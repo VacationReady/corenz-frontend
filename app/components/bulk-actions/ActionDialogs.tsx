@@ -638,7 +638,22 @@ export function LeaveBulkActionDialog({ open, onOpenChange, allEmployees, depart
     setSubmitting(true);
     try {
       const res = await fetch("/api/bulk-actions/leave", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ employeeIds, eventCategoryId, startDate, endDate, dayType, reason, forceApprove }) });
-      if (!res.ok) { const payload = await res.json().catch(() => ({})); throw new Error(payload?.error || "Failed"); }
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({} as any));
+        if (payload?.code === "LEAVE_OVERLAP_FULL_DAY") {
+          const conflictType = payload?.conflict?.eventCategoryName ?? "another leave event";
+          const conflictStart = typeof payload?.conflict?.startDate === "string" ? payload.conflict.startDate.slice(0, 10) : null;
+          const conflictEnd = typeof payload?.conflict?.endDate === "string" ? payload.conflict.endDate.slice(0, 10) : null;
+
+          toast.error("Some employees couldn’t be booked", {
+            description: `At least one selected employee already has ${conflictType}${conflictStart && conflictEnd ? ` (${conflictStart} to ${conflictEnd})` : ""}. Employees can’t have overlapping full-day events. Remove the existing event or choose different dates, then try again.`,
+          });
+          return;
+        }
+
+        throw new Error(payload?.error || "Failed");
+      }
+
       const payload = (await res.json()) as BulkActionResult;
       toast.success("Leave booked", { description: `${payload.processed - payload.failures.length} created` });
       onCompleted?.(payload);

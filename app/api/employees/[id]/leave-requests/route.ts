@@ -373,6 +373,7 @@ export async function POST(
       eventCategoryId: EventCategoryId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
+      dayType: dayType ?? "FULL_DAY",
       isAdmin:
         session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN",
       companyId: session.user.companyId,
@@ -742,6 +743,32 @@ export async function POST(
         { status: 400 },
       );
     }
+
+    // Known validation failures should be treated as 400 (client error), not 500.
+    if (error?.code === "LEAVE_OVERLAP_FULL_DAY") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message || "This employee already has a leave event on those dates.",
+          code: error.code,
+          conflict: error.conflict ?? null,
+        },
+        { status: 400 },
+      );
+    }
+
+    if (error?.code === "SICK_LEAVE_NOT_ELIGIBLE") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message || "Employee is not eligible for sick leave.",
+          code: error.code,
+          eligibleFrom: error.eligibleFrom ?? null,
+        },
+        { status: 400 },
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,

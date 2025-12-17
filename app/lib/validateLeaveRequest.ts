@@ -20,6 +20,7 @@ export async function validateLeaveRequest({
   eventCategoryId,
   startDate,
   endDate,
+  dayType,
   isAdmin = false,
   companyId,
 }: {
@@ -27,6 +28,7 @@ export async function validateLeaveRequest({
   eventCategoryId: string;
   startDate: Date;
   endDate: Date;
+  dayType?: "FULL_DAY" | "HALF_DAY_AM" | "HALF_DAY_PM";
   isAdmin?: boolean;
   companyId: string;
 }) {
@@ -35,8 +37,11 @@ export async function validateLeaveRequest({
     eventCategoryId,
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
+    dayType,
     isAdmin,
   });
+
+  const effectiveDayType = dayType ?? "FULL_DAY";
 
   const eventCategory = await prisma.eventCategory.findFirst({
     where: { id: eventCategoryId, companyId },
@@ -46,6 +51,53 @@ export async function validateLeaveRequest({
   if (!eventCategory) {
     console.error("❌ Invalid eventCategoryId provided.");
     throw new Error(`Invalid event category.`);
+  }
+
+  // ── FULL-DAY OVERLAP CHECK ──────────────────────────────
+  // Employees must not have overlapping full-day leave events (e.g. holiday + sickness) on the same date(s).
+  // Rules:
+  // - If creating a FULL_DAY event: it must not overlap ANY other leave event (full or half day)
+  // - If creating a HALF_DAY event: it must not overlap an existing FULL_DAY event
+  // We enforce this regardless of role/admin status.
+  {
+    const rangeStart = dayjs(startDate).startOf("day").toDate();
+    const rangeEnd = dayjs(endDate).endOf("day").toDate();
+
+    const dayTypeFilter =
+      effectiveDayType === "FULL_DAY"
+        ? undefined
+        : { dayType: "FULL_DAY" as const };
+
+    const overlapping = await prisma.leaveRequest.findFirst({
+      where: {
+        employeeId,
+        approvalStatus: { in: ["PENDING", "APPROVED"] },
+        ...(dayTypeFilter ?? {}),
+        AND: [{ startDate: { lte: rangeEnd } }, { endDate: { gte: rangeStart } }],
+      },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        dayType: true,
+        EventCategory: { select: { name: true } },
+      },
+    });
+
+    if (overlapping) {
+      const error: any = new Error(
+        `Cannot book leave: this employee already has a leave event (${overlapping.EventCategory?.name ?? "Leave"}) overlapping ${format(rangeStart, "yyyy-MM-dd")} to ${format(rangeEnd, "yyyy-MM-dd")}.`,
+      );
+      error.code = "LEAVE_OVERLAP_FULL_DAY";
+      error.conflict = {
+        leaveRequestId: overlapping.id,
+        startDate: overlapping.startDate,
+        endDate: overlapping.endDate,
+        dayType: overlapping.dayType,
+        eventCategoryName: overlapping.EventCategory?.name ?? null,
+      };
+      throw error;
+    }
   }
 
   // ── FETCH EVENT RULE ──────────────────────────────

@@ -26,7 +26,11 @@ const optionalTrimmedString = z
   });
 
 const leaveRequestCreateSchema = z.object({
+  // First-class sick leave toggle - when true, this is sick leave
+  // When isSick === true, eventCategoryId is ignored
+  isSick: z.boolean().optional().default(false),
   // Accept both keys for compatibility; prefer lowerCamel in code
+  // Required when isSick === false, optional when isSick === true
   eventCategoryId: z
     .string({ required_error: "eventCategoryId is required" })
     .trim()
@@ -127,15 +131,57 @@ export async function GET(
       ? Math.max(1, Math.min(1000, parseInt(limitParam, 10) || 0))
       : 3;
 
+    // New query params for filtering
+    // from: YYYY-MM-DD (inclusive) - start of date range
+    // to: YYYY-MM-DD (inclusive) - end of date range
+    // isSick: "true" | "false" - filter by sick leave type
+    // status: "pending" | "approved" | "declined" - filter by approval status
+    const fromParam = searchParams.get("from");
+    const toParam = searchParams.get("to");
+    const isSickParam = searchParams.get("isSick");
+    const statusParam = searchParams.get("status");
+
     const now = new Date();
+
+    // Build date range filter (inclusive semantics: from <= startDate AND endDate <= to)
+    const dateRangeFilter: any = {};
+    if (fromParam) {
+      const fromDate = new Date(fromParam);
+      if (!isNaN(fromDate.getTime())) {
+        dateRangeFilter.startDate = { gte: fromDate };
+      }
+    }
+    if (toParam) {
+      const toDate = new Date(toParam);
+      if (!isNaN(toDate.getTime())) {
+        // Inclusive: set to end of day
+        toDate.setHours(23, 59, 59, 999);
+        dateRangeFilter.endDate = { lte: toDate };
+      }
+    }
+
+    // Build status filter
+    let statusFilter: string | undefined;
+    if (statusParam) {
+      const normalizedStatus = statusParam.toUpperCase();
+      if (["PENDING", "APPROVED", "DECLINED"].includes(normalizedStatus)) {
+        statusFilter = normalizedStatus;
+      }
+    }
 
     // 6. ✅ Query leave requests with multi-tenant filtering
     const where: any = {
       employeeId,
       // Multi-tenant isolation: only fetch from user's company
       Employee: { companyId: session.user.companyId },
-      approvalStatus: "APPROVED",
-      ...(upcoming
+      // Default to APPROVED if no status filter and using legacy upcoming mode
+      ...(statusFilter
+        ? { approvalStatus: statusFilter }
+        : !fromParam && !toParam
+          ? { approvalStatus: "APPROVED" }
+          : {}),
+      ...dateRangeFilter,
+      ...(upcoming && !fromParam && !toParam
         ? {
             OR: [
               { startDate: { gte: now } },
@@ -154,12 +200,38 @@ export async function GET(
         startDate: true,
         endDate: true,
         dayType: true,
+        leaveType: true,
         EventCategory: { select: { id: true, name: true, iconKey: true } },
         approvalStatus: true,
+        reason: true,
+        sickReason: true,
+        paidStatus: true,
       },
     });
 
-    return NextResponse.json(leaves);
+    // Transform response to include isSick flag based on leaveType
+    // leaveType = "SICK" indicates sick leave (first-class field)
+    // For backward compatibility, also check EventCategory name for legacy data
+    const transformedLeaves = leaves.map((leave) => {
+      const isSick = leave.leaveType === "SICK" || 
+        (leave.EventCategory?.name?.toLowerCase().includes("sick") ?? false);
+      
+      return {
+        ...leave,
+        isSick,
+        // Ensure leaveType is set for UI consumption
+        leaveType: leave.leaveType || (isSick ? "SICK" : leave.EventCategory?.name || "LEAVE"),
+      };
+    });
+
+    // Apply isSick filter if specified (post-query filter for flexibility)
+    let filteredLeaves = transformedLeaves;
+    if (isSickParam !== null) {
+      const filterSick = isSickParam === "true";
+      filteredLeaves = transformedLeaves.filter((leave) => leave.isSick === filterSick);
+    }
+
+    return NextResponse.json(filteredLeaves);
   } catch (error) {
     console.error("[EMPLOYEE_LEAVE_REQUESTS_GET]", error);
     return NextResponse.json(
@@ -198,9 +270,44 @@ export async function POST(
 
     const userId = session.user.id;
   const body = leaveRequestCreateSchema.parse(await req.json());
-  const EventCategoryId = body.eventCategoryId || body.EventCategoryId;
-  const { startDate, endDate, reason, sickReason, paidStatus, dayType } = body;
-  if (!EventCategoryId) {
+  const { startDate, endDate, reason, sickReason, paidStatus, dayType, isSick } = body;
+  
+  // First-class sick leave: isSick === true means this is sick leave
+  // When sick, eventCategoryId is ignored - we use a placeholder or the company's sick leave category
+  let EventCategoryId = body.eventCategoryId || body.EventCategoryId;
+  
+  // For sick leave, we need to find or use a sick leave category
+  // This maintains backward compatibility with existing category-based leave system
+  if (isSick) {
+    // Find or use the company's sick leave category
+    const sickCategory = await prisma.eventCategory.findFirst({
+      where: {
+        companyId: session.user.companyId,
+        name: { contains: "sick", mode: "insensitive" },
+      },
+      select: { id: true },
+    });
+    
+    if (sickCategory) {
+      EventCategoryId = sickCategory.id;
+    } else {
+      // If no sick category exists, require one to be specified
+      if (!EventCategoryId) {
+        return NextResponse.json(
+          { success: false, error: "No sick leave category configured. Please contact your administrator." },
+          { status: 400 },
+        );
+      }
+    }
+    
+    // Validate sick leave requirements
+    if (!sickReason) {
+      return NextResponse.json(
+        { success: false, error: "Sick reason is required for sick leave." },
+        { status: 400 },
+      );
+    }
+  } else if (!EventCategoryId) {
     return NextResponse.json(
       { success: false, error: "Event category is required" },
       { status: 400 },
@@ -329,8 +436,10 @@ export async function POST(
                 endDate: endDateObj,
                 dayType: dayType ?? "FULL_DAY",
                 reason: reason ?? "",
-                paidStatus:
-                  EventCategoryName === "Sick Leave" ? (paidStatus ?? "PAID") : null,
+                // First-class sick leave fields
+                leaveType: isSick ? "SICK" : null,
+                sickReason: isSick ? sickReason : null,
+                paidStatus: isSick ? (paidStatus ?? "PAID") : null,
                 updatedAt: new Date(),
               },
             });
@@ -364,8 +473,10 @@ export async function POST(
                 endDate: new Date(endDate),
                 dayType: dayType ?? "FULL_DAY",
                 reason: reason ?? "",
-                paidStatus:
-                  EventCategoryName === "Sick Leave" ? (paidStatus ?? "PAID") : null,
+                // First-class sick leave fields
+                leaveType: isSick ? "SICK" : null,
+                sickReason: isSick ? sickReason : null,
+                paidStatus: isSick ? (paidStatus ?? "PAID") : null,
                 updatedAt: new Date(),
               },
             });
@@ -396,8 +507,10 @@ export async function POST(
         endDate: new Date(endDate),
         dayType: dayType ?? "FULL_DAY",
         reason: reason ?? "",
-        paidStatus:
-          EventCategoryName === "Sick Leave" ? (paidStatus ?? "PAID") : null,
+        // First-class sick leave fields
+        leaveType: isSick ? "SICK" : null,
+        sickReason: isSick ? sickReason : null,
+        paidStatus: isSick ? (paidStatus ?? "PAID") : null,
         updatedAt: new Date(),
       },
     });

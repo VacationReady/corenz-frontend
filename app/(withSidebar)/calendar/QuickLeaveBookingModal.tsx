@@ -203,15 +203,23 @@ export default function QuickLeaveBookingModal({
 
     setLoading(true);
     try {
+      // Check if selected category is sick leave
+      const isSickCategory = selectedCat?.name?.toLowerCase().includes('sick') ?? false;
+      
       const res = await fetch(`/api/employees/${selectedEmployee}/leave-requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventCategoryId: selectedCategory,
+          // First-class sick leave flag
+          isSick: isSickCategory,
+          // Only include eventCategoryId when not sick leave
+          ...(isSickCategory ? {} : { eventCategoryId: selectedCategory }),
           startDate,
           endDate,
           reason,
           dayType: "FULL_DAY",
+          // Include sickReason if it's sick leave (use reason as sickReason)
+          ...(isSickCategory && reason ? { sickReason: reason } : {}),
         }),
       });
 

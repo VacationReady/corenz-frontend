@@ -16,6 +16,9 @@ import {
   ChevronRight,
   Shield,
   Info,
+  Thermometer,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import {
   Tooltip,
@@ -38,6 +41,15 @@ interface EmergencyContactData {
   email?: string | null;
 }
 
+interface SickLeaveData {
+  availableDays: number;
+  isEligibleToday: boolean;
+  eligibleFrom: string | null;
+  nextGrantDate: string | null;
+  capDays: number;
+  dayLengthHours: number;
+}
+
 interface OverviewClientProps {
   employeeId: string;
   employeeName: string;
@@ -58,6 +70,7 @@ interface OverviewClientProps {
   insights: InsightData[];
   canSeeBankPayrollOverview: boolean;
   isAdmin: boolean;
+  sickLeaveData: SickLeaveData | null;
   leaveBalanceComponent: React.ReactNode;
   profileAvatar: React.ReactNode;
 }
@@ -157,9 +170,20 @@ export default function OverviewClient({
   insights,
   canSeeBankPayrollOverview,
   isAdmin,
+  sickLeaveData,
   leaveBalanceComponent,
   profileAvatar,
 }: OverviewClientProps) {
+  // Format next grant date for display
+  const formatNextGrantDate = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("en-NZ", { month: "short", day: "numeric", year: "numeric" });
+    } catch {
+      return null;
+    }
+  };
   return (
     <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-8">
       {/* Profile Header */}
@@ -283,13 +307,70 @@ export default function OverviewClient({
           </TooltipProvider>
         </QuickInfoCard>
 
+        {/* Absence & Sick Leave */}
+        <QuickInfoCard
+          href={`/employees/${employeeId}/leave`}
+          title="Absence & Sick Leave"
+          icon={Thermometer}
+          iconColor="from-amber-500 to-orange-500"
+          delay={0.3}
+        >
+          {sickLeaveData ? (
+            <div className="space-y-3">
+              {/* Sick Leave Balance */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Available sick leave</span>
+                <span className="text-lg font-bold text-foreground">
+                  {sickLeaveData.availableDays} {sickLeaveData.availableDays === 1 ? "day" : "days"}
+                </span>
+              </div>
+              
+              {/* Eligibility Status */}
+              <div className="flex items-center gap-2">
+                {sickLeaveData.isEligibleToday ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-green-600 dark:text-green-400">Eligible for sick leave</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                    <span className="text-sm text-amber-600 dark:text-amber-400">
+                      Eligible from {formatNextGrantDate(sickLeaveData.eligibleFrom)}
+                    </span>
+                  </>
+                )}
+              </div>
+              
+              {/* Next Grant Date */}
+              {sickLeaveData.isEligibleToday && sickLeaveData.nextGrantDate && (
+                <div className="text-xs text-muted-foreground">
+                  Next 10 days added: {formatNextGrantDate(sickLeaveData.nextGrantDate)}
+                </div>
+              )}
+              
+              {/* Cap Note */}
+              <div className="pt-2 border-t border-muted/30">
+                <p className="text-xs text-muted-foreground">
+                  Sick leave can accumulate up to {sickLeaveData.capDays} days.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="py-4 text-center">
+              <Thermometer className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Sick leave data unavailable</p>
+            </div>
+          )}
+        </QuickInfoCard>
+
         {/* Emergency Contacts */}
         <QuickInfoCard
           href={`/employees/${employeeId}/emergency-contacts`}
           title="Emergency Contacts"
           icon={Phone}
           iconColor="from-primary to-blue-500"
-          delay={0.3}
+          delay={0.35}
         >
           {emergencyContacts.length > 0 ? (
             <div className="space-y-3">

@@ -225,6 +225,90 @@ test("respects query params and shows empty state", async () => {
   container.remove();
 });
 
+test("renders sick badge for sick leave requests", async () => {
+  const fetchCalls: string[] = [];
+  global.fetch = (async (...args: any[]) => {
+    const url = typeof args[0] === "string" ? args[0] : String(args[0]);
+    fetchCalls.push(url);
+    return {
+      ok: true,
+      json: async () => [
+        {
+          id: "sick-leave-1",
+          startDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+          EventCategory: { id: "ec-sick", name: "Sick Leave" },
+          approvalStatus: "APPROVED",
+          dayType: "FULL_DAY",
+          leaveType: "SICK",
+          isSick: true,
+        },
+      ],
+    } as any;
+  }) as any;
+
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  act(() => {
+    root.render(React.createElement(Page, { params: { id: "emp1" } }));
+  });
+
+  await act(async () => {
+    await Promise.resolve();
+  });
+
+  // Check that "Sick" badge is rendered
+  const pageText = container.textContent ?? "";
+  assert.ok(
+    pageText.includes("Sick"),
+    "Sick badge should be rendered for sick leave requests"
+  );
+
+  await act(async () => {
+    root.unmount();
+  });
+  container.remove();
+});
+
+test("type filter param is included in API request", async () => {
+  searchParamsMock = "type=sick";
+
+  const fetchCalls: string[] = [];
+  global.fetch = (async (...args: any[]) => {
+    const url = typeof args[0] === "string" ? args[0] : String(args[0]);
+    fetchCalls.push(url);
+    return {
+      ok: true,
+      json: async () => [],
+    } as any;
+  }) as any;
+
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  act(() => {
+    root.render(React.createElement(Page, { params: { id: "emp1" } }));
+  });
+
+  await act(async () => {
+    await Promise.resolve();
+  });
+
+  assert.equal(fetchCalls.length, 1);
+  assert.ok(
+    fetchCalls[0].includes("isSick=true"),
+    "fetch should include isSick=true when type=sick filter is set"
+  );
+
+  await act(async () => {
+    root.unmount();
+  });
+  container.remove();
+});
+
 test("refreshes data after creating leave", async () => {
   const responses = [
     [

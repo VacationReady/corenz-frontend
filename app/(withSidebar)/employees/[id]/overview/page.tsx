@@ -16,6 +16,12 @@ import {
 } from "date-fns";
 
 import { prisma } from "@/lib/prisma";
+import {
+  getSickLeaveStatus,
+  applySickLeaveGrants,
+  SICK_LEAVE_CAP_DAYS,
+  HOURS_PER_DAY,
+} from "@/lib/leave/nz-sick-leave-ledger";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
 import ProfileAvatarUploader from "./ProfileAvatarWrapper";
 import OverviewClient from "./OverviewClient";
@@ -116,6 +122,53 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
       },
     },
   });
+
+  // ── SICK LEAVE METADATA ──────────────────────────────
+  // Apply any pending sick leave grants before computing status
+  let sickLeaveData: {
+    availableDays: number;
+    isEligibleToday: boolean;
+    eligibleFrom: string | null;
+    nextGrantDate: string | null;
+    capDays: number;
+    dayLengthHours: number;
+  } | null = null;
+
+  if (employee) {
+    try {
+      // Apply pending grants (lazy on-read pattern)
+      await applySickLeaveGrants(prisma as any, employeeId, new Date());
+      
+      // Re-fetch employee with updated sick leave balance
+      const employeeWithSickLeave = await prisma.employee.findUnique({
+        where: { id: employeeId },
+        select: {
+          id: true,
+          companyId: true,
+          employmentStartDate: true,
+          startDate: true,
+          sickLeaveBalance: true,
+          sickLeaveEligibilityDate: true,
+          sickLeaveLastGrantDate: true,
+        },
+      });
+
+      if (employeeWithSickLeave) {
+        const status = getSickLeaveStatus(employeeWithSickLeave as any, new Date());
+        sickLeaveData = {
+          availableDays: status.balanceDays,
+          isEligibleToday: status.isEligible,
+          eligibleFrom: status.eligibilityDate ? format(status.eligibilityDate, "yyyy-MM-dd") : null,
+          nextGrantDate: status.nextGrantDate ? format(status.nextGrantDate, "yyyy-MM-dd") : null,
+          capDays: SICK_LEAVE_CAP_DAYS,
+          dayLengthHours: HOURS_PER_DAY,
+        };
+      }
+    } catch (error) {
+      console.error("[EmployeeOverview] Failed to compute sick leave status:", error);
+      // Continue without sick leave data rather than failing the page
+    }
+  }
 
   if (!employee) {
     return <div className="p-6">Employee not found.</div>;
@@ -239,6 +292,7 @@ export default async function EmployeeOverviewPage({ params }: PageProps) {
       insights={insights}
       canSeeBankPayrollOverview={canSeeBankPayrollOverview}
       isAdmin={isAdmin}
+      sickLeaveData={sickLeaveData}
       profileAvatar={
         <ProfileAvatarUploader
           userId={employee.userId}

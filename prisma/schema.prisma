@@ -1195,11 +1195,14 @@ model LeaveRequest {
   approvalStatus                       ApprovalStatus       @default(PENDING)
   approvedById                         String?
   sickReasonId                         String?
+  sickReason                           String?
   paidStatus                           PaidStatus?
   dayType                              DayType
   eventCategoryId                      String
   requesterId                          String
   companyId                            String
+  /// First-class leave type indicator. "SICK" for sick leave, null for category-based leave.
+  leaveType                            String?
   LeaveApprovalStage                   LeaveApprovalStage[]
   User_LeaveRequest_approvedByIdToUser User?                @relation("LeaveRequest_approvedByIdToUser", fields: [approvedById], references: [id])
   Company                              Company              @relation(fields: [companyId], references: [id])

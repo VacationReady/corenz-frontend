@@ -49,12 +49,15 @@ type RawLeaveRequest = {
   approvalStatus?: string | null;
   EventCategory?: { id: string; name: string } | null;
   eventCategory?: { id: string; name: string } | null;
+  leaveType?: string | null;
+  isSick?: boolean;
 };
 
 type LeaveRequest = RawLeaveRequest & {
   start: Date;
   end: Date;
   categoryName: string;
+  isSick: boolean;
 };
 
 const dayTypeLabels: Record<string, string> = {
@@ -68,12 +71,18 @@ function normalizeLeave(leave: RawLeaveRequest): LeaveRequest {
   const end = new Date(leave.endDate);
   const categoryName =
     leave.EventCategory?.name ?? leave.eventCategory?.name ?? "Leave";
+  
+  // Determine if this is sick leave using first-class leaveType field or isSick flag
+  const isSick = leave.isSick === true || 
+    leave.leaveType === "SICK" || 
+    categoryName.toLowerCase().includes("sick");
 
   return {
     ...leave,
     start,
     end,
     categoryName,
+    isSick,
   };
 }
 
@@ -208,7 +217,14 @@ function LeaveItemCard({
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold text-foreground">{leave.categoryName}</span>
+              <span className="font-semibold text-foreground">
+                {leave.isSick ? "Sick Leave" : leave.categoryName}
+              </span>
+              {leave.isSick && (
+                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                  Sick
+                </Badge>
+              )}
               {statusConfig && (
                 <Badge variant={statusConfig.variant} className="text-xs">
                   {statusConfig.label}
@@ -302,6 +318,7 @@ function LeavePageContent() {
 
   const limitParam = searchParams?.get("limit") ?? null;
   const upcomingParam = searchParams?.get("upcoming") ?? null;
+  const typeParam = searchParams?.get("type") ?? null; // "all" | "sick" | "other"
 
   const limit = useMemo(() => {
     const parsed = Number.parseInt(limitParam ?? "", 10);
@@ -317,6 +334,12 @@ function LeavePageContent() {
   }, [upcomingParam]);
 
   const upcomingOnly = upcomingQueryValue !== "false";
+  
+  // Type filter: "all" | "sick" | "other"
+  const typeFilter = useMemo(() => {
+    if (typeParam === "sick" || typeParam === "other") return typeParam;
+    return "all";
+  }, [typeParam]);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -334,6 +357,12 @@ function LeavePageContent() {
         query.set("limit", String(limit));
         if (upcomingQueryValue) {
           query.set("upcoming", upcomingQueryValue);
+        }
+        // Add isSick filter if type is specified
+        if (typeFilter === "sick") {
+          query.set("isSick", "true");
+        } else if (typeFilter === "other") {
+          query.set("isSick", "false");
         }
 
         const queryString = query.toString();
@@ -407,7 +436,7 @@ function LeavePageContent() {
       active = false;
       controller.abort();
     };
-  }, [employeeId, limit, upcomingQueryValue, refreshToken]);
+  }, [employeeId, limit, upcomingQueryValue, typeFilter, refreshToken]);
 
   const { currentLeaves, upcomingLeaves } = useMemo(() => {
     const now = new Date();
@@ -472,6 +501,13 @@ function LeavePageContent() {
   const handleLimitChange = useCallback(
     (value: string) => {
       updateQuery({ limit: value });
+    },
+    [updateQuery],
+  );
+
+  const handleTypeChange = useCallback(
+    (value: string) => {
+      updateQuery({ type: value === "all" ? null : value });
     },
     [updateQuery],
   );
@@ -564,7 +600,7 @@ function LeavePageContent() {
         transition={{ delay: 0.1 }}
         className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between glass-subtle rounded-2xl p-4"
       >
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Filter className="w-4 h-4" />
             <span>Filters:</span>
@@ -576,6 +612,19 @@ function LeavePageContent() {
               aria-label="Only show current and upcoming leave"
             />
             <span className="text-sm text-muted-foreground">Upcoming only</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Type:</span>
+            <Select value={typeFilter} onValueChange={handleTypeChange}>
+              <SelectTrigger className="h-9 w-28 rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="sick">Sick only</SelectItem>
+                <SelectItem value="other">Non-sick</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="flex items-center gap-2 text-sm">

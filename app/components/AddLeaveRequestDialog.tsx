@@ -13,8 +13,10 @@ import {
   CheckCircle2, 
   CalendarDays,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Thermometer
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipTrigger,
@@ -37,12 +39,22 @@ import {
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { LeaveRequestSuccessAnimation } from "@/components/animations";
 
+interface SickLeaveData {
+  availableDays: number;
+  isEligibleToday: boolean;
+  eligibleFrom: string | null;
+  nextGrantDate: string | null;
+  capDays: number;
+  dayLengthHours: number;
+}
+
 interface AddLeaveRequestDialogProps {
   employeeId: string;
   isAdminOrManager: boolean;
   open?: boolean;
   setOpen?: (value: boolean) => void;
   onSubmitted?: () => void;
+  sickLeaveData?: SickLeaveData | null;
 }
 
 type EventCategory = {
@@ -58,6 +70,7 @@ export default function AddLeaveRequestDialog({
   open,
   setOpen,
   onSubmitted,
+  sickLeaveData,
 }: AddLeaveRequestDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const isControlled = open !== undefined && setOpen !== undefined;
@@ -75,6 +88,13 @@ export default function AddLeaveRequestDialog({
   const [totalDays, setTotalDays] = useState(0);
   const [deduction, setDeduction] = useState(0);
   const [loading, setLoading] = useState(false);
+  
+  // First-class sick leave toggle
+  const [isSickLeave, setIsSickLeave] = useState(false);
+  const [fetchedSickLeaveData, setFetchedSickLeaveData] = useState<SickLeaveData | null>(null);
+  
+  // Use provided sickLeaveData or fetch it
+  const effectiveSickLeaveData = sickLeaveData ?? fetchedSickLeaveData;
   
   // Success animation state
   const [showSuccess, setShowSuccess] = useState(false);
@@ -108,8 +128,24 @@ export default function AddLeaveRequestDialog({
   useEffect(() => {
     if (modalOpen) {
       fetchCategories();
+      // Fetch sick leave data if not provided
+      if (!sickLeaveData) {
+        fetchSickLeaveData();
+      }
     }
   }, [modalOpen]);
+  
+  const fetchSickLeaveData = async () => {
+    try {
+      const res = await fetch(`/api/employees/${employeeId}/sick-leave-status`);
+      if (res.ok) {
+        const data = await res.json();
+        setFetchedSickLeaveData(data);
+      }
+    } catch (error) {
+      console.error("Error fetching sick leave data:", error);
+    }
+  };
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -147,9 +183,26 @@ export default function AddLeaveRequestDialog({
   }, [startDate, endDate, employeeId]);
 
   const handleSubmit = async () => {
-    if (!type || !startDate || !endDate) {
-      toast.error("Please fill in all required fields.");
-      return;
+    // Validate based on sick leave toggle
+    if (isSickLeave) {
+      if (!startDate || !endDate) {
+        toast.error("Please select start and end dates.");
+        return;
+      }
+      if (!sickReason) {
+        toast.error("Please provide a reason for sickness.");
+        return;
+      }
+      // Check eligibility
+      if (effectiveSickLeaveData && !effectiveSickLeaveData.isEligibleToday) {
+        toast.error("You are not yet eligible for sick leave.");
+        return;
+      }
+    } else {
+      if (!type || !startDate || !endDate) {
+        toast.error("Please fill in all required fields.");
+        return;
+      }
     }
 
     if (new Date(startDate) > new Date(endDate)) {
@@ -157,23 +210,10 @@ export default function AddLeaveRequestDialog({
       return;
     }
 
-    const selectedCategory = categories.find((cat) => cat.id === type);
+    const selectedCategory = !isSickLeave ? categories.find((cat) => cat.id === type) : null;
 
-    if (!selectedCategory) {
+    if (!isSickLeave && !selectedCategory) {
       toast.error("Invalid leave type selected.");
-      return;
-    }
-
-    if (
-      !isAdminOrManager &&
-      selectedCategory.name.toLowerCase().includes("sick")
-    ) {
-      toast.error("Only managers/admins can book sick leave directly.");
-      return;
-    }
-
-    if (selectedCategory.name.toLowerCase().includes("sick") && !sickReason) {
-      toast.error("Please provide a reason for sickness.");
       return;
     }
 
@@ -183,13 +223,17 @@ export default function AddLeaveRequestDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventCategoryId: type,
+          // First-class sick leave toggle
+          isSick: isSickLeave,
+          // Only include eventCategoryId when not sick leave
+          ...(isSickLeave ? {} : { eventCategoryId: type }),
           eventSubcategoryId: subcategory || null,
           startDate,
           endDate,
           reason,
           status: isAdminOrManager ? "APPROVED" : undefined,
-          ...(selectedCategory.name.toLowerCase().includes("sick") && {
+          // Sick leave specific fields
+          ...(isSickLeave && {
             sickReason,
             paidStatus,
           }),
@@ -213,7 +257,7 @@ export default function AddLeaveRequestDialog({
 
       // Store success data and show animation
       setSuccessData({
-        leaveType: selectedCategory.name,
+        leaveType: isSickLeave ? "Sick Leave" : (selectedCategory?.name ?? "Leave"),
         startDate,
         endDate,
         totalDays,
@@ -232,6 +276,7 @@ export default function AddLeaveRequestDialog({
       setPaidStatus("PAID");
       setTotalDays(0);
       setDeduction(0);
+      setIsSickLeave(false);
       onSubmitted?.();
     } catch (error: any) {
       console.error("Error submitting leave request:", error);
@@ -246,6 +291,12 @@ export default function AddLeaveRequestDialog({
 
   const totalDeducted = Math.max(0, deduction).toFixed(1);
   const selectedCategory = categories.find((cat) => cat.id === type);
+  
+  // Determine if submit should be disabled
+  const isSickLeaveDisabled = Boolean(isSickLeave && effectiveSickLeaveData && !effectiveSickLeaveData.isEligibleToday);
+  const isFormIncomplete = isSickLeave 
+    ? !startDate || !endDate || !sickReason
+    : !type || !startDate || !endDate;
 
   return (
     <TooltipProvider>
@@ -298,30 +349,93 @@ export default function AddLeaveRequestDialog({
 
               {/* Content Area */}
               <div className="px-8 pb-8 space-y-6">
-                {/* Leave Type Selection */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground/80">
-                    Leave Type <span className="text-primary">*</span>
-                  </Label>
-                  <Select value={type} onValueChange={setType}>
-                    <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all">
-                      <SelectValue placeholder="Select Leave Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => {
-                        const Icon = getEventCategoryIcon(category.iconKey);
-                        return (
-                          <SelectItem key={category.id} value={category.id}>
-                            <div className="flex items-center gap-2">
-                              <Icon className="h-4 w-4 text-muted-foreground" />
-                              <span>{category.name}</span>
+                {/* Sick Leave Toggle - First Class */}
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-amber-500/20">
+                        <Thermometer className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-semibold text-foreground">Sick Leave</Label>
+                        <p className="text-xs text-muted-foreground">Toggle on if you're unwell</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={isSickLeave}
+                      onChange={setIsSickLeave}
+                      aria-label="Sick leave toggle"
+                    />
+                  </div>
+                  
+                  {/* Sick Leave Info Panel */}
+                  <AnimatePresence>
+                    {isSickLeave && effectiveSickLeaveData && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-4 pt-4 border-t border-amber-500/20"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Available balance</span>
+                            <span className="font-semibold text-foreground">
+                              {effectiveSickLeaveData.availableDays} days
+                            </span>
+                          </div>
+                          {effectiveSickLeaveData.isEligibleToday ? (
+                            <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Eligible for sick leave</span>
                             </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                          ) : (
+                            <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                              <AlertCircle className="w-4 h-4" />
+                              <span>
+                                Not eligible until {effectiveSickLeaveData.eligibleFrom}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
+
+                {/* Leave Type Selection - Only show when NOT sick leave */}
+                <AnimatePresence>
+                  {!isSickLeave && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2"
+                    >
+                      <Label className="text-sm font-medium text-foreground/80">
+                        Leave Type <span className="text-primary">*</span>
+                      </Label>
+                      <Select value={type} onValueChange={setType}>
+                        <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all">
+                          <SelectValue placeholder="Select Leave Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.filter(c => !c.name.toLowerCase().includes('sick')).map((category) => {
+                            const Icon = getEventCategoryIcon(category.iconKey);
+                            return (
+                              <SelectItem key={category.id} value={category.id}>
+                                <div className="flex items-center gap-2">
+                                  <Icon className="h-4 w-4 text-muted-foreground" />
+                                  <span>{category.name}</span>
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Subcategory */}
                 <AnimatePresence>
@@ -433,9 +547,9 @@ export default function AddLeaveRequestDialog({
                   </motion.div>
                 )}
 
-                {/* Sick Leave Fields */}
+                {/* Sick Leave Fields - Show when sick leave toggle is ON */}
                 <AnimatePresence>
-                  {selectedCategory && selectedCategory.name.toLowerCase().includes("sick") && (
+                  {isSickLeave && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
@@ -444,7 +558,7 @@ export default function AddLeaveRequestDialog({
                       className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20"
                     >
                       <div className="flex items-center gap-2 mb-4">
-                        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        <Thermometer className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         <span className="font-medium text-sm">Sick Leave Details</span>
                       </div>
                       
@@ -504,7 +618,7 @@ export default function AddLeaveRequestDialog({
                   <Button
                     type="button"
                     onClick={handleSubmit}
-                    disabled={loading || !type || !startDate || !endDate}
+                    disabled={loading || isFormIncomplete || isSickLeaveDisabled}
                     className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 text-white font-semibold shadow-lg shadow-primary/25"
                   >
                     {loading ? (

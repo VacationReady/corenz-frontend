@@ -303,8 +303,9 @@ function LeavePageContent() {
   
   // Determine if user is booking for themselves
   // Check if the user's linked employee ID matches the page's employee ID
+  // If user has no employeeId (e.g. super admin), they're always booking for someone else
   const currentUserEmployeeId = (session?.user as any)?.employeeId;
-  const isBookingForSelf = currentUserEmployeeId === employeeId || !currentUserEmployeeId;
+  const isBookingForSelf = currentUserEmployeeId ? currentUserEmployeeId === employeeId : false;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);

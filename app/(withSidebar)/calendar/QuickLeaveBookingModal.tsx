@@ -100,6 +100,7 @@ export default function QuickLeaveBookingModal({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
+  const [sickReason, setSickReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState("");
@@ -206,6 +207,13 @@ export default function QuickLeaveBookingModal({
       // Check if selected category is sick leave
       const isSickCategory = selectedCat?.name?.toLowerCase().includes('sick') ?? false;
       
+      // Validate sick reason is provided for sick leave
+      if (isSickCategory && !sickReason) {
+        toast.error("Please select a reason for sickness");
+        setLoading(false);
+        return;
+      }
+      
       const res = await fetch(`/api/employees/${selectedEmployee}/leave-requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -218,8 +226,8 @@ export default function QuickLeaveBookingModal({
           endDate,
           reason,
           dayType: "FULL_DAY",
-          // Include sickReason if it's sick leave (use reason as sickReason)
-          ...(isSickCategory && reason ? { sickReason: reason } : {}),
+          // Include sickReason if it's sick leave
+          ...(isSickCategory ? { sickReason } : {}),
         }),
       });
 
@@ -253,12 +261,27 @@ export default function QuickLeaveBookingModal({
     setStartDate("");
     setEndDate("");
     setReason("");
+    setSickReason("");
     setEmployeeSearch("");
     setShowSuccess(false);
   };
+  
+  // Predefined sick leave reasons
+  const SICK_LEAVE_REASONS = [
+    { value: "illness", label: "Personal illness" },
+    { value: "injury", label: "Personal injury" },
+    { value: "dependent_illness", label: "Caring for dependent (illness)" },
+    { value: "dependent_injury", label: "Caring for dependent (injury)" },
+    { value: "bereavement", label: "Bereavement" },
+    { value: "family_violence", label: "Family violence leave" },
+    { value: "other", label: "Other" },
+  ];
 
   const selectedEmp = employees.find((e) => e.id === selectedEmployee);
   const selectedCat = categories.find((c) => c.id === selectedCategory);
+  
+  // Check if selected category is sick leave
+  const isSickCategory = selectedCat?.name?.toLowerCase().includes('sick') ?? false;
 
   const getEmployeeName = (emp: Employee) => {
     return emp.user?.name || `${emp.user?.firstName || ""} ${emp.user?.lastName || ""}`.trim() || "Unknown";
@@ -687,16 +710,57 @@ export default function QuickLeaveBookingModal({
                 )}
               </AnimatePresence>
 
+              {/* Sick Leave Reason - Only show when sick category selected */}
+              <AnimatePresence>
+                {isSickCategory && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-2"
+                  >
+                    <Label className="text-sm font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                      <Info className="w-4 h-4 text-amber-500" />
+                      Reason for Sickness <span className="text-rose-500">*</span>
+                    </Label>
+                    <Select value={sickReason} onValueChange={setSickReason}>
+                      <SelectTrigger
+                        className={cn(
+                          "h-auto py-3.5 px-4 rounded-2xl border-2 transition-all duration-200",
+                          "bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30",
+                          sickReason
+                            ? "border-amber-300 dark:border-amber-700"
+                            : "border-amber-200 dark:border-amber-800"
+                        )}
+                      >
+                        <SelectValue placeholder="Select reason for sickness..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-xl">
+                        {SICK_LEAVE_REASONS.map((reason) => (
+                          <SelectItem
+                            key={reason.value}
+                            value={reason.value}
+                            className="py-3 px-4 cursor-pointer rounded-xl my-1"
+                          >
+                            {reason.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Reason */}
               <motion.div variants={itemVariants} className="space-y-2">
                 <Label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <Info className="w-4 h-4 text-slate-400" />
-                  Reason <span className="text-slate-400 font-normal">(optional)</span>
+                  {isSickCategory ? "Additional Notes" : "Reason"} <span className="text-slate-400 font-normal">(optional)</span>
                 </Label>
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="Add any notes about this leave..."
+                  placeholder={isSickCategory ? "Add any additional notes..." : "Add any notes about this leave..."}
                   rows={2}
                   className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-violet-300 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/20 transition-all resize-none text-sm placeholder:text-slate-400"
                 />

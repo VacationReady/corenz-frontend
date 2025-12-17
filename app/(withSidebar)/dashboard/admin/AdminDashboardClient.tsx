@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
 import {
   Megaphone,
@@ -42,6 +42,7 @@ import { useApi, useBatchedApi } from "@/hooks/useApi";
 import { apiClient } from "@/lib/apiClient";
 import { useSession } from "next-auth/react";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import { mutate as swrMutate } from "swr";
 
 function parseCalendarDate(value: unknown): Date {
   if (value instanceof Date) return value;
@@ -114,6 +115,250 @@ function EntitlementProjection({
   }, [employeeId, eventCategoryId, startDate, endDate, status, tenantFetch]);
   return text ? <div className="text-xs text-muted-foreground">{text}</div> : null;
 }
+
+ function CompactApprovalsList({
+  scope,
+  departmentId,
+  onOpenApprovalItem,
+  onActionComplete,
+ }: {
+  scope?: "my" | "all";
+  departmentId?: string;
+  onOpenApprovalItem?: (item: any) => void;
+  onActionComplete?: () => void;
+ }) {
+  const [items, setItems] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        // Gather both leave approvals and transactional change requests
+        const qs = new URLSearchParams({ status: "PENDING", limit: "5" });
+        if (scope) qs.set("scope", scope);
+        if (departmentId) qs.set("departmentId", departmentId);
+        const [leaveRes, txnRes] = await Promise.all([
+          fetch(`/api/approvals?${qs.toString()}`, { cache: "no-store" }),
+          fetch(`/api/transactional-change-requests?scope=${scope === "all" ? "all" : "assigned"}`, { cache: "no-store" }),
+        ]);
+        const leaveData = await leaveRes.json().catch(() => ({}));
+        const txnData = await txnRes.json().catch(() => ({}));
+        const leaveItems = Array.isArray(leaveData?.items) ? leaveData.items : [];
+        const txnItems = Array.isArray(txnData?.data)
+          ? txnData.data.map((r: any) => {
+            const empUser = r.Employee?.User || {};
+            const reqUser = r.Requester || {};
+            const employeeDisplayName = (empUser.name && empUser.name.trim()) || `${empUser.firstName ?? ""} ${empUser.lastName ?? ""}`.trim() || empUser.email || "Employee";
+            const actorDisplayName = (reqUser.name && reqUser.name.trim()) || `${reqUser.firstName ?? ""} ${reqUser.lastName ?? ""}`.trim() || reqUser.email || "Unknown";
+            return {
+              id: r.id,
+              type: `Change: ${r.section}`,
+              employee: { user: empUser },
+              employeeDisplayName,
+              actor: reqUser,
+              actorDisplayName,
+              actorAvatarUrl: reqUser.profileImageUrl || null,
+              diffs: r.diffs,
+              reasons: r.reasons,
+              source: "txn",
+            };
+          })
+          : [];
+        // Sign profile image URLs for avatars when needed
+        const signedCache = new Map<string, string>();
+        async function signByUser(userId?: string | null): Promise<string | null> {
+          if (!userId) return null;
+          if (signedCache.has(userId)) return signedCache.get(userId)!;
+          try {
+            const r = await fetch(`/api/users/${encodeURIComponent(userId)}/profile-image`);
+            const j = await r.json().catch(() => ({}));
+            const url = j?.url ?? null;
+            if (url) signedCache.set(userId, url);
+            return url;
+          } catch {
+            return null;
+          }
+        }
+        // sign actor avatars for txn items
+        for (const it of txnItems) {
+          // Try requester id first
+          if (!it.actorAvatarUrl && it.actor?.id) {
+            it.actorAvatarUrl = await signByUser(it.actor.id);
+          }
+          // fallback: employee user id
+          if (!it.actorAvatarUrl && (it.employee?.user as any)?.id) {
+            const fallback = await signByUser((it.employee?.user as any).id);
+            if (fallback) it.actorAvatarUrl = fallback;
+          }
+        }
+        // Map leave items into modal-friendly structure
+        const normalizedLeave = leaveItems.map((r: any) => {
+          const name = r?.employee?.name || r?.title?.split(" â€” ")?.[0] || "Employee";
+          const employeeUserId = r?.employee?.userId ?? null;
+          const initial: any = {
+            id: r.id,
+            type: r.typeName || r.type || "Leave",
+            employee: { user: { name } },
+            employeeDisplayName: name,
+            dates: r.dates || r.subtitle,
+            // entitlement projection inputs
+            employeeId: r.employeeId,
+            eventCategoryId: r.eventCategoryId,
+            startDate: r.startDate,
+            endDate: r.endDate,
+            employeeUserId,
+            mode: "leave",
+            source: "leave",
+          };
+          return initial;
+        });
+        // sign avatars for leave items using employee userId
+        for (const it of normalizedLeave) {
+          if (!it.actorAvatarUrl && it.employeeUserId) {
+            const url = await signByUser(it.employeeUserId);
+            if (url) it.actorAvatarUrl = url;
+          }
+        }
+        const merged = [...txnItems, ...normalizedLeave].slice(0, 5);
+        if (active) setItems(merged);
+      } catch {
+        if (active) setItems([]);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, [scope, departmentId, refreshKey]);
+
+  const action = useCallback(async (id: string, action: "approve" | "decline") => {
+    try {
+      // Try leave approvals first; if 404, try transactional
+      let res = await fetch(`/api/approvals/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (res.status === 404) {
+        res = await fetch(`/api/transactional-change-requests`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id,
+            action,
+            comment: action === "decline" ? "Declined from dashboard" : undefined,
+          }),
+        });
+      }
+      if (res.ok) {
+        toast.success(action === "approve" ? "Approved" : "Declined");
+        setItems((prev) => (prev ? prev.filter((x) => x.id !== id) : prev));
+        setRefreshKey((k) => k + 1);
+        if (onActionComplete) {
+          onActionComplete();
+        } else {
+          swrMutate((key) => typeof key === "string" && key.startsWith("/api/dashboard/metrics"));
+        }
+      } else {
+        const data = await res.json();
+        toast.error(data?.error || "Action failed");
+      }
+    } catch {
+      toast.error("Action failed");
+    }
+  }, [onActionComplete]);
+
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-full" />
+        <Skeleton className="h-5 w-5/6" />
+        <Skeleton className="h-5 w-2/3" />
+      </div>
+    );
+  }
+  if (!items || items.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground text-center">
+        No pending items
+      </p>
+    );
+  }
+  return (
+    <ul className="space-y-2">
+      {items.map((it) => {
+        const name = it.employeeDisplayName ||
+          it.employee?.user?.name ||
+          `${it.employee?.user?.firstName ?? ""} ${it.employee?.user?.lastName ?? ""}`.trim();
+        return (
+          <li
+            key={it.id}
+            className="flex items-center justify-between gap-3 text-left hover:bg-muted/40 rounded-lg px-2 py-1 cursor-pointer"
+            onClick={() => {
+              // Open inline modal with diff preview when it's a transactional item
+              if (it.source === "txn") {
+                onOpenApprovalItem?.({
+                  id: it.id,
+                  employee: { name },
+                  employeeDisplayName: it.employeeDisplayName,
+                  type: it.type,
+                  diffs: it.diffs,
+                  mode: "txn",
+                  actorDisplayName: it.actorDisplayName,
+                  actorAvatarUrl: it.actorAvatarUrl,
+                });
+                return;
+              }
+              // Leave approval: open inline modal with essential details
+              onOpenApprovalItem?.({
+                id: it.id,
+                employee: { name },
+                employeeDisplayName: it.employeeDisplayName,
+                type: it.type || "Leave",
+                dates: it.dates,
+                employeeId: it.employeeId,
+                eventCategoryId: it.eventCategoryId,
+                startDate: it.startDate,
+                endDate: it.endDate,
+                actorAvatarUrl: it.actorAvatarUrl,
+                mode: "leave",
+              });
+            }}
+          >
+            <Avatar
+              size={28}
+              name={(it.actorDisplayName || it.actor?.name || name)}
+              src={(it.actorAvatarUrl ?? undefined) as any}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium truncate">{name}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {it.type ?? "Approval"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => action(it.id, "decline")}
+              >
+                Decline
+              </Button>
+              <Button size="sm" onClick={() => action(it.id, "approve")}>
+                Approve
+              </Button>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+ }
 
 
 interface AdminDashboardClientProps {
@@ -188,6 +433,7 @@ export default function AdminDashboardClient({
         ),
       });
     } finally {
+      refreshMetrics();
       setDetail(null);
     }
   };
@@ -393,226 +639,9 @@ export default function AdminDashboardClient({
       : (metrics.pendingApprovals.all ?? 0);
   }, [metrics, approvalsScopeMy]);
 
-  function CompactApprovalsList({
-    scope,
-    departmentId,
-  }: {
-    scope?: "my" | "all";
-    departmentId?: string;
-  }) {
-    const [items, setItems] = useState<any[] | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      let active = true;
-      const load = async () => {
-        setLoading(true);
-        try {
-          // Gather both leave approvals and transactional change requests
-          const qs = new URLSearchParams({ status: "PENDING", limit: "5" });
-          if (scope) qs.set("scope", scope);
-          if (departmentId) qs.set("departmentId", departmentId);
-          const [leaveRes, txnRes] = await Promise.all([
-            fetch(`/api/approvals?${qs.toString()}`, { cache: "no-store" }),
-            fetch(`/api/transactional-change-requests?scope=${scope === "all" ? "all" : "assigned"}`, { cache: "no-store" }),
-          ]);
-          const leaveData = await leaveRes.json().catch(() => ({}));
-          const txnData = await txnRes.json().catch(() => ({}));
-          const leaveItems = Array.isArray(leaveData?.items) ? leaveData.items : [];
-          const txnItems = Array.isArray(txnData?.data)
-            ? txnData.data.map((r: any) => {
-              const empUser = r.Employee?.User || {};
-              const reqUser = r.Requester || {};
-              const employeeDisplayName = (empUser.name && empUser.name.trim()) || `${empUser.firstName ?? ""} ${empUser.lastName ?? ""}`.trim() || empUser.email || "Employee";
-              const actorDisplayName = (reqUser.name && reqUser.name.trim()) || `${reqUser.firstName ?? ""} ${reqUser.lastName ?? ""}`.trim() || reqUser.email || "Unknown";
-              return {
-                id: r.id,
-                type: `Change: ${r.section}`,
-                employee: { user: empUser },
-                employeeDisplayName,
-                actor: reqUser,
-                actorDisplayName,
-                actorAvatarUrl: reqUser.profileImageUrl || null,
-                diffs: r.diffs,
-                reasons: r.reasons,
-                source: "txn",
-              };
-            })
-            : [];
-          // Sign profile image URLs for avatars when needed
-          const signedCache = new Map<string, string>();
-          async function signByUser(userId?: string | null): Promise<string | null> {
-            if (!userId) return null;
-            if (signedCache.has(userId)) return signedCache.get(userId)!;
-            try {
-              const r = await fetch(`/api/users/${encodeURIComponent(userId)}/profile-image`);
-              const j = await r.json().catch(() => ({}));
-              const url = j?.url ?? null;
-              if (url) signedCache.set(userId, url);
-              return url;
-            } catch {
-              return null;
-            }
-          }
-          // sign actor avatars for txn items
-          for (const it of txnItems) {
-            // Try requester id first
-            if (!it.actorAvatarUrl && it.actor?.id) {
-              it.actorAvatarUrl = await signByUser(it.actor.id);
-            }
-            // fallback: employee user id
-            if (!it.actorAvatarUrl && (it.employee?.user as any)?.id) {
-              const fallback = await signByUser((it.employee?.user as any).id);
-              if (fallback) it.actorAvatarUrl = fallback;
-            }
-          }
-          // Map leave items into modal-friendly structure
-          const normalizedLeave = leaveItems.map((r: any) => {
-            const name = r?.employee?.name || r?.title?.split(" â€” ")?.[0] || "Employee";
-            const employeeUserId = r?.employee?.userId ?? null;
-            const initial: any = {
-              id: r.id,
-              type: r.typeName || r.type || "Leave",
-              employee: { user: { name } },
-              employeeDisplayName: name,
-              dates: r.dates || r.subtitle,
-              // entitlement projection inputs
-              employeeId: r.employeeId,
-              eventCategoryId: r.eventCategoryId,
-              startDate: r.startDate,
-              endDate: r.endDate,
-              employeeUserId,
-              mode: "leave",
-              source: "leave",
-            };
-            return initial;
-          });
-          // sign avatars for leave items using employee userId
-          for (const it of normalizedLeave) {
-            if (!it.actorAvatarUrl && it.employeeUserId) {
-              const url = await signByUser(it.employeeUserId);
-              if (url) it.actorAvatarUrl = url;
-            }
-          }
-          const merged = [...txnItems, ...normalizedLeave].slice(0, 5);
-          if (active) setItems(merged);
-        } catch {
-          if (active) setItems([]);
-        } finally {
-          if (active) setLoading(false);
-        }
-      };
-      load();
-      return () => {
-        active = false;
-      };
-    }, [scope, departmentId]);
-
-    const action = async (id: string, action: "approve" | "decline") => {
-      try {
-        // Try leave approvals first; if 404, try transactional
-        let res = await fetch(`/api/approvals/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
-        if (res.status === 404) {
-          res = await fetch(`/api/transactional-change-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, action, comment: action === "decline" ? "Declined from dashboard" : undefined }) });
-        }
-        if (res.ok) {
-          toast.success(action === "approve" ? "Approved" : "Declined");
-          setItems((prev) => (prev ? prev.filter((x) => x.id !== id) : prev));
-        } else {
-          const data = await res.json();
-          toast.error(data?.error || "Action failed");
-        }
-      } catch {
-        toast.error("Action failed");
-      }
-    };
-
-    if (loading) {
-      return (
-        <div className="space-y-2">
-          <Skeleton className="h-5 w-full" />
-          <Skeleton className="h-5 w-5/6" />
-          <Skeleton className="h-5 w-2/3" />
-        </div>
-      );
-    }
-    if (!items || items.length === 0) {
-      return (
-        <p className="text-xs text-muted-foreground text-center">
-          No pending items
-        </p>
-      );
-    }
-    return (
-      <ul className="space-y-2">
-        {items.map((it) => {
-          const name = it.employeeDisplayName ||
-            it.employee?.user?.name ||
-            `${it.employee?.user?.firstName ?? ""} ${it.employee?.user?.lastName ?? ""}`.trim();
-          return (
-            <li
-              key={it.id}
-              className="flex items-center justify-between gap-3 text-left hover:bg-muted/40 rounded-lg px-2 py-1 cursor-pointer"
-              onClick={async () => {
-                // Open inline modal with diff preview when it's a transactional item
-                if (it.source === "txn") {
-                  setApprovalItem({
-                    id: it.id,
-                    employee: { name },
-                    employeeDisplayName: it.employeeDisplayName,
-                    type: it.type,
-                    diffs: it.diffs,
-                    mode: "txn",
-                    actorDisplayName: it.actorDisplayName,
-                    actorAvatarUrl: it.actorAvatarUrl,
-                  });
-                  return;
-                }
-                // Leave approval: open inline modal with essential details
-                setApprovalItem({
-                  id: it.id,
-                  employee: { name },
-                  employeeDisplayName: it.employeeDisplayName,
-                  type: it.type || "Leave",
-                  dates: it.dates,
-                  employeeId: it.employeeId,
-                  eventCategoryId: it.eventCategoryId,
-                  startDate: it.startDate,
-                  endDate: it.endDate,
-                  actorAvatarUrl: it.actorAvatarUrl,
-                  mode: "leave",
-                });
-              }}
-            >
-              <Avatar
-                size={28}
-                name={(it.actorDisplayName || it.actor?.name || name)}
-                src={(it.actorAvatarUrl ?? undefined) as any}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium truncate">{name}</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {it.type ?? "Approval"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => action(it.id, "decline")}
-                >
-                  Decline
-                </Button>
-                <Button size="sm" onClick={() => action(it.id, "approve")}>
-                  Approve
-                </Button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    );
-  }
+  const refreshMetrics = useCallback(() => {
+    swrMutate((key) => typeof key === "string" && key.startsWith("/api/dashboard/metrics"));
+  }, []);
 
   const actions = [
     { label: "Post News", icon: FileText },

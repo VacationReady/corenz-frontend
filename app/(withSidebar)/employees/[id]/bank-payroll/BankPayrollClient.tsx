@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/Input";
@@ -150,6 +150,7 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
   const [hasManuallyEditedSalary, setHasManuallyEditedSalary] = useState(false);
   const [hasManuallyEditedHourlyRate, setHasManuallyEditedHourlyRate] = useState(false);
   const [lastEditedField, setLastEditedField] = useState<'hourly' | 'salary' | null>(null);
+  const isAutoCalculatingRef = useRef(false);
 
   const validateBankAccount = (value: string) => {
     const normalized = normalizeBankAccountNumber(value);
@@ -337,7 +338,8 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
 
   // Auto-calculate annual salary from hourly rate
   useEffect(() => {
-    if (lastEditedField !== 'hourly' && lastEditedField !== null) return;
+    if (lastEditedField !== 'hourly') return;
+    if (isAutoCalculatingRef.current) return;
 
     const hourlyRateNum = parseFloat(form.hourlyRate);
     
@@ -362,13 +364,21 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     setSalaryMessage("");
     
     if (isPrivileged && !hasManuallyEditedSalary && lastEditedField === 'hourly') {
-      setForm((prev) => ({ ...prev, salaryAmount: annualSalary.toFixed(2) }));
+      const nextSalaryAmount = annualSalary.toFixed(2);
+      if (form.salaryAmount !== nextSalaryAmount) {
+        isAutoCalculatingRef.current = true;
+        setForm((prev) => ({ ...prev, salaryAmount: nextSalaryAmount }));
+        Promise.resolve().then(() => {
+          isAutoCalculatingRef.current = false;
+        });
+      }
     }
-  }, [form.hourlyRate, workingPattern, isPrivileged, hasManuallyEditedSalary, lastEditedField]);
+  }, [form.hourlyRate, form.salaryAmount, workingPattern, isPrivileged, hasManuallyEditedSalary, lastEditedField]);
 
   // Auto-calculate hourly rate from annual salary
   useEffect(() => {
-    if (lastEditedField !== 'salary' && lastEditedField !== null) return;
+    if (lastEditedField !== 'salary') return;
+    if (isAutoCalculatingRef.current) return;
 
     const salaryNum = parseFloat(form.salaryAmount);
     
@@ -393,9 +403,16 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     setHourlyRateMessage("");
     
     if (isPrivileged && !hasManuallyEditedHourlyRate && lastEditedField === 'salary') {
-      setForm((prev) => ({ ...prev, hourlyRate: hourlyRate.toFixed(2) }));
+      const nextHourlyRate = hourlyRate.toFixed(2);
+      if (form.hourlyRate !== nextHourlyRate) {
+        isAutoCalculatingRef.current = true;
+        setForm((prev) => ({ ...prev, hourlyRate: nextHourlyRate }));
+        Promise.resolve().then(() => {
+          isAutoCalculatingRef.current = false;
+        });
+      }
     }
-  }, [form.salaryAmount, workingPattern, isPrivileged, hasManuallyEditedHourlyRate, lastEditedField]);
+  }, [form.salaryAmount, form.hourlyRate, workingPattern, isPrivileged, hasManuallyEditedHourlyRate, lastEditedField]);
 
   const normalizedBankAccount = normalizeBankAccountNumber(form.bankAccountNumber);
   const normalizedIrd = normalizeIrdNumber(form.irdNumber);
@@ -479,9 +496,18 @@ export default function BankPayrollClient({ employeeId }: { employeeId: string }
     if (workingPattern) {
       setHasManuallyEditedSalary(false);
       setHasManuallyEditedHourlyRate(false);
-      setLastEditedField(null);
+      setLastEditedField((prev) => {
+        if (prev) return prev;
+
+        const hasHourly = form.hourlyRate.trim() !== "";
+        const hasSalary = form.salaryAmount.trim() !== "";
+
+        if (hasHourly && !hasSalary) return 'hourly';
+        if (hasSalary && !hasHourly) return 'salary';
+        return null;
+      });
     }
-  }, [workingPattern]);
+  }, [workingPattern, form.hourlyRate, form.salaryAmount]);
 
   if (forbidden) {
     return (

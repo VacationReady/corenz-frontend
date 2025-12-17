@@ -277,13 +277,14 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
     if (!open) setManagerSearch("");
   };
 
-  const reloadOptions = async () => {
+  const reloadOptions = async (isActive?: () => boolean) => {
     const [et, ct, loc, deps] = await Promise.all([
       tenantFetch(`/api/employment-type-options`).then((r) => r.json()).catch(() => []),
       tenantFetch(`/api/contract-type-options`).then((r) => r.json()).catch(() => []),
       tenantFetch(`/api/locations`).then((r) => r.json()).catch(() => []),
       tenantFetch(`/api/departments`).then((r) => r.json()).catch(() => []),
     ]);
+    if (isActive && !isActive()) return;
     setEmploymentTypes(et);
     setContractTypes(ct);
     setLocations(loc);
@@ -291,14 +292,25 @@ export default function EmploymentDetailsClient({ employeeId }: { employeeId: st
   };
 
   useEffect(() => {
+    let isActive = true;
+
     (async () => {
-      const res = await tenantFetch(`/api/employees/${employeeId}/employment-details`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setForm(data);
-      setInitialValues(data);
-      await reloadOptions();
+      try {
+        const res = await tenantFetch(`/api/employees/${employeeId}/employment-details`);
+        if (!res.ok || !isActive) return;
+        const data = await res.json();
+        if (!isActive) return;
+        setForm(data);
+        setInitialValues(data);
+        await reloadOptions(() => isActive);
+      } catch {
+        return;
+      }
     })();
+
+    return () => {
+      isActive = false;
+    };
   }, [employeeId, tenantFetch]);
 
   useEffect(() => {

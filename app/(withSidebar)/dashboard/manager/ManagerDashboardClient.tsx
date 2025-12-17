@@ -58,8 +58,10 @@ function MetricsSummary() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const newStartersThisMonth = teamEmployees.filter((e: any) => {
-      const created = e.createdAt ? new Date(e.createdAt) : null;
-      return created ? created >= startOfMonth : false;
+      const startDate = e.startDate ? new Date(e.startDate) : null;
+      return startDate && !Number.isNaN(startDate.getTime())
+        ? startDate >= startOfMonth
+        : false;
     }).length;
 
     return { headcount: teamEmployees.length, newStartersThisMonth };

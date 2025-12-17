@@ -272,7 +272,7 @@ function ReportsPreviewClientInner() {
   }, [initialFields, reportIdParam, templateIdParam, engineParam]);
   
   const [reportConfig, setReportConfig] = useState<any>(null);
-  const [, setLibraryTemplate] = useState<ReportLibraryEntry | null>(null);
+  const [libraryTemplate, setLibraryTemplate] = useState<ReportLibraryEntry | null>(null);
 
   const [data, setData] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<any[]>([]);
@@ -1191,8 +1191,45 @@ function ReportsPreviewClientInner() {
     }
   };
 
-  const handleSaveReport = async () => {
-    const reportName = prompt("Enter a name for this report:");
+  // Track if the template has been modified from its original state
+  const hasTemplateBeenModified = useMemo(() => {
+    if (!libraryTemplate) return true; // Not a template, treat as modified (custom report)
+    
+    // Compare current fields with template defaults
+    const templateFields = libraryTemplate.engine === "custom" 
+      ? [...libraryTemplate.defaultFields]
+      : (() => {
+          const hasTimesheetFields = libraryTemplate.defaultFields.some((f: string) => f.startsWith("Timesheet."));
+          const requiredFields = hasTimesheetFields ? [] : REQUIRED_FIELDS_USER;
+          return Array.from(new Set([...requiredFields, ...libraryTemplate.defaultFields]));
+        })();
+    
+    // Check if fields match
+    const fieldsMatch = selectedFields.length === templateFields.length && 
+      selectedFields.every((f, i) => templateFields.includes(f));
+    
+    // Check if filters match template defaults
+    const templateFilters = libraryTemplate.suggestedFilters || [];
+    const filtersMatch = activeFilters.length === templateFilters.length;
+    
+    // Check if sort matches template default
+    const sortMatches = libraryTemplate.defaultSort 
+      ? (activeSort?.field === libraryTemplate.defaultSort.field && 
+         activeSort?.direction === libraryTemplate.defaultSort.direction)
+      : !activeSort;
+    
+    return !fieldsMatch || !filtersMatch || !sortMatches;
+  }, [libraryTemplate, selectedFields, activeFilters, activeSort]);
+
+  const handleSaveReport = async (useTemplateName?: boolean) => {
+    let reportName: string | null = null;
+    
+    if (useTemplateName && libraryTemplate) {
+      reportName = libraryTemplate.name;
+    } else {
+      reportName = prompt("Enter a name for this report:");
+    }
+    
     if (!reportName) return;
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
@@ -1542,17 +1579,38 @@ function ReportsPreviewClientInner() {
             </>
           )}
           
-          {/* Only show Save Report button if report is NOT already saved */}
+          {/* Save buttons - show different options based on template state */}
           {!reportIdParam && (
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="ml-auto">
-              <Button 
-                onClick={handleSaveReport}
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20 rounded-xl h-10 px-5"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Report
-              </Button>
-            </motion.div>
+            <div className="ml-auto flex items-center gap-2">
+              {/* For unmodified templates, show "Save" to save with template name */}
+              {templateIdParam && libraryTemplate && !hasTemplateBeenModified && (
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button 
+                    onClick={() => handleSaveReport(true)}
+                    className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20 rounded-xl h-10 px-5"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save
+                  </Button>
+                </motion.div>
+              )}
+              {/* For modified templates or custom reports, show "Save as new report" */}
+              {(hasTemplateBeenModified || !templateIdParam) && (
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button 
+                    onClick={() => handleSaveReport(false)}
+                    variant={templateIdParam && libraryTemplate && !hasTemplateBeenModified ? "outline" : "default"}
+                    className={templateIdParam && libraryTemplate && !hasTemplateBeenModified 
+                      ? "glass-subtle border-white/30 rounded-xl h-10 px-5"
+                      : "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/20 rounded-xl h-10 px-5"
+                    }
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {templateIdParam ? "Save as New Report" : "Save Report"}
+                  </Button>
+                </motion.div>
+              )}
+            </div>
           )}
         </div>
       </div>

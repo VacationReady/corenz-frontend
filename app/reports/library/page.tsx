@@ -480,7 +480,11 @@ export default function ReportsLibraryPage() {
                         category.color,
                       )}>
                         <div className="w-12 h-12 rounded-xl bg-white/50 dark:bg-black/20 flex items-center justify-center text-2xl shadow-sm">
-                          {category.icon}
+                          {category.iconComponent ? (
+                            <category.iconComponent className="w-6 h-6" />
+                          ) : (
+                            category.icon
+                          )}
                         </div>
                         <div className="flex-1">
                           <h2 className="text-lg font-bold text-foreground">

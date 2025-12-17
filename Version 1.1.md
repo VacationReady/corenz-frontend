@@ -427,3 +427,43 @@ Refactored New Zealand sick leave to a production-grade, Holidays Act compliant 
 106. NZ Sick Leave Booking UX, Permissions, and Calendar Support
 
 Integrated the NZ sick leave model into the leave booking experience with a first-class sick leave flow, clear eligibility/balance messaging, and sick leave badges/filters across leave views. Added a structured sickness reason dropdown and enforced server-side validation for sick leave requests. Updated access rules so only admins (and managers for direct reports) can register sick leave, including from the calendar booking modal, while employees cannot self-toggle sick leave.
+
+107. Annual Leave Balance Card Sizing and Filtering
+
+Updated the employee overview page's "Leave Balances" card to match the height of neighbouring cards and renamed it to "Annual Leave Balance". The card now stretches to full height using the same h-full/flex structure as other QuickInfoCards, ensuring consistent visual alignment. Added an optional eventCategoryNameAllowList prop to LeaveBalancePanel that filters entitlements by category name (case-insensitive) both initially and after refresh. The overview page now only displays Annual Leave entitlements, preventing other leave categories from appearing on the dashboard while preserving full functionality elsewhere in the application.
+
+108. Bulk Actions Currency Formatting Correction
+
+Corrected the currency formatting issue in the bulk actions "Adjust Compensation" section where salaries were incorrectly displayed in GBP (£) instead of NZD ($). Updated the formatCurrency function to use the en-NZ locale with NZD currency code, and changed the input label from "(£)" to "($)" for consistency with the New Zealand context. Ensured system-wide consistency by verifying no other GBP currency references exist in the codebase.
+
+109. Default View Mode Changes to List/Table
+
+Updated the default view mode across reports, documents, and employee table screens to display list/table view instead of card/grid view. Modified five components: reports page, documents page, training records, driver licences, and employment checks. Users now see data in a more compact, scannable format by default, with the option to switch to card view if preferred. This change improves data density and readability for users managing larger datasets.
+
+110. Employee Overview Layout Reorganisation and Colour Standardisation
+
+Reorganised the employee overview page layout for improved visual hierarchy and user experience. Moved Emergency Contacts to sit alongside Bank & Payroll for better logical grouping of employee administrative information. Arranged Absence & Sick Leave and Annual Leave Balance cards side by side to create a more intuitive leave management section. Standardised colour scheme by changing the orange colours in the Absence & Sick Leave section to match the consistent blue theme used throughout the application. Enhanced the Annual Leave Balance card with proper height matching and flexible layout structure for consistent visual alignment across all cards.
+
+111. Employment Details Date Handling and Display Improvements
+
+Resolved a Prisma validation error when updating employee start dates by normalising date-only strings (YYYY-MM-DD) to proper ISO DateTime objects before database persistence. The API now returns a clear 400 error for invalid date formats instead of a 500 crash. Updated the Employment Details UI to display dates in DD-MM-YYYY format beneath the native date picker, providing localised readability while retaining browser-native calendar functionality.
+
+112. Bulk Actions Currency Formatting and Compensation Export
+
+Corrected the currency formatting issue in the bulk actions "Adjust Compensation" section where salaries were incorrectly displayed in GBP (£) instead of NZD ($). Updated the formatCurrency function to use the en-NZ locale with NZD currency code and changed the input label from "(£)" to "($)" for consistency with the New Zealand context. Added CSV export functionality for compensation bulk actions, allowing administrators to download a detailed breakdown of current versus proposed salaries with calculated differences for audit purposes and record keeping.
+
+113. Employment Details Client Async Operation Cleanup
+
+Resolved a memory leak in EmploymentDetailsClient.tsx by adding proper cleanup for async operations in the employment details fetching effect. The component now guards against state updates after unmount by using an isActive flag and threading it through the reloadOptions function. This prevents React warnings about state updates on unmounted components and ensures safe async behaviour when the component unmounts before API calls complete.
+
+114. Employee Overview Sick Leave Eligibility Date Clarity
+
+Improved the user experience on the employee overview page by displaying a clear explanatory message when sick leave eligibility cannot be calculated due to a missing employee start date. Previously, the "Eligible from" field would appear blank when no eligibility date was available, causing confusion. The interface now shows "Eligible from: Not available (start date missing)" to provide users with a precise explanation for why the date is absent, helping administrators understand that adding an employee start date will enable eligibility calculation.
+
+115. Manager Dashboard New Starters Calculation Fix
+
+Corrected the team metrics calculation in the manager dashboard to use employee startDate instead of createdAt when counting "new starters this month". The previous implementation incorrectly counted employees based on when their records were created in the system rather than when they actually commenced employment. Updated the filtering logic to reference the employment start date with proper validation to ensure accurate monthly starter counts and prevent inclusion of invalid dates.
+
+116. Bank Payroll Auto-Calculation Infinite Loop Prevention
+
+Resolved a subtle infinite loop risk in BankPayrollClient.tsx where two useEffect hooks for auto-calculating salary from hourly rate and vice versa could trigger each other when the working pattern changed. Added an auto-calculation guard ref to prevent circular updates and tightened the effects to only run when the appropriate source field was edited. Improved the working pattern change handler to intelligently reselect a source field when only one compensation value is populated, ensuring calculations continue to work after pattern changes without flickering or unnecessary re-renders.

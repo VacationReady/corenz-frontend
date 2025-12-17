@@ -787,6 +787,23 @@ export default function AddEmployeeModal({
     holidayStartDay,
   ]);
 
+  // Auto-populate holiday year from start date (QOL feature)
+  useEffect(() => {
+    if (!formData.startDate) return;
+    // Only auto-populate if holiday year hasn't been manually set
+    if (holidayStartMonth !== "" || holidayStartDay !== "") return;
+    
+    const startDate = new Date(formData.startDate);
+    if (isNaN(startDate.getTime())) return;
+    
+    const month = (startDate.getMonth() + 1).toString();
+    const day = startDate.getDate().toString();
+    
+    setHolidayStartMonth(month);
+    setHolidayStartDay(day);
+    updateHolidayYearSelection(month, day);
+  }, [formData.startDate]);
+
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -2709,50 +2726,6 @@ export default function AddEmployeeModal({
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground">NZ: 4 weeks (20 days) after 12 months. Prorated before anniversary.</p>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-foreground/80">Sick Leave (Days/Year)</Label>
-                          <Input
-                            type="number"
-                            step="0.5"
-                            name="sickLeaveDays"
-                            placeholder="10"
-                            value={formData.sickLeaveDays}
-                            onChange={handleChange}
-                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
-                          />
-                          <p className="text-xs text-muted-foreground">Min: 10 days after 6 months</p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-foreground/80">Alternative Holidays</Label>
-                          <Input
-                            type="number"
-                            step="0.5"
-                            name="alternativeHolidayDays"
-                            placeholder="0"
-                            value={formData.alternativeHolidayDays}
-                            onChange={handleChange}
-                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
-                          />
-                          <p className="text-xs text-muted-foreground">For public holiday work</p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-foreground/80">Public Holidays</Label>
-                          <Input
-                            type="number"
-                            step="1"
-                            name="publicHolidayEntitlement"
-                            placeholder="11"
-                            value={formData.publicHolidayEntitlement}
-                            onChange={handleChange}
-                            className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
-                          />
-                          <p className="text-xs text-muted-foreground">NZ: 11 + regional</p>
-                        </div>
                       </div>
 
                       {/* Public Holiday Leave Booking */}

@@ -79,7 +79,8 @@ export async function POST(req: NextRequest) {
     // Check if timesheet already exists for this period
     const existingTimesheet = await prisma.timesheet.findUnique({
       where: {
-        employeeId_periodStart_periodEnd: {
+        companyId_employeeId_periodStart_periodEnd: {
+          companyId: requestingEmployee.companyId,
           employeeId: targetEmployeeId,
           periodStart,
           periodEnd,

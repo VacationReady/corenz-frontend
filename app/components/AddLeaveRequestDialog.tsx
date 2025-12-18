@@ -64,6 +64,8 @@ interface AddLeaveRequestDialogProps {
   isAdminOrManager: boolean;
   /** Whether the current user is booking leave for themselves */
   isBookingForSelf?: boolean;
+  /** Optional override to control whether sick leave booking is enabled in the UI */
+  canBookSickLeaveOverride?: boolean;
   open?: boolean;
   setOpen?: (value: boolean) => void;
   onSubmitted?: () => void;
@@ -88,6 +90,7 @@ export default function AddLeaveRequestDialog({
   employeeId,
   isAdminOrManager,
   isBookingForSelf = true,
+  canBookSickLeaveOverride,
   open,
   setOpen,
   onSubmitted,
@@ -96,7 +99,10 @@ export default function AddLeaveRequestDialog({
 }: AddLeaveRequestDialogProps) {
   // Sick leave toggle is only visible to admins/managers booking for someone else
   // Employees cannot book sick leave for themselves, managers cannot book sick for themselves
-  const canBookSickLeave = isAdminOrManager && !isBookingForSelf;
+  const canBookSickLeave =
+    typeof canBookSickLeaveOverride === "boolean"
+      ? canBookSickLeaveOverride
+      : isAdminOrManager && !isBookingForSelf;
   const [isOpen, setIsOpen] = useState(false);
   const isControlled = open !== undefined && setOpen !== undefined;
   const modalOpen = isControlled ? open : isOpen;
@@ -359,7 +365,12 @@ export default function AddLeaveRequestDialog({
   const selectedCategory = categories.find((cat) => cat.id === type);
   
   // Determine if submit should be disabled
-  const isSickLeaveDisabled = Boolean(isSickLeave && effectiveSickLeaveData && !effectiveSickLeaveData.isEligibleToday);
+  const isSickLeaveDisabled = Boolean(
+    isSickLeave &&
+      effectiveSickLeaveData &&
+      !effectiveSickLeaveData.isEligibleToday &&
+      effectiveSickLeaveData.availableDays <= 0,
+  );
   const isFormIncomplete = isSickLeave
     ? !startDate ||
       !endDate ||

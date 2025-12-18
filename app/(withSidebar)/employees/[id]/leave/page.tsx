@@ -311,9 +311,38 @@ function LeavePageContent() {
   const eventsCacheRef = useRef<{ key: string; data: EventInput[] } | null>(null);
 
   // Determine if user is booking for themselves
-  const currentUserEmployeeId = (session?.user as any)?.employeeId;
-  const isBookingForSelf = currentUserEmployeeId ? currentUserEmployeeId === employeeId : false;
+  const sessionEmployeeId = (session?.user as any)?.employeeId as string | undefined;
+  const [currentUserEmployeeId, setCurrentUserEmployeeId] = useState<string | undefined>(
+    sessionEmployeeId,
+  );
+  const isBookingForSelf = Boolean(currentUserEmployeeId && currentUserEmployeeId === employeeId);
   const isPrivileged = isAdminOrManager(session);
+
+  // Fallback: some users may not have employeeId on the session; resolve via API
+  useEffect(() => {
+    let active = true;
+    const resolve = async () => {
+      if (!employeeId) return;
+      if (currentUserEmployeeId) return;
+      const userId = (session?.user as any)?.id as string | undefined;
+      if (!userId) return;
+      try {
+        const res = await fetch(
+          `/api/employees?status=active&userId=${encodeURIComponent(userId)}`,
+          { cache: "no-store" },
+        );
+        const data = await res.json().catch(() => []);
+        const emp = Array.isArray(data) ? data[0] : null;
+        if (active && emp?.id) setCurrentUserEmployeeId(emp.id as string);
+      } catch {
+        // no-op
+      }
+    };
+    resolve();
+    return () => {
+      active = false;
+    };
+  }, [session, employeeId, currentUserEmployeeId]);
 
   // UI State
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1089,6 +1118,12 @@ function LeavePageContent() {
         employeeId={employeeId}
         isAdminOrManager={Boolean(isPrivileged)}
         isBookingForSelf={isBookingForSelf}
+        canBookSickLeaveOverride={
+          isBookingForSelf &&
+          (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN")
+            ? true
+            : undefined
+        }
         open={dialogOpen}
         setOpen={handleDialogClose}
         onSubmitted={refresh}

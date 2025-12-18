@@ -205,7 +205,6 @@ export async function GET(
         EventCategory: { select: { id: true, name: true, iconKey: true } },
         approvalStatus: true,
         reason: true,
-        sickReasonId: true,
         sickReason: true,
         paidStatus: true,
         EventSubcategory: { select: { id: true, name: true } },
@@ -229,9 +228,7 @@ export async function GET(
         // Ensure leaveType is set for UI consumption
         leaveType: leave.leaveType || (isSick ? "SICK" : leave.EventCategory?.name || "LEAVE"),
         sickReason: resolvedSickReason,
-        sickReasonId:
-          (leave as any).sickReasonId ??
-          ((leave as any).EventSubcategory?.id ?? null),
+        sickReasonId: ((leave as any).EventSubcategory?.id ?? null),
       };
     });
 
@@ -473,9 +470,11 @@ export async function POST(
                 reason: reason ?? "",
                 // First-class sick leave fields
                 leaveType: isSick ? "SICK" : null,
-                sickReasonId: isSick ? (sickReasonId ?? null) : null,
                 sickReason: isSick ? resolvedSickReason : null,
                 paidStatus: isSick ? (paidStatus ?? "PAID") : null,
+                ...(isSick && sickReasonId
+                  ? { EventSubcategory: { connect: { id: sickReasonId } } }
+                  : {}),
                 updatedAt: new Date(),
               },
             });
@@ -511,9 +510,11 @@ export async function POST(
                 reason: reason ?? "",
                 // First-class sick leave fields
                 leaveType: isSick ? "SICK" : null,
-                sickReasonId: isSick ? (sickReasonId ?? null) : null,
                 sickReason: isSick ? resolvedSickReason : null,
                 paidStatus: isSick ? (paidStatus ?? "PAID") : null,
+                ...(isSick && sickReasonId
+                  ? { EventSubcategory: { connect: { id: sickReasonId } } }
+                  : {}),
                 updatedAt: new Date(),
               },
             });
@@ -546,9 +547,11 @@ export async function POST(
         reason: reason ?? "",
         // First-class sick leave fields
         leaveType: isSick ? "SICK" : null,
-        sickReasonId: isSick ? (sickReasonId ?? null) : null,
         sickReason: isSick ? resolvedSickReason : null,
         paidStatus: isSick ? (paidStatus ?? "PAID") : null,
+        ...(isSick && sickReasonId
+          ? { EventSubcategory: { connect: { id: sickReasonId } } }
+          : {}),
         updatedAt: new Date(),
       },
     });

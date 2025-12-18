@@ -68,6 +68,7 @@ interface AddLeaveRequestDialogProps {
   setOpen?: (value: boolean) => void;
   onSubmitted?: () => void;
   sickLeaveData?: SickLeaveData | null;
+  initialDate?: Date | null;
 }
 
 type EventCategory = {
@@ -85,6 +86,7 @@ export default function AddLeaveRequestDialog({
   setOpen,
   onSubmitted,
   sickLeaveData,
+  initialDate,
 }: AddLeaveRequestDialogProps) {
   // Sick leave toggle is only visible to admins/managers booking for someone else
   // Employees cannot book sick leave for themselves, managers cannot book sick for themselves
@@ -150,7 +152,16 @@ export default function AddLeaveRequestDialog({
         fetchSickLeaveData();
       }
     }
-  }, [modalOpen]);
+  }, [modalOpen, sickLeaveData]);
+
+  // Set initial date when provided
+  useEffect(() => {
+    if (initialDate && !startDate) {
+      const dateStr = initialDate.toISOString().slice(0, 10);
+      setStartDate(dateStr);
+      setEndDate(dateStr);
+    }
+  }, [initialDate, startDate]);
   
   const fetchSickLeaveData = async () => {
     try {

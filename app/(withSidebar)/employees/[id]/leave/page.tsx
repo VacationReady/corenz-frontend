@@ -29,6 +29,7 @@ import {
   List,
   Flame,
   Thermometer,
+  Edit,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -105,26 +106,90 @@ interface SickLeaveStatus {
 }
 
 // ============================================================================
+// Sick Leave Card Component
+// ============================================================================
+
+function SickLeaveCard({
+  sickLeaveStatus,
+}: {
+  sickLeaveStatus: SickLeaveStatus;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.05 }}
+      className="p-4 rounded-xl bg-gradient-to-br from-red-50/30 to-orange-50/10 border border-red-200/30 dark:from-red-950/30 dark:to-orange-950/10 dark:border-red-800/30"
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div className="p-2 rounded-lg bg-red-500/10">
+          <Thermometer className="w-4 h-4 text-red-600 dark:text-red-400" />
+        </div>
+        <span className="font-medium text-sm">Sick Leave</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <span className="text-muted-foreground text-xs">Available</span>
+          <p className="font-semibold text-lg text-red-600 dark:text-red-400">{sickLeaveStatus.availableDays}</p>
+        </div>
+        <div>
+          <span className="text-muted-foreground text-xs">Cap</span>
+          <p className="font-medium">{sickLeaveStatus.capDays}</p>
+        </div>
+      </div>
+      <div className="mt-2 pt-2 border-t border-red-200/20 dark:border-red-800/20">
+        <div className="flex items-center gap-2 text-xs">
+          {sickLeaveStatus.isEligibleToday ? (
+            <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+              <CheckCircle2 className="w-3 h-3" />
+              Eligible today
+            </span>
+          ) : sickLeaveStatus.eligibleFrom ? (
+            <span className="text-amber-600 dark:text-amber-400">
+              Eligible from {sickLeaveStatus.eligibleFrom}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">Not eligible</span>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================================================
 // Balance Card Component
 // ============================================================================
 
 function BalanceCard({
   balance,
   index,
+  onEdit,
 }: {
   balance: BalanceItem;
   index: number;
+  onEdit?: () => void;
 }) {
   const Icon = getEventCategoryIcon(balance.categoryIconKey);
   const hasTotal = balance.total !== null;
+  const isAnnualLeave = balance.categoryName.toLowerCase().includes('annual');
   
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30"
+      className="p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-muted/30 relative"
     >
+      {isAnnualLeave && onEdit && (
+        <button
+          onClick={onEdit}
+          className="absolute top-2 right-2 p-1.5 rounded-md bg-background/50 hover:bg-background/80 transition-colors"
+          title="Edit balance"
+        >
+          <Edit className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+        </button>
+      )}
       <div className="flex items-center gap-3 mb-3">
         <div className="p-2 rounded-lg bg-primary/10">
           <Icon className="w-4 h-4 text-primary" />
@@ -192,7 +257,7 @@ function LeavePageContent() {
   // Filters
   const [upcomingOnly, setUpcomingOnly] = useState(false);
   const [typeFilter, setTypeFilter] = useState<"all" | "sick" | "other">("all");
-  const [showSickHeatmap, setShowSickHeatmap] = useState(false);
+  const [showSickHeatmap, setShowSickHeatmap] = useState(true); // Always on
 
   // Data State
   const [leaveEvents, setLeaveEvents] = useState<EventInput[]>([]);
@@ -207,6 +272,7 @@ function LeavePageContent() {
   // Sheet State
   const [selectedEvent, setSelectedEvent] = useState<LeaveEventExtendedProps | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Auth Error State
   const [authError, setAuthError] = useState<{
@@ -456,6 +522,24 @@ function LeavePageContent() {
     []
   );
 
+  // Handle edit annual leave balance
+  const handleEditAnnualLeave = () => {
+    // TODO: Open edit modal for annual leave balance
+    toast.info("Edit functionality coming soon");
+  };
+
+  // Handle date click for booking leave
+  const handleDateClick = (arg: any) => {
+    setSelectedDate(arg.date);
+    setDialogOpen(true);
+  };
+
+  // Handle dialog close to clear selected date
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    setSelectedDate(null);
+  };
+
   // Refresh calendar and data
   const refresh = useCallback(() => {
     eventsCacheRef.current = null;
@@ -569,7 +653,7 @@ function LeavePageContent() {
       />
 
       {/* Balances Panel */}
-      {balances.length > 0 && (
+      {(balances.length > 0 || sickLeaveStatus) && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -582,46 +666,21 @@ function LeavePageContent() {
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {balances.map((balance, index) => (
-                <BalanceCard key={balance.id} balance={balance} index={index} />
+                <BalanceCard 
+                  key={balance.id} 
+                  balance={balance} 
+                  index={index} 
+                  onEdit={balance.categoryName.toLowerCase().includes('annual') ? handleEditAnnualLeave : undefined}
+                />
               ))}
+              {sickLeaveStatus && (
+                <SickLeaveCard sickLeaveStatus={sickLeaveStatus} />
+              )}
             </div>
           </EmployeeFormCard>
         </motion.div>
       )}
 
-      {/* Sick Leave Status */}
-      {sickLeaveStatus && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-500/20">
-              <Thermometer className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            </div>
-            <div className="flex-1">
-              <span className="font-medium text-sm">Sick Leave Status</span>
-              <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                <span>
-                  <strong className="text-foreground">{sickLeaveStatus.availableDays}</strong> days available
-                </span>
-                {sickLeaveStatus.isEligibleToday ? (
-                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Eligible
-                  </span>
-                ) : sickLeaveStatus.eligibleFrom ? (
-                  <span className="text-amber-600 dark:text-amber-400">
-                    Eligible from {sickLeaveStatus.eligibleFrom}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
 
       {/* Calendar Card */}
       <motion.div
@@ -744,17 +803,38 @@ function LeavePageContent() {
                   </Select>
                 </div>
 
-                <div className="flex items-center gap-2 ml-auto">
-                  <Flame className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Sick heatmap</span>
-                  <Switch
-                    checked={showSickHeatmap}
-                    onChange={(checked) => {
-                      setShowSickHeatmap(checked);
-                      eventsCacheRef.current = null;
-                      calendarRef.current?.getApi().refetchEvents();
-                    }}
-                  />
+                {/* Sick Heatmap - MTWTFSS inline */}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">Sick days by weekday:</span>
+                  <div className="flex items-center gap-1">
+                    {["M", "T", "W", "T", "F", "S", "S"].map((day, idx) => {
+                      const count = sickDayOfWeekCounts[idx];
+                      const maxCount = Math.max(...sickDayOfWeekCounts, 1);
+                      const intensity = count / maxCount;
+                      // Green (low) to red (high) gradient
+                      const bgColor = count === 0
+                        ? "bg-green-200 dark:bg-green-900/40"
+                        : intensity < 0.33
+                          ? "bg-green-300 dark:bg-green-700/60"
+                          : intensity < 0.66
+                            ? "bg-amber-400 dark:bg-amber-600/70"
+                            : "bg-red-500 dark:bg-red-600/80";
+                      return (
+                        <div
+                          key={idx}
+                          className={cn(
+                            "w-7 h-7 rounded flex flex-col items-center justify-center text-[10px] font-medium transition-colors",
+                            bgColor,
+                            count > 0 ? "text-white" : "text-muted-foreground"
+                          )}
+                          title={`${day}: ${count} sick day${count !== 1 ? "s" : ""}`}
+                        >
+                          <span>{day}</span>
+                          {count > 0 && <span className="text-[8px]">{count}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -775,43 +855,6 @@ function LeavePageContent() {
                 </div>
               </div>
 
-              {/* Sick Heatmap - MTWTFSS row */}
-              {showSickHeatmap && (
-                <div className="pt-3 border-t border-border/30">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">Sick days by weekday:</span>
-                    <div className="flex items-center gap-1">
-                      {["M", "T", "W", "T", "F", "S", "S"].map((day, idx) => {
-                        const count = sickDayOfWeekCounts[idx];
-                        const maxCount = Math.max(...sickDayOfWeekCounts, 1);
-                        const intensity = count / maxCount;
-                        // Green (low) to red (high) gradient
-                        const bgColor = count === 0
-                          ? "bg-green-200 dark:bg-green-900/40"
-                          : intensity < 0.33
-                            ? "bg-green-300 dark:bg-green-700/60"
-                            : intensity < 0.66
-                              ? "bg-amber-400 dark:bg-amber-600/70"
-                              : "bg-red-500 dark:bg-red-600/80";
-                        return (
-                          <div
-                            key={idx}
-                            className={cn(
-                              "w-7 h-7 rounded flex flex-col items-center justify-center text-[10px] font-medium transition-colors",
-                              bgColor,
-                              count > 0 ? "text-white" : "text-muted-foreground"
-                            )}
-                            title={`${day}: ${count} sick day${count !== 1 ? "s" : ""}`}
-                          >
-                            <span>{day}</span>
-                            {count > 0 && <span className="text-[8px]">{count}</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -834,6 +877,7 @@ function LeavePageContent() {
                   eventSources={eventSources}
                   eventContent={renderEventContent}
                   dayCellClassNames={dayCellClassNames}
+                  dateClick={handleDateClick}
                   fixedWeekCount={false}
                   dayMaxEvents={4}
                   eventDisplay="block"
@@ -954,9 +998,10 @@ function LeavePageContent() {
         isAdminOrManager={Boolean(isPrivileged)}
         isBookingForSelf={isBookingForSelf}
         open={dialogOpen}
-        setOpen={setDialogOpen}
+        setOpen={handleDialogClose}
         onSubmitted={refresh}
         sickLeaveData={sickLeaveStatus}
+        initialDate={selectedDate}
       />
     </div>
   );

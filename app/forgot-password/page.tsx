@@ -1,25 +1,46 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { toast } from "@/hooks/use-toast";
 import { Send } from "lucide-react";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RESEND_COOLDOWN_SECONDS = 10;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [lastSentEmail, setLastSentEmail] = useState<string | null>(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCooldownSeconds((current) => (current > 0 ? current - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [cooldownSeconds]);
+
+  const requestReset = async (emailToSend: string) => {
+    if (loading) return;
+    if (cooldownSeconds > 0) {
+      toast({
+        title: "Please wait",
+        description: `You can resend in ${cooldownSeconds}s.`,
+      });
+      return;
+    }
+
     setFormError(null);
 
-    const trimmedEmail = email.trim();
+    const trimmedEmail = emailToSend.trim();
     if (!EMAIL_PATTERN.test(trimmedEmail)) {
       setFormError("Enter a valid work email address.");
       return;
@@ -47,6 +68,8 @@ export default function ForgotPasswordPage() {
       }
 
       setSubmitted(true);
+      setLastSentEmail(trimmedEmail);
+      setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
       toast({
         title: "Check your inbox",
         description:
@@ -64,6 +87,11 @@ export default function ForgotPasswordPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await requestReset(email);
   };
 
   return (
@@ -88,9 +116,13 @@ export default function ForgotPasswordPage() {
               autoComplete="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                if (formError) setFormError(null);
+              }}
               required
-              disabled={loading || submitted}
+              disabled={loading}
+              ref={emailInputRef}
             />
           </div>
 
@@ -102,7 +134,14 @@ export default function ForgotPasswordPage() {
 
           {submitted && !formError && (
             <p className="text-sm text-green-600" role="status">
-              Check your inbox for a reset link. It may take a minute to arrive.
+              Check your inbox for a reset link{lastSentEmail ? ` (sent to ${lastSentEmail})` : ""}. It may take a minute
+              to arrive.
+            </p>
+          )}
+
+          {submitted && cooldownSeconds > 0 && !formError && (
+            <p className="text-xs text-gray-500" role="status">
+              You can resend in {cooldownSeconds}s.
             </p>
           )}
 
@@ -110,12 +149,40 @@ export default function ForgotPasswordPage() {
             type="submit"
             className="w-full"
             loading={loading}
-            disabled={submitted}
+            disabled={cooldownSeconds > 0}
             loadingText="Sending reset link"
             icon={<Send className="h-4 w-4" />}
           >
-            Send reset link
+            {submitted ? "Send again" : "Send reset link"}
           </Button>
+
+          {submitted && (
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={cooldownSeconds > 0}
+                onClick={() => requestReset(lastSentEmail ?? email)}
+              >
+                Resend email
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setFormError(null);
+                  setSubmitted(false);
+                  setLastSentEmail(null);
+                  setCooldownSeconds(0);
+                  queueMicrotask(() => emailInputRef.current?.focus());
+                }}
+              >
+                Use a different email
+              </Button>
+            </div>
+          )}
         </form>
 
         <div className="mt-6 text-center">

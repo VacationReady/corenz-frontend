@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import Button from "@/components/ui/Button";
@@ -78,6 +79,8 @@ import DocumentDeleteConfirmModal from "@/components/documents/DocumentDeleteCon
 import DocumentDeleteSuccessAnimation from "@/components/documents/DocumentDeleteSuccessAnimation";
 import ModernDocumentPreview from "@/components/documents/ModernDocumentPreview";
 import SignatureProgressRing from "@/components/documents/SignatureProgressRing";
+import { FilterProvider, useFilters } from "@/components/ui/FilterProvider";
+import { useDebounce } from "@/hooks/useDebounce";
 
 type Department = { id: string; name: string };
 type JobRole = { id: string; name: string };
@@ -371,9 +374,15 @@ const EmptyState = ({
   </motion.div>
 );
 
-export default function EmployeeDocumentsPage() {
-  const params = useParams();
-  const employeeId = Array.isArray(params?.id) ? params.id[0] : (params?.id ?? "");
+function EmployeeDocumentsContent({
+  employeeId,
+  params,
+}: {
+  employeeId: string;
+  params: any;
+}) {
+  const { filters, updateFilter } = useFilters();
+  const debouncedSearch = useDebounce(filters.search, 200);
 
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
@@ -399,7 +408,6 @@ export default function EmployeeDocumentsPage() {
   const [uploadSuccessDocName, setUploadSuccessDocName] = useState("");
   const [companyName, setCompanyName] = useState<string>("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [searchQuery, setSearchQuery] = useState("");
 
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(false);
@@ -532,14 +540,14 @@ export default function EmployeeDocumentsPage() {
 
   // Filter documents
   const filteredDocuments = useMemo(() => {
-    if (!searchQuery) return documents;
-    const search = searchQuery.toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
+    if (!query) return documents;
     return documents.filter(
       (doc) =>
-        doc.name.toLowerCase().includes(search) ||
-        doc.category?.toLowerCase().includes(search)
+        doc.name.toLowerCase().includes(query) ||
+        doc.category?.toLowerCase().includes(query)
     );
-  }, [documents, searchQuery]);
+  }, [documents, debouncedSearch]);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -831,8 +839,8 @@ export default function EmployeeDocumentsPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
                   placeholder="Search documents..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={filters.search}
+                  onChange={(e) => updateFilter("search", e.target.value)}
                   className="pl-10 h-10 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
@@ -1379,5 +1387,23 @@ export default function EmployeeDocumentsPage() {
         </div>
       </TooltipProvider>
     </PageShell>
+  );
+}
+
+export default function EmployeeDocumentsPage() {
+  const params = useParams();
+  const employeeId = Array.isArray(params?.id) ? params.id[0] : (params?.id ?? "");
+  const { data: session } = useSession();
+  const companyId = session?.user?.companyId;
+
+  return (
+    <FilterProvider
+      persistenceKey={`employee-documents-filters-${employeeId}`}
+      enableUrlSync={true}
+      enableLocalStorage={true}
+      companyId={companyId}
+    >
+      <EmployeeDocumentsContent employeeId={employeeId} params={params} />
+    </FilterProvider>
   );
 }

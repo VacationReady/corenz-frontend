@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/components/ui/Button";
@@ -19,9 +19,6 @@ import {
   Clock, 
   FileUp, 
   Building2,
-  Search,
-  Filter,
-  Download,
   MoreHorizontal,
   Trash2,
   Settings,
@@ -31,8 +28,6 @@ import {
   FolderOpen,
   Grid3X3,
   List,
-  ArrowUpDown,
-  ChevronDown,
   Sparkles,
   TrendingUp,
   Calendar,
@@ -40,8 +35,7 @@ import {
   Info
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
-import { apiClient } from "@/lib/apiClient";
-import { usePostMutation, useDeleteMutation } from "@/hooks/useMutationWithRefresh";
+import { usePostMutation } from "@/hooks/useMutationWithRefresh";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import {
   Table,
@@ -350,10 +344,12 @@ const DocumentCard = ({
 // Empty State Component
 const EmptyState = ({ 
   hasFilters, 
+  onClearFilters,
   onUpload, 
   isAdmin 
 }: { 
-  hasFilters: boolean; 
+  hasFilters: boolean;
+  onClearFilters?: () => void;
   onUpload: () => void;
   isAdmin: boolean;
 }) => (
@@ -394,6 +390,19 @@ const EmptyState = ({
         ? "Try adjusting your search or filter criteria to find what you're looking for."
         : "Upload your first document to get started. Documents can be shared with your entire organisation or specific teams."}
     </p>
+
+    {hasFilters && (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="mt-6"
+      >
+        <Button variant="outline" onClick={onClearFilters} size="lg" className="rounded-xl">
+          Clear filters
+        </Button>
+      </motion.div>
+    )}
     
     {isAdmin && !hasFilters && (
       <motion.div
@@ -436,7 +445,6 @@ function DocumentsContent() {
   const [uploadPreviewOpen, setUploadPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (file) {
@@ -585,7 +593,7 @@ function DocumentsContent() {
     }
   }, [documents, loading]);
 
-  const { filters } = useFilters();
+  const { filters, clearFilters } = useFilters();
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -636,20 +644,21 @@ function DocumentsContent() {
     { label: "Category", value: "category" },
   ];
 
+  const filterConfig = useMemo(
+    () => ({
+      searchPlaceholder: "Search documents...",
+      showDepartmentFilter: true,
+      showJobRoleFilter: true,
+      showDocumentTypeFilter: true,
+      showCategoryFilter: true,
+      advancedFiltersLabel: "Filters",
+    }),
+    [],
+  );
+
   const filteredDocuments = useMemo(() => {
     let filtered = [...documents];
-    
-    // Apply local search query
-    if (searchQuery) {
-      const search = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (doc) =>
-          doc.name.toLowerCase().includes(search) ||
-          doc.category?.toLowerCase().includes(search) ||
-          doc.type.toLowerCase().includes(search),
-      );
-    }
-    
+
     if (filters.search) {
       const search = filters.search.toLowerCase();
       filtered = filtered.filter(
@@ -675,6 +684,17 @@ function DocumentsContent() {
         return docDepartments.some((dept) => filters.departments.includes(dept.id));
       });
     }
+
+    if (filters.jobRoles.length > 0 && !filters.jobRoles.includes("all")) {
+      filtered = filtered.filter((doc) => {
+        const docJobRoles: Array<{ id: string; name: string }> = Array.isArray(doc.jobRoles)
+          ? (doc.jobRoles as Array<{ id: string; name: string }>)
+          : Array.isArray(doc.JobRole)
+            ? (doc.JobRole as Array<{ id: string; name: string }>)
+            : [];
+        return docJobRoles.some((jr) => filters.jobRoles.includes(jr.id));
+      });
+    }
     if (filters.sortBy) {
       filtered.sort((a, b) => {
         let aVal = "", bVal = "";
@@ -690,13 +710,13 @@ function DocumentsContent() {
       });
     }
     return filtered;
-  }, [documents, filters, searchQuery]);
+  }, [documents, filters]);
 
   const hasActiveFilters = filters.search || 
     (filters.documentTypes.length > 0 && !filters.documentTypes.includes("all")) ||
     (filters.categories.length > 0 && !filters.categories.includes("all")) ||
     (filters.departments.length > 0 && !filters.departments.includes("all")) ||
-    searchQuery;
+    (filters.jobRoles.length > 0 && !filters.jobRoles.includes("all"));
 
   const handleExport = () => {
     const csv = [
@@ -707,8 +727,8 @@ function DocumentsContent() {
         doc.type,
         `${(doc.size / 1024).toFixed(2)} KB`,
         new Date(doc.createdAt).toLocaleDateString(),
-        (doc.departments ?? []).map((d) => d.name).join("; "),
-        (doc.jobRoles ?? []).map((jr) => jr.name).join("; "),
+        (Array.isArray(doc.departments) ? doc.departments : Array.isArray(doc.Department) ? doc.Department : []).map((d) => d.name).join("; "),
+        (Array.isArray(doc.jobRoles) ? doc.jobRoles : Array.isArray(doc.JobRole) ? doc.JobRole : []).map((jr) => jr.name).join("; "),
       ]),
     ]
       .map((row) => row.map((field) => `"${field}"`).join(","))
@@ -1007,19 +1027,21 @@ function DocumentsContent() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 p-4 shadow-sm"
+            className="flex flex-col lg:flex-row gap-4 items-stretch justify-between bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/60 dark:border-slate-800 p-4 shadow-sm"
           >
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Search documents..."
-                value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                className="pl-10 h-10 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-blue-500/20"
+            <div className="flex-1 min-w-0">
+              <FilterBar
+                config={filterConfig}
+                departmentOptions={departmentsList}
+                jobRoleOptions={jobRolesList}
+                documentTypeOptions={documentTypeOptions}
+                categoryOptions={categoryOptions}
+                sortOptions={sortOptions}
+                onExport={handleExport}
               />
             </div>
-            
-            <div className="flex items-center gap-3">
+
+            <div className="flex items-center gap-3 self-start lg:self-center">
               {/* View Toggle */}
               <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                 <button
@@ -1043,16 +1065,6 @@ function DocumentsContent() {
                   <List className="w-4 h-4" />
                 </button>
               </div>
-
-              {/* Export */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={handleExport} className="rounded-lg">
-                    <Download className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Export to CSV</TooltipContent>
-              </Tooltip>
             </div>
           </motion.div>
 
@@ -1061,6 +1073,9 @@ function DocumentsContent() {
             {filteredDocuments.length === 0 ? (
               <EmptyState
                 hasFilters={!!hasActiveFilters}
+                onClearFilters={() => {
+                  clearFilters();
+                }}
                 onUpload={() => setIsUploadModalOpen(true)}
                 isAdmin={isAdminUser}
               />

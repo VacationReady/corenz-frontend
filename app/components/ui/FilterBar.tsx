@@ -58,18 +58,23 @@ export function FilterBar({
 }: FilterBarProps) {
   const { filters, updateFilter, clearFilters, isFiltered } = useFilters();
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [searchInput, setSearchInput] = useState(filters.search);
 
   // Debounce search input
-  const debouncedSearch = useDebounce(filters.search, 300);
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  React.useEffect(() => {
+    setSearchInput(filters.search);
+  }, [filters.search]);
 
   React.useEffect(() => {
     if (debouncedSearch !== filters.search) {
       updateFilter("search", debouncedSearch);
     }
-  }, [debouncedSearch]);
+  }, [debouncedSearch, filters.search, updateFilter]);
 
   const handleSearchChange = (value: string) => {
-    updateFilter("search", value);
+    setSearchInput(value);
   };
 
   const toggleSortOrder = () => {
@@ -99,7 +104,7 @@ export function FilterBar({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             placeholder={config.searchPlaceholder || "Search..."}
-            value={filters.search}
+            value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10"
           />
@@ -209,7 +214,10 @@ export function FilterBar({
             <Button
               variant="ghost"
               size="sm"
-              onClick={clearFilters}
+              onClick={() => {
+                setSearchInput("");
+                clearFilters();
+              }}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
             >
               <X className="w-4 h-4" />
@@ -228,7 +236,10 @@ export function FilterBar({
               variant="secondary"
               size="sm"
               className="rounded-full px-3"
-              onClick={() => updateFilter("search", "")}
+              onClick={() => {
+                setSearchInput("");
+                updateFilter("search", "");
+              }}
             >
               Search: &ldquo;{filters.search}&rdquo; <span className="ml-2">×</span>
             </Button>

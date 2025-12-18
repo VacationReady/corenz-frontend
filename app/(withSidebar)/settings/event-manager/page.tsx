@@ -30,6 +30,9 @@ interface EventCategory {
   subcategories?: Array<{ id: string; name: string }>;
   iconKey?: string | null;
   color?: string | null;
+  balanceRequired?: boolean;
+  defaultBalance?: number | null;
+  balanceRefreshMonths?: number | null;
 }
 
 export default function EventManagerPage() {

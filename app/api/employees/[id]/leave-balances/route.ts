@@ -103,6 +103,96 @@ export async function GET(
       },
     });
 
+    // Define a unified type for entitlements with their category info
+    type EntitlementWithCategory = {
+      id: string;
+      eventCategoryId: string;
+      totalDays: number;
+      usedDays: number;
+      carryoverDays: number;
+      carryoverExpiry?: Date | null;
+      EventCategory: {
+        id: string;
+        name: string;
+        iconKey: string | null;
+      };
+    };
+
+    // 5b. Find EventCategories with balanceRequired=true that don't have entitlements yet
+    // and auto-create LeaveEntitlement records with the default balance
+    // Note: balanceRequired, defaultBalance, balanceRefreshMonths fields require prisma generate after migration
+    const existingCategoryIds = new Set(entitlements.map((e) => e.eventCategoryId));
+    
+    // Use raw query to avoid TypeScript errors before prisma generate
+    const balanceRequiredCategories = await (prisma.eventCategory.findMany as any)({
+      where: {
+        companyId: session.user.companyId,
+        isActive: true,
+        balanceRequired: true,
+        id: { notIn: Array.from(existingCategoryIds) },
+      },
+      select: {
+        id: true,
+        name: true,
+        iconKey: true,
+        defaultBalance: true,
+        balanceRefreshMonths: true,
+      },
+    }) as Array<{ id: string; name: string; iconKey: string | null; defaultBalance: number | null; balanceRefreshMonths: number | null }>;
+
+    // Auto-create entitlements for balance-required categories
+    const newEntitlements: EntitlementWithCategory[] = [];
+    for (const category of balanceRequiredCategories) {
+      const defaultDays = category.defaultBalance ?? 0;
+      
+      // Create the entitlement record
+      const newEntitlement = await prisma.leaveEntitlement.create({
+        data: {
+          id: crypto.randomUUID(),
+          employeeId,
+          eventCategoryId: category.id,
+          companyId: session.user.companyId,
+          totalDays: defaultDays,
+          usedDays: 0,
+          daysAllocated: defaultDays,
+          carryoverDays: 0,
+          updatedAt: new Date(),
+        },
+      });
+
+      newEntitlements.push({
+        id: newEntitlement.id,
+        eventCategoryId: newEntitlement.eventCategoryId,
+        totalDays: newEntitlement.totalDays,
+        usedDays: newEntitlement.usedDays,
+        carryoverDays: newEntitlement.carryoverDays,
+        carryoverExpiry: newEntitlement.carryoverExpiry,
+        EventCategory: {
+          id: category.id,
+          name: category.name,
+          iconKey: category.iconKey,
+        },
+      });
+    }
+
+    // Combine existing and newly created entitlements
+    const allEntitlements: EntitlementWithCategory[] = [
+      ...entitlements.map((e) => ({
+        id: e.id,
+        eventCategoryId: e.eventCategoryId,
+        totalDays: e.totalDays,
+        usedDays: e.usedDays,
+        carryoverDays: e.carryoverDays,
+        carryoverExpiry: e.carryoverExpiry,
+        EventCategory: {
+          id: e.EventCategory.id,
+          name: e.EventCategory.name,
+          iconKey: e.EventCategory.iconKey,
+        },
+      })),
+      ...newEntitlements,
+    ];
+
     // 6. Calculate pending leave for each category
     const pendingByCategory = await prisma.leaveRequest.groupBy({
       by: ["eventCategoryId"],
@@ -137,8 +227,8 @@ export async function GET(
 
     const balances: BalanceItem[] = [];
 
-    // Add entitlements from LeaveEntitlement table
-    for (const ent of entitlements) {
+    // Add entitlements from LeaveEntitlement table (including auto-created ones)
+    for (const ent of allEntitlements) {
       const remaining = Math.max(0, ent.totalDays - ent.usedDays);
       balances.push({
         id: ent.id,
@@ -151,7 +241,7 @@ export async function GET(
         total: ent.totalDays,
         pending: pendingCountMap.get(ent.eventCategoryId) ?? 0,
         carryover: ent.carryoverDays,
-        carryoverExpiry: ent.carryoverExpiry?.toISOString() ?? null,
+        carryoverExpiry: (ent as any).carryoverExpiry?.toISOString() ?? null,
       });
     }
 

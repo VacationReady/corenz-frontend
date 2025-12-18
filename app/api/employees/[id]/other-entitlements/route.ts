@@ -1,4 +1,5 @@
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { isAdminOrManager } from "@/lib/roles";
@@ -77,6 +78,21 @@ export async function GET(
       })),
     });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2021"
+    ) {
+      console.warn("[OTHER_ENTITLEMENTS_GET] Missing table EmployeeOtherEntitlement (P2021). Returning empty list.");
+      return NextResponse.json(
+        {
+          success: true,
+          entitlements: [],
+          warning:
+            "Other entitlements are temporarily unavailable because the database schema is out of date. Please run Prisma migrations (prisma migrate deploy).",
+        },
+        { status: 200 },
+      );
+    }
     console.error("[OTHER_ENTITLEMENTS_GET]", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
@@ -198,6 +214,20 @@ export async function POST(
       },
     });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2021"
+    ) {
+      console.warn("[OTHER_ENTITLEMENTS_POST] Missing table EmployeeOtherEntitlement (P2021).");
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Other entitlements are temporarily unavailable because the database schema is out of date. Please run Prisma migrations (prisma migrate deploy).",
+        },
+        { status: 503 },
+      );
+    }
     console.error("[OTHER_ENTITLEMENTS_POST]", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },
@@ -332,6 +362,20 @@ export async function PUT(
       })),
     });
   } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2021"
+    ) {
+      console.warn("[OTHER_ENTITLEMENTS_PUT] Missing table EmployeeOtherEntitlement (P2021).");
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Other entitlements are temporarily unavailable because the database schema is out of date. Please run Prisma migrations (prisma migrate deploy).",
+        },
+        { status: 503 },
+      );
+    }
     console.error("[OTHER_ENTITLEMENTS_PUT]", error);
     return NextResponse.json(
       { success: false, error: "Internal server error" },

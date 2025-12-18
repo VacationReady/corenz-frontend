@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PlusIcon, BriefcaseIcon, UmbrellaIcon, Sparkles, CheckCircle2, Palette, Settings, Shield, Check } from "lucide-react";
+import { PlusIcon, BriefcaseIcon, UmbrellaIcon, Sparkles, CheckCircle2, Palette, Settings, Shield, Check, Scale } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
@@ -57,6 +57,10 @@ export default function AddCategoryModal({
   const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
   const [iconKey, setIconKey] = useState<string | null>(null);
+  // Balance configuration
+  const [balanceRequired, setBalanceRequired] = useState(false);
+  const [defaultBalance, setDefaultBalance] = useState<string>("");
+  const [balanceRefreshMonths, setBalanceRefreshMonths] = useState<string>("12");
 
   const handleSubmit = async () => {
     if (!categoryType || !name) {
@@ -79,6 +83,9 @@ export default function AddCategoryModal({
           color,
           isActive,
           iconKey,
+          balanceRequired,
+          defaultBalance: balanceRequired && defaultBalance ? parseFloat(defaultBalance) : null,
+          balanceRefreshMonths: balanceRequired && balanceRefreshMonths ? parseInt(balanceRefreshMonths, 10) : null,
         }),
       });
 
@@ -94,6 +101,9 @@ export default function AddCategoryModal({
         setColor("#3b82f6");
         setIsActive(true);
         setIconKey(null);
+        setBalanceRequired(false);
+        setDefaultBalance("");
+        setBalanceRefreshMonths("12");
       } else {
         alert(data.error || "Failed to add category.");
       }
@@ -359,6 +369,68 @@ export default function AddCategoryModal({
                           <SelectItem value="UNPAID">Unpaid</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    {/* Balance Configuration */}
+                    <div className="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Scale className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        <span className="font-medium text-sm">Balance Configuration</span>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 rounded-xl bg-white/30 dark:bg-white/5">
+                          <div>
+                            <Label className="text-sm cursor-pointer">Balance Required?</Label>
+                            <p className="text-xs text-muted-foreground mt-0.5">Enable to track entitlement balances for this category</p>
+                          </div>
+                          <Switch checked={balanceRequired} onChange={setBalanceRequired} />
+                        </div>
+                        
+                        <AnimatePresence>
+                          {balanceRequired && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="space-y-3 overflow-hidden"
+                            >
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-foreground/80">Default Balance (days)</Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.5"
+                                  placeholder="e.g., 10"
+                                  value={defaultBalance}
+                                  onChange={(e) => setDefaultBalance(e.target.value)}
+                                  className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
+                                />
+                                <p className="text-xs text-muted-foreground">Default number of days allocated to employees</p>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-foreground/80">Balance Refresh Period</Label>
+                                <Select
+                                  value={balanceRefreshMonths}
+                                  onValueChange={setBalanceRefreshMonths}
+                                >
+                                  <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="12">Every 12 months (Annual)</SelectItem>
+                                    <SelectItem value="6">Every 6 months</SelectItem>
+                                    <SelectItem value="3">Every 3 months (Quarterly)</SelectItem>
+                                    <SelectItem value="1">Every month</SelectItem>
+                                    <SelectItem value="0">Never (One-time allocation)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">How often the balance resets to the default</p>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
 
                     {/* Submit Button */}

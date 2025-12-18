@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import NotificationsSectionBadge from "@/components/ui/NotificationsSectionBadge";
 import {
   User,
   Briefcase,
@@ -22,8 +21,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutGrid,
-  Bell,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 
 interface MenuItem {
@@ -35,7 +34,7 @@ interface EmployeeNavClientProps {
   menu: MenuItem[];
   employeeName: string;
   employeeId: string;
-  showNotificationsQuickView: boolean;
+  employeeAvatarUrl: string | null;
 }
 
 // Map menu labels to icons - all using consistent aurora blue
@@ -60,8 +59,16 @@ export default function EmployeeNavClient({
   menu,
   employeeName,
   employeeId,
-  showNotificationsQuickView,
+  employeeAvatarUrl,
 }: EmployeeNavClientProps) {
+  // Get initials for avatar fallback
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -104,61 +111,51 @@ export default function EmployeeNavClient({
         )}
       </motion.button>
 
-      {/* Header / Name */}
-      <AnimatePresence mode="wait">
-        {!collapsed && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-            className="px-3 pb-4 mb-2"
-          >
-            {employeeName && (
+      {/* Employee Profile Header */}
+      <motion.div
+        initial={false}
+        animate={{ 
+          paddingInline: collapsed ? 6 : 12,
+          marginBottom: 16 
+        }}
+      >
+        <AnimatePresence mode="wait">
+          {collapsed ? (
+            <motion.div
+              key="collapsed-avatar"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="flex justify-center"
+            >
+              <Avatar className="w-10 h-10 border-2 border-white/50 shadow-sm">
+                <AvatarImage src={employeeAvatarUrl || undefined} alt={employeeName} />
+                <AvatarFallback className="bg-gradient-to-br from-primary to-blue-500 text-white text-sm font-medium">
+                  {getInitials(employeeName || "?")}
+                </AvatarFallback>
+              </Avatar>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="expanded-avatar"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex items-center gap-3"
+            >
+              <Avatar className="w-10 h-10 border-2 border-white/50 shadow-sm shrink-0">
+                <AvatarImage src={employeeAvatarUrl || undefined} alt={employeeName} />
+                <AvatarFallback className="bg-gradient-to-br from-primary to-blue-500 text-white text-sm font-medium">
+                  {getInitials(employeeName || "?")}
+                </AvatarFallback>
+              </Avatar>
               <h2 className="text-lg font-bold text-foreground truncate leading-tight">
-                {employeeName}
+                {employeeName || "Employee"}
               </h2>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Notifications Quick View */}
-      {showNotificationsQuickView && (
-        <motion.div
-          initial={false}
-          animate={{ 
-            paddingInline: collapsed ? 6 : 12,
-            marginBottom: 16 
-          }}
-        >
-          <AnimatePresence mode="wait">
-            {collapsed ? (
-              <motion.div
-                key="collapsed-notif"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex justify-center"
-              >
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-blue-100 dark:from-primary/30 dark:to-blue-900/30 text-primary dark:text-blue-400">
-                  <Bell className="w-5 h-5" />
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="expanded-notif"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="glass-subtle rounded-2xl p-3 border border-white/30 dark:border-white/10"
-              >
-                <NotificationsSectionBadge employeeId={employeeId} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
       {/* Navigation Items */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 space-y-1">

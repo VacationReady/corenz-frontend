@@ -207,7 +207,7 @@ export default async function EmployeeLayout({
           menu={menu}
           employeeName={employee.User?.name ?? ""}
           employeeId={id}
-          showNotificationsQuickView={session?.user?.role === "ADMIN"}
+          employeeAvatarUrl={employee.User?.profileImageUrl ?? null}
         />
       </aside>
 

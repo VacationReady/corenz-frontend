@@ -316,22 +316,16 @@ export default function OverviewClient({
           delay={0.35}
         >
           {emergencyContacts.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {emergencyContacts.slice(0, 2).map((contact) => (
                 <div key={contact.id} className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                     <Users className="w-4 h-4 text-primary dark:text-blue-400" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {contact.name}
-                      {contact.relationship && (
-                        <span className="text-muted-foreground font-normal"> • {contact.relationship}</span>
-                      )}
-                    </p>
-                    {contact.phone && (
-                      <p className="text-xs text-muted-foreground truncate">{contact.phone}</p>
-                    )}
+                  <div className="min-w-0 space-y-1">
+                    <InfoRow label="Name" value={contact.name} />
+                    <InfoRow label="Relationship" value={contact.relationship || "Not specified"} />
+                    <InfoRow label="Phone" value={contact.phone || "Not provided"} />
                   </div>
                 </div>
               ))}

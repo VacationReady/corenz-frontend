@@ -13,6 +13,10 @@ const UpdateEventCategorySchema = z.object({
   isActive: z.boolean().optional(),
   iconKey: z.string().optional(),
   color: z.string().optional(),
+  // Balance configuration fields
+  balanceRequired: z.boolean().optional(),
+  defaultBalance: z.number().nullable().optional(),
+  balanceRefreshMonths: z.number().int().nullable().optional(),
 });
 
 // GET single event category

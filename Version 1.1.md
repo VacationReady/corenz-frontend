@@ -487,3 +487,15 @@ Implemented server-side validation to prevent employees from having overlapping 
 121. Employee Leave Calendar Refactor
 
 Refactored the employee leave page from a list view into a flagship FullCalendar-based calendar interface while preserving the existing URL and employee profile layout. Extracted shared calendar helpers into reusable modules for both company-wide and employee-scoped calendars, eliminating code duplication. Added comprehensive features including a Sheet details drawer for event inspection, filters for upcoming-only and type (All/Sick/Other), a balances panel showing entitlements and stored balances, sick leave status display, and an optional sickness heatmap toggle. Implemented range-driven event fetching with proper tenant isolation and RBAC, and integrated the existing AddLeaveRequestDialog for booking leave.
+
+122. 90-Day Trial Period Notifications
+
+Implemented a complete trial period notification system for NZ Employment Relations Act 2000 compliance. Added conditional UI in AddEmployeeModal allowing selection of notification recipient (Manager, Admin, or Both) and days before trial end (1-30 days). Enhanced the API to persist trial notification preferences and automatically calculate trial end dates (90 days from start). Created automated cron job logic that sends reminder emails via Resend to designated recipients based on employee settings, with proper tenant isolation and duplicate prevention through database tracking.
+
+123. Sick Leave Balance Deduction Fix
+
+Fixed the sick leave balance calculation issue where approved sick leave requests were not deducting from the employee's sick leave balance. Modified the leave approval API to call recordSickLeaveUsage() from the NZ sick leave ledger when approving sick leave requests, ensuring proper deduction from Employee.sickLeaveBalance. Added corresponding reversal logic when deleting approved sick leave requests to restore the balance. Updated the leave page UI to display sick leave events in red regardless of approval status, removed "Approved" text from calendar events for better visibility, and redesigned the sick heatmap to show a MTWTFSS row with green-to-red gradient based on sick day frequency.
+
+124. Leave Management UI Enhancements
+
+Enhanced the employee leave management interface with improved balance cards and calendar functionality. Added an edit icon to annual leave balance cards for quick access to balance adjustments. Replaced the amber sick leave status banner with a dedicated sick leave card displaying available days, cap, and eligibility information in a cleaner card format. Made the sick heatmap permanently enabled and moved the MTWTFSS weekday heatmap inline with the filters for better visibility. Implemented click-to-book functionality on calendar days, allowing users to select any date and automatically open the leave booking dialog pre-populated with the chosen date, streamlining the leave request process.

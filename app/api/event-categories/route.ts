@@ -15,6 +15,10 @@ const EventCategorySchema = z.object({
   adminOnly: z.boolean().optional().default(false),
   iconKey: z.string().optional(),
   color: z.string().optional(),
+  // Balance configuration fields
+  balanceRequired: z.boolean().optional().default(false),
+  defaultBalance: z.number().nullable().optional(),
+  balanceRefreshMonths: z.number().int().nullable().optional(),
 });
 
 export async function GET() {
@@ -88,7 +92,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, categoryType, requiresApproval, adminOnly, iconKey, color } = parse.data;
+    const { name, categoryType, requiresApproval, adminOnly, iconKey, color, balanceRequired, defaultBalance, balanceRefreshMonths } = parse.data;
 
     const existing = await prisma.eventCategory.findFirst({
       where: { name, companyId: session.user.companyId },
@@ -113,6 +117,9 @@ export async function POST(req: Request) {
         adminOnly,
         iconKey,
         color,
+        balanceRequired: balanceRequired ?? false,
+        defaultBalance: balanceRequired ? defaultBalance : null,
+        balanceRefreshMonths: balanceRequired ? balanceRefreshMonths : null,
         companyId: session.user.companyId,
         updatedAt: new Date(),
       },

@@ -591,3 +591,7 @@ Added the existing FilterBar to the Documents page header so users can actually 
 143. Documents Search Persistence and Shareable Views
 
 Updated document search to use a single persisted search source (`filters.search`), ensuring the search box always reflects restored URL/localStorage filters and saved views. This removes double-filtering behaviour and makes document searches reliably shareable and repeatable across page reloads, including the employee documents screen.
+
+144. Past Timesheet Submit Action Reliability Fix
+
+Fixed the “Submit” action on past timesheet cards by submitting via an explicit timesheet ID rather than relying on asynchronous state updates, ensuring the request always fires and users receive immediate confirmation or error feedback.

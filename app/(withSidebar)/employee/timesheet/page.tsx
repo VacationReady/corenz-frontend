@@ -105,17 +105,17 @@ export default function EmployeeTimesheetPage() {
     }
   };
 
-
-  const handleSubmitTimesheet = async () => {
-    if (!selectedTimesheet) return;
+  const handleSubmitTimesheet = async (timesheetId?: string) => {
+    const id = timesheetId ?? selectedTimesheet?.id;
+    if (!id) return;
     
     try {
       setActionLoading(true);
       setError(null);
 
-      console.log('[Client] Submitting timesheet:', selectedTimesheet.id);
+      console.log('[Client] Submitting timesheet:', id);
 
-      const response = await fetch(`/api/timesheets/${selectedTimesheet.id}/submit`, {
+      const response = await fetch(`/api/timesheets/${id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -137,6 +137,10 @@ export default function EmployeeTimesheetPage() {
 
         if (!previous) {
           return data.timesheet;
+        }
+
+        if (previous.id !== id) {
+          return previous;
         }
 
         return {
@@ -333,8 +337,7 @@ export default function EmployeeTimesheetPage() {
                     onSubmit={
                       timesheet.approvalStatus === 'PENDING' && !timesheet.submittedAt
                         ? () => {
-                            setSelectedTimesheet(timesheet);
-                            handleSubmitTimesheet();
+                            handleSubmitTimesheet(timesheet.id);
                           }
                         : undefined
                     }

@@ -1,4 +1,16 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { ArrowLeft, LifeBuoy, LogIn, RefreshCcw } from "lucide-react";
+
+import Button from "@/components/ui/Button";
+import { getLogoutCallbackUrl } from "@/lib/logout-url";
+
 export default function UnauthorizedPage() {
+  const router = useRouter();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="bg-white shadow-xl p-8 rounded-2xl max-w-md text-center">
@@ -22,8 +34,51 @@ export default function UnauthorizedPage() {
 
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h1>
         <p className="text-sm text-gray-500">
-          You do not have permission to view this page.
+          You don’t have permission to view this page. This can happen if your session expired,
+          you signed in with the wrong account, or your role doesn’t allow access.
         </p>
+
+        <div className="mt-6 grid gap-3">
+          <Button asChild icon={<LogIn className="h-4 w-4" />}>
+            <Link href="/login">Back to login</Link>
+          </Button>
+
+          <Button asChild variant="secondary">
+            <Link href="/dashboard">Go to dashboard</Link>
+          </Button>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="outline"
+              icon={<ArrowLeft className="h-4 w-4" />}
+              onClick={() => router.back()}
+            >
+              Go back
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              icon={<RefreshCcw className="h-4 w-4" />}
+              onClick={() => {
+                void signOut({ callbackUrl: getLogoutCallbackUrl() });
+              }}
+            >
+              Switch account
+            </Button>
+          </div>
+
+          <a
+            href="https://support.peoplecore.co"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex items-center justify-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+          >
+            <LifeBuoy className="h-4 w-4" aria-hidden="true" />
+            Contact support
+          </a>
+        </div>
       </div>
     </div>
   );

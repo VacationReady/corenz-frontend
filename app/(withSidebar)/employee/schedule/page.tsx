@@ -19,6 +19,10 @@ import {
 } from 'lucide-react';
 import ShiftSwapModal from '@/components/rota/ShiftSwapModal';
 import AvailabilityGrid from '@/components/rota/AvailabilityGrid';
+import { Dialog, DialogAction, DialogContent } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 interface Shift {
   id: string;
@@ -98,6 +102,12 @@ export default function EmployeeSchedulePage() {
   const [activeTab, setActiveTab] = useState<'shifts' | 'swaps' | 'availability'>('shifts');
   const [swapTab, setSwapTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [currentEmployeeId, setCurrentEmployeeId] = useState<string | null>(null);
+  const [swapDecisionOpen, setSwapDecisionOpen] = useState(false);
+  const [swapDecisionAction, setSwapDecisionAction] = useState<'accept' | 'reject' | 'cancel'>('accept');
+  const [swapDecisionSwap, setSwapDecisionSwap] = useState<SwapRequest | null>(null);
+  const [swapDecisionReason, setSwapDecisionReason] = useState('');
+  const [swapDecisionSubmitting, setSwapDecisionSubmitting] = useState(false);
+  const [swapDecisionError, setSwapDecisionError] = useState<string | null>(null);
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 });
@@ -169,62 +179,95 @@ export default function EmployeeSchedulePage() {
     }
   };
 
-  const handleAcceptSwap = async (swapId: string) => {
+  const readApiErrorMessage = async (response: Response) => {
     try {
-      const response = await fetch(`/api/shift-swaps/${swapId}/accept`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to accept swap');
-      }
-
-      await loadData();
-    } catch (error: any) {
-      alert(error.message);
+      const data = await response.json();
+      return data?.error || 'Request failed';
+    } catch {
+      return 'Request failed';
     }
   };
 
-  const handleRejectSwap = async (swapId: string) => {
-    const reason = prompt('Reason for rejecting (optional):');
-    
-    try {
-      const response = await fetch(`/api/shift-swaps/${swapId}/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to reject swap');
-      }
-
-      await loadData();
-    } catch (error: any) {
-      alert(error.message);
-    }
+  const openSwapDecision = (swap: SwapRequest, action: 'accept' | 'reject' | 'cancel') => {
+    setSwapDecisionSwap(swap);
+    setSwapDecisionAction(action);
+    setSwapDecisionError(null);
+    setSwapDecisionReason('');
+    setSwapDecisionOpen(true);
   };
 
-  const handleCancelSwap = async (swapId: string) => {
-    if (!confirm('Are you sure you want to cancel this swap request?')) return;
+  const closeSwapDecision = () => {
+    if (swapDecisionSubmitting) return;
+    setSwapDecisionOpen(false);
+    setSwapDecisionSwap(null);
+    setSwapDecisionError(null);
+    setSwapDecisionReason('');
+  };
+
+  const submitSwapDecision = async () => {
+    if (!swapDecisionSwap) return;
+    setSwapDecisionSubmitting(true);
+    setSwapDecisionError(null);
+
+    const swap = swapDecisionSwap;
 
     try {
-      const response = await fetch(`/api/shift-swaps/${swapId}`, {
-        method: 'DELETE',
-      });
+      if (swapDecisionAction === 'accept') {
+        const response = await fetch(`/api/shift-swaps/${swap.id}/accept`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to cancel swap');
+        if (!response.ok) {
+          throw new Error(await readApiErrorMessage(response));
+        }
+
+        toast.success('Swap accepted', {
+          description: `${format(new Date(swap.Shift.startTime), 'EEE, MMM d')} • ${format(new Date(swap.Shift.startTime), 'h:mm a')} - ${format(new Date(swap.Shift.endTime), 'h:mm a')}`,
+        });
       }
 
+      if (swapDecisionAction === 'reject') {
+        const response = await fetch(`/api/shift-swaps/${swap.id}/reject`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: swapDecisionReason || null }),
+        });
+
+        if (!response.ok) {
+          throw new Error(await readApiErrorMessage(response));
+        }
+
+        toast.success('Swap declined', {
+          description: `${format(new Date(swap.Shift.startTime), 'EEE, MMM d')} • ${format(new Date(swap.Shift.startTime), 'h:mm a')} - ${format(new Date(swap.Shift.endTime), 'h:mm a')}`,
+        });
+      }
+
+      if (swapDecisionAction === 'cancel') {
+        const response = await fetch(`/api/shift-swaps/${swap.id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error(await readApiErrorMessage(response));
+        }
+
+        toast.success('Swap request cancelled', {
+          description: `${format(new Date(swap.Shift.startTime), 'EEE, MMM d')} • ${format(new Date(swap.Shift.startTime), 'h:mm a')} - ${format(new Date(swap.Shift.endTime), 'h:mm a')}`,
+        });
+      }
+
+      closeSwapDecision();
       await loadData();
     } catch (error: any) {
-      alert(error.message);
+      const message = error?.message || 'Request failed';
+      setSwapDecisionError(message);
+      toast.error('Could not update swap', {
+        description: message,
+      });
+    } finally {
+      setSwapDecisionSubmitting(false);
     }
   };
 
@@ -310,6 +353,23 @@ export default function EmployeeSchedulePage() {
   }
 
   const now = new Date();
+
+  const swapDecisionTitle =
+    swapDecisionAction === 'accept'
+      ? 'Accept swap request'
+      : swapDecisionAction === 'reject'
+        ? 'Decline swap request'
+        : 'Cancel swap request';
+
+  const swapDecisionPrimaryLabel =
+    swapDecisionAction === 'accept'
+      ? 'Accept'
+      : swapDecisionAction === 'reject'
+        ? 'Decline'
+        : 'Cancel request';
+
+  const swapDecisionPrimaryVariant =
+    swapDecisionAction === 'accept' ? 'primary' : swapDecisionAction === 'reject' ? 'danger' : 'danger';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 p-6">
@@ -538,13 +598,13 @@ export default function EmployeeSchedulePage() {
                       {swap.status === 'PENDING' && (
                         <div className="flex gap-3">
                           <button
-                            onClick={() => handleAcceptSwap(swap.id)}
+                            onClick={() => openSwapDecision(swap, 'accept')}
                             className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-semibold transition-all"
                           >
                             Accept
                           </button>
                           <button
-                            onClick={() => handleRejectSwap(swap.id)}
+                            onClick={() => openSwapDecision(swap, 'reject')}
                             className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white rounded-lg font-semibold transition-all"
                           >
                             Decline
@@ -591,7 +651,7 @@ export default function EmployeeSchedulePage() {
 
                     {swap.status === 'PENDING' && (
                       <button
-                        onClick={() => handleCancelSwap(swap.id)}
+                        onClick={() => openSwapDecision(swap, 'cancel')}
                         className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-semibold transition-all border border-red-500/30"
                       >
                         Cancel Request
@@ -616,6 +676,78 @@ export default function EmployeeSchedulePage() {
           </div>
         )}
       </div>
+
+      <Dialog open={swapDecisionOpen} onOpenChange={(open) => (open ? setSwapDecisionOpen(true) : closeSwapDecision())}>
+        <DialogContent
+          title={swapDecisionTitle}
+          description={
+            swapDecisionSwap
+              ? `${format(new Date(swapDecisionSwap.Shift.startTime), 'EEEE, MMMM d, yyyy')} • ${format(new Date(swapDecisionSwap.Shift.startTime), 'h:mm a')} - ${format(new Date(swapDecisionSwap.Shift.endTime), 'h:mm a')}`
+              : undefined
+          }
+          size="md"
+          actions={
+            <>
+              <DialogAction variant="secondary" onClick={closeSwapDecision} disabled={swapDecisionSubmitting}>
+                Close
+              </DialogAction>
+              <DialogAction
+                variant={swapDecisionPrimaryVariant}
+                onClick={submitSwapDecision}
+                disabled={swapDecisionSubmitting || !swapDecisionSwap}
+              >
+                {swapDecisionSubmitting ? 'Working…' : swapDecisionPrimaryLabel}
+              </DialogAction>
+            </>
+          }
+        >
+          {swapDecisionSwap && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div className="text-sm text-gray-200">
+                  <div className="font-semibold text-white">Shift details</div>
+                  {swapDecisionSwap.Shift.role && (
+                    <div className="mt-2">
+                      <span className="text-gray-300">Role:</span> {swapDecisionSwap.Shift.role}
+                    </div>
+                  )}
+                  {swapDecisionSwap.Shift.location?.name && (
+                    <div className="mt-1">
+                      <span className="text-gray-300">Location:</span> {swapDecisionSwap.Shift.location.name}
+                    </div>
+                  )}
+                  {swapDecisionSwap.requester?.User?.name && (
+                    <div className="mt-1">
+                      <span className="text-gray-300">Requested by:</span> {swapDecisionSwap.requester.User.name}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {swapDecisionAction === 'reject' && (
+                <div className="space-y-2">
+                  <Label htmlFor="swap-reason" className="text-sm font-medium text-white">
+                    Reason (optional)
+                  </Label>
+                  <Textarea
+                    id="swap-reason"
+                    value={swapDecisionReason}
+                    onChange={(e) => setSwapDecisionReason(e.target.value)}
+                    placeholder="Add a reason to help the requester understand your decision…"
+                    className="bg-white/5 text-white placeholder:text-gray-400"
+                  />
+                </div>
+              )}
+
+              {swapDecisionError && (
+                <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200" role="alert">
+                  {swapDecisionError}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Shift Swap Modal */}
       {selectedShift && (

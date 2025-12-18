@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import Button from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Trash2, Plus, LogOut, Building2, Users, UserCheck } from "lucide-react";
 
@@ -30,6 +31,7 @@ export default function TenantAdminDashboard() {
   const [createdTenant, setCreatedTenant] = useState<{ name: string; adminEmail: string; activationLink: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const tenantNameInputRef = React.useRef<HTMLInputElement>(null);
 
   const checkAuth = useCallback(async () => {
     const response = await fetch("/api/tenant-admin/verify");
@@ -346,146 +348,153 @@ export default function TenantAdminDashboard() {
         )}
 
         {/* Create Dialog */}
-        {showCreateDialog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="glass w-full max-w-md rounded-3xl p-8 shadow-2xl">
-              {createdTenant ? (
-                <div className="space-y-4">
-                  <h2 className="text-2xl font-bold text-foreground">
-                    ✅ Tenant Created Successfully
-                  </h2>
-                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-50 p-4">
-                    <p className="font-semibold text-foreground">{createdTenant.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Admin: {createdTenant.adminEmail}
-                    </p>
+        <Dialog
+          open={showCreateDialog}
+          onOpenChange={(open) => {
+            if (open) {
+              setShowCreateDialog(true);
+              return;
+            }
+            handleCloseCreateDialog();
+          }}
+        >
+          <DialogContent
+            className="max-w-md"
+            title={createdTenant ? "✅ Tenant Created Successfully" : "Create New Tenant"}
+            onOpenAutoFocus={(event) => {
+              if (createdTenant) return;
+              event.preventDefault();
+              tenantNameInputRef.current?.focus();
+            }}
+          >
+            {createdTenant ? (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-50 p-4">
+                  <p className="font-semibold text-foreground">{createdTenant.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Admin: {createdTenant.adminEmail}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Activation Link
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={createdTenant.activationLink}
+                      readOnly
+                      className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-2 font-mono text-xs text-foreground"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        navigator.clipboard.writeText(createdTenant.activationLink);
+                        toast.success("Link copied!");
+                      }}
+                    >
+                      Copy
+                    </Button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Activation Link
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={createdTenant.activationLink}
-                        readOnly
-                        className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-2 font-mono text-xs text-foreground"
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => {
-                          navigator.clipboard.writeText(createdTenant.activationLink);
-                          toast.success("Link copied!");
-                        }}
-                      >
-                        Copy
-                      </Button>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      ✉️ Activation email sent to {createdTenant.adminEmail}
-                    </p>
-                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    ✉️ Activation email sent to {createdTenant.adminEmail}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={handleCloseCreateDialog}
+                >
+                  Done
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleCreateTenant} className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="tenantName"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    Company Name
+                  </label>
+                  <input
+                    id="tenantName"
+                    ref={tenantNameInputRef}
+                    type="text"
+                    value={newTenantName}
+                    onChange={(e) => setNewTenantName(e.target.value)}
+                    className="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-foreground focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g., Acme Corporation"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="adminName"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    Admin Full Name
+                  </label>
+                  <input
+                    id="adminName"
+                    type="text"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    className="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-foreground focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="e.g., John Smith"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="adminEmail"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    Admin Email
+                  </label>
+                  <input
+                    id="adminEmail"
+                    type="email"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    className="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-foreground focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="admin@company.com"
+                    required
+                  />
+                </div>
+                <div className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">
+                  <p className="font-medium">What will be created:</p>
+                  <ul className="mt-2 space-y-1 text-xs">
+                    <li>✓ Company tenant</li>
+                    <li>✓ Default &quot;General&quot; department</li>
+                    <li>✓ 3 permission profiles (Admin, Manager, Employee)</li>
+                    <li>✓ Admin user account</li>
+                    <li>✓ Activation email sent</li>
+                  </ul>
+                </div>
+                <div className="flex gap-2">
                   <Button
                     type="button"
-                    className="w-full"
+                    variant="secondary"
+                    className="flex-1"
                     onClick={handleCloseCreateDialog}
                   >
-                    Done
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    loading={isCreating}
+                    disabled={!newTenantName.trim() || !adminName.trim() || !adminEmail.trim()}
+                  >
+                    Create
                   </Button>
                 </div>
-              ) : (
-                <>
-                  <h2 className="mb-4 text-2xl font-bold text-foreground">
-                    Create New Tenant
-                  </h2>
-                  <form onSubmit={handleCreateTenant} className="space-y-4">
-                    <div>
-                      <label
-                        htmlFor="tenantName"
-                        className="block text-sm font-medium text-foreground"
-                      >
-                        Company Name
-                      </label>
-                      <input
-                        id="tenantName"
-                        type="text"
-                        value={newTenantName}
-                        onChange={(e) => setNewTenantName(e.target.value)}
-                        className="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-foreground focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="e.g., Acme Corporation"
-                        required
-                        autoFocus
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="adminName"
-                        className="block text-sm font-medium text-foreground"
-                      >
-                        Admin Full Name
-                      </label>
-                      <input
-                        id="adminName"
-                        type="text"
-                        value={adminName}
-                        onChange={(e) => setAdminName(e.target.value)}
-                        className="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-foreground focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="e.g., John Smith"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="adminEmail"
-                        className="block text-sm font-medium text-foreground"
-                      >
-                        Admin Email
-                      </label>
-                      <input
-                        id="adminEmail"
-                        type="email"
-                        value={adminEmail}
-                        onChange={(e) => setAdminEmail(e.target.value)}
-                        className="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-foreground focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="admin@company.com"
-                        required
-                      />
-                    </div>
-                    <div className="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">
-                      <p className="font-medium">What will be created:</p>
-                      <ul className="mt-2 space-y-1 text-xs">
-                        <li>✓ Company tenant</li>
-                        <li>✓ Default &quot;General&quot; department</li>
-                        <li>✓ 3 permission profiles (Admin, Manager, Employee)</li>
-                        <li>✓ Admin user account</li>
-                        <li>✓ Activation email sent</li>
-                      </ul>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="flex-1"
-                        onClick={handleCloseCreateDialog}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        className="flex-1"
-                        loading={isCreating}
-                        disabled={!newTenantName.trim() || !adminName.trim() || !adminEmail.trim()}
-                      >
-                        Create
-                      </Button>
-                    </div>
-                  </form>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

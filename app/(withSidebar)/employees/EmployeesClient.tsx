@@ -240,11 +240,24 @@ function EmployeesContent(props: EmployeesClientProps) {
     try {
       const skip = reset ? 0 : pagination.skip;
       const limit = 50; // Load 50 employees per page
+
+      const statusParam = status === "all" && selectedStatuses.length === 1 ? selectedStatuses[0] : status;
+
+      const departmentsParam = selectedDepartments.join(",");
+      const jobRolesParam = selectedJobRoles.join(",");
+
+      const queryParams = new URLSearchParams();
+      queryParams.set("status", statusParam);
+      queryParams.set("limit", String(limit));
+      queryParams.set("skip", String(skip));
+      if (searchQuery.trim()) queryParams.set("q", searchQuery.trim());
+      if (departmentsParam) queryParams.set("departments", departmentsParam);
+      if (jobRolesParam) queryParams.set("jobRoles", jobRolesParam);
       
       // Fetch employees only (departments and jobRoles come from server props)
       // Note: Company ID is derived server-side from the authenticated session.
       // We do NOT send x-company-id from the client to prevent cross-tenant manipulation.
-      const empRes = await fetch(`/api/employees?status=${status}&limit=${limit}&skip=${skip}`, {
+      const empRes = await fetch(`/api/employees?${queryParams.toString()}`, {
         credentials: "include",
       });
 
@@ -306,6 +319,16 @@ function EmployeesContent(props: EmployeesClientProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
+
+  // Fetch data when filters change (debounced for search)
+  useEffect(() => {
+    if (!hasMountedRef.current) return;
+    const handle = window.setTimeout(() => {
+      fetchData(activeTab, true);
+    }, searchQuery.trim() ? 250 : 0);
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, selectedDepartments, selectedJobRoles, selectedStatuses]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -627,19 +650,23 @@ function EmployeesContent(props: EmployeesClientProps) {
   // Calculate turnover (archived out of total)
   const turnoverRate = counts.all > 0 ? Math.round((counts.archived / counts.all) * 100) : 0;
   
-  // Get unique values for filter dropdowns
-  const departmentOptions = useMemo(() => 
-    Array.from(new Set(employees.filter(e => e.departmentName).map(e => e.departmentName)))
-      .sort()
-      .map(name => ({ label: name as string, value: name as string })),
-    [employees]
+  // Filter dropdown options come from server props so they remain stable even when results are filtered
+  const departmentOptions = useMemo(
+    () =>
+      (departments || [])
+        .filter((d: any) => d?.name)
+        .map((d: any) => ({ label: d.name as string, value: d.name as string }))
+        .sort((a: FilterOption, b: FilterOption) => a.label.localeCompare(b.label)),
+    [departments],
   );
-  
-  const jobRoleOptions = useMemo(() => 
-    Array.from(new Set(employees.filter(e => e.jobRoleName).map(e => e.jobRoleName)))
-      .sort()
-      .map(name => ({ label: name as string, value: name as string })),
-    [employees]
+
+  const jobRoleOptions = useMemo(
+    () =>
+      (jobRoles || [])
+        .filter((j: any) => j?.name)
+        .map((j: any) => ({ label: j.name as string, value: j.name as string }))
+        .sort((a: FilterOption, b: FilterOption) => a.label.localeCompare(b.label)),
+    [jobRoles],
   );
   
   const statusOptions = [
@@ -647,40 +674,7 @@ function EmployeesContent(props: EmployeesClientProps) {
     { label: "Archived", value: "archived" },
   ];
   
-  // Filter employees based on search and filters
-  const filteredEmployees = useMemo(() => {
-    return employees.filter(emp => {
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch = 
-          emp.firstName?.toLowerCase().includes(query) ||
-          emp.lastName?.toLowerCase().includes(query) ||
-          emp.email?.toLowerCase().includes(query) ||
-          emp.departmentName?.toLowerCase().includes(query) ||
-          emp.jobRoleName?.toLowerCase().includes(query);
-        if (!matchesSearch) return false;
-      }
-      
-      // Department filter
-      if (selectedDepartments.length > 0 && !selectedDepartments.includes(emp.departmentName || "")) {
-        return false;
-      }
-      
-      // Job Role filter
-      if (selectedJobRoles.length > 0 && !selectedJobRoles.includes(emp.jobRoleName || "")) {
-        return false;
-      }
-      
-      // Status filter
-      if (selectedStatuses.length > 0) {
-        const empStatus = emp.isActive ? "active" : "archived";
-        if (!selectedStatuses.includes(empStatus)) return false;
-      }
-      
-      return true;
-    });
-  }, [employees, searchQuery, selectedDepartments, selectedJobRoles, selectedStatuses]);
+  const tabTotal = activeTab === "active" ? counts.active : activeTab === "archived" ? counts.archived : counts.all;
   
   // Clear all filters
   const clearAllFilters = () => {
@@ -862,7 +856,13 @@ function EmployeesContent(props: EmployeesClientProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => {
+              setSelectedStatuses([]);
+              setActiveTab(value);
+            }}
+          >
             <TabsList className="grid w-full max-w-md grid-cols-3 bg-muted/50 backdrop-blur-sm p-1 rounded-xl">
               <TabsTrigger 
                 value="active" 
@@ -1250,7 +1250,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                   
                   {/* Results count */}
                   <span className="text-xs text-muted-foreground ml-auto">
-                    {filteredEmployees.length} of {employees.length} employees
+                    {employees.length} of {tabTotal} employees
                   </span>
                 </motion.div>
               )}
@@ -1268,8 +1268,11 @@ function EmployeesContent(props: EmployeesClientProps) {
           <div className="p-5">
             <DataTable<Employee, unknown>
               columns={columns}
-              data={filteredEmployees}
+              data={employees}
               getRowId={(row) => row.id}
+              virtualizeRows
+              virtualizeContainerHeight={560}
+              virtualizeEstimateRowHeight={64}
               onFilteredRowsChange={(rows) => setVisibleEmployees(rows as Employee[])}
               resetFiltersAt={resetFiltersTick}
             />

@@ -48,8 +48,23 @@ export async function GET(
     }
 
     // Authorization: user can view their own or admin/manager can view any
-    const currentUserEmployeeId = (session.user as any).employeeId;
-    const isSelf = currentUserEmployeeId === employeeId;
+    const sessionEmployeeId = (session.user as any).employeeId as string | undefined;
+    let currentUserEmployeeId: string | undefined = sessionEmployeeId;
+
+    // Some sessions (especially employee logins) may not include employeeId.
+    // Resolve it via the linked Employee record so "self" access still works.
+    if (!currentUserEmployeeId) {
+      const linkedEmployee = await prisma.employee.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: session.user.companyId,
+        },
+        select: { id: true },
+      });
+      currentUserEmployeeId = linkedEmployee?.id;
+    }
+
+    const isSelf = Boolean(currentUserEmployeeId && currentUserEmployeeId === employeeId);
     const hasPrivilege = isAdminOrManager(session);
 
     if (!isSelf && !hasPrivilege) {

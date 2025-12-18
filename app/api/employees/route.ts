@@ -205,6 +205,9 @@ export async function GET(req: NextRequest) {
     const managerId = searchParams.get("managerId");
     const scope = (searchParams.get("scope") || "directory").toLowerCase();
     const workingPatternType = searchParams.get("workingPatternType"); // Filter by pattern type (SHIFT_BASED, STANDARD, etc.)
+    const searchQuery = (searchParams.get("q") || searchParams.get("search") || "").trim();
+    const departmentsParam = (searchParams.get("departments") || "").trim();
+    const jobRolesParam = (searchParams.get("jobRoles") || "").trim();
     
     const limitParam = searchParams.get("limit");
     if (limitParam === "all") {
@@ -266,6 +269,55 @@ export async function GET(req: NextRequest) {
       
       whereCondition.AND = whereCondition.AND || [];
       whereCondition.AND.push(patternFilter);
+    }
+
+    const departments = departmentsParam
+      ? departmentsParam
+          .split(",")
+          .map((s) => decodeURIComponent(s).trim())
+          .filter(Boolean)
+      : [];
+
+    const jobRoles = jobRolesParam
+      ? jobRolesParam
+          .split(",")
+          .map((s) => decodeURIComponent(s).trim())
+          .filter(Boolean)
+      : [];
+
+    if (departments.length > 0) {
+      whereCondition.AND = whereCondition.AND || [];
+      whereCondition.AND.push({
+        Department: {
+          is: {
+            name: { in: departments },
+          },
+        },
+      });
+    }
+
+    if (jobRoles.length > 0) {
+      whereCondition.AND = whereCondition.AND || [];
+      whereCondition.AND.push({
+        JobRole: {
+          is: {
+            name: { in: jobRoles },
+          },
+        },
+      });
+    }
+
+    if (searchQuery) {
+      whereCondition.AND = whereCondition.AND || [];
+      whereCondition.AND.push({
+        OR: [
+          { User: { firstName: { contains: searchQuery, mode: "insensitive" } } },
+          { User: { lastName: { contains: searchQuery, mode: "insensitive" } } },
+          { User: { email: { contains: searchQuery, mode: "insensitive" } } },
+          { Department: { is: { name: { contains: searchQuery, mode: "insensitive" } } } },
+          { JobRole: { is: { name: { contains: searchQuery, mode: "insensitive" } } } },
+        ],
+      });
     }
 
     // Allow admins to explicitly scope to their managed hierarchy

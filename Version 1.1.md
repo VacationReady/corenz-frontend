@@ -647,3 +647,55 @@ Improved the tenant creation dialog to validate the admin email address client-s
 157. Tenant Switch Failure Recovery
 
 Improved the tenant switch page so expired, used, missing, or invalid switch links provide clear guidance and next steps instead of leaving admins stranded. Added a retry action to re-attempt the switch, plus accessible focus management to move focus to the primary recovery control when an error occurs.
+
+158. Calendar List View Detail Improvements
+
+Improved the Calendar list view to show the person, leave type, date range, and total days in a cleaner, more informative layout. Employees now only see colleagues’ holiday/annual leave entries in the calendar, ensuring sickness remains private.
+
+159. Documents Upload Category and Audience Guardrails
+
+Improved the document upload flow so the required Category field no longer offers the “All Categories” filter option, defaulting instead to a usable “Uncategorized” category to prevent first-time uploads from dead-ending. Added clear validation and inline guidance to ensure at least one audience (Admins, Managers, or Employees) is selected so uploaded documents remain accessible. Users can no longer upload or save access changes with all visibility switches turned off, with submission disabled until the configuration is valid. The visibility section now provides immediate feedback showing exactly which roles will be able to view the document before it is saved.
+
+160. Employee Documents Default List View
+
+Updated the employee documents page to default to list view (rather than card view), matching the main Documents area for consistency. This provides a faster, more scannable overview when reviewing an employee file, whilst still allowing users to switch views as needed.
+
+161. Sidebar Layout Server Rendering Optimisation
+
+Refactored the main sidebar layout to render on the server, resolving the user session and role server-side to avoid layout-wide client hydration and re-renders during navigation. Extracted mobile sidebar opening/closing into a small client-only wrapper so route changes reliably close the drawer, whilst keeping the page content server-rendered for smoother transitions.
+
+162. Leave Calendar Performance Optimisation
+
+Optimised the employee Leave Calendar to fetch only the currently visible date range rather than loading large historical datasets. Calendar tiles now render using a pre-indexed date map instead of scanning leave requests per day, making month navigation significantly snappier.
+
+163. Employee Documents API Performance Optimisation
+
+Optimised the employee documents experience by collapsing the initial page load into a single bootstrap request that returns the document list alongside key context (employee name, company name, and viewer role). Per-document acknowledgement and signature state is now prefetched via a batched status endpoint and cached client-side, avoiding repeated requests each time a document is opened.
+
+164. Dashboard Polling and Caching Optimisation
+
+Reduced unnecessary background polling across admin dashboard widgets by lengthening refresh intervals, pausing revalidation when the tab is not visible, and favouring revalidation on focus/reconnect. Updated key dashboard endpoints to return short-lived, private cache headers, reducing baseline API traffic, noisy logs, and client CPU/battery usage when data is static. Improved the dashboard Documents widget to request only a small, ordered subset of documents needed for the “Acknowledge” and “Sign” cards, rather than downloading full company and employee document datasets and slicing client-side. Document list endpoints now support server-side limiting and action-required filtering, reducing payload sizes and improving dashboard paint time as document volume grows.
+
+165. Employees API Pagination Guardrails
+
+Removed support for unbounded employee queries via `limit=all`, enforcing a strict per-request limit with cursor-based pagination to prevent heavy, multi-second database reads on large tenants. Added lightweight server-side timing and result-count metrics (plus test coverage) to help track p95/p99 latency and ensure the endpoint remains scalable under load.
+
+166. Document Signature Workflow Guardrails
+
+Prevented signature-required documents from appearing in employee action items until signature fields have been placed, avoiding “Sign document” tasks with no fields to complete. This ensures only fully configured, ready-to-sign documents trigger the signing workflow, improving clarity and reducing confusing notifications.
+
+167. Leave Booking Working Pattern Deduction Fix
+
+Fixed leave booking deduction calculations so the selected end date is treated as the last day away (inclusive), ensuring “Days Deducted” matches the employee’s working pattern. Updated the approval flow to use the same working-pattern deduction so the days shown and the balance impact remain consistent from request through to approval.
+
+168. Leave Approval Action Items De-duplication
+
+Removed the duplicate “Complete” task created for leave approvals so leave requests only appear once in the dashboard action items. Approving from the widget now consistently opens the full leave approval modal (including custom event types) rather than allowing a generic task completion.
+
+169. Tenant Switch Recovery Path Clarification
+
+Updated the tenant switch error screen so “Request a new switch link” takes admins directly back to the Tenant Admin dashboard (after login) rather than looping to the same destination as “Back to Admin Portal”. Also wrapped `useSearchParams()` usage on `/tenant-admin` in a Suspense boundary to prevent prerender build failures.
+
+170. Employees Directory Performance Optimisation
+
+Improved the Employees directory performance for larger tenants by virtualising table rows so the UI only renders what’s visible on screen. Search and filters are now applied server-side with paginated requests, reducing expensive client-side filtering and smoothing scrolling when viewing hundreds of employees.

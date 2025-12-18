@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
+import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 
 export const runtime = "nodejs";
 
@@ -86,13 +87,20 @@ export async function GET(
       },
     });
 
-    // Calculate days for this request (simplified - assumes full days)
+    // Calculate days for this request using working pattern
     const startDate = new Date(leaveRequest.startDate);
     const endDate = new Date(leaveRequest.endDate);
-    const daysDiff = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    const requestedDays = daysDiff;
+    
+    // Calculate working pattern deduction (end date is inclusive - last day away)
+    let requestedDays = 0;
+    for (
+      let time = startDate.getTime();
+      time <= endDate.getTime();
+      time += 24 * 60 * 60 * 1000
+    ) {
+      const currentDate = new Date(time);
+      requestedDays += await calculateLeaveDeduction(employee.id, currentDate);
+    }
 
     // Calculate remaining days if approved
     const remainingDaysIfApproved = entitlement

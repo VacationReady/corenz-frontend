@@ -134,6 +134,10 @@ export function DataTable<TData, TValue>({
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => virtualizeEstimateRowHeight,
     overscan: virtualizeOverscan,
+    measureElement:
+      typeof window !== "undefined" && "ResizeObserver" in window
+        ? (el: Element) => (el as HTMLElement).getBoundingClientRect().height
+        : undefined,
   });
   const virtualItems = rowVirtualizer.getVirtualItems();
   const totalSize = rowVirtualizer.getTotalSize();
@@ -183,7 +187,7 @@ export function DataTable<TData, TValue>({
         style={virtualizeRows ? { height: virtualizeContainerHeight } : undefined}
       >
         <table className="min-w-full border-collapse">
-          <thead className="bg-muted">
+          <thead className={virtualizeRows ? "bg-muted sticky top-0 z-10" : "bg-muted"}>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b">
                 {headerGroup.headers.map((header) => (
@@ -230,9 +234,9 @@ export function DataTable<TData, TValue>({
                                     new Set(
                                       header.getContext().table
                                         .getPreFilteredRowModel()
-                                        .rows.map((r) => r.getValue(header.column.id))
-                                        .map((v) => (v ?? "").toString())
-                                        .filter((v) => v.length > 0),
+                                        .rows.map((r: any) => r.getValue(header.column.id))
+                                        .map((v: any) => (v ?? "").toString())
+                                        .filter((v: any) => v.length > 0),
                                     ),
                                   );
                                   options = values.map((v) => ({ label: v, value: v }));
@@ -278,7 +282,14 @@ export function DataTable<TData, TValue>({
                   const row = rows[virtualRow.index];
                   if (!row) return null;
                   return (
-                    <tr key={row.id} className="border-b hover:bg-muted/50" style={{ height: virtualRow.size }}>
+                    <tr
+                      key={row.id}
+                      ref={(el) => {
+                        if (el) rowVirtualizer.measureElement(el);
+                      }}
+                      data-index={virtualRow.index}
+                      className="border-b hover:bg-muted/50"
+                    >
                       {row.getVisibleCells().map((cell) => (
                         <td key={cell.id} className="px-4 py-2 text-sm">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}

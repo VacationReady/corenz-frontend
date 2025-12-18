@@ -57,6 +57,7 @@
     "@sentry/nextjs": "^10.29.0",
     "@supabase/supabase-js": "^2.50.3",
     "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-virtual": "^3.13.12",
     "@tiptap/core": "^3.4.4",
     "@tiptap/extension-code-block-lowlight": "^3.4.4",
     "@tiptap/extension-highlight": "^3.4.4",

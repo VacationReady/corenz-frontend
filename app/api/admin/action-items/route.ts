@@ -128,10 +128,17 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({
-      success: true,
-      data: enrichedItems,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: enrichedItems,
+      },
+      {
+        headers: {
+          "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+        },
+      }
+    );
   } catch (error) {
     console.error("Failed to fetch admin action items:", error);
     return NextResponse.json(

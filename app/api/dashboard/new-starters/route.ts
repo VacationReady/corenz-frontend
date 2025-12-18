@@ -104,7 +104,14 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ items });
+    return NextResponse.json(
+      { items },
+      {
+        headers: {
+          "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (error) {
     console.error("[DASHBOARD_NEW_STARTERS]", error);
     return NextResponse.json({ error: "Failed to fetch new starters" }, { status: 500 });

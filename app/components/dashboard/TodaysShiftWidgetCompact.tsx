@@ -11,6 +11,19 @@ import { format } from 'date-fns';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+function usePageVisibility() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const update = () => setVisible(document.visibilityState === 'visible');
+    update();
+    document.addEventListener('visibilitychange', update);
+    return () => document.removeEventListener('visibilitychange', update);
+  }, []);
+
+  return visible;
+}
+
 interface ClockStatus {
   isClockedIn: boolean;
   activeEntry: {
@@ -28,11 +41,17 @@ export function TodaysShiftWidgetCompact({ employeeId }: { employeeId: string })
   const [currentTime, setCurrentTime] = useState(new Date());
   const [clockStatus, setClockStatus] = useState<ClockStatus | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const visible = usePageVisibility();
 
   const { data, error, isLoading, mutate } = useSWR(
     employeeId ? `/api/shifts/today?employeeId=${employeeId}` : null,
     fetcher,
-    { refreshInterval: 30000 }
+    {
+      refreshInterval: visible ? 120000 : 0,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000,
+    }
   );
 
   const { data: settingsData } = useSWR('/api/settings/time-tracking', fetcher);

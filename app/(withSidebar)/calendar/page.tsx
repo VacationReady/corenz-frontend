@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef, useRef as useMutableRef, useMemo, useCallback, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { format, formatDistanceToNow, differenceInDays, differenceInCalendarDays } from "date-fns";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -687,8 +688,31 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     const categoryIconKey = (content.event.extendedProps as any)?.categoryIconKey as string | null;
     const Icon = getEventCategoryIcon(categoryIconKey);
     const employee = (content.event.extendedProps as any)?.employee as any | undefined;
+    const isListView = content.view.type === "listMonth";
+    
+    // Calculate total days for the leave request
+    const calculateTotalDays = () => {
+      if (!content.event.start) return 1;
+      const start = content.event.start;
+      // FullCalendar uses exclusive end dates, so subtract 1 day for display
+      const end = content.event.end ? new Date(content.event.end.getTime() - 86400000) : start;
+      return Math.max(1, differenceInCalendarDays(end, start) + 1);
+    };
     
     if (isBankHoliday) {
+      if (isListView) {
+        return (
+          <div className="flex items-center gap-3 py-2 px-3 w-full">
+            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+              <CalendarDays className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-sm text-emerald-700 dark:text-emerald-300">{content.event.title}</div>
+              <div className="text-xs text-muted-foreground">Public Holiday</div>
+            </div>
+          </div>
+        );
+      }
       return (
         <div className="flex items-center gap-1 text-[9px] font-medium text-emerald-700 px-1 py-0.5 rounded bg-emerald-50/80">
           <CalendarDays className="h-2.5 w-2.5" /> {content.event.title}
@@ -696,6 +720,19 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
       );
     }
     if (isBlackout) {
+      if (isListView) {
+        return (
+          <div className="flex items-center gap-3 py-2 px-3 w-full">
+            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+              <Lock className="h-4 w-4 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-sm text-red-700 dark:text-red-300">Blackout Day</div>
+              <div className="text-xs text-muted-foreground">No leave bookings allowed</div>
+            </div>
+          </div>
+        );
+      }
       return (
         <div className="flex items-center gap-1 text-[9px] font-medium text-red-700 px-1 py-0.5 rounded bg-red-50/80">
           <Lock className="h-2.5 w-2.5" /> Blackout
@@ -706,6 +743,110 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     // Only admins/managers can delete leave from calendar (which shows only approved leave)
     const canDelete = !isEmployeeRole;
     
+    // List view - show rich information inline
+    if (isListView) {
+      const totalDays = calculateTotalDays();
+      const startDate = content.event.start;
+      const endDate = content.event.end ? new Date(content.event.end.getTime() - 86400000) : startDate;
+      const isSingleDay = totalDays === 1;
+      
+      return (
+        <div className="flex items-center gap-4 py-2.5 px-3 w-full group hover:bg-muted/30 transition-colors rounded-lg">
+          {/* Employee Avatar & Name */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Avatar 
+              src={employee?.profileImageUrl ?? null} 
+              name={employee?.name ?? null} 
+              size={36} 
+              className="ring-2 ring-background shadow-sm flex-shrink-0" 
+            />
+            <div className="min-w-0 flex-1">
+              <div className="font-medium text-sm truncate">
+                {employee?.name || "Unknown"}
+              </div>
+              {employee?.department && (
+                <div className="text-xs text-muted-foreground truncate">
+                  {employee.department}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Leave Type Badge */}
+          <div className="flex-shrink-0">
+            {categoryName ? (
+              <Badge className={cn("text-xs flex items-center gap-1.5", getCategoryColor(categoryName))}>
+                <Icon className="h-3 w-3" />
+                {categoryName}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs">
+                Leave
+              </Badge>
+            )}
+          </div>
+          
+          {/* Date Range */}
+          <div className="flex-shrink-0 text-right min-w-[140px]">
+            <div className="text-sm font-medium">
+              {isSingleDay 
+                ? formatTenantDate(startDate!, tenantTimeSettings, "d MMM yyyy")
+                : `${formatTenantDate(startDate!, tenantTimeSettings, "d MMM")} – ${formatTenantDate(endDate!, tenantTimeSettings, "d MMM yyyy")}`
+              }
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {totalDays} {totalDays === 1 ? "day" : "days"}
+            </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {employee?.id && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/employees/${employee.id}/leave`);
+                }}
+              >
+                <Eye className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (confirm("Delete this leave request? This action cannot be undone.")) {
+                    try {
+                      const res = await fetch(`/api/leave-request/${leaveRequestId}`, {
+                        method: "DELETE",
+                      });
+                      if (!res.ok) {
+                        const data = await res.json();
+                        throw new Error(data.error || "Failed to delete");
+                      }
+                      toast.success("Leave request deleted");
+                      refreshCalendar();
+                    } catch (error: any) {
+                      toast.error(error.message || "Failed to delete leave request");
+                    }
+                  }
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    // Month view - compact popover
     return (
       <Popover>
         <PopoverTrigger asChild>

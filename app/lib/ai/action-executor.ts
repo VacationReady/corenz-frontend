@@ -868,10 +868,9 @@ async function handleBookLeave(action: AIAction): Promise<ActionResult> {
       const endDateObj = new Date(pending.data.endDate);
       const totalDays: number[] = [];
       let currentDate = new Date(startDateObj);
-      const exclusiveEnd = new Date(endDateObj);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+      // End date is the last day away (inclusive) - UI instructs user not to include return-to-work day
 
-      while (currentDate <= exclusiveEnd) {
+      while (currentDate <= endDateObj) {
         const deduction = await calculateLeaveDeduction(pending.data.employeeId, currentDate);
         totalDays.push(deduction);
         currentDate.setDate(currentDate.getDate() + 1);

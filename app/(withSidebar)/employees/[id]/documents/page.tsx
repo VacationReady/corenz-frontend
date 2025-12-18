@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import Button from "@/components/ui/Button";
 import { PageShell } from "@/components/ui/PageShell";
-import { PageLoader } from "@/components/ui/LoadingSpinner";
 import { 
   FileText, 
   AlertCircle, 
@@ -398,16 +397,13 @@ function EmployeeDocumentsContent({
   const [requiresSignature, setRequiresSignature] = useState(false);
   const [signatureDueAt, setSignatureDueAt] = useState("");
   const [isPlacementBeforeSendOpen, setIsPlacementBeforeSendOpen] = useState(false);
-  const [fields, setFields] = useState<any[]>([]);
-  const [showCapture, setShowCapture] = useState(false);
-  const [activeFieldIdx, setActiveFieldIdx] = useState<number | null>(null);
   const [showAckSuccess, setShowAckSuccess] = useState(false);
   const [showSignSuccess, setShowSignSuccess] = useState(false);
   const [showUploadSuccess, setShowUploadSuccess] = useState(false);
   const [uploadSuccessType, setUploadSuccessType] = useState<UploadSuccessType>("standard");
   const [uploadSuccessDocName, setUploadSuccessDocName] = useState("");
   const [companyName, setCompanyName] = useState<string>("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(false);
@@ -426,6 +422,21 @@ function EmployeeDocumentsContent({
   const [signatureValue, setSignatureValue] = useState<SignatureCaptureValue | null>(null);
   const [pendingOpenId, setPendingOpenId] = useState<string | null>(null);
 
+  const [statusByDocumentId, setStatusByDocumentId] = useState<
+    Record<
+      string,
+      {
+        acknowledged: boolean;
+        signed: boolean;
+        requiresAck: boolean;
+        requiresSignature: boolean;
+      }
+    >
+  >({});
+
+  const [ackDateByDocumentId, setAckDateByDocumentId] = useState<Record<string, Date>>({});
+  const [eligibleByDocumentId, setEligibleByDocumentId] = useState<Record<string, boolean>>({});
+
   const [isViewAckOpen, setIsViewAckOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
@@ -433,77 +444,138 @@ function EmployeeDocumentsContent({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
-  const fetchUserRole = async () => {
-    try {
-      const res = await fetch("/api/auth/session");
-      if (!res.ok) return;
-      const session = await res.json();
-      const role = session?.user?.role || null;
-      setUserRole(role);
-      if (session?.user?.company?.name) {
-        setCompanyName(session.user.company.name);
-      }
-    } catch (error) {
-      console.error("Error fetching user role", error);
-    }
-  };
-
   const tenantFetch = useTenantFetch();
 
-  const fetchDocuments = async () => {
-    const res = await tenantFetch(`/api/documents/list?employeeId=${employeeId}`);
+  const fetchBootstrap = useCallback(async () => {
+    const res = await tenantFetch(`/api/documents/list?employeeId=${employeeId}&bootstrap=1`);
     const data = await res.json();
-    setDocuments(data);
-    setLoading(false);
-  };
 
-  const fetchEmployeeName = async () => {
-    try {
-      const res = await tenantFetch(`/api/employees/${employeeId}`);
-      if (res.ok) {
-        const employee = await res.json();
-        const name = `${employee.user?.firstName || ""} ${employee.user?.lastName || ""}`.trim();
-        setEmployeeName(name || "Employee");
+    const docs = Array.isArray(data) ? data : (data?.documents || []);
+    setDocuments(Array.isArray(docs) ? docs : []);
+    setLoading(false);
+
+    const role = data?.viewer?.role || null;
+    if (role) setUserRole(role);
+    if (data?.company?.name) setCompanyName(data.company.name);
+    if (data?.employee?.name) setEmployeeName(data.employee.name);
+  }, [employeeId, tenantFetch]);
+
+  const prefetchStatuses = useCallback(
+    async (docs: Document[]) => {
+      const ids = (docs || []).map((d) => d.id).filter(Boolean);
+      if (!ids.length) {
+        setStatusByDocumentId({});
+        return;
       }
-    } catch (error) {
-      console.error("Error fetching employee name:", error);
-    }
-  };
+
+      try {
+        const res = await tenantFetch("/api/documents/status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentIds: ids }),
+        });
+        if (!res.ok) return;
+        const payload = await res.json();
+        if (payload?.statuses && typeof payload.statuses === "object") {
+          setStatusByDocumentId(payload.statuses);
+        }
+      } catch {
+        // ignore
+      }
+    },
+    [tenantFetch],
+  );
 
   useEffect(() => {
-    if (selectedDoc?.id) {
-      tenantFetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.acknowledged) {
-            setAcknowledged(true);
-            setAckDate(new Date(data.acknowledgedAt));
-          } else {
+    if (!selectedDoc?.id) return;
+
+    const docId = selectedDoc.id;
+    const status = statusByDocumentId[docId];
+
+    // Acknowledgement: avoid request unless we need the date
+    if (selectedDoc.requiresAck) {
+      if (ackDateByDocumentId[docId]) {
+        setAcknowledged(true);
+        setAckDate(ackDateByDocumentId[docId]);
+      } else if (status?.acknowledged) {
+        tenantFetch(`/api/documents/acknowledge/${docId}/me`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.acknowledged && data?.acknowledgedAt) {
+              const d = new Date(data.acknowledgedAt);
+              setAckDateByDocumentId((prev) => ({ ...prev, [docId]: d }));
+              setAcknowledged(true);
+              setAckDate(d);
+            } else {
+              setAcknowledged(false);
+              setAckDate(null);
+            }
+          })
+          .catch(() => {
             setAcknowledged(false);
             setAckDate(null);
-          }
-        });
-      tenantFetch(`/api/documents/signatures/${selectedDoc.id}/me`)
-        .then((res) => res.json())
-        .then((data) => { setSigned(!!data.signed); setEligible(!!data.eligible); })
-        .catch(() => { setSigned(false); setEligible(false); });
-      tenantFetch(`/api/documents/signature-fields/${selectedDoc.id}`)
-        .then((r) => r.json())
-        .then((data) => setFields(Array.isArray(data) ? data : []))
-        .catch(() => setFields([]));
+          });
+      } else {
+        setAcknowledged(false);
+        setAckDate(null);
+      }
+    } else {
+      setAcknowledged(false);
+      setAckDate(null);
     }
-  }, [selectedDoc, tenantFetch]);
+
+    // Signature: use batched signed flag; only fetch eligibility when needed
+    if (selectedDoc.requiresSignature) {
+      const signedFlag = !!status?.signed;
+      setSigned(signedFlag);
+
+      if (signedFlag) {
+        setEligible(false);
+      } else if (docId in eligibleByDocumentId) {
+        setEligible(!!eligibleByDocumentId[docId]);
+      } else {
+        tenantFetch(`/api/documents/signatures/${docId}/me`)
+          .then((res) => res.json())
+          .then((data) => {
+            const elig = !!data?.eligible;
+            setEligibleByDocumentId((prev) => ({ ...prev, [docId]: elig }));
+            setEligible(elig);
+            if (data?.signed) {
+              setSigned(true);
+              setStatusByDocumentId((prev) => ({
+                ...prev,
+                [docId]: {
+                  acknowledged: prev?.[docId]?.acknowledged ?? false,
+                  signed: true,
+                  requiresAck: prev?.[docId]?.requiresAck ?? false,
+                  requiresSignature: prev?.[docId]?.requiresSignature ?? true,
+                },
+              }));
+            }
+          })
+          .catch(() => {
+            setEligible(false);
+          });
+      }
+    } else {
+      setSigned(false);
+      setEligible(true);
+    }
+  }, [selectedDoc, tenantFetch, statusByDocumentId, ackDateByDocumentId, eligibleByDocumentId]);
 
   useEffect(() => {
     if (employeeId) {
-      fetchDocuments();
-      fetchUserRole();
-      fetchEmployeeName();
+      fetchBootstrap();
       const url = new URL(window.location.href);
       const openId = url.searchParams.get("open");
       if (openId) setPendingOpenId(openId);
     }
-  }, [employeeId]);
+  }, [employeeId, fetchBootstrap]);
+
+  useEffect(() => {
+    if (!documents.length) return;
+    prefetchStatuses(documents);
+  }, [documents, prefetchStatuses]);
 
   useEffect(() => {
     if (!pendingOpenId || loading) return;
@@ -518,11 +590,11 @@ function EmployeeDocumentsContent({
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.employeeId === employeeId) fetchDocuments();
+      if (detail?.employeeId === employeeId) fetchBootstrap();
     };
     window.addEventListener("employee-documents-updated", handler);
     return () => window.removeEventListener("employee-documents-updated", handler);
-  }, [employeeId]);
+  }, [employeeId, fetchBootstrap]);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -593,7 +665,7 @@ function EmployeeDocumentsContent({
           setCanViewManager(false);
           setCanViewEmployee(true);
           setRequiresAck(false);
-          fetchDocuments();
+          fetchBootstrap();
           setUploadSuccessDocName(name);
           setUploadSuccessType(requiresAck ? "ack" : "standard");
           setShowUploadSuccess(true);
@@ -628,7 +700,7 @@ function EmployeeDocumentsContent({
       if (res.ok) {
         setIsDeleteConfirmOpen(false);
         setShowDeleteSuccess(true);
-        fetchDocuments();
+        fetchBootstrap();
       } else {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error || "Failed to delete document");
@@ -658,10 +730,21 @@ function EmployeeDocumentsContent({
       });
       if (res.ok) {
         setAcknowledged(true);
-        setAckDate(new Date());
+        const d = new Date();
+        setAckDate(d);
+        setAckDateByDocumentId((prev) => ({ ...prev, [selectedDoc.id]: d }));
         setIsPreviewModalOpen(false);
         setShowAckSuccess(true);
-        fetchDocuments();
+        setStatusByDocumentId((prev) => ({
+          ...prev,
+          [selectedDoc.id]: {
+            acknowledged: true,
+            signed: prev?.[selectedDoc.id]?.signed ?? false,
+            requiresAck: true,
+            requiresSignature: prev?.[selectedDoc.id]?.requiresSignature ?? false,
+          },
+        }));
+        fetchBootstrap();
       } else {
         toast("Failed to acknowledge document");
       }
@@ -682,7 +765,6 @@ function EmployeeDocumentsContent({
           method: signature.method,
           typedText: signature.typedText,
           drawnDataUrl: signature.dataUrl,
-          fieldId: activeFieldIdx != null ? fields[activeFieldIdx]?.id : undefined,
         }),
       });
       if (res.ok) {
@@ -695,7 +777,16 @@ function EmployeeDocumentsContent({
         } catch {}
         setIsPreviewModalOpen(false);
         setShowSignSuccess(true);
-        fetchDocuments();
+        setStatusByDocumentId((prev) => ({
+          ...prev,
+          [selectedDoc.id]: {
+            acknowledged: prev?.[selectedDoc.id]?.acknowledged ?? false,
+            signed: true,
+            requiresAck: prev?.[selectedDoc.id]?.requiresAck ?? false,
+            requiresSignature: true,
+          },
+        }));
+        fetchBootstrap();
       } else {
         toast("Failed to submit signature");
       }
@@ -1337,7 +1428,7 @@ function EmployeeDocumentsContent({
               isOpen={isEditAccessOpen}
               onClose={() => setIsEditAccessOpen(false)}
               document={editingDoc}
-              onSaved={fetchDocuments}
+              onSaved={fetchBootstrap}
               isEmployeeDocument
             />
           )}
@@ -1369,12 +1460,12 @@ function EmployeeDocumentsContent({
               }
               setIsPlacementBeforeSendOpen(false);
               setIsUploadModalOpen(false);
-              fetchDocuments();
+              fetchBootstrap();
             }}
             onSaveComplete={async () => {
               setIsPlacementBeforeSendOpen(false);
               setIsUploadModalOpen(false);
-              fetchDocuments();
+              fetchBootstrap();
               setUploadSuccessDocName(selectedDoc?.name || "");
               setUploadSuccessType("sign");
               setShowUploadSuccess(true);

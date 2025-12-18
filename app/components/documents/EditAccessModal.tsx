@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
@@ -79,6 +79,15 @@ export default function EditAccessModal({
   const [signerDepartments, setSignerDepartments] = useState<string[]>([]);
   const [signerJobRoles, setSignerJobRoles] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+
+  const hasAnyAudience = canAdmin || canManager || canEmployee;
+  const audienceSummary = useMemo(() => {
+    const roles: string[] = [];
+    if (canAdmin) roles.push("Admins");
+    if (canManager) roles.push("Managers");
+    if (canEmployee) roles.push("Employees");
+    return roles.join(", ");
+  }, [canAdmin, canManager, canEmployee]);
   const [departmentsList, setDepartmentsList] = useState<
     { label: string; value: string }[]
   >([]);
@@ -136,6 +145,11 @@ export default function EditAccessModal({
     
     if (!documentName.trim()) {
       toast.error("Document name cannot be empty");
+      return;
+    }
+
+    if (!hasAnyAudience) {
+      toast.error("Select at least one audience (Admins, Managers, or Employees).");
       return;
     }
     
@@ -363,6 +377,16 @@ export default function EditAccessModal({
                 )}
               </motion.button>
             </div>
+
+            {!hasAnyAudience ? (
+              <div className="text-sm text-red-600 dark:text-red-400">
+                Select at least one audience so this document remains accessible.
+              </div>
+            ) : (
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Visible to: {audienceSummary}
+              </div>
+            )}
           </motion.div>
 
           {/* Acknowledgement Section */}
@@ -456,7 +480,7 @@ export default function EditAccessModal({
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={handleSave}
-            disabled={isSaving || !documentName.trim()}
+            disabled={isSaving || !documentName.trim() || !hasAnyAudience}
             className="w-full h-11 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium shadow-lg shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
           >
             {isSaving ? (

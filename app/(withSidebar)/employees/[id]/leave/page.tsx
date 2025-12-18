@@ -174,9 +174,11 @@ function SickLeaveCard({
 function OtherEntitlementsCard({
   entitlements,
   onEdit,
+  canEdit = false,
 }: {
   entitlements: OtherEntitlement[];
   onEdit: () => void;
+  canEdit?: boolean;
 }) {
   const hasEntitlements = entitlements.length > 0;
 
@@ -187,13 +189,15 @@ function OtherEntitlementsCard({
       transition={{ delay: 0.1 }}
       className="p-4 rounded-xl bg-gradient-to-br from-purple-50/30 to-violet-50/10 border border-purple-200/30 dark:from-purple-950/30 dark:to-violet-950/10 dark:border-purple-800/30 relative"
     >
-      <button
-        onClick={onEdit}
-        className="absolute top-2 right-2 p-1.5 rounded-md bg-background/50 hover:bg-background/80 transition-colors"
-        title="Edit other entitlements"
-      >
-        <Edit className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
-      </button>
+      {canEdit && (
+        <button
+          onClick={onEdit}
+          className="absolute top-2 right-2 p-1.5 rounded-md bg-background/50 hover:bg-background/80 transition-colors"
+          title="Edit other entitlements"
+        >
+          <Edit className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+        </button>
+      )}
 
       <div className="flex items-center gap-3 mb-3">
         <div className="p-2 rounded-lg bg-purple-500/10">
@@ -216,9 +220,6 @@ function OtherEntitlementsCard({
       ) : (
         <div className="text-center py-2">
           <p className="text-sm text-muted-foreground">No other entitlements</p>
-          <p className="text-xs text-muted-foreground/70 mt-1">
-            Click edit to add custom entitlements
-          </p>
         </div>
       )}
     </motion.div>
@@ -791,12 +792,11 @@ function LeavePageContent() {
                   onEdit={balance.categoryName.toLowerCase().includes('annual') ? handleEditAnnualLeave : undefined}
                 />
               ))}
-              {isPrivileged && (
-                <OtherEntitlementsCard 
-                  entitlements={otherEntitlements} 
-                  onEdit={() => setOtherEntitlementsModalOpen(true)} 
-                />
-              )}
+              <OtherEntitlementsCard 
+                entitlements={otherEntitlements} 
+                onEdit={() => setOtherEntitlementsModalOpen(true)}
+                canEdit={isPrivileged}
+              />
             </div>
           </EmployeeFormCard>
         </motion.div>

@@ -1,15 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import { Lock } from "lucide-react";
 
 export default function TenantAdminLoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const postLoginPath = useMemo(() => {
+    const next = searchParams.get("next");
+    if (!next) return "/tenant-admin/dashboard";
+
+    if (next.startsWith("/tenant-admin")) {
+      return next;
+    }
+
+    return "/tenant-admin/dashboard";
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +43,7 @@ export default function TenantAdminLoginPage() {
       }
 
       toast.success("Access granted");
-      router.push("/tenant-admin/dashboard");
+      router.push(postLoginPath);
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);

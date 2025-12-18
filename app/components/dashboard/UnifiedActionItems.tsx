@@ -198,8 +198,8 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
   );
 
   // Fetch company documents
-  const { data: companyDocs, isLoading: loadingCompanyDocs } = useSWR(
-    !isLoadingSession ? `/api/documents/list-company` : null,
+  const { data: companyDocsPaged, isLoading: loadingCompanyDocs } = useSWR(
+    !isLoadingSession ? `/api/documents/list-company?limit=40&requiresAction=1` : null,
     fetcher
   );
 
@@ -227,7 +227,7 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
     isLoadingSession ||
     (employeeId && !onboardingData && !dbActionItems) ||
     (!employeeDocs && loadingEmpDocs) ||
-    (!companyDocs && loadingCompanyDocs)
+    (!companyDocsPaged && loadingCompanyDocs)
   );
 
   // Process all data into unified action items
@@ -394,7 +394,7 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
       if (!loadingEmpDocs && !loadingCompanyDocs) {
         const allDocs = [
           ...(Array.isArray(employeeDocs) ? employeeDocs : []),
-          ...(Array.isArray(companyDocs) ? companyDocs : [])
+          ...(Array.isArray(companyDocsPaged?.items) ? companyDocsPaged.items : [])
         ];
 
         const uniqueDocs = new Map<string, any>();
@@ -431,6 +431,17 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
 
             if (doc.requiresSignature) {
               try {
+                // First check if signature fields have been placed on the document
+                // Don't show action item if admin hasn't finished setting up the document
+                const fieldsRes = await tenantFetch(`/api/documents/signature-fields/${doc.id}`, { cache: "no-store" });
+                const fieldsData = await fieldsRes.json();
+                const hasFields = Array.isArray(fieldsData) && fieldsData.length > 0;
+                
+                // Skip this document if no signature fields have been placed yet
+                if (!hasFields) {
+                  return null;
+                }
+
                 const r = await tenantFetch(`/api/documents/signatures/${doc.id}/me`, { cache: "no-store" });
                 const j = await r.json();
                 if (!j?.signed) {
@@ -537,7 +548,7 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
     return () => {
       isStale = true;
     };
-  }, [dbActionItems, onboardingData, employeeDocs, companyDocs, loadingEmpDocs, loadingCompanyDocs, txnRequests, approvals, isManager, mutateActionItems, isLoadingSession, tenantFetch]);
+  }, [dbActionItems, onboardingData, employeeDocs, companyDocsPaged, loadingEmpDocs, loadingCompanyDocs, txnRequests, approvals, isManager, mutateActionItems, isLoadingSession, tenantFetch]);
 
   const handleQuickApprove = async () => {
     setProcessing("quick-approve");

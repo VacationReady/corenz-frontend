@@ -31,6 +31,19 @@ import { getIconConfigFromType } from "@/lib/action-item-icons";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+function usePageVisibility() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const update = () => setVisible(document.visibilityState === "visible");
+    update();
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, []);
+
+  return visible;
+}
+
 interface ActionItemStats {
   totalPending: number;
   totalOverdue: number;
@@ -99,6 +112,7 @@ const PRIORITY_COLORS = {
 export default function AdminActionItemsPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const visible = usePageVisibility();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("PENDING");
@@ -112,14 +126,24 @@ export default function AdminActionItemsPage() {
   const { data: statsData, error: statsError } = useSWR(
     "/api/admin/action-items/stats",
     fetcher,
-    { refreshInterval: 30000 }
+    {
+      refreshInterval: visible ? 120000 : 0,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000,
+    }
   );
 
   // Fetch action items
   const { data: itemsData, error: itemsError, mutate } = useSWR(
     `/api/admin/action-items?status=${filterStatus}&type=${filterType}&priority=${filterPriority}&search=${searchQuery}`,
     fetcher,
-    { refreshInterval: 30000 }
+    {
+      refreshInterval: visible ? 120000 : 0,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000,
+    }
   );
 
   // Redirect if not admin (after hooks)

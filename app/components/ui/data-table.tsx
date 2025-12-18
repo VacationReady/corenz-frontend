@@ -10,7 +10,8 @@ import {
   ColumnFiltersState,
   getFilteredRowModel,
 } from "@tanstack/react-table";
-import { useMemo, useState, useEffect, type ReactNode } from "react";
+import { useMemo, useState, useEffect, useRef, type ReactNode } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Input } from "@/components/ui/Input";
 import { MultiSelect } from "@/components/ui/MultiSelect";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -27,6 +28,10 @@ interface DataTableProps<TData, TValue> {
   onFilteredRowsChange?: (rows: TData[]) => void;
   // When this value changes, all active column filters are cleared
   resetFiltersAt?: number;
+  virtualizeRows?: boolean;
+  virtualizeContainerHeight?: number | string;
+  virtualizeEstimateRowHeight?: number;
+  virtualizeOverscan?: number;
 }
 
 export function DataTable<TData, TValue>({
@@ -38,6 +43,10 @@ export function DataTable<TData, TValue>({
   onSelectionChange,
   onFilteredRowsChange,
   resetFiltersAt,
+  virtualizeRows = false,
+  virtualizeContainerHeight = 520,
+  virtualizeEstimateRowHeight = 44,
+  virtualizeOverscan = 10,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -118,6 +127,21 @@ export function DataTable<TData, TValue>({
     getRowId,
   });
 
+  const tableContainerRef = useRef<HTMLDivElement | null>(null);
+  const rows = table.getRowModel().rows;
+  const rowVirtualizer = useVirtualizer({
+    count: virtualizeRows ? rows.length : 0,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => virtualizeEstimateRowHeight,
+    overscan: virtualizeOverscan,
+  });
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const totalSize = rowVirtualizer.getTotalSize();
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0]!.start : 0;
+  const paddingBottom =
+    virtualItems.length > 0 ? totalSize - virtualItems[virtualItems.length - 1]!.end : 0;
+  const colSpan = table.getVisibleLeafColumns().length;
+
   const selectedRowIdsKey = table.getSelectedRowModel().rows.map((r) => r.id).join(",");
   const selectedRows = useMemo(
     () => table.getSelectedRowModel().rows.map((r) => r.original as TData),
@@ -153,7 +177,11 @@ export function DataTable<TData, TValue>({
           <div className="flex items-center gap-2">{selectionActionBar(selectedRows)}</div>
         </div>
       )}
-      <div className="rounded-md border overflow-x-auto">
+      <div
+        ref={virtualizeRows ? tableContainerRef : undefined}
+        className={virtualizeRows ? "rounded-md border overflow-auto" : "rounded-md border overflow-x-auto"}
+        style={virtualizeRows ? { height: virtualizeContainerHeight } : undefined}
+      >
         <table className="min-w-full border-collapse">
           <thead className="bg-muted">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -239,15 +267,43 @@ export function DataTable<TData, TValue>({
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-b hover:bg-muted/50">
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="px-4 py-2 text-sm">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {virtualizeRows ? (
+              <>
+                {paddingTop > 0 && (
+                  <tr>
+                    <td colSpan={colSpan} style={{ height: paddingTop, padding: 0, border: 0 }} />
+                  </tr>
+                )}
+                {virtualItems.map((virtualRow) => {
+                  const row = rows[virtualRow.index];
+                  if (!row) return null;
+                  return (
+                    <tr key={row.id} className="border-b hover:bg-muted/50" style={{ height: virtualRow.size }}>
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="px-4 py-2 text-sm">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
+                {paddingBottom > 0 && (
+                  <tr>
+                    <td colSpan={colSpan} style={{ height: paddingBottom, padding: 0, border: 0 }} />
+                  </tr>
+                )}
+              </>
+            ) : (
+              rows.map((row) => (
+                <tr key={row.id} className="border-b hover:bg-muted/50">
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="px-4 py-2 text-sm">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

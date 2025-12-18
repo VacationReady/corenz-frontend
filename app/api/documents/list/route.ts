@@ -13,6 +13,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const employeeId = searchParams.get("employeeId");
+  const bootstrap = searchParams.get("bootstrap") === "1";
 
   // ✅ Fetch user with permission profile, department & job role
   const user = await prisma.user.findUnique({
@@ -160,7 +161,37 @@ export async function GET(req: Request) {
         } as any;
       }),
     );
-    return NextResponse.json(withUrls);
+    if (!bootstrap) {
+      return NextResponse.json(withUrls);
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id: session.user.companyId },
+      select: { name: true },
+    });
+
+    const employee = employeeId
+      ? await prisma.employee.findFirst({
+          where: { id: employeeId, companyId: session.user.companyId },
+          select: {
+            id: true,
+            User: { select: { firstName: true, lastName: true, name: true } },
+          },
+        })
+      : null;
+
+    const employeeName = employee
+      ? `${employee.User?.firstName || ""} ${employee.User?.lastName || ""}`.trim() ||
+        employee.User?.name ||
+        "Employee"
+      : null;
+
+    return NextResponse.json({
+      documents: withUrls,
+      viewer: { role: user.role },
+      company: { name: company?.name || "" },
+      employee: employeeId ? { id: employeeId, name: employeeName } : null,
+    });
   }
 
   // ✅ Role flag - based on actual user role, not edit/delete permissions
@@ -309,6 +340,37 @@ export async function GET(req: Request) {
       } as any;
     }),
   );
-  return NextResponse.json(withUrls);
+
+  if (!bootstrap) {
+    return NextResponse.json(withUrls);
+  }
+
+  const company = await prisma.company.findUnique({
+    where: { id: session.user.companyId },
+    select: { name: true },
+  });
+
+  const employee = employeeId
+    ? await prisma.employee.findFirst({
+        where: { id: employeeId, companyId: session.user.companyId },
+        select: {
+          id: true,
+          User: { select: { firstName: true, lastName: true, name: true } },
+        },
+      })
+    : null;
+
+  const employeeName = employee
+    ? `${employee.User?.firstName || ""} ${employee.User?.lastName || ""}`.trim() ||
+      employee.User?.name ||
+      "Employee"
+    : null;
+
+  return NextResponse.json({
+    documents: withUrls,
+    viewer: { role: user.role },
+    company: { name: company?.name || "" },
+    employee: employeeId ? { id: employeeId, name: employeeName } : null,
+  });
 }
 

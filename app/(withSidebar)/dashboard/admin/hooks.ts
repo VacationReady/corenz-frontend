@@ -18,12 +18,26 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import useSWRImmutable from "swr/immutable";
 
+function usePageVisibility() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const update = () => setVisible(document.visibilityState === "visible");
+    update();
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, []);
+
+  return visible;
+}
+
 // Generic fetcher for SWR
-const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((res) => {
+const fetcher = (url: string) => fetch(url).then((res) => {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 });
@@ -33,13 +47,15 @@ const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then((res) =>
  * Uses SWR for automatic deduplication and caching
  */
 export function useDocumentActionItems(employeeId: string | null) {
+  const visible = usePageVisibility();
   const { data, error, isLoading, mutate } = useSWR(
     employeeId ? `/api/dashboard/document-action-items?employeeId=${employeeId}` : null,
     fetcher,
     {
-      refreshInterval: 60000, // Refresh every minute
+      refreshInterval: visible ? 900000 : 0, // 15 minutes, pause when tab hidden
       revalidateOnFocus: true,
-      dedupingInterval: 30000, // Dedupe requests within 30s
+      revalidateOnReconnect: true,
+      dedupingInterval: 180000, // Dedupe requests within 3 minutes
     }
   );
 
@@ -58,13 +74,15 @@ export function useDocumentActionItems(employeeId: string | null) {
  * Includes deduplication for multiple widgets requesting same data
  */
 export function useApprovalItems(scope: "my" | "all" = "my") {
+  const visible = usePageVisibility();
   const { data, error, isLoading, mutate } = useSWR(
     `/api/dashboard/approval-items?scope=${scope}`,
     fetcher,
     {
-      refreshInterval: 30000, // Refresh every 30s
+      refreshInterval: visible ? 180000 : 0, // 3 minutes, pause when tab hidden
       revalidateOnFocus: true,
-      dedupingInterval: 15000, // Dedupe requests within 15s
+      revalidateOnReconnect: true,
+      dedupingInterval: 90000, // Dedupe requests within 1.5 minutes
     }
   );
 
@@ -132,7 +150,7 @@ export function useEntitlementProjection(
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 90000,
     }
   );
 
@@ -166,7 +184,7 @@ export function useEmployees(enabled: boolean) {
 
       while (hasMore) {
         const fetchUrl: string = cursor ? `${url}&cursor=${cursor}` : url;
-        const response: Response = await fetch(fetchUrl, { cache: "no-store", headers });
+        const response: Response = await fetch(fetchUrl, { headers });
         
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         

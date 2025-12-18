@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/components/ui/Button";
@@ -489,12 +489,43 @@ function DocumentsContent() {
   const [canViewAdmin, setCanViewAdmin] = useState(true);
   const [canViewManager, setCanViewManager] = useState(true);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
+
+  const hasAnyAudience = canViewAdmin || canViewManager || canViewEmployee;
+  const audienceSummary = useMemo(() => {
+    const roles: string[] = [];
+    if (canViewAdmin) roles.push("Admins");
+    if (canViewManager) roles.push("Managers");
+    if (canViewEmployee) roles.push("Employees");
+    return roles.join(", ");
+  }, [canViewAdmin, canViewManager, canViewEmployee]);
   
   const [placementPendingDocId, setPlacementPendingDocId] = useState<string | null>(null);
   const [placementPendingDocName, setPlacementPendingDocName] = useState<string | null>(null);
   const [sendingNotifications, setSendingNotifications] = useState(false);
 
   const isAdminUser = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const res = await fetch("/api/document-categories");
+      if (!res.ok) return;
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : data?.categories || [];
+      setCategoriesList(Array.isArray(items) ? items : []);
+    } catch {
+      setCategoriesList([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
+  useEffect(() => {
+    if (!isUploadModalOpen) return;
+    if (category && category !== "all") return;
+    setCategory("Uncategorized");
+  }, [isUploadModalOpen, category]);
 
   const departmentsList = useMemo(() => {
     if (!departmentsData) return [];
@@ -621,6 +652,22 @@ function DocumentsContent() {
   }, [documents]);
 
   const categoryOptions: FilterOption[] = useMemo(() => {
+    const fromDocs = Array.from(
+      new Set(
+        documents
+          .map((doc) => doc.category)
+          .filter((x): x is string => Boolean(x)) as string[],
+      ),
+    );
+
+    const base = Array.from(new Set([...(categoriesList || []), ...fromDocs]));
+    return [
+      { label: "All Categories", value: "all" },
+      ...base.map((cat) => ({ label: cat, value: cat })),
+    ];
+  }, [documents, categoriesList]);
+
+  const uploadCategoryOptions: FilterOption[] = useMemo(() => {
     const base = categoriesList.length
       ? categoriesList
       : Array.from(
@@ -630,10 +677,14 @@ function DocumentsContent() {
               .filter((x): x is string => Boolean(x)) as string[],
           ),
         );
-    return [
-      { label: "All Categories", value: "all" },
-      ...base.map((cat) => ({ label: cat, value: cat })),
-    ];
+
+    const items: string[] = [];
+    for (const c of base) {
+      if (!items.includes(c)) items.push(c);
+    }
+    if (!items.includes("Uncategorized")) items.push("Uncategorized");
+
+    return items.map((cat) => ({ label: cat, value: cat }));
   }, [documents, categoriesList]);
 
   const sortOptions: FilterOption[] = [
@@ -746,7 +797,12 @@ function DocumentsContent() {
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!file || !name || !category) return toast("Please fill in all fields and select a file.");
+    if (!file || !name || !category || category === "all") {
+      return toast("Please fill in all fields and select a file.");
+    }
+    if (!canViewAdmin && !canViewManager && !canViewEmployee) {
+      return toast.error("Select at least one audience (Admins, Managers, or Employees).");
+    }
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
@@ -1308,7 +1364,7 @@ function DocumentsContent() {
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categoryOptions.map((opt) => (
+                        {uploadCategoryOptions.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                         ))}
                         <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
@@ -1389,6 +1445,17 @@ function DocumentsContent() {
                       <span className="text-sm">Employees</span>
                     </label>
                   </div>
+
+                  {!hasAnyAudience ? (
+                    <div className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400">
+                      <AlertCircle className="w-4 h-4 mt-0.5" />
+                      <span>Select at least one audience so this document remains accessible.</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      Visible to: {audienceSummary}
+                    </div>
+                  )}
 
                   <div className="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-3">
                     <div className="flex items-center justify-between">
@@ -1503,7 +1570,7 @@ function DocumentsContent() {
                   type="submit"
                   loading={uploading}
                   loadingText="Uploading..."
-                  disabled={!file || !name || !category}
+                  disabled={!file || !name || !category || category === "all" || !hasAnyAudience}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 rounded-xl px-6"
                   icon={<UploadCloud className="h-4 w-4" />}
                 >

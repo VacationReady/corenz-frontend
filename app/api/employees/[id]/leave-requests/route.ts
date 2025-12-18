@@ -7,7 +7,6 @@ import { createLeaveApprovalPlan } from "@/lib/createLeaveApprovalPlan";
 import { notifyApproversForStage } from "@/lib/approvalNotifications";
 import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { validateLeaveRequest } from "@/lib/validateLeaveRequest";
-import { createLeaveApprovalActionItem } from "@/lib/action-items-helper";
 import {
   canAccessLeaveRequests,
   canCreateLeaveRequest,
@@ -128,9 +127,7 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const upcoming = searchParams.get("upcoming") === "true";
     const limitParam = searchParams.get("limit");
-    const take = limitParam
-      ? Math.max(1, Math.min(1000, parseInt(limitParam, 10) || 0))
-      : 3;
+    const modeParam = searchParams.get("mode");
 
     // New query params for filtering
     // from: YYYY-MM-DD (inclusive) - start of date range
@@ -142,6 +139,12 @@ export async function GET(
     const isSickParam = searchParams.get("isSick");
     const statusParam = searchParams.get("status");
 
+    const take = limitParam
+      ? Math.max(1, Math.min(5000, parseInt(limitParam, 10) || 0))
+      : fromParam || toParam
+        ? 500
+        : 3;
+
     const now = new Date();
 
     // Build date range filter (inclusive semantics: from <= startDate AND endDate <= to)
@@ -149,7 +152,8 @@ export async function GET(
     if (fromParam) {
       const fromDate = new Date(fromParam);
       if (!isNaN(fromDate.getTime())) {
-        dateRangeFilter.startDate = { gte: fromDate };
+        fromDate.setHours(0, 0, 0, 0);
+        dateRangeFilter.endDate = { gte: fromDate };
       }
     }
     if (toParam) {
@@ -157,7 +161,7 @@ export async function GET(
       if (!isNaN(toDate.getTime())) {
         // Inclusive: set to end of day
         toDate.setHours(23, 59, 59, 999);
-        dateRangeFilter.endDate = { lte: toDate };
+        dateRangeFilter.startDate = { lte: toDate };
       }
     }
 
@@ -192,24 +196,39 @@ export async function GET(
         : {}),
     };
 
+    const calendarMode = modeParam === "calendar" && isSickParam === null;
+
     const leaves: any[] = await (prisma.leaveRequest as any).findMany({
       where,
       orderBy: { startDate: "asc" },
       take,
-      select: {
-        id: true,
-        startDate: true,
-        endDate: true,
-        dayType: true,
-        leaveType: true,
-        EventCategory: { select: { id: true, name: true, iconKey: true } },
-        approvalStatus: true,
-        reason: true,
-        sickReason: true,
-        paidStatus: true,
-        EventSubcategory: { select: { id: true, name: true } },
-      },
+      select: calendarMode
+        ? {
+            id: true,
+            startDate: true,
+            endDate: true,
+            EventCategory: { select: { id: true, name: true, iconKey: true } },
+            approvalStatus: true,
+            reason: true,
+          }
+        : {
+            id: true,
+            startDate: true,
+            endDate: true,
+            dayType: true,
+            leaveType: true,
+            EventCategory: { select: { id: true, name: true, iconKey: true } },
+            approvalStatus: true,
+            reason: true,
+            sickReason: true,
+            paidStatus: true,
+            EventSubcategory: { select: { id: true, name: true } },
+          },
     });
+
+    if (calendarMode) {
+      return NextResponse.json(leaves);
+    }
 
     // Transform response to include isSick flag based on leaveType
     // leaveType = "SICK" indicates sick leave (first-class field)
@@ -434,11 +453,9 @@ export async function POST(
           const endDateObj = new Date(endDate);
           const totalDays: number[] = [];
           let currentDate = new Date(startDateObj);
-          // Deduction uses inclusive range of away days (return-to-work exclusive)
-          const exclusiveEnd = new Date(endDateObj);
-          exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+          // End date is the last day away (inclusive) - UI instructs user not to include return-to-work day
 
-          while (currentDate <= exclusiveEnd) {
+          while (currentDate <= endDateObj) {
             const deduction = await calculateLeaveDeduction(employeeId, currentDate);
             totalDays.push(deduction);
             currentDate.setDate(currentDate.getDate() + 1);
@@ -607,7 +624,9 @@ export async function POST(
         }
       }
 
-      // Notify active approvers on first stage and create action items
+      // Notify active approvers on first stage
+      // Note: We do NOT create separate ActionItem records here because
+      // LeaveApprovalDecision records are already created and fetched by /api/approvals
       const first = stages.find((s: any) => s.isActive);
       if (first) {
         const lrFull = await prisma.leaveRequest.findUnique({
@@ -615,30 +634,10 @@ export async function POST(
           include: { Employee: { include: { User: true } } },
         });
         
-        // Create action items for all active approvers in the first stage
         const decisions = await prisma.leaveApprovalDecision.findMany({ 
           where: { stageId: first.id, isActive: true }, 
           include: { approver: true } 
         });
-        
-        for (const decision of decisions) {
-          try {
-            await createLeaveApprovalActionItem(
-              newLeaveRequest.id,
-              employeeId,
-              decision.approverId,
-              session.user.companyId,
-              {
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
-                typeName: EventCategoryName,
-              }
-            );
-          } catch (actionItemError) {
-            console.error("Failed to create leave approval action item:", actionItemError);
-            // Don't fail the whole request if action item creation fails
-          }
-        }
         
         await notifyApproversForStage({
           stage: { ...first, decisions } as any,
@@ -682,23 +681,9 @@ export async function POST(
           },
         });
 
-        // Create action item for the approver
-        try {
-          await createLeaveApprovalActionItem(
-            newLeaveRequest.id,
-            employeeId,
-            approverUserId,
-            session.user.companyId,
-            {
-              startDate: new Date(startDate),
-              endDate: new Date(endDate),
-              typeName: EventCategoryName,
-            }
-          );
-        } catch (actionItemError) {
-          console.error("Failed to create leave approval action item:", actionItemError);
-          // Don't fail the whole request if action item creation fails
-        }
+        // Note: We do NOT create separate ActionItem records here because
+        // LeaveApprovalDecision records are already fetched by /api/approvals
+        // and displayed in the action items widget via the approvals flow
 
         // Notify the approver
         const lrFull = await prisma.leaveRequest.findUnique({

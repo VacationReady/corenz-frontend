@@ -643,3 +643,7 @@ Improved the offboarding management list so backend or network failures are no l
 156. Tenant Creation Admin Email Validation
 
 Improved the tenant creation dialog to validate the admin email address client-side, with inline, accessible guidance when the format is invalid. Submission is now disabled until the email is valid, and focus remains on the email field when correction is required.
+
+157. Tenant Switch Failure Recovery
+
+Improved the tenant switch page so expired, used, missing, or invalid switch links provide clear guidance and next steps instead of leaving admins stranded. Added a retry action to re-attempt the switch, plus accessible focus management to move focus to the primary recovery control when an error occurs.

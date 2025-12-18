@@ -187,6 +187,7 @@ export async function GET(req: NextRequest) {
   try {
     await ensurePrismaConnected();
     const session = await getMobileSession(req);
+    const requestStartMs = Date.now();
     console.log("[employees] Session check:", {
       hasSession: !!session,
       hasUser: !!session?.user,
@@ -206,17 +207,34 @@ export async function GET(req: NextRequest) {
     const workingPatternType = searchParams.get("workingPatternType"); // Filter by pattern type (SHIFT_BASED, STANDARD, etc.)
     
     const limitParam = searchParams.get("limit");
-    const fetchAll = limitParam === "all";
+    if (limitParam === "all") {
+      return NextResponse.json(
+        {
+          error: "Invalid query parameters",
+          details: { limit: "limit=all is not supported; use cursor-based pagination" },
+        },
+        { status: 400 },
+      );
+    }
 
-    const limit = fetchAll
-      ? undefined
-      : Math.min(
-          Math.max(1, parseInt(limitParam || "50", 10)),
-          100, // Max 100 per page
-        );
+    const parsedLimit = limitParam ? parseInt(limitParam, 10) : 50;
+    const limit = Math.min(
+      Math.max(1, Number.isFinite(parsedLimit) ? parsedLimit : 50),
+      100, // Max 100 per page
+    );
     const cursor = searchParams.get("cursor") || undefined;
     const skipParam = searchParams.get("skip");
-    const skip = skipParam ? parseInt(skipParam, 10) : 0;
+    const parsedSkip = skipParam ? parseInt(skipParam, 10) : 0;
+    const skip = Number.isFinite(parsedSkip) && parsedSkip > 0 ? parsedSkip : 0;
+    if (skip > 10000) {
+      return NextResponse.json(
+        {
+          error: "Invalid query parameters",
+          details: { skip: "skip is too large; use cursor-based pagination" },
+        },
+        { status: 400 },
+      );
+    }
 
     // Base scoping
     const whereCondition: any = { companyId: session.user.companyId };
@@ -322,6 +340,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Cursor-based pagination query
+    const queryStartMs = Date.now();
     const employees = await prisma.employee.findMany({
       where: whereCondition,
       include: {
@@ -377,15 +396,16 @@ export async function GET(req: NextRequest) {
         { User: { lastName: "asc" } },
         { id: "asc" },
       ],
-      take: fetchAll ? undefined : (limit! + 1), // Fetch one extra to determine if there are more results
+      take: limit + 1, // Fetch one extra to determine if there are more results
       // Support both cursor-based and offset-based pagination
       // Cursor takes precedence if provided (for backward compatibility)
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : { skip: skip }),
     });
+    const queryDurationMs = Date.now() - queryStartMs;
 
     // Determine if there are more results
-    const hasMore = fetchAll ? false : employees.length > limit!;
-    const results = fetchAll || !hasMore ? employees : employees.slice(0, limit!);
+    const hasMore = employees.length > limit;
+    const results = hasMore ? employees.slice(0, limit) : employees;
     const nextCursor = hasMore ? results[results.length - 1].id : null;
 
     // ✅ Batch sign profile URLs (1 operation instead of N)
@@ -443,6 +463,18 @@ export async function GET(req: NextRequest) {
     });
 
     console.log(`[employees] Found ${flattened.length} employees for companyId: ${session.user.companyId}`);
+    console.log("[employees] GET metrics:", {
+      companyId: session.user.companyId,
+      count: flattened.length,
+      limit,
+      hasMore,
+      cursorProvided: !!cursor,
+      skip,
+      scope,
+      status,
+      queryDurationMs,
+      totalDurationMs: Date.now() - requestStartMs,
+    });
     
     return NextResponse.json({
       data: flattened,

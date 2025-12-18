@@ -1,9 +1,46 @@
+export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
+import { documentStatusCache } from "@/lib/cache";
+
+function decodeCursor(cursor: string): { createdAt: Date; id: string } | null {
+  try {
+    const json = Buffer.from(cursor, "base64url").toString("utf8");
+    const parsed = JSON.parse(json) as { createdAt?: string; id?: string };
+    if (!parsed?.createdAt || !parsed?.id) return null;
+    const createdAt = new Date(parsed.createdAt);
+    if (Number.isNaN(createdAt.getTime())) return null;
+    return { createdAt, id: parsed.id };
+  } catch {
+    return null;
+  }
+}
+
+function encodeCursor(createdAt: Date, id: string): string {
+  const json = JSON.stringify({ createdAt: createdAt.toISOString(), id });
+  return Buffer.from(json, "utf8").toString("base64url");
+}
+
+async function getCachedSignedUrl(path: string, expiresInSeconds: number): Promise<string | null> {
+  const key = `doc-signed-url:${path}`;
+  const cached = await documentStatusCache.get<{ url: string }>(key);
+  if (cached?.url) return cached.url;
+
+  const { data: signed } = await supabase.storage
+    .from("documents")
+    .createSignedUrl(path, expiresInSeconds);
+  const url = signed?.signedUrl ?? null;
+  if (url) {
+    const ttl = Math.max(1, Math.min(expiresInSeconds - 30, expiresInSeconds));
+    await documentStatusCache.set(key, { url }, ttl);
+  }
+  return url;
+}
 
 export async function GET(req: Request) {
+  const totalStart = performance.now();
   const session = await auth();
   if (!session || !session.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -12,7 +49,18 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const employeeId = searchParams.get("employeeId");
 
-  // ✅ Fetch user details for filtering
+  const limitParam = searchParams.get("limit");
+  const limit = limitParam
+    ? Math.min(Math.max(Number.parseInt(limitParam, 10) || 0, 1), 200)
+    : 50;
+
+  const cursorParam = searchParams.get("cursor");
+  const cursor = cursorParam ? decodeCursor(cursorParam) : null;
+
+  const requiresActionParam = searchParams.get("requiresAction");
+  const requiresAction = requiresActionParam === "1" || requiresActionParam === "true";
+
+  // Fetch user details for filtering
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { departmentId: true, jobRoleId: true, role: true },
@@ -22,7 +70,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // ✅ Build role-based access filter
+  // Build role-based access filter
   let roleFilter: any = {};
   if (["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
     roleFilter = { canViewAdmin: true };
@@ -32,35 +80,85 @@ export async function GET(req: Request) {
     roleFilter = { canViewEmployee: true };
   }
 
-  // ✅ Fetch company documents with access control & department/job role restrictions
+  // Fetch company documents with access control & department/job role restrictions
+  const dbStart = performance.now();
   const documents = await prisma.document.findMany({
     where: {
       companyId: session.user.companyId,
       ...(employeeId ? { employeeId } : { employeeId: null }),
+      deletedAt: null,
       ...roleFilter,
       OR: [
         { Department: { some: { id: user.departmentId || "" } } },
         { JobRole: { some: { id: user.jobRoleId || "" } } },
-        { AND: [{ Department: { none: {} } }, { JobRole: { none: {} } }] }, // ✅ Unrestricted (global) docs
+        { AND: [{ Department: { none: {} } }, { JobRole: { none: {} } }] }, // Unrestricted (global) docs
       ],
+      ...(cursor
+        ? {
+            AND: [
+              {
+                OR: [
+                  { createdAt: { lt: cursor.createdAt } },
+                  {
+                    AND: [
+                      { createdAt: cursor.createdAt },
+                      { id: { lt: cursor.id } },
+                    ],
+                  },
+                ],
+              },
+            ],
+          }
+        : {}),
+      ...(requiresAction
+        ? {
+            AND: [
+              {
+                OR: [{ requiresAck: true }, { requiresSignature: true }],
+              },
+            ],
+          }
+        : {}),
     },
     include: {
       User: true,
       Department: { select: { id: true, name: true } },
       JobRole: { select: { id: true, name: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: limit + 1,
   });
+  const dbMs = performance.now() - dbStart;
 
+  const hasMore = documents.length > limit;
+  const page = hasMore ? documents.slice(0, limit) : documents;
+  const nextCursor = hasMore
+    ? encodeCursor(page[page.length - 1].createdAt as any, page[page.length - 1].id)
+    : null;
+
+  const signStart = performance.now();
   const withUrls = await Promise.all(
-    documents.map(async (doc) => {
-      const { data: signed } = await supabase.storage
-        .from("documents")
-        .createSignedUrl(doc.path, 60 * 5);
-      return { ...doc, url: signed?.signedUrl ?? null };
+    page.map(async (doc) => {
+      const url = await getCachedSignedUrl(doc.path, 60 * 5);
+      return { ...doc, url };
     }),
   );
+  const signMs = performance.now() - signStart;
 
-  return NextResponse.json(withUrls);
+  const totalMs = performance.now() - totalStart;
+
+  const res = NextResponse.json({
+    items: withUrls,
+    nextCursor,
+    hasMore,
+    limit,
+  });
+  res.headers.set(
+    "Server-Timing",
+    `db;dur=${dbMs.toFixed(2)},sign;dur=${signMs.toFixed(2)},total;dur=${totalMs.toFixed(2)}`,
+  );
+  if (nextCursor) res.headers.set("x-next-cursor", nextCursor);
+  res.headers.set("x-has-more", hasMore ? "1" : "0");
+  res.headers.set("x-limit", String(limit));
+  return res;
 }
-

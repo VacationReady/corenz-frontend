@@ -216,11 +216,9 @@ export async function PATCH(
         const totalDays: number[] = [];
         let currentDate = new Date(leave.startDate);
         const endDate = new Date(leave.endDate);
-        // End date is return-to-work (exclusive) for deduction purposes
-        const exclusiveEnd = new Date(endDate);
-        exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+        // End date is the last day away (inclusive) - UI instructs user not to include return-to-work day
 
-        while (currentDate <= exclusiveEnd) {
+        while (currentDate <= endDate) {
           const deduction = await calculateLeaveDeduction(
             leave.employeeId,
             currentDate,
@@ -265,10 +263,9 @@ export async function PATCH(
           let sickDays = 0;
           let currentDate = new Date(leave.startDate);
           const endDate = new Date(leave.endDate);
-          const exclusiveEnd = new Date(endDate);
-          exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+          // End date is the last day away (inclusive) - UI instructs user not to include return-to-work day
 
-          while (currentDate <= exclusiveEnd) {
+          while (currentDate <= endDate) {
             const deduction = await calculateLeaveDeduction(leave.employeeId, currentDate);
             sickDays += deduction;
             currentDate.setDate(currentDate.getDate() + 1);
@@ -471,10 +468,9 @@ export async function DELETE(
         const totalDays: number[] = [];
         let currentDate = new Date(leave.startDate);
         const endDate = new Date(leave.endDate);
-        const exclusiveEnd = new Date(endDate);
-        exclusiveEnd.setDate(exclusiveEnd.getDate() - 1);
+        // End date is the last day away (inclusive) - UI instructs user not to include return-to-work day
 
-        while (currentDate <= exclusiveEnd) {
+        while (currentDate <= endDate) {
           const deduction = await calculateLeaveDeduction(
             leave.employeeId,
             currentDate,

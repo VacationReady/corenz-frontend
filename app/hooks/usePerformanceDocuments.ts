@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import useSWR from "swr";
+import useSWRInfinite from "swr/infinite";
 
 const fetcher = async (url: string) => {
   const response = await fetch(url);
@@ -49,28 +50,66 @@ interface UsePerformanceDocumentsOptions {
   enabled?: boolean;
 }
 
+type CompanyDocumentsPage = {
+  items: PerformanceDocument[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  limit: number;
+};
+
 export function usePerformanceDocuments({ employeeId, enabled = true }: UsePerformanceDocumentsOptions = {}) {
-  const documentsKey = useMemo(() => {
+  const employeeDocumentsKey = useMemo(() => {
     if (!enabled) return null;
-    
-    if (employeeId) {
-      // Employee-specific documents
-      return `/api/documents/list-employee?employeeId=${employeeId}`;
-    }
-    
-    // Company-wide documents (will be filtered by role/dept on backend)
-    return `/api/documents/list-company`;
+    if (!employeeId) return null;
+    return `/api/documents/list-employee?employeeId=${employeeId}`;
   }, [employeeId, enabled]);
 
   const {
-    data: documentsData,
-    error: documentsError,
-    isLoading: documentsLoading,
-    mutate: mutateDocuments,
-  } = useSWR<PerformanceDocument[]>(documentsKey, fetcher, {
+    data: employeeDocumentsData,
+    error: employeeDocumentsError,
+    isLoading: employeeDocumentsLoading,
+    mutate: mutateEmployeeDocuments,
+  } = useSWR<PerformanceDocument[]>(employeeDocumentsKey, fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 5000,
   });
+
+  const getKey = (pageIndex: number, previousPageData: CompanyDocumentsPage | null) => {
+    if (!enabled) return null;
+    if (employeeId) return null;
+    if (pageIndex > 0 && !previousPageData?.nextCursor) return null;
+    const cursor = pageIndex === 0 ? null : previousPageData?.nextCursor ?? null;
+    const params = new URLSearchParams({ limit: "50" });
+    if (cursor) params.set("cursor", cursor);
+    return `/api/documents/list-company?${params.toString()}`;
+  };
+
+  const {
+    data: companyPages,
+    error: companyError,
+    isLoading: companyLoading,
+    mutate: mutateCompanyPages,
+    size,
+    setSize,
+  } = useSWRInfinite<CompanyDocumentsPage>(getKey, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+  });
+
+  const companyDocuments = useMemo(() => {
+    const pages = companyPages ?? [];
+    return pages.flatMap((p) => p.items ?? []);
+  }, [companyPages]);
+
+  const documentsData = employeeId ? (employeeDocumentsData ?? []) : companyDocuments;
+  const documentsError = employeeId ? employeeDocumentsError : companyError;
+  const documentsLoading = employeeId ? employeeDocumentsLoading : companyLoading;
+  const hasMore = employeeId ? false : Boolean(companyPages?.[companyPages.length - 1]?.hasMore);
+  const loadMore = () => {
+    if (employeeId) return;
+    if (!hasMore) return;
+    void setSize(size + 1);
+  };
 
   const stats: DocumentStats = useMemo(() => {
     const documents = documentsData ?? [];
@@ -115,7 +154,11 @@ export function usePerformanceDocuments({ employeeId, enabled = true }: UsePerfo
   }, [documentsData]);
 
   const refresh = () => {
-    void mutateDocuments();
+    if (employeeId) {
+      void mutateEmployeeDocuments();
+      return;
+    }
+    void mutateCompanyPages();
   };
 
   return {
@@ -124,5 +167,7 @@ export function usePerformanceDocuments({ employeeId, enabled = true }: UsePerfo
     isLoading: documentsLoading,
     error: documentsError,
     refresh,
+    hasMore,
+    loadMore,
   };
 }

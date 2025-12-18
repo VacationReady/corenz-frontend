@@ -275,77 +275,79 @@ export default function TenantAdminDashboard() {
         </div>
 
         {/* Tenants Grid */}
-        {tenants.length === 0 ? (
-          <div className="glass flex min-h-[400px] items-center justify-center rounded-3xl p-12 text-center">
-            <div>
-              <Building2 className="mx-auto mb-4 h-16 w-16 text-muted-foreground/30" />
-              <h2 className="mb-2 text-xl font-semibold text-foreground">
-                No tenants yet
-              </h2>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Create your first tenant to get started
-              </p>
-              <Button onClick={() => setShowCreateDialog(true)}>
-                Create Tenant
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {tenants.map((tenant) => (
-              <div
-                key={tenant.id}
-                className="glass rounded-3xl p-6 shadow-glass transition-glass hover-glass"
-              >
-                <div className="mb-4">
-                  <h2 className="text-lg font-semibold text-foreground">
-                    {tenant.name}
-                  </h2>
-                  <p className="mt-1 font-mono text-xs text-muted-foreground/60">
-                    {tenant.id}
-                  </p>
-                </div>
-
-                <div className="mb-4 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Users</span>
-                    <Badge variant="secondary">{tenant.userCount}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Employees</span>
-                    <Badge variant="secondary">{tenant.employeeCount}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Created</span>
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(tenant.createdAt), "MMM d, yyyy")}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="primary"
-                    className="flex-1"
-                    onClick={() => handleSwitchToTenant(tenant)}
-                    loading={switchingId === tenant.id}
-                    disabled={tenant.userCount === 0}
-                  >
-                    {tenant.userCount === 0 ? "No Users" : "Switch to Tenant"}
-                  </Button>
-                  <Button
-                    variant="danger"
-                    onClick={() => handleDeleteTenant(tenant)}
-                    loading={deletingId === tenant.id}
-                    icon={<Trash2 className="h-4 w-4" />}
-                  >
-                    Delete
-                  </Button>
-                </div>
+        <div id="tenants">
+          {tenants.length === 0 ? (
+            <div className="glass flex min-h-[400px] items-center justify-center rounded-3xl p-12 text-center">
+              <div>
+                <Building2 className="mx-auto mb-4 h-16 w-16 text-muted-foreground/30" />
+                <h2 className="mb-2 text-xl font-semibold text-foreground">
+                  No tenants yet
+                </h2>
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Create your first tenant to get started
+                </p>
+                <Button onClick={() => setShowCreateDialog(true)}>
+                  Create Tenant
+                </Button>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {tenants.map((tenant) => (
+                <div
+                  key={tenant.id}
+                  className="glass rounded-3xl p-6 shadow-glass transition-glass hover-glass"
+                >
+                  <div className="mb-4">
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {tenant.name}
+                    </h2>
+                    <p className="mt-1 font-mono text-xs text-muted-foreground/60">
+                      {tenant.id}
+                    </p>
+                  </div>
+
+                  <div className="mb-4 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Users</span>
+                      <Badge variant="secondary">{tenant.userCount}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Employees</span>
+                      <Badge variant="secondary">{tenant.employeeCount}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Created</span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(tenant.createdAt), "MMM d, yyyy")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="primary"
+                      className="flex-1"
+                      onClick={() => handleSwitchToTenant(tenant)}
+                      loading={switchingId === tenant.id}
+                      disabled={tenant.userCount === 0}
+                    >
+                      {tenant.userCount === 0 ? "No Users" : "Switch to Tenant"}
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => handleDeleteTenant(tenant)}
+                      loading={deletingId === tenant.id}
+                      icon={<Trash2 className="h-4 w-4" />}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Create Dialog */}
         <Dialog

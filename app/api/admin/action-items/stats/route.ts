@@ -104,18 +104,25 @@ export async function GET(req: NextRequest) {
 
     const completionRate = totalLast30 > 0 ? Math.round((completedLast30 / totalLast30) * 100) : 0;
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        totalPending,
-        totalOverdue,
-        dueToday,
-        dueThisWeek,
-        byType,
-        byDepartment,
-        completionRate,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          totalPending,
+          totalOverdue,
+          dueToday,
+          dueThisWeek,
+          byType,
+          byDepartment,
+          completionRate,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+        },
+      }
+    );
   } catch (error) {
     console.error("Failed to fetch action item stats:", error);
     return NextResponse.json(

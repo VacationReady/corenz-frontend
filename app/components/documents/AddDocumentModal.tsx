@@ -129,6 +129,15 @@ export default function AddDocumentModal({
   const [canViewManager, setCanViewManager] = useState(false);
   const [canViewEmployee, setCanViewEmployee] = useState(true);
 
+  const hasAnyAudience = canViewAdmin || canViewManager || canViewEmployee;
+  const audienceSummary = useMemo(() => {
+    const roles: string[] = [];
+    if (canViewAdmin) roles.push("Admins");
+    if (canViewManager) roles.push("Managers");
+    if (canViewEmployee) roles.push("Employees");
+    return roles.join(", ");
+  }, [canViewAdmin, canViewManager, canViewEmployee]);
+
   // --- ADDED: Requires Acknowledgement state ---
   const [requiresAck, setRequiresAck] = useState(false);
   const [requiresSignature, setRequiresSignature] = useState(false);
@@ -280,6 +289,11 @@ export default function AddDocumentModal({
       return;
     }
 
+    if (!hasAnyAudience) {
+      toast.error("Select at least one audience (Admins, Managers, or Employees).");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -378,6 +392,11 @@ export default function AddDocumentModal({
   // Upload routine that can be triggered after local placement save
   const uploadWithPending = async (fields: any[] | null) => {
     if (!file || !title || !session?.user?.id) return;
+
+    if (!hasAnyAudience) {
+      toast.error("Select at least one audience (Admins, Managers, or Employees).");
+      return;
+    }
     try {
       setLoading(true);
       const formData = new FormData();
@@ -719,25 +738,36 @@ export default function AddDocumentModal({
               >
                 {/* Visibility (Employee only) - Compact inline */}
                 {type === "employee" && (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      <span className="font-medium text-sm">Visibility</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <span className="font-medium text-sm">Visibility</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
+                          <span className="text-xs font-medium">Admin</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <Switch checked={canViewManager} onChange={setCanViewManager} />
+                          <span className="text-xs font-medium">Manager</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
+                          <span className="text-xs font-medium">Employee</span>
+                        </label>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <Switch checked={canViewAdmin} onChange={setCanViewAdmin} />
-                        <span className="text-xs font-medium">Admin</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <Switch checked={canViewManager} onChange={setCanViewManager} />
-                        <span className="text-xs font-medium">Manager</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <Switch checked={canViewEmployee} onChange={setCanViewEmployee} />
-                        <span className="text-xs font-medium">Employee</span>
-                      </label>
-                    </div>
+
+                    {!hasAnyAudience ? (
+                      <div className="flex items-start gap-2 text-sm text-destructive">
+                        <AlertCircle className="w-4 h-4 mt-0.5" />
+                        <span>Select at least one audience so this document remains accessible.</span>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground">Visible to: {audienceSummary}</div>
+                    )}
                   </div>
                 )}
 
@@ -895,7 +925,7 @@ export default function AddDocumentModal({
                     <Button
                       type="button"
                       onClick={() => uploadWithPending(pendingFields)}
-                      disabled={loading || !title}
+                      disabled={loading || !title || !hasAnyAudience}
                       className="h-9 px-5 rounded-lg bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
                     >
                       {loading ? (
@@ -919,7 +949,7 @@ export default function AddDocumentModal({
                   <Button 
                     type="button"
                     onClick={handleSubmit} 
-                    disabled={loading || !title}
+                    disabled={loading || !title || !hasAnyAudience}
                     className="h-9 px-5 rounded-lg bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25"
                   >
                     {loading ? (

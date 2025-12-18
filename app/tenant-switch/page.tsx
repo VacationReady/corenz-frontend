@@ -15,6 +15,11 @@ function TenantSwitchContent() {
   >(null);
   const primaryActionRef = useRef<HTMLButtonElement | null>(null);
 
+  const requestNewLinkPath = useMemo(() => {
+    const nextPath = "/tenant-admin/dashboard#tenants";
+    return `/tenant-admin?next=${encodeURIComponent(nextPath)}`;
+  }, []);
+
   const errorContent = useMemo(() => {
     if (!errorCode) {
       return null;
@@ -222,21 +227,42 @@ function TenantSwitchContent() {
                   Try again
                 </button>
               )}
-              <button
-                ref={!errorContent?.showRetry ? primaryActionRef : null}
-                onClick={() => router.push("/tenant-admin")}
-                className="rounded-xl bg-purple-600 px-6 py-2 text-white hover:bg-purple-700"
-                aria-describedby="tenant-switch-status"
-              >
-                Back to Admin Portal
-              </button>
-              <button
-                onClick={() => router.push("/tenant-admin")}
-                className="rounded-xl border border-purple-600 px-6 py-2 text-purple-700 hover:bg-purple-50"
-                aria-describedby="tenant-switch-status"
-              >
-                Request a new switch link
-              </button>
+              {!errorContent?.showRetry ? (
+                <>
+                  <button
+                    ref={primaryActionRef}
+                    onClick={() => router.push(requestNewLinkPath)}
+                    className="rounded-xl bg-purple-600 px-6 py-2 text-white hover:bg-purple-700"
+                    aria-describedby="tenant-switch-status"
+                  >
+                    Request a new switch link
+                  </button>
+                  <button
+                    onClick={() => router.push("/tenant-admin")}
+                    className="rounded-xl border border-purple-600 px-6 py-2 text-purple-700 hover:bg-purple-50"
+                    aria-describedby="tenant-switch-status"
+                  >
+                    Back to Admin Portal
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => router.push(requestNewLinkPath)}
+                    className="rounded-xl border border-purple-600 px-6 py-2 text-purple-700 hover:bg-purple-50"
+                    aria-describedby="tenant-switch-status"
+                  >
+                    Request a new switch link
+                  </button>
+                  <button
+                    onClick={() => router.push("/tenant-admin")}
+                    className="rounded-xl px-6 py-2 text-purple-700 hover:bg-purple-50"
+                    aria-describedby="tenant-switch-status"
+                  >
+                    Back to Admin Portal
+                  </button>
+                </>
+              )}
             </div>
           </>
         )}

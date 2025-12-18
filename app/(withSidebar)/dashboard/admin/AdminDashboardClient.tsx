@@ -44,6 +44,19 @@ import { useSession } from "next-auth/react";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { mutate as swrMutate } from "swr";
 
+function usePageVisibility() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const update = () => setVisible(document.visibilityState === "visible");
+    update();
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, []);
+
+  return visible;
+}
+
 function parseCalendarDate(value: unknown): Date {
   if (value instanceof Date) return value;
   if (typeof value === "string") {
@@ -91,8 +104,8 @@ function EntitlementProjection({
     (async () => {
       try {
         const [entsRes, dedRes] = await Promise.all([
-          tenantFetch(`/api/employees/${encodeURIComponent(employeeId)}/entitlement`, { cache: "no-store" }),
-          tenantFetch(`/api/employees/${encodeURIComponent(employeeId)}/leave-requests/preview-deduction?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`, { cache: "no-store" }),
+          tenantFetch(`/api/employees/${encodeURIComponent(employeeId)}/entitlement`),
+          tenantFetch(`/api/employees/${encodeURIComponent(employeeId)}/leave-requests/preview-deduction?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
         ]);
         const ents = await entsRes.json();
         const ded = await dedRes.json().catch(() => ({ deduction: null }));
@@ -130,6 +143,7 @@ function EntitlementProjection({
   const [items, setItems] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const visible = usePageVisibility();
 
   useEffect(() => {
     let active = true;
@@ -141,8 +155,8 @@ function EntitlementProjection({
         if (scope) qs.set("scope", scope);
         if (departmentId) qs.set("departmentId", departmentId);
         const [leaveRes, txnRes] = await Promise.all([
-          fetch(`/api/approvals?${qs.toString()}`, { cache: "no-store" }),
-          fetch(`/api/transactional-change-requests?scope=${scope === "all" ? "all" : "assigned"}`, { cache: "no-store" }),
+          fetch(`/api/approvals?${qs.toString()}`),
+          fetch(`/api/transactional-change-requests?scope=${scope === "all" ? "all" : "assigned"}`),
         ]);
         const leaveData = await leaveRes.json().catch(() => ({}));
         const txnData = await txnRes.json().catch(() => ({}));
@@ -235,6 +249,12 @@ function EntitlementProjection({
       active = false;
     };
   }, [scope, departmentId, refreshKey]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const id = window.setInterval(() => setRefreshKey((k) => k + 1), 120000);
+    return () => window.clearInterval(id);
+  }, [visible]);
 
   const action = useCallback(async (id: string, action: "approve" | "decline") => {
     try {
@@ -373,6 +393,7 @@ export default function AdminDashboardClient({
   section,
 }: AdminDashboardClientProps) {
   const router = useRouter();
+  const visible = usePageVisibility();
   const [modalOpen, setModalOpen] = useState(false);
   const [addDocumentOpen, setAddDocumentOpen] = useState(false);
   const [editEmployeeOpen, setEditEmployeeOpen] = useState(false);
@@ -492,7 +513,12 @@ export default function AdminDashboardClient({
 
   // ---------------- Documents Action Items (Ack & Sign) ----------------
   // Fetch documents list
-  const { data: companyDocs } = useApi<any[]>('/api/documents/list-company');
+  const { data: companyDocsPaged } = useApi<{ items: any[] }>('/api/documents/list-company', {
+    params: {
+      limit: 40,
+      requiresAction: 1,
+    },
+  });
   const { data: employeeDocs } = useApi<any[]>(
     employeeId ? `/api/documents/list-employee` : null,
     { params: employeeId ? { employeeId } : undefined }
@@ -500,7 +526,8 @@ export default function AdminDashboardClient({
 
   // Combine and deduplicate documents
   const candidateDocuments = useMemo(() => {
-    const docs = [...(companyDocs || []), ...(employeeDocs || [])];
+    const companyDocs = companyDocsPaged?.items ?? [];
+    const docs = [...companyDocs, ...(employeeDocs || [])];
     const uniqueDocsMap = new Map<string, any>();
     for (const d of docs) {
       if (d && d.id && !uniqueDocsMap.has(d.id)) uniqueDocsMap.set(d.id, d);
@@ -508,7 +535,7 @@ export default function AdminDashboardClient({
     return Array.from(uniqueDocsMap.values())
       .filter((d) => d?.requiresAck || d?.requiresSignature)
       .slice(0, 20);
-  }, [companyDocs, employeeDocs]);
+  }, [companyDocsPaged, employeeDocs]);
 
   // Batch fetch document statuses
   const documentIds = useMemo(
@@ -596,9 +623,7 @@ export default function AdminDashboardClient({
     const load = async () => {
       setLoadingWhosOff(true);
       try {
-        const res = await fetch(`/api/calendar-events?${params}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(`/api/calendar-events?${params}`);
         if (res.ok) {
           const data = await res.json();
           if (isMounted) setWhosOff(data);
@@ -608,16 +633,21 @@ export default function AdminDashboardClient({
       }
     };
     load();
+    let id: number | null = null;
+    if (visible) {
+      id = window.setInterval(load, 300000);
+    }
     return () => {
+      if (id) window.clearInterval(id);
       isMounted = false;
     };
-  }, [selectedDepartment]);
+  }, [selectedDepartment, visible]);
 
   useEffect(() => {
     let isMounted = true;
     const loadDepts = async () => {
       try {
-        const res = await fetch("/api/departments", { cache: "no-store" });
+        const res = await fetch("/api/departments");
         if (res.ok) {
           const items = await res.json();
           if (isMounted)
@@ -866,7 +896,7 @@ export default function AdminDashboardClient({
                         setLoadingNewStarters(true);
                         const qs = new URLSearchParams();
                         if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
-                        const res = await fetch(`/api/dashboard/new-starters${qs.toString() ? `?${qs.toString()}` : ""}`, { cache: "no-store" });
+                        const res = await fetch(`/api/dashboard/new-starters${qs.toString() ? `?${qs.toString()}` : ""}`);
                         const data = await res.json();
                         setNewStarters(Array.isArray(data?.items) ? data.items : []);
                       } catch {

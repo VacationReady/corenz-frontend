@@ -231,6 +231,26 @@ test("Employees API - Pagination & Optimization", async (t) => {
     assert.equal(data.pagination.limit, 1);
   });
 
+  await run("GET: rejects limit=all", async () => {
+    mockSession = {
+      user: { id: "admin1", companyId: "company1", role: "ADMIN", email: "admin@example.com" },
+    };
+
+    let called = false;
+    mockPrisma.employee.findMany = async () => {
+      called = true;
+      return [];
+    };
+
+    const req = new NextRequest("http://localhost/api/employees?limit=all");
+    const res = await callGet(req);
+    const data = await res.json();
+
+    assert.equal(res.status, 400);
+    assert.equal(called, false, "Should reject before hitting the database");
+    assert.equal(data.error, "Invalid query parameters");
+  });
+
   await run("GET: handles cursor-based pagination", async () => {
     mockSession = {
       user: { id: "admin1", companyId: "company1", role: "ADMIN", email: "admin@example.com" },

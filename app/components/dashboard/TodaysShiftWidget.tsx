@@ -1,6 +1,7 @@
 'use client';
 
 import ClockWidget from "@/components/time-tracking/ClockWidget";
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
@@ -12,13 +13,32 @@ import Button from '@/components/ui/Button';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+function usePageVisibility() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const update = () => setVisible(document.visibilityState === 'visible');
+    update();
+    document.addEventListener('visibilitychange', update);
+    return () => document.removeEventListener('visibilitychange', update);
+  }, []);
+
+  return visible;
+}
+
 export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
   const router = useRouter();
+  const visible = usePageVisibility();
   
   const { data, error, isLoading, mutate } = useSWR(
     employeeId ? `/api/shifts/today?employeeId=${employeeId}` : null,
     fetcher,
-    { refreshInterval: 30000 } // Refresh every 30 seconds
+    {
+      refreshInterval: visible ? 120000 : 0,
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 60000,
+    }
   );
 
   // Fetch time tracking settings to check for GPS requirement
@@ -28,9 +48,6 @@ export function TodaysShiftWidget({ employeeId }: { employeeId: string }) {
   );
 
   const settings = settingsData?.settings;
-
-  // Temporary debugging
-  console.log('[TodaysShift] API Response:', data);
 
   const handleClockUpdate = async () => {
     mutate();

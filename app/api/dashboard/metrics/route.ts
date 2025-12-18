@@ -94,16 +94,23 @@ export async function GET(req: Request) {
       }),
     ]);
 
-    return NextResponse.json({
-      headcount,
-      managers,
-      newStartersThisMonth,
-      pendingApprovals: {
-        my: pendingApprovalsMyLeave + pendingApprovalsMyTxn,
-        all: canViewAllApprovals ? (pendingApprovalsAllLeave + pendingApprovalsAllTxn) : undefined,
+    return NextResponse.json(
+      {
+        headcount,
+        managers,
+        newStartersThisMonth,
+        pendingApprovals: {
+          my: pendingApprovalsMyLeave + pendingApprovalsMyTxn,
+          all: canViewAllApprovals ? (pendingApprovalsAllLeave + pendingApprovalsAllTxn) : undefined,
+        },
+        canViewAllApprovals,
       },
-      canViewAllApprovals,
-    });
+      {
+        headers: {
+          "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
+        },
+      }
+    );
   } catch (error) {
     console.error("[DASHBOARD_METRICS]", error);
     return NextResponse.json(

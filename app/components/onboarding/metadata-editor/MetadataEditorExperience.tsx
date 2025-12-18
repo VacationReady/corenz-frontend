@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
   AlertTriangle,
@@ -37,6 +38,7 @@ const filterOptions = [
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function MetadataEditorExperience() {
+  const router = useRouter();
   const [filters, setFilters] = useState<string[]>(["all"]);
   const [activeTab, setActiveTab] = useState("checklist");
   const [journeyDrawerOpen, setJourneyDrawerOpen] = useState(false);
@@ -129,9 +131,35 @@ export function MetadataEditorExperience() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button icon={<Plus className="h-4 w-4" />}>Create new template</Button>
-            <Button variant="secondary" icon={<FileJson className="h-4 w-4" />}>Import JSON</Button>
-            <Button variant="secondary" icon={<ClipboardList className="h-4 w-4" />}>View audit log</Button>
+            <Button
+              icon={<Plus className="h-4 w-4" />}
+              onClick={() => router.push("/settings/journeys?tab=onboarding")}
+            >
+              Create new template
+            </Button>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button variant="secondary" icon={<FileJson className="h-4 w-4" />} disabled>
+                      Import JSON
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                  JSON import isnt available in this environment yet.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
+            <Button
+              variant="secondary"
+              icon={<ClipboardList className="h-4 w-4" />}
+              onClick={() => router.push("/settings/system/audit-log")}
+            >
+              View audit log
+            </Button>
             <Button variant="glass" icon={<LayoutGrid className="h-4 w-4" />} onClick={() => setJourneyDrawerOpen(true)}>
               Manage Journey ID
             </Button>

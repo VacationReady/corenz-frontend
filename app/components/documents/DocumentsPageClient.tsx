@@ -577,15 +577,25 @@ function DocumentsContent() {
   };
 
   useEffect(() => {
-    if (selectedDoc?.id && selectedDoc.requiresAck) {
+    if (!selectedDoc?.id) return;
+
+    if (selectedDoc.requiresAck) {
       tenantFetch(`/api/documents/acknowledge/${selectedDoc.id}/me`)
         .then((res) => res.json())
         .then((data) => {
-          setAcknowledged(data.acknowledged);
+          setAcknowledged(!!data.acknowledged);
           setAckDate(data.acknowledged ? new Date(data.acknowledgedAt) : null);
+        })
+        .catch(() => {
+          setAcknowledged(false);
+          setAckDate(null);
         });
+    } else {
+      setAcknowledged(false);
+      setAckDate(null);
     }
-    if (selectedDoc?.id && (selectedDoc as any).requiresSignature) {
+
+    if ((selectedDoc as any).requiresSignature) {
       tenantFetch(`/api/documents/signatures/${selectedDoc.id}/me`)
         .then((res) => res.json())
         .then((data) => setSigned(!!data.signed))
@@ -594,6 +604,9 @@ function DocumentsContent() {
         .then((r) => r.json())
         .then((data) => setFields(Array.isArray(data) ? data : []))
         .catch(() => setFields([]));
+    } else {
+      setSigned(false);
+      setFields([]);
     }
   }, [selectedDoc, tenantFetch]);
 
@@ -610,6 +623,13 @@ function DocumentsContent() {
     if (openId) {
       const doc = documents.find((d) => d.id === openId);
       if (doc) {
+        setAcknowledged(false);
+        setAckDate(null);
+        setSigned(false);
+        setFields([]);
+        setSignatureValue(null);
+        setShowCapture(false);
+        setActiveFieldIdx(null);
         setSelectedDoc(doc);
         setIsPreviewModalOpen(true);
         const newUrl = new URL(window.location.href);
@@ -890,9 +910,20 @@ function DocumentsContent() {
       ? `${(size / 1024).toFixed(1)} KB`
       : `${(size / 1024 / 1024).toFixed(1)} MB`;
 
-  const handleRowClick = (doc: Document) => {
+  const openDocument = (doc: Document) => {
+    setAcknowledged(false);
+    setAckDate(null);
+    setSigned(false);
+    setFields([]);
+    setSignatureValue(null);
+    setShowCapture(false);
+    setActiveFieldIdx(null);
     setSelectedDoc(doc);
     setIsPreviewModalOpen(true);
+  };
+
+  const handleRowClick = (doc: Document) => {
+    openDocument(doc);
   };
 
   const resetUploadForm = () => {

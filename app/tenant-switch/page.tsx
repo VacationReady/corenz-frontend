@@ -10,6 +10,7 @@ function TenantSwitchContent() {
   const token = searchParams.get("token");
   const [status, setStatus] = useState<"processing" | "success" | "error">("processing");
   const [message, setMessage] = useState("Processing tenant switch...");
+  const [isRequestingNewLink, setIsRequestingNewLink] = useState(false);
   const [errorCode, setErrorCode] = useState<
     "missing_token" | "expired" | "used" | "invalid" | "auth_failed" | "network" | "server" | "unknown" | null
   >(null);
@@ -19,6 +20,26 @@ function TenantSwitchContent() {
     const nextPath = "/tenant-admin/dashboard#tenants";
     return `/tenant-admin?next=${encodeURIComponent(nextPath)}`;
   }, []);
+
+  const handleRequestNewLink = useCallback(async () => {
+    setIsRequestingNewLink(true);
+
+    try {
+      const response = await fetch("/api/tenant-admin/verify");
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data?.authenticated) {
+        router.push("/tenant-admin/dashboard#tenants");
+        return;
+      }
+
+      router.push(requestNewLinkPath);
+    } catch {
+      router.push(requestNewLinkPath);
+    } finally {
+      setIsRequestingNewLink(false);
+    }
+  }, [router, requestNewLinkPath]);
 
   const errorContent = useMemo(() => {
     if (!errorCode) {
@@ -231,9 +252,10 @@ function TenantSwitchContent() {
                 <>
                   <button
                     ref={primaryActionRef}
-                    onClick={() => router.push(requestNewLinkPath)}
+                    onClick={handleRequestNewLink}
                     className="rounded-xl bg-purple-600 px-6 py-2 text-white hover:bg-purple-700"
                     aria-describedby="tenant-switch-status"
+                    disabled={isRequestingNewLink}
                   >
                     Request a new switch link
                   </button>
@@ -248,9 +270,10 @@ function TenantSwitchContent() {
               ) : (
                 <>
                   <button
-                    onClick={() => router.push(requestNewLinkPath)}
+                    onClick={handleRequestNewLink}
                     className="rounded-xl border border-purple-600 px-6 py-2 text-purple-700 hover:bg-purple-50"
                     aria-describedby="tenant-switch-status"
+                    disabled={isRequestingNewLink}
                   >
                     Request a new switch link
                   </button>

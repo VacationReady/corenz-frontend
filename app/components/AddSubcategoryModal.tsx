@@ -37,6 +37,8 @@ export default function AddSubcategoryModal({
   );
   const [loading, setLoading] = useState(false);
 
+  const isSickness = parentCategoryName.toLowerCase().includes("sick");
+
   const handleSubmit = async () => {
     if (!name.trim()) {
       toast.error("Name is required.");
@@ -98,32 +100,34 @@ export default function AddSubcategoryModal({
           <div className="px-8 pb-8 space-y-5">
             <div className="space-y-2">
               <Label htmlFor="subcategoryName" className="text-sm font-medium text-foreground/80">
-                Subcategory Name <span className="text-primary">*</span>
+                {isSickness ? "Sick Reason" : "Subcategory Name"} <span className="text-primary">*</span>
               </Label>
               <Input
                 id="subcategoryName"
-                placeholder="e.g., Doctor's Appointment"
+                placeholder={isSickness ? "e.g., Personal illness" : "e.g., Doctor's Appointment"}
                 value={name}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                 className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground/80">Default Paid Status</Label>
-              <Select
-                value={defaultPaidStatus}
-                onValueChange={(v: string) => setDefaultPaidStatus(v as "PAID" | "UNPAID")}
-              >
-                <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PAID">Paid</SelectItem>
-                  <SelectItem value="UNPAID">Unpaid</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {!isSickness && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-foreground/80">Default Paid Status</Label>
+                <Select
+                  value={defaultPaidStatus}
+                  onValueChange={(v: string) => setDefaultPaidStatus(v as "PAID" | "UNPAID")}
+                >
+                  <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PAID">Paid</SelectItem>
+                    <SelectItem value="UNPAID">Unpaid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-4">

@@ -50,6 +50,7 @@ const leaveRequestCreateSchema = z.object({
     .trim()
     .min(1, "endDate is required"),
   reason: optionalTrimmedString,
+  sickReasonId: optionalTrimmedString,
   sickReason: optionalTrimmedString,
   paidStatus: z
     .enum(["PAID", "UNPAID"])
@@ -191,7 +192,7 @@ export async function GET(
         : {}),
     };
 
-    const leaves = await prisma.leaveRequest.findMany({
+    const leaves: any[] = await (prisma.leaveRequest as any).findMany({
       where,
       orderBy: { startDate: "asc" },
       take,
@@ -204,8 +205,10 @@ export async function GET(
         EventCategory: { select: { id: true, name: true, iconKey: true } },
         approvalStatus: true,
         reason: true,
+        sickReasonId: true,
         sickReason: true,
         paidStatus: true,
+        EventSubcategory: { select: { id: true, name: true } },
       },
     });
 
@@ -215,12 +218,20 @@ export async function GET(
     const transformedLeaves = leaves.map((leave) => {
       const isSick = leave.leaveType === "SICK" || 
         (leave.EventCategory?.name?.toLowerCase().includes("sick") ?? false);
+
+      const resolvedSickReason =
+        (leave.sickReason ?? null) ||
+        ((leave as any).EventSubcategory?.name ?? null);
       
       return {
         ...leave,
         isSick,
         // Ensure leaveType is set for UI consumption
         leaveType: leave.leaveType || (isSick ? "SICK" : leave.EventCategory?.name || "LEAVE"),
+        sickReason: resolvedSickReason,
+        sickReasonId:
+          (leave as any).sickReasonId ??
+          ((leave as any).EventSubcategory?.id ?? null),
       };
     });
 
@@ -269,12 +280,14 @@ export async function POST(
     }
 
     const userId = session.user.id;
-  const body = leaveRequestCreateSchema.parse(await req.json());
-  const { startDate, endDate, reason, sickReason, paidStatus, dayType, isSick } = body;
+    const body = leaveRequestCreateSchema.parse(await req.json());
+    const { startDate, endDate, reason, sickReasonId, sickReason, paidStatus, dayType, isSick } = body;
   
   // First-class sick leave: isSick === true means this is sick leave
   // When sick, eventCategoryId is ignored - we use a placeholder or the company's sick leave category
   let EventCategoryId = body.eventCategoryId || body.EventCategoryId;
+
+  let resolvedSickReason: string | undefined = sickReason;
   
   // For sick leave, we need to find or use a sick leave category
   // This maintains backward compatibility with existing category-based leave system
@@ -300,8 +313,29 @@ export async function POST(
       }
     }
     
+    if (sickReasonId) {
+      const sub = await prisma.eventSubcategory.findFirst({
+        where: {
+          id: sickReasonId,
+          companyId: session.user.companyId,
+          isActive: true,
+          eventCategoryId: EventCategoryId,
+        },
+        select: { id: true, name: true },
+      });
+
+      if (!sub) {
+        return NextResponse.json(
+          { success: false, error: "Invalid sick reason selected." },
+          { status: 400 },
+        );
+      }
+
+      resolvedSickReason = sub.name;
+    }
+
     // Validate sick leave requirements
-    if (!sickReason) {
+    if (!resolvedSickReason) {
       return NextResponse.json(
         { success: false, error: "Sick reason is required for sick leave." },
         { status: 400 },
@@ -426,7 +460,7 @@ export async function POST(
             }
 
             // Create leave request inside transaction
-            const newLeaveRequest = await tx.leaveRequest.create({
+            const newLeaveRequest = await (tx.leaveRequest as any).create({
               data: {
                 id: crypto.randomUUID(),
                 Employee: { connect: { id: employeeId } },
@@ -439,7 +473,8 @@ export async function POST(
                 reason: reason ?? "",
                 // First-class sick leave fields
                 leaveType: isSick ? "SICK" : null,
-                sickReason: isSick ? sickReason : null,
+                sickReasonId: isSick ? (sickReasonId ?? null) : null,
+                sickReason: isSick ? resolvedSickReason : null,
                 paidStatus: isSick ? (paidStatus ?? "PAID") : null,
                 updatedAt: new Date(),
               },
@@ -452,7 +487,7 @@ export async function POST(
             });
 
             // Approve leave request
-            return tx.leaveRequest.update({
+            return (tx.leaveRequest as any).update({
               where: { id: newLeaveRequest.id },
               data: { approvalStatus: "APPROVED", approvedById: session.user.id },
             });
@@ -463,7 +498,7 @@ export async function POST(
           // Entitlement not enforced - create and approve in single transaction
           console.log("ℹ️ Entitlement enforcement disabled for this event type. Auto-approving without balance check.");
           const approved = await prisma.$transaction(async (tx) => {
-            const newLeaveRequest = await tx.leaveRequest.create({
+            const newLeaveRequest = await (tx.leaveRequest as any).create({
               data: {
                 id: crypto.randomUUID(),
                 Employee: { connect: { id: employeeId } },
@@ -476,13 +511,14 @@ export async function POST(
                 reason: reason ?? "",
                 // First-class sick leave fields
                 leaveType: isSick ? "SICK" : null,
-                sickReason: isSick ? sickReason : null,
+                sickReasonId: isSick ? (sickReasonId ?? null) : null,
+                sickReason: isSick ? resolvedSickReason : null,
                 paidStatus: isSick ? (paidStatus ?? "PAID") : null,
                 updatedAt: new Date(),
               },
             });
 
-            return tx.leaveRequest.update({
+            return (tx.leaveRequest as any).update({
               where: { id: newLeaveRequest.id },
               data: { approvalStatus: "APPROVED", approvedById: session.user.id },
             });
@@ -497,7 +533,7 @@ export async function POST(
     }
 
     // Non-admin path: create leave request for workflow approval
-    const newLeaveRequest = await prisma.leaveRequest.create({
+    const newLeaveRequest = await (prisma.leaveRequest as any).create({
       data: {
         id: crypto.randomUUID(),
         Employee: { connect: { id: employeeId } },
@@ -510,7 +546,8 @@ export async function POST(
         reason: reason ?? "",
         // First-class sick leave fields
         leaveType: isSick ? "SICK" : null,
-        sickReason: isSick ? sickReason : null,
+        sickReasonId: isSick ? (sickReasonId ?? null) : null,
+        sickReason: isSick ? resolvedSickReason : null,
         paidStatus: isSick ? (paidStatus ?? "PAID") : null,
         updatedAt: new Date(),
       },

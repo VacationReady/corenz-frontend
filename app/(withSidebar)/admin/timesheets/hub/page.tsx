@@ -61,6 +61,7 @@ type Timesheet = {
   status: string;
   submittedAt: string;
   approvedAt?: string | null;
+  rejectedReason?: string | null;
   notes?: string | null;
   entries: TimesheetEntry[];
   // Cost information
@@ -88,9 +89,11 @@ export default function AdminTimesheetHubPage() {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [previewSheet, setPreviewSheet] = useState<Timesheet | null>(null);
-  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; reason: string }>({
+  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; reason: string; sendEmail: boolean; timesheetId: string | null }>({
     open: false,
     reason: "",
+    sendEmail: true,
+    timesheetId: null,
   });
   const [processing, setProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState<"approvals" | "my-timesheets">("approvals");
@@ -98,6 +101,7 @@ export default function AdminTimesheetHubPage() {
   const [showAuditTrail, setShowAuditTrail] = useState(false);
   const [auditTimesheetId, setAuditTimesheetId] = useState<string | null>(null);
   const [approvingIds, setApprovingIds] = useState<Set<string>>(new Set());
+  const [decliningIds, setDecliningIds] = useState<Set<string>>(new Set());
   const [fadingOutIds, setFadingOutIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
@@ -258,6 +262,7 @@ export default function AdminTimesheetHubPage() {
         body: JSON.stringify({
           timesheetIds: Array.from(selectedIds),
           reason: rejectDialog.reason,
+          sendEmail: rejectDialog.sendEmail,
         }),
       });
 
@@ -271,7 +276,7 @@ export default function AdminTimesheetHubPage() {
       });
 
       setSelectedIds(new Set());
-      setRejectDialog({ open: false, reason: "" });
+      setRejectDialog({ open: false, reason: "", sendEmail: true, timesheetId: null });
       fetchData();
     } catch (error) {
       toast({
@@ -282,6 +287,65 @@ export default function AdminTimesheetHubPage() {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleIndividualDecline = async () => {
+    if (!rejectDialog.timesheetId || !rejectDialog.reason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a decline reason",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const timesheetId = rejectDialog.timesheetId;
+    setDecliningIds(prev => new Set(prev).add(timesheetId));
+
+    try {
+      const response = await fetch(`/api/timesheets/${timesheetId}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason: rejectDialog.reason,
+          sendEmail: rejectDialog.sendEmail,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to decline timesheet");
+      }
+
+      const declinedTimesheet = timesheets.find(t => t.id === timesheetId);
+
+      toast({
+        title: "Timesheet Declined",
+        description: declinedTimesheet
+          ? `${declinedTimesheet.employeeName}'s timesheet has been declined${rejectDialog.sendEmail ? " and they have been notified" : ""}`
+          : "Timesheet declined successfully",
+      });
+
+      setRejectDialog({ open: false, reason: "", sendEmail: true, timesheetId: null });
+      setPreviewSheet(null);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to decline timesheet",
+        variant: "destructive",
+      });
+    } finally {
+      setDecliningIds(prev => {
+        const next = new Set(prev);
+        next.delete(timesheetId);
+        return next;
+      });
+    }
+  };
+
+  const openDeclineDialog = (timesheetId: string) => {
+    setRejectDialog({ open: true, reason: "", sendEmail: true, timesheetId });
   };
 
   const handleIndividualApprove = async (timesheetId: string) => {
@@ -354,7 +418,7 @@ export default function AdminTimesheetHubPage() {
 
   return (
     <div className="container mx-auto max-w-7xl space-y-8 p-6">
-      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-blue-600/60 via-blue-500/50 to-blue-700/60 p-8 shadow-2xl backdrop-blur">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-primary/60 via-blue-600/50 to-blue-700/60 p-8 shadow-2xl backdrop-blur">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white/70">
@@ -379,7 +443,7 @@ export default function AdminTimesheetHubPage() {
             <div className="rounded-2xl border border-white/20 bg-black/30 p-4">
               <p className="text-xs uppercase tracking-wide text-white/50">Total hours</p>
               <div className="mt-2 flex items-center gap-2 text-2xl font-semibold text-white">
-                <Clock className="h-5 w-5 text-purple-300" />
+                <Clock className="h-5 w-5 text-sky-300" />
                 {totalHours.toFixed(1)}
               </div>
             </div>
@@ -504,7 +568,7 @@ export default function AdminTimesheetHubPage() {
           </Card>
 
           {showBulkActions && selectedIds.size > 0 && (
-            <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-blue-600/80 to-purple-600/80 p-4 text-white shadow-lg shadow-blue-500/20 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-primary/80 to-blue-600/80 p-4 text-white shadow-lg shadow-primary/20 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center gap-3">
                 <Checkbox checked onCheckedChange={() => setSelectedIds(new Set())} className="border-white/70" />
                 <span className="text-sm font-medium tracking-wide">
@@ -518,7 +582,7 @@ export default function AdminTimesheetHubPage() {
                 <Button
                   variant="destructive"
                   className="bg-white/10 hover:bg-white/20"
-                  onClick={() => setRejectDialog({ open: true, reason: "" })}
+                  onClick={() => setRejectDialog({ open: true, reason: "", sendEmail: true, timesheetId: null })}
                   disabled={processing}
                 >
                   <X className="mr-2 h-4 w-4" /> Reject Selected
@@ -631,7 +695,7 @@ export default function AdminTimesheetHubPage() {
                             </Badge>
                           )}
                           {timesheet.entries && timesheet.entries.length > 1 && (
-                            <Badge variant="outline" className="text-xs text-blue-400 border-blue-400/30">
+                            <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-600/30 dark:border-blue-400/30">
                               {timesheet.entries.length} entries
                             </Badge>
                           )}
@@ -669,22 +733,39 @@ export default function AdminTimesheetHubPage() {
                             <Edit2 className="h-4 w-4" />
                           </Button>
                         )}
-                        {showBulkActions && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="bg-emerald-500 hover:bg-emerald-600 min-w-[36px]"
-                            onClick={() => handleIndividualApprove(timesheet.id)}
-                            disabled={approvingIds.has(timesheet.id) || fadingOutIds.has(timesheet.id)}
-                          >
-                            {approvingIds.has(timesheet.id) ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : fadingOutIds.has(timesheet.id) ? (
-                              <CheckCircle className="h-4 w-4" />
-                            ) : (
-                              <Check className="h-4 w-4" />
-                            )}
-                          </Button>
+                        {timesheet.status === "PENDING" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-red-500/50 text-red-500 hover:bg-red-500/10 min-w-[36px]"
+                              onClick={() => openDeclineDialog(timesheet.id)}
+                              disabled={decliningIds.has(timesheet.id) || fadingOutIds.has(timesheet.id)}
+                              title="Decline timesheet"
+                            >
+                              {decliningIds.has(timesheet.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <X className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="bg-emerald-500 hover:bg-emerald-600 min-w-[36px]"
+                              onClick={() => handleIndividualApprove(timesheet.id)}
+                              disabled={approvingIds.has(timesheet.id) || fadingOutIds.has(timesheet.id)}
+                              title="Approve timesheet"
+                            >
+                              {approvingIds.has(timesheet.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : fadingOutIds.has(timesheet.id) ? (
+                                <CheckCircle className="h-4 w-4" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -750,6 +831,16 @@ export default function AdminTimesheetHubPage() {
                     )}
                   </div>
 
+                  {previewSheet.status === "DECLINED" && previewSheet.rejectedReason && (
+                    <div className="space-y-2 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <X className="h-4 w-4 text-red-400" />
+                        <span className="font-medium text-red-400">Decline Reason</span>
+                      </div>
+                      <p className="text-foreground">{previewSheet.rejectedReason}</p>
+                    </div>
+                  )}
+
                   {/* Cost Summary */}
                   <div className="space-y-2 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm">
                     <div className="flex items-center gap-2 mb-2">
@@ -808,7 +899,7 @@ export default function AdminTimesheetHubPage() {
                                 {format(new Date(entry.date), "EEE, MMM d")}
                               </span>
                               {entry.entryType === "CLOCK" && (
-                                <Badge variant="default" className="bg-blue-500 text-xs">
+                                <Badge variant="default" className="bg-blue-600 text-xs">
                                   <Clock className="mr-1 h-3 w-3" />
                                   Clock
                                 </Badge>
@@ -863,7 +954,7 @@ export default function AdminTimesheetHubPage() {
                             {/* Shift Information */}
                             {entry.shift && (
                               <div className="mt-2 pt-2 border-t border-white/10">
-                                <div className="flex items-center gap-1 text-blue-400 mb-1">
+                                <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 mb-1">
                                   <Link2 className="h-3 w-3" />
                                   <span className="font-medium">Linked Shift</span>
                                 </div>
@@ -909,15 +1000,36 @@ export default function AdminTimesheetHubPage() {
                     </div>
                   )}
 
-                  <div className="flex gap-3 pt-4">
-                    <Button
-                      variant="default"
-                      className="flex-1 bg-emerald-500 hover:bg-emerald-600"
-                      onClick={() => handleIndividualApprove(previewSheet.id)}
-                    >
-                      <Check className="mr-2 h-4 w-4" /> Approve
-                    </Button>
-                  </div>
+                  {previewSheet.status === "PENDING" && (
+                    <div className="flex gap-3 pt-4">
+                      <Button
+                        variant="outline"
+                        className="flex-1 border-red-500/50 text-red-500 hover:bg-red-500/10"
+                        onClick={() => openDeclineDialog(previewSheet.id)}
+                        disabled={decliningIds.has(previewSheet.id)}
+                      >
+                        {decliningIds.has(previewSheet.id) ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="mr-2 h-4 w-4" />
+                        )}
+                        Decline
+                      </Button>
+                      <Button
+                        variant="default"
+                        className="flex-1 bg-emerald-500 hover:bg-emerald-600"
+                        onClick={() => handleIndividualApprove(previewSheet.id)}
+                        disabled={approvingIds.has(previewSheet.id)}
+                      >
+                        {approvingIds.has(previewSheet.id) ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="mr-2 h-4 w-4" />
+                        )}
+                        Approve
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </SheetContent>
@@ -926,30 +1038,53 @@ export default function AdminTimesheetHubPage() {
           <Dialog open={rejectDialog.open} onOpenChange={(open) => setRejectDialog({ ...rejectDialog, open })}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Reject Timesheets</DialogTitle>
+                <DialogTitle>
+                  {rejectDialog.timesheetId ? "Decline Timesheet" : "Reject Timesheets"}
+                </DialogTitle>
                 <DialogDescription>
-                  Provide context for rejecting {selectedIds.size} timesheet{selectedIds.size === 1 ? "" : "s"}.
+                  {rejectDialog.timesheetId
+                    ? "Provide a reason for declining this timesheet. The employee will need to review and resubmit."
+                    : `Provide context for rejecting ${selectedIds.size} timesheet${selectedIds.size === 1 ? "" : "s"}.`
+                  }
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <Textarea
-                  placeholder="Enter rejection reason..."
-                  value={rejectDialog.reason}
-                  onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
-                  rows={4}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="decline-reason">Reason for decline *</Label>
+                  <Textarea
+                    id="decline-reason"
+                    placeholder="Enter reason for declining..."
+                    value={rejectDialog.reason}
+                    onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
+                    rows={4}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="send-email"
+                    checked={rejectDialog.sendEmail}
+                    onCheckedChange={(checked) => setRejectDialog({ ...rejectDialog, sendEmail: checked === true })}
+                  />
+                  <Label htmlFor="send-email" className="text-sm font-normal cursor-pointer">
+                    Send email notification to employee with decline reason
+                  </Label>
+                </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setRejectDialog({ open: false, reason: "" })}>
+                <Button variant="outline" onClick={() => setRejectDialog({ open: false, reason: "", sendEmail: true, timesheetId: null })}>
                   Cancel
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={handleBulkReject}
-                  disabled={!rejectDialog.reason.trim() || processing}
+                  onClick={rejectDialog.timesheetId ? handleIndividualDecline : handleBulkReject}
+                  disabled={!rejectDialog.reason.trim() || processing || (rejectDialog.timesheetId ? decliningIds.has(rejectDialog.timesheetId) : false)}
                 >
-                  {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
-                  Reject
+                  {(processing || (rejectDialog.timesheetId && decliningIds.has(rejectDialog.timesheetId))) ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <X className="mr-2 h-4 w-4" />
+                  )}
+                  {rejectDialog.timesheetId ? "Decline" : "Reject"}
                 </Button>
               </DialogFooter>
             </DialogContent>

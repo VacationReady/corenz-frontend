@@ -416,7 +416,7 @@ export default function TimesheetDetailView({
               value={comments}
               onChange={(e) => setComments(e.target.value)}
               placeholder="Add comments (optional)"
-              className="w-full px-4 py-3 bg-black/30 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 mb-4"
+              className="w-full px-4 py-3 bg-black/30 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-600 mb-4"
               rows={3}
             />
             <div className="flex gap-3">

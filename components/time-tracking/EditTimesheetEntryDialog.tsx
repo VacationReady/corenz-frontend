@@ -129,7 +129,7 @@ export default function EditTimesheetEntryDialog({
     switch (type) {
       case "CLOCK":
         return (
-          <Badge variant="default" className="bg-blue-500">
+          <Badge variant="default" className="bg-blue-600">
             <Clock className="mr-1 h-3 w-3" />
             Clock Entry
           </Badge>

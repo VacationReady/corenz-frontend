@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { cancelPendingTimesheetApprovalActionItems } from "@/lib/action-items-helper";
+import { sendTimesheetRejectionEmail } from "@/lib/email/timesheet-notifications";
 // import { sendEmail } from "@/lib/email"; // TODO: Implement email service
 
 const bulkRejectSchema = z.object({
   timesheetIds: z.array(z.string()).min(1),
   reason: z.string().min(1, "Rejection reason is required"),
+  sendEmail: z.boolean().optional().default(true),
 });
 
 /**
@@ -133,8 +136,42 @@ export async function POST(req: NextRequest) {
             where: { id: timesheet.id },
             data: {
               approvalStatus: "DECLINED",
+              rejectedReason: data.reason,
             },
           });
+
+          const activeStage = await tx.timesheetApprovalStage.findFirst({
+            where: {
+              timesheetId: timesheet.id,
+              isActive: true,
+            },
+          });
+
+          if (activeStage) {
+            await tx.timesheetApprovalDecision.updateMany({
+              where: {
+                stageId: activeStage.id,
+                isActive: true,
+              },
+              data: {
+                status: "DECLINED",
+                comments: data.reason,
+                respondedAt: new Date(),
+                isActive: false,
+              },
+            });
+
+            await tx.timesheetApprovalStage.update({
+              where: { id: activeStage.id },
+              data: {
+                status: "DECLINED",
+                isActive: false,
+                completedAt: new Date(),
+              },
+            });
+          }
+
+          await cancelPendingTimesheetApprovalActionItems(timesheet.id);
 
           // Create approval record - skipped (approval stages managed separately)
 
@@ -160,28 +197,17 @@ export async function POST(req: NextRequest) {
           });
         });
 
-        // Send email notification
-        if (timesheet.Employee.User?.email) {
+        // Send email notification if enabled
+        if (data.sendEmail && timesheet.Employee.User?.email) {
           try {
-            // TODO: Implement email notifications
-            // await sendEmail({
-            //   to: timesheet.Employee.User.email,
-            //   subject: "Timesheet Rejected - Action Required",
-            //   text: `Your timesheet for ${new Date(timesheet.periodStart).toLocaleDateString()} - ${new Date(timesheet.periodEnd).toLocaleDateString()} has been rejected by ${employee.User.name}. Reason: ${data.reason}`,
-            //   html: `
-            //     <div style="font-family: Arial, sans-serif; padding: 20px;">
-            //       <h2 style="color: #EF4444;">Timesheet Rejected</h2>
-            //       <p>Hi ${timesheet.Employee.User.name},</p>
-            //       <p>Your timesheet for <strong>${new Date(timesheet.periodStart).toLocaleDateString()} - ${new Date(timesheet.periodEnd).toLocaleDateString()}</strong> has been rejected and requires your attention.</p>
-            //       <p><strong>Rejected by:</strong> ${employee.User.name}</p>
-            //       <div style="background: #FEE2E2; border-left: 4px solid #EF4444; padding: 12px; margin: 16px 0;">
-            //         <p style="margin: 0;"><strong>Reason:</strong> ${data.reason}</p>
-            //       </div>
-            //       <p>Please review the feedback and resubmit your timesheet.</p>
-            //       <p>Thank you!</p>
-            //     </div>
-            //   `,
-            // });
+            await sendTimesheetRejectionEmail({
+              to: timesheet.Employee.User.email,
+              employeeName: timesheet.Employee.User.name || 'Team Member',
+              rejectedBy: employee.User.name || 'Manager',
+              reason: data.reason,
+              periodStart: timesheet.periodStart,
+              periodEnd: timesheet.periodEnd,
+            });
           } catch (emailError) {
             console.error("Failed to send rejection email:", emailError);
           }

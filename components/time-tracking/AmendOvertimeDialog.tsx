@@ -213,7 +213,7 @@ export default function AmendOvertimeDialog({
                 <div className="text-xs text-slate-600 mb-1">Split</div>
                 <div className="flex gap-1 h-3 rounded-full overflow-hidden">
                   <div 
-                    className="bg-blue-500 transition-all" 
+                    className="bg-blue-600 transition-all" 
                     style={{ width: `${(regularHours / totalHours) * 100}%` }}
                     title={`Regular: ${regularHours.toFixed(2)}h`}
                   />

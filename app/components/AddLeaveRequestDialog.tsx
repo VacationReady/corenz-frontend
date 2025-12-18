@@ -74,7 +74,13 @@ interface AddLeaveRequestDialogProps {
 type EventCategory = {
   id: string;
   name: string;
-  subcategories: { id: string; name: string }[];
+  subcategories: {
+    id: string;
+    name: string;
+    defaultPaidStatus?: "PAID" | "UNPAID";
+    isActive?: boolean;
+    eventCategoryId?: string;
+  }[];
   iconKey?: string | null;
 };
 
@@ -103,6 +109,7 @@ export default function AddLeaveRequestDialog({
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [sickReason, setSickReason] = useState("");
+  const [sickReasonId, setSickReasonId] = useState("");
   const [paidStatus, setPaidStatus] = useState("PAID");
   const [totalDays, setTotalDays] = useState(0);
   const [deduction, setDeduction] = useState(0);
@@ -175,6 +182,15 @@ export default function AddLeaveRequestDialog({
     }
   };
 
+  const sicknessCategory = useMemo(() => {
+    return categories.find((c) => c.name.toLowerCase().includes("sick")) ?? null;
+  }, [categories]);
+
+  const configuredSickReasons = useMemo(() => {
+    const subs = sicknessCategory?.subcategories ?? [];
+    return subs.filter((s) => (s.name ?? "").trim().length > 0);
+  }, [sicknessCategory]);
+
   useEffect(() => {
     if (startDate && endDate) {
       const start = new Date(startDate);
@@ -217,7 +233,8 @@ export default function AddLeaveRequestDialog({
         toast.error("Please select start and end dates.");
         return;
       }
-      if (!sickReason) {
+      const hasConfiguredReasons = configuredSickReasons.length > 0;
+      if (hasConfiguredReasons ? !sickReasonId : !sickReason) {
         toast.error("Please provide a reason for sickness.");
         return;
       }
@@ -262,7 +279,9 @@ export default function AddLeaveRequestDialog({
           status: isAdminOrManager ? "APPROVED" : undefined,
           // Sick leave specific fields
           ...(isSickLeave && {
-            sickReason,
+            ...(configuredSickReasons.length > 0
+              ? { sickReasonId }
+              : { sickReason }),
             paidStatus,
           }),
         }),
@@ -319,6 +338,7 @@ export default function AddLeaveRequestDialog({
       setEndDate("");
       setReason("");
       setSickReason("");
+      setSickReasonId("");
       setPaidStatus("PAID");
       setTotalDays(0);
       setDeduction(0);
@@ -340,8 +360,10 @@ export default function AddLeaveRequestDialog({
   
   // Determine if submit should be disabled
   const isSickLeaveDisabled = Boolean(isSickLeave && effectiveSickLeaveData && !effectiveSickLeaveData.isEligibleToday);
-  const isFormIncomplete = isSickLeave 
-    ? !startDate || !endDate || !sickReason
+  const isFormIncomplete = isSickLeave
+    ? !startDate ||
+      !endDate ||
+      (configuredSickReasons.length > 0 ? !sickReasonId : !sickReason)
     : !type || !startDate || !endDate;
 
   return (
@@ -620,16 +642,25 @@ export default function AddLeaveRequestDialog({
                           <Label className="text-sm font-medium text-foreground/80">
                             Reason for Sickness <span className="text-primary">*</span>
                           </Label>
-                          <Select value={sickReason} onValueChange={setSickReason}>
+                          <Select
+                            value={configuredSickReasons.length > 0 ? sickReasonId : sickReason}
+                            onValueChange={configuredSickReasons.length > 0 ? setSickReasonId : setSickReason}
+                          >
                             <SelectTrigger className="h-11 rounded-xl border-muted/50 bg-white/50 dark:bg-white/5 focus:border-primary focus:ring-primary/20 transition-all">
                               <SelectValue placeholder="Select reason" />
                             </SelectTrigger>
                             <SelectContent>
-                              {SICK_LEAVE_REASONS.map((reason) => (
-                                <SelectItem key={reason.value} value={reason.value}>
-                                  {reason.label}
-                                </SelectItem>
-                              ))}
+                              {configuredSickReasons.length > 0
+                                ? configuredSickReasons.map((sub) => (
+                                    <SelectItem key={sub.id} value={sub.id}>
+                                      {sub.name}
+                                    </SelectItem>
+                                  ))
+                                : SICK_LEAVE_REASONS.map((reason) => (
+                                    <SelectItem key={reason.value} value={reason.value}>
+                                      {reason.label}
+                                    </SelectItem>
+                                  ))}
                             </SelectContent>
                           </Select>
                         </div>

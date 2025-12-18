@@ -184,7 +184,7 @@ export default function AddManualEntryDialog({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 rounded-t-2xl">
+        <div className="sticky top-0 bg-gradient-to-r from-primary to-blue-600 px-6 py-5 rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -229,7 +229,7 @@ export default function AddManualEntryDialog({
                 disabled={loading}
                 className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
                   !isOvertime
-                    ? 'border-blue-500 bg-blue-50 shadow-sm'
+                    ? 'border-blue-600 bg-blue-50 shadow-sm'
                     : 'border-slate-200 hover:border-slate-300'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
@@ -303,7 +303,7 @@ export default function AddManualEntryDialog({
               max={format(new Date(), 'yyyy-MM-dd')}
               required
               disabled={loading}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             />
           </div>
 
@@ -363,7 +363,7 @@ export default function AddManualEntryDialog({
               rows={3}
               disabled={loading}
               maxLength={500}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed resize-none transition-all"
             />
             <p className="text-xs text-slate-500">{notes.length}/500 characters</p>
           </div>
@@ -395,7 +395,7 @@ export default function AddManualEntryDialog({
             <button
               type="submit"
               disabled={loading || hours <= 0 || (isOvertime && validating) || (isOvertime && !!validationWarning)}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-medium shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white rounded-xl font-medium shadow-lg shadow-primary/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

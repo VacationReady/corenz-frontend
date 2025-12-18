@@ -386,7 +386,11 @@ export default function EventManagerPage() {
                         key={sub.id}
                         className="flex justify-between items-center glass-subtle rounded-xl p-3"
                       >
-                        <InlineSubcategoryEditor sub={sub} onArchived={() => handleArchiveSubcategory(sub.id)} />
+                        <InlineSubcategoryEditor
+                          sub={sub}
+                          isSickness={category.name.toLowerCase().includes("sick")}
+                          onArchived={() => handleArchiveSubcategory(sub.id)}
+                        />
                       </div>
                     ))}
                     <Button
@@ -397,7 +401,9 @@ export default function EventManagerPage() {
                       }
                       icon={<PlusIcon className="w-4 h-4" />}
                     >
-                      Add Subcategory
+                      {category.name.toLowerCase().includes("sick")
+                        ? "Add Sick Reason"
+                        : "Add Subcategory"}
                     </Button>
                   </div>
                 )}
@@ -437,14 +443,24 @@ export default function EventManagerPage() {
   );
 }
 
-function InlineSubcategoryEditor({ sub, onArchived }: { sub: any; onArchived: () => void }) {
+function InlineSubcategoryEditor({
+  sub,
+  isSickness,
+  onArchived,
+}: {
+  sub: any;
+  isSickness: boolean;
+  onArchived: () => void;
+}) {
   const [name, setName] = useState<string>(sub.name);
   const [paid, setPaid] = useState<"PAID" | "UNPAID">(sub.defaultPaidStatus);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [hasChanges, setHasChanges] = useState<boolean>(false);
 
   useEffect(() => {
-    setHasChanges(name !== sub.name || paid !== sub.defaultPaidStatus);
+    setHasChanges(
+      name !== sub.name || (!isSickness && paid !== sub.defaultPaidStatus),
+    );
   }, [name, paid, sub.name, sub.defaultPaidStatus]);
 
   const save = async () => {
@@ -453,7 +469,9 @@ function InlineSubcategoryEditor({ sub, onArchived }: { sub: any; onArchived: ()
       const res = await fetch(`/api/event-subcategories/${sub.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, defaultPaidStatus: paid }),
+        body: JSON.stringify(
+          isSickness ? { name } : { name, defaultPaidStatus: paid },
+        ),
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Failed to save");
@@ -465,15 +483,21 @@ function InlineSubcategoryEditor({ sub, onArchived }: { sub: any; onArchived: ()
   return (
     <div className="w-full flex items-center justify-between gap-3">
       <div className="min-w-0 flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Subcategory name" />
-        <select
-          value={paid}
-          onChange={(e) => setPaid(e.target.value as "PAID" | "UNPAID")}
-          className="glass-subtle rounded-xl px-3 py-2 text-sm"
-        >
-          <option value="PAID">Paid</option>
-          <option value="UNPAID">Unpaid</option>
-        </select>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={isSickness ? "Sick reason" : "Subcategory name"}
+        />
+        {!isSickness && (
+          <select
+            value={paid}
+            onChange={(e) => setPaid(e.target.value as "PAID" | "UNPAID")}
+            className="glass-subtle rounded-xl px-3 py-2 text-sm"
+          >
+            <option value="PAID">Paid</option>
+            <option value="UNPAID">Unpaid</option>
+          </select>
+        )}
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <Button size="sm" variant="secondary" disabled={!hasChanges} loading={isSaving} onClick={save}>Save</Button>

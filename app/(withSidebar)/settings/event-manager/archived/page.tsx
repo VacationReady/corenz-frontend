@@ -138,7 +138,11 @@ export default function ArchivedEventManagerPage() {
                         <div key={sub.id} className="flex items-center justify-between glass-subtle rounded-xl p-3">
                           <div>
                             <p className="font-medium">{sub.name}</p>
-                            <p className="text-sm text-muted-foreground">{sub.defaultPaidStatus} | Archived</p>
+                            <p className="text-sm text-muted-foreground">
+                              {category.name.toLowerCase().includes("sick")
+                                ? "Archived"
+                                : `${sub.defaultPaidStatus} | Archived`}
+                            </p>
                           </div>
                           <Button size="sm" onClick={() => handleReactivateSubcategory(sub.id)}>Reactivate</Button>
                         </div>

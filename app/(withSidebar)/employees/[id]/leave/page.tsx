@@ -30,6 +30,7 @@ import {
   Flame,
   Thermometer,
   Edit,
+  Gift,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -77,6 +78,7 @@ import {
 } from "@/lib/calendar/timezone";
 
 import { useTenantFetch } from "@/hooks/useTenantFetch";
+import EditOtherEntitlementsModal from "@/components/leave/EditOtherEntitlementsModal";
 
 // ============================================================================
 // Types
@@ -103,6 +105,14 @@ interface SickLeaveStatus {
   nextGrantDate: string | null;
   capDays: number;
   dayLengthHours: number;
+}
+
+interface OtherEntitlement {
+  id: string;
+  name: string;
+  balance: number;
+  unit: string;
+  notes?: string;
 }
 
 // ============================================================================
@@ -153,6 +163,64 @@ function SickLeaveCard({
           )}
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// Other Entitlements Card Component
+// ============================================================================
+
+function OtherEntitlementsCard({
+  entitlements,
+  onEdit,
+}: {
+  entitlements: OtherEntitlement[];
+  onEdit: () => void;
+}) {
+  const hasEntitlements = entitlements.length > 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="p-4 rounded-xl bg-gradient-to-br from-purple-50/30 to-violet-50/10 border border-purple-200/30 dark:from-purple-950/30 dark:to-violet-950/10 dark:border-purple-800/30 relative"
+    >
+      <button
+        onClick={onEdit}
+        className="absolute top-2 right-2 p-1.5 rounded-md bg-background/50 hover:bg-background/80 transition-colors"
+        title="Edit other entitlements"
+      >
+        <Edit className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
+      </button>
+
+      <div className="flex items-center gap-3 mb-3">
+        <div className="p-2 rounded-lg bg-purple-500/10">
+          <Gift className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+        </div>
+        <span className="font-medium text-sm">Other Entitlements</span>
+      </div>
+
+      {hasEntitlements ? (
+        <div className="space-y-2">
+          {entitlements.map((ent) => (
+            <div key={ent.id} className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground truncate">{ent.name}</span>
+              <span className="font-semibold text-purple-600 dark:text-purple-400">
+                {ent.balance} {ent.unit}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-2">
+          <p className="text-sm text-muted-foreground">No other entitlements</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            Click edit to add custom entitlements
+          </p>
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -265,9 +333,13 @@ function LeavePageContent() {
   const [sickDayOfWeekCounts, setSickDayOfWeekCounts] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]); // M T W T F S S
   const [balances, setBalances] = useState<BalanceItem[]>([]);
   const [sickLeaveStatus, setSickLeaveStatus] = useState<SickLeaveStatus | null>(null);
+  const [otherEntitlements, setOtherEntitlements] = useState<OtherEntitlement[]>([]);
   const [tenantTimeSettings, setTenantTimeSettings] = useState<TenantTimeSettings>(() =>
     resolveTenantTimeSettings(null, null)
   );
+
+  // Modal State
+  const [otherEntitlementsModalOpen, setOtherEntitlementsModalOpen] = useState(false);
 
   // Sheet State
   const [selectedEvent, setSelectedEvent] = useState<LeaveEventExtendedProps | null>(null);
@@ -327,6 +399,23 @@ function LeavePageContent() {
         }
       } catch (err) {
         console.error("Failed to load sick leave status:", err);
+      }
+    })();
+  }, [employeeId, sessionStatus, refreshToken]);
+
+  // Load other entitlements
+  useEffect(() => {
+    if (sessionStatus === "loading" || !employeeId) return;
+
+    (async () => {
+      try {
+        const res = await tenantFetch(`/api/employees/${employeeId}/other-entitlements`);
+        if (res.ok) {
+          const data = await res.json();
+          setOtherEntitlements(data.entitlements || []);
+        }
+      } catch (err) {
+        console.error("Failed to load other entitlements:", err);
       }
     })();
   }, [employeeId, sessionStatus, refreshToken]);
@@ -653,7 +742,7 @@ function LeavePageContent() {
       />
 
       {/* Balances Panel */}
-      {(balances.length > 0 || sickLeaveStatus) && (
+      {(balances.length > 0 || isPrivileged) && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -673,8 +762,11 @@ function LeavePageContent() {
                   onEdit={balance.categoryName.toLowerCase().includes('annual') ? handleEditAnnualLeave : undefined}
                 />
               ))}
-              {sickLeaveStatus && (
-                <SickLeaveCard sickLeaveStatus={sickLeaveStatus} />
+              {isPrivileged && (
+                <OtherEntitlementsCard 
+                  entitlements={otherEntitlements} 
+                  onEdit={() => setOtherEntitlementsModalOpen(true)} 
+                />
               )}
             </div>
           </EmployeeFormCard>
@@ -1003,6 +1095,16 @@ function LeavePageContent() {
         sickLeaveData={sickLeaveStatus}
         initialDate={selectedDate}
       />
+
+      {/* Edit Other Entitlements Modal */}
+      {isPrivileged && (
+        <EditOtherEntitlementsModal
+          isOpen={otherEntitlementsModalOpen}
+          onClose={() => setOtherEntitlementsModalOpen(false)}
+          employeeId={employeeId}
+          onSuccess={refresh}
+        />
+      )}
     </div>
   );
 }

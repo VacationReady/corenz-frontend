@@ -238,6 +238,7 @@ model Company {
   PayrollCalculations                 PayrollCalculation[]
   OnboardingStepAuditLogs             OnboardingStepAuditLog[]
   OnboardingReminders                 OnboardingReminder[]
+  EmployeeOtherEntitlements           EmployeeOtherEntitlement[]
 }
 
 model ContractTypeOption {
@@ -553,12 +554,30 @@ model Employee {
   PayrollCalculations              PayrollCalculation[]
   OnboardingReminders              OnboardingReminder[]
   LeaveBalanceLedger               LeaveBalanceLedger[]
+  OtherEntitlements                EmployeeOtherEntitlement[]
 
   @@unique([companyId, irdNumber])
   @@index([companyId, isActive])
   @@index([companyId, departmentId])
   @@index([companyId, jobRoleId])
   @@index([companyId, userId])
+}
+
+model EmployeeOtherEntitlement {
+  id          String   @id @default(cuid())
+  employeeId  String
+  companyId   String
+  name        String   // e.g., "Time in Lieu", "Bereavement Days", "Study Leave"
+  balance     Decimal  @db.Decimal(8, 2) // Current balance (days or hours)
+  unit        String   @default("days") // "days" or "hours"
+  notes       String?  // Optional notes about this entitlement
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  Employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, name])
+  @@index([companyId, employeeId])
 }
 
 model EmployeePerformanceReview {

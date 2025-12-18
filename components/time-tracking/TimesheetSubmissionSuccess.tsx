@@ -62,7 +62,7 @@ export default function TimesheetSubmissionSuccess({
             exit={{ scale: 0.9, opacity: 0, transition: { duration: 0.2 } }}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/30 via-teal-400/10 to-blue-500/10" />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/30 via-teal-400/10 to-blue-600/10" />
             <div className="relative px-8 pb-8 pt-10 text-center text-white">
               <motion.div
                 className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-emerald-500/90 shadow-[0_20px_60px_-25px_rgba(16,185,129,0.9)]"

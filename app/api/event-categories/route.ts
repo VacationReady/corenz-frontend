@@ -45,6 +45,9 @@ export async function GET() {
       subcategories: (c as any).EventSubcategory?.map((s: any) => ({
         id: s.id,
         name: s.name,
+        defaultPaidStatus: s.defaultPaidStatus,
+        isActive: s.isActive,
+        eventCategoryId: s.eventCategoryId,
       })) ?? [],
     }));
 

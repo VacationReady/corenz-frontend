@@ -3,17 +3,21 @@ import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 
 import { z } from 'zod';
-import { cancelTimesheetApprovalActionItem } from '@/lib/action-items-helper';
+import {
+  cancelTimesheetApprovalActionItem,
+  cancelPendingTimesheetApprovalActionItems,
+} from '@/lib/action-items-helper';
+import { sendTimesheetRejectionEmail } from '@/lib/email/timesheet-notifications';
 import {
   validateTimesheetTenant,
   getRequestingEmployee,
   TenantValidationError,
   logTenantViolationAttempt,
 } from '@/lib/tenant-validation';
-// import { sendEmail } from '@/lib/email'; // TODO: Implement email service
 
 const rejectSchema = z.object({
   reason: z.string().min(1, 'Rejection reason is required'),
+  sendEmail: z.boolean().optional().default(true),
 });
 
 export async function POST(
@@ -35,7 +39,7 @@ export async function POST(
     // Get requesting employee with validation
     const requestingEmployee = await getRequestingEmployee(session.user.id);
 
-    // ✅ SECURITY FIX: Validate tenant ownership BEFORE rejection
+    // SECURITY FIX: Validate tenant ownership BEFORE rejection
     try {
       await validateTimesheetTenant(id, requestingEmployee.companyId);
     } catch (error) {
@@ -115,26 +119,26 @@ export async function POST(
       throw new TenantValidationError('Timesheet not found or access denied');
     }
 
-    // Notify employee
+    await cancelPendingTimesheetApprovalActionItems(id);
+
     const employee = await prisma.employee.findFirst({
       where: { id: timesheet.employeeId, companyId: requestingEmployee.companyId },
       include: { User: { select: { email: true, name: true } } },
     });
 
-    if (employee?.User.email) {
-      // TODO: Implement email notifications
-      // await sendEmail({
-      //   to: employee.User.email,
-      //   subject: 'Timesheet Rejected',
-      //   html: `
-      //     <h2>Timesheet Rejected</h2>
-      //     <p>Hi ${employee.User.name},</p>
-      //     <p>Your timesheet has been rejected by ${requestingEmployee.User.name}.</p>
-      //     <p><strong>Reason:</strong> ${data.reason}</p>
-      //     <p><strong>Period:</strong> ${timesheet.periodStart.toLocaleDateString()} - ${timesheet.periodEnd.toLocaleDateString()}</p>
-      //     <p>Please review and resubmit.</p>
-      //   `,
-      // });
+    if (data.sendEmail && employee?.User.email) {
+      try {
+        await sendTimesheetRejectionEmail({
+          to: employee.User.email,
+          employeeName: employee.User.name || 'Team Member',
+          rejectedBy: requestingEmployee.User.name || 'Manager',
+          reason: data.reason,
+          periodStart: timesheet.periodStart,
+          periodEnd: timesheet.periodEnd,
+        });
+      } catch (emailError) {
+        console.error('Failed to send rejection email:', emailError);
+      }
     }
 
     // Audit log

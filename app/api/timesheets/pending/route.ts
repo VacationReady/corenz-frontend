@@ -281,6 +281,7 @@ export async function GET(req: NextRequest) {
         status: timesheet.approvalStatus,
         submittedAt: timesheet.submittedAt,
         approvedAt: timesheet.approvedAt,
+        rejectedReason: timesheet.rejectedReason,
         notes: null,
         // Cost information
         hourlyRate,

@@ -10,6 +10,7 @@ import {
   CheckCircle,
   AlertCircle,
   Gift,
+  Tag,
 } from 'lucide-react';
 import {
   Dialog,
@@ -37,6 +38,11 @@ interface OtherEntitlement {
   balance: number;
   unit: string;
   notes?: string;
+  // Category-based entitlements (from EventCategory with balanceRequired=true)
+  isEventCategory?: boolean;
+  eventCategoryId?: string | null;
+  totalDays?: number | null;
+  usedDays?: number | null;
 }
 
 interface EditOtherEntitlementsModalProps {
@@ -87,11 +93,13 @@ export default function EditOtherEntitlementsModal({
   const handleAddEntitlement = () => {
     setEntitlements([
       ...entitlements,
-      { name: '', balance: 0, unit: 'days' },
+      { name: '', balance: 0, unit: 'days', isEventCategory: false },
     ]);
   };
 
   const handleRemoveEntitlement = (index: number) => {
+    // Don't allow removing category-based entitlements
+    if (entitlements[index]?.isEventCategory) return;
     setEntitlements(entitlements.filter((_, i) => i !== index));
   };
 
@@ -159,7 +167,7 @@ export default function EditOtherEntitlementsModal({
             <DialogTitle className="text-xl font-bold">Other Entitlements</DialogTitle>
           </div>
           <p className="text-sm text-muted-foreground">
-            Add custom entitlements like Time in Lieu, Study Leave, or Bereavement Days
+            Manage leave balances for event categories and custom entitlements
           </p>
         </DialogHeader>
 
@@ -196,20 +204,28 @@ export default function EditOtherEntitlementsModal({
                           <Label className="text-xs font-medium text-muted-foreground">
                             Name
                           </Label>
-                          <Input
-                            value={entitlement.name}
-                            onChange={(e) =>
-                              handleUpdateEntitlement(index, 'name', e.target.value)
-                            }
-                            placeholder="e.g., Time in Lieu"
-                            className="h-9 rounded-lg"
-                          />
+                          {entitlement.isEventCategory ? (
+                            <div className="flex items-center gap-2 h-9 px-3 rounded-lg bg-muted/50 border border-border">
+                              <Tag className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-sm font-medium">{entitlement.name}</span>
+                              <span className="text-xs text-muted-foreground ml-auto">Event Category</span>
+                            </div>
+                          ) : (
+                            <Input
+                              value={entitlement.name}
+                              onChange={(e) =>
+                                handleUpdateEntitlement(index, 'name', e.target.value)
+                              }
+                              placeholder="e.g., Time in Lieu"
+                              className="h-9 rounded-lg"
+                            />
+                          )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1.5">
                             <Label className="text-xs font-medium text-muted-foreground">
-                              Balance
+                              {entitlement.isEventCategory ? 'Remaining Balance' : 'Balance'}
                             </Label>
                             <Input
                               type="number"
@@ -225,39 +241,52 @@ export default function EditOtherEntitlementsModal({
                               }
                               className="h-9 rounded-lg"
                             />
+                            {entitlement.isEventCategory && entitlement.usedDays != null && (
+                              <p className="text-xs text-muted-foreground">
+                                {entitlement.usedDays} days used
+                              </p>
+                            )}
                           </div>
 
                           <div className="space-y-1.5">
                             <Label className="text-xs font-medium text-muted-foreground">
                               Unit
                             </Label>
-                            <Select
-                              value={entitlement.unit}
-                              onValueChange={(value) =>
-                                handleUpdateEntitlement(index, 'unit', value)
-                              }
-                            >
-                              <SelectTrigger className="h-9 rounded-lg">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="days">Days</SelectItem>
-                                <SelectItem value="hours">Hours</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            {entitlement.isEventCategory ? (
+                              <div className="flex items-center h-9 px-3 rounded-lg bg-muted/50 border border-border">
+                                <span className="text-sm">Days</span>
+                              </div>
+                            ) : (
+                              <Select
+                                value={entitlement.unit}
+                                onValueChange={(value) =>
+                                  handleUpdateEntitlement(index, 'unit', value)
+                                }
+                              >
+                                <SelectTrigger className="h-9 rounded-lg">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="days">Days</SelectItem>
+                                  <SelectItem value="hours">Hours</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveEntitlement(index)}
-                        className="p-2 h-auto text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {!entitlement.isEventCategory && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveEntitlement(index)}
+                          className="p-2 h-auto text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </motion.div>
                 ))}

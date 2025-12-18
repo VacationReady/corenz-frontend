@@ -87,6 +87,10 @@ Fixed duplicate report creation when using the report builder. Previously, repor
 
 22. Shift-Timesheet Reconciliation System
 
+23. Permission Profile Creation Validation
+
+Fixed permission profile creation to reject unknown screens and actions. The POST endpoint now validates permissions against the canonical screen/action list before persisting, preventing malformed profiles that could break authorisation enforcement.
+
 Implemented a comprehensive reconciliation system that automatically matches clock entries and timesheets to scheduled shifts, enabling managers to identify discrepancies (early/late clock-ins, overtime, undertime) and reconcile hours before payroll. The system includes a dedicated Reconciliation Hub page, enhanced rota day view with reconciliation tab, variance indicators, and bulk approval workflows to mitigate payroll errors and wasted money.
 
 23. Avatar Display Fix for Reconciliation and Rota Pages
@@ -373,6 +377,14 @@ Fixed floating-point precision artefacts in leave day calculations and reporting
 
 93. Rota Week Navigation Data Fetching Fix
 
+95. Timesheets Blue Colour Consistency
+
+Standardised all blue colours across admin and employee timesheet interfaces to match the reports palette. Updated gradients from blue-600/700 to primary-to-blue-600, borders and focus rings from blue-500 to blue-600, and shadows to use primary/20 instead of blue-500/25 for visual cohesion.
+
+94. Sickness Category and Leave Management UX Integration
+
+Integrated Sickness event category subcategories as first-class sick reasons in the leave booking flow, eliminating the UX disconnect between configured subcategories and the booking interface. Updated the leave request API to accept and persist sickReasonId linked to EventSubcategory, with proper validation and fallback to human-readable sickReason. Modified the Event Manager UI to use "Sick Reason" terminology and hide irrelevant paid/unpaid controls for sickness subcategories, ensuring a cohesive and intuitive user experience while maintaining separation from the NZ sick leave ledger engine.
+
 Fixed an issue where navigating to previous weeks in the rota calendar showed no shifts even though shifts existed. The dateRange state was static and never updated when navigating weeks, so the API always fetched current week data. Added an onDateRangeChange callback to RotaCalendar and connected it to the parent page’s setDateRange to re-fetch shifts for the selected week/month.
 94. Report Template Icons Modernisation
 
@@ -413,6 +425,10 @@ Updated the Teams list in the Rota Groups / Teams panel to render the proper Luc
 Replaced navigation to /calendar with a popover showing leave details when clicking upcoming leave events in the admin dashboard calendar widget. Added employee avatar, department, category badge, date range, reason, and View Leave/Profile buttons matching the calendar page design.
 
 103. Automation Rules Workflow Validation UI Sync and Import Safety
+
+127. Event Category Balance Configuration Integration
+
+Integrated "Other Entitlements" into the Event Manager system by adding balance tracking fields to EventCategory (balanceRequired, defaultBalance, balanceRefreshMonths). Admins can now create balance-required categories with default allocations and refresh periods, which automatically generate LeaveEntitlement records for employees when accessing their leave balances, consolidating balance management into a single authoritative system.
 
 Fixed workflow node validation UI becoming stale after edits by syncing nodeValidation errors into node.data.validationErrors whenever validation changes, ensuring red error rings always match the "Test workflow" validation. Also hardened the import workflow feature with Zod schema validation and comprehensive sanitisation to prevent invalid/duplicate node IDs or dangling edges from breaking ReactFlow.
 
@@ -499,3 +515,79 @@ Fixed the sick leave balance calculation issue where approved sick leave request
 124. Leave Management UI Enhancements
 
 Enhanced the employee leave management interface with improved balance cards and calendar functionality. Added an edit icon to annual leave balance cards for quick access to balance adjustments. Replaced the amber sick leave status banner with a dedicated sick leave card displaying available days, cap, and eligibility information in a cleaner card format. Made the sick heatmap permanently enabled and moved the MTWTFSS weekday heatmap inline with the filters for better visibility. Implemented click-to-book functionality on calendar days, allowing users to select any date and automatically open the leave booking dialog pre-populated with the chosen date, streamlining the leave request process.
+
+125. Timesheet Decline Functionality
+
+Added timesheet decline support in /admin/timesheets with a required comment and an optional toggle to email the employee a summary of why the timesheet was declined. Declined status now persists across the system and can be filtered, with the decline reason visible when reviewing timesheet details.
+
+126. Other Entitlements Management
+
+Replaced the sick leave balance card on the employee leave page with a new "Other Entitlements" card that allows admins and managers to create and manage custom employee-specific entitlements (e.g., Time in Lieu, Study Leave, Bereavement Days) via a modal editor, with full database persistence through a new EmployeeOtherEntitlement model and API.
+
+127. Trial Period Notifications Implementation
+
+Implemented a complete 90-day trial period notification system for NZ Employment Relations Act 2000 compliance. Added conditional UI in AddEmployeeModal for selecting notification recipients (Manager, Admin, or Both) and days before trial end, enhanced the API to persist trial preferences and calculate end dates, and created automated cron job logic that sends reminder emails via Resend with proper tenant isolation and duplicate prevention.
+
+128. News Audience Targeting Enforcement
+
+Fixed the news API to properly enforce audience targeting when listing posts, preventing restricted announcements from being exposed to unintended users. Updated the GET handler in /api/news to filter posts based on the requesting user's department, job role, and location as defined in the NewsPost.audience JSON field, while maintaining an admin bypass for ADMIN and SUPER_ADMIN roles to view all posts.
+
+129. Employee Profile Sidebar Context and Emergency Contacts Overview Polish
+
+Improved the employee profile sidebar header to always display the employee’s full name alongside their avatar, making it clearer whose profile you are viewing across all tabs. Updated avatar rendering to use a signed download URL so profile images load reliably after deployment. Enhanced the employee overview Emergency Contacts card to show labelled fields (Name, Relationship, Phone Number) for a more complete and informative summary.
+
+130. Permissions API Sorting Fix
+
+Fixed a runtime error in the permissions API where sorting by user count would fail due to an incorrect Prisma relation name. Updated the orderBy clause from 'users' to 'User' to match the relation schema, preventing 500 errors when requesting /api/permissions?sortBy=users&sortOrder=desc and ensuring proper sorting by popularity.
+
+131. Leave Request Submission Fixes
+
+Fixed two critical issues with leave request submission: (1) Resolved a Prisma validation error causing 500 errors when admins booked sick leave on behalf of employees by correctly handling sickReasonId as a relation instead of a scalar field in the API. (2) Fixed the "Submit Request" button being greyed out for admins booking sick leave for themselves by improving the isBookingForSelf detection logic and allowing admin self-booking override for sick leave. The system now correctly handles both self-booking and booking on behalf scenarios for sick leave requests.
+
+132. Seed User Endpoint Security Hardening
+
+Hardened the /api/seed-user endpoint to prevent unauthenticated privilege escalation in production environments. The endpoint now blocks all requests in production (NODE_ENV=production), requires a secret token via the x-seed-secret header matching the SEED_USER_SECRET environment variable, enforces one-time use by checking for existing seed users, and generates random passwords instead of using hardcoded credentials. This preserves the development workflow whilst eliminating the critical security vulnerability.
+
+133. Offboarding API Authorisation Hardening
+
+Hardened the /api/offboarding GET and POST endpoints by enforcing permission profile checks for offboarding read/edit actions, preventing unauthorised access by standard employees. This prevents sensitive exit data exposure and blocks non-privileged users from creating offboarding tasks.
+
+134. News Creation Authorisation Hardening
+
+Secured the POST /api/news endpoint to prevent unauthenticated users and basic employees from creating news posts or triggering bulk emails. The route now requires news edit permission to create posts and restricts the sendEmail option to ADMIN/SUPER_ADMIN roles only, returning proper 401/403 responses instead of generic errors.
+
+135. Comprehensive Seed Data Enhancement
+
+Enhanced the Prisma seed file with comprehensive production-ready HRIS data including 5 specialised onboarding templates (Technical, Customer-Facing, Manager, Remote, Contractor), 22 event subcategories for sickness/bereavement/training, 7 form templates, 8 shift templates, time tracking settings, 2 leave policies, 28 industry-specific job roles, 12 training courses, branding configuration, 2 exit interview templates, and 7 notification preferences. Added 3 journey templates (Standard Onboarding, Manager Onboarding, Offboarding) with multi-phase experience blocks, and 10 automation rule templates covering compliance, onboarding, leave, and engagement workflows.
+
+136. Offboarding Task Creation Cross-Tenant Validation Fix
+
+Fixed cross-tenant data corruption in offboarding task creation by validating the assigned user’s tenant before persisting the task. The POST /api/offboarding handler now checks assignee existence and tenant match prior to prisma.offboardingTask.create(), returning 400 for unknown users or 403 for cross-tenant assignments without creating orphaned task records.
+
+137. News Slug Tenant-Scoped Uniqueness Fix
+
+Fixed a cross-tenant slug collision in news publishing where slug uniqueness was incorrectly enforced globally, preventing different tenants from using the same post title. Updated slug generation and database constraints to scope uniqueness by companyId, ensuring multi-tenant isolation and preventing publish failures.
+
+138. Timesheet Unique Key Type Check Fix
+
+Updated timesheet generation to use the correct Prisma compound unique key `companyId_employeeId_periodStart_periodEnd`, resolving a TypeScript type check failure in CI. Verified there were no remaining references to the legacy `employeeId_periodStart_periodEnd` key across the codebase.
+
+139. Asynchronous News Email Delivery
+
+Refactored news email sending to be fully asynchronous to avoid API timeouts for large audiences. Creating a news post now enqueues a `NewsEmailJob`, and the existing cron processor sends emails in controlled batches with progress tracking and retry handling.
+
+140. News Route Auth Test Stability Fix
+
+Fixed a failing API auth test for POST /api/news where the Prisma mock was missing `newsPost.findFirst`, causing slug generation to throw and return HTTP 500. The test suite now mocks `findFirst` correctly so admin news creation behaves as expected.
+
+141. Forgot Password Resend and Retry Improvements
+
+Improved the forgot-password flow so users are no longer trapped after the first submission: the email field and send button now re-enable after a short resend cooldown while keeping the success message visible. Added clear “Resend email” and “Use a different email” actions that reset the form state, clear errors, focus the email input, and allow users to try again without refreshing the page.
+
+142. Documents Page Filter Bar and Empty State Recovery
+
+Added the existing FilterBar to the Documents page header so users can actually set document type, category, department and job role filters, as well as sort and export results to CSV. Updated the empty state to include a clear “Clear filters” action, allowing users to quickly recover when no documents match the current filters.
+
+143. Documents Search Persistence and Shareable Views
+
+Updated document search to use a single persisted search source (`filters.search`), ensuring the search box always reflects restored URL/localStorage filters and saved views. This removes double-filtering behaviour and makes document searches reliably shareable and repeatable across page reloads, including the employee documents screen.

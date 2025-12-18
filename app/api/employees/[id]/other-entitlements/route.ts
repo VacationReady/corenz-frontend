@@ -59,7 +59,8 @@ export async function GET(
       );
     }
 
-    const entitlements = await prisma.employeeOtherEntitlement.findMany({
+    // Fetch custom entitlements from EmployeeOtherEntitlement table
+    const customEntitlements = await prisma.employeeOtherEntitlement.findMany({
       where: {
         employeeId,
         companyId: session.user.companyId,
@@ -67,15 +68,90 @@ export async function GET(
       orderBy: { name: "asc" },
     });
 
-    return NextResponse.json({
-      success: true,
-      entitlements: entitlements.map((e) => ({
+    // Fetch balance-required event categories and their LeaveEntitlement records
+    const balanceRequiredCategories = await prisma.eventCategory.findMany({
+      where: {
+        companyId: session.user.companyId,
+        isActive: true,
+        balanceRequired: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        defaultBalance: true,
+      },
+      orderBy: { name: "asc" },
+    });
+
+    // Get existing LeaveEntitlement records for these categories
+    const categoryIds = balanceRequiredCategories.map((c) => c.id);
+    const leaveEntitlements = await prisma.leaveEntitlement.findMany({
+      where: {
+        employeeId,
+        companyId: session.user.companyId,
+        eventCategoryId: { in: categoryIds },
+      },
+    });
+    const entitlementByCategory = new Map(
+      leaveEntitlements.map((e) => [e.eventCategoryId, e])
+    );
+
+    // Build category-based entitlements (auto-create if missing)
+    const categoryEntitlements = [];
+    for (const category of balanceRequiredCategories) {
+      let entitlement = entitlementByCategory.get(category.id);
+      
+      // Auto-create LeaveEntitlement if it doesn't exist
+      if (!entitlement) {
+        entitlement = await prisma.leaveEntitlement.create({
+          data: {
+            id: crypto.randomUUID(),
+            employeeId,
+            eventCategoryId: category.id,
+            companyId: session.user.companyId,
+            totalDays: category.defaultBalance ?? 0,
+            usedDays: 0,
+            daysAllocated: category.defaultBalance ?? 0,
+            carryoverDays: 0,
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      const remaining = Math.max(0, entitlement.totalDays - entitlement.usedDays);
+      categoryEntitlements.push({
+        id: entitlement.id,
+        name: category.name,
+        balance: remaining,
+        unit: "days",
+        notes: null,
+        // Mark as category-based so UI can distinguish
+        isEventCategory: true,
+        eventCategoryId: category.id,
+        totalDays: entitlement.totalDays,
+        usedDays: entitlement.usedDays,
+      });
+    }
+
+    // Combine custom entitlements and category-based entitlements
+    const allEntitlements = [
+      ...categoryEntitlements,
+      ...customEntitlements.map((e) => ({
         id: e.id,
         name: e.name,
         balance: Number(e.balance),
         unit: e.unit,
         notes: e.notes,
+        isEventCategory: false,
+        eventCategoryId: null,
+        totalDays: null,
+        usedDays: null,
       })),
+    ];
+
+    return NextResponse.json({
+      success: true,
+      entitlements: allEntitlements,
     });
   } catch (error) {
     if (
@@ -240,7 +316,7 @@ export async function POST(
  * PUT /api/employees/[id]/other-entitlements
  * 
  * Bulk update other entitlements for an employee
- * Body: { entitlements: Array<{ id?: string, name: string, balance: number, unit?: string, notes?: string }> }
+ * Body: { entitlements: Array<{ id?: string, name: string, balance: number, unit?: string, notes?: string, isEventCategory?: boolean, eventCategoryId?: string }> }
  */
 export async function PUT(
   req: NextRequest,
@@ -294,31 +370,58 @@ export async function PUT(
       );
     }
 
-    // Get existing entitlements
-    const existingEntitlements = await prisma.employeeOtherEntitlement.findMany({
+    // Separate category-based entitlements from custom entitlements
+    const categoryEntitlements = entitlements.filter((e) => e.isEventCategory);
+    const customEntitlements = entitlements.filter((e) => !e.isEventCategory);
+
+    // Get existing custom entitlements
+    const existingCustomEntitlements = await prisma.employeeOtherEntitlement.findMany({
       where: { employeeId, companyId: session.user.companyId },
     });
-    const existingIds = new Set(existingEntitlements.map((e) => e.id));
+    const existingCustomIds = new Set(existingCustomEntitlements.map((e) => e.id));
 
-    // Determine which to create, update, or delete
-    const incomingIds = new Set(entitlements.filter((e) => e.id).map((e) => e.id));
-    const toDelete = existingEntitlements.filter((e) => !incomingIds.has(e.id));
+    // Determine which custom entitlements to delete (not in incoming list)
+    const incomingCustomIds = new Set(customEntitlements.filter((e) => e.id).map((e) => e.id));
+    const toDelete = existingCustomEntitlements.filter((e) => !incomingCustomIds.has(e.id));
 
     // Transaction to handle all changes
     await prisma.$transaction(async (tx) => {
-      // Delete removed entitlements
+      // Update category-based entitlements (LeaveEntitlement.totalDays)
+      for (const ent of categoryEntitlements) {
+        if (ent.id && ent.eventCategoryId) {
+          // Update the totalDays on LeaveEntitlement
+          // The balance passed is the "remaining" which equals totalDays - usedDays
+          // So to set a new balance, we need: newTotalDays = newBalance + usedDays
+          const existingLeaveEnt = await tx.leaveEntitlement.findUnique({
+            where: { id: ent.id },
+          });
+          if (existingLeaveEnt) {
+            const newTotalDays = (ent.balance ?? 0) + existingLeaveEnt.usedDays;
+            await tx.leaveEntitlement.update({
+              where: { id: ent.id },
+              data: {
+                totalDays: newTotalDays,
+                daysAllocated: newTotalDays,
+                updatedAt: new Date(),
+              },
+            });
+          }
+        }
+      }
+
+      // Delete removed custom entitlements
       if (toDelete.length > 0) {
         await tx.employeeOtherEntitlement.deleteMany({
           where: { id: { in: toDelete.map((e) => e.id) } },
         });
       }
 
-      // Upsert each entitlement
-      for (const ent of entitlements) {
+      // Upsert each custom entitlement
+      for (const ent of customEntitlements) {
         const name = ent.name?.trim();
         if (!name) continue;
 
-        if (ent.id && existingIds.has(ent.id)) {
+        if (ent.id && existingCustomIds.has(ent.id)) {
           // Update existing
           await tx.employeeOtherEntitlement.update({
             where: { id: ent.id },
@@ -345,21 +448,74 @@ export async function PUT(
       }
     });
 
-    // Fetch updated list
-    const updated = await prisma.employeeOtherEntitlement.findMany({
+    // Fetch updated lists and return combined result
+    // Re-fetch category entitlements
+    const balanceRequiredCategories = await prisma.eventCategory.findMany({
+      where: {
+        companyId: session.user.companyId,
+        isActive: true,
+        balanceRequired: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        defaultBalance: true,
+      },
+      orderBy: { name: "asc" },
+    });
+
+    const categoryIds = balanceRequiredCategories.map((c) => c.id);
+    const leaveEntitlements = await prisma.leaveEntitlement.findMany({
+      where: {
+        employeeId,
+        companyId: session.user.companyId,
+        eventCategoryId: { in: categoryIds },
+      },
+    });
+    const entitlementByCategory = new Map(
+      leaveEntitlements.map((e) => [e.eventCategoryId, e])
+    );
+
+    const updatedCategoryEntitlements = balanceRequiredCategories.map((category) => {
+      const entitlement = entitlementByCategory.get(category.id);
+      const remaining = entitlement ? Math.max(0, entitlement.totalDays - entitlement.usedDays) : 0;
+      return {
+        id: entitlement?.id ?? category.id,
+        name: category.name,
+        balance: remaining,
+        unit: "days",
+        notes: null,
+        isEventCategory: true,
+        eventCategoryId: category.id,
+        totalDays: entitlement?.totalDays ?? 0,
+        usedDays: entitlement?.usedDays ?? 0,
+      };
+    });
+
+    // Fetch updated custom entitlements
+    const updatedCustom = await prisma.employeeOtherEntitlement.findMany({
       where: { employeeId, companyId: session.user.companyId },
       orderBy: { name: "asc" },
     });
 
-    return NextResponse.json({
-      success: true,
-      entitlements: updated.map((e) => ({
+    const allEntitlements = [
+      ...updatedCategoryEntitlements,
+      ...updatedCustom.map((e) => ({
         id: e.id,
         name: e.name,
         balance: Number(e.balance),
         unit: e.unit,
         notes: e.notes,
+        isEventCategory: false,
+        eventCategoryId: null,
+        totalDays: null,
+        usedDays: null,
       })),
+    ];
+
+    return NextResponse.json({
+      success: true,
+      entitlements: allEntitlements,
     });
   } catch (error) {
     if (

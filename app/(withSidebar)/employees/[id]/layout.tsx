@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
 import UnauthorizedAccess from "@/components/ui/UnauthorizedAccess";
 import { canAccessEmployee, getAccessibleEmployeeScreens, UserWithProfile } from "@/lib/permissions";
+import { getDownloadUrl } from "@/lib/getDownloadUrl";
 import EmployeeNavClient from "./EmployeeNavClient";
 
 export default async function EmployeeLayout({
@@ -41,6 +42,10 @@ export default async function EmployeeLayout({
   if (!employee) {
     return <div>Employee not found.</div>;
   }
+
+  const signedProfileUrl = employee.User?.profileImageUrl
+    ? await getDownloadUrl(employee.User.profileImageUrl)
+    : null;
 
   const allowed = await canAccessEmployee(
     {
@@ -205,9 +210,9 @@ export default async function EmployeeLayout({
       <aside className="relative z-10 glass-premium p-4 border-r border-white/30 dark:border-white/10 rounded-tr-3xl shadow-depth-2">
         <EmployeeNavClient
           menu={menu}
-          employeeName={employee.User?.name ?? ""}
+          employeeName={`${employee.User?.firstName ?? ""} ${employee.User?.lastName ?? ""}`.trim() || employee.User?.name || ""}
           employeeId={id}
-          employeeAvatarUrl={employee.User?.profileImageUrl ?? null}
+          employeeAvatarUrl={signedProfileUrl}
         />
       </aside>
 

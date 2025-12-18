@@ -7,6 +7,7 @@ const mockAuth = test.mock.fn<() => Promise<any>>();
 const mockUserFindUnique = test.mock.fn<(args: any) => Promise<any>>();
 const mockNewsPostCreate = test.mock.fn<(args: any) => Promise<any>>();
 const mockNewsPostFindUnique = test.mock.fn<(args: any) => Promise<any>>();
+const mockNewsPostFindFirst = test.mock.fn<(args: any) => Promise<any>>();
 const mockNewsPostCount = test.mock.fn<(args: any) => Promise<any>>();
 const mockNewsPostFindMany = test.mock.fn<(args: any) => Promise<any>>();
 const mockHasPermission = test.mock.fn<(user: any, screen: string, action: string) => boolean>();
@@ -26,6 +27,7 @@ const originalLoad = (Module as any)._load;
         newsPost: {
           create: mockNewsPostCreate,
           findUnique: mockNewsPostFindUnique,
+          findFirst: mockNewsPostFindFirst,
           count: mockNewsPostCount,
           findMany: mockNewsPostFindMany,
         },
@@ -47,6 +49,7 @@ function resetMocks() {
   mockUserFindUnique.mock.resetCalls();
   mockNewsPostCreate.mock.resetCalls();
   mockNewsPostFindUnique.mock.resetCalls();
+  mockNewsPostFindFirst.mock.resetCalls();
   mockNewsPostCount.mock.resetCalls();
   mockNewsPostFindMany.mock.resetCalls();
   mockHasPermission.mock.resetCalls();
@@ -122,7 +125,7 @@ test("POST /api/news allows admin to create", async () => {
     Promise.resolve({ role: "ADMIN", PermissionProfile: null }),
   );
   mockHasPermission.mock.mockImplementationOnce(() => true);
-  mockNewsPostFindUnique.mock.mockImplementationOnce(() => Promise.resolve(null));
+  mockNewsPostFindFirst.mock.mockImplementationOnce(() => Promise.resolve(null));
   mockNewsPostCreate.mock.mockImplementationOnce(({ data }: any) =>
     Promise.resolve({ ...data, coverImageUrl: data.coverImageUrl ?? null }),
   );

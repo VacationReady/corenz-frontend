@@ -134,7 +134,8 @@ export async function POST(req: NextRequest) {
       const timesheetId = await findOrCreateTimesheet(
         requestingEmployee.id,
         requestingEmployee.companyId,
-        clockInTime
+        clockInTime,
+        tx
       );
 
       // Process entry with NZ-compliant overtime calculation

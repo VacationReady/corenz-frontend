@@ -166,10 +166,13 @@ export async function processTimesheetEntry(
 export async function findOrCreateTimesheet(
   employeeId: string,
   companyId: string,
-  date: Date
+  date: Date,
+  tx?: Prisma.TransactionClient
 ): Promise<string> {
+  const client = tx ?? prisma;
+
   // Get time tracking settings for period configuration
-  const settings = await prisma.timeTrackingSettings.findUnique({
+  const settings = await client.timeTrackingSettings.findUnique({
     where: { companyId },
   });
 
@@ -195,31 +198,30 @@ export async function findOrCreateTimesheet(
     periodEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
   }
 
-  // Find existing timesheet
-  let timesheet = await prisma.timesheet.findFirst({
+  const timesheet = await client.timesheet.upsert({
+    // Note: this relies on the schema unique: @@unique([companyId, employeeId, periodStart, periodEnd])
+    // Cast required until Prisma client types are regenerated.
     where: {
-      employeeId,
-      periodStart,
-      periodEnd,
-    },
-  });
-
-  // Create if doesn't exist
-  if (!timesheet) {
-    timesheet = await prisma.timesheet.create({
-      data: {
-        employeeId,
+      companyId_employeeId_periodStart_periodEnd: {
         companyId,
+        employeeId,
         periodStart,
         periodEnd,
-        totalHours: 0,
-        regularHours: 0,
-        overtimeHours: 0,
-        breakHours: 0,
-        approvalStatus: 'PENDING',
       },
-    });
-  }
+    } as any,
+    update: {},
+    create: {
+      employeeId,
+      companyId,
+      periodStart,
+      periodEnd,
+      totalHours: 0,
+      regularHours: 0,
+      overtimeHours: 0,
+      breakHours: 0,
+      approvalStatus: 'PENDING',
+    },
+  });
 
   return timesheet.id;
 }

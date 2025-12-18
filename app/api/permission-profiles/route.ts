@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
+import { validatePermissions } from "@/lib/permissions";
 
 // GET: Fetch permission profiles
 export async function GET(req: NextRequest) {
@@ -50,6 +51,37 @@ export async function POST(req: NextRequest) {
     if (!name || !permissions) {
       return NextResponse.json(
         { error: "Missing required fields: name, permissions" },
+        { status: 400 },
+      );
+    }
+
+    // Validate permissions structure and reject unknown screens/actions
+    let normalizedPermissions = permissions;
+    if (typeof normalizedPermissions === "string") {
+      try {
+        normalizedPermissions = JSON.parse(normalizedPermissions);
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid permissions JSON" },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (
+      !normalizedPermissions ||
+      typeof normalizedPermissions !== "object" ||
+      Array.isArray(normalizedPermissions)
+    ) {
+      return NextResponse.json(
+        { error: "Invalid permissions structure" },
+        { status: 400 },
+      );
+    }
+
+    if (!validatePermissions(normalizedPermissions as any)) {
+      return NextResponse.json(
+        { error: "Invalid permissions structure" },
         { status: 400 },
       );
     }
@@ -111,7 +143,7 @@ export async function POST(req: NextRequest) {
         companyId: session.user.companyId,
         name,
         description,
-        permissions,
+        permissions: normalizedPermissions,
         scope: scope || null,
         constraints: constraints || null,
         builtIn: false,
@@ -128,7 +160,7 @@ export async function POST(req: NextRequest) {
         changes: {
           name,
           description,
-          permissions,
+          permissions: normalizedPermissions,
           scope,
           constraints,
         },

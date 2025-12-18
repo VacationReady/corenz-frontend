@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
+import { hasPermission } from "@/lib/permissions";
 
 function isAssignmentEmailEnabled(): boolean {
   const flag = process.env.ENABLE_OFFBOARDING_TASK_EMAILS;
@@ -19,6 +20,21 @@ export async function GET(req: NextRequest) {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        role: true,
+        PermissionProfile: true,
+      },
+    });
+
+    if (!user || !hasPermission(user as any, "offboarding", "read")) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
     }
 
     const { searchParams } = new URL(req.url);
@@ -148,6 +164,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        role: true,
+        PermissionProfile: true,
+      },
+    });
+
+    if (!user || !hasPermission(user as any, "offboarding", "edit")) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
+    }
+
     const companyId = session.user.companyId;
     const body = await req.json();
     const {
@@ -220,6 +251,31 @@ export async function POST(req: NextRequest) {
 
     const newOrder = (lastTask?.order || 0) + 10;
 
+    const assignedUserDetails = assignedTo
+      ? await prisma.user.findUnique({
+          where: { id: assignedTo },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            companyId: true,
+          },
+        })
+      : null;
+
+    if (assignedTo && !assignedUserDetails) {
+      return NextResponse.json(
+        { error: "Assigned user not found" },
+        { status: 400 },
+      );
+    }
+
+    if (assignedUserDetails && assignedUserDetails.companyId !== companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const task = await prisma.offboardingTask.create({
       data: {
         id: crypto.randomUUID(),
@@ -234,31 +290,6 @@ export async function POST(req: NextRequest) {
         EmployeeOffboarding: { connect: { id: offboardingId } },
       },
     });
-
-    const assignedUserDetails = task.assignedTo
-      ? await prisma.user.findUnique({
-          where: { id: task.assignedTo },
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            companyId: true,
-          },
-        })
-      : null;
-
-    if (task.assignedTo && !assignedUserDetails) {
-      console.warn(
-        "Offboarding task assigned user not found:",
-        task.assignedTo,
-      );
-    }
-
-    if (assignedUserDetails && assignedUserDetails.companyId !== companyId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     // ✅ FIX: Avoid destructuring on a possibly null value.
     // Build a profile object only after confirming assignedUserDetails is not null.

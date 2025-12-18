@@ -7,9 +7,371 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { workflowEngine } from "@/lib/workflows/WorkflowExecutionEngine";
 import { verifyCronSecret, getUnauthorizedResponse } from "@/lib/cron/auth";
+import { resend } from "@/lib/resend";
+import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // 5 minutes
+
+type NewsEmailJobProcessResult = {
+  jobsProcessed: number;
+  jobsCompleted: number;
+  jobsFailed: number;
+  emailsSent: number;
+  errors: string[];
+};
+
+type CronProcessingResults = {
+  scheduled: number;
+  delayed: number;
+  eventBased: number;
+  newsEmail: NewsEmailJobProcessResult;
+  errors: string[];
+};
+
+const NEWS_EMAIL_JOBS_PER_RUN = 2;
+const NEWS_EMAIL_RECIPIENTS_PER_JOB_PER_RUN = 75;
+const NEWS_EMAIL_CONCURRENCY = 5;
+
+async function processNewsEmailJobs(): Promise<NewsEmailJobProcessResult> {
+  const result: NewsEmailJobProcessResult = {
+    jobsProcessed: 0,
+    jobsCompleted: 0,
+    jobsFailed: 0,
+    emailsSent: 0,
+    errors: [],
+  };
+
+  for (let i = 0; i < NEWS_EMAIL_JOBS_PER_RUN; i++) {
+    const claimedJob = await claimNextNewsEmailJob();
+    if (!claimedJob) {
+      break;
+    }
+
+    result.jobsProcessed++;
+
+    try {
+      const batchResult = await processSingleNewsEmailJob(claimedJob.id);
+      result.emailsSent += batchResult.emailsSent;
+      if (batchResult.completed) {
+        result.jobsCompleted++;
+      }
+    } catch (error: any) {
+      result.jobsFailed++;
+      result.errors.push(`NewsEmailJob ${claimedJob.id}: ${error?.message || "Unknown error"}`);
+
+      // Don't leave the job stuck RUNNING.
+      // Increment attempts only on failures (not per batch).
+      const updated = await (prisma as any).newsEmailJob.update({
+        where: { id: claimedJob.id },
+        data: {
+          status: "PENDING",
+          nextRetryAt: new Date(Date.now() + 5 * 60 * 1000),
+          errorMessage: error?.message || "Unknown error",
+          attempts: { increment: 1 },
+        },
+        select: {
+          id: true,
+          attempts: true,
+          maxAttempts: true,
+        },
+      });
+
+      if (updated.attempts >= updated.maxAttempts) {
+        await (prisma as any).newsEmailJob.update({
+          where: { id: claimedJob.id },
+          data: {
+            status: "FAILED",
+            completedAt: new Date(),
+          },
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
+async function claimNextNewsEmailJob(): Promise<{ id: string } | null> {
+  const now = new Date();
+
+  const job = await (prisma as any).newsEmailJob.findFirst({
+    where: {
+      status: "PENDING",
+      scheduledAt: { lte: now },
+      OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }],
+      attempts: { lt: 3 },
+    },
+    orderBy: [{ scheduledAt: "asc" }, { createdAt: "asc" }],
+    select: { id: true },
+  });
+
+  if (!job) return null;
+
+  const claimed = await (prisma as any).newsEmailJob.updateMany({
+    where: {
+      id: job.id,
+      status: "PENDING",
+    },
+    data: {
+      status: "RUNNING",
+      startedAt: now,
+      errorMessage: null,
+    },
+  });
+
+  return claimed.count === 1 ? { id: job.id } : null;
+}
+
+async function processSingleNewsEmailJob(jobId: string): Promise<{ emailsSent: number; completed: boolean }> {
+  const now = new Date();
+  const job = await (prisma as any).newsEmailJob.findUnique({
+    where: { id: jobId },
+    include: {
+      NewsPost: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          content: true,
+          audience: true,
+          sendEmail: true,
+          companyId: true,
+        },
+      },
+    },
+  });
+
+  if (!job) {
+    throw new Error("NewsEmailJob not found");
+  }
+
+  if (!job.NewsPost) {
+    await (prisma as any).newsEmailJob.update({
+      where: { id: jobId },
+      data: {
+        status: "FAILED",
+        completedAt: now,
+        errorMessage: "Related NewsPost not found",
+      },
+    });
+    return { emailsSent: 0, completed: true };
+  }
+
+  if (!job.NewsPost.sendEmail) {
+    await (prisma as any).newsEmailJob.update({
+      where: { id: jobId },
+      data: {
+        status: "CANCELLED",
+        completedAt: now,
+        errorMessage: "NewsPost sendEmail flag is false",
+      },
+    });
+    return { emailsSent: 0, completed: true };
+  }
+
+  const companyId = job.companyId;
+  const audience = job.NewsPost.audience as any;
+
+  const userWhere = await buildNewsAudienceUserWhere(audience, companyId);
+  const cursorUserId = job.cursorUserId;
+
+  const users = await prisma.user.findMany({
+    where: {
+      ...userWhere,
+      companyId,
+      email: { not: "" },
+      ...(cursorUserId ? { id: { gt: cursorUserId } } : {}),
+    },
+    orderBy: { id: "asc" },
+    take: NEWS_EMAIL_RECIPIENTS_PER_JOB_PER_RUN,
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+    },
+  });
+
+  if (users.length === 0) {
+    await (prisma as any).newsEmailJob.update({
+      where: { id: jobId },
+      data: {
+        status: "COMPLETED",
+        completedAt: now,
+        executionLog: {
+          ...(job.executionLog as any),
+          completedAt: now,
+        },
+      },
+    });
+    return { emailsSent: 0, completed: true };
+  }
+
+  const baseUrl = getAppBaseUrl();
+  const previewText = renderNewsContentPreview(job.NewsPost.content);
+
+  let emailsSent = 0;
+  let lastUserId: string | null = null;
+
+  for (let idx = 0; idx < users.length; idx += NEWS_EMAIL_CONCURRENCY) {
+    const chunk = users.slice(idx, idx + NEWS_EMAIL_CONCURRENCY);
+
+    const sendResults = await Promise.all(
+      chunk.map(async (user) => {
+        const { html, text } = renderPeopleCoreEmail({
+          preheader: job.NewsPost.title,
+          title: "New PeopleCore News",
+          intro: [
+            `Hi ${user.firstName || "there"},`,
+            "There's a new news post on your portal.",
+          ],
+          sections: [
+            {
+              title: job.NewsPost.title,
+              description: previewText ? [previewText] : undefined,
+            },
+          ],
+          ctas: {
+            label: "View News Post",
+            href: `${baseUrl}/news`,
+          },
+          outro: ["Log in to view the full post."],
+        });
+
+        await resend.emails.send({
+          from: "noreply@peoplecore.co.nz",
+          to: user.email,
+          subject: `New News Post: ${job.NewsPost.title}`,
+          html,
+          text,
+        });
+
+        return user.id;
+      }),
+    );
+
+    emailsSent += sendResults.length;
+    lastUserId = sendResults[sendResults.length - 1] ?? lastUserId;
+
+    await (prisma as any).newsEmailJob.update({
+      where: { id: jobId },
+      data: {
+        cursorUserId: lastUserId,
+        status: "RUNNING",
+        executionLog: {
+          ...(job.executionLog as any),
+          lastBatchAt: new Date().toISOString(),
+          lastBatchCount: sendResults.length,
+        },
+      },
+    });
+  }
+
+  const batchFinished = users.length < NEWS_EMAIL_RECIPIENTS_PER_JOB_PER_RUN;
+  if (batchFinished) {
+    await (prisma as any).newsEmailJob.update({
+      where: { id: jobId },
+      data: {
+        status: "COMPLETED",
+        completedAt: new Date(),
+        executionLog: {
+          ...(job.executionLog as any),
+          completedAt: new Date().toISOString(),
+        },
+      },
+    });
+  } else {
+    await (prisma as any).newsEmailJob.update({
+      where: { id: jobId },
+      data: {
+        status: "PENDING",
+        scheduledAt: new Date(),
+      },
+    });
+  }
+
+  return { emailsSent, completed: batchFinished };
+}
+
+function renderNewsContentPreview(content: any): string {
+  if (Array.isArray(content)) {
+    const firstParagraph = content.find((block: any) => block?.type === "paragraph");
+    return firstParagraph ? firstParagraph.text : "";
+  }
+
+  if (content && typeof content === "object" && content.type && content.content) {
+    try {
+      const firstParagraph = (content.content as any[]).find(
+        (node: any) => node?.type === "paragraph" && Array.isArray(node.content),
+      );
+      if (!firstParagraph) return "";
+      return (firstParagraph.content as any[])
+        .filter((n: any) => n?.type === "text" && typeof n.text === "string")
+        .map((n: any) => n.text)
+        .join("")
+        .slice(0, 240);
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+}
+
+async function buildNewsAudienceUserWhere(audience: any, companyId: string) {
+  const normalizedAudience = audience || { type: "all" };
+  if (normalizedAudience?.type === "all") {
+    return {};
+  }
+
+  const filters: any = {};
+
+  if (normalizedAudience.departments?.length) {
+    filters.departmentId = {
+      in: await getDepartmentIdsByName(normalizedAudience.departments, companyId),
+    };
+  }
+  if (normalizedAudience.roles?.length) {
+    filters.jobRoleId = {
+      in: await getJobRoleIdsByName(normalizedAudience.roles, companyId),
+    };
+  }
+  if (normalizedAudience.locations?.length) {
+    filters.Employee = {
+      is: {
+        locationId: {
+          in: await getLocationIdsByName(normalizedAudience.locations, companyId),
+        },
+      },
+    };
+  }
+
+  return filters;
+}
+
+async function getDepartmentIdsByName(names: string[], companyId: string) {
+  const deps = await prisma.department.findMany({
+    where: { name: { in: names }, companyId },
+    select: { id: true },
+  });
+  return deps.map((d) => d.id);
+}
+
+async function getJobRoleIdsByName(names: string[], companyId: string) {
+  const roles = await prisma.jobRole.findMany({
+    where: { name: { in: names }, companyId },
+    select: { id: true },
+  });
+  return roles.map((r) => r.id);
+}
+
+async function getLocationIdsByName(names: string[], companyId: string) {
+  const locs = await prisma.location.findMany({
+    where: { name: { in: names }, companyId },
+    select: { id: true },
+  });
+  return locs.map((l) => l.id);
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,10 +381,17 @@ export async function GET(req: NextRequest) {
     }
 
     const now = new Date();
-    const results = {
+    const results: CronProcessingResults = {
       scheduled: 0,
       delayed: 0,
       eventBased: 0,
+      newsEmail: {
+        jobsProcessed: 0,
+        jobsCompleted: 0,
+        jobsFailed: 0,
+        emailsSent: 0,
+        errors: [],
+      },
       errors: [] as string[],
     };
 
@@ -109,6 +478,10 @@ export async function GET(req: NextRequest) {
 
     // 3. Check for event-based triggers
     await processEventTriggers(results);
+
+    // 4. Process queued news email sends
+    const newsEmailResult = await processNewsEmailJobs();
+    results.newsEmail = newsEmailResult;
 
     // Clean up old completed jobs (keep last 30 days)
     const thirtyDaysAgo = new Date();

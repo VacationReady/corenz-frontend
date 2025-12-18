@@ -207,6 +207,7 @@ model Company {
   LeaveRequest                        LeaveRequest[]
   Location                            Location[]
   NewsBookmark                        NewsBookmark[]
+  NewsEmailJob                        NewsEmailJob[]
   NewsPost                            NewsPost[]
   NewsReaction                        NewsReaction[]
   NotificationChannel                 NotificationChannel[]
@@ -507,8 +508,8 @@ model Employee {
   trialPeriodEndDate               DateTime?
   trialPeriodAccepted              Boolean                            @default(false)
   trialPeriodAcceptedAt            DateTime?
-  trialNotifyRecipient             String?                            // MANAGER, ADMIN, or BOTH
-  trialNotifyDaysBefore            Int?                               // Days before trial end to send reminder
+  trialNotifyRecipient             String? // MANAGER, ADMIN, or BOTH
+  trialNotifyDaysBefore            Int? // Days before trial end to send reminder
   trialNotificationSent            Boolean                            @default(false)
   Document                         Document[]
   DocumentAcknowledgement          DocumentAcknowledgement[]
@@ -564,17 +565,17 @@ model Employee {
 }
 
 model EmployeeOtherEntitlement {
-  id          String   @id @default(cuid())
-  employeeId  String
-  companyId   String
-  name        String   // e.g., "Time in Lieu", "Bereavement Days", "Study Leave"
-  balance     Decimal  @db.Decimal(8, 2) // Current balance (days or hours)
-  unit        String   @default("days") // "days" or "hours"
-  notes       String?  // Optional notes about this entitlement
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  Employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  Company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  employeeId String
+  companyId  String
+  name       String // e.g., "Time in Lieu", "Bereavement Days", "Study Leave"
+  balance    Decimal  @db.Decimal(8, 2) // Current balance (days or hours)
+  unit       String   @default("days") // "days" or "hours"
+  notes      String? // Optional notes about this entitlement
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  Employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([employeeId, name])
   @@index([companyId, employeeId])
@@ -734,8 +735,8 @@ model EventCategory {
   companyId            String
   // Balance configuration for entitlement-based event categories
   balanceRequired      Boolean             @default(false)
-  defaultBalance       Float?              // Default balance in days when balanceRequired is true
-  balanceRefreshMonths Int?                // Number of months after which balance refreshes (e.g., 12 for annual)
+  defaultBalance       Float? // Default balance in days when balanceRequired is true
+  balanceRefreshMonths Int? // Number of months after which balance refreshes (e.g., 12 for annual)
   ApprovalWorkflow     ApprovalWorkflow[]
   Company              Company             @relation(fields: [companyId], references: [id])
   EventRule            EventRule[]
@@ -764,8 +765,8 @@ model EventRule {
   maxConcurrentMode     EnforcementMode @default(HARD_BLOCK)
   notes                 String?
   // Rolling maximum days limit (e.g., max 5 days compassionate leave over 12 months)
-  maxDaysPerPeriod      Int?            // Maximum days allowed over the period (null = unlimited)
-  periodMonths          Int?            // Period in months (e.g., 12 = rolling 12 months)
+  maxDaysPerPeriod      Int? // Maximum days allowed over the period (null = unlimited)
+  periodMonths          Int? // Period in months (e.g., 12 = rolling 12 months)
   EventCategory         EventCategory   @relation(fields: [eventCategoryId], references: [id])
 
   @@unique([companyId, eventCategoryId])
@@ -858,16 +859,16 @@ model ExitInterviewSubmission {
 }
 
 model ExpiryRule {
-  id             String   @id
-  category       String   @unique
-  daysBefore     Int
-  notifyAdmin    Boolean  @default(true)
-  notifyManager  Boolean  @default(true)
-  notifyEmployee Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime
-  companyId      String?
-  Company        Company? @relation(fields: [companyId], references: [id])
+  id               String                  @id
+  category         String                  @unique
+  daysBefore       Int
+  notifyAdmin      Boolean                 @default(true)
+  notifyManager    Boolean                 @default(true)
+  notifyEmployee   Boolean                 @default(true)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime
+  companyId        String?
+  Company          Company?                @relation(fields: [companyId], references: [id])
   NotificationLogs ExpiryNotificationLog[]
 }
 
@@ -877,17 +878,17 @@ model ExpiryNotificationLog {
   id            String   @id @default(uuid())
   companyId     String
   ruleId        String
-  category      String   // e.g., "Employment Checks", "Driver Licence", "Training"
-  itemId        String   // ID of the expiring item (employmentCheckId, driverLicenceId, etc.)
+  category      String // e.g., "Employment Checks", "Driver Licence", "Training"
+  itemId        String // ID of the expiring item (employmentCheckId, driverLicenceId, etc.)
   employeeId    String
   expiryDate    DateTime // The expiry date of the item
-  daysRemaining Int      // Days remaining when notification was sent
+  daysRemaining Int // Days remaining when notification was sent
   sentAt        DateTime @default(now())
-  
+
   Company  Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
   Rule     ExpiryRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
   Employee Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  
+
   // Unique constraint: one notification per item per rule threshold
   @@unique([ruleId, itemId, daysRemaining])
   @@index([companyId, category])
@@ -1246,15 +1247,15 @@ model LeaveRequest {
 /// This is the single source of truth for sick leave balance changes.
 /// Employee.sickLeaveBalance is a cache updated only via this ledger.
 model LeaveBalanceLedger {
-  id             String                @id @default(cuid())
+  id             String                  @id @default(cuid())
   employeeId     String
   companyId      String
   leaveType      LeaveBalanceLedgerType
   eventType      LeaveBalanceLedgerEvent
   /// Change in balance (hours). Positive for grants, negative for usage.
-  deltaHours     Decimal               @db.Decimal(8, 2)
+  deltaHours     Decimal                 @db.Decimal(8, 2)
   /// Balance after this transaction (hours)
-  balanceAfter   Decimal               @db.Decimal(8, 2)
+  balanceAfter   Decimal                 @db.Decimal(8, 2)
   /// For grants: the eligibility/anniversary date this grant applies to
   grantDate      DateTime?
   /// Idempotency key to prevent duplicate ledger entries
@@ -1266,7 +1267,7 @@ model LeaveBalanceLedger {
   description    String?
   /// Who created this entry
   createdBy      String?
-  createdAt      DateTime              @default(now())
+  createdAt      DateTime                @default(now())
 
   Employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
@@ -1283,10 +1284,10 @@ enum LeaveBalanceLedgerType {
 
 enum LeaveBalanceLedgerEvent {
   OPENING_BALANCE // Migration only
-  GRANT           // Anniversary grant (10 days)
-  USAGE           // Leave taken
-  CAP_CLAMP       // Balance capped at 20 days
-  ADJUSTMENT      // Manual HR adjustment
+  GRANT // Anniversary grant (10 days)
+  USAGE // Leave taken
+  CAP_CLAMP // Balance capped at 20 days
+  ADJUSTMENT // Manual HR adjustment
 }
 
 model Location {
@@ -1309,7 +1310,7 @@ model Location {
 model NewsPost {
   id            String         @id
   title         String
-  slug          String         @unique
+  slug          String
   content       Json
   authorId      String
   publishedAt   DateTime?
@@ -1327,10 +1328,12 @@ model NewsPost {
   shareCount    Int            @default(0)
   coverImage    String?
   bookmarks     NewsBookmark[]
+  emailJobs     NewsEmailJob[]
   User          User           @relation(fields: [authorId], references: [id])
   Company       Company?       @relation(fields: [companyId], references: [id])
   reactions     NewsReaction[]
 
+  @@unique([companyId, slug])
   @@index([companyId])
 }
 
@@ -1348,6 +1351,31 @@ model NewsReaction {
 
   @@unique([postId, userId])
   @@index([companyId, postId])
+}
+
+model NewsEmailJob {
+  id           String              @id
+  companyId    String
+  postId       String
+  status       AutomationJobStatus @default(PENDING)
+  attempts     Int                 @default(0)
+  maxAttempts  Int                 @default(3)
+  scheduledAt  DateTime            @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  errorMessage String?
+  executionLog Json?
+  nextRetryAt  DateTime?
+  cursorUserId String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  Company  Company  @relation(fields: [companyId], references: [id])
+  NewsPost NewsPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId])
+  @@index([companyId, status, scheduledAt])
+  @@index([status, scheduledAt])
 }
 
 model NewsBookmark {
@@ -1887,17 +1915,17 @@ model SavedReport {
 }
 
 model ReportShare {
-  id           Int       @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   reportId     Int
-  shareType    String    // "user", "team", "department", "company", "link"
-  permission   String    @default("view") // "view", "edit", "admin"
-  userId       String?   // For user shares
-  departmentId String?   // For department shares
-  teamId       String?   // For team shares
-  shareToken   String?   @unique // For link shares
+  shareType    String // "user", "team", "department", "company", "link"
+  permission   String      @default("view") // "view", "edit", "admin"
+  userId       String? // For user shares
+  departmentId String? // For department shares
+  teamId       String? // For team shares
+  shareToken   String?     @unique // For link shares
   expiresAt    DateTime? // For link expiration
   createdById  String
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime    @default(now())
   companyId    String
   SavedReport  SavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
   User         User?       @relation("ReportShareUser", fields: [userId], references: [id])
@@ -1940,9 +1968,9 @@ model ReportFilterPreset {
   id          Int      @id @default(autoincrement())
   name        String
   description String?
-  filterGroup Json     // FilterGroup structure
+  filterGroup Json // FilterGroup structure
   scope       String   @default("personal") // "personal", "team", "company"
-  category    String?  // Optional category for organizing presets
+  category    String? // Optional category for organizing presets
   isDefault   Boolean  @default(false)
   companyId   String
   userId      String
@@ -1957,35 +1985,35 @@ model ReportFilterPreset {
 }
 
 model ReportSchedule {
-  id              Int       @id @default(autoincrement())
-  reportId        Int
-  name            String
-  description     String?
-  frequency       String    // "daily", "weekly", "monthly", "quarterly"
-  dayOfWeek       Int?      // 0-6 for weekly (0 = Sunday)
-  dayOfMonth      Int?      // 1-31 for monthly
-  timeOfDay       String    // "HH:mm" format
-  timezone        String    @default("Pacific/Auckland")
-  format          String    @default("PDF") // "PDF", "EXCEL", "CSV"
-  recipients      Json      // Array of email addresses or user IDs
-  recipientType   String    @default("custom") // "custom", "department", "job_role"
-  departmentIds   String[]  @default([])
-  jobRoleIds      String[]  @default([])
-  includeMessage  Boolean   @default(false)
-  customMessage   String?
-  isActive        Boolean   @default(true)
-  nextRunAt       DateTime?
-  lastRunAt       DateTime?
-  lastRunStatus   String?   // "success", "failed", "skipped"
-  lastRunError    String?
-  companyId       String
-  createdById     String
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  SavedReport     SavedReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  Company         Company     @relation(fields: [companyId], references: [id])
-  CreatedBy       User        @relation("ReportScheduleCreator", fields: [createdById], references: [id])
-  RunHistory      ReportScheduleRunHistory[]
+  id             Int                        @id @default(autoincrement())
+  reportId       Int
+  name           String
+  description    String?
+  frequency      String // "daily", "weekly", "monthly", "quarterly"
+  dayOfWeek      Int? // 0-6 for weekly (0 = Sunday)
+  dayOfMonth     Int? // 1-31 for monthly
+  timeOfDay      String // "HH:mm" format
+  timezone       String                     @default("Pacific/Auckland")
+  format         String                     @default("PDF") // "PDF", "EXCEL", "CSV"
+  recipients     Json // Array of email addresses or user IDs
+  recipientType  String                     @default("custom") // "custom", "department", "job_role"
+  departmentIds  String[]                   @default([])
+  jobRoleIds     String[]                   @default([])
+  includeMessage Boolean                    @default(false)
+  customMessage  String?
+  isActive       Boolean                    @default(true)
+  nextRunAt      DateTime?
+  lastRunAt      DateTime?
+  lastRunStatus  String? // "success", "failed", "skipped"
+  lastRunError   String?
+  companyId      String
+  createdById    String
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  SavedReport    SavedReport                @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  Company        Company                    @relation(fields: [companyId], references: [id])
+  CreatedBy      User                       @relation("ReportScheduleCreator", fields: [createdById], references: [id])
+  RunHistory     ReportScheduleRunHistory[]
 
   @@unique([reportId, name])
   @@index([companyId, isActive])
@@ -1993,14 +2021,14 @@ model ReportSchedule {
 }
 
 model ReportScheduleRunHistory {
-  id              String    @id @default(uuid())
-  scheduleId      Int
-  runAt           DateTime  @default(now())
-  status          String    // "success", "failed", "skipped"
-  recipientCount  Int       @default(0)
-  errorMessage    String?
-  duration        Int?      // in milliseconds
-  Schedule        ReportSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  id             String         @id @default(uuid())
+  scheduleId     Int
+  runAt          DateTime       @default(now())
+  status         String // "success", "failed", "skipped"
+  recipientCount Int            @default(0)
+  errorMessage   String?
+  duration       Int? // in milliseconds
+  Schedule       ReportSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
 
   @@index([scheduleId, runAt])
 }
@@ -3487,7 +3515,7 @@ model Timesheet {
   BreakRecords        BreakRecord[]
   PayrollCalculations PayrollCalculation[]
 
-  @@unique([employeeId, periodStart, periodEnd])
+  @@unique([companyId, employeeId, periodStart, periodEnd])
   @@index([employeeId, periodStart])
   @@index([companyId, approvalStatus])
 }
@@ -3530,7 +3558,7 @@ model TimesheetEntry {
   scheduledEndTime     DateTime? // Copy of shift end for quick reference
   varianceMinutes      Int? // Positive = worked more, negative = worked less
   varianceType         String? // 'EARLY_START' | 'LATE_START' | 'EARLY_END' | 'LATE_END' | 'OVERTIME' | 'UNDERTIME'
-  reconciliationStatus String               @default("PENDING") // 'PENDING' | 'AUTO_MATCHED' | 'MANUALLY_MATCHED' | 'APPROVED' | 'ADJUSTED' | 'FLAGGED'
+  reconciliationStatus String    @default("PENDING") // 'PENDING' | 'AUTO_MATCHED' | 'MANUALLY_MATCHED' | 'APPROVED' | 'ADJUSTED' | 'FLAGGED'
   reconciliationNotes  String? // Notes from reconciliation process
   reconciledBy         String? // User ID who reconciled
   reconciledAt         DateTime? // When reconciliation was done

@@ -174,7 +174,8 @@ export async function POST(req: NextRequest) {
       const timesheetId = await findOrCreateTimesheet(
         data.employeeId,
         requestingEmployee.companyId,
-        clockInTime
+        clockInTime,
+        tx
       );
 
       // Use break minutes obtained before transaction

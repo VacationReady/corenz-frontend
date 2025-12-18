@@ -176,13 +176,6 @@ export async function POST(req: NextRequest) {
     let timesheetEntry = null;
     if (!activeEntry.timesheetId) {
       try {
-        // Find or create timesheet for this period
-        const timesheetId = await findOrCreateTimesheet(
-          employee.id,
-          employee.companyId,
-          clockOutTime
-        );
-
       // Get break duration from matched shift or use default
       let breakMinutes = 0;
       if (shiftMatch?.shiftId) {
@@ -218,7 +211,15 @@ export async function POST(req: NextRequest) {
 
       // Create timesheet entry in transaction
       // Note: Using 'as any' for shift reconciliation fields due to Prisma type generation lag
-      const createdEntry = await prisma.$transaction(async (tx) => {
+      const created = await prisma.$transaction(async (tx) => {
+        // Find or create timesheet for this period
+        const timesheetId = await findOrCreateTimesheet(
+          employee.id,
+          employee.companyId,
+          clockOutTime,
+          tx
+        );
+
         const entryData: any = {
           timesheetId,
           date: processedEntry.date,
@@ -265,18 +266,18 @@ export async function POST(req: NextRequest) {
         // Recalculate timesheet totals
         await recalculateTimesheetTotals(timesheetId, tx);
 
-        return entry;
+        return { entry, timesheetId };
       });
 
       timesheetEntry = {
-        id: createdEntry.id,
-        timesheetId,
+        id: created.entry.id,
+        timesheetId: created.timesheetId,
         hours: processedEntry.hours,
       };
 
       // Auto-submit the timesheet for approval (fire-and-forget to avoid timeout)
       // Using setImmediate pattern to not block the response
-      const submitTimesheetId = timesheetId;
+      const submitTimesheetId = created.timesheetId;
       const submitEmployeeId = employee.id;
       const submitCompanyId = employee.companyId;
       setImmediate(async () => {

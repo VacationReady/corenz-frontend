@@ -1,7 +1,7 @@
 import "./setupEnv";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolvePermissions, hasPermission } from "../app/lib/permissions";
+import { resolvePermissions, hasPermission, validatePermissions } from "../app/lib/permissions";
 
 test("EMPLOYEE defaults include documents read and leave-requests edit", () => {
   const user = { role: "EMPLOYEE", permissionProfile: null } as any;
@@ -29,6 +29,21 @@ test("ADMIN without custom profile has admin override (all screens)", () => {
   const user = { role: "ADMIN", permissionProfile: null } as any;
   // A screen not in defaults should still pass due to admin override
   assert.equal(hasPermission(user, "nonexistent-screen", "read"), true);
+});
+
+test("validatePermissions rejects unknown screen", () => {
+  const ok = validatePermissions({ "unknown-screen": ["read"] } as any);
+  assert.equal(ok, false);
+});
+
+test("validatePermissions rejects unknown action", () => {
+  const ok = validatePermissions({ documents: ["read", "approvee"] } as any);
+  assert.equal(ok, false);
+});
+
+test("validatePermissions accepts valid screen/actions", () => {
+  const ok = validatePermissions({ documents: ["read"], "leave-requests": ["read", "edit", "approve"] } as any);
+  assert.equal(ok, true);
 });
 
 

@@ -315,13 +315,6 @@ export async function POST(req: NextRequest) {
           // Skip if the clock entry was already linked to a timesheet (e.g., from manual generation)
           if (!activeEntry.timesheetId) {
             try {
-              // Find or create timesheet for this period
-              const timesheetId = await findOrCreateTimesheet(
-              employee.id,
-              employee.companyId,
-              clockOutTime
-            );
-
             // Get break duration from matched shift or use default
             let breakMinutes = 0;
             if (shiftMatch?.shiftId) {
@@ -357,6 +350,14 @@ export async function POST(req: NextRequest) {
 
             // Create timesheet entry in transaction
             await prisma.$transaction(async (tx) => {
+              // Find or create timesheet for this period
+              const timesheetId = await findOrCreateTimesheet(
+                employee.id,
+                employee.companyId,
+                clockOutTime,
+                tx
+              );
+
               const entryData: any = {
                 timesheetId,
                 date: processedEntry.date,

@@ -1,16 +1,20 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { auth } from "@/lib/auth-options";
+import { hasPermission } from "@/lib/permissions";
 import supabase from "@/lib/supabase-admin";
 import { renderPeopleCoreEmail, getAppBaseUrl } from "@/lib/email/template";
 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id || !session.user.companyId) throw new Error("User not authenticated");
+    if (!session?.user?.id || !session.user.companyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const userId = session.user.id;
     const companyId = session.user.companyId;
 
@@ -26,9 +30,38 @@ export async function POST(req: NextRequest) {
       audience,
     } = body;
 
-    console.log("📝 Incoming news POST:", { title, sendEmail, audience });
+    const normalizedSendEmail = Boolean(sendEmail);
+    const normalizedAudience = audience || { type: "all" };
 
-    const slug = await generateUniqueSlug(title);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: true,
+        PermissionProfile: true,
+      },
+    });
+
+    if (!user || !hasPermission(user as any, "news", "edit")) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
+    }
+
+    if (normalizedSendEmail && !["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+      return NextResponse.json(
+        { error: "Insufficient permissions" },
+        { status: 403 },
+      );
+    }
+
+    console.log("📝 Incoming news POST:", {
+      title,
+      sendEmail: normalizedSendEmail,
+      audience: normalizedAudience,
+    });
+
+    const slug = await generateUniqueSlug(title, companyId);
 
     const newsPost = await prisma.newsPost.create({
       data: {
@@ -39,8 +72,8 @@ export async function POST(req: NextRequest) {
         coverImageUrl: coverImage ?? null,
         videoEmbedUrl,
         attachments,
-        sendEmail,
-        audience,
+        sendEmail: normalizedSendEmail,
+        audience: normalizedAudience,
         publishedAt: new Date(),
         updatedAt: new Date(),
         authorId: userId,
@@ -48,8 +81,29 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (sendEmail) {
-      await sendNewsEmails(audience, title, content, companyId);
+    if (normalizedSendEmail) {
+      await (prisma as any).newsEmailJob.upsert({
+        where: {
+          postId: newsPost.id,
+        },
+        update: {
+          status: "PENDING",
+          scheduledAt: new Date(),
+          startedAt: null,
+          completedAt: null,
+          errorMessage: null,
+          executionLog: null,
+          nextRetryAt: null,
+          cursorUserId: null,
+        },
+        create: {
+          id: crypto.randomUUID(),
+          companyId,
+          postId: newsPost.id,
+          status: "PENDING",
+          scheduledAt: new Date(),
+        },
+      });
     }
 
     return NextResponse.json(mapNewsPost(newsPost));
@@ -60,7 +114,7 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
-}
+ }
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -69,11 +123,81 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * limit;
 
   const session = await auth();
-  if (!session?.user?.companyId) {
+  if (!session?.user?.companyId || !session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const whereClause = { User: { is: { companyId: session.user.companyId } } };
+  const requestingUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      role: true,
+      Department_User_departmentIdToDepartment: {
+        select: { name: true },
+      },
+      JobRole: {
+        select: { name: true },
+      },
+      Employee: {
+        select: {
+          Location: {
+            select: { name: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!requestingUser) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const isAdmin =
+    requestingUser.role === "ADMIN" || requestingUser.role === "SUPER_ADMIN";
+
+  const departmentName =
+    requestingUser.Department_User_departmentIdToDepartment?.name ?? null;
+  const jobRoleName = requestingUser.JobRole?.name ?? null;
+  const locationName = requestingUser.Employee?.Location?.name ?? null;
+
+  const baseWhereClause = {
+    OR: [
+      { companyId: session.user.companyId },
+      { User: { is: { companyId: session.user.companyId } } },
+    ],
+  };
+
+  const audienceDimensionVisibility = (
+    key: "departments" | "roles" | "locations",
+    value: string | null,
+  ) => {
+    const or: any[] = [
+      { audience: { path: [key], equals: Prisma.AnyNull } },
+      { audience: { path: [key], equals: [] } },
+    ];
+
+    if (value) {
+      or.push({ audience: { path: [key], array_contains: [value] } });
+    }
+
+    return { OR: or };
+  };
+
+  const audienceWhereClause = {
+    OR: [
+      { audience: { path: ["type"], equals: "all" } },
+      {
+        AND: [
+          audienceDimensionVisibility("departments", departmentName),
+          audienceDimensionVisibility("roles", jobRoleName),
+          audienceDimensionVisibility("locations", locationName),
+        ],
+      },
+    ],
+  };
+
+  const whereClause = isAdmin
+    ? baseWhereClause
+    : { AND: [baseWhereClause, audienceWhereClause] };
 
   // Get total count for pagination
   const totalCount = await prisma.newsPost.count({
@@ -342,12 +466,12 @@ function generateSlug(title: string) {
     .slice(0, 50);
 }
 
-async function generateUniqueSlug(title: string) {
+async function generateUniqueSlug(title: string, companyId: string) {
   const baseSlug = generateSlug(title) || "news";
   let slug = baseSlug;
   let counter = 1;
 
-  while (await prisma.newsPost.findUnique({ where: { slug } })) {
+  while (await prisma.newsPost.findFirst({ where: { companyId, slug } })) {
     const suffix = `-${counter++}`;
     const maxBaseLength = Math.max(1, 50 - suffix.length);
     slug = `${baseSlug.slice(0, maxBaseLength)}${suffix}`;

@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     const orderBy: any[] = [];
 
     if (sortBy === "users") {
-      orderBy.push({ users: { _count: sortOrder } });
+      orderBy.push({ User: { _count: sortOrder } });
     } else if (sortBy === "createdAt") {
       orderBy.push({ createdAt: sortOrder });
     } else {

@@ -19,6 +19,41 @@ import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
 import EmployeesPageClient from "./EmployeesClient";
+import type { Prisma } from "@prisma/client";
+
+/**
+ * Iteratively collect all subordinates (direct and indirect reports)
+ * using a queue-based approach instead of recursion.
+ * Duplicated from API route to ensure server component applies same filtering.
+ */
+async function getAllSubordinatesIterative(
+  managerUserId: string,
+  companyId: string,
+): Promise<string[]> {
+  const allSubordinates = new Set<string>();
+  const queue: string[] = [managerUserId];
+
+  while (queue.length > 0) {
+    const currentManagerId = queue.shift()!;
+
+    const directReports = await prisma.user.findMany({
+      where: {
+        managerId: currentManagerId,
+        companyId,
+      },
+      select: { id: true },
+    });
+
+    for (const report of directReports) {
+      if (!allSubordinates.has(report.id)) {
+        allSubordinates.add(report.id);
+        queue.push(report.id);
+      }
+    }
+  }
+
+  return Array.from(allSubordinates);
+}
 
 export const dynamic = "force-dynamic";
 
@@ -37,11 +72,47 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     const limit = 50;
     
     // Build where condition based on status
-    const whereCondition: any = { companyId: session.user.companyId };
+    const whereCondition: Prisma.EmployeeWhereInput = { companyId: session.user.companyId };
     if (status === "active") whereCondition.isActive = true;
     else if (status === "archived") whereCondition.isActive = false;
 
-    // Fetch employees with same logic as API route
+    // SECURITY: Apply role-based filtering to prevent data exposure
+    // This must match the logic in /api/employees/route.ts
+    const userRole = session.user.role;
+    
+    if (userRole === "MANAGER") {
+      // Managers see only their direct and indirect reports
+      const allSubordinateUserIds = await getAllSubordinatesIterative(
+        session.user.id,
+        session.user.companyId,
+      );
+      
+      whereCondition.userId = {
+        in: allSubordinateUserIds.length > 0 ? allSubordinateUserIds : ["no-match"],
+      };
+    } else if (userRole === "EMPLOYEE") {
+      // Employees see only themselves and their department colleagues
+      const requestorEmployee = await prisma.employee.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: session.user.companyId,
+        },
+        select: { departmentId: true },
+      });
+
+      const orConditions: Prisma.EmployeeWhereInput[] = [
+        { userId: session.user.id },
+      ];
+
+      if (requestorEmployee?.departmentId) {
+        orConditions.push({ departmentId: requestorEmployee.departmentId });
+      }
+
+      whereCondition.OR = orConditions;
+    }
+    // ADMIN and SUPER_ADMIN see all employees (no additional filtering)
+
+    // Fetch employees with role-based filtering applied
     const employees = await prisma.employee.findMany({
       where: whereCondition,
       include: {
@@ -87,12 +158,44 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       take: limit + 1,
     });
 
+    // Count with same role-based filtering for accurate counts
+    const baseCountWhere: Prisma.EmployeeWhereInput = { companyId: session.user.companyId };
+    
+    // Apply same role-based filtering to counts
+    if (userRole === "MANAGER") {
+      const allSubordinateUserIds = await getAllSubordinatesIterative(
+        session.user.id,
+        session.user.companyId,
+      );
+      baseCountWhere.userId = {
+        in: allSubordinateUserIds.length > 0 ? allSubordinateUserIds : ["no-match"],
+      };
+    } else if (userRole === "EMPLOYEE") {
+      const requestorEmployee = await prisma.employee.findFirst({
+        where: {
+          userId: session.user.id,
+          companyId: session.user.companyId,
+        },
+        select: { departmentId: true },
+      });
+
+      const orConditions: Prisma.EmployeeWhereInput[] = [
+        { userId: session.user.id },
+      ];
+
+      if (requestorEmployee?.departmentId) {
+        orConditions.push({ departmentId: requestorEmployee.departmentId });
+      }
+
+      baseCountWhere.OR = orConditions;
+    }
+    
     const [activeCount, archivedCount] = await Promise.all([
       prisma.employee.count({
-        where: { companyId: session.user.companyId, isActive: true },
+        where: { ...baseCountWhere, isActive: true },
       }),
       prisma.employee.count({
-        where: { companyId: session.user.companyId, isActive: false },
+        where: { ...baseCountWhere, isActive: false },
       }),
     ]);
 

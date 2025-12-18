@@ -971,6 +971,32 @@ function DocumentsContent() {
     }
   };
 
+  const handleListPlacementComplete = async () => {
+    if (!sigDocId) return;
+    setSendingNotifications(true);
+    try {
+      const res = await tenantFetch("/api/documents/send-notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: sigDocId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(data.message || "Notifications sent successfully!");
+        setIsFieldPlacementOpen(false);
+        refetchDocuments();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        toast.error(errorData?.error || "Failed to send notifications.");
+      }
+    } catch (error) {
+      console.error("Send notifications error:", error);
+      toast.error("Network error sending notifications.");
+    } finally {
+      setSendingNotifications(false);
+    }
+  };
+
   const handlePlacementCancel = () => {
     if (placementPendingDocId) {
       toast.warning("Field placement not completed. You can complete it later from the document actions menu.", { duration: 6000 });
@@ -1767,6 +1793,8 @@ function DocumentsContent() {
           onClose={() => setIsFieldPlacementOpen(false)}
           documentId={sigDocId || ""}
           url={selectedDoc?.url || ""}
+          onSaveComplete={handleListPlacementComplete}
+          sendingNotifications={sendingNotifications}
         />
 
         {/* Upload Preview Modal */}

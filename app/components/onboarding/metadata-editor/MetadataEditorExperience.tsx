@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 const filterOptions = [
   { id: "all", label: "All" },
@@ -43,6 +44,8 @@ export function MetadataEditorExperience() {
   const [activeTab, setActiveTab] = useState("checklist");
   const [journeyDrawerOpen, setJourneyDrawerOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const previousTemplateIdRef = useRef<string | undefined>(undefined);
 
   const query = useMemo(() => {
     if (!selectedTemplateId) return "/api/journeys/metadata";
@@ -57,6 +60,24 @@ export function MetadataEditorExperience() {
   const templates = data?.templates ?? [];
 
   const detail = data?.detail ?? null;
+
+  // Track when template selection changes and clear loading state when data arrives
+  useEffect(() => {
+    if (selectedTemplateId !== previousTemplateIdRef.current) {
+      if (selectedTemplateId && previousTemplateIdRef.current !== undefined) {
+        // Switching from one template to another - show loading
+        setIsDetailLoading(true);
+      }
+      previousTemplateIdRef.current = selectedTemplateId;
+    }
+  }, [selectedTemplateId]);
+
+  // Clear loading state when new detail data arrives
+  useEffect(() => {
+    if (detail && detail.template.id === selectedTemplateId) {
+      setIsDetailLoading(false);
+    }
+  }, [detail, selectedTemplateId]);
 
   const filteredTemplates = useMemo(() => {
     const dataset = templates;
@@ -160,7 +181,7 @@ export function MetadataEditorExperience() {
             >
               View audit log
             </Button>
-            <Button variant="glass" icon={<LayoutGrid className="h-4 w-4" />} onClick={() => setJourneyDrawerOpen(true)}>
+            <Button variant="glass" icon={<LayoutGrid className="h-4 w-4" />} onClick={() => setJourneyDrawerOpen(true)} disabled={isDetailLoading || !detail}>
               Manage Journey ID
             </Button>
           </div>
@@ -304,7 +325,27 @@ export function MetadataEditorExperience() {
                 )}
               </CardDescription>
             </CardHeader>
-            {detail ? (
+            {isDetailLoading ? (
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="rounded-3xl border border-border/60 bg-background/70 p-5">
+                      <Skeleton className="h-3 w-20 mb-2" />
+                      <Skeleton className="h-8 w-16 mb-1" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    {[...Array(4)].map((_, i) => (
+                      <Skeleton key={i} className="h-10 flex-1 rounded-2xl" />
+                    ))}
+                  </div>
+                  <Skeleton className="h-48 w-full rounded-2xl" />
+                </div>
+              </CardContent>
+            ) : detail ? (
               <CardContent className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5">
@@ -381,7 +422,19 @@ export function MetadataEditorExperience() {
             )}
           </Card>
 
-          {detail ? <PublishingFlow publishing={detail.publishing} /> : null}
+          {isDetailLoading ? (
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-64 mt-2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-24 w-full rounded-2xl" />
+              </CardContent>
+            </Card>
+          ) : detail ? (
+            <PublishingFlow publishing={detail.publishing} />
+          ) : null}
         </div>
 
         <aside className="space-y-4">
@@ -419,7 +472,7 @@ export function MetadataEditorExperience() {
         </aside>
       </section>
 
-      {detail ? (
+      {detail && !isDetailLoading ? (
         <JourneyIdDrawer
           open={journeyDrawerOpen}
           onOpenChange={setJourneyDrawerOpen}

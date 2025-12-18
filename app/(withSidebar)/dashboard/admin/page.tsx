@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 import AdminDashboardClient from "./AdminDashboardClient";
+import DashboardSearch from "@/components/dashboard/DashboardSearch";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import { User, Mail, Bot } from "lucide-react";
@@ -126,14 +127,7 @@ export default async function AdminDashboardPage() {
                     <Bot className="h-4 w-4 mr-2" /> AI Chatbot
                   </Button>
                 </Link>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    aria-label="Search dashboard"
-                    className="w-full sm:w-64 glass-subtle rounded-2xl border-white/20 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/30 transition-premium"
-                  />
-                </div>
+                <DashboardSearch />
               </div>
             </div>
           </div>

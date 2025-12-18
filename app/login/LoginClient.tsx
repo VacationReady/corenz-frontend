@@ -154,10 +154,14 @@ export default function LoginClient() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+            >
               Email
             </label>
             <Input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => handleEmailChange(e.target.value)}
@@ -168,11 +172,15 @@ export default function LoginClient() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+            >
               Password
             </label>
             <div className="relative">
               <Input
+                id="password"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -196,7 +204,11 @@ export default function LoginClient() {
               <p className="mt-1 text-xs text-amber-600">Caps Lock is on</p>
             )}
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-600" role="status" aria-live="polite" aria-atomic="true">
+              {error}
+            </p>
+          )}
           <Button
             type="submit"
             className="w-full transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"

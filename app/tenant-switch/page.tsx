@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 
@@ -10,6 +10,13 @@ function TenantSwitchContent() {
   const token = searchParams.get("token");
   const [status, setStatus] = useState<"processing" | "success" | "error">("processing");
   const [message, setMessage] = useState("Processing tenant switch...");
+  const backButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (status === "error") {
+      backButtonRef.current?.focus();
+    }
+  }, [status]);
 
   useEffect(() => {
     if (!token) {
@@ -67,11 +74,16 @@ function TenantSwitchContent() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      <div className="glass rounded-3xl p-8 shadow-glass text-center max-w-md">
+      <div
+        className="glass rounded-3xl p-8 shadow-glass text-center max-w-md"
+        aria-busy={status === "processing"}
+      >
         {status === "processing" && (
           <>
             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-purple-600 border-t-transparent"></div>
-            <p className="text-foreground">{message}</p>
+            <p id="tenant-switch-status" className="text-foreground" role="status" aria-live="polite" aria-atomic="true">
+              {message}
+            </p>
           </>
         )}
         {status === "success" && (
@@ -81,7 +93,9 @@ function TenantSwitchContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <p className="text-foreground font-semibold">{message}</p>
+            <p id="tenant-switch-status" className="text-foreground font-semibold" role="status" aria-live="polite" aria-atomic="true">
+              {message}
+            </p>
           </>
         )}
         {status === "error" && (
@@ -91,10 +105,20 @@ function TenantSwitchContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <p className="text-foreground font-semibold text-red-600">{message}</p>
+            <p
+              id="tenant-switch-status"
+              className="text-foreground font-semibold text-red-600"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {message}
+            </p>
             <button
+              ref={backButtonRef}
               onClick={() => router.push("/tenant-admin")}
               className="mt-4 rounded-xl bg-purple-600 px-6 py-2 text-white hover:bg-purple-700"
+              aria-describedby="tenant-switch-status"
             >
               Back to Admin Portal
             </button>
@@ -111,7 +135,9 @@ export default function TenantSwitchPage() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50">
         <div className="glass rounded-3xl p-8 shadow-glass text-center max-w-md">
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-purple-600 border-t-transparent"></div>
-          <p className="text-foreground">Loading...</p>
+          <p className="text-foreground" role="status" aria-live="polite" aria-atomic="true">
+            Loading...
+          </p>
         </div>
       </div>
     }>

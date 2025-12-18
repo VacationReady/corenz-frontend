@@ -2,7 +2,6 @@
 
 import React from "react";
 import { useSession } from "next-auth/react";
-import Button from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import {
   Select,
@@ -45,6 +44,7 @@ export default function TopBar({
   const canManageTenants = Boolean(session?.user?.canManageTenants);
   const homeCompanyId = session?.user?.homeCompanyId ?? null;
   const currentCompanyId = session?.user?.companyId ?? null;
+  const showTenantControls = canManageTenants && role === "SUPER_ADMIN";
 
   React.useEffect(() => {
     if (!session?.user?.companyId) return;
@@ -52,7 +52,7 @@ export default function TopBar({
   }, [session?.user?.companyId]);
 
   React.useEffect(() => {
-    if (!canManageTenants) return;
+    if (!showTenantControls) return;
 
     let cancelled = false;
     const loadTenants = async () => {
@@ -126,7 +126,7 @@ export default function TopBar({
     return () => {
       cancelled = true;
     };
-  }, [canManageTenants, homeCompanyId, session?.user?.companyId]);
+  }, [showTenantControls, homeCompanyId, session?.user?.companyId]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -201,10 +201,6 @@ export default function TopBar({
     [homeCompanyId, updateSession],
   );
 
-  if (!canManageTenants || role !== "SUPER_ADMIN") {
-    return null;
-  }
-
   const currentTenant = tenants.find((option) => option.id === tenant);
   const isImpersonating = Boolean(
     homeCompanyId && tenant && homeCompanyId !== tenant,
@@ -229,43 +225,47 @@ export default function TopBar({
           ) : null}
 
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="flex items-center gap-3">
-              <Select
-                value={tenant || undefined}
-                onValueChange={handleTenantChange}
-                disabled={tenantsLoading || isSwitchingTenant || tenants.length === 0}
-              >
-                <SelectTrigger className="w-[240px] glass-strong rounded-2xl shadow-depth-1 hover-lift transition-glass">
-                  <SelectValue placeholder={tenantPlaceholder}>
-                    {currentTenant?.name}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="glass-ultra rounded-2xl shadow-xl border-glass">
-                  {tenants.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      {option.name}
-                      {option.id === homeCompanyId ? " (Home)" : ""}
+            {showTenantControls ? (
+              <div className="flex items-center gap-3">
+                <Select
+                  value={tenant || undefined}
+                  onValueChange={handleTenantChange}
+                  disabled={
+                    tenantsLoading || isSwitchingTenant || tenants.length === 0
+                  }
+                >
+                  <SelectTrigger className="w-[240px] glass-strong rounded-2xl shadow-depth-1 hover-lift transition-glass">
+                    <SelectValue placeholder={tenantPlaceholder}>
+                      {currentTenant?.name}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="glass-ultra rounded-2xl shadow-xl border-glass">
+                    {tenants.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.name}
+                        {option.id === homeCompanyId ? " (Home)" : ""}
+                      </SelectItem>
+                    ))}
+                    <SelectSeparator />
+                    <SelectItem
+                      value={ADD_TENANT_VALUE}
+                      className="font-semibold text-primary"
+                    >
+                      + Add tenant
                     </SelectItem>
-                  ))}
-                  <SelectSeparator />
-                  <SelectItem
-                    value={ADD_TENANT_VALUE}
-                    className="font-semibold text-primary"
-                  >
-                    + Add tenant
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <span
-                className={
-                  isImpersonating
-                    ? "glass-subtle rounded-full px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 border border-amber-300/30 shadow-depth-1"
-                    : "glass-subtle rounded-full px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-300/30 shadow-depth-1"
-                }
-              >
-                {isImpersonating ? "Impersonating" : "Main tenant"}
-              </span>
-            </div>
+                  </SelectContent>
+                </Select>
+                <span
+                  className={
+                    isImpersonating
+                      ? "glass-subtle rounded-full px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 border border-amber-300/30 shadow-depth-1"
+                      : "glass-subtle rounded-full px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-300/30 shadow-depth-1"
+                  }
+                >
+                  {isImpersonating ? "Impersonating" : "Main tenant"}
+                </span>
+              </div>
+            ) : null}
 
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
               <button
@@ -316,11 +316,13 @@ export default function TopBar({
         </div>
       </header>
 
-      <AddTenantDialog
-        open={isAddTenantOpen}
-        onOpenChange={setIsAddTenantOpen}
-        onTenantCreated={handleTenantCreated}
-      />
+      {showTenantControls ? (
+        <AddTenantDialog
+          open={isAddTenantOpen}
+          onOpenChange={setIsAddTenantOpen}
+          onTenantCreated={handleTenantCreated}
+        />
+      ) : null}
     </>
   );
 }

@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { startOfDay, endOfDay, getDay } from 'date-fns';
+import { canAccessEmployee } from "@/lib/permissions";
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
     // Get employee details with working pattern
     // Check for working pattern assignments first (with effective dates), then fall back to direct assignment
     const employee = await prisma.employee.findUnique({
-      where: { id: employeeId },
+      where: { id: employeeId, companyId: session.user.companyId },
       include: {
         WorkingPattern: {
           include: {
@@ -59,6 +60,22 @@ export async function GET(req: NextRequest) {
         },
       },
     });
+
+    if (!employee) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    const allowed = await canAccessEmployee(
+      {
+        id: session.user.id,
+        role: session.user.role as any,
+        companyId: session.user.companyId,
+      },
+      employeeId,
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // Find scheduled shift
     // Note: Show employee their own shifts regardless of publish status

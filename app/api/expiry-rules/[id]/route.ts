@@ -7,7 +7,7 @@ export async function PUT(
   context: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || session.user.role !== "ADMIN" || !session.user.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -16,8 +16,20 @@ export async function PUT(
     const { daysBefore, notifyAdmin, notifyManager, notifyEmployee } = body;
 
     const { id } = await context.params;
+    const existing = await prisma.expiryRule.findFirst({
+      where: {
+        id,
+        companyId: session.user.companyId,
+      },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
     const updatedRule = await prisma.expiryRule.update({
-      where: { id: id },
+      where: { id },
       data: {
         ...(daysBefore !== undefined && { daysBefore }),
         ...(notifyAdmin !== undefined && { notifyAdmin }),

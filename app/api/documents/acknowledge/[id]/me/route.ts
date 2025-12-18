@@ -22,6 +22,18 @@ export async function GET(
       return NextResponse.json({ acknowledged: false });
     }
 
+    const document = await prisma.document.findFirst({
+      where: {
+        id,
+        companyId: employee.companyId,
+      },
+      select: { id: true },
+    });
+
+    if (!document) {
+      return NextResponse.json({ acknowledged: false });
+    }
+
     // Check if acknowledgement exists
     const ack = await prisma.documentAcknowledgement.findUnique({
       where: {

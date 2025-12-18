@@ -594,4 +594,28 @@ Updated document search to use a single persisted search source (`filters.search
 
 144. Past Timesheet Submit Action Reliability Fix
 
-Fixed the “Submit” action on past timesheet cards by submitting via an explicit timesheet ID rather than relying on asynchronous state updates, ensuring the request always fires and users receive immediate confirmation or error feedback.
+Fixed the “Submit” action on past timesheet cards by submitting with an explicit timesheet ID, rather than relying on asynchronous state updates. This ensures the request is consistently triggered and users receive immediate confirmation or clear error feedback.
+
+145. Employee Shift Swap Decision UX Improvements
+
+Replaced native alert/prompt/confirm dialogs in the employee schedule swap actions with an in-app modal that shows shift details and provides a properly labelled reason field for declining. Success and error states are now surfaced via consistent, non-blocking toasts, and the entered reason is preserved if the request fails.
+
+146. Unauthorised Page Recovery Actions
+
+Improved the unauthorised access page to provide clear recovery actions to return to login or the dashboard, switch accounts (sign out), and contact support. Users can now easily navigate back to a safe area of the application.
+
+147. Mobile Header Navigation Availability Fix
+
+Fixed an issue where the TopBar header was not rendered for most roles, leaving mobile users without access to the hamburger menu and primary navigation. The header now renders for all users, with tenant switching controls correctly restricted to SUPER_ADMINs with tenant management permissions.
+
+148. Login Form Accessibility Improvements
+
+Improved the sign-in form accessibility by programmatically associating labels with their corresponding inputs (via `htmlFor`/`id` pairing), so screen readers can announce the focused field and clicking a label focuses the input. Updated error messaging to be announced politely by assistive technologies.
+
+149. Admin Dashboard Search Activation
+
+Enabled live search on the admin dashboard hero card, showing matching screens and employees as you type with clear section headings and relevant icons/avatars. Selecting a result now takes you directly to the chosen screen (including reports and settings pages) or employee profile.
+
+150. API Tenant Isolation and Endpoint Hardening
+
+Hardened multiple API routes to enforce full tenant isolation by scoping reads/writes to `companyId` and adding consistent role/ownership checks. Secured previously unsafe utility and webhook endpoints to prevent cross-tenant access and enumeration, while keeping responses behaviour-compatible.

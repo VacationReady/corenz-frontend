@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth-options";
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id || !session.user.companyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     // Create a sample exit interview form template
     const template = await prisma.exitInterviewFormTemplate.create({
       data: {
@@ -74,6 +83,7 @@ export async function POST(req: NextRequest) {
         isActive: true,
         id: `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         updatedAt: new Date(),
+        companyId: session.user.companyId,
       },
     });
 

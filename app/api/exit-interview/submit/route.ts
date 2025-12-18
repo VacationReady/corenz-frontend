@@ -33,6 +33,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const companyId = offboarding.Employee?.companyId;
+    if (!companyId) {
+      return NextResponse.json(
+        { error: "Offboarding record not found" },
+        { status: 404 },
+      );
+    }
+
     // Check if already submitted
     if (offboarding.completionStatus === "SUBMITTED") {
       return NextResponse.json(
@@ -72,6 +80,7 @@ export async function POST(req: NextRequest) {
     // Mark the associated action item as completed
     await prisma.actionItem.updateMany({
       where: {
+        companyId,
         type: "EXIT_INTERVIEW_FORM",
         relatedEmployeeId: offboarding.employeeId,
         status: { in: ["PENDING", "IN_PROGRESS"] },

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function PUT(req: Request) {
   const session = await auth();
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || session.user.role !== "ADMIN" || !session.user.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -20,7 +20,10 @@ export async function PUT(req: Request) {
     }
 
     const updated = await prisma.expiryRule.updateMany({
-      where: { id: { in: ruleIds } },
+      where: {
+        id: { in: ruleIds },
+        companyId: session.user.companyId,
+      },
       data: {
         ...(daysBefore !== undefined && { daysBefore }),
         ...(notifyAdmin !== undefined && { notifyAdmin }),

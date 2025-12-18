@@ -22,6 +22,19 @@ import {
   CalendarClock,
   GitCompare,
   Search,
+  Clock,
+  Bell,
+  Shield,
+  AlertTriangle,
+  Share2,
+  FolderKanban,
+  Repeat,
+  Sailboat,
+  UserMinus,
+  Cog,
+  MapPin,
+  Library,
+  Plus,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,12 +53,15 @@ interface EmployeeResult {
 }
 
 const SCREENS: ScreenItem[] = [
+  // Core navigation
   { href: "/dashboard/admin", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/action-items", icon: ClipboardCheck, label: "Action Items" },
   { href: "/employees", icon: Users, label: "Employees" },
   { href: "/calendar", icon: Calendar, label: "Calendar" },
   { href: "/documents", icon: FileText, label: "Documents" },
   { href: "/reports", icon: BarChart3, label: "Reports" },
+  { href: "/reports/library", icon: Library, label: "Report Library" },
+  { href: "/reports/create", icon: Plus, label: "Create Report" },
   { href: "/performance", icon: Target, label: "Performance" },
   { href: "/analytics", icon: LineChart, label: "Analytics" },
   { href: "/admin/timesheets/hub", icon: ClipboardList, label: "Timesheets" },
@@ -57,6 +73,28 @@ const SCREENS: ScreenItem[] = [
   { href: "/bulk-actions", icon: ListChecks, label: "Bulk Actions" },
   { href: "/settings/automation-rules", icon: Zap, label: "App Library" },
   { href: "/settings", icon: Settings, label: "Settings" },
+  // Settings - Holiday & Leave
+  { href: "/settings/working-patterns", icon: Clock, label: "Working Patterns" },
+  { href: "/settings/public-holidays", icon: Calendar, label: "Public Holiday Templates" },
+  { href: "/settings/expiry-alerts", icon: AlertTriangle, label: "Expiry Alerts" },
+  { href: "/settings/event-rules", icon: Shield, label: "Event Rules" },
+  { href: "/settings/event-manager", icon: Bell, label: "Event Manager" },
+  { href: "/settings/leave-policies", icon: FileText, label: "Leave Policies" },
+  { href: "/settings/multi-stage-approvals", icon: Share2, label: "Multi-stage Approvals" },
+  { href: "/admin/settings/time-tracking", icon: Clock, label: "Time Tracking" },
+  { href: "/admin/locations", icon: MapPin, label: "Locations" },
+  // Settings - Forms & Surveys
+  { href: "/settings/forms", icon: ClipboardList, label: "Forms" },
+  { href: "/settings/forms/exit-interview", icon: UserMinus, label: "Exit Interviews" },
+  { href: "/settings/surveys", icon: FileText, label: "Survey Settings" },
+  // Settings - Documents
+  { href: "/settings/document-types", icon: FolderKanban, label: "Document Types" },
+  // Settings - Workflows
+  { href: "/settings/automation-rules", icon: Repeat, label: "Automation Rules" },
+  { href: "/settings/journeys", icon: Sailboat, label: "Journeys & Onboarding" },
+  { href: "/settings/workflows/notifications", icon: Bell, label: "Transactional Notifications" },
+  // Settings - System
+  { href: "/settings/system", icon: Cog, label: "Platform Settings" },
 ];
 
 export default function DashboardSearch() {
@@ -197,7 +235,7 @@ export default function DashboardSearch() {
       </div>
 
       {showDropdown && (
-        <div className="absolute top-full mt-2 w-full sm:w-80 right-0 z-50 glass-premium rounded-xl shadow-premium border border-white/10 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-full mt-2 w-full sm:w-80 right-0 z-50 bg-popover rounded-xl shadow-lg border border-border overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Screens Section */}
           {filteredScreens.length > 0 && (
             <div>

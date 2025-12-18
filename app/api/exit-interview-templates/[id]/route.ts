@@ -23,7 +23,7 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -37,8 +37,23 @@ export async function GET(
 
     const { id } = await context.params;
 
-    const template = await prisma.exitInterviewFormTemplate.findUnique({
-      where: { id },
+    const template = await prisma.exitInterviewFormTemplate.findFirst({
+      where: {
+        id,
+        OR: [
+          { companyId: session.user.companyId },
+          {
+            companyId: null,
+            EmployeeOffboarding: {
+              some: {
+                Employee: {
+                  companyId: session.user.companyId,
+                },
+              },
+            },
+          },
+        ],
+      },
       include: {
         _count: {
           select: {
@@ -74,7 +89,7 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -91,8 +106,23 @@ export async function PUT(
     const validatedData = updateTemplateSchema.parse(body);
 
     // Check if template exists
-    const existingTemplate = await prisma.exitInterviewFormTemplate.findUnique({
-      where: { id },
+    const existingTemplate = await prisma.exitInterviewFormTemplate.findFirst({
+      where: {
+        id,
+        OR: [
+          { companyId: session.user.companyId },
+          {
+            companyId: null,
+            EmployeeOffboarding: {
+              some: {
+                Employee: {
+                  companyId: session.user.companyId,
+                },
+              },
+            },
+          },
+        ],
+      },
     });
 
     if (!existingTemplate) {
@@ -104,7 +134,10 @@ export async function PUT(
 
     const template = await prisma.exitInterviewFormTemplate.update({
       where: { id },
-      data: validatedData,
+      data: {
+        ...validatedData,
+        ...(existingTemplate.companyId ? {} : { companyId: session.user.companyId }),
+      },
     });
 
     return NextResponse.json({
@@ -145,7 +178,7 @@ export async function DELETE(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -160,8 +193,23 @@ export async function DELETE(
     const { id } = await context.params;
 
     // Check if template exists and get usage count
-    const template = await prisma.exitInterviewFormTemplate.findUnique({
-      where: { id },
+    const template = await prisma.exitInterviewFormTemplate.findFirst({
+      where: {
+        id,
+        OR: [
+          { companyId: session.user.companyId },
+          {
+            companyId: null,
+            EmployeeOffboarding: {
+              some: {
+                Employee: {
+                  companyId: session.user.companyId,
+                },
+              },
+            },
+          },
+        ],
+      },
       include: {
         _count: {
           select: {
@@ -193,8 +241,23 @@ export async function DELETE(
       );
     }
 
-    await prisma.exitInterviewFormTemplate.delete({
-      where: { id },
+    await prisma.exitInterviewFormTemplate.deleteMany({
+      where: {
+        id,
+        OR: [
+          { companyId: session.user.companyId },
+          {
+            companyId: null,
+            EmployeeOffboarding: {
+              some: {
+                Employee: {
+                  companyId: session.user.companyId,
+                },
+              },
+            },
+          },
+        ],
+      },
     });
 
     return NextResponse.json({

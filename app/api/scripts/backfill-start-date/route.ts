@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
 
-async function runBackfill() {
+async function runBackfill(companyId: string) {
   const employees = await prisma.employee.findMany({
-    where: { startDate: null },
+    where: { startDate: null, companyId },
     select: {
       id: true,
       EmployeeWorkingPatternAssignment: {
@@ -29,11 +29,11 @@ export async function POST() {
   try {
     await ensurePrismaConnected();
     const session = await auth();
-    if (!session?.user?.role || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+    if (!session?.user?.role || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const updated = await runBackfill();
+    const updated = await runBackfill(session.user.companyId);
     return NextResponse.json({ status: "success", updated });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Internal error" }, { status: 500 });
@@ -45,10 +45,10 @@ export async function GET() {
   try {
     await ensurePrismaConnected();
     const session = await auth();
-    if (!session?.user?.role || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+    if (!session?.user?.role || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const updated = await runBackfill();
+    const updated = await runBackfill(session.user.companyId);
     return NextResponse.json({ status: "success", updated });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Internal error" }, { status: 500 });

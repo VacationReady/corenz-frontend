@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { OffboardingType, TaskCategory } from "@prisma/client";
 import { sendAccessRevocationEmail } from "@/lib/email/access-revocation";
+import { canAccessEmployee } from "@/lib/permissions";
 
 export async function POST(
   req: NextRequest,
@@ -10,8 +11,12 @@ export async function POST(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!['ADMIN', 'MANAGER', 'SUPER_ADMIN'].includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const { id: employeeId } = await context.params;
     const body = await req.json();
@@ -42,7 +47,7 @@ export async function POST(
 
     // Check if employee exists and is active
     const employee = await prisma.employee.findUnique({
-      where: { id: employeeId },
+      where: { id: employeeId, companyId: session.user.companyId },
       include: { User: true, EmployeeOffboarding: true },
     });
 
@@ -51,6 +56,18 @@ export async function POST(
         { error: "Employee not found" },
         { status: 404 },
       );
+    }
+
+    const allowed = await canAccessEmployee(
+      {
+        id: session.user.id,
+        role: session.user.role as any,
+        companyId: session.user.companyId,
+      },
+      employeeId,
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     if (employee.EmployeeOffboarding) {
@@ -64,7 +81,7 @@ export async function POST(
     let handoverAssigneeUserId: string | null = null;
     if (handoverAssignedTo) {
       const assignee = await prisma.employee.findUnique({
-        where: { id: handoverAssignedTo },
+        where: { id: handoverAssignedTo, companyId: session.user.companyId },
         select: { userId: true },
       });
 
@@ -235,8 +252,12 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!['ADMIN', 'MANAGER', 'SUPER_ADMIN'].includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const { id: employeeId } = await context.params;
 
@@ -298,6 +319,22 @@ export async function GET(
       );
     }
 
+    if (offboardingRecord.Employee.companyId !== session.user.companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const allowed = await canAccessEmployee(
+      {
+        id: session.user.id,
+        role: session.user.role as any,
+        companyId: session.user.companyId,
+      },
+      employeeId,
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     let interviewer = null;
     if (offboardingRecord.ExitInterview?.interviewerId) {
       interviewer = await prisma.user.findUnique({
@@ -329,14 +366,19 @@ export async function PATCH(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!['ADMIN', 'MANAGER', 'SUPER_ADMIN'].includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const { id: employeeId } = await context.params;
     const body = await req.json();
 
     const offboardingRecord = await prisma.employeeOffboarding.findUnique({
       where: { employeeId },
+      include: { Employee: true },
     });
 
     if (!offboardingRecord) {
@@ -344,6 +386,22 @@ export async function PATCH(
         { error: "No offboarding record found" },
         { status: 404 },
       );
+    }
+
+    if (offboardingRecord.Employee.companyId !== session.user.companyId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const allowed = await canAccessEmployee(
+      {
+        id: session.user.id,
+        role: session.user.role as any,
+        companyId: session.user.companyId,
+      },
+      employeeId,
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Update the offboarding record

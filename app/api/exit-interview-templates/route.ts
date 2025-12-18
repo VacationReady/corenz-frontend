@@ -17,7 +17,7 @@ const updateTemplateSchema = createTemplateSchema.partial();
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -32,7 +32,22 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const activeOnly = searchParams.get("activeOnly") === "true";
 
-    const where = activeOnly ? { isActive: true } : {};
+    const where = {
+      ...(activeOnly ? { isActive: true } : {}),
+      OR: [
+        { companyId: session.user.companyId },
+        {
+          companyId: null,
+          EmployeeOffboarding: {
+            some: {
+              Employee: {
+                companyId: session.user.companyId,
+              },
+            },
+          },
+        },
+      ],
+    };
 
     const templates = await prisma.exitInterviewFormTemplate.findMany({
       where,
@@ -70,7 +85,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -93,6 +108,7 @@ export async function POST(req: NextRequest) {
         description: validatedData.description,
         schemaJson: validatedData.schemaJson,
         isActive: true,
+        companyId: session.user.companyId,
       },
     });
 

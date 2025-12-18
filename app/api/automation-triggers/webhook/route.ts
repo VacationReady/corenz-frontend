@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { workflowEngine } from "@/lib/workflows/WorkflowExecutionEngine";
 import { z } from "zod";
+import { auth } from "@/lib/auth-options";
 
 const webhookSchema = z.object({
   workflowId: z.string().optional(),
@@ -25,10 +26,31 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { workflowId, templateId, payload } = webhookSchema.parse(body);
 
+    // In production we require a webhook key to prevent workflow enumeration/triggering by ID
+    if (process.env.NODE_ENV === "production" && !webhookKey) {
+      return NextResponse.json(
+        { error: "Invalid webhook key" },
+        { status: 401 },
+      );
+    }
+
     // Find workflow by ID, template, or webhook key
     let workflow;
     
-    if (workflowId) {
+    if (webhookKey) {
+      workflow = await prisma.automationRule.findFirst({
+        where: {
+          isActive: true,
+          triggerType: "WEBHOOK",
+          triggerConfig: {
+            path: ["webhookKey"],
+            equals: webhookKey,
+          },
+          ...(workflowId ? { id: workflowId } : {}),
+          ...(templateId ? { templateId } : {}),
+        },
+      });
+    } else if (workflowId) {
       workflow = await prisma.automationRule.findFirst({
         where: {
           id: workflowId,
@@ -44,17 +66,6 @@ export async function POST(req: NextRequest) {
           triggerType: "WEBHOOK",
         },
       });
-    } else if (webhookKey) {
-      workflow = await prisma.automationRule.findFirst({
-        where: {
-          isActive: true,
-          triggerType: "WEBHOOK",
-          triggerConfig: {
-            path: ["webhookKey"],
-            equals: webhookKey,
-          },
-        },
-      });
     }
 
     if (!workflow) {
@@ -67,6 +78,12 @@ export async function POST(req: NextRequest) {
     // Validate webhook key if configured (triggerConfig is Json)
     const cfg = (workflow.triggerConfig ?? {}) as any;
     const configuredKey = typeof cfg === "object" && cfg !== null ? (cfg as any).webhookKey : undefined;
+    if (process.env.NODE_ENV === "production" && !configuredKey) {
+      return NextResponse.json(
+        { error: "Invalid webhook key" },
+        { status: 401 },
+      );
+    }
     if (configuredKey && configuredKey !== webhookKey) {
       return NextResponse.json(
         { error: "Invalid webhook key" },
@@ -101,6 +118,14 @@ export async function POST(req: NextRequest) {
 
 // Support GET for webhook testing
 export async function GET(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id || !session.user.companyId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!['ADMIN', 'MANAGER'].includes(session.user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const workflowId = req.nextUrl.searchParams.get("workflowId");
   
   if (!workflowId) {
@@ -123,6 +148,19 @@ export async function GET(req: NextRequest) {
   });
 
   if (!workflow) {
+    return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
+  }
+
+  if (workflow.triggerType !== "WEBHOOK") {
+    return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
+  }
+
+  const workflowCompany = await prisma.automationRule.findUnique({
+    where: { id: workflow.id },
+    select: { companyId: true },
+  });
+
+  if (!workflowCompany || workflowCompany.companyId !== session.user.companyId) {
     return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
   }
 

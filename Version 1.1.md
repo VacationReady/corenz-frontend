@@ -619,3 +619,27 @@ Enabled live search on the admin dashboard hero card, showing matching screens a
 150. API Tenant Isolation and Endpoint Hardening
 
 Hardened multiple API routes to enforce full tenant isolation by scoping reads/writes to `companyId` and adding consistent role/ownership checks. Secured previously unsafe utility and webhook endpoints to prevent cross-tenant access and enumeration, while keeping responses behaviour-compatible.
+
+151. Sick Days Heat Map Modernisation
+
+Refreshed the Sick days by weekday heat map on the employee leave page with modern tiling and a progressive amber-to-dark-red intensity scale (peaking at 5+ sicknesses). Removed the numeric overlay so only the day letter remains, keeping the label stable whilst the tile colour conveys frequency.
+
+152. Leave Balance Entitlement Enforcement
+
+Prevented balance-required event categories (e.g. Volunteering Day) from generating additional balance cards on `/leave`, keeping them within Other Entitlements to reduce visual clutter. Leave requests that exceed the remaining balance are now blocked, ensuring entitlements cannot be overdrawn.
+
+153. Login Loading State Feedback
+
+Added a visible loading state on the login route whilst the client bundle loads, replacing the previous blank screen. The fallback now includes an accessible status message and spinner to provide clear progress feedback on slow connections.
+
+154. Employee Schedule Load Failure Recovery
+
+Improved the employee schedule page so network or server failures no longer appear as empty schedules (e.g. “No Shifts”). Errors are now surfaced inline with a retry action, whilst preserving the last successfully loaded shifts, swaps, and availability.
+
+155. Offboarding List Load Error Visibility
+
+Improved the offboarding management list so backend or network failures are no longer masked as an empty state. Errors now display a clear destructive alert with a retry action, whilst preserving the last successfully loaded results.
+
+156. Tenant Creation Admin Email Validation
+
+Improved the tenant creation dialog to validate the admin email address client-side, with inline, accessible guidance when the format is invalid. Submission is now disabled until the email is valid, and focus remains on the email field when correction is required.

@@ -924,34 +924,38 @@ function LeavePageContent() {
                   </Select>
                 </div>
 
-                {/* Sick Heatmap - MTWTFSS inline */}
+                {/* Sick Heatmap - Modern tile design */}
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-muted-foreground">Sick days by weekday:</span>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5 p-1.5 rounded-xl bg-muted/30 backdrop-blur-sm">
                     {["M", "T", "W", "T", "F", "S", "S"].map((day, idx) => {
                       const count = sickDayOfWeekCounts[idx];
-                      const maxCount = Math.max(...sickDayOfWeekCounts, 1);
-                      const intensity = count / maxCount;
-                      // Green (low) to red (high) gradient
-                      const bgColor = count === 0
-                        ? "bg-green-200 dark:bg-green-900/40"
-                        : intensity < 0.33
-                          ? "bg-green-300 dark:bg-green-700/60"
-                          : intensity < 0.66
-                            ? "bg-amber-400 dark:bg-amber-600/70"
-                            : "bg-red-500 dark:bg-red-600/80";
+                      // Progressive amber → dark red: 0=neutral, 1=amber, 2-3=orange, 4=red, 5+=dark red
+                      const getHeatColor = (c: number) => {
+                        if (c === 0) return "bg-slate-100 dark:bg-slate-800/60";
+                        if (c === 1) return "bg-amber-300 dark:bg-amber-500/70";
+                        if (c === 2) return "bg-orange-400 dark:bg-orange-500/80";
+                        if (c === 3) return "bg-orange-500 dark:bg-orange-600/85";
+                        if (c === 4) return "bg-red-500 dark:bg-red-500/90";
+                        return "bg-red-700 dark:bg-red-700/95"; // 5+
+                      };
+                      const getTextColor = (c: number) => {
+                        if (c === 0) return "text-slate-500 dark:text-slate-400";
+                        if (c <= 2) return "text-slate-800 dark:text-white";
+                        return "text-white";
+                      };
                       return (
                         <div
                           key={idx}
                           className={cn(
-                            "w-7 h-7 rounded flex flex-col items-center justify-center text-[10px] font-medium transition-colors",
-                            bgColor,
-                            count > 0 ? "text-white" : "text-muted-foreground"
+                            "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold transition-all duration-200 shadow-sm",
+                            getHeatColor(count),
+                            getTextColor(count),
+                            count > 0 && "shadow-md ring-1 ring-black/5"
                           )}
                           title={`${day}: ${count} sick day${count !== 1 ? "s" : ""}`}
                         >
-                          <span>{day}</span>
-                          {count > 0 && <span className="text-[8px]">{count}</span>}
+                          {day}
                         </div>
                       );
                     })}

@@ -118,16 +118,26 @@ export async function validateLeaveRequest({
     },
   });
 
+  // ── CHECK IF CATEGORY HAS BALANCE REQUIRED ──────────────────────────────
+  // Categories with balanceRequired=true should always enforce their balance
+  const eventCategoryFull = await prisma.eventCategory.findFirst({
+    where: { id: eventCategoryId, companyId },
+    select: { name: true, balanceRequired: true },
+  });
+  const isBalanceRequired = (eventCategoryFull as any)?.balanceRequired === true;
+
   // Determine if entitlement should be enforced:
   // - If explicitly configured in EventRule, use that setting
+  // - If category has balanceRequired=true, always enforce
   // - If no rule exists, only enforce for "Annual Leave" (case-insensitive)
   // - All other event types default to NOT enforcing entitlement
   const isAnnualLeave = eventCategory.name.toLowerCase().includes("annual leave");
-  const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
+  const enforceEntitlement = eventRule?.enforceEntitlement ?? (isBalanceRequired || isAnnualLeave);
   
   console.log("📋 Entitlement enforcement:", { 
     eventType: eventCategory.name, 
-    isAnnualLeave, 
+    isAnnualLeave,
+    isBalanceRequired,
     hasExplicitRule: eventRule !== null,
     enforceEntitlement 
   });

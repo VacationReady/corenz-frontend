@@ -98,6 +98,9 @@ export default function EmployeeSchedulePage() {
   const [workingPattern, setWorkingPattern] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasLoadedSchedule, setHasLoadedSchedule] = useState(false);
   const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
   const [activeTab, setActiveTab] = useState<'shifts' | 'swaps' | 'availability'>('shifts');
   const [swapTab, setSwapTab] = useState<'incoming' | 'outgoing'>('incoming');
@@ -118,13 +121,39 @@ export default function EmployeeSchedulePage() {
     }
   }, [session, selectedDate]);
 
+  const readApiErrorMessage = async (response: Response) => {
+    try {
+      const data = await response.json();
+      return data?.error || 'Request failed';
+    } catch {
+      return 'Request failed';
+    }
+  };
+
   const loadData = async () => {
-    setIsLoading(true);
+    setLoadError(null);
+    if (hasLoadedSchedule) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+
+    const errors: string[] = [];
     try {
       // Get current employee ID
       const employeeRes = await fetch('/api/employees/me');
+      if (!employeeRes.ok) {
+        errors.push(`Could not load your profile (${await readApiErrorMessage(employeeRes)})`);
+        return;
+      }
+
       const employeeData = await employeeRes.json();
       const empId = employeeData.employee?.id;
+      if (!empId) {
+        errors.push('Could not load your profile (missing employee id)');
+        return;
+      }
+
       setCurrentEmployeeId(empId);
 
       // Fetch shifts
@@ -134,6 +163,9 @@ export default function EmployeeSchedulePage() {
       if (shiftsRes.ok) {
         const shiftsData = await shiftsRes.json();
         setShifts(shiftsData.shifts || []);
+        setHasLoadedSchedule(true);
+      } else {
+        errors.push(`Could not load shifts (${await readApiErrorMessage(shiftsRes)})`);
       }
 
       // Fetch swap requests
@@ -153,6 +185,8 @@ export default function EmployeeSchedulePage() {
         setOutgoingSwaps(
           allSwaps.filter((swap: SwapRequest) => swap.requester?.id === empId)
         );
+      } else {
+        errors.push(`Could not load swap requests (${await readApiErrorMessage(swapsRes)})`);
       }
 
       // Fetch availability
@@ -163,6 +197,8 @@ export default function EmployeeSchedulePage() {
           setPatterns(availData.patterns || []);
           setExceptions(availData.exceptions || []);
           setWorkingPattern(availData.workingPattern || null);
+        } else {
+          errors.push(`Could not load availability (${await readApiErrorMessage(availRes)})`);
         }
       }
 
@@ -171,20 +207,19 @@ export default function EmployeeSchedulePage() {
       if (teamRes.ok) {
         const teamData = await teamRes.json();
         setEmployees((teamData.employees || []).filter((e: any) => e.id !== empId));
+      } else {
+        errors.push(`Could not load team members (${await readApiErrorMessage(teamRes)})`);
       }
     } catch (error) {
       console.error('Failed to load data:', error);
+      const message = error instanceof Error ? error.message : 'Failed to load schedule data';
+      errors.push(message);
     } finally {
+      if (errors.length > 0) {
+        setLoadError(errors[0]);
+      }
       setIsLoading(false);
-    }
-  };
-
-  const readApiErrorMessage = async (response: Response) => {
-    try {
-      const data = await response.json();
-      return data?.error || 'Request failed';
-    } catch {
-      return 'Request failed';
+      setIsRefreshing(false);
     }
   };
 
@@ -341,7 +376,7 @@ export default function EmployeeSchedulePage() {
     );
   };
 
-  if (isLoading) {
+  if (isLoading && !hasLoadedSchedule) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 flex items-center justify-center">
         <div className="text-center">
@@ -443,14 +478,50 @@ export default function EmployeeSchedulePage() {
           </div>
         </div>
 
+        {loadError && (
+          <div className="bg-red-500/15 backdrop-blur-md border border-red-500/30 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-200 mt-0.5" />
+              <div className="flex-1">
+                <div className="text-white font-semibold">We couldn’t load your schedule</div>
+                <div className="text-red-100/80 text-sm">{loadError}{hasLoadedSchedule ? ' (showing the last loaded data)' : ''}</div>
+              </div>
+              <button
+                onClick={loadData}
+                disabled={isRefreshing}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  isRefreshing
+                    ? 'bg-white/10 text-gray-300 cursor-not-allowed'
+                    : 'bg-red-500/30 text-white hover:bg-red-500/40'
+                }`}
+              >
+                {isRefreshing ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Retrying…
+                  </span>
+                ) : (
+                  'Retry'
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         {activeTab === 'shifts' && (
           <div className="space-y-4">
             {shifts.length === 0 ? (
               <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-12 text-center">
                 <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">No Shifts This Week</h3>
-                <p className="text-gray-400">You have no scheduled shifts for this week.</p>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  {loadError && !hasLoadedSchedule ? 'Schedule Unavailable' : 'No Shifts This Week'}
+                </h3>
+                <p className="text-gray-400">
+                  {loadError && !hasLoadedSchedule
+                    ? 'We couldn’t load your shifts right now. Please try again.'
+                    : 'You have no scheduled shifts for this week.'}
+                </p>
               </div>
             ) : (
               shifts.map((shift) => {

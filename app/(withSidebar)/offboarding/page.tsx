@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useCallback, Suspense, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PageShell } from "@/components/ui/PageShell";
 import { useBreadcrumbs } from "@/hooks/useBreadcrumbs";
@@ -171,59 +171,88 @@ function OffboardingContent() {
   const [records, setRecords] = useState<OffboardingRecord[]>([]);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [recordsError, setRecordsError] = useState<string | null>(null);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
+  const [retryingMetadata, setRetryingMetadata] = useState(false);
+  const [retryingRecords, setRetryingRecords] = useState(false);
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [jobRoles, setJobRoles] = useState<JobRoleOption[]>([]);
 
+  const isMountedRef = useRef(true);
+
   useEffect(() => {
-    let active = true;
-    const loadReferenceData = async () => {
-      try {
-        const [deptRes, roleRes] = await Promise.all([
-          fetch("/api/departments"),
-          fetch("/api/job-roles"),
-        ]);
-
-        if (!active) return;
-
-        if (deptRes.ok) {
-          const data = await deptRes.json();
-          const list = Array.isArray(data)
-            ? data
-            : Array.isArray(data?.departments)
-            ? data.departments
-            : [];
-          setDepartments(
-            list.map((dept: any) => ({
-              id: dept.id,
-              name: dept.name,
-            }))
-          );
-        }
-
-        if (roleRes.ok) {
-          const data = await roleRes.json();
-          const list = Array.isArray(data)
-            ? data
-            : Array.isArray(data?.jobRoles)
-            ? data.jobRoles
-            : [];
-          setJobRoles(
-            list.map((role: any) => ({
-              id: role.id,
-              name: role.name,
-            }))
-          );
-        }
-      } catch (error) {
-        console.error("Error loading filter metadata", error);
-      }
-    };
-
-    loadReferenceData();
+    isMountedRef.current = true;
     return () => {
-      active = false;
+      isMountedRef.current = false;
     };
   }, []);
+
+  const loadReferenceData = useCallback(async () => {
+    try {
+      const [deptRes, roleRes] = await Promise.all([
+        fetch("/api/departments"),
+        fetch("/api/job-roles"),
+      ]);
+
+      if (!isMountedRef.current) return;
+
+      const failedResources: string[] = [];
+
+      if (deptRes.ok) {
+        const data = await deptRes.json();
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.departments)
+          ? data.departments
+          : [];
+        setDepartments(
+          list.map((dept: any) => ({
+            id: dept.id,
+            name: dept.name,
+          }))
+        );
+      } else {
+        failedResources.push("departments");
+      }
+
+      if (roleRes.ok) {
+        const data = await roleRes.json();
+        const list = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.jobRoles)
+          ? data.jobRoles
+          : [];
+        setJobRoles(
+          list.map((role: any) => ({
+            id: role.id,
+            name: role.name,
+          }))
+        );
+      } else {
+        failedResources.push("job roles");
+      }
+
+      if (failedResources.length > 0) {
+        setMetadataError(
+          `Couldn't load ${failedResources.join(
+            " and "
+          )} filter options. Some filters may be unavailable.`
+        );
+      } else {
+        setMetadataError(null);
+      }
+    } catch (error) {
+      console.error("Error loading filter metadata", error);
+      if (!isMountedRef.current) return;
+      setMetadataError(
+        "Couldn't load filter options. Some filters may be unavailable."
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    loadReferenceData();
+  }, [loadReferenceData]);
 
   const statusOptions: FilterOption[] = useMemo(
     () => [
@@ -281,16 +310,41 @@ function OffboardingContent() {
       }
 
       const data = await response.json();
+      if (!isMountedRef.current) return;
       setRecords(Array.isArray(data.records) ? data.records : []);
       setTotalRecords(data.pagination?.total ?? data.records?.length ?? 0);
+      setRecordsError(null);
     } catch (error) {
       console.error("Error fetching offboarding records:", error);
-      setRecords([]);
-      setTotalRecords(0);
+      if (!isMountedRef.current) return;
+      setRecordsError(
+        "Couldn't load offboarding records. Please check your connection and try again."
+      );
     } finally {
+      if (!isMountedRef.current) return;
       setLoading(false);
     }
   }, [statusKey]);
+
+  const handleRetryMetadata = useCallback(async () => {
+    setRetryingMetadata(true);
+    try {
+      await loadReferenceData();
+    } finally {
+      if (!isMountedRef.current) return;
+      setRetryingMetadata(false);
+    }
+  }, [loadReferenceData]);
+
+  const handleRetryRecords = useCallback(async () => {
+    setRetryingRecords(true);
+    try {
+      await fetchOffboardingRecords();
+    } finally {
+      if (!isMountedRef.current) return;
+      setRetryingRecords(false);
+    }
+  }, [fetchOffboardingRecords]);
 
   useEffect(() => {
     fetchOffboardingRecords();
@@ -562,6 +616,28 @@ function OffboardingContent() {
           />
         </motion.div>
 
+        {metadataError && (
+          <motion.div variants={fadeInUp}>
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <AlertCircle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-destructive">Filter options unavailable</p>
+                  <p className="text-sm text-destructive/90 break-words">{metadataError}</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                loading={retryingMetadata}
+                onClick={handleRetryMetadata}
+              >
+                Retry
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Status Tabs */}
         <motion.div variants={fadeInUp}>
           <Tabs
@@ -623,6 +699,25 @@ function OffboardingContent() {
 
         {/* Records List */}
         <motion.div variants={fadeInUp} className="space-y-4">
+          {recordsError && (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <AlertCircle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-destructive">Couldn't load offboarding records</p>
+                  <p className="text-sm text-destructive/90 break-words">{recordsError}</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                loading={retryingRecords}
+                onClick={handleRetryRecords}
+              >
+                Retry
+              </Button>
+            </div>
+          )}
           {loading ? (
             <FilteredListLoading
               resourceName="Offboarding records"
@@ -632,6 +727,29 @@ function OffboardingContent() {
               jobRoleOptions={jobRoleOptions}
             />
           ) : filteredRecords.length === 0 ? (
+            recordsError && records.length === 0 ? (
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-8 text-center">
+                <div className="mx-auto w-12 h-12 rounded-2xl bg-destructive/15 flex items-center justify-center mb-4">
+                  <AlertCircle className="w-6 h-6 text-destructive" />
+                </div>
+                <h3 className="text-lg font-semibold text-destructive mb-2">
+                  Unable to load offboarding records
+                </h3>
+                <p className="text-sm text-destructive/90 max-w-md mx-auto">
+                  {recordsError}
+                </p>
+                <div className="mt-5 flex justify-center">
+                  <Button
+                    variant="danger"
+                    loading={retryingRecords}
+                    onClick={handleRetryRecords}
+                    type="button"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            ) : (
             <FilteredListEmpty
               resourceName="Offboarding records"
               filters={filters}
@@ -641,6 +759,7 @@ function OffboardingContent() {
               departmentOptions={departmentOptions}
               jobRoleOptions={jobRoleOptions}
             />
+            )
           ) : (
             <AnimatePresence mode="popLayout">
               {filteredRecords.map((record, index) => {

@@ -118,80 +118,39 @@ export async function GET(
       };
     };
 
-    // 5b. Find EventCategories with balanceRequired=true that don't have entitlements yet
-    // and auto-create LeaveEntitlement records with the default balance
-    // Note: balanceRequired, defaultBalance, balanceRefreshMonths fields require prisma generate after migration
-    const existingCategoryIds = new Set(entitlements.map((e) => e.eventCategoryId));
-    
-    // Use raw query to avoid TypeScript errors before prisma generate
-    const balanceRequiredCategories = await (prisma.eventCategory.findMany as any)({
-      where: {
-        companyId: session.user.companyId,
-        isActive: true,
-        balanceRequired: true,
-        id: { notIn: Array.from(existingCategoryIds) },
-      },
-      select: {
-        id: true,
-        name: true,
-        iconKey: true,
-        defaultBalance: true,
-        balanceRefreshMonths: true,
-      },
-    }) as Array<{ id: string; name: string; iconKey: string | null; defaultBalance: number | null; balanceRefreshMonths: number | null }>;
-
-    // Auto-create entitlements for balance-required categories
-    const newEntitlements: EntitlementWithCategory[] = [];
-    for (const category of balanceRequiredCategories) {
-      const defaultDays = category.defaultBalance ?? 0;
-      
-      // Create the entitlement record
-      const newEntitlement = await prisma.leaveEntitlement.create({
-        data: {
-          id: crypto.randomUUID(),
-          employeeId,
-          eventCategoryId: category.id,
+    // 5b. Get all balance-required category IDs to exclude from main balance cards
+    // These will only appear in the "Other Entitlements" section
+    const balanceRequiredCategoryIds = new Set(
+      (await (prisma.eventCategory.findMany as any)({
+        where: {
           companyId: session.user.companyId,
-          totalDays: defaultDays,
-          usedDays: 0,
-          daysAllocated: defaultDays,
-          carryoverDays: 0,
-          updatedAt: new Date(),
+          isActive: true,
+          balanceRequired: true,
         },
-      });
+        select: { id: true },
+      }) as Array<{ id: string }>).map((c) => c.id)
+    );
 
-      newEntitlements.push({
-        id: newEntitlement.id,
-        eventCategoryId: newEntitlement.eventCategoryId,
-        totalDays: newEntitlement.totalDays,
-        usedDays: newEntitlement.usedDays,
-        carryoverDays: newEntitlement.carryoverDays,
-        carryoverExpiry: newEntitlement.carryoverExpiry,
-        EventCategory: {
-          id: category.id,
-          name: category.name,
-          iconKey: category.iconKey,
-        },
-      });
-    }
+    // Filter out balance-required categories from main entitlements
+    // They will be shown in the "Other Entitlements" card instead
+    const filteredEntitlements = entitlements.filter(
+      (e) => !balanceRequiredCategoryIds.has(e.eventCategoryId)
+    );
 
-    // Combine existing and newly created entitlements
-    const allEntitlements: EntitlementWithCategory[] = [
-      ...entitlements.map((e) => ({
-        id: e.id,
-        eventCategoryId: e.eventCategoryId,
-        totalDays: e.totalDays,
-        usedDays: e.usedDays,
-        carryoverDays: e.carryoverDays,
-        carryoverExpiry: e.carryoverExpiry,
-        EventCategory: {
-          id: e.EventCategory.id,
-          name: e.EventCategory.name,
-          iconKey: e.EventCategory.iconKey,
-        },
-      })),
-      ...newEntitlements,
-    ];
+    // Map to unified type
+    const allEntitlements: EntitlementWithCategory[] = filteredEntitlements.map((e) => ({
+      id: e.id,
+      eventCategoryId: e.eventCategoryId,
+      totalDays: e.totalDays,
+      usedDays: e.usedDays,
+      carryoverDays: e.carryoverDays,
+      carryoverExpiry: e.carryoverExpiry,
+      EventCategory: {
+        id: e.EventCategory.id,
+        name: e.EventCategory.name,
+        iconKey: e.EventCategory.iconKey,
+      },
+    }));
 
     // 6. Calculate pending leave for each category
     const pendingByCategory = await prisma.leaveRequest.groupBy({

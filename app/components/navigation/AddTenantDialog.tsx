@@ -48,9 +48,14 @@ export function AddTenantDialog({
 }: AddTenantDialogProps) {
   const [formValues, setFormValues] = React.useState(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [touchedFields, setTouchedFields] = React.useState<{ adminEmail: boolean }>(
+    { adminEmail: false },
+  );
   const [creationResult, setCreationResult] = React.useState<CreationResult | null>(
     null,
   );
+
+  const adminEmailInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const activationLink = React.useMemo(() => {
     if (!creationResult?.activationToken) return "";
@@ -65,6 +70,7 @@ export function AddTenantDialog({
       if (!nextOpen) {
         setFormValues(INITIAL_FORM);
         setIsSubmitting(false);
+        setTouchedFields({ adminEmail: false });
         setCreationResult(null);
       }
       onOpenChange(nextOpen);
@@ -80,14 +86,27 @@ export function AddTenantDialog({
     [],
   );
 
+  const emailValue = formValues.adminEmail.trim();
+  const isAdminEmailValid =
+    emailValue.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue);
+  const showAdminEmailError = touchedFields.adminEmail && !isAdminEmailValid;
+  const adminEmailErrorMessage =
+    emailValue.length === 0 ? "Admin email is required." : "Enter a valid email address.";
+
   const isFormValid =
     formValues.companyName.trim().length > 0 &&
-    formValues.adminEmail.trim().length > 0 &&
+    isAdminEmailValid &&
     formValues.adminName.trim().length > 0;
 
   const handleSubmit = React.useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+
+      if (!isAdminEmailValid) {
+        setTouchedFields({ adminEmail: true });
+        adminEmailInputRef.current?.focus();
+        return;
+      }
       if (!isFormValid || isSubmitting) return;
 
       setIsSubmitting(true);
@@ -132,7 +151,7 @@ export function AddTenantDialog({
         setIsSubmitting(false);
       }
     },
-    [formValues, isFormValid, isSubmitting, onTenantCreated],
+    [formValues, isAdminEmailValid, isFormValid, isSubmitting, onTenantCreated],
   );
 
   const handleCopyActivationLink = React.useCallback(async () => {
@@ -238,8 +257,18 @@ export function AddTenantDialog({
                   placeholder="admin@example.com"
                   value={formValues.adminEmail}
                   onChange={handleChange}
+                  onBlur={() => setTouchedFields({ adminEmail: true })}
+                  error={showAdminEmailError}
+                  aria-invalid={showAdminEmailError}
+                  aria-describedby={showAdminEmailError ? "adminEmail-error" : undefined}
+                  ref={adminEmailInputRef}
                   required
                 />
+                {showAdminEmailError ? (
+                  <p id="adminEmail-error" className="text-sm text-red-600">
+                    {adminEmailErrorMessage}
+                  </p>
+                ) : null}
               </div>
             </div>
 

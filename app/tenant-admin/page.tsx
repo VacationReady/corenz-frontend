@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import { Lock } from "lucide-react";
 
-export default function TenantAdminLoginPage() {
+function TenantAdminLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
@@ -108,5 +108,28 @@ export default function TenantAdminLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TenantAdminLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50 px-4">
+          <div className="w-full max-w-md">
+            <div className="glass rounded-3xl p-8 shadow-glass">
+              <div className="text-center">
+                <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-purple-600 border-t-transparent"></div>
+                <p className="text-foreground" role="status" aria-live="polite" aria-atomic="true">
+                  Loading...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <TenantAdminLoginContent />
+    </Suspense>
   );
 }

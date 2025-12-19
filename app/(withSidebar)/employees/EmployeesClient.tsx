@@ -138,21 +138,6 @@ function EmployeesContent(props: EmployeesClientProps) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
-    
-    // DEBUG: Monkey-patch to find what's calling preventDefault
-    const origPD = Event.prototype.preventDefault;
-    Event.prototype.preventDefault = function(this: Event) {
-      const target = this.target as HTMLElement;
-      if (target?.closest?.('a[href]')) {
-        console.log('[DEBUG] preventDefault called on link click!');
-        console.trace('[DEBUG] Stack trace:');
-      }
-      return origPD.call(this);
-    };
-    
-    return () => {
-      Event.prototype.preventDefault = origPD;
-    };
   }, []);
   
   // Open dropdown and calculate position in one action
@@ -418,10 +403,15 @@ function EmployeesContent(props: EmployeesClientProps) {
         enableColumnFilter: false,
         cell: ({ row }) => {
           const emp = row.original as Employee;
+          const handleClick = () => {
+            // Use window.location for navigation as a workaround for router issues
+            window.location.href = `/employees/${emp.id}/overview`;
+          };
           return (
-            <Link
-              href={`/employees/${emp.id}/overview`}
-              className="group flex items-center gap-3 py-1"
+            <button
+              type="button"
+              onClick={handleClick}
+              className="group flex items-center gap-3 py-1 text-left w-full cursor-pointer"
             >
               <div className="relative">
                 <Avatar
@@ -437,7 +427,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 </span>
                 <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
               </div>
-            </Link>
+            </button>
           );
         },
       },

@@ -50,9 +50,20 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = bulkApproveSchema.parse(body);
 
+    const uniqueEntryIds = Array.from(new Set(data.entryIds));
+    if (uniqueEntryIds.length !== data.entryIds.length) {
+      console.warn(
+        "[API] /api/reconciliation/bulk-approve deduped entryIds:",
+        {
+          received: data.entryIds.length,
+          unique: uniqueEntryIds.length,
+        },
+      );
+    }
+
     // Verify all entries belong to same company
     const entries = await prisma.timesheetEntry.findMany({
-      where: { id: { in: data.entryIds } },
+      where: { id: { in: uniqueEntryIds } },
       include: { Timesheet: { select: { companyId: true } } },
     });
 
@@ -81,7 +92,7 @@ export async function POST(req: NextRequest) {
       message: `Approved ${result.approved} entries, skipped ${result.skipped}`,
       approved: result.approved,
       skipped: result.skipped,
-      notFound: data.entryIds.length - validEntryIds.length,
+      notFound: uniqueEntryIds.length - validEntryIds.length,
     });
   } catch (error) {
     console.error('[API] Reconciliation bulk approve error:', error);

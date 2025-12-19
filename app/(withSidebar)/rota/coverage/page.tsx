@@ -40,7 +40,7 @@ interface CoverageData {
   gaps: CoverageGap[];
 }
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function CoverageDashboardContent() {
   const searchParams = useSearchParams();
@@ -194,10 +194,10 @@ function CoverageDashboardContent() {
     );
   }
 
-  const gapsByDay = DAYS.map((day, idx) => ({
+  const gapsByDay = DAYS.map((day, dayIndex) => ({
     day,
-    dayIndex: (idx + 1) % 7, // Convert to match dayOfWeek (Mon=1, Sun=0)
-    gaps: coverage.gaps.filter(g => g.dayOfWeek === (idx + 1) % 7),
+    dayIndex,
+    gaps: coverage.gaps.filter((g) => g.dayOfWeek === dayIndex),
   }));
 
   return (

@@ -337,12 +337,12 @@ export default function ReconciliationHubPage() {
 
   // Get approvable entries count (entries with timesheet data that aren't already approved)
   const approvableSelectedCount = useMemo(() => {
-    return filteredEntries.filter(
-      (e) => selectedEntries.has(e.shift.id) && 
-             e.timesheetEntry && 
+    return (dayData?.shifts ?? []).filter(
+      (e) => selectedEntries.has(e.shift.id) &&
+             e.timesheetEntry &&
              e.reconciliationStatus !== 'APPROVED'
     ).length;
-  }, [filteredEntries, selectedEntries]);
+  }, [dayData, selectedEntries]);
 
   // Bulk actions
   const handleBulkApprove = async () => {
@@ -350,9 +350,13 @@ export default function ReconciliationHubPage() {
     
     try {
       // Get timesheet entry IDs for selected shifts that have timesheet entries
-      const entryIds = filteredEntries
-        .filter((e) => selectedEntries.has(e.shift.id) && e.timesheetEntry)
-        .map((e) => e.timesheetEntry!.id);
+      const entryIds = Array.from(
+        new Set(
+          (dayData?.shifts ?? [])
+            .filter((e) => selectedEntries.has(e.shift.id) && e.timesheetEntry)
+            .map((e) => e.timesheetEntry!.id)
+        )
+      );
       
       if (entryIds.length === 0) {
         toast({

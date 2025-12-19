@@ -532,8 +532,8 @@ function DraggableStepItem({
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-sm text-slate-900 dark:text-white truncate">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-medium text-sm text-slate-900 dark:text-white">
                 {type.label}
               </p>
               {isNzRecommended && (
@@ -542,7 +542,7 @@ function DraggableStepItem({
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground line-clamp-1">
+            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
               {type.description}
             </p>
             {showCategory && config && (

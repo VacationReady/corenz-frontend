@@ -242,7 +242,7 @@ export default function EmployeeOnboardingPageEnhanced({
   }, [employeeId, canAssignTemplate]);
 
   // Effect to detect onboarding completion - must be at top level before any early returns
-  const steps = instance?.steps?.sort((a, b) => a.order - b.order) ?? [];
+  const steps = [...(instance?.steps ?? [])].sort((a, b) => a.order - b.order);
   const activeStep = steps.find((s) => s.status !== "completed");
 
   useEffect(() => {

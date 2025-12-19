@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 type Step = {
   id: string;
   type: string;
+  label?: string | null;
   status: string;
   order: number;
   completedAt?: string | null;
@@ -26,6 +27,9 @@ export default function OnboardingAdminTab({
 }: {
   employeeId: string;
 }) {
+  const formatStatusLabel = (status: string) =>
+    status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
   const [loading, setLoading] = useState(true);
   const [instances, setInstances] = useState<Instance[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -90,22 +94,19 @@ export default function OnboardingAdminTab({
                     : "outline"
               }
             >
-              {instance.status.charAt(0).toUpperCase() +
-                instance.status.slice(1)}
+              {formatStatusLabel(instance.status)}
             </Badge>
           </div>
           <ul className="space-y-2 mt-4">
             {instance.steps.map((step, idx) => (
               <li key={step.id} className="flex items-center gap-4">
                 <div className="font-medium">
-                  Step {idx + 1}: {step.type === "ack" && "Acknowledge"}
-                  {step.type === "form" && "Form"}
-                  {step.type === "upload" && "Upload"}
+                  Step {idx + 1}: {step.label || step.type.replace(/_/g, " ")}
                 </div>
                 <Badge
                   variant={step.status === "completed" ? "default" : "outline"}
                 >
-                  {step.status.charAt(0).toUpperCase() + step.status.slice(1)}
+                  {formatStatusLabel(step.status)}
                 </Badge>
                 {step.completedAt && (
                   <span className="text-xs text-muted-foreground">

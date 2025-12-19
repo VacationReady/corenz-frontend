@@ -12,6 +12,7 @@
 
 import { webcrypto } from "crypto";
 import Module from "module";
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 // Polyfill crypto for test environment (Node.js < 19)
 if (!globalThis.crypto) {
@@ -321,7 +322,7 @@ let cachedPrismaMock: any = null;
 };
 
 // Set test environment variables before any modules load
-process.env.NODE_ENV = "test";
+(process.env as any).NODE_ENV = "test";
 process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://test:test@localhost:5432/testdb";
 process.env.NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || "test-secret-min-32-chars-required-for-security";
 process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";

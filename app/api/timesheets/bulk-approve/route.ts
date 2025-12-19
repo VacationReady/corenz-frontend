@@ -26,6 +26,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = bulkApproveSchema.parse(body);
 
+    const uniqueTimesheetIds = Array.from(new Set(data.timesheetIds));
+    if (uniqueTimesheetIds.length !== data.timesheetIds.length) {
+      console.warn(
+        "[API] /api/timesheets/bulk-approve deduped timesheetIds:",
+        {
+          received: data.timesheetIds.length,
+          unique: uniqueTimesheetIds.length,
+        },
+      );
+    }
+
     const employee = await prisma.employee.findUnique({
       where: { userId: session.user.id },
       select: {
@@ -61,7 +72,7 @@ export async function POST(req: NextRequest) {
     const timesheets = await prisma.timesheet.findMany({
       where: {
         id: {
-          in: data.timesheetIds,
+          in: uniqueTimesheetIds,
         },
       },
       include: {
@@ -200,7 +211,7 @@ export async function POST(req: NextRequest) {
       succeeded,
       failed,
       summary: {
-        total: data.timesheetIds.length,
+        total: uniqueTimesheetIds.length,
         succeeded: succeeded.length,
         failed: failed.length,
       },

@@ -192,10 +192,10 @@ export default function AdminTimesheetHubPage() {
   };
 
   const handleSelectAll = () => {
-    if (selectedIds.size === filteredTimesheets.length) {
+    if (selectedIds.size === timesheets.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredTimesheets.map((t) => t.id)));
+      setSelectedIds(new Set(timesheets.map((t) => t.id)));
     }
   };
 
@@ -613,7 +613,7 @@ export default function AdminTimesheetHubPage() {
                 </div>
                 {showBulkActions && (
                   <Button variant="outline" size="sm" onClick={handleSelectAll}>
-                    {selectedIds.size === filteredTimesheets.length ? "Deselect All" : "Select All"}
+                    {selectedIds.size === timesheets.length ? "Deselect All" : "Select All"}
                   </Button>
                 )}
               </div>

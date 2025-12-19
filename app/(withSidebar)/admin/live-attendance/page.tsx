@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/Select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw, Download, Users, Clock, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface EmployeeStatus {
   id: string;
@@ -53,20 +54,82 @@ export default function LiveAttendancePage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState(30000);
+
+  const inFlightRef = useRef(false);
+  const toastThrottleRef = useRef<{ lastAt: number; lastMessage: string | null }>({
+    lastAt: 0,
+    lastMessage: null,
+  });
 
   const loadData = async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
     try {
       const params = new URLSearchParams();
       if (selectedDepartment !== 'all') params.append('departmentId', selectedDepartment);
       if (selectedLocation !== 'all') params.append('locationId', selectedLocation);
 
       const response = await fetch(`/api/time-tracking/live?${params.toString()}`);
-      const result = await response.json();
+
+      if (!response.ok) {
+        let detail = '';
+        try {
+          const contentType = response.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const body = await response.json();
+            detail = body?.error || body?.message || '';
+          } else {
+            detail = (await response.text()) || '';
+          }
+        } catch {
+          detail = '';
+        }
+
+        const message = detail
+          ? `Failed to load live attendance (${response.status}): ${detail}`
+          : `Failed to load live attendance (${response.status})`;
+
+        throw new Error(message);
+      }
+
+      let result: any;
+      try {
+        result = await response.json();
+      } catch {
+        throw new Error('Failed to load live attendance: invalid server response');
+      }
+
+      if (!result || !result.summary || !Array.isArray(result.employees) || !Array.isArray(result.recentActivity)) {
+        throw new Error('Failed to load live attendance: invalid data shape');
+      }
+
       setData(result);
+      setErrorMessage(null);
+      setRefreshIntervalMs(30000);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load live attendance';
+      setErrorMessage(message);
+
+      const now = Date.now();
+      const canToast =
+        !toastThrottleRef.current.lastMessage ||
+        toastThrottleRef.current.lastMessage !== message ||
+        now - toastThrottleRef.current.lastAt > 60000;
+
+      if (canToast) {
+        toast.error(message);
+        toastThrottleRef.current.lastAt = now;
+        toastThrottleRef.current.lastMessage = message;
+      }
+
+      setRefreshIntervalMs((prev) => Math.min(prev * 2, 5 * 60 * 1000));
       console.error('Error loading live attendance:', error);
     } finally {
       setLoading(false);
+      inFlightRef.current = false;
     }
   };
 
@@ -79,10 +142,10 @@ export default function LiveAttendancePage() {
 
     const interval = setInterval(() => {
       loadData();
-    }, 30000); // Refresh every 30 seconds
+    }, refreshIntervalMs);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, selectedDepartment, selectedLocation]);
+  }, [autoRefresh, refreshIntervalMs, selectedDepartment, selectedLocation]);
 
   const getStatusColor = (status: string) => {
     return status === 'CLOCKED_IN' ? 'bg-green-500' : 'bg-gray-500';
@@ -123,6 +186,9 @@ export default function LiveAttendancePage() {
         <div className="text-center">
           <AlertCircle className="h-8 w-8 mx-auto mb-4 text-destructive" />
           <p className="text-muted-foreground">Failed to load attendance data</p>
+          {errorMessage && (
+            <p className="text-sm text-muted-foreground mt-2">{errorMessage}</p>
+          )}
         </div>
       </div>
     );
@@ -157,6 +223,13 @@ export default function LiveAttendancePage() {
           </Button>
         </div>
       </div>
+
+      {errorMessage && (
+        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex gap-4">

@@ -809,3 +809,31 @@ Fixed the rota list filter combobox so command palette selection and keyboard fi
 196. Admin Dashboard Approvals Button Click Propagation Fix
 
 Fixed a high-severity UX issue in the admin dashboard compact approvals list where clicking “Approve” or “Decline” could also trigger the row click handler and open the approval detail modal. The action buttons now stop event propagation so only the intended action runs. Added a regression component test to assert `onOpenApprovalItem` is not called when clicking “Approve” or “Decline”.
+
+197. Live Attendance Polling Error Handling
+
+Hardened the Live Attendance polling routine so non-2xx responses, network failures, and invalid JSON are handled safely without uncaught errors or overwriting the last known attendance snapshot. The UI now surfaces a clear error toast/inline alert and backs off refresh retries, with regression tests covering both non-2xx responses and fetch rejection scenarios.
+
+198. Employee Onboarding Route Params Promise Fix
+
+Fixed the employee onboarding route to treat `params` as a plain object (as supplied by Next.js) rather than incorrectly awaiting it as a Promise. This removes a potential render-time failure and aligns the route signature with standard Next.js conventions, with a low regression risk.
+
+199. Employee Onboarding Steps Immutable Sorting Fix
+
+Fixed a state-mutation bug in the enhanced employee onboarding page where onboarding steps were sorted in place during render, mutating the array held in state. Steps are now cloned before sorting to keep React state immutable and ensure consistent ordering without side effects.
+
+200. Employee Onboarding Admin History Missing Steps Crash Fix
+
+Fixed a crash in the admin onboarding history view when an onboarding instance payload is missing a `steps` array. The UI now renders safely with an empty steps list and displays more readable status/step labels, improving resilience to unexpected API responses. Step titles now fall back to a human-readable version of the step type (with underscores converted to spaces) when no explicit label is provided, so newer step types remain visible in the history view. Instance and step statuses are also now formatted consistently into plain English.
+
+201. Employee Onboarding Status Badge Readability
+
+Improved the readability of onboarding instance and step status badges by normalising status strings for display. Underscores are now replaced with spaces and each word is capitalised (for example, `in_progress` now displays as “In Progress”), with no change to the underlying status values.
+
+202. Rota Coverage Day-of-Week Mapping Fix
+
+Fixed an off-by-one weekday mapping issue in rota coverage gap analysis where JavaScript’s Sunday-first `Date.getDay()` output was being used directly, causing gaps to be shown under the wrong day. Day-of-week handling is now normalised to a Monday-start index (Monday=0 to Sunday=6) across both the API calculation and the coverage dashboard UI, with unit and regression tests covering all seven days.
+
+203. Bulk Approval Scope Independence from Filters
+
+Corrected bulk approval actions to operate on the intended scope (all selected rows or all pending approvals) regardless of active filters. The reconciliation and timesheets hubs now use unfiltered datasets and deduplicate IDs before sending to the API. Server-side deduplication was added to prevent duplicate approvals, and comprehensive tests validate that filtered views do not change the approval set.

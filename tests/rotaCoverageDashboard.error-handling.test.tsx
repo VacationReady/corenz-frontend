@@ -137,3 +137,58 @@ test("Rota coverage dashboard: shows error alert when fetch fails and retries su
 
   root.unmount();
 });
+
+test("Rota coverage dashboard: groups gaps under correct weekday headings (Mon-start)", async () => {
+  const Page = await loadComponent();
+
+  global.fetch = async (url: RequestInfo | URL) => {
+    const urlStr = url.toString();
+    if (!urlStr.includes("/api/rota-groups/group-1/coverage")) {
+      return new Response("Not found", { status: 404 });
+    }
+
+    return Response.json({
+      weekStart: "2025-01-06",
+      weekEnd: "2025-01-12",
+      rotaGroup: { id: "group-1", name: "Group One", icon: "📋" },
+      summary: { totalGaps: 2, criticalGaps: 0, highGaps: 0, totalRequirements: 10 },
+      gaps: [
+        {
+          date: "2025-01-06",
+          dayOfWeek: 0,
+          role: "Barista",
+          required: 2,
+          scheduled: 1,
+          gap: 1,
+          priority: "NORMAL",
+          suggestions: [],
+        },
+        {
+          date: "2025-01-12",
+          dayOfWeek: 6,
+          role: "Barista",
+          required: 2,
+          scheduled: 1,
+          gap: 1,
+          priority: "NORMAL",
+          suggestions: [],
+        },
+      ],
+    });
+  };
+
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  await act(async () => {
+    root.render(React.createElement(Page));
+    await new Promise((r) => setTimeout(r, 50));
+  });
+
+  const content = document.body.textContent || "";
+  assert.ok(content.includes("Mon - 1 Gap"), "Monday-start gap should appear under Mon heading");
+  assert.ok(content.includes("Sun - 1 Gap"), "Sunday-start gap should appear under Sun heading");
+
+  root.unmount();
+});

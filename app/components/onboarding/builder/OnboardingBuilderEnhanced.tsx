@@ -80,7 +80,7 @@ import { cn } from "@/lib/utils";
 import { OnboardingSimulator } from "./OnboardingSimulator";
 import { EnhancedStepPalette } from "./EnhancedStepPalette";
 import { EnhancedStepCard } from "./EnhancedStepCard";
-import { LivePreviewPane } from "./LivePreviewPane";
+import { StepPropertiesPanel } from "./StepPropertiesPanel";
 import { QuickAddCompliance, ComplianceSummaryBadge } from "./QuickAddCompliance";
 import { 
   getDefaultMetadataForStep, 
@@ -221,9 +221,6 @@ function StepsCanvas({
                     index={index}
                     isSelected={selectedStepIndex === index}
                     onSelect={() => setSelectedStepIndex(index)}
-                    onUpdate={(data) => updateStep(index, data)}
-                    onRemove={() => removeStep(index)}
-                    onDuplicate={() => duplicateStep(index)}
                     stepType={STEP_TYPES.find((t) => t.value === step.type)}
                   />
                 ))}
@@ -289,7 +286,7 @@ export function OnboardingBuilderEnhanced({
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [showPalette, setShowPalette] = useState(true);
-  const [showPreview, setShowPreview] = useState(true);
+  const [showProperties, setShowProperties] = useState(true);
   const [activeDragStep, setActiveDragStep] = useState<any>(null);
 
   // Refs
@@ -740,32 +737,48 @@ export function OnboardingBuilderEnhanced({
             setShowPalette={setShowPalette}
           />
 
-          {/* Toggle Preview Button */}
+          {/* Toggle Properties Button */}
           <button
-            onClick={() => setShowPreview(!showPreview)}
+            onClick={() => setShowProperties(!showProperties)}
             className="flex-none w-6 flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border-l dark:border-slate-700"
           >
-            {showPreview ? (
+            {showProperties ? (
               <ChevronRight className="w-4 h-4 text-slate-500" />
             ) : (
               <ChevronLeft className="w-4 h-4 text-slate-500" />
             )}
           </button>
 
-          {/* Live Preview Pane */}
+          {/* Step Properties Panel */}
           <AnimatePresence mode="wait">
-            {showPreview && (
+            {showProperties && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.2 }}
-                className="flex-none w-96 border-l bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm overflow-hidden flex flex-col"
+                className="flex-none w-80 border-l bg-white dark:bg-slate-900 overflow-hidden flex flex-col"
               >
-                <LivePreviewPane 
+                <StepPropertiesPanel
                   step={selectedStep}
+                  stepIndex={selectedStepIndex}
                   totalSteps={steps.length}
-                  currentIndex={selectedStepIndex}
+                  stepType={selectedStep ? STEP_TYPES.find(t => t.value === selectedStep.type) : undefined}
+                  onUpdate={(data) => {
+                    if (selectedStepIndex !== null) {
+                      updateStep(selectedStepIndex, data);
+                    }
+                  }}
+                  onRemove={() => {
+                    if (selectedStepIndex !== null) {
+                      removeStep(selectedStepIndex);
+                    }
+                  }}
+                  onDuplicate={() => {
+                    if (selectedStepIndex !== null) {
+                      duplicateStep(selectedStepIndex);
+                    }
+                  }}
                 />
               </motion.div>
             )}

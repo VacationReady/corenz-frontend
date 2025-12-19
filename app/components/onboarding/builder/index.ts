@@ -3,6 +3,7 @@
 
 export { EnhancedStepPalette, STEP_TYPE_CONFIG } from "./EnhancedStepPalette";
 export { EnhancedStepCard } from "./EnhancedStepCard";
+export { StepPropertiesPanel } from "./StepPropertiesPanel";
 export { QuickAddCompliance, ComplianceSummaryBadge } from "./QuickAddCompliance";
 export { StepTypeHelp, StepTypeHelpButton, STEP_TYPE_HELP } from "./StepTypeHelp";
 export { TemplateWizard, type WizardConfig } from "./TemplateWizard";

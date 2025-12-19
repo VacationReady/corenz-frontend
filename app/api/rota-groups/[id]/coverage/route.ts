@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, parseISO, addDays } from 'date-fns';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, parseISO } from 'date-fns';
+import { toMondayStartDayIndexFromJs, toJsDayFromMondayStart } from '@/lib/day-of-week';
 
 interface CoverageGap {
   date: string;
@@ -142,12 +143,13 @@ export async function GET(
     const coverage: CoverageGap[] = [];
 
     for (const day of days) {
-      const dayOfWeek = day.getDay();
+      const dayOfWeek = toMondayStartDayIndexFromJs(day.getDay());
       const dateStr = format(day, 'yyyy-MM-dd');
 
       // Get requirements for this day
+      const requirementDayOfWeek = toJsDayFromMondayStart(dayOfWeek);
       const dayRequirements = rotaGroup.ShiftRequirements.filter(
-        (req: any) => req.dayOfWeek === dayOfWeek
+        (req: any) => req.dayOfWeek === requirementDayOfWeek
       );
 
       // Get shifts for this day

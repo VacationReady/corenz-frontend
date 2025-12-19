@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
 
     // Get journey categories distribution
     const categoryDistribution = templates.reduce((acc, t) => {
-      const category = t.category || "uncategorized";
+      const category = t.category || "uncategorised";
       acc[category] = (acc[category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);

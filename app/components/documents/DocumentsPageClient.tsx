@@ -112,6 +112,9 @@ type Document = {
   ackOutstandingCount?: number;
 };
 
+const normalizeCategoryLabel = (value: string | null | undefined) =>
+  value === "Uncategorized" ? "Uncategorised" : value;
+
 // Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -251,7 +254,7 @@ const DocumentCard = ({
                 {doc.name}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
-                {doc.category || "Uncategorized"}
+                {normalizeCategoryLabel(doc.category) || "Uncategorised"}
               </p>
             </div>
           </div>
@@ -559,7 +562,7 @@ function DocumentsContent() {
   useEffect(() => {
     if (!isUploadModalOpen) return;
     if (category && category !== "all") return;
-    setCategory("Uncategorized");
+    setCategory("Uncategorised");
   }, [isUploadModalOpen, category]);
 
   const departmentsList = useMemo(() => {
@@ -715,7 +718,13 @@ function DocumentsContent() {
       ),
     );
 
-    const base = Array.from(new Set([...(categoriesList || []), ...fromDocs]));
+    const base = Array.from(
+      new Set(
+        [...(categoriesList || []), ...fromDocs].map((cat) =>
+          normalizeCategoryLabel(cat) as string,
+        ),
+      ),
+    );
     return [
       { label: "All Categories", value: "all" },
       ...base.map((cat) => ({ label: cat, value: cat })),
@@ -735,9 +744,10 @@ function DocumentsContent() {
 
     const items: string[] = [];
     for (const c of base) {
-      if (!items.includes(c)) items.push(c);
+      const normalized = normalizeCategoryLabel(c);
+      if (normalized && !items.includes(normalized)) items.push(normalized);
     }
-    if (!items.includes("Uncategorized")) items.push("Uncategorized");
+    if (!items.includes("Uncategorised")) items.push("Uncategorised");
 
     return items.map((cat) => ({ label: cat, value: cat }));
   }, [documents, categoriesList]);
@@ -770,7 +780,7 @@ function DocumentsContent() {
       filtered = filtered.filter(
         (doc) =>
           doc.name.toLowerCase().includes(search) ||
-          doc.category?.toLowerCase().includes(search) ||
+          normalizeCategoryLabel(doc.category)?.toLowerCase().includes(search) ||
           doc.type.toLowerCase().includes(search),
       );
     }
@@ -778,7 +788,10 @@ function DocumentsContent() {
       filtered = filtered.filter((doc) => filters.documentTypes.includes(doc.type));
     }
     if (filters.categories.length > 0 && !filters.categories.includes("all")) {
-      filtered = filtered.filter((doc) => doc.category && filters.categories.includes(doc.category));
+      filtered = filtered.filter((doc) => {
+        const docCategory = normalizeCategoryLabel(doc.category);
+        return docCategory && filters.categories.includes(docCategory);
+      });
     }
     if (filters.departments.length > 0 && !filters.departments.includes("all")) {
       filtered = filtered.filter((doc) => {
@@ -809,7 +822,7 @@ function DocumentsContent() {
           case "date": aVal = a.createdAt; bVal = b.createdAt; break;
           case "size": return filters.sortOrder === "desc" ? b.size - a.size : a.size - b.size;
           case "type": aVal = a.type; bVal = b.type; break;
-          case "category": aVal = a.category || ""; bVal = b.category || ""; break;
+          case "category": aVal = normalizeCategoryLabel(a.category) || ""; bVal = normalizeCategoryLabel(b.category) || ""; break;
         }
         const comp = aVal.localeCompare(bVal);
         return filters.sortOrder === "desc" ? -comp : comp;
@@ -1310,7 +1323,7 @@ function DocumentsContent() {
                           </TableCell>
                           <TableCell>
                             <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full">
-                              {doc.category || "Uncategorized"}
+                              {normalizeCategoryLabel(doc.category) || "Uncategorised"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-slate-500 dark:text-slate-400">

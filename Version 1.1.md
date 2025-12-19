@@ -747,3 +747,13 @@ Fixed a crash in the Recent Reports search where saved reports with a missing ca
 182. Reports Preview Filter Group Logic Preservation
 
 Fixed report preview filters to preserve nested AND/OR group logic end-to-end by storing and reusing the full FilterGroup structure when loading, querying, saving, and emailing reports. This prevents grouped filters being flattened into a single list and ensures results remain consistent after reopening saved reports.
+
+183. Custom Report Filter Context Preservation
+
+Fixed custom-engine report preview generation so filters retain their full field paths and operator metadata when sent to `/api/reports/generate`, rather than being reduced to the last path segment. This prevents collisions where different fields share the same value and ensures the backend applies the exact conditions users selected.
+
+Added session version validation to refresh and mobile login tokens so stale or deactivated sessions are rejected and new tokens carry the current version.
+
+Hardened document downloads by normalizing paths, detecting explicit traversal segments, and permitting legacy non-prefixed storage keys only when not reused by other tenants.
+
+Typed document upload relations and mapped department/job role IDs explicitly to resolve TypeScript errors while keeping acknowledgement targeting logic intact.

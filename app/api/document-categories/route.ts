@@ -12,8 +12,28 @@ async function readCategories(companyId: string): Promise<string[]> {
     distinct: ["category"],
     select: { category: true },
   });
-  const fromDocs = docs.map((d) => d.category as string).filter(Boolean);
-  return Array.from(new Set(["Contract","Visa","Right to Work","Passport","Training Certificate","ID Document","Policy","Performance Review","Other", ...extra, ...fromDocs]));
+  const fromDocs = docs
+    .map((d) => d.category as string)
+    .filter(Boolean)
+    .map((c) => (c === "Uncategorized" ? "Uncategorised" : c));
+
+  // Always include British spelling for the default bucket.
+  return Array.from(
+    new Set([
+      "Contract",
+      "Visa",
+      "Right to Work",
+      "Passport",
+      "Training Certificate",
+      "ID Document",
+      "Policy",
+      "Performance Review",
+      "Other",
+      "Uncategorised",
+      ...extra,
+      ...fromDocs,
+    ]),
+  );
 }
 
 export async function GET() {

@@ -207,7 +207,7 @@ const DocumentCard = ({
                 {doc.name}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
-                {doc.category || "Uncategorized"}
+                {doc.category || "Uncategorised"}
               </p>
             </div>
           </div>
@@ -1051,7 +1051,7 @@ function EmployeeDocumentsContent({
                           </TableCell>
                           <TableCell>
                             <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full">
-                              {doc.category || "Uncategorized"}
+                              {doc.category || "Uncategorised"}
                             </Badge>
                           </TableCell>
                           <TableCell>

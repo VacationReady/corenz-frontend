@@ -1692,7 +1692,7 @@ export default function PerformancePage({ employeeId }: PerformancePageProps = {
                                   )}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                  {doc.category || "Uncategorized"} • {new Date(doc.createdAt).toLocaleDateString()}
+                                  {doc.category || "Uncategorised"} • {new Date(doc.createdAt).toLocaleDateString()}
                                 </p>
                                 <div className="flex items-center gap-3 text-xs">
                                   {doc.requiresSignature && (

@@ -490,7 +490,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         setLeaveEventsInRange(data);
         const catsMap = new Map<string, string | null>();
         (data as any[]).forEach((e) => {
-          const name = (e.categoryName as string) || "Uncategorized";
+          const name = (e.categoryName as string) || "Uncategorised";
           if (!catsMap.has(name)) {
             catsMap.set(name, e.categoryIconKey ?? null);
           }

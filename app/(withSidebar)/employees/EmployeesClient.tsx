@@ -138,6 +138,23 @@ function EmployeesContent(props: EmployeesClientProps) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
+    
+    // DEBUG: Check what's intercepting clicks
+    const handler = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement)?.closest?.('a[href]');
+      if (anchor) {
+        console.log('[DEBUG] Click on anchor:', {
+          href: anchor.getAttribute('href'),
+          defaultPrevented: e.defaultPrevented,
+        });
+        // Log after event completes
+        setTimeout(() => {
+          console.log('[DEBUG] After click - defaultPrevented:', e.defaultPrevented, 'URL:', window.location.pathname);
+        }, 0);
+      }
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
   }, []);
   
   // Open dropdown and calculate position in one action
@@ -1274,9 +1291,10 @@ function EmployeesContent(props: EmployeesClientProps) {
               columns={columns}
               data={employees}
               getRowId={(row) => row.id}
-              virtualizeRows
-              virtualizeContainerHeight={560}
-              virtualizeEstimateRowHeight={64}
+              // Temporarily disabled virtualization to debug navigation issue
+              // virtualizeRows
+              // virtualizeContainerHeight={560}
+              // virtualizeEstimateRowHeight={64}
               onFilteredRowsChange={(rows) => setVisibleEmployees(rows as Employee[])}
               resetFiltersAt={resetFiltersTick}
             />

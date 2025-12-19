@@ -184,7 +184,7 @@ function NewReportBuilderPageContent() {
       results = results.filter(
         (report) =>
           report.name.toLowerCase().includes(query) ||
-          report.category.toLowerCase().includes(query)
+          (report.category ?? "").toLowerCase().includes(query)
       );
     }
 

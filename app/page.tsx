@@ -1,11 +1,12 @@
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { normalizeTenantBranding, extractBrandingFromSession } from "@/lib/tenant-branding";
+import { redirect } from "next/navigation";
+import type { Session } from "next-auth";
 
 export const dynamic = "force-dynamic";
 
-async function getTenantBranding() {
-  const session = await auth();
+async function getTenantBranding(session: Session | null) {
   
   // Try to extract branding from session first
   if (session) {
@@ -53,7 +54,13 @@ async function getTenantBranding() {
 }
 
 export default async function HomePage() {
-  const branding = await getTenantBranding();
+  const session = (await auth()) as Session | null;
+
+  if (session?.user) {
+    redirect("/dashboard");
+  }
+
+  const branding = await getTenantBranding(session);
   const brandName = branding.shortName || branding.name;
 
   return (

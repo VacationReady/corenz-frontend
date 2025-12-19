@@ -10,8 +10,6 @@ export default function LoginPage() {
           role="status"
           aria-live="polite"
           aria-busy="true"
-          tabIndex={-1}
-          autoFocus
         >
           <div className="flex flex-col items-center gap-3">
             <div

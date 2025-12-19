@@ -17,6 +17,7 @@ import {
   PenLine, 
   CheckCircle2, 
   Clock, 
+  Loader2,
   FileUp, 
   Building2,
   MoreHorizontal,
@@ -444,6 +445,8 @@ function DocumentsContent() {
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
   const [uploadPreviewOpen, setUploadPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadPreviewLoading, setUploadPreviewLoading] = useState(false);
+  const [uploadPreviewError, setUploadPreviewError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
   useEffect(() => {
@@ -455,6 +458,30 @@ function DocumentsContent() {
       setPreviewUrl(null);
     }
   }, [file]);
+
+  useEffect(() => {
+    if (!uploadPreviewOpen) {
+      setUploadPreviewLoading(false);
+      setUploadPreviewError(null);
+      return;
+    }
+
+    if (!previewUrl) {
+      setUploadPreviewLoading(false);
+      setUploadPreviewError("No preview available.");
+      return;
+    }
+
+    setUploadPreviewLoading(true);
+    setUploadPreviewError(null);
+
+    const timeoutId = window.setTimeout(() => {
+      setUploadPreviewLoading(false);
+      setUploadPreviewError("Preview is taking too long to load. Please try again.");
+    }, 15000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [uploadPreviewOpen, previewUrl]);
 
   const [newCategoryName, setNewCategoryName] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -504,6 +531,14 @@ function DocumentsContent() {
   const [sendingNotifications, setSendingNotifications] = useState(false);
 
   const isAdminUser = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
+
+  const handleUploadPreviewOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open && uploadPreviewLoading && !uploadPreviewError) return;
+      setUploadPreviewOpen(open);
+    },
+    [uploadPreviewLoading, uploadPreviewError],
+  );
 
   const loadCategories = useCallback(async () => {
     try {
@@ -1798,16 +1833,53 @@ function DocumentsContent() {
         />
 
         {/* Upload Preview Modal */}
-        <Dialog open={uploadPreviewOpen} onOpenChange={setUploadPreviewOpen}>
+        <Dialog open={uploadPreviewOpen} onOpenChange={handleUploadPreviewOpenChange}>
           <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>Preview: {file?.name}</DialogTitle>
             </DialogHeader>
             <div className="flex-1 bg-slate-100 rounded-xl overflow-hidden border relative">
-              {previewUrl && <iframe src={previewUrl} className="w-full h-full" title="Preview" />}
+              {previewUrl && (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full"
+                  title="Preview"
+                  onLoad={() => {
+                    setUploadPreviewLoading(false);
+                    setUploadPreviewError(null);
+                  }}
+                  onError={() => {
+                    setUploadPreviewLoading(false);
+                    setUploadPreviewError("Failed to load preview.");
+                  }}
+                />
+              )}
+
+              {(uploadPreviewLoading || uploadPreviewError) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-slate-950/50 backdrop-blur-sm">
+                  {uploadPreviewLoading ? (
+                    <div className="flex flex-col items-center gap-2 text-slate-600 dark:text-slate-200">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      <div className="text-sm font-medium">Loading preview...</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-300">Large files can take a moment.</div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-slate-700 dark:text-slate-200 px-6 text-center">
+                      <AlertCircle className="w-6 h-6" />
+                      <div className="text-sm font-medium">{uploadPreviewError}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-300">You can close this dialog and try again.</div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <DialogFooter>
-              <Button onClick={() => setUploadPreviewOpen(false)}>Close</Button>
+              <Button
+                onClick={() => setUploadPreviewOpen(false)}
+                disabled={uploadPreviewLoading && !uploadPreviewError}
+              >
+                Close
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

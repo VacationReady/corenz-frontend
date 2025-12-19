@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { buildDynamicQuery } from "../app/lib/queryBuilder";
 import {
   createFilterRule,
   createFilterGroup,
@@ -179,6 +180,51 @@ test("addGroupToGroup adds nested group", () => {
   
   assert.equal(updated.children.length, 1);
   assert.equal((updated.children[0] as FilterGroup).logicOperator, "OR");
+});
+
+test("buildDynamicQuery preserves nested AND/OR grouping from FilterGroup", () => {
+  const salesActive = createFilterGroup({
+    logicOperator: "AND",
+    children: [
+      createFilterRule({ field: "User.department", operator: "equals", value: "Sales" }),
+      createFilterRule({ field: "User.status", operator: "equals", value: "Active" }),
+    ],
+  });
+  const opsPending = createFilterGroup({
+    logicOperator: "AND",
+    children: [
+      createFilterRule({ field: "User.department", operator: "equals", value: "Ops" }),
+      createFilterRule({ field: "User.status", operator: "equals", value: "Pending" }),
+    ],
+  });
+  const root = createFilterGroup({ logicOperator: "OR", children: [salesActive, opsPending] });
+
+  const { queries } = buildDynamicQuery({
+    selectedFields: ["User.id"],
+    filters: root,
+    pagination: { page: 1, limit: 50 },
+    sort: { field: "User.id", direction: "asc" },
+  });
+
+  assert.equal(queries.length, 1);
+
+  const where = queries[0].prismaQuery.where;
+  assert.deepEqual(where, {
+    OR: [
+      {
+        AND: [
+          { department: { equals: "Sales" } },
+          { status: { equals: "Active" } },
+        ],
+      },
+      {
+        AND: [
+          { department: { equals: "Ops" } },
+          { status: { equals: "Pending" } },
+        ],
+      },
+    ],
+  });
 });
 
 test("removeNodeFromGroup removes rule by ID", () => {

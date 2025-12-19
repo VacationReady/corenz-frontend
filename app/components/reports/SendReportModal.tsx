@@ -57,6 +57,7 @@ interface SendReportModalProps {
   reportName: string;
   fields: string[];
   filters?: any[];
+  filterGroup?: any;
   sort?: any;
   onSuccess?: () => void;
 }
@@ -68,6 +69,7 @@ export function SendReportModal({
   reportName,
   fields,
   filters,
+  filterGroup,
   sort,
   onSuccess,
 }: SendReportModalProps) {
@@ -262,6 +264,7 @@ export function SendReportModal({
           messageBody,
           fields,
           filters,
+          filterGroup,
           sort,
         }),
       });

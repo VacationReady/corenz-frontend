@@ -28,7 +28,13 @@ import { useToast } from "@/hooks/use-toast";
 import { hrReportFields } from "@/lib/hrReportFields";
 import { reportLibrary, type ReportLibraryEntry } from "@/lib/reportLibrary";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
-import { deserializeFilterGroup, flattenFilterRules } from "@/lib/reportFilters";
+import {
+  createRootFilterGroup,
+  deserializeFilterGroup,
+  flattenFilterRules,
+  normalizeFilterGroupInput,
+} from "@/lib/reportFilters";
+import type { FilterGroup } from "@/lib/reportFilters";
 import { ReportErrorBoundary } from "@/components/reports/ReportErrorBoundary";
 import { resilientPost, ResilientFetchError, createAbortController } from "@/lib/resilientFetch";
 import { 
@@ -236,15 +242,17 @@ function ReportsPreviewClientInner() {
           setSelectedFields(Array.from(new Set([...requiredFields, ...template.defaultFields])));
         }
         
-        setActiveFilters(
+        const templateRules =
           template.suggestedFilters?.map((filter, index) => ({
             id: `filter_${index}`,
             field: filter.field,
             operator: filter.operator,
             value: filter.value,
             value2: filter.value2,
-          })) || [],
-        );
+          })) || [];
+        const templateGroup = normalizeFilterGroupInput(templateRules);
+        setActiveFilterGroup(templateGroup);
+        setActiveFilters(flattenFilterRules(templateGroup));
         if (template.defaultSort) {
           setActiveSort(template.defaultSort);
         }
@@ -297,6 +305,9 @@ function ReportsPreviewClientInner() {
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const [pendingExit, setPendingExit] = useState<(() => void) | null>(null);
 
+  const [activeFilterGroup, setActiveFilterGroup] = useState<FilterGroup>(() =>
+    createRootFilterGroup(),
+  );
   const [activeFilters, setActiveFilters] = useState<any[]>([]);
   const [activeSort, setActiveSort] = useState<{
     field: string;
@@ -492,23 +503,18 @@ function ReportsPreviewClientInner() {
           const report = await res.json();
           setReportConfig(report);
 
-          // Handle both legacy flat filter arrays and new FilterGroup structure
-          let savedFilters: any[] = [];
-          if (report?.filters) {
-            // Check if it's a FilterGroup structure (has type: "group")
-            if (report.filters.type === "group") {
-              // Deserialize and flatten the FilterGroup to get filter rules
-              const filterGroup = deserializeFilterGroup(report.filters);
-              savedFilters = flattenFilterRules(filterGroup);
-            } else if (Array.isArray(report.filters)) {
-              // Legacy flat array of filters
-              savedFilters = report.filters;
-            } else {
-              // Single filter object - wrap in array
-              savedFilters = [report.filters];
-            }
-          }
-          setActiveFilters(savedFilters);
+          // Preserve full grouped logic (FilterGroup) and also keep legacy flat rules for compatibility
+          const rawFilters = report?.filters
+            ? Array.isArray(report.filters)
+              ? report.filters
+              : report.filters?.type === "group"
+                ? report.filters
+                : [report.filters]
+            : undefined;
+
+          const loadedFilterGroup = deserializeFilterGroup(rawFilters);
+          setActiveFilterGroup(loadedFilterGroup);
+          setActiveFilters(flattenFilterRules(loadedFilterGroup));
 
           const savedPagination =
             report?.pagination && typeof report.pagination === "object"
@@ -675,17 +681,12 @@ function ReportsPreviewClientInner() {
       }
 
       if (engineParam === "custom" && reportTypeParam) {
-        const transformedFilters = Object.fromEntries(
-          (Array.isArray(activeFilters) ? activeFilters : []).map((filter: any) => {
-            const filterKey = filter.field.includes('.') 
-              ? filter.field.split('.').pop() 
-              : filter.field;
-            
-            const filterValue = filter.operator === "between" || filter.operator === "date_between"
-              ? { value: filter.value, value2: filter.value2 }
-              : filter.value;
-            
-            return [filterKey, filterValue];
+        const transformedFilters = (Array.isArray(activeFilters) ? activeFilters : []).map(
+          (filter: any) => ({
+            field: filter?.field,
+            operator: filter?.operator,
+            value: filter?.value,
+            value2: filter?.value2,
           }),
         );
 
@@ -738,6 +739,7 @@ function ReportsPreviewClientInner() {
         {
           selectedFields: effectiveSelectedFields,
           filters: Array.isArray(activeFilters) ? activeFilters : [],
+          filterGroup: activeFilterGroup,
           pagination: { page: pageToFetch, limit: limitToFetch },
           sort: sortToSend,
         },
@@ -774,6 +776,7 @@ function ReportsPreviewClientInner() {
       session?.user?.companyId,
       effectiveSelectedFields,
       activeFilters,
+      activeFilterGroup,
       activeSort,
       defaultSort,
       engineParam,
@@ -1244,6 +1247,7 @@ function ReportsPreviewClientInner() {
           selectedFields,
           category: "General",
           filters: activeFilters.length > 0 ? activeFilters : undefined,
+          filterGroup: activeFilterGroup,
           sort: activeSort || undefined,
         }),
       });
@@ -1715,6 +1719,7 @@ function ReportsPreviewClientInner() {
             reportName={reportConfig.name || "Report"}
             fields={effectiveSelectedFields}
             filters={activeFilters}
+            filterGroup={activeFilterGroup}
             sort={activeSort}
             onSuccess={() => {
               toast({

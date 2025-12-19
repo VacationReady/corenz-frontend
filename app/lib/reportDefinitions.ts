@@ -3,6 +3,96 @@ import { prisma } from "@/lib/prisma";
 
 type SortOrder = "asc" | "desc";
 
+function isConditionObject(value: any): value is { operator: string; value?: any; value2?: any } {
+  return !!value && typeof value === "object" && typeof value.operator === "string";
+}
+
+function toPrismaStringFilter(raw: any) {
+  if (!isConditionObject(raw)) {
+    return raw;
+  }
+
+  const v = raw.value;
+  switch (raw.operator) {
+    case "equals":
+      return v;
+    case "not_equals":
+      return { not: v };
+    case "in":
+      return Array.isArray(v) ? { in: v } : v;
+    case "not_in":
+      return Array.isArray(v) ? { notIn: v } : { not: v };
+    case "contains":
+      return { contains: String(v ?? ""), mode: "insensitive" };
+    case "not_contains":
+      return { not: { contains: String(v ?? ""), mode: "insensitive" } };
+    case "starts_with":
+      return { startsWith: String(v ?? ""), mode: "insensitive" };
+    case "ends_with":
+      return { endsWith: String(v ?? ""), mode: "insensitive" };
+    default:
+      return v;
+  }
+}
+
+function toPrismaIdFilter(raw: any) {
+  if (!isConditionObject(raw)) {
+    return raw;
+  }
+
+  const v = raw.value;
+  switch (raw.operator) {
+    case "equals":
+      return v;
+    case "not_equals":
+      return { not: v };
+    case "in":
+      return Array.isArray(v) ? { in: v } : v;
+    case "not_in":
+      return Array.isArray(v) ? { notIn: v } : { not: v };
+    default:
+      return v;
+  }
+}
+
+function toBooleanWhere(raw: any): boolean | { not: boolean } | undefined {
+  if (raw === undefined) return undefined;
+  if (!isConditionObject(raw)) return Boolean(raw);
+  if (raw.operator === "equals") return Boolean(raw.value);
+  if (raw.operator === "not_equals") return { not: Boolean(raw.value) };
+  return Boolean(raw.value);
+}
+
+function matchesNumberCondition(value: number, raw: any): boolean {
+  if (!isConditionObject(raw)) {
+    const threshold = Number(raw);
+    if (Number.isNaN(threshold)) return true;
+    return value <= threshold;
+  }
+
+  const v1 = Number(raw.value);
+  const v2 = Number(raw.value2);
+  switch (raw.operator) {
+    case "equals":
+      return !Number.isNaN(v1) ? value === v1 : true;
+    case "not_equals":
+      return !Number.isNaN(v1) ? value !== v1 : true;
+    case "less_than":
+      return !Number.isNaN(v1) ? value < v1 : true;
+    case "less_than_equal":
+      return !Number.isNaN(v1) ? value <= v1 : true;
+    case "greater_than":
+      return !Number.isNaN(v1) ? value > v1 : true;
+    case "greater_than_equal":
+      return !Number.isNaN(v1) ? value >= v1 : true;
+    case "between":
+      if (Number.isNaN(v1) || Number.isNaN(v2)) return true;
+      return value >= Math.min(v1, v2) && value <= Math.max(v1, v2);
+    default:
+      return true;
+  }
+}
+
 type ReportQueryResult = {
   data: any[];
   total: number;
@@ -52,8 +142,8 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
       return prisma.leaveRequest.findMany({
         where: enforceCompanyId(
           {
-            ...(filters.status && { approvalStatus: filters.status }),
-            ...(filters.employeeId && { employeeId: filters.employeeId }),
+            ...(filters.status && { approvalStatus: toPrismaStringFilter(filters.status) }),
+            ...(filters.employeeId && { employeeId: toPrismaIdFilter(filters.employeeId) }),
           },
           context.companyId,
         ),
@@ -82,20 +172,47 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
       
       // Build the Employee filter only if there are actual conditions
       const employeeConditions: Record<string, any> = {};
-      if (filters.departmentId) employeeConditions.departmentId = filters.departmentId;
-      if (filters.jobRoleId) employeeConditions.jobRoleId = filters.jobRoleId;
-      // Default to showing active employees unless explicitly set to false
-      employeeConditions.isActive = filters.isActive === false ? false : true;
+      if (filters.departmentId) employeeConditions.departmentId = toPrismaIdFilter(filters.departmentId);
+      if (filters.departmentName) {
+        employeeConditions.Department = {
+          name: toPrismaStringFilter(filters.departmentName),
+        };
+      }
+      if (filters.jobRoleId) employeeConditions.jobRoleId = toPrismaIdFilter(filters.jobRoleId);
+      if (filters.jobRoleName) {
+        employeeConditions.JobRole = {
+          name: toPrismaStringFilter(filters.jobRoleName),
+        };
+      }
+      // Default to showing active employees unless explicitly set
+      if (filters.isActive === undefined) {
+        employeeConditions.isActive = true;
+      } else {
+        const isActiveWhere = toBooleanWhere(filters.isActive);
+        if (isActiveWhere !== undefined) employeeConditions.isActive = isActiveWhere;
+      }
+
+      const andConditions: Record<string, any>[] = [
+        {
+          EventCategory: {
+            name: { in: ["Annual Leave", "Annual", "Holiday", "Vacation"] },
+          },
+        },
+      ];
+      if (filters.eventCategoryName) {
+        andConditions.push({
+          EventCategory: {
+            name: toPrismaStringFilter(filters.eventCategoryName),
+          },
+        });
+      }
       
       const where: Record<string, any> = {
         companyId: context.companyId,
         // Only filter on Employee if we have conditions to apply
         ...(Object.keys(employeeConditions).length > 0 && { Employee: employeeConditions }),
-        ...(filters.eventCategoryId && { eventCategoryId: filters.eventCategoryId }),
-        // Filter to only Annual Leave category
-        EventCategory: {
-          name: { in: ["Annual Leave", "Annual", "Holiday", "Vacation"] },
-        },
+        ...(filters.eventCategoryId && { eventCategoryId: toPrismaIdFilter(filters.eventCategoryId) }),
+        ...(andConditions.length > 0 && { AND: andConditions }),
       };
 
       // Get total count first (before pagination)
@@ -169,10 +286,9 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
 
       // Optional threshold filter on remaining entitlement
       if (filters.remainingLT !== undefined) {
-        const threshold = Number(filters.remainingLT);
-        if (!Number.isNaN(threshold)) {
-          rows = rows.filter((row) => row._computed.remainingEntitlement <= threshold);
-        }
+        rows = rows.filter((row) =>
+          matchesNumberCondition(row._computed.remainingEntitlement, filters.remainingLT),
+        );
       }
 
       // Apply client-requested sort for computed field
@@ -197,8 +313,22 @@ export const reportDefinitions: Record<string, ReportDefinition> = {
 
       // Build Employee filter only when needed
       const employeeConditions: Record<string, any> = {};
-      if (filters.departmentId) employeeConditions.departmentId = filters.departmentId;
-      if (filters.jobRoleId) employeeConditions.jobRoleId = filters.jobRoleId;
+      if (filters.departmentId) employeeConditions.departmentId = toPrismaIdFilter(filters.departmentId);
+      if (filters.departmentName) {
+        employeeConditions.Department = {
+          name: toPrismaStringFilter(filters.departmentName),
+        };
+      }
+      if (filters.jobRoleId) employeeConditions.jobRoleId = toPrismaIdFilter(filters.jobRoleId);
+      if (filters.jobRoleName) {
+        employeeConditions.JobRole = {
+          name: toPrismaStringFilter(filters.jobRoleName),
+        };
+      }
+      if (filters.isActive !== undefined) {
+        const isActiveWhere = toBooleanWhere(filters.isActive);
+        if (isActiveWhere !== undefined) employeeConditions.isActive = isActiveWhere;
+      }
 
       const leave = await prisma.leaveRequest.findMany({
         where: {

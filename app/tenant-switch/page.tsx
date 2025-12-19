@@ -16,6 +16,15 @@ function TenantSwitchContent() {
   >(null);
   const primaryActionRef = useRef<HTMLButtonElement | null>(null);
 
+  type ErrorContent = {
+    title: string;
+    description?: string;
+    showRetry: boolean;
+    disableRetry?: boolean;
+    preferRequestNewLink?: boolean;
+    tip?: string;
+  };
+
   const requestNewLinkPath = useMemo(() => {
     const nextPath = "/tenant-admin/dashboard#tenants";
     return `/tenant-admin?next=${encodeURIComponent(nextPath)}`;
@@ -41,7 +50,11 @@ function TenantSwitchContent() {
     }
   }, [router, requestNewLinkPath]);
 
-  const errorContent = useMemo(() => {
+  const isUnusableToken = useMemo(() => {
+    return errorCode === "expired" || errorCode === "used" || errorCode === "invalid";
+  }, [errorCode]);
+
+  const errorContent = useMemo<ErrorContent | null>(() => {
     if (!errorCode) {
       return null;
     }
@@ -60,6 +73,9 @@ function TenantSwitchContent() {
           description:
             "Tenant switch links expire for security. Request a new switch link from the Admin Portal and try again.",
           showRetry: true,
+          disableRetry: true,
+          preferRequestNewLink: true,
+          tip: "Generate a fresh switch link and open it right away.",
         };
       case "used":
         return {
@@ -67,6 +83,9 @@ function TenantSwitchContent() {
           description:
             "For security, each switch link can only be used once. Request a new switch link from the Admin Portal.",
           showRetry: true,
+          disableRetry: true,
+          preferRequestNewLink: true,
+          tip: "Ask for a new link to continue switching tenants.",
         };
       case "invalid":
         return {
@@ -74,6 +93,9 @@ function TenantSwitchContent() {
           description:
             "The switch token may be incorrect or no longer valid. Request a new switch link from the Admin Portal.",
           showRetry: true,
+          disableRetry: true,
+          preferRequestNewLink: true,
+          tip: "Request a new link and open it from the latest email.",
         };
       case "auth_failed":
         return {
@@ -237,18 +259,14 @@ function TenantSwitchContent() {
               </p>
             )}
 
+            {errorContent?.tip && (
+              <p className="mt-2 text-sm text-muted-foreground" aria-describedby="tenant-switch-status">
+                {errorContent.tip}
+              </p>
+            )}
+
             <div className="mt-6 flex flex-col gap-3">
-              {errorContent?.showRetry && (
-                <button
-                  ref={primaryActionRef}
-                  onClick={startSwitch}
-                  className="rounded-xl bg-purple-600 px-6 py-2 text-white hover:bg-purple-700"
-                  aria-describedby="tenant-switch-status"
-                >
-                  Try again
-                </button>
-              )}
-              {!errorContent?.showRetry ? (
+              {errorContent?.preferRequestNewLink ? (
                 <>
                   <button
                     ref={primaryActionRef}
@@ -266,9 +284,29 @@ function TenantSwitchContent() {
                   >
                     Back to Admin Portal
                   </button>
+                  {errorContent?.showRetry && (
+                    <button
+                      onClick={startSwitch}
+                      className="rounded-xl border border-purple-600 px-6 py-2 text-purple-700 hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-describedby="tenant-switch-status"
+                      disabled={Boolean(errorContent?.disableRetry) || isUnusableToken}
+                    >
+                      Try again
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
+                  {errorContent?.showRetry && (
+                    <button
+                      ref={primaryActionRef}
+                      onClick={startSwitch}
+                      className="rounded-xl bg-purple-600 px-6 py-2 text-white hover:bg-purple-700"
+                      aria-describedby="tenant-switch-status"
+                    >
+                      Try again
+                    </button>
+                  )}
                   <button
                     onClick={handleRequestNewLink}
                     className="rounded-xl border border-purple-600 px-6 py-2 text-purple-700 hover:bg-purple-50"

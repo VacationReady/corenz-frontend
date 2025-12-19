@@ -719,3 +719,31 @@ Ensured admins can complete the signature flow when placing fields after upload 
 175. Metadata Editor Template Switch Loading State
 
 Prevented stale template details from lingering when switching selections in the Journey Metadata Editor by clearing the detail panels immediately and showing skeleton loading states until the new template metadata loads. Detail actions are disabled while loading to avoid editing or publishing the wrong template.
+
+176. Post-login Root Redirect to Dashboard
+
+Fixed the post-auth landing behaviour so authenticated users visiting the root URL are immediately redirected server-side to `/dashboard` (and onward to the correct role-based dashboard). This removes the extra “log in” click and ensures returning users land directly in their workspace.
+
+177. Login Loading Spinner Focus Fix
+
+Improved keyboard accessibility on the login page by preventing the loading spinner from taking focus while the form is loading. This keeps the focus flow predictable for keyboard and assistive technology users as the UI renders.
+
+178. Login Session Refresh Recovery
+
+Improved the post-login flow so that if the session endpoint is temporarily unavailable or returns no user, the client retries the session refresh and then redirects to a safe dashboard route (or the `next` destination) rather than showing a misleading “Invalid email or password” error.
+
+179. Tenant Switch Unusable Token Guidance
+
+Improved the tenant switch error experience for expired, used, or invalid switch links by disabling “Try again” and promoting “Request a new switch link” as the primary action. Added a short tip explaining that a fresh link is required to complete the switch, preventing users getting stuck in a retry loop.
+
+180. Document Upload Preview Loading Feedback
+
+Improved the document upload preview modal for large/slow files by adding an in-frame loading indicator and a timeout error message so users get clear feedback while the preview loads. The Close action is temporarily disabled until the initial load succeeds or fails, preventing accidental dismissal during long loads.
+
+181. Recent Reports Search Null Category Crash Fix
+
+Fixed a crash in the Recent Reports search where saved reports with a missing category could throw an error during filtering. The search now safely handles blank categories so typing in the search box no longer breaks the list or blocks navigation.
+
+182. Reports Preview Filter Group Logic Preservation
+
+Fixed report preview filters to preserve nested AND/OR group logic end-to-end by storing and reusing the full FilterGroup structure when loading, querying, saving, and emailing reports. This prevents grouped filters being flattened into a single list and ensures results remain consistent after reopening saved reports.

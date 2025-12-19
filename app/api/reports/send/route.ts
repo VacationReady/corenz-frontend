@@ -20,6 +20,7 @@ interface SendReportRequest {
   messageBody?: string;
   fields: string[];
   filters?: any[];
+  filterGroup?: any;
   sort?: any;
 }
 
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
       messageBody,
       fields,
       filters,
+      filterGroup,
       sort,
     } = body;
 
@@ -89,6 +91,7 @@ export async function POST(req: NextRequest) {
       session.user.companyId,
       fields,
       filters,
+      filterGroup,
       sort,
       timeConfig.timeZone,
     );
@@ -264,6 +267,7 @@ async function fetchReportData(
   companyId: string,
   fields: string[],
   filters?: any[],
+  filterGroup?: any,
   sort?: any,
   timeZone?: string,
 ) {
@@ -271,9 +275,9 @@ async function fetchReportData(
     // Use the existing query builder
     const { queries } = buildDynamicQuery({
       selectedFields: fields,
-      filters: filters || [],
+      filters: filterGroup || filters || [],
       sort: sort || { field: "User.firstName", direction: "asc" },
-      pagination: { page: 1, pageSize: 10000 }, // Get all records for export
+      pagination: { page: 1, limit: 10000 },
     }, { timeZone });
 
     if (queries.length === 0) {

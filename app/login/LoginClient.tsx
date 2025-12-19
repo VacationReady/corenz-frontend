@@ -3,7 +3,7 @@
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, useRef } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { Input } from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
@@ -30,6 +30,7 @@ export default function LoginClient() {
   const [ssoLoading, setSsoLoading] = useState<"azure-ad" | "google" | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [capsOn, setCapsOn] = useState(false);
+  const navigatingRef = useRef(false);
 
   const brandName = branding.shortName || branding.name;
   const logoSrc = branding.logoUrl || branding.squareLogoUrl || null;
@@ -58,8 +59,35 @@ export default function LoginClient() {
     setError(message);
   }, [search]);
 
+  const getSessionWithRetry = async (attempts = 3) => {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const sessionRes = await fetch("/api/auth/session", {
+          cache: "no-store",
+          credentials: "include",
+        });
+
+        if (!sessionRes.ok) {
+          throw new Error(`Session fetch failed: ${sessionRes.status}`);
+        }
+
+        const session = await sessionRes.json();
+        if (session?.user?.id) return session;
+      } catch {
+        // ignore and retry
+      }
+
+      if (i < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 250 * (i + 1)));
+      }
+    }
+
+    return null;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    navigatingRef.current = false;
     setLoading(true);
     setError("");
 
@@ -88,20 +116,23 @@ export default function LoginClient() {
         return;
       }
 
-      // Verify session is actually valid before redirecting
-      const sessionRes = await fetch("/api/auth/session");
-      const session = await sessionRes.json();
-      
-      // Check if we actually have a valid session with a user
+      const next = search?.get("next");
+
+      // Verify session is actually valid before redirecting.
+      // If the session endpoint is transiently failing, retry briefly and then
+      // fall back to sending the user to a safe dashboard route (server-side
+      // auth checks will bounce back to /login if auth truly failed).
+      const session = await getSessionWithRetry(3);
       if (!session?.user?.id) {
-        setError("Invalid email or password");
+        navigatingRef.current = true;
+        router.push(next || "/dashboard");
         return;
       }
 
       const role = session?.user?.role;
-      const next = search?.get("next");
 
       if (next) {
+        navigatingRef.current = true;
         router.push(next);
         return;
       }
@@ -109,16 +140,21 @@ export default function LoginClient() {
       // Onboarding check is handled server-side in /dashboard/employee/page.tsx
       // Navigate immediately - no need to block on supplementary fetches
       if (role === "ADMIN" || role === "SUPER_ADMIN") {
+        navigatingRef.current = true;
         router.push("/dashboard/admin");
       } else if (role === "MANAGER") {
+        navigatingRef.current = true;
         router.push("/dashboard/manager");
       } else {
+        navigatingRef.current = true;
         router.push("/dashboard");
       }
     } catch (error) {
       setError("An error occurred. Please try again.");
     } finally {
-      setLoading(false);
+      if (!navigatingRef.current) {
+        setLoading(false);
+      }
     }
   };
 

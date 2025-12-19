@@ -138,70 +138,6 @@ function EmployeesContent(props: EmployeesClientProps) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
-    
-    // DEBUG: Monkey-patch preventDefault to capture the call stack
-    const originalPreventDefault = MouseEvent.prototype.preventDefault;
-    MouseEvent.prototype.preventDefault = function() {
-      const target = this.target as HTMLElement;
-      const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
-      if (anchor) {
-        console.log('[EmployeesClient DEBUG] preventDefault called on anchor click!');
-        console.trace('[EmployeesClient DEBUG] preventDefault call stack:');
-      }
-      return originalPreventDefault.call(this);
-    };
-    
-    // DEBUG: Global click listener to detect what's intercepting link clicks
-    const debugClickHandler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const anchor = target.closest('a[href]') as HTMLAnchorElement | null;
-      if (anchor) {
-        const href = anchor.getAttribute('href');
-        console.log('[EmployeesClient DEBUG] Anchor click detected:', {
-          href,
-          defaultPrevented: e.defaultPrevented,
-          phase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE',
-          target: e.target,
-        });
-        
-        // Check after event processing if default was prevented
-        setTimeout(() => {
-          console.log('[EmployeesClient DEBUG] After event processing:', {
-            currentPathname: window.location.pathname,
-            expectedHref: href,
-            didNavigate: window.location.pathname === href,
-          });
-        }, 50);
-      }
-    };
-    
-    // Also listen in bubble phase to see if something prevents default later
-    const debugBubbleHandler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const anchor = target.closest('a[href]') as HTMLAnchorElement | null;
-      if (anchor) {
-        console.log('[EmployeesClient DEBUG] Bubble phase:', {
-          href: anchor.getAttribute('href'),
-          defaultPrevented: e.defaultPrevented,
-        });
-        
-        // If default was prevented, try to find the culprit by checking the stack
-        if (e.defaultPrevented) {
-          console.log('[EmployeesClient DEBUG] WARNING: preventDefault was called!');
-          console.trace('[EmployeesClient DEBUG] Stack trace for debugging');
-        }
-      }
-    };
-    
-    // Listen in capture phase to see the event first
-    document.addEventListener('click', debugClickHandler, true);
-    document.addEventListener('click', debugBubbleHandler, false);
-    return () => {
-      document.removeEventListener('click', debugClickHandler, true);
-      document.removeEventListener('click', debugBubbleHandler, false);
-      // Restore original preventDefault
-      MouseEvent.prototype.preventDefault = originalPreventDefault;
-    };
   }, []);
   
   // Open dropdown and calculate position in one action
@@ -471,19 +407,6 @@ function EmployeesContent(props: EmployeesClientProps) {
             <Link
               href={`/employees/${emp.id}/overview`}
               className="group flex items-center gap-3 py-1"
-              onClick={(e) => {
-                console.log('[EmployeesClient] Link clicked:', {
-                  href: `/employees/${emp.id}/overview`,
-                  defaultPrevented: e.defaultPrevented,
-                  isPropagationStopped: e.isPropagationStopped?.(),
-                  target: e.target,
-                  currentTarget: e.currentTarget,
-                });
-                // Check after a tick if navigation happened
-                setTimeout(() => {
-                  console.log('[EmployeesClient] After click - current URL:', window.location.pathname);
-                }, 100);
-              }}
             >
               <div className="relative">
                 <Avatar

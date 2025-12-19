@@ -16,7 +16,7 @@ const getCsp = (isDev) => {
     "object-src 'self' blob: https://*.supabase.co data:",
     "img-src 'self' https: data: blob:",
     "media-src 'self' blob:",
-    "connect-src 'self' https://*.supabase.co https://api.resend.com https://nominatim.openstreetmap.org",
+    "connect-src 'self' https://*.supabase.co https://api.resend.com https://nominatim.openstreetmap.org https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
     "style-src 'self' 'unsafe-inline'",
     `script-src ${scriptSrc}`,
     "base-uri 'none'",

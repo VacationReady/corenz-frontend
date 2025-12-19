@@ -757,3 +757,55 @@ Added session version validation to refresh and mobile login tokens so stale or 
 Hardened document downloads by normalizing paths, detecting explicit traversal segments, and permitting legacy non-prefixed storage keys only when not reused by other tenants.
 
 Typed document upload relations and mapped department/job role IDs explicitly to resolve TypeScript errors while keeping acknowledgement targeting logic intact.
+
+184. Quick Leave Booking Modal Loading and Error States
+
+Improved the Quick Leave Booking modal so it no longer appears broken on slow or failing connections by adding clear loading, empty, and error states for the employee and leave type pickers. Selection controls are disabled while data is fetching (or when data is unavailable), and retry actions are provided when loading fails. Added a component test to verify the loading state and control disabling.
+
+185. Login Session Verification Failure Handling
+
+Fixed a high-impact login UX issue where users could be redirected to the dashboard even when session validation failed (for example, due to invalid credentials or a transient session endpoint failure). The login form now remains in place, shows an inline error message, and re-enables submission so users can retry. Added a request timeout using abort signals for session verification retries to avoid indefinite loading.
+
+186. Approvals Page Failure Feedback
+
+Fixed a silent failure path on the approvals page where approve/decline actions could fail with no user feedback. The UI now shows an explicit error toast on non-success responses (including clearer guidance for authorisation failures), keeps the approval card in place, and always resets the processing state. Added a component test to verify `toast.error` is triggered when the mutation fails.
+
+187. Dashboard Action Items Completion Failure Feedback
+
+Fixed a high-severity UX issue where clicking "Complete" on dashboard action items could fail silently when the server returned a non-200 response. The UI now disables the button while the request is in-flight to prevent double submissions and shows a clear error toast for non-success responses (including best-effort parsing of the response body for a more specific message). Added a component test to verify the in-flight disabling and error toast behaviour.
+
+188. Document Upload Signature Field Save Integrity
+
+Fixed a high-severity data integrity issue where the document upload flow could show “Document uploaded successfully” even when saving signature fields failed. The signature field save response is now validated; on failure the modal remains open and an error is shown so users can retry, and success is only reported once the document and signature fields are both persisted. Added a component test to ensure failed signature field saves do not close the modal or show a success message.
+
+189. News Page Tenant Isolation and Login Guard
+
+Fixed a cross-tenant data exposure risk on the News page where unauthenticated or tenant-less sessions could load published posts without a company scope. The `/news` page now enforces server-side session/tenant validation and redirects to `/login` when no `companyId` is present. News queries are also hardened so `getAllNewsPosts` requires a `companyId` and always applies tenant scoping (including compatibility for legacy posts that only relate via the author). Added tests to verify the redirect behaviour and to assert tenant-scoped query construction.
+
+190. Document Upload Preview Timeout False Error Fix
+
+Fixed a race condition in the document upload preview modal where the 15-second timeout could incorrectly display “Preview is taking too long to load” after the preview had already loaded. The preview timeout is now cleared on successful iframe load and on iframe error, preventing stale timeouts from overriding the correct state. Added a Preview action to the upload flow and a regression test to verify timeouts are cancelled on both load and error.
+
+191. Reconciliation Weekly Stats Failure Feedback
+
+Fixed a silent failure path on the Shift Reconciliation dashboard where weekly stats could fail to load and leave users with empty or stale figures. The stats fetch now validates response success, surfaces the server error where available, and shows a clear inline error message with a “Retry stats” action (and an error toast) rather than failing silently. Added a component test to cover the error and retry behaviour.
+
+192. Reconciliation Day Data Fetch Failure Stale State Fix
+
+Prevented stale day data from lingering in the Shift Reconciliation day view when a day-level fetch fails. On failure, the previously loaded day’s entries are now cleared and the UI shows an explicit “Unable to load day data” state with a Retry action, rather than rendering outdated reconciliation rows for the newly selected date. Added a regression test to ensure stale entries are removed and retry affordances appear when the day fetch returns an error.
+
+193. Reconciliation Bulk Approve No-Entries Recovery
+
+Improved the Shift Reconciliation bulk approve workflow when no valid timesheet entries exist. Previously, selecting clock-only items could trigger a “No Entries to Approve” error toast but leave the selection intact, keeping the primary action effectively stuck. The selection is now cleared on this error path so users can continue without manually deselecting entries, while keeping the success behaviour unchanged. Added a regression test to verify the selection resets after the no-entries error.
+
+194. Rota Coverage Dashboard Fetch Failure Feedback
+
+Fixed a silent failure path on the rota coverage dashboard where the coverage analysis request could fail and leave users with a blank dashboard. The fetch now validates `response.ok` before parsing, surfaces a clear inline error alert when loading fails (including best-effort parsing of server-provided error messages), and provides a Retry action plus navigation links to recover (back to requirements or selecting a different rota group). Added a component test to cover the failure and retry behaviour.
+
+195. Rota List Filter Combobox Value Handling
+
+Fixed the rota list filter combobox so command palette selection and keyboard filtering stay in sync with the stored filter value. `CommandItem` now uses `option.value` as its command value (rather than `option.label`), preventing mismatches when labels differ from values or are not unique, while keeping the displayed label unchanged. Added a regression test to confirm selecting options with duplicate labels still returns the correct `option.value`.
+
+196. Admin Dashboard Approvals Button Click Propagation Fix
+
+Fixed a high-severity UX issue in the admin dashboard compact approvals list where clicking “Approve” or “Decline” could also trigger the row click handler and open the approval detail modal. The action buttons now stop event propagation so only the intended action runs. Added a regression component test to assert `onOpenApprovalItem` is not called when clicking “Approve” or “Decline”.

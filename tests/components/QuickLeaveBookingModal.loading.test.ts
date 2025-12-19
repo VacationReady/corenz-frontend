@@ -18,6 +18,7 @@ const dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
 (globalThis as any).HTMLElement = dom.window.HTMLElement;
 (globalThis as any).CustomEvent = dom.window.CustomEvent;
 (globalThis as any).Event = dom.window.Event;
+(globalThis as any).DocumentFragment = dom.window.DocumentFragment;
 (globalThis as any).React = React;
 (globalThis as any).requestAnimationFrame = (cb: FrameRequestCallback) =>
   setTimeout(() => cb(Date.now()), 0);

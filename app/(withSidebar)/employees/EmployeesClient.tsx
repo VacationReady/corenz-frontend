@@ -185,18 +185,22 @@ function EmployeesContent(props: EmployeesClientProps) {
   }, [openDropdown]);
   
   // Close dropdown when clicking outside
+  // Note: This handler only closes the dropdown, it does NOT prevent navigation
   useEffect(() => {
+    if (!openDropdown) return;
+    
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (!target.closest('[data-filter-dropdown]')) {
         setOpenDropdown(null);
+        setDropdownPosition(null);
+        currentButtonRef.current = null;
       }
     };
     
-    if (openDropdown) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
+    // Use capture phase to ensure we run before other handlers
+    document.addEventListener('click', handleClickOutside, true);
+    return () => document.removeEventListener('click', handleClickOutside, true);
   }, [openDropdown]);
   const [counts, setCounts] = useState(() =>
     props.initialCounts || {

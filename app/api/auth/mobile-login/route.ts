@@ -64,6 +64,8 @@ export async function POST(request: NextRequest) {
         companyId: true,
         firstName: true,
         lastName: true,
+        sessionVersion: true,
+        isActivated: true,
       },
     });
 
@@ -101,6 +103,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!authenticatedUser.isActivated) {
+      return NextResponse.json(
+        { error: "Account is not active" },
+        { status: 403 },
+      );
+    }
+
     console.log("[mobile-auth] User authenticated successfully:", {
       userId: authenticatedUser.id,
       email: authenticatedUser.email,
@@ -120,6 +129,7 @@ export async function POST(request: NextRequest) {
         role: authenticatedUser.role,
         companyId: authenticatedUser.companyId,
         homeCompanyId: authenticatedUser.companyId,
+        sessionVersion: authenticatedUser.sessionVersion,
         sub: authenticatedUser.id,
       },
       secret: env.NEXTAUTH_SECRET,

@@ -95,26 +95,28 @@ export async function POST(req: NextRequest) {
     // 6. Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 7. Update user password and mark employee as active + activated
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        isActivated: true,
-        updatedAt: new Date(),
-      },
-    });
+    // 7. Update user password and mark employee as active + activated atomically
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          isActivated: true,
+          sessionVersion: { increment: 1 },
+          updatedAt: new Date(),
+        },
+      });
 
-    await prisma.employee.update({
-      where: { id: employee.id },
-      data: {
-        isActive: true, // ✅ VALID FIELD
-      },
-    });
+      await tx.employee.update({
+        where: { id: employee.id },
+        data: {
+          isActive: true, // ✅ VALID FIELD
+        },
+      });
 
-    // 8. Delete the token after use
-    await prisma.activationToken.delete({
-      where: { token },
+      await tx.activationToken.delete({
+        where: { token },
+      });
     });
 
     // 9. Notify admin that the user has activated/logged in

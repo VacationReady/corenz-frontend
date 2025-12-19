@@ -45,6 +45,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
+    if (!document.path.startsWith(`${session.user.companyId}/`)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     // Role-based access flags
     let allowed = false;
     if (["ADMIN", "SUPER_ADMIN"].includes(user.role))

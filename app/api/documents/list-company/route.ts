@@ -23,8 +23,12 @@ function encodeCursor(createdAt: Date, id: string): string {
   return Buffer.from(json, "utf8").toString("base64url");
 }
 
-async function getCachedSignedUrl(path: string, expiresInSeconds: number): Promise<string | null> {
-  const key = `doc-signed-url:${path}`;
+async function getCachedSignedUrl(
+  companyId: string,
+  path: string,
+  expiresInSeconds: number,
+): Promise<string | null> {
+  const key = `doc-signed-url:${companyId}:${path}`;
   const cached = await documentStatusCache.get<{ url: string }>(key);
   if (cached?.url) return cached.url;
 
@@ -63,7 +67,7 @@ export async function GET(req: Request) {
   // Fetch user details for filtering
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { departmentId: true, jobRoleId: true, role: true },
+    select: { departmentId: true, jobRoleId: true, role: true, Employee: { select: { id: true } } },
   });
 
   if (!user) {
@@ -80,12 +84,24 @@ export async function GET(req: Request) {
     roleFilter = { canViewEmployee: true };
   }
 
+  const sessionEmployeeId = user.Employee?.id ?? (session.user as any).employeeId;
+
+  if (!employeeId && user.role === "EMPLOYEE" && !sessionEmployeeId) {
+    return NextResponse.json({ error: "Employee profile not found" }, { status: 403 });
+  }
+
+  const effectiveEmployeeId = employeeId || (user.role === "EMPLOYEE" ? sessionEmployeeId : undefined);
+
   // Fetch company documents with access control & department/job role restrictions
   const dbStart = performance.now();
   const documents = await prisma.document.findMany({
     where: {
       companyId: session.user.companyId,
-      ...(employeeId ? { employeeId } : { employeeId: null }),
+      ...(effectiveEmployeeId
+        ? { employeeId: effectiveEmployeeId }
+        : user.role === "EMPLOYEE"
+          ? { employeeId: null }
+          : {}),
       deletedAt: null,
       ...roleFilter,
       OR: [
@@ -139,7 +155,7 @@ export async function GET(req: Request) {
   const signStart = performance.now();
   const withUrls = await Promise.all(
     page.map(async (doc) => {
-      const url = await getCachedSignedUrl(doc.path, 60 * 5);
+      const url = await getCachedSignedUrl(session.user.companyId, doc.path, 60 * 5);
       return { ...doc, url };
     }),
   );

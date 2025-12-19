@@ -86,7 +86,11 @@ export async function PUT(req: NextRequest, context: any) {
       content: body.content,
       coverImageUrl: body.coverImage ?? null,
       videoEmbedUrl: body.videoEmbedUrl,
-      attachments: body.attachments,
+      attachments: Array.isArray(body.attachments)
+        ? body.attachments.map((att: any) => 
+            typeof att === 'string' ? att : att.url || att.path || ''
+          ).filter(Boolean)
+        : [],
       sendEmail: body.sendEmail,
       audience: body.audience || { type: "all" },
       updatedAt: new Date(),

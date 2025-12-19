@@ -71,7 +71,11 @@ export async function POST(req: NextRequest) {
         content,
         coverImageUrl: coverImage ?? null,
         videoEmbedUrl,
-        attachments,
+        attachments: Array.isArray(attachments)
+          ? attachments.map((att: any) => 
+              typeof att === 'string' ? att : att.url || att.path || ''
+            ).filter(Boolean)
+          : [],
         sendEmail: normalizedSendEmail,
         audience: normalizedAudience,
         publishedAt: new Date(),

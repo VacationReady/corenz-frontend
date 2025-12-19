@@ -45,8 +45,31 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
-    if (!document.path.startsWith(`${session.user.companyId}/`)) {
+    const companyPrefix = `${session.user.companyId}/`;
+    let storagePath = document.path;
+
+    if (document.path.includes("..")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const isPrefixed = document.path.startsWith(companyPrefix);
+    if (!isPrefixed) {
+      // Legacy documents may not have been stored with a company prefix. To avoid
+      // cross-tenant reuse of a shared path, block access if any other company
+      // references the same storage key.
+      const otherCompanyReference = await prisma.document.findFirst({
+        where: {
+          path: document.path,
+          companyId: { not: session.user.companyId },
+        },
+        select: { id: true },
+      });
+
+      if (otherCompanyReference) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    } else {
+      storagePath = document.path;
     }
 
     // Role-based access flags
@@ -76,7 +99,7 @@ export async function GET(req: Request) {
 
     const { data, error } = await supabase.storage
       .from("documents")
-      .createSignedUrl(document.path, 60 * 5); // 5-minute expiry
+      .createSignedUrl(storagePath, 60 * 5); // 5-minute expiry
 
     if (error) {
       console.error(error);

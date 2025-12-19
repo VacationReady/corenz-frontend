@@ -138,6 +138,24 @@ function EmployeesContent(props: EmployeesClientProps) {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
+    
+    // DEBUG: Global click listener to detect what's intercepting link clicks
+    const debugClickHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a[href]') as HTMLAnchorElement | null;
+      if (anchor) {
+        console.log('[EmployeesClient DEBUG] Anchor click detected:', {
+          href: anchor.getAttribute('href'),
+          defaultPrevented: e.defaultPrevented,
+          phase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE',
+          target: e.target,
+        });
+      }
+    };
+    
+    // Listen in capture phase to see the event first
+    document.addEventListener('click', debugClickHandler, true);
+    return () => document.removeEventListener('click', debugClickHandler, true);
   }, []);
   
   // Open dropdown and calculate position in one action
@@ -407,6 +425,15 @@ function EmployeesContent(props: EmployeesClientProps) {
             <Link
               href={`/employees/${emp.id}/overview`}
               className="group flex items-center gap-3 py-1"
+              onClick={(e) => {
+                console.log('[EmployeesClient] Link clicked:', {
+                  href: `/employees/${emp.id}/overview`,
+                  defaultPrevented: e.defaultPrevented,
+                  isPropagationStopped: e.isPropagationStopped?.(),
+                  target: e.target,
+                  currentTarget: e.currentTarget,
+                });
+              }}
             >
               <div className="relative">
                 <Avatar

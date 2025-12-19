@@ -147,16 +147,17 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     }
   );
 
-  // Employees - fetch all for line manager dropdown (no pagination limit)
+  // Employees - fetch for line manager dropdown
   // Use status=all to include all employees regardless of isActive status
   // This ensures system admins and other users appear in the manager dropdown
+  // Note: Using limit=100 (max allowed) instead of limit=all which is rejected by the API
   const {
     data: employeesData,
     error: employeesError,
     isLoading: employeesLoading,
     mutate: revalidateEmployees,
   } = useSWRImmutable<{ data: EmployeeSummary[] } | EmployeeSummary[]>(
-    enabled ? `/api/employees?limit=all&status=all&_v=${manualRevalidate}` : null,
+    enabled ? `/api/employees?status=all&limit=100&_v=${manualRevalidate}` : null,
     fetcher,
     {
       revalidateOnFocus: false,

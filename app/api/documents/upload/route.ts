@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 import { z } from "zod";
@@ -7,6 +8,10 @@ import { resend } from "@/lib/resend";
 import { getAppBaseUrl } from "@/lib/email/template";
 import { buildDocumentNotificationEmail } from "@/lib/email/documentNotifications";
 import { createActionItem, createActionItemsBulk } from "@/lib/action-items-helper";
+
+type DocumentWithRelations = Prisma.DocumentGetPayload<{
+  include: { Department: true; JobRole: true };
+}>;
 
 const optionalStringFromForm = z.preprocess(
   (val) => {
@@ -214,7 +219,7 @@ export async function POST(req: Request) {
 
     const fileUrl = signedUrlData?.signedUrl ?? null;
 
-    let document: Awaited<ReturnType<typeof prisma.document.create>> | null = null;
+    let document: DocumentWithRelations | null = null;
 
     try {
       // ✅ Save document in DB
@@ -240,12 +245,12 @@ export async function POST(req: Request) {
           ...(departments.length > 0 && departments[0] !== "all"
             ? {
                 Department: {
-                  connect: departments.map((d) => ({ id: d })),
+                  connect: departments.map((d: string) => ({ id: d })),
                 },
               }
             : {}),
           ...(jobRoles.length > 0 && jobRoles[0] !== "all"
-            ? { JobRole: { connect: jobRoles.map((j) => ({ id: j })) } }
+            ? { JobRole: { connect: jobRoles.map((j: string) => ({ id: j })) } }
             : {}),
         },
         include: {
@@ -272,8 +277,8 @@ export async function POST(req: Request) {
     let employeesInScope: { id: string; userId: string | null }[] | null = null;
 
     if (!document.employeeId && (requiresAck || requiresSignature)) {
-      const departmentIds = document.Department.map((d) => d.id);
-      const jobRoleIds = document.JobRole.map((j) => j.id);
+      const departmentIds = document.Department.map((d: { id: string }) => d.id);
+      const jobRoleIds = document.JobRole.map((j: { id: string }) => j.id);
 
       if (
         (!departmentIds || departmentIds.length === 0) &&

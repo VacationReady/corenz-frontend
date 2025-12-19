@@ -139,6 +139,18 @@ function EmployeesContent(props: EmployeesClientProps) {
   useEffect(() => {
     setIsMounted(true);
     
+    // DEBUG: Monkey-patch preventDefault to capture the call stack
+    const originalPreventDefault = MouseEvent.prototype.preventDefault;
+    MouseEvent.prototype.preventDefault = function() {
+      const target = this.target as HTMLElement;
+      const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (anchor) {
+        console.log('[EmployeesClient DEBUG] preventDefault called on anchor click!');
+        console.trace('[EmployeesClient DEBUG] preventDefault call stack:');
+      }
+      return originalPreventDefault.call(this);
+    };
+    
     // DEBUG: Global click listener to detect what's intercepting link clicks
     const debugClickHandler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -172,6 +184,12 @@ function EmployeesContent(props: EmployeesClientProps) {
           href: anchor.getAttribute('href'),
           defaultPrevented: e.defaultPrevented,
         });
+        
+        // If default was prevented, try to find the culprit by checking the stack
+        if (e.defaultPrevented) {
+          console.log('[EmployeesClient DEBUG] WARNING: preventDefault was called!');
+          console.trace('[EmployeesClient DEBUG] Stack trace for debugging');
+        }
       }
     };
     
@@ -181,6 +199,8 @@ function EmployeesContent(props: EmployeesClientProps) {
     return () => {
       document.removeEventListener('click', debugClickHandler, true);
       document.removeEventListener('click', debugBubbleHandler, false);
+      // Restore original preventDefault
+      MouseEvent.prototype.preventDefault = originalPreventDefault;
     };
   }, []);
   

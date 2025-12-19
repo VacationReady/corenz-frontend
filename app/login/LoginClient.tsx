@@ -59,12 +59,15 @@ export default function LoginClient() {
     setError(message);
   }, [search]);
 
-  const getSessionWithRetry = async (attempts = 3) => {
+  const getSessionWithRetry = async (attempts = 3, timeoutMs = 2500) => {
     for (let i = 0; i < attempts; i++) {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
       try {
         const sessionRes = await fetch("/api/auth/session", {
           cache: "no-store",
           credentials: "include",
+          signal: controller.signal,
         });
 
         if (!sessionRes.ok) {
@@ -75,6 +78,8 @@ export default function LoginClient() {
         if (session?.user?.id) return session;
       } catch {
         // ignore and retry
+      } finally {
+        window.clearTimeout(timeoutId);
       }
 
       if (i < attempts - 1) {
@@ -124,8 +129,7 @@ export default function LoginClient() {
       // auth checks will bounce back to /login if auth truly failed).
       const session = await getSessionWithRetry(3);
       if (!session?.user?.id) {
-        navigatingRef.current = true;
-        router.push(next || "/dashboard");
+        setError("Sign-in could not be verified. Please try again.");
         return;
       }
 

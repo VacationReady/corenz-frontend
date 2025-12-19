@@ -3,8 +3,12 @@ import supabase from "@/lib/supabase-admin";
 
 type ReactionCounts = Record<string, number>;
 
-export async function getAllNewsPosts(companyId?: string, userId?: string) {
+export async function getAllNewsPosts(companyId: string, userId?: string) {
   await ensurePrismaConnected();
+
+  if (!companyId) {
+    throw new Error("getAllNewsPosts requires companyId");
+  }
 
   const signAvatarUrl = async (avatarUrl: string | null | undefined): Promise<string | null> => {
     if (!avatarUrl) return null;
@@ -42,7 +46,10 @@ export async function getAllNewsPosts(companyId?: string, userId?: string) {
   const posts = await prisma.newsPost.findMany({
     where: {
       publishedAt: { not: null },
-      ...(companyId ? { User: { is: { companyId } } } : {}),
+      OR: [
+        { companyId },
+        { User: { is: { companyId } } },
+      ],
     },
     orderBy: { publishedAt: "desc" },
     include: {

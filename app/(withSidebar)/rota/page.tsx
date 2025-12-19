@@ -146,7 +146,7 @@ interface FilterComboboxProps {
   isLoading?: boolean;
 }
 
-function FilterCombobox({ label, placeholder, options, value, onChange, isLoading }: FilterComboboxProps) {
+export function FilterCombobox({ label, placeholder, options, value, onChange, isLoading }: FilterComboboxProps) {
   const [open, setOpen] = useState(false);
   const selectedOption = options.find(option => option.value === value);
 
@@ -185,7 +185,7 @@ function FilterCombobox({ label, placeholder, options, value, onChange, isLoadin
                 {options.map(option => (
                   <CommandItem
                     key={option.value}
-                    value={option.label}
+                    value={option.value}
                     onSelect={() => {
                       onChange(option.value);
                       setOpen(false);

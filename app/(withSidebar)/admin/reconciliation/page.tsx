@@ -119,8 +119,11 @@ export default function ReconciliationHubPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dayData, setDayData] = useState<DayData | null>(null);
   const [stats, setStats] = useState<StatsData | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [dayLoading, setDayLoading] = useState(false);
+  const [dayError, setDayError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   // Filters
@@ -171,21 +174,53 @@ export default function ReconciliationHubPage() {
 
   // Fetch stats for the current week
   const fetchStats = useCallback(async () => {
+    setStatsLoading(true);
+    setStatsError(null);
     try {
       const response = await fetch(
         `/api/reconciliation/stats?period=custom&startDate=${weekStart.toISOString()}&endDate=${weekEnd.toISOString()}`
       );
-      if (!response.ok) throw new Error('Failed to fetch stats');
+      if (!response.ok) {
+        let errorMessage = 'Failed to load weekly stats';
+        try {
+          const text = await response.text();
+          if (text) {
+            const parsed = JSON.parse(text);
+            if (parsed?.error) errorMessage = parsed.error;
+          }
+        } catch {
+          // ignore
+        }
+        setStats(null);
+        setStatsError(errorMessage);
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+        return;
+      }
       const data = await response.json();
       setStats(data.stats);
     } catch (err) {
       console.error('Error fetching stats:', err);
+      const errorMessage = 'Failed to load weekly stats';
+      setStats(null);
+      setStatsError(errorMessage);
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setStatsLoading(false);
     }
-  }, [weekStart, weekEnd]);
+  }, [weekStart, weekEnd, toast]);
 
   // Fetch day data
   const fetchDayData = useCallback(async (date: Date) => {
     setDayLoading(true);
+    setDayError(null);
     try {
       const dateStr = format(date, 'yyyy-MM-dd');
       const response = await fetch(`/api/reconciliation/day/${dateStr}`);
@@ -222,6 +257,9 @@ export default function ReconciliationHubPage() {
       setDayData(processed);
     } catch (err) {
       console.error('Error fetching day data:', err);
+      setDayData(null);
+      setSelectedEntries(new Set());
+      setDayError('Failed to load reconciliation data');
       toast({
         title: 'Error',
         description: 'Failed to load reconciliation data',
@@ -322,6 +360,7 @@ export default function ReconciliationHubPage() {
           description: 'Selected entries do not have timesheet data yet. Clock entries need to be processed first.',
           variant: 'destructive',
         });
+        setSelectedEntries(new Set());
         return;
       }
       
@@ -407,6 +446,7 @@ export default function ReconciliationHubPage() {
               fetchStats();
               if (selectedDate) fetchDayData(selectedDate);
             }}
+            disabled={statsLoading}
             className="rounded-xl"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -416,6 +456,32 @@ export default function ReconciliationHubPage() {
       </div>
 
       {/* Stats Cards */}
+      {statsError && (
+        <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-rose-500 mt-0.5" />
+              <div>
+                <p className="font-semibold text-foreground">Unable to load weekly stats</p>
+                <p className="text-sm text-muted-foreground">{statsError}</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => fetchStats()}
+              disabled={statsLoading}
+              className="rounded-xl"
+            >
+              {statsLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Retry stats
+            </Button>
+          </div>
+        </div>
+      )}
       {stats && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -615,6 +681,26 @@ export default function ReconciliationHubPage() {
             {dayLoading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              </div>
+            ) : dayError ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="p-4 rounded-2xl bg-muted border border-border mb-4">
+                  <AlertCircle className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Unable to load day data</h3>
+                <p className="text-muted-foreground text-sm mt-1 max-w-xs">Please try again.</p>
+                <div className="mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (selectedDate) fetchDayData(selectedDate);
+                    }}
+                    className="rounded-xl"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry
+                  </Button>
+                </div>
               </div>
             ) : filteredEntries.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">

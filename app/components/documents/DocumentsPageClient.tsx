@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "@/components/ui/Button";
@@ -452,6 +452,15 @@ function DocumentsContent() {
   const [uploadPreviewError, setUploadPreviewError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
 
+  const uploadPreviewTimeoutRef = useRef<number | null>(null);
+
+  const clearUploadPreviewTimeout = useCallback(() => {
+    if (uploadPreviewTimeoutRef.current !== null) {
+      window.clearTimeout(uploadPreviewTimeoutRef.current);
+      uploadPreviewTimeoutRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     if (file) {
       const url = URL.createObjectURL(file);
@@ -463,6 +472,8 @@ function DocumentsContent() {
   }, [file]);
 
   useEffect(() => {
+    clearUploadPreviewTimeout();
+
     if (!uploadPreviewOpen) {
       setUploadPreviewLoading(false);
       setUploadPreviewError(null);
@@ -478,13 +489,16 @@ function DocumentsContent() {
     setUploadPreviewLoading(true);
     setUploadPreviewError(null);
 
-    const timeoutId = window.setTimeout(() => {
+    uploadPreviewTimeoutRef.current = window.setTimeout(() => {
+      uploadPreviewTimeoutRef.current = null;
       setUploadPreviewLoading(false);
       setUploadPreviewError("Preview is taking too long to load. Please try again.");
     }, 15000);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [uploadPreviewOpen, previewUrl]);
+    return () => {
+      clearUploadPreviewTimeout();
+    };
+  }, [uploadPreviewOpen, previewUrl, clearUploadPreviewTimeout]);
 
   const [newCategoryName, setNewCategoryName] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -1633,15 +1647,29 @@ function DocumentsContent() {
                       </motion.div>
                       <p className="font-semibold text-emerald-700 dark:text-emerald-400">{file.name}</p>
                       <p className="text-sm text-slate-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); setFile(null); }}
-                        className="text-slate-500 hover:text-red-500"
-                      >
-                        <X className="w-4 h-4 mr-1" /> Remove
-                      </Button>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            setUploadPreviewOpen(true);
+                          }}
+                          className="rounded-xl"
+                        >
+                          <Eye className="w-4 h-4 mr-1" /> Preview
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); setFile(null); }}
+                          className="text-slate-500 hover:text-red-500"
+                        >
+                          <X className="w-4 h-4 mr-1" /> Remove
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1858,10 +1886,12 @@ function DocumentsContent() {
                   className="w-full h-full"
                   title="Preview"
                   onLoad={() => {
+                    clearUploadPreviewTimeout();
                     setUploadPreviewLoading(false);
                     setUploadPreviewError(null);
                   }}
                   onError={() => {
+                    clearUploadPreviewTimeout();
                     setUploadPreviewLoading(false);
                     setUploadPreviewError("Failed to load preview.");
                   }}
@@ -1888,7 +1918,7 @@ function DocumentsContent() {
             </div>
             <DialogFooter>
               <Button
-                onClick={() => setUploadPreviewOpen(false)}
+                onClick={() => handleUploadPreviewOpenChange(false)}
                 disabled={uploadPreviewLoading && !uploadPreviewError}
               >
                 Close

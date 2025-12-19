@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["app/*"],
+      "@/components/*": ["components/*", "app/components/*"],
+      "@/lib/*": ["lib/*", "app/lib/*"],
+      "@/types/*": ["types/*", "app/types/*"],
+      "@/hooks/*": ["app/hooks/*"]
+    }
+  },
+  "include": ["./**/*.ts", "./**/*.tsx", "./globals.d.ts"],
+  "exclude": ["../node_modules", "../mobile", "../.next"]
+}

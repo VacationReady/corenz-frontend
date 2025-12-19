@@ -102,6 +102,9 @@ export default function QuickLeaveBookingModal({
   const [reason, setReason] = useState("");
   const [sickReason, setSickReason] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isFetchingData, setIsFetchingData] = useState(false);
+  const [employeesError, setEmployeesError] = useState<string | null>(null);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
@@ -124,6 +127,9 @@ export default function QuickLeaveBookingModal({
   }, [open, defaultStartDate, defaultEndDate]);
 
   const fetchData = async () => {
+    setIsFetchingData(true);
+    setEmployeesError(null);
+    setCategoriesError(null);
     try {
       const categoriesPromise = fetch("/api/event-categories");
 
@@ -139,6 +145,7 @@ export default function QuickLeaveBookingModal({
         const empRes: Response = await fetch(url, { cache: "no-store" });
 
         if (!empRes.ok) {
+          setEmployeesError("Failed to load employees");
           toast.error("Failed to load employees");
           allEmployees = [];
           break;
@@ -176,12 +183,30 @@ export default function QuickLeaveBookingModal({
       if (catRes.ok) {
         const catData = await catRes.json();
         setCategories(catData);
+      } else {
+        setCategoriesError("Failed to load leave types");
+        toast.error("Failed to load leave types");
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
+      setEmployeesError((prev) => prev ?? "Failed to load employees");
+      setCategoriesError((prev) => prev ?? "Failed to load leave types");
       toast.error("Failed to load data");
+    } finally {
+      setIsFetchingData(false);
     }
   };
+
+  const employeeSelectionDisabled =
+    isFetchingData || !!employeesError || employees.length === 0;
+  const categorySelectionDisabled =
+    isFetchingData || !!categoriesError || categories.length === 0;
+
+  useEffect(() => {
+    if (employeeSelectionDisabled) {
+      setEmployeeSearchOpen(false);
+    }
+  }, [employeeSelectionDisabled]);
 
   const handleSubmit = async () => {
     if (!selectedEmployee) {
@@ -282,6 +307,14 @@ export default function QuickLeaveBookingModal({
   
   // Check if selected category is sick leave
   const isSickCategory = selectedCat?.name?.toLowerCase().includes('sick') ?? false;
+
+  const leaveTypePlaceholder = isFetchingData
+    ? "Loading leave types..."
+    : categoriesError
+      ? "Failed to load leave types"
+      : categories.length === 0
+        ? "No leave types available"
+        : "Choose leave type...";
 
   const getEmployeeName = (emp: Employee) => {
     return emp.user?.name || `${emp.user?.firstName || ""} ${emp.user?.lastName || ""}`.trim() || "Unknown";
@@ -456,17 +489,37 @@ export default function QuickLeaveBookingModal({
                   <Users className="w-4 h-4 text-blue-600" />
                   Employee <span className="text-rose-500">*</span>
                 </Label>
+                {(employeesError || (employees.length === 0 && !isFetchingData)) && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={cn("font-medium", employeesError ? "text-rose-600" : "text-slate-500")}>
+                      {employeesError ?? "No employees available"}
+                    </span>
+                    {employeesError && (
+                      <button
+                        type="button"
+                        onClick={fetchData}
+                        disabled={isFetchingData}
+                        className="text-blue-600 hover:text-blue-700 font-medium underline disabled:opacity-50"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setEmployeeSearchOpen(!employeeSearchOpen)}
+                    disabled={employeeSelectionDisabled}
+                    data-testid="quick-leave-employee-trigger"
                     className={cn(
                       "w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 transition-all duration-200",
                       "bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800",
                       employeeSearchOpen
                         ? "border-blue-600 ring-4 ring-blue-600/20"
                         : "border-slate-200 dark:border-slate-700 hover:border-blue-300",
-                      selectedEmployee && "border-blue-200 bg-blue-50/50 dark:bg-blue-900/20"
+                      selectedEmployee && "border-blue-200 bg-blue-50/50 dark:bg-blue-900/20",
+                      employeeSelectionDisabled && "opacity-60 cursor-not-allowed"
                     )}
                   >
                     {selectedEmp ? (
@@ -500,7 +553,25 @@ export default function QuickLeaveBookingModal({
                       </div>
                     ) : (
                       <span className="text-slate-500 dark:text-slate-400">
-                        Search for an employee...
+                        {isFetchingData ? (
+                          <span
+                            className="flex items-center gap-2"
+                            data-testid="quick-leave-employees-loading"
+                          >
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                              className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-500 rounded-full"
+                            />
+                            Loading employees...
+                          </span>
+                        ) : employeesError ? (
+                          "Failed to load employees"
+                        ) : employees.length === 0 ? (
+                          "No employees available"
+                        ) : (
+                          "Search for an employee..."
+                        )}
                       </span>
                     )}
                     <ChevronDown
@@ -521,65 +592,97 @@ export default function QuickLeaveBookingModal({
                         transition={{ duration: 0.15 }}
                         className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
                       >
-                        <div className="p-3 border-b border-slate-100 dark:border-slate-700">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                            <input
-                              type="text"
-                              value={employeeSearch}
-                              onChange={(e) => setEmployeeSearch(e.target.value)}
-                              placeholder="Search by name or department..."
-                              autoFocus
-                              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border-0 text-sm focus:ring-2 focus:ring-blue-600/30 outline-none transition-all"
+                        {isFetchingData ? (
+                          <div
+                            className="flex items-center gap-2 p-4 text-sm text-slate-500"
+                            data-testid="quick-leave-employees-loading-dropdown"
+                          >
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                              className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-500 rounded-full"
                             />
+                            Loading employees...
                           </div>
-                        </div>
-                        <div className="max-h-64 overflow-y-auto p-2">
-                          {filteredEmployees.length === 0 ? (
-                            <div className="text-center py-8 text-slate-500">
-                              <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                              <p className="text-sm">No employees found</p>
+                        ) : employeesError ? (
+                          <div className="p-4 text-sm">
+                            <div className="text-rose-600 font-medium">Failed to load employees</div>
+                            <button
+                              type="button"
+                              onClick={fetchData}
+                              className="mt-2 text-blue-600 hover:text-blue-700 font-medium underline"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        ) : employees.length === 0 ? (
+                          <div className="text-center py-8 text-slate-500">
+                            <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                            <p className="text-sm">No employees available</p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="p-3 border-b border-slate-100 dark:border-slate-700">
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                  type="text"
+                                  value={employeeSearch}
+                                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                                  placeholder="Search by name or department..."
+                                  autoFocus
+                                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl border-0 text-sm focus:ring-2 focus:ring-blue-600/30 outline-none transition-all"
+                                />
+                              </div>
                             </div>
-                          ) : (
-                            filteredEmployees.slice(0, 50).map((emp) => (
-                              <button
-                                key={emp.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedEmployee(emp.id);
-                                  setEmployeeSearchOpen(false);
-                                  setEmployeeSearch("");
-                                }}
-                                className={cn(
-                                  "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-150",
-                                  selectedEmployee === emp.id
-                                    ? "bg-blue-100 dark:bg-blue-900/40"
-                                    : "hover:bg-slate-100 dark:hover:bg-slate-700/50"
-                                )}
-                              >
-                                <Avatar className="w-9 h-9 border border-slate-200 dark:border-slate-600">
-                                  <AvatarImage src={emp.user?.profileImageUrl || undefined} />
-                                  <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-500 text-white text-xs font-semibold">
-                                    {getInitials(getEmployeeName(emp))}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 text-left min-w-0">
-                                  <div className="font-medium text-slate-900 dark:text-white truncate">
-                                    {getEmployeeName(emp)}
-                                  </div>
-                                  {emp.department && (
-                                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                      {emp.department.name}
-                                    </div>
-                                  )}
+                            <div className="max-h-64 overflow-y-auto p-2">
+                              {filteredEmployees.length === 0 ? (
+                                <div className="text-center py-8 text-slate-500">
+                                  <Users className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                                  <p className="text-sm">No employees found</p>
                                 </div>
-                                {selectedEmployee === emp.id && (
-                                  <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                )}
-                              </button>
-                            ))
-                          )}
-                        </div>
+                              ) : (
+                                filteredEmployees.slice(0, 50).map((emp) => (
+                                  <button
+                                    key={emp.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedEmployee(emp.id);
+                                      setEmployeeSearchOpen(false);
+                                      setEmployeeSearch("");
+                                    }}
+                                    className={cn(
+                                      "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-150",
+                                      selectedEmployee === emp.id
+                                        ? "bg-blue-100 dark:bg-blue-900/40"
+                                        : "hover:bg-slate-100 dark:hover:bg-slate-700/50"
+                                    )}
+                                  >
+                                    <Avatar className="w-9 h-9 border border-slate-200 dark:border-slate-600">
+                                      <AvatarImage src={emp.user?.profileImageUrl || undefined} />
+                                      <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-500 text-white text-xs font-semibold">
+                                        {getInitials(getEmployeeName(emp))}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 text-left min-w-0">
+                                      <div className="font-medium text-slate-900 dark:text-white truncate">
+                                        {getEmployeeName(emp)}
+                                      </div>
+                                      {emp.department && (
+                                        <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                          {emp.department.name}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {selectedEmployee === emp.id && (
+                                      <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                    )}
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </>
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -592,8 +695,30 @@ export default function QuickLeaveBookingModal({
                   <CalendarDays className="w-4 h-4 text-blue-600" />
                   Leave Type <span className="text-rose-500">*</span>
                 </Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                {(categoriesError || (categories.length === 0 && !isFetchingData)) && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={cn("font-medium", categoriesError ? "text-rose-600" : "text-slate-500")}>
+                      {categoriesError ?? "No leave types available"}
+                    </span>
+                    {categoriesError && (
+                      <button
+                        type="button"
+                        onClick={fetchData}
+                        disabled={isFetchingData}
+                        className="text-blue-600 hover:text-blue-700 font-medium underline disabled:opacity-50"
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                )}
+                <Select
+                  value={selectedCategory}
+                  onValueChange={setSelectedCategory}
+                  disabled={categorySelectionDisabled}
+                >
                   <SelectTrigger
+                    data-testid="quick-leave-category-trigger"
                     className={cn(
                       "h-auto py-3.5 px-4 rounded-2xl border-2 transition-all duration-200",
                       "bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800",
@@ -602,7 +727,7 @@ export default function QuickLeaveBookingModal({
                         : "border-slate-200 dark:border-slate-700"
                     )}
                   >
-                    <SelectValue placeholder="Choose leave type..." />
+                    <SelectValue placeholder={leaveTypePlaceholder} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-xl">
                     {categories.map((cat) => {

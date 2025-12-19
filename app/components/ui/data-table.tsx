@@ -164,7 +164,7 @@ export function DataTable<TData, TValue>({
     const rows = table.getRowModel().rows.map((r) => r.original as TData);
     onFilteredRowsChange(rows);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(table.getState().columnFilters), JSON.stringify(table.getState().sorting), JSON.stringify(data)]);
+  }, [columnFilters, sorting, data, onFilteredRowsChange]);
 
   // External reset for filters only
   useEffect(() => {

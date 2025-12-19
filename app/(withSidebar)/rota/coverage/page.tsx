@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, AlertTriangle, CheckCircle, ChevronLeft, ChevronRight, Users, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { format, addWeeks, subWeeks, startOfWeek } from 'date-fns';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface CoverageGap {
   date: string;
@@ -47,6 +48,7 @@ function CoverageDashboardContent() {
 
   const [coverage, setCoverage] = useState<CoverageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(
     format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
   );
@@ -61,14 +63,41 @@ function CoverageDashboardContent() {
     if (!groupId) return;
 
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(
         `/api/rota-groups/${groupId}/coverage?weekStart=${currentWeekStart}`
       );
+
+      if (!response.ok) {
+        const text = await response.text();
+        let message = `Failed to load coverage analysis (HTTP ${response.status})`;
+        if (text) {
+          try {
+            const parsed = JSON.parse(text);
+            if (typeof parsed?.error === 'string' && parsed.error.trim()) {
+              message = parsed.error;
+            } else if (typeof parsed?.message === 'string' && parsed.message.trim()) {
+              message = parsed.message;
+            }
+          } catch {
+            if (text.trim()) {
+              message = text;
+            }
+          }
+        }
+
+        setCoverage(null);
+        setError(message);
+        return;
+      }
+
       const data = await response.json();
       setCoverage(data);
     } catch (error) {
       console.error('Error fetching coverage:', error);
+      setCoverage(null);
+      setError('Failed to load coverage analysis. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -110,6 +139,47 @@ function CoverageDashboardContent() {
     return (
       <div className="w-full min-h-screen bg-content-panel p-8 flex items-center justify-center">
         <div className="text-foreground text-lg">Loading coverage analysis...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full min-h-screen bg-content-panel p-8">
+        <div className="container mx-auto max-w-3xl">
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Couldn’t load coverage analysis</AlertTitle>
+            <AlertDescription>
+              <div className="space-y-3">
+                <p>{error}</p>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={fetchCoverage}
+                    className="px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all"
+                  >
+                    Retry
+                  </button>
+                  <Link
+                    href={`/admin/rota-groups/${groupId}/requirements`}
+                    className="px-4 py-2 rounded-lg bg-card hover:bg-accent border border-border text-card-foreground font-medium transition-all inline-block"
+                  >
+                    Back to Requirements
+                  </Link>
+                  <Link
+                    href="/admin/rota-groups"
+                    className="px-4 py-2 rounded-lg bg-card hover:bg-accent border border-border text-card-foreground font-medium transition-all inline-block"
+                  >
+                    Select a Different Group
+                  </Link>
+                </div>
+                <p className="text-muted-foreground">
+                  If the problem persists, try refreshing the page or contact support.
+                </p>
+              </div>
+            </AlertDescription>
+          </Alert>
+        </div>
       </div>
     );
   }

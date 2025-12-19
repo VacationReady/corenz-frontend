@@ -457,19 +457,40 @@ export default function ApprovalsPage() {
     // Small delay for animation
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    const result = await updateLeaveRequest(payload);
+    try {
+      const result = await updateLeaveRequest(payload);
 
-    if (result.success) {
-      toast.success(
-        action === "approve" ? "🎉 Leave approved successfully!" : "Leave request declined",
-        {
-          icon: action === "approve" ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-rose-500" />,
-        }
-      );
+      if (result.success) {
+        toast.success(
+          action === "approve" ? "🎉 Leave approved successfully!" : "Leave request declined",
+          {
+            icon: action === "approve" ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-rose-500" />,
+          }
+        );
+      } else {
+        const rawError = result?.error?.message;
+        const lowered = rawError?.toLowerCase();
+        const isAccessDenied = Boolean(
+          lowered &&
+            (lowered.includes("forbidden") ||
+              lowered.includes("unauthorized") ||
+              lowered.includes("access denied") ||
+              lowered.includes("permission"))
+        );
+
+        toast.error(
+          isAccessDenied
+            ? "Access denied. You may not have permission to perform this action."
+            : rawError ?? "Approval failed. Please try again."
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Approval failed. Please try again.";
+      toast.error(message || "Approval failed. Please try again.");
+    } finally {
+      setProcessingId(null);
+      setProcessingAction(null);
     }
-    
-    setProcessingId(null);
-    setProcessingAction(null);
   }, [updateLeaveRequest]);
 
   return (

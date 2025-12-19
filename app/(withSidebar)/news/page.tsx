@@ -2,14 +2,20 @@ import { getAllNewsPosts } from "@/lib/news/getAllNewsPosts";
 import { auth } from "@/lib/auth-options";
 import { prisma, ensurePrismaConnected } from "@/lib/prisma";
 import NewsPageClient from "@/components/news/NewsPageClient"; // ✅ Missing import added
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewsPage() {
   // Fetch all posts server-side, scoped to company
   const session = await auth();
+
+  if (!session?.user?.companyId) {
+    redirect("/login");
+  }
+
   await ensurePrismaConnected();
-  const posts = await getAllNewsPosts(session?.user?.companyId, session?.user?.id);
+  const posts = await getAllNewsPosts(session.user.companyId, session?.user?.id);
 
   // ✅ Transform posts minimally to ensure correct types
   const transformedPosts = posts.map((post: any) => ({

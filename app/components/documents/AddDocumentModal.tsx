@@ -148,8 +148,29 @@ export default function AddDocumentModal({
   const [isPlacementBeforeSendOpen, setIsPlacementBeforeSendOpen] = useState(false);
   const [pendingFields, setPendingFields] = useState<any[] | null>(null);
   const [objectUrl, setObjectUrl] = useState<string>("");
+  const [uploadedDocumentId, setUploadedDocumentId] = useState<string | null>(null);
 
   const user = session?.user;
+
+  useEffect(() => {
+    if (open) {
+      setUploadedDocumentId(null);
+    }
+  }, [open]);
+
+  const getErrorMessageFromResponse = async (res: Response, fallbackMessage: string) => {
+    try {
+      const data = await res.json();
+      return data?.error || data?.message || fallbackMessage;
+    } catch {
+      try {
+        const text = await res.text();
+        return text || fallbackMessage;
+      } catch {
+        return fallbackMessage;
+      }
+    }
+  };
 
   // Reset signature state when switching to company type (company docs only support acknowledgement)
   useEffect(() => {
@@ -354,22 +375,30 @@ export default function AddDocumentModal({
       });
 
       if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error || "API call failed");
+        const message = await getErrorMessageFromResponse(res, "API call failed");
+        throw new Error(message);
       }
 
       const payload = await res.json();
-      toast.success("Document uploaded successfully");
       if (requiresSignature && payload?.Document?.id) {
         // If we have pre-placement fields, post them now (server save) to preserve pre-upload UX
         if (pendingFields && pendingFields.length > 0) {
-          await tenantFetch(`/api/documents/signature-fields/${payload.Document.id}` as any, {
+          const sigRes = await tenantFetch(`/api/documents/signature-fields/${payload.Document.id}` as any, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(pendingFields),
           });
+
+          if (!sigRes.ok) {
+            const message = await getErrorMessageFromResponse(
+              sigRes,
+              "Document uploaded, but failed to save signature fields. Please try again.",
+            );
+            throw new Error(message);
+          }
         }
       }
+      toast.success("Document uploaded successfully");
       onClose();
     } catch (err) {
       toast.error((err as Error).message);
@@ -399,44 +428,73 @@ export default function AddDocumentModal({
     }
     try {
       setLoading(true);
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("name", title);
-      formData.append("category", category || "");
-      formData.append("description", description || "");
-      formData.append("employeeId", type === "employee" ? employeeId : "");
-      formData.append("type", type || "");
-      formData.append("canViewAdmin", String(canViewAdmin));
-      formData.append("canViewManager", String(canViewManager));
-      formData.append("canViewEmployee", String(canViewEmployee));
-      formData.append("requiresAck", String(requiresAck));
-      formData.append("requiresSignature", String(requiresSignature));
-      if (signatureDueAt) formData.append("signatureDueAt", signatureDueAt);
-      if (type === "company") {
-        formData.append("departments", JSON.stringify(selectedDepartments.includes("all") ? [] : selectedDepartments));
-        formData.append("jobRoles", JSON.stringify(selectedJobRoles.includes("all") ? [] : selectedJobRoles));
-        formData.append("signerDepartments", JSON.stringify(signerDepartments));
-        formData.append("signerJobRoles", JSON.stringify(signerJobRoles));
+      let documentId = uploadedDocumentId;
+
+      if (!documentId) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("name", title);
+        formData.append("category", category || "");
+        formData.append("description", description || "");
+        formData.append("employeeId", type === "employee" ? employeeId : "");
+        formData.append("type", type || "");
+        formData.append("canViewAdmin", String(canViewAdmin));
+        formData.append("canViewManager", String(canViewManager));
+        formData.append("canViewEmployee", String(canViewEmployee));
+        formData.append("requiresAck", String(requiresAck));
+        formData.append("requiresSignature", String(requiresSignature));
+        if (signatureDueAt) formData.append("signatureDueAt", signatureDueAt);
+        if (type === "company") {
+          formData.append(
+            "departments",
+            JSON.stringify(selectedDepartments.includes("all") ? [] : selectedDepartments),
+          );
+          formData.append(
+            "jobRoles",
+            JSON.stringify(selectedJobRoles.includes("all") ? [] : selectedJobRoles),
+          );
+          formData.append("signerDepartments", JSON.stringify(signerDepartments));
+          formData.append("signerJobRoles", JSON.stringify(signerJobRoles));
+        }
+        if (type === "employee" && employeeId) {
+          formData.append("signerEmployees", JSON.stringify([employeeId]));
+        } else if (signerEmployees.length) {
+          formData.append("signerEmployees", JSON.stringify(signerEmployees));
+        }
+
+        // No defer here; local placement happens pre-upload
+        const res = await tenantFetch("/api/documents/upload", {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) {
+          const message = await getErrorMessageFromResponse(res, "Upload failed");
+          throw new Error(message);
+        }
+
+        const payload = await res.json();
+        documentId = payload?.Document?.id;
+        if (!documentId) {
+          throw new Error("Upload succeeded but document id was missing");
+        }
+        setUploadedDocumentId(documentId);
       }
-      if (type === "employee" && employeeId) {
-        formData.append("signerEmployees", JSON.stringify([employeeId]));
-      } else if (signerEmployees.length) {
-        formData.append("signerEmployees", JSON.stringify(signerEmployees));
-      }
-      // No defer here; local placement happens pre-upload
-      const res = await tenantFetch("/api/documents/upload", { method: "POST", body: formData });
-      if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error || "Upload failed");
-      }
-      const payload = await res.json();
-      if (requiresSignature && fields && fields.length > 0 && payload?.Document?.id) {
-        await tenantFetch(`/api/documents/signature-fields/${payload.Document.id}` as any, {
+
+      if (requiresSignature && fields && fields.length > 0) {
+        const sigRes = await tenantFetch(`/api/documents/signature-fields/${documentId}` as any, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(fields),
         });
+        if (!sigRes.ok) {
+          const message = await getErrorMessageFromResponse(
+            sigRes,
+            "Document uploaded, but failed to save signature fields. Please retry saving the fields.",
+          );
+          throw new Error(message);
+        }
       }
+
       toast.success("Document uploaded successfully");
       onClose();
     } catch (e) {

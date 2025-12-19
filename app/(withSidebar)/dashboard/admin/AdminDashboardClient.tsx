@@ -129,17 +129,17 @@ function EntitlementProjection({
   return text ? <div className="text-xs text-muted-foreground">{text}</div> : null;
 }
 
- function CompactApprovalsList({
+export function CompactApprovalsList({
   scope,
   departmentId,
   onOpenApprovalItem,
   onActionComplete,
- }: {
+}: {
   scope?: "my" | "all";
   departmentId?: string;
   onOpenApprovalItem?: (item: any) => void;
   onActionComplete?: () => void;
- }) {
+}) {
   const [items, setItems] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -365,11 +365,20 @@ function EntitlementProjection({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => action(it.id, "decline")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  action(it.id, "decline");
+                }}
               >
                 Decline
               </Button>
-              <Button size="sm" onClick={() => action(it.id, "approve")}>
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  action(it.id, "approve");
+                }}
+              >
                 Approve
               </Button>
             </div>

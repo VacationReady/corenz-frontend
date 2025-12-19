@@ -346,6 +346,8 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
               metadata: item,
               actionLabel: "Complete",
               onAction: async () => {
+                const processingId = `action-${item.id}`;
+                setProcessing(processingId);
                 try {
                   const res = await fetch('/api/action-items', {
                     method: 'PATCH',
@@ -355,9 +357,26 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
                   if (res.ok) {
                     toast.success('Task completed!');
                     mutateActionItems();
+                  } else {
+                    const bodyText = await res.text().catch(() => "");
+                    let errorMessage = "";
+                    try {
+                      const parsed = bodyText ? JSON.parse(bodyText) : null;
+                      errorMessage = parsed?.error || parsed?.message || parsed?.details || "";
+                    } catch {
+                      // ignore parse errors
+                    }
+
+                    if (!errorMessage) {
+                      errorMessage = bodyText;
+                    }
+
+                    toast.error(errorMessage || "Failed to complete task");
                   }
                 } catch (error) {
                   toast.error('Failed to complete task');
+                } finally {
+                  setProcessing((current) => (current === processingId ? null : current));
                 }
               }
             });

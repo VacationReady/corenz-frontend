@@ -104,13 +104,23 @@ export async function POST(request: NextRequest) {
         companyId: true,
         firstName: true,
         lastName: true,
+        sessionVersion: true,
+        isActivated: true,
       },
     });
 
-    if (!user || !user.companyId) {
+    if (!user || !user.companyId || !user.isActivated) {
       return NextResponse.json(
         { error: "User not found or inactive" },
         { status: 401 }
+      );
+    }
+
+    const tokenSessionVersion = (decoded as any).sessionVersion ?? 0;
+    if (user.sessionVersion !== tokenSessionVersion) {
+      return NextResponse.json(
+        { error: "Session is no longer valid" },
+        { status: 401 },
       );
     }
 
@@ -124,6 +134,7 @@ export async function POST(request: NextRequest) {
         companyId: user.companyId,
         homeCompanyId:
           ((decoded.homeCompanyId as string | undefined) ?? user.companyId),
+        sessionVersion: user.sessionVersion,
         sub: user.id,
       },
       secret: env.NEXTAUTH_SECRET,

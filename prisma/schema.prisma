@@ -2064,6 +2064,7 @@ model User {
   role                                                                     Role                            @default(EMPLOYEE)
   createdAt                                                                DateTime                        @default(now())
   updatedAt                                                                DateTime
+  sessionVersion                                                           Int                             @default(0)
   emailVerified                                                            DateTime?
   name                                                                     String?
   departmentId                                                             String?

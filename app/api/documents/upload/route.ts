@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth-options";
 import supabase from "@/lib/supabase-admin";
 import { z } from "zod";
@@ -7,6 +8,10 @@ import { resend } from "@/lib/resend";
 import { getAppBaseUrl } from "@/lib/email/template";
 import { buildDocumentNotificationEmail } from "@/lib/email/documentNotifications";
 import { createActionItem, createActionItemsBulk } from "@/lib/action-items-helper";
+
+type DocumentWithRelations = Prisma.DocumentGetPayload<{
+  include: { Department: true; JobRole: true };
+}>;
 
 const optionalStringFromForm = z.preprocess(
   (val) => {
@@ -112,6 +117,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (!session.user.role || !["ADMIN", "SUPER_ADMIN", "MANAGER"].includes(session.user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const formData = await req.formData();
 
   try {
@@ -155,13 +164,38 @@ export async function POST(req: Request) {
       deferNotifications: formData.get("deferNotifications"),
     });
 
+    const allowedMimeTypes = [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
+
+    if (!allowedMimeTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: "Unsupported file type" },
+        { status: 400 },
+      );
+    }
+
+    if (file.size > MAX_FILE_BYTES) {
+      return NextResponse.json(
+        { error: "File too large" },
+        { status: 400 },
+      );
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
-    const fileName = `${Date.now()}-${file.name}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9_.-]+/g, "-");
+    const fileName = `${Date.now()}-${safeName}`;
+    const path = `${session.user.companyId}/${fileName}`;
 
     // ✅ Upload to Supabase
     const { data, error } = await supabase.storage
       .from("documents")
-      .upload(fileName, buffer, {
+      .upload(path, buffer, {
         contentType: file.type,
         upsert: false,
       });
@@ -185,42 +219,49 @@ export async function POST(req: Request) {
 
     const fileUrl = signedUrlData?.signedUrl ?? null;
 
-    // ✅ Save document in DB
-    const document = await prisma.document.create({
-      data: {
-        id: crypto.randomUUID(),
-        name,
-        category: category ?? null,
-        path: data.path,
-        size: file.size,
-        type: file.type,
-        url: data.path,
-        uploaderId: session.user.id,
-        companyId: session.user.companyId,
-        employeeId: type === "employee" && employeeId ? employeeId : null,
-        canViewAdmin,
-        canViewManager,
-        canViewEmployee,
-        requiresAck, // ✅ Persist toggle!
-        requireAckFromNewStarters, // ✅ Persist new field!
-        requiresSignature,
-        signatureDueAt: signatureDueAt ?? null,
-        ...(departments.length > 0 && departments[0] !== "all"
-          ? {
-              Department: {
-                connect: departments.map((d) => ({ id: d })),
-              },
-            }
-          : {}),
-        ...(jobRoles.length > 0 && jobRoles[0] !== "all"
-          ? { JobRole: { connect: jobRoles.map((j) => ({ id: j })) } }
-          : {}),
-      },
-      include: {
-        Department: true,
-        JobRole: true,
-      },
-    });
+    let document: DocumentWithRelations | null = null;
+
+    try {
+      // ✅ Save document in DB
+      document = await prisma.document.create({
+        data: {
+          id: crypto.randomUUID(),
+          name,
+          category: category ?? null,
+          path: data.path,
+          size: file.size,
+          type: file.type,
+          url: data.path,
+          uploaderId: session.user.id,
+          companyId: session.user.companyId,
+          employeeId: type === "employee" && employeeId ? employeeId : null,
+          canViewAdmin,
+          canViewManager,
+          canViewEmployee,
+          requiresAck, // ✅ Persist toggle!
+          requireAckFromNewStarters, // ✅ Persist new field!
+          requiresSignature,
+          signatureDueAt: signatureDueAt ?? null,
+          ...(departments.length > 0 && departments[0] !== "all"
+            ? {
+                Department: {
+                  connect: departments.map((d: string) => ({ id: d })),
+                },
+              }
+            : {}),
+          ...(jobRoles.length > 0 && jobRoles[0] !== "all"
+            ? { JobRole: { connect: jobRoles.map((j: string) => ({ id: j })) } }
+            : {}),
+        },
+        include: {
+          Department: true,
+          JobRole: true,
+        },
+      });
+    } catch (err) {
+      await supabase.storage.from("documents").remove([path]);
+      throw err;
+    }
 
     const acknowledgementDueDate = signatureDueAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
@@ -236,8 +277,8 @@ export async function POST(req: Request) {
     let employeesInScope: { id: string; userId: string | null }[] | null = null;
 
     if (!document.employeeId && (requiresAck || requiresSignature)) {
-      const departmentIds = document.Department.map((d) => d.id);
-      const jobRoleIds = document.JobRole.map((j) => j.id);
+      const departmentIds = document.Department.map((d: { id: string }) => d.id);
+      const jobRoleIds = document.JobRole.map((j: { id: string }) => j.id);
 
       if (
         (!departmentIds || departmentIds.length === 0) &&

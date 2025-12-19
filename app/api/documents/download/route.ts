@@ -45,6 +45,38 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
 
+    const companyPrefix = `${session.user.companyId}/`;
+    const normalizedPath = document.path.replace(/\\/g, "/");
+    let storagePath = normalizedPath;
+
+    const hasTraversal = normalizedPath
+      .split("/")
+      .some((segment) => segment === "..");
+
+    if (hasTraversal) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const isPrefixed = normalizedPath.startsWith(companyPrefix);
+    if (!isPrefixed) {
+      // Legacy documents may not have been stored with a company prefix. To avoid
+      // cross-tenant reuse of a shared path, block access if any other company
+      // references the same storage key.
+      const otherCompanyReference = await prisma.document.findFirst({
+        where: {
+          path: normalizedPath,
+          companyId: { not: session.user.companyId },
+        },
+        select: { id: true },
+      });
+
+      if (otherCompanyReference) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    } else {
+      storagePath = document.path;
+    }
+
     // Role-based access flags
     let allowed = false;
     if (["ADMIN", "SUPER_ADMIN"].includes(user.role))
@@ -72,7 +104,7 @@ export async function GET(req: Request) {
 
     const { data, error } = await supabase.storage
       .from("documents")
-      .createSignedUrl(document.path, 60 * 5); // 5-minute expiry
+      .createSignedUrl(storagePath, 60 * 5); // 5-minute expiry
 
     if (error) {
       console.error(error);

@@ -46,20 +46,25 @@ export async function GET(req: Request) {
     }
 
     const companyPrefix = `${session.user.companyId}/`;
-    let storagePath = document.path;
+    const normalizedPath = document.path.replace(/\\/g, "/");
+    let storagePath = normalizedPath;
 
-    if (document.path.includes("..")) {
+    const hasTraversal = normalizedPath
+      .split("/")
+      .some((segment) => segment === "..");
+
+    if (hasTraversal) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const isPrefixed = document.path.startsWith(companyPrefix);
+    const isPrefixed = normalizedPath.startsWith(companyPrefix);
     if (!isPrefixed) {
       // Legacy documents may not have been stored with a company prefix. To avoid
       // cross-tenant reuse of a shared path, block access if any other company
       // references the same storage key.
       const otherCompanyReference = await prisma.document.findFirst({
         where: {
-          path: document.path,
+          path: normalizedPath,
           companyId: { not: session.user.companyId },
         },
         select: { id: true },

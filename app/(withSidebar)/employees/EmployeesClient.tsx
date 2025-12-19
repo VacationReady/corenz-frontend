@@ -405,9 +405,10 @@ function EmployeesContent(props: EmployeesClientProps) {
           const emp = row.original as Employee;
           const handleClick = (e: React.MouseEvent) => {
             e.preventDefault();
-            e.stopPropagation();
-            // Use router.push() directly instead of relying on Link's automatic navigation
-            router.push(`/employees/${emp.id}/overview`);
+            // Wrap router.push in startTransition for proper Next.js App Router navigation
+            startTransition(() => {
+              router.push(`/employees/${emp.id}/overview`);
+            });
           };
           return (
             <Link
@@ -621,7 +622,7 @@ function EmployeesContent(props: EmployeesClientProps) {
       }] : []),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeTab, departments, jobRoles, isAdmin],
+    [activeTab, departments, jobRoles, isAdmin, router, startTransition],
   );
 
   // Export CSV

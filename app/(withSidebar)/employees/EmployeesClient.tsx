@@ -403,16 +403,26 @@ function EmployeesContent(props: EmployeesClientProps) {
         enableColumnFilter: false,
         cell: ({ row }) => {
           const emp = row.original as Employee;
+          const targetUrl = `/employees/${emp.id}/overview`;
           const handleClick = (e: React.MouseEvent) => {
+            console.log('[NAV DEBUG] Click handler fired for:', targetUrl);
+            console.log('[NAV DEBUG] Event defaultPrevented before:', e.defaultPrevented);
             e.preventDefault();
-            // Wrap router.push in startTransition for proper Next.js App Router navigation
-            startTransition(() => {
-              router.push(`/employees/${emp.id}/overview`);
-            });
+            e.stopPropagation();
+            console.log('[NAV DEBUG] Calling router.push...');
+            try {
+              startTransition(() => {
+                console.log('[NAV DEBUG] Inside startTransition, calling router.push');
+                router.push(targetUrl);
+                console.log('[NAV DEBUG] router.push called successfully');
+              });
+            } catch (err) {
+              console.error('[NAV DEBUG] Error in navigation:', err);
+            }
           };
           return (
             <Link
-              href={`/employees/${emp.id}/overview`}
+              href={targetUrl}
               onClick={handleClick}
               className="group flex items-center gap-3 py-1"
             >

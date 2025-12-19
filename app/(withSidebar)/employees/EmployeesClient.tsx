@@ -139,22 +139,20 @@ function EmployeesContent(props: EmployeesClientProps) {
   useEffect(() => {
     setIsMounted(true);
     
-    // DEBUG: Check what's intercepting clicks
-    const handler = (e: MouseEvent) => {
-      const anchor = (e.target as HTMLElement)?.closest?.('a[href]');
-      if (anchor) {
-        console.log('[DEBUG] Click on anchor:', {
-          href: anchor.getAttribute('href'),
-          defaultPrevented: e.defaultPrevented,
-        });
-        // Log after event completes
-        setTimeout(() => {
-          console.log('[DEBUG] After click - defaultPrevented:', e.defaultPrevented, 'URL:', window.location.pathname);
-        }, 0);
+    // DEBUG: Monkey-patch to find what's calling preventDefault
+    const origPD = Event.prototype.preventDefault;
+    Event.prototype.preventDefault = function(this: Event) {
+      const target = this.target as HTMLElement;
+      if (target?.closest?.('a[href]')) {
+        console.log('[DEBUG] preventDefault called on link click!');
+        console.trace('[DEBUG] Stack trace:');
       }
+      return origPD.call(this);
     };
-    document.addEventListener('click', handler, true);
-    return () => document.removeEventListener('click', handler, true);
+    
+    return () => {
+      Event.prototype.preventDefault = origPD;
+    };
   }, []);
   
   // Open dropdown and calculate position in one action

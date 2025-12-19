@@ -144,18 +144,44 @@ function EmployeesContent(props: EmployeesClientProps) {
       const target = e.target as HTMLElement;
       const anchor = target.closest('a[href]') as HTMLAnchorElement | null;
       if (anchor) {
+        const href = anchor.getAttribute('href');
         console.log('[EmployeesClient DEBUG] Anchor click detected:', {
-          href: anchor.getAttribute('href'),
+          href,
           defaultPrevented: e.defaultPrevented,
           phase: e.eventPhase === 1 ? 'CAPTURE' : e.eventPhase === 2 ? 'TARGET' : 'BUBBLE',
           target: e.target,
+        });
+        
+        // Check after event processing if default was prevented
+        setTimeout(() => {
+          console.log('[EmployeesClient DEBUG] After event processing:', {
+            currentPathname: window.location.pathname,
+            expectedHref: href,
+            didNavigate: window.location.pathname === href,
+          });
+        }, 50);
+      }
+    };
+    
+    // Also listen in bubble phase to see if something prevents default later
+    const debugBubbleHandler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a[href]') as HTMLAnchorElement | null;
+      if (anchor) {
+        console.log('[EmployeesClient DEBUG] Bubble phase:', {
+          href: anchor.getAttribute('href'),
+          defaultPrevented: e.defaultPrevented,
         });
       }
     };
     
     // Listen in capture phase to see the event first
     document.addEventListener('click', debugClickHandler, true);
-    return () => document.removeEventListener('click', debugClickHandler, true);
+    document.addEventListener('click', debugBubbleHandler, false);
+    return () => {
+      document.removeEventListener('click', debugClickHandler, true);
+      document.removeEventListener('click', debugBubbleHandler, false);
+    };
   }, []);
   
   // Open dropdown and calculate position in one action
@@ -433,6 +459,10 @@ function EmployeesContent(props: EmployeesClientProps) {
                   target: e.target,
                   currentTarget: e.currentTarget,
                 });
+                // Check after a tick if navigation happened
+                setTimeout(() => {
+                  console.log('[EmployeesClient] After click - current URL:', window.location.pathname);
+                }, 100);
               }}
             >
               <div className="relative">

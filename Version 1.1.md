@@ -694,8 +694,28 @@ Removed the duplicate “Complete” task created for leave approvals so leave r
 
 169. Tenant Switch Recovery Path Clarification
 
-Updated the tenant switch error screen so “Request a new switch link” takes admins directly back to the Tenant Admin dashboard (after login) rather than looping to the same destination as “Back to Admin Portal”. Also wrapped `useSearchParams()` usage on `/tenant-admin` in a Suspense boundary to prevent prerender build failures.
+Updated the tenant switch error screen so “Request a new switch link” routes users into the real recovery flow: it checks Tenant Admin authentication and sends authenticated admins straight to the Tenant Admin dashboard tenants section, otherwise it redirects to the Tenant Admin login with the correct `next` destination. “Back to Admin Portal” remains navigation-only, avoiding duplicate exits.
 
 170. Employees Directory Performance Optimisation
 
 Improved the Employees directory performance for larger tenants by virtualising table rows so the UI only renders what’s visible on screen. Search and filters are now applied server-side with paginated requests, reducing expensive client-side filtering and smoothing scrolling when viewing hundreds of employees.
+
+171. Metadata Editor Header CTA Fix
+
+Fixed the Journey Metadata Editor header actions so key CTAs are no longer dead-ends. “Create new template” now routes to the onboarding template builder, “View audit log” links to the Audit Log, and “Import JSON” is clearly disabled with an explanatory tooltip until an import flow is available.
+
+172. Documents Preview Acknowledgement/Signature State Fix
+
+Fixed the document preview so acknowledgement/signature badges and required actions are always derived from the currently selected document, rather than persisting from a previously opened file. This prevents users being shown an incorrect “Acknowledged”/“Signed” status and accidentally missing mandatory tasks.
+
+173. Employees Directory Initial Load Access Control Fix
+
+Ensured the Employees directory applies role-based scoping on the initial server render, preventing a brief flash of the full company list for employee and manager permission profiles. This removes transient exposure by loading only the permitted team/department results from first paint.
+
+174. Documents Signature Field Placement Notifications
+
+Ensured admins can complete the signature flow when placing fields after upload by adding a “Save & Send Notifications” path to the field placement modal. Saving now dispatches signer notifications, provides clear success feedback, and refreshes the documents list so documents do not stall silently.
+
+175. Metadata Editor Template Switch Loading State
+
+Prevented stale template details from lingering when switching selections in the Journey Metadata Editor by clearing the detail panels immediately and showing skeleton loading states until the new template metadata loads. Detail actions are disabled while loading to avoid editing or publishing the wrong template.

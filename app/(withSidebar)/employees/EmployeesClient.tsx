@@ -403,15 +403,17 @@ function EmployeesContent(props: EmployeesClientProps) {
         enableColumnFilter: false,
         cell: ({ row }) => {
           const emp = row.original as Employee;
-          const handleClick = () => {
-            // Use window.location for navigation as a workaround for router issues
-            window.location.href = `/employees/${emp.id}/overview`;
+          const handleClick = (e: React.MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Use router.push() directly instead of relying on Link's automatic navigation
+            router.push(`/employees/${emp.id}/overview`);
           };
           return (
-            <button
-              type="button"
+            <Link
+              href={`/employees/${emp.id}/overview`}
               onClick={handleClick}
-              className="group flex items-center gap-3 py-1 text-left w-full cursor-pointer"
+              className="group flex items-center gap-3 py-1"
             >
               <div className="relative">
                 <Avatar
@@ -427,7 +429,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 </span>
                 <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
               </div>
-            </button>
+            </Link>
           );
         },
       },

@@ -203,6 +203,8 @@ export async function GET() {
       "holidayCarryover",
       "holidayCurrentBalance",
       "holidayYear",
+      "sickTotalBalance",
+      "sickCurrentBalance",
       "departmentName",
       "jobRoleName",
       "employmentType",
@@ -217,6 +219,10 @@ export async function GET() {
       "emergencyContactRelationship",
       "emergencyContactPhone",
       "emergencyContactEmail",
+      "employmentCheckType",
+      "employmentCheckDocumentNumber",
+      "employmentCheckIssueDate",
+      "employmentCheckExpiryDate",
       "driverLicenceType",
       "driverLicenceNumber",
       "driverLicenceIssueDate",
@@ -242,6 +248,8 @@ export async function GET() {
         "3",
         "18",
         "2024",
+        "10",
+        "8",
         departments[0]?.name || "Engineering",
         jobRoles[0]?.name || "Software Engineer",
         "Full Time",
@@ -256,6 +264,10 @@ export async function GET() {
         "Spouse",
         "+64 21 555 0102",
         "jane.doe@example.com",
+        "Right to Work",
+        "RTW-2024-001",
+        "2023-12-01",
+        "2025-12-01",
         "Full",
         "DL123456",
         "2022-02-10",
@@ -279,6 +291,8 @@ export async function GET() {
         "5",
         "22",
         "2024",
+        "10",
+        "10",
         departments[1]?.name || "Marketing",
         jobRoles[1]?.name || "Marketing Manager",
         "Full Time",
@@ -293,6 +307,10 @@ export async function GET() {
         "Partner",
         "+64 21 555 0203",
         "john.smith@example.com",
+        "Police Vetting",
+        "PV-2023-045",
+        "2023-11-15",
+        "2025-11-15",
         "Restricted",
         "DL654321",
         "2021-07-01",
@@ -370,13 +388,17 @@ Please import the files in this exact order:
 ### Employees
 - **Required**: firstName, lastName, email (keep these as the first columns)
 - **Recommended**: departmentName, jobRoleName, workingPatternName, employmentType, contractType, startDate, managerEmail and/or lineManagerName
-- **Optional**: Holiday balances, emergency contacts, driver licence details
+- **Optional**: Holiday balances, sick leave balances, emergency contacts, driver licence details
 - **Optional (Employment checks)**: employmentCheckType, employmentCheckDocumentNumber, employmentCheckIssueDate, employmentCheckExpiryDate
 - **Formatting**:
   - Dates must use YYYY-MM-DD
   - Tax codes follow NZ IRD format (examples: M, ME, M SL, ME SL, SB, S, SH, ST, SA, SL)
   - KiwiSaver enrolled accepts Yes/No, True/False, Y/N, or 1/0
   - Numeric fields can include decimals (e.g. 37.5 for hours)
+
+### Sick Leave Balances
+- **Optional**: sickTotalBalance, sickCurrentBalance
+- If you provide both total and current, the system will calculate used sick leave as (total - current)
 
 ### Payroll
 - **Required**: email

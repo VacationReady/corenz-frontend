@@ -26,6 +26,8 @@ const EMPLOYEE_TEMPLATE_HEADERS = [
   "holidayCarryover",
   "holidayCurrentBalance",
   "holidayYear",
+  "sickTotalBalance",
+  "sickCurrentBalance",
   "departmentName",
   "jobRoleName",
   "employmentType",
@@ -87,6 +89,8 @@ const EMPLOYEE_SUB_TEMPLATE_FIELD_MAP: Record<string, string[]> = {
     "holidayCarryover",
     "holidayCurrentBalance",
     "holidayYear",
+    "sickTotalBalance",
+    "sickCurrentBalance",
     "employmentCheckType",
     "employmentCheckDocumentNumber",
     "employmentCheckIssueDate",
@@ -291,6 +295,8 @@ const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
     holidayCarryover: "3",
     holidayCurrentBalance: "18",
     holidayYear: "2024",
+    sickTotalBalance: "10",
+    sickCurrentBalance: "8",
     departmentName: "Engineering",
     jobRoleName: "Software Engineer",
     employmentType: "Full Time",
@@ -305,10 +311,10 @@ const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
     emergencyContactRelationship: "Spouse",
     emergencyContactPhone: "+64 21 555 0102",
     emergencyContactEmail: "jane.doe@example.com",
-    employmentCheckType: "Passport",
-    employmentCheckDocumentNumber: "P123456789",
-    employmentCheckIssueDate: "2022-02-10",
-    employmentCheckExpiryDate: "2032-02-09",
+    employmentCheckType: "Right to Work",
+    employmentCheckDocumentNumber: "RTW-2024-001",
+    employmentCheckIssueDate: "2023-12-01",
+    employmentCheckExpiryDate: "2025-12-01",
     driverLicenceType: "Full",
     driverLicenceNumber: "DL123456",
     driverLicenceIssueDate: "2022-02-10",
@@ -332,6 +338,8 @@ const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
     holidayCarryover: "5",
     holidayCurrentBalance: "22",
     holidayYear: "2024",
+    sickTotalBalance: "10",
+    sickCurrentBalance: "10",
     departmentName: "Marketing",
     jobRoleName: "Marketing Manager",
     employmentType: "Full Time",
@@ -346,10 +354,10 @@ const EMPLOYEE_SAMPLE_ROWS: Array<Record<string, string>> = [
     emergencyContactRelationship: "Partner",
     emergencyContactPhone: "+64 21 555 0203",
     emergencyContactEmail: "john.smith@example.com",
-    employmentCheckType: "Visa",
-    employmentCheckDocumentNumber: "V987654321",
-    employmentCheckIssueDate: "2021-03-01",
-    employmentCheckExpiryDate: "2024-03-01",
+    employmentCheckType: "Police Vetting",
+    employmentCheckDocumentNumber: "PV-2023-045",
+    employmentCheckIssueDate: "2023-11-15",
+    employmentCheckExpiryDate: "2025-11-15",
     driverLicenceType: "Restricted",
     driverLicenceNumber: "DL654321",
     driverLicenceIssueDate: "2021-07-01",
@@ -380,6 +388,8 @@ const employeeImportSchema = z.object({
   holidayCarryover: z.string().optional(),
   holidayCurrentBalance: z.string().optional(),
   holidayYear: z.string().optional(),
+  sickTotalBalance: z.string().optional(),
+  sickCurrentBalance: z.string().optional(),
 
   // Employment details
   departmentName: z.string().optional(),
@@ -783,6 +793,10 @@ export async function POST(request: NextRequest) {
           validatedData.holidayCurrentBalance,
           "holidayCurrentBalance"
         );
+
+        const sickTotalBalance = parseOptionalNumber(validatedData.sickTotalBalance, "sickTotalBalance");
+        const sickCurrentBalance = parseOptionalNumber(validatedData.sickCurrentBalance, "sickCurrentBalance");
+
         const holidayYearInput = trimToUndefined(validatedData.holidayYear);
         let holidayYear: number | undefined;
         let holidayCarryoverExpiry: Date | undefined;
@@ -1213,6 +1227,64 @@ export async function POST(request: NextRequest) {
               carryoverDays: carryoverDaysRounded,
               daysAllocated: totalDays,
               carryoverExpiry: holidayCarryoverExpiry ?? null,
+              updatedAt: new Date(),
+            },
+          });
+        }
+
+        if (sickTotalBalance !== undefined || sickCurrentBalance !== undefined) {
+          let sickCategory = await prisma.eventCategory.findFirst({
+            where: {
+              companyId: session.user.companyId,
+              name: { equals: "Sick Leave", mode: "insensitive" },
+            },
+          });
+
+          if (!sickCategory) {
+            sickCategory = await prisma.eventCategory.create({
+              data: {
+                id: crypto.randomUUID(),
+                companyId: session.user.companyId,
+                name: "Sick Leave",
+                requiresApproval: true,
+                adminOnly: false,
+                isActive: true,
+                categoryType: "TIME_OFF",
+                color: "#1D4ED8",
+                systemDefined: true,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              },
+            });
+          }
+
+          const totalDays = roundToTwoDecimals(sickTotalBalance ?? sickCurrentBalance ?? 0);
+          const usedDays =
+            sickTotalBalance !== undefined && sickCurrentBalance !== undefined
+              ? roundToTwoDecimals(Math.max(sickTotalBalance - sickCurrentBalance, 0))
+              : 0;
+
+          await prisma.leaveEntitlement.upsert({
+            where: {
+              employeeId_eventCategoryId: {
+                employeeId: employee.id,
+                eventCategoryId: sickCategory.id,
+              },
+            },
+            update: {
+              totalDays,
+              usedDays,
+              daysAllocated: totalDays,
+              updatedAt: new Date(),
+            },
+            create: {
+              id: crypto.randomUUID(),
+              employeeId: employee.id,
+              companyId: session.user.companyId,
+              eventCategoryId: sickCategory.id,
+              totalDays,
+              usedDays,
+              daysAllocated: totalDays,
               updatedAt: new Date(),
             },
           });

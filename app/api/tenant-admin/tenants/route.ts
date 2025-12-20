@@ -294,6 +294,8 @@ export async function POST(request: NextRequest) {
         adminUser,
         activationToken: activationToken.token,
       };
+    }, {
+      timeout: 120000,
     });
 
     // Send activation email to the tenant admin

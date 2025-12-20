@@ -371,11 +371,29 @@ Please import the files in this exact order:
 - **Required**: firstName, lastName, email (keep these as the first columns)
 - **Recommended**: departmentName, jobRoleName, workingPatternName, employmentType, contractType, startDate, managerEmail and/or lineManagerName
 - **Optional**: Holiday balances, emergency contacts, driver licence details
+- **Optional (Employment checks)**: employmentCheckType, employmentCheckDocumentNumber, employmentCheckIssueDate, employmentCheckExpiryDate
 - **Formatting**:
   - Dates must use YYYY-MM-DD
-  - Tax codes follow NZ IRD format (e.g. M, ME SL, S)
-  - KiwiSaver enrolled accepts Yes/No, True/False, or 1/0
+  - Tax codes follow NZ IRD format (examples: M, ME, M SL, ME SL, SB, S, SH, ST, SA, SL)
+  - KiwiSaver enrolled accepts Yes/No, True/False, Y/N, or 1/0
   - Numeric fields can include decimals (e.g. 37.5 for hours)
+
+### Payroll
+- **Required**: email
+- **Optional**: bankAccountNumber, irdNumber, taxCode, kiwiSaverEnrolled, kiwiSaverContribution, salaryAmount, hourlyRate
+- **Formatting**:
+  - Tax codes must match NZ IRD codes (system supports common variations like "M SL", "MSL", "ME_SL")
+  - kiwiSaverEnrolled accepts Yes/No, True/False, Y/N, or 1/0
+  - kiwiSaverContribution should be a whole number (e.g. 3)
+  - salaryAmount/hourlyRate accept numeric values (commas are allowed)
+
+### Training & Employment Checks
+- **Required**: email
+- **Training fields (optional)**: trainingCourse, trainingProvider, trainingDateCompleted, trainingExpiryDate
+  - If you provide any training data, you must provide: trainingCourse, trainingProvider, trainingDateCompleted
+- **Employment check fields (optional)**: employmentCheckType, employmentCheckDocumentNumber, employmentCheckIssueDate, employmentCheckExpiryDate
+  - If you provide any employment check data, you must provide: employmentCheckType, employmentCheckDocumentNumber, employmentCheckIssueDate, employmentCheckExpiryDate
+  - Dates must use YYYY-MM-DD
 
 ## Tips
 
@@ -386,7 +404,7 @@ Please import the files in this exact order:
 5. Ensure working pattern names match exactly between files
 6. Use consistent email formats
 7. Date format should be YYYY-MM-DD
-8. Boolean values can be Yes/No, True/False, or 1/0
+8. Boolean values can be Yes/No, True/False, Y/N, or 1/0
 
 ## Validation
 

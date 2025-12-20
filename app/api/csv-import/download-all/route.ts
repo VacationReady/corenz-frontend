@@ -1,5 +1,4 @@
-import { cookies, headers } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import JSZip from "jszip";
@@ -326,34 +325,96 @@ export async function GET() {
 
     zip.file("04_employees_template.csv", employeeCsvContent);
 
-    // 5. Payroll CSV (fetch from existing endpoint to keep logic in sync)
-    const cookieHeader = cookies().toString();
-    const incomingHeaders = await headers();
-    const protocol = incomingHeaders.get("x-forwarded-proto") ?? "https";
-    const host = incomingHeaders.get("host");
+    // 5. Payroll CSV
+    const payrollHeaders = [
+      "email",
+      "bankAccountNumber",
+      "irdNumber",
+      "taxCode",
+      "kiwiSaverEnrolled",
+      "kiwiSaverContribution",
+      "salaryAmount",
+      "hourlyRate",
+    ];
 
-    const payrollResponse = await fetch(`${protocol}://${host}/api/csv-import/payroll`, {
-      headers: {
-        Cookie: cookieHeader,
-      },
-    });
+    const payrollSampleData = [
+      [
+        "john.doe@company.com",
+        "12-1234-1234567-00",
+        "123-456-789",
+        "M",
+        "Yes",
+        "3",
+        "85000",
+        "",
+      ],
+      [
+        "jane.smith@company.com",
+        "98-7654-0987654-00",
+        "987-654-321",
+        "ME SL",
+        "No",
+        "",
+        "",
+        "45",
+      ],
+    ];
 
-    if (payrollResponse.ok) {
-      const payrollCsv = await payrollResponse.text();
-      zip.file("05_payroll_template.csv", payrollCsv);
-    }
+    const payrollCsvContent = [
+      payrollHeaders.join(","),
+      ...payrollSampleData.map((row) =>
+        row.map((cell) => `"${cell}"`).join(",")
+      ),
+    ].join("\n");
+
+    zip.file("05_payroll_template.csv", payrollCsvContent);
 
     // 6. Training CSV
-    const trainingResponse = await fetch(`${protocol}://${host}/api/csv-import/training`, {
-      headers: {
-        Cookie: cookieHeader,
-      },
-    });
+    const trainingHeaders = [
+      "email",
+      "trainingCourse",
+      "trainingProvider",
+      "trainingDateCompleted",
+      "trainingExpiryDate",
+      "employmentCheckType",
+      "employmentCheckDocumentNumber",
+      "employmentCheckIssueDate",
+      "employmentCheckExpiryDate",
+    ];
 
-    if (trainingResponse.ok) {
-      const trainingCsv = await trainingResponse.text();
-      zip.file("06_training_template.csv", trainingCsv);
-    }
+    const trainingSampleData = [
+      [
+        "john.doe@company.com",
+        "Health & Safety Induction",
+        "Safety First Ltd",
+        "2024-01-15",
+        "2026-01-15",
+        "Right to Work",
+        "RTW-2024-001",
+        "2023-12-01",
+        "2025-12-01",
+      ],
+      [
+        "jane.smith@company.com",
+        "Advanced Leadership",
+        "People Leaders NZ",
+        "2023-11-20",
+        "",
+        "Police Vetting",
+        "PV-2023-045",
+        "2023-11-15",
+        "2025-11-15",
+      ],
+    ];
+
+    const trainingCsvContent = [
+      trainingHeaders.join(","),
+      ...trainingSampleData.map((row) =>
+        row.map((cell) => `"${cell}"`).join(",")
+      ),
+    ].join("\n");
+
+    zip.file("06_training_template.csv", trainingCsvContent);
 
     // 5. Import Instructions README
     const readmeContent = `# CSV Import Templates

@@ -393,6 +393,26 @@ function EmployeesContent(props: EmployeesClientProps) {
   // Check if user is admin (only admins can see the actions menu)
   const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
 
+  const handleEmployeeLinkClick = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    targetUrl: string,
+  ) => {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.defaultPrevented
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    router.push(targetUrl);
+  };
+
   // DataTable columns with per-column filters
   const columns: ColumnDef<Employee>[] = useMemo(
     () => [
@@ -407,6 +427,8 @@ function EmployeesContent(props: EmployeesClientProps) {
           return (
             <Link
               href={targetUrl}
+              data-bypass-unsaved
+              onClick={(event) => handleEmployeeLinkClick(event, targetUrl)}
               className="group flex items-center gap-3 py-1"
             >
               <div className="relative">

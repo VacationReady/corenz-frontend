@@ -404,26 +404,10 @@ function EmployeesContent(props: EmployeesClientProps) {
         cell: ({ row }) => {
           const emp = row.original as Employee;
           const targetUrl = `/employees/${emp.id}/overview`;
-          const handleClick = (e: React.MouseEvent) => {
-            console.log('[NAV DEBUG] Click handler fired for:', targetUrl);
-            console.log('[NAV DEBUG] Event defaultPrevented before:', e.defaultPrevented);
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('[NAV DEBUG] Calling router.push...');
-            try {
-              startTransition(() => {
-                console.log('[NAV DEBUG] Inside startTransition, calling router.push');
-                router.push(targetUrl);
-                console.log('[NAV DEBUG] router.push called successfully');
-              });
-            } catch (err) {
-              console.error('[NAV DEBUG] Error in navigation:', err);
-            }
-          };
+          // Use native anchor - Next.js router.push fails silently on this page
           return (
-            <Link
+            <a
               href={targetUrl}
-              onClick={handleClick}
               className="group flex items-center gap-3 py-1"
             >
               <div className="relative">
@@ -440,7 +424,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                 </span>
                 <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
               </div>
-            </Link>
+            </a>
           );
         },
       },

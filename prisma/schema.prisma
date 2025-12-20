@@ -282,6 +282,7 @@ model Department {
   OnboardingTemplate                 OnboardingTemplate[]          @relation("OnboardingTemplateDepartments")
   RotaGroups                         RotaGroup[]
   ReportShare                        ReportShare[]
+  JobRole                            JobRole[]
 
   @@unique([companyId, name])
   @@unique([companyId, code])
@@ -1134,15 +1135,18 @@ model JobRole {
   payGrade                 String?
   updatedAt                DateTime
   companyId                String
+  departmentId             String?
   DocumentSignatureField   DocumentSignatureField[]
   DocumentSignatureJobRole DocumentSignatureJobRole[]
   Employee                 Employee[]
   Company                  Company                    @relation(fields: [companyId], references: [id])
+  Department               Department?                @relation(fields: [departmentId], references: [id])
   User                     User[]
   Document                 Document[]                 @relation("DocumentJobRoles")
   OnboardingTemplate       OnboardingTemplate[]       @relation("OnboardingTemplateJobRoles")
 
   @@unique([companyId, name])
+  @@index([departmentId])
 }
 
 model LeaveEntitlement {

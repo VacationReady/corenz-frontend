@@ -122,6 +122,29 @@ export async function POST(request: NextRequest) {
             },
           });
 
+          // Delete existing weeks (cascade deletes days) and recreate with new schedule
+          await prisma.workingPatternWeek.deleteMany({
+            where: { workingPatternId: existingPattern.id },
+          });
+
+          // Update week ID to reference existing pattern
+          workingPatternWeeks[0].workingPatternId = existingPattern.id;
+
+          // Create new working pattern week
+          await prisma.workingPatternWeek.create({
+            data: workingPatternWeeks[0],
+          });
+
+          // Create new working pattern days
+          if (workingPatternDays.length > 0) {
+            await prisma.workingPatternDay.createMany({
+              data: workingPatternDays.map(day => ({
+                ...day,
+                hoursPerDay: dayHours[day.day.toLowerCase() as keyof typeof dayHours],
+              })),
+            });
+          }
+
           // Create audit log entry
           await auditLog({
             entityType: "WORKING_PATTERN",
@@ -135,6 +158,7 @@ export async function POST(request: NextRequest) {
               importBatch: `csv_import_${Date.now()}`,
               rowNumber,
               changes: validatedData,
+              dayHours,
             },
           });
 
@@ -169,7 +193,10 @@ export async function POST(request: NextRequest) {
           // Create working pattern days
           if (workingPatternDays.length > 0) {
             await prisma.workingPatternDay.createMany({
-              data: workingPatternDays,
+              data: workingPatternDays.map(day => ({
+                ...day,
+                hoursPerDay: dayHours[day.day.toLowerCase() as keyof typeof dayHours],
+              })),
             });
           }
 

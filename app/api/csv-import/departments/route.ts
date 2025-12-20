@@ -66,11 +66,14 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Find department head if provided
+        // Find department head if provided (tenant-scoped, case-insensitive)
         let headId = null;
         if (validatedData.headEmail) {
           const headUser = await prisma.user.findFirst({
-            where: { email: validatedData.headEmail },
+            where: { 
+              email: { equals: validatedData.headEmail, mode: 'insensitive' },
+              companyId: session.user.companyId,
+            },
           });
           headId = headUser?.id || null;
         }

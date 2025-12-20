@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
               level: validatedData.level || existingJobRole.level,
               payGrade: validatedData.payGrade || existingJobRole.payGrade,
               active: validatedData.active !== undefined ? validatedData.active : existingJobRole.active,
+              departmentId: department.id,
               updatedAt: new Date(),
             },
           });
@@ -129,6 +130,7 @@ export async function POST(request: NextRequest) {
               payGrade: validatedData.payGrade || null,
               active: validatedData.active !== undefined ? validatedData.active : true,
               companyId: session.user.companyId,
+              departmentId: department.id,
               updatedAt: new Date(),
             },
           });

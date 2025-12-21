@@ -111,7 +111,7 @@ export function SendReportModal({
       const [deptRes, roleRes, empRes] = await Promise.all([
         fetch("/api/departments"),
         fetch("/api/job-roles"),
-        fetch("/api/employees?limit=all"),
+        fetch("/api/employees?limit=100"),
       ]);
 
       if (deptRes.ok) {

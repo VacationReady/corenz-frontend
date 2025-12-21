@@ -122,7 +122,9 @@ export default function AddHolidayModal({
           fetch("/api/event-categories"),
         ]);
         if (empRes.ok) {
-          const data = await empRes.json();
+          const json = await empRes.json();
+          // API returns { data: [...], pagination: {...} }
+          const data = json.data || json;
           const opts: EmployeeOption[] = (data || [])
             .map((e: any) => ({
               id: e.id,

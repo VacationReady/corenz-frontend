@@ -124,8 +124,8 @@ export function AssignJourneyDialog({
 
       if (employeesRes.ok) {
         const data = await employeesRes.json();
-        // Handle both array and object with employees property
-        setEmployees(Array.isArray(data) ? data : data.employees || []);
+        // Handle paginated response: { data: [...], pagination: {...} }
+        setEmployees(Array.isArray(data) ? data : data.data || []);
       }
 
       if (departmentsRes.ok) {

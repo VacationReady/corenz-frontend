@@ -72,7 +72,7 @@ export default function RotaGroupMembersPage() {
       const [groupRes, membersRes, employeesRes] = await Promise.all([
         fetch(`/api/rota-groups/${groupId}`),
         fetch(`/api/rota-groups/${groupId}/members`),
-        fetch('/api/employees?status=active&limit=all'),
+        fetch('/api/employees?status=active&limit=100'),
       ]);
 
       const groupData = await groupRes.json();
@@ -81,7 +81,8 @@ export default function RotaGroupMembersPage() {
 
       setGroup(groupData.rotaGroup);
       setMembers(membersData.members || []);
-      const rawEmployees = (employeesData.employees || employeesData.data || []) as any[];
+      // API returns { data: [...], pagination: {...} }
+      const rawEmployees = (employeesData.data || []) as any[];
 
       const normalizedEmployees: Employee[] = rawEmployees.map((emp: any) => {
         // If the shape already matches the Employee interface (with nested User/Location/Department), preserve it

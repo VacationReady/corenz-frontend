@@ -206,7 +206,8 @@ export default function EmployeeSchedulePage() {
       const teamRes = await fetch('/api/employees');
       if (teamRes.ok) {
         const teamData = await teamRes.json();
-        setEmployees((teamData.employees || []).filter((e: any) => e.id !== empId));
+        // API returns { data: [...], pagination: {...} }
+        setEmployees((teamData.data || []).filter((e: any) => e.id !== empId));
       } else {
         errors.push(`Could not load team members (${await readApiErrorMessage(teamRes)})`);
       }

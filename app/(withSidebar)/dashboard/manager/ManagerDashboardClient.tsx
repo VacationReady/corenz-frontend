@@ -30,9 +30,11 @@ function MetricsSummary() {
   const { data, error, isLoading } = useSWR("/api/employees?status=active", fetcher);
 
   const metrics = useMemo(() => {
-    if (!Array.isArray(data) || !session?.user?.id) return null;
+    // API returns { data: [...], pagination: {...} }
+    const employeeList = data?.data || (Array.isArray(data) ? data : []);
+    if (!employeeList.length || !session?.user?.id) return null;
     const me = session.user.id as string;
-    const employees: any[] = data;
+    const employees: any[] = employeeList;
     // Build map by userId for quick lookup and compute team closure
     const byManager = new Map<string, string[]>();
     employees.forEach((e: any) => {

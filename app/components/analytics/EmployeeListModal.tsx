@@ -433,7 +433,7 @@ export function EmployeeListModal({
                         {/* Main Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-foreground truncate">
+                            <h3 className="font-semibold text-foreground whitespace-normal break-words">
                               {employee.firstName} {employee.lastName}
                             </h3>
                           </div>
@@ -453,14 +453,6 @@ export function EmployeeListModal({
                                 <Building2 className="w-3.5 h-3.5 text-violet-500" />
                               </div>
                               <span className="text-muted-foreground">{employee.department.name}</span>
-                            </div>
-                          )}
-                          {employee.jobRole && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <div className="p-1.5 rounded-lg bg-amber-500/10">
-                                <Briefcase className="w-3.5 h-3.5 text-amber-500" />
-                              </div>
-                              <span className="text-muted-foreground">{employee.jobRole.name}</span>
                             </div>
                           )}
                           {employee.location && (

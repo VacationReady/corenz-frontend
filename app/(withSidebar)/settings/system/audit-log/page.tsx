@@ -320,10 +320,11 @@ export default function AuditLogPage() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch("/api/employees?limit=1000&include=user");
+      const response = await fetch("/api/employees?limit=100");
       if (response.ok) {
         const data = await response.json();
-        setEmployees(data.employees || []);
+        // API returns { data: [...], pagination: {...} }
+        setEmployees(data.data || []);
       }
     } catch (error) {
       console.error("Error fetching employees:", error);

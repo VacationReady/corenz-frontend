@@ -244,7 +244,7 @@ function SendSurveyPageContent() {
           fetch("/api/departments"),
           fetch("/api/job-roles"),
           fetch("/api/locations"),
-          fetch("/api/employees?limit=all&status=active"),
+          fetch("/api/employees?limit=100&status=active"),
         ]);
 
         if (departmentsRes.ok) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, 
@@ -121,6 +122,11 @@ export function EmployeeListModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isOpen && filterValue) {
@@ -205,9 +211,9 @@ export function EmployeeListModal({
     return colors[Math.abs(hash) % colors.length];
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  const modal = (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -220,7 +226,7 @@ export function EmployeeListModal({
             onClick={onClose}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
-          
+
           {/* Modal */}
           <motion.div
             variants={modalVariants}
@@ -232,7 +238,7 @@ export function EmployeeListModal({
               rounded-3xl shadow-2xl shadow-black/20
               border border-white/20 dark:border-white/10
               overflow-hidden"
-            style={{ willChange: 'opacity, transform' }}
+            style={{ willChange: "opacity, transform" }}
           >
             {/* Header */}
             <div className="flex-shrink-0 p-6 pb-4 border-b border-muted/30">
@@ -530,4 +536,6 @@ export function EmployeeListModal({
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modal, document.body);
 }

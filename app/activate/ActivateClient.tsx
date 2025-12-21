@@ -33,7 +33,13 @@ const floatingOrbs = [
   { size: 350, x: '20%', y: '70%', color: 'from-pink-400/20 to-rose-400/15', duration: 28, delay: 1 },
 ];
 
-function PasswordSetSuccessAnimation({ isOpen }: { isOpen: boolean }) {
+function PasswordSetSuccessAnimation({
+  isOpen,
+  mode,
+}: {
+  isOpen: boolean;
+  mode: "activate" | "reset";
+}) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -475,7 +481,7 @@ export default function ActivateClient() {
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-200/20 via-transparent to-transparent dark:from-blue-500/5 pointer-events-none" />
 
       {/* Success Animation Overlay */}
-      <PasswordSetSuccessAnimation isOpen={showSuccess} />
+      <PasswordSetSuccessAnimation isOpen={showSuccess} mode={mode} />
 
       {/* Header */}
       <motion.header

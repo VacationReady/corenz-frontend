@@ -837,3 +837,7 @@ Fixed an off-by-one weekday mapping issue in rota coverage gap analysis where Ja
 203. Bulk Approval Scope Independence from Filters
 
 Corrected bulk approval actions to operate on the intended scope (all selected rows or all pending approvals) regardless of active filters. The reconciliation and timesheets hubs now use unfiltered datasets and deduplicate IDs before sending to the API. Server-side deduplication was added to prevent duplicate approvals, and comprehensive tests validate that filtered views do not change the approval set.
+
+204. News Post Attachments Data Type Fix
+
+Fixed a Prisma validation error when creating or updating news posts with attachments. The NewsPost schema defines attachments as String[] but the frontend was sending an array of objects with path, url, name, size, and type properties. Updated both POST /api/news and PUT /api/news/[slug] endpoints to transform attachment objects to extract only the URL strings before persisting, ensuring compatibility with the database schema while allowing the frontend to continue sending rich attachment metadata.

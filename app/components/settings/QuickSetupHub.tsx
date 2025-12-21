@@ -67,7 +67,12 @@ export function QuickSetupHub({
 
   useEffect(() => {
     // Load wizard completion status from localStorage
-    const savedProgress = localStorage.getItem("setupWizardProgress");
+    let savedProgress: string | null = null;
+    try {
+      savedProgress = localStorage.getItem("setupWizardProgress");
+    } catch {
+      savedProgress = null;
+    }
     let progress: Record<string, any> = {};
     if (savedProgress) {
       try {
@@ -75,7 +80,11 @@ export function QuickSetupHub({
         if (!progress || typeof progress !== "object") progress = {};
       } catch {
         progress = {};
-        localStorage.removeItem("setupWizardProgress");
+        try {
+          localStorage.removeItem("setupWizardProgress");
+        } catch {
+          // ignore
+        }
       }
     }
 
@@ -309,11 +318,15 @@ export function QuickSetupHub({
 
     if (routes[wizard.id]) {
       // Store wizard context for the target page
-      sessionStorage.setItem("activeWizard", JSON.stringify({
-        wizardId: wizard.id,
-        currentStep: 0,
-        steps: wizard.steps,
-      }));
+      try {
+        sessionStorage.setItem("activeWizard", JSON.stringify({
+          wizardId: wizard.id,
+          currentStep: 0,
+          steps: wizard.steps,
+        }));
+      } catch {
+        // ignore
+      }
       
       router.push(routes[wizard.id]);
       toast.success(`Starting ${wizard.title}`, {
@@ -334,7 +347,11 @@ export function QuickSetupHub({
       [w.id]: w.completed,
       [`${w.id}-progress`]: w.progress,
     }), {});
-    localStorage.setItem("setupWizardProgress", JSON.stringify(progress));
+    try {
+      localStorage.setItem("setupWizardProgress", JSON.stringify(progress));
+    } catch {
+      // ignore
+    }
 
     onWizardComplete?.(wizardId);
     toast.success("Setup completed! 🎉", {

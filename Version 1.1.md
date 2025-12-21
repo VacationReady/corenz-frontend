@@ -377,6 +377,12 @@ Fixed floating-point precision artefacts in leave day calculations and reporting
 
 93. Rota Week Navigation Data Fetching Fix
 
+Fixed the rota week navigation failing to fetch data when changing weeks by ensuring the date range updates trigger a fresh data fetch with the correct week boundaries, preventing empty schedules when navigating between weeks.
+
+94. UI/UX Polish Improvements
+
+Improved three small UI/UX issues for a smoother user experience: (1) Clamped filter dropdown positions to the viewport on the employees page to prevent off-screen rendering on narrow windows. (2) Added safe storage guards to Quick Setup Hub to avoid crashes when localStorage/sessionStorage is blocked in private browsing. (3) Enhanced the schedule availability save flow with better error handling and user feedback via toast notifications.
+
 95. Timesheets Blue Colour Consistency
 
 Standardised all blue colours across admin and employee timesheet interfaces to match the reports palette. Updated gradients from blue-600/700 to primary-to-blue-600, borders and focus rings from blue-500 to blue-600, and shadows to use primary/20 instead of blue-500/25 for visual cohesion.
@@ -389,7 +395,11 @@ Fixed the bulk actions page failing to load employees by implementing cursor-bas
 
 Refactored the "Email Employee" button on the admin dashboard to launch a modern modal with an avatar-based employee selection list. The modal features a two-step flow: first select an employee from a searchable list with avatars, then compose a message with subject, preview text, body, and optional CTA button. The selected employee is pre-populated in the messaging form, eliminating the need to navigate to bulk actions and manually select recipients.
 
-94. Sickness Category and Leave Management UX Integration
+98. News Drafts and Read Tracking
+
+Fixed the news feature to properly save stories as drafts without publishing them immediately. Added comprehensive read tracking with a new NewsRead model, enabling users to filter between All Stories, Drafts, and Unread Stories. The news page now includes contextual empty states: "All caught up!" when no unread stories exist, and "No drafts" when there are no draft stories. Updated the API to mark posts as read when viewed and fixed route handler signatures for deployment compatibility.
+
+99. Sickness Category and Leave Management UX Integration
 
 Integrated Sickness event category subcategories as first-class sick reasons in the leave booking flow, eliminating the UX disconnect between configured subcategories and the booking interface. Updated the leave request API to accept and persist sickReasonId linked to EventSubcategory, with proper validation and fallback to human-readable sickReason. Modified the Event Manager UI to use "Sick Reason" terminology and hide irrelevant paid/unpaid controls for sickness subcategories, ensuring a cohesive and intuitive user experience while maintaining separation from the NZ sick leave ledger engine.
 
@@ -414,15 +424,13 @@ Fixed the Annual Leave Balances report showing "50 records" instead of the actua
 
 Updated the report library template icons to use semantic Lucide React icons instead of emojis, ensuring visual consistency with the rest of the reports section. Each template now displays an icon that meaningfully represents its purpose (e.g., Palmtree for annual leave, Shield for right-to-work expiries, BarChart for headcount reports).
 
-Fixed an issue where navigating to previous weeks in the rota calendar showed no shifts even though shifts existed. The dateRange state was static and never updated when navigating weeks, so the API always fetched current week data. Added onDateRangeChange callback to RotaCalendar and connected it to the parent page's setDateRange to re-fetch shifts for the selected week/month.
+99. Quick Setup Hub Progress Calculation Fix
 
-99. PeopleCore Logo and Branding Updates
+Fixed a bug where the Quick Setup Hub progress percentage briefly displayed "NaN%" on initial render due to division by zero when the wizards array was empty. Added a guard to ensure progress defaults to 0% until wizards are loaded, preventing visual artefacts during component mounting.
 
-Updated the PeopleCore logo styling across the application to match the website branding. The login page now displays "peoplecore" in lowercase bold text instead of the previous logo image/pill styling. All sidebar components (Admin, Manager, Employee) were updated to remove the logo icon and display "PeopleCore" as text only for a cleaner, consistent branding experience.
+100. Employee Schedule Status Badge Tailwind Fix
 
-100. Notifications Employee Recipient Dropdown Fix
-
-Fixed the advanced recipient configuration in transactional notifications where selecting "Employee(s)" incorrectly rendered a "All job roles" dropdown instead of an employee list. The employee picker now shows an alphabetical, searchable dropdown of all active employees without any "All …" pseudo-options. Updated the shared MultiSelect component to make the built-in "All …" option opt-in, preventing similar issues in other pickers.
+Fixed a Tailwind CSS class generation bug in the employee schedule page where status badge border colours were dynamically constructed at runtime (border-${config.text.replace('text-', '')}/30). Replaced with explicit border classes per status to ensure Tailwind compiles the styles correctly, preventing missing border colours in production builds.
 
 101. Teams Warehouse Icon Fix
 
@@ -460,27 +468,31 @@ Updated the employee overview page's "Leave Balances" card to match the height o
 
 Corrected the currency formatting issue in the bulk actions "Adjust Compensation" section where salaries were incorrectly displayed in GBP (£) instead of NZD ($). Updated the formatCurrency function to use the en-NZ locale with NZD currency code, and changed the input label from "(£)" to "($)" for consistency with the New Zealand context. Ensured system-wide consistency by verifying no other GBP currency references exist in the codebase.
 
-109. Default View Mode Changes to List/Table
+109. People Metrics Widget Modal and Interaction Improvements
+
+Fixed the People Metrics widget on the admin dashboard where clicking employee statistics would open a squashed modal that required cursor interaction to display properly. Rendered the EmployeeListModal via React Portal to document.body to ensure proper viewport positioning from the first frame, eliminating layout conflicts with transformed dashboard containers. Made entire rows clickable rather than just the numbers, and improved name readability by removing the Job Role column and allowing employee names to wrap instead of truncate, ensuring full visibility of employee details.
+
+110. Default View Mode Changes to List/Table
 
 Updated the default view mode across reports, documents, and employee table screens to display list/table view instead of card/grid view. Modified five components: reports page, documents page, training records, driver licences, and employment checks. Users now see data in a more compact, scannable format by default, with the option to switch to card view if preferred. This change improves data density and readability for users managing larger datasets.
 
-110. Employee Overview Layout Reorganisation and Colour Standardisation
+111. Employee Overview Layout Reorganisation and Colour Standardisation
 
 Reorganised the employee overview page layout for improved visual hierarchy and user experience. Moved Emergency Contacts to sit alongside Bank & Payroll for better logical grouping of employee administrative information. Arranged Absence & Sick Leave and Annual Leave Balance cards side by side to create a more intuitive leave management section. Standardised colour scheme by changing the orange colours in the Absence & Sick Leave section to match the consistent blue theme used throughout the application. Enhanced the Annual Leave Balance card with proper height matching and flexible layout structure for consistent visual alignment across all cards.
 
-111. Employment Details Date Handling and Display Improvements
+112. Employment Details Date Handling and Display Improvements
 
 Resolved a Prisma validation error when updating employee start dates by normalising date-only strings (YYYY-MM-DD) to proper ISO DateTime objects before database persistence. The API now returns a clear 400 error for invalid date formats instead of a 500 crash. Updated the Employment Details UI to display dates in DD-MM-YYYY format beneath the native date picker, providing localised readability while retaining browser-native calendar functionality.
 
-112. Bulk Actions Currency Formatting and Compensation Export
+113. Bulk Actions Currency Formatting and Compensation Export
 
 Corrected the currency formatting issue in the bulk actions "Adjust Compensation" section where salaries were incorrectly displayed in GBP (£) instead of NZD ($). Updated the formatCurrency function to use the en-NZ locale with NZD currency code and changed the input label from "(£)" to "($)" for consistency with the New Zealand context. Added CSV export functionality for compensation bulk actions, allowing administrators to download a detailed breakdown of current versus proposed salaries with calculated differences for audit purposes and record keeping.
 
-113. Employment Details Client Async Operation Cleanup
+114. Employment Details Client Async Operation Cleanup
 
 Resolved a memory leak in EmploymentDetailsClient.tsx by adding proper cleanup for async operations in the employment details fetching effect. The component now guards against state updates after unmount by using an isActive flag and threading it through the reloadOptions function. This prevents React warnings about state updates on unmounted components and ensures safe async behaviour when the component unmounts before API calls complete.
 
-114. Employee Overview Sick Leave Eligibility Date Clarity
+115. Employee Overview Sick Leave Eligibility Date Clarity
 
 Improved the user experience on the employee overview page by displaying a clear explanatory message when sick leave eligibility cannot be calculated due to a missing employee start date. Previously, the "Eligible from" field would appear blank when no eligibility date was available, causing confusion. The interface now shows "Eligible from: Not available (start date missing)" to provide users with a precise explanation for why the date is absent, helping administrators understand that adding an employee start date will enable eligibility calculation.
 
@@ -854,6 +866,14 @@ Fixed a Prisma validation error when creating or updating news posts with attach
 
 Refactored the Admin Dashboard “Active Employees” metric so it is genuinely interactive and opens a drill-down modal (matching the People Analytics “By Dashboard” experience) listing the employees behind the headline number. The modal respects the same department filter as the widget by extending the employee drill-down API and modal fetch to accept an optional departmentId.
 
-206. Employees Page Admin-Only Add and Export Actions
+207. News Drafts and Read Tracking
+
+Fixed the news feature to properly save stories as drafts without publishing them immediately. Added comprehensive read tracking with a new NewsRead model, enabling users to filter between All Stories, Drafts, and Unread Stories. The news page now includes contextual empty states: "All caught up!" when no unread stories exist, and "No drafts" when there are no draft stories. Updated the API to mark posts as read when viewed and fixed route handler signatures for deployment compatibility.
+
+208. Employees Page Admin-Only Add and Export Actions
 
 Removed the confusing Add Employee and Export buttons from the /employees page for non-admin users, as these actions are restricted to administrators. The Add Employee modal is now only mounted for admins, preventing non-admin users from triggering a failing create flow.
+
+209. Password Reset Copy and Admin Notifications
+
+Corrected the “Forgot password” flow so the reset link no longer presents the activation screen copy. The reset page now clearly references password changes, and administrator notification emails now report that a user reset their password rather than claiming the account was activated.

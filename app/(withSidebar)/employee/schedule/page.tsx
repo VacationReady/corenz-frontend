@@ -317,48 +317,58 @@ export default function EmployeeSchedulePage() {
     });
 
     if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to update availability');
+      const message = await readApiErrorMessage(response);
+      toast.error('Could not update availability', {
+        description: message,
+      });
+      throw new Error(message);
     }
 
+    toast.success('Availability updated');
     await loadData();
   };
 
   const getStatusBadge = (status: string) => {
-    const configs: Record<string, { bg: string; text: string; icon: any; label: string }> = {
+    const configs: Record<string, { bg: string; text: string; border: string; icon: any; label: string }> = {
       PENDING: {
         bg: 'bg-amber-500/20',
         text: 'text-amber-400',
+        border: 'border-amber-400/30',
         icon: Clock,
         label: 'Pending',
       },
       MANAGER_PENDING: {
         bg: 'bg-blue-500/20',
         text: 'text-blue-400',
+        border: 'border-blue-400/30',
         icon: AlertCircle,
         label: 'Awaiting Manager',
       },
       APPROVED: {
         bg: 'bg-green-500/20',
         text: 'text-green-400',
+        border: 'border-green-400/30',
         icon: CheckCircle,
         label: 'Approved',
       },
       COMPLETED: {
         bg: 'bg-green-500/20',
         text: 'text-green-400',
+        border: 'border-green-400/30',
         icon: CheckCircle,
         label: 'Completed',
       },
       REJECTED: {
         bg: 'bg-red-500/20',
         text: 'text-red-400',
+        border: 'border-red-400/30',
         icon: XCircle,
         label: 'Rejected',
       },
       CANCELLED: {
         bg: 'bg-gray-500/20',
         text: 'text-gray-400',
+        border: 'border-gray-400/30',
         icon: Ban,
         label: 'Cancelled',
       },
@@ -369,7 +379,7 @@ export default function EmployeeSchedulePage() {
 
     return (
       <span
-        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${config.bg} ${config.text} border-${config.text.replace('text-', '')}/30`}
+        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${config.bg} ${config.text} ${config.border}`}
       >
         <Icon className="w-3 h-3" />
         {config.label}

@@ -129,7 +129,7 @@ function EmployeesContent(props: EmployeesClientProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   
   // Position for currently open dropdown (calculated on click)
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   
   // Store reference to the current button element
   const currentButtonRef = useRef<HTMLElement | null>(null);
@@ -154,9 +154,16 @@ function EmployeesContent(props: EmployeesClientProps) {
     const button = e.currentTarget;
     currentButtonRef.current = button;
     const rect = button.getBoundingClientRect();
+
+    const width = key === "status" ? 192 : 256;
+    const padding = 16;
+    const maxLeft = typeof window !== "undefined" ? Math.max(padding, window.innerWidth - width - padding) : rect.left;
+    const clampedLeft = Math.min(Math.max(rect.left, padding), maxLeft);
+
     setDropdownPosition({
       top: rect.bottom + 8,
-      left: rect.left,
+      left: clampedLeft,
+      width,
     });
     setOpenDropdown(key);
   };
@@ -168,9 +175,14 @@ function EmployeesContent(props: EmployeesClientProps) {
     const handleUpdate = () => {
       if (currentButtonRef.current) {
         const rect = currentButtonRef.current.getBoundingClientRect();
+        const width = openDropdown === "status" ? 192 : 256;
+        const padding = 16;
+        const maxLeft = typeof window !== "undefined" ? Math.max(padding, window.innerWidth - width - padding) : rect.left;
+        const clampedLeft = Math.min(Math.max(rect.left, padding), maxLeft);
         setDropdownPosition({
           top: rect.bottom + 8,
-          left: rect.left,
+          left: clampedLeft,
+          width,
         });
       }
     };

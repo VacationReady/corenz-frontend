@@ -884,48 +884,48 @@ export default function AdminDashboardClient({
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
+                <button
+                  className="flex justify-between items-center w-full hover:bg-muted/40 rounded-lg px-2 py-1 cursor-pointer transition-colors"
+                  onClick={() => setActiveEmployeesOpen(true)}
+                >
                   <span className="text-sm text-muted-foreground">
                     Active Employees
                   </span>
-                  <button
-                    className="text-2xl font-bold text-primary hover:underline"
-                    onClick={() => setActiveEmployeesOpen(true)}
-                  >
+                  <span className="text-2xl font-bold text-primary">
                     {metrics.headcount}
-                  </button>
-                </div>
-                <div className="flex justify-between items-center">
+                  </span>
+                </button>
+                <div className="flex justify-between items-center px-2 py-1">
                   <span className="text-sm text-muted-foreground">Managers</span>
                   <span className="text-2xl font-bold text-foreground">
                     {metrics.managers}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
+                <button
+                  className="flex justify-between items-center w-full hover:bg-muted/40 rounded-lg px-2 py-1 cursor-pointer transition-colors"
+                  onClick={async () => {
+                    try {
+                      setNewStartersOpen(true);
+                      setLoadingNewStarters(true);
+                      const qs = new URLSearchParams();
+                      if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
+                      const res = await fetch(`/api/dashboard/new-starters${qs.toString() ? `?${qs.toString()}` : ""}`);
+                      const data = await res.json();
+                      setNewStarters(Array.isArray(data?.items) ? data.items : []);
+                    } catch {
+                      setNewStarters([]);
+                    } finally {
+                      setLoadingNewStarters(false);
+                    }
+                  }}
+                >
                   <span className="text-sm text-muted-foreground">
                     New Starters
                   </span>
-                  <button
-                    className="text-2xl font-bold text-primary hover:underline"
-                    onClick={async () => {
-                      try {
-                        setNewStartersOpen(true);
-                        setLoadingNewStarters(true);
-                        const qs = new URLSearchParams();
-                        if (selectedDepartment !== "all") qs.set("departmentId", selectedDepartment);
-                        const res = await fetch(`/api/dashboard/new-starters${qs.toString() ? `?${qs.toString()}` : ""}`);
-                        const data = await res.json();
-                        setNewStarters(Array.isArray(data?.items) ? data.items : []);
-                      } catch {
-                        setNewStarters([]);
-                      } finally {
-                        setLoadingNewStarters(false);
-                      }
-                    }}
-                  >
+                  <span className="text-2xl font-bold text-primary">
                     {metrics.newStartersThisMonth}
-                  </button>
-                </div>
+                  </span>
+                </button>
               </div>
             )}
           </div>

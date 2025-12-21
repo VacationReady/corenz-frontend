@@ -67,24 +67,21 @@ const overlayVariants = {
 const modalVariants = {
   hidden: { 
     opacity: 0, 
-    scale: 0.95,
-    y: 20,
+    y: 10,
   },
   visible: { 
     opacity: 1, 
-    scale: 1,
     y: 0,
     transition: {
       type: "spring" as const,
-      stiffness: 300,
-      damping: 30,
+      stiffness: 400,
+      damping: 35,
     }
   },
   exit: { 
     opacity: 0, 
-    scale: 0.95,
-    y: 20,
-    transition: { duration: 0.2 }
+    y: 10,
+    transition: { duration: 0.15 }
   }
 };
 
@@ -230,11 +227,12 @@ export function EmployeeListModal({
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="relative w-full max-w-4xl max-h-[85vh] flex flex-col
+            className="relative w-full max-w-4xl min-h-[400px] max-h-[85vh] flex flex-col
               bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl
               rounded-3xl shadow-2xl shadow-black/20
               border border-white/20 dark:border-white/10
               overflow-hidden"
+            style={{ willChange: 'opacity, transform' }}
           >
             {/* Header */}
             <div className="flex-shrink-0 p-6 pb-4 border-b border-muted/30">

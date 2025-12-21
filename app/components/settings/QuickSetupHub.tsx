@@ -285,7 +285,9 @@ export function QuickSetupHub({
   }, []);
 
   const completedCount = wizards.filter(w => w.completed).length;
-  const totalProgress = Math.round((completedCount / wizards.length) * 100);
+  const totalProgress = wizards.length > 0
+    ? Math.round((completedCount / wizards.length) * 100)
+    : 0;
 
   const priorityWizards = wizards
     .filter(w => !w.completed && w.priority === "high")

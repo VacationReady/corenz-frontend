@@ -7,7 +7,7 @@ interface RouteParams {}
 export async function POST(req: NextRequest, context: any) {
   const session = await auth();
 
-  if (!session?.user?.companyId || !session?.user?.id) {
+  if (!session?.user?.companyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -35,27 +35,29 @@ export async function POST(req: NextRequest, context: any) {
     select: { viewCount: true },
   });
 
-  // Mark as read for the current user
-  try {
-    await (prisma as any).newsRead.upsert({
-      where: {
-        postId_userId: {
+  // Mark as read for the current user (best-effort)
+  if (session?.user?.id) {
+    try {
+      await (prisma as any).newsRead.upsert({
+        where: {
+          postId_userId: {
+            postId: post.id,
+            userId: session.user.id,
+          },
+        },
+        update: {
+          readAt: new Date(),
+        },
+        create: {
+          companyId: session.user.companyId,
           postId: post.id,
           userId: session.user.id,
         },
-      },
-      update: {
-        readAt: new Date(),
-      },
-      create: {
-        companyId: session.user.companyId,
-        postId: post.id,
-        userId: session.user.id,
-      },
-    });
-  } catch (error) {
-    // Log but don't fail the request if read tracking fails
-    console.error("Failed to mark news as read:", error);
+      });
+    } catch (error) {
+      // Log but don't fail the request if read tracking fails
+      console.error("Failed to mark news as read:", error);
+    }
   }
 
   return NextResponse.json({ viewCount: updated.viewCount, isRead: true });

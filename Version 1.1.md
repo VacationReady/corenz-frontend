@@ -381,6 +381,14 @@ Fixed floating-point precision artefacts in leave day calculations and reporting
 
 Standardised all blue colours across admin and employee timesheet interfaces to match the reports palette. Updated gradients from blue-600/700 to primary-to-blue-600, borders and focus rings from blue-500 to blue-600, and shadows to use primary/20 instead of blue-500/25 for visual cohesion.
 
+96. Bulk Actions Employee Loading Fix
+
+Fixed the bulk actions page failing to load employees by implementing cursor-based pagination instead of using the unsupported `limit=all` parameter. The frontend now fetches employees in pages of 100 until all data is retrieved, ensuring all 77 employees appear correctly in the employee selector.
+
+97. Modern Email Employee Modal
+
+Refactored the "Email Employee" button on the admin dashboard to launch a modern modal with an avatar-based employee selection list. The modal features a two-step flow: first select an employee from a searchable list with avatars, then compose a message with subject, preview text, body, and optional CTA button. The selected employee is pre-populated in the messaging form, eliminating the need to navigate to bulk actions and manually select recipients.
+
 94. Sickness Category and Leave Management UX Integration
 
 Integrated Sickness event category subcategories as first-class sick reasons in the leave booking flow, eliminating the UX disconnect between configured subcategories and the booking interface. Updated the leave request API to accept and persist sickReasonId linked to EventSubcategory, with proper validation and fallback to human-readable sickReason. Modified the Event Manager UI to use "Sick Reason" terminology and hide irrelevant paid/unpaid controls for sickness subcategories, ensuring a cohesive and intuitive user experience while maintaining separation from the NZ sick leave ledger engine.
@@ -841,3 +849,11 @@ Corrected bulk approval actions to operate on the intended scope (all selected r
 204. News Post Attachments Data Type Fix
 
 Fixed a Prisma validation error when creating or updating news posts with attachments. The NewsPost schema defines attachments as String[] but the frontend was sending an array of objects with path, url, name, size, and type properties. Updated both POST /api/news and PUT /api/news/[slug] endpoints to transform attachment objects to extract only the URL strings before persisting, ensuring compatibility with the database schema while allowing the frontend to continue sending rich attachment metadata.
+
+205. Admin Dashboard Active Employees Drill-Down Modal
+
+Refactored the Admin Dashboard “Active Employees” metric so it is genuinely interactive and opens a drill-down modal (matching the People Analytics “By Dashboard” experience) listing the employees behind the headline number. The modal respects the same department filter as the widget by extending the employee drill-down API and modal fetch to accept an optional departmentId.
+
+206. Employees Page Admin-Only Add and Export Actions
+
+Removed the confusing Add Employee and Export buttons from the /employees page for non-admin users, as these actions are restricted to administrators. The Add Employee modal is now only mounted for admins, preventing non-admin users from triggering a failing create flow.

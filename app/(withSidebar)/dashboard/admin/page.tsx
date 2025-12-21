@@ -5,10 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
 import AdminDashboardClient from "./AdminDashboardClient";
+import AdminDashboardActions from "./AdminDashboardActions";
 import DashboardSearch from "@/components/dashboard/DashboardSearch";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { User, Mail, Bot } from "lucide-react";
+import { User, Bot } from "lucide-react";
 import { EnhancedWidget } from "@/components/ui/EnhancedWidget";
 import { Avatar } from "@/components/ui/Avatar";
 import { getDownloadUrl } from "@/lib/getDownloadUrl";
@@ -110,23 +111,7 @@ export default async function AdminDashboardPage() {
 
               {/* Quick Actions - enhanced */}
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end">
-                <Link href={`/employees/${user.Employee.id}/overview`}>
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-premium">
-                    <User className="h-4 w-4 mr-2" /> View profile
-                  </Button>
-                </Link>
-                {/* Email Employee */}
-                <Link href="/bulk-actions?action=messaging">
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-premium">
-                    <Mail className="h-4 w-4 mr-2" /> Email Employee
-                  </Button>
-                </Link>
-                {/* AI Chatbot */}
-                <Link href="/assistant">
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-premium">
-                    <Bot className="h-4 w-4 mr-2" /> AI Chatbot
-                  </Button>
-                </Link>
+                <AdminDashboardActions employeeId={user.Employee.id} />
                 <DashboardSearch />
               </div>
             </div>

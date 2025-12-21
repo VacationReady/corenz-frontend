@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_APP_URL ||
       process.env.NEXT_PUBLIC_BASE_URL ||
       new URL(request.url).origin;
-    const resetUrl = `${appUrl}/activate?token=${token}`;
+    const resetUrl = `${appUrl}/activate?token=${token}&mode=reset`;
 
     const fullName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
 

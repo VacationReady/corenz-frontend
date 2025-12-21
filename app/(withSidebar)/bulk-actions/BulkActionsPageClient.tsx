@@ -81,16 +81,36 @@ export default function BulkActionsPageClient() {
   const fetchEmployees = useCallback(async () => {
     const headers: HeadersInit = {};
     if (session?.user?.companyId) headers["x-company-id"] = session.user.companyId;
-    const response = await fetch("/api/employees?status=all&limit=all", {
-      cache: "no-store",
-      headers,
-    });
-    if (!response.ok) throw new Error("Failed to load employees");
-    const payload = await response.json();
-    const employeeData = Array.isArray(payload) ? payload : payload.data;
-    if (!Array.isArray(employeeData)) throw new Error("Unexpected employee response");
+    
+    // Fetch all employees using cursor-based pagination (limit=all is not supported)
+    const allEmployees: any[] = [];
+    let cursor: string | null = null;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const url = new URL("/api/employees", window.location.origin);
+      url.searchParams.set("status", "all");
+      url.searchParams.set("limit", "100"); // Max per page
+      if (cursor) url.searchParams.set("cursor", cursor);
+      
+      const response = await fetch(url.toString(), {
+        cache: "no-store",
+        headers,
+      });
+      if (!response.ok) throw new Error("Failed to load employees");
+      const payload = await response.json();
+      const employeeData = Array.isArray(payload) ? payload : payload.data;
+      if (!Array.isArray(employeeData)) throw new Error("Unexpected employee response");
+      
+      allEmployees.push(...employeeData);
+      
+      // Check pagination info
+      hasMore = payload.pagination?.hasMore ?? false;
+      cursor = payload.pagination?.cursor ?? null;
+    }
+    
     setEmployees(
-      employeeData.map((item: any) => ({
+      allEmployees.map((item: any) => ({
         id: item.id,
         userId: item.userId,
         name:

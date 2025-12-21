@@ -210,6 +210,7 @@ model Company {
   NewsEmailJob                        NewsEmailJob[]
   NewsPost                            NewsPost[]
   NewsReaction                        NewsReaction[]
+  NewsRead                            NewsRead[]
   NotificationChannel                 NotificationChannel[]
   NotificationSettings                NotificationSettings?
   OnboardingTemplate                  OnboardingTemplate[]
@@ -1333,6 +1334,7 @@ model NewsPost {
   coverImage    String?
   bookmarks     NewsBookmark[]
   emailJobs     NewsEmailJob[]
+  reads         NewsRead[]
   User          User           @relation(fields: [authorId], references: [id])
   Company       Company?       @relation(fields: [companyId], references: [id])
   reactions     NewsReaction[]
@@ -1394,6 +1396,21 @@ model NewsBookmark {
 
   @@unique([postId, userId])
   @@index([companyId, postId])
+}
+
+model NewsRead {
+  id        String   @id @default(cuid())
+  companyId String
+  postId    String
+  userId    String
+  readAt    DateTime @default(now())
+  Company   Company  @relation(fields: [companyId], references: [id])
+  NewsPost  NewsPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([companyId, postId])
+  @@index([userId])
 }
 
 /// Action items shown on the dashboard and created by workflows
@@ -2121,6 +2138,7 @@ model User {
   NewsBookmarks                                                            NewsBookmark[]
   NewsPost                                                                 NewsPost[]
   NewsReactions                                                            NewsReaction[]
+  NewsReads                                                                NewsRead[]
   OffboardingTask_OffboardingTask_assignedToToUser                         OffboardingTask[]               @relation("OffboardingTask_assignedToToUser")
   OffboardingTask_OffboardingTask_completedByToUser                        OffboardingTask[]               @relation("OffboardingTask_completedByToUser")
   OnboardingAssignment                                                     OnboardingAssignment[]

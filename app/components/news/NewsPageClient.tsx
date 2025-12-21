@@ -35,6 +35,9 @@ import {
   Bookmark,
   Flame,
   AlertCircle,
+  FileEdit,
+  CheckCircle2,
+  Inbox,
 } from "lucide-react";
 import { FilterOption } from "@/types/filter";
 import { formatDistanceToNow } from "date-fns";
@@ -66,6 +69,8 @@ interface NewsPost {
   bookmarkCount?: number;
   isBookmarked?: boolean;
   userReaction?: string | null;
+  isRead?: boolean;
+  isDraft?: boolean;
 }
 
 interface NewsPageClientProps {
@@ -73,13 +78,11 @@ interface NewsPageClientProps {
   canPost: boolean;
 }
 
-// Quick filter categories with modern design
+// Quick filter categories - simplified to All, Drafts, Unread
 const quickFilters = [
   { id: "all", label: "All Stories", icon: Newspaper, gradient: "from-blue-500 to-blue-600" },
-  { id: "trending", label: "Trending", icon: Flame, gradient: "from-blue-500 to-blue-600" },
-  { id: "recent", label: "Fresh", icon: Sparkles, gradient: "from-blue-500 to-blue-600" },
-  { id: "featured", label: "Featured", icon: Star, gradient: "from-blue-500 to-blue-600" },
-  { id: "announcements", label: "Important", icon: AlertCircle, gradient: "from-blue-500 to-blue-600" },
+  { id: "drafts", label: "Drafts", icon: FileEdit, gradient: "from-amber-500 to-orange-600" },
+  { id: "unread", label: "Unread", icon: Inbox, gradient: "from-emerald-500 to-teal-600" },
 ];
 
 // View modes with icons
@@ -186,28 +189,17 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
 
     // Apply quick filter
     switch (activeQuickFilter) {
-      case "trending":
-        filtered = filtered.filter(post => post.views && post.views > 100);
+      case "all":
+        // Show all published stories (exclude drafts from "All Stories")
+        filtered = filtered.filter(post => !post.isDraft);
         break;
-      case "recent":
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        filtered = filtered.filter(post => {
-          const dateStr = post.publishedAt || post.createdAt;
-          if (!dateStr) return false;
-          return new Date(dateStr) > oneWeekAgo;
-        });
+      case "drafts":
+        // Show only drafts
+        filtered = filtered.filter(post => post.isDraft === true);
         break;
-      case "featured":
-        filtered = filtered.filter(post => post.featured || post.pinned);
-        break;
-      case "announcements":
-        filtered = filtered.filter(post => 
-          post.tags.some(tag => 
-            tag.toLowerCase().includes("announcement") || 
-            tag.toLowerCase().includes("important")
-          )
-        );
+      case "unread":
+        // Show only unread published stories
+        filtered = filtered.filter(post => !post.isDraft && post.isRead === false);
         break;
     }
 
@@ -754,24 +746,69 @@ function NewsContent({ posts, canPost }: NewsPageClientProps) {
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center justify-center py-20 text-center"
           >
-            <div className="relative mb-6">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-blue-400/20 rounded-full blur-2xl" />
-              <div className="relative p-6 bg-gradient-to-br from-muted to-muted/50 rounded-3xl">
-                <Newspaper className="w-16 h-16 text-muted-foreground/50" />
-              </div>
-            </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">No stories found</h3>
-            <p className="text-muted-foreground max-w-md mb-6">
-              We couldn't find any news posts matching your current filters. Try adjusting your search criteria.
-            </p>
-            <button
-              onClick={() => {
-                setActiveQuickFilter("all");
-              }}
-              className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
-            >
-              View All Stories
-            </button>
+            {activeQuickFilter === "unread" ? (
+              <>
+                {/* All caught up state for unread filter */}
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-teal-400/20 rounded-full blur-2xl" />
+                  <div className="relative p-6 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/50 dark:to-teal-950/50 rounded-3xl border border-emerald-200/50 dark:border-emerald-800/50">
+                    <CheckCircle2 className="w-16 h-16 text-emerald-500" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">All caught up!</h3>
+                <p className="text-muted-foreground max-w-md mb-6">
+                  You've read all the latest news. Check back later for new updates.
+                </p>
+                <button
+                  onClick={() => setActiveQuickFilter("all")}
+                  className="px-6 py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors"
+                >
+                  Browse All Stories
+                </button>
+              </>
+            ) : activeQuickFilter === "drafts" ? (
+              <>
+                {/* No drafts state */}
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 to-orange-400/20 rounded-full blur-2xl" />
+                  <div className="relative p-6 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50 rounded-3xl border border-amber-200/50 dark:border-amber-800/50">
+                    <FileEdit className="w-16 h-16 text-amber-500" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">No drafts</h3>
+                <p className="text-muted-foreground max-w-md mb-6">
+                  You don't have any draft stories. Start writing a new story and save it as a draft.
+                </p>
+                {canPost && (
+                  <Link href="/news/create">
+                    <button className="px-6 py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Create New Story
+                    </button>
+                  </Link>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Default no stories state */}
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-blue-400/20 rounded-full blur-2xl" />
+                  <div className="relative p-6 bg-gradient-to-br from-muted to-muted/50 rounded-3xl">
+                    <Newspaper className="w-16 h-16 text-muted-foreground/50" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">No stories found</h3>
+                <p className="text-muted-foreground max-w-md mb-6">
+                  We couldn't find any news posts matching your current filters. Try adjusting your search criteria.
+                </p>
+                <button
+                  onClick={() => setActiveQuickFilter("all")}
+                  className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
+                >
+                  View All Stories
+                </button>
+              </>
+            )}
           </motion.div>
         ) : (
           <LayoutGroup>

@@ -740,36 +740,38 @@ function EmployeesContent(props: EmployeesClientProps) {
       icon={<Users className="w-6 h-6" />}
       breadcrumbs={breadcrumbs || undefined}
       action={
-        <div className="flex items-center gap-2">
-          <motion.div
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
-            <Button 
-              variant="outline" 
-              onClick={handleExport}
-              className="border-border/50 hover:bg-muted/50 transition-all duration-200"
+        isAdmin ? (
+          <div className="flex items-center gap-2">
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
             >
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-          >
-            <Button 
-              onClick={() => setModalOpen(true)} 
-              variant="primary"
-              className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/25 transition-all duration-300"
+              <Button 
+                variant="outline" 
+                onClick={handleExport}
+                className="border-border/50 hover:bg-muted/50 transition-all duration-200"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
             >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Add Employee
-            </Button>
-          </motion.div>
-        </div>
+              <Button 
+                onClick={() => setModalOpen(true)} 
+                variant="primary"
+                className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/25 transition-all duration-300"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add Employee
+              </Button>
+            </motion.div>
+          </div>
+        ) : null
       }
     >
       <div className="space-y-6">
@@ -1362,14 +1364,16 @@ function EmployeesContent(props: EmployeesClientProps) {
       </div>
 
       {/* Modals */}
-      <AddEmployeeModal
-        open={isModalOpen}
-        onClose={() => setModalOpen(false)}
-        onSuccess={() => {
-          // Refresh the local state to show the new employee immediately
-          fetchData(activeTab, true);
-        }}
-      />
+      {isAdmin && (
+        <AddEmployeeModal
+          open={isModalOpen}
+          onClose={() => setModalOpen(false)}
+          onSuccess={() => {
+            // Refresh the local state to show the new employee immediately
+            fetchData(activeTab, true);
+          }}
+        />
+      )}
       {isDeptModalOpen && (
         <NewDepartmentModal
           onClose={() => {

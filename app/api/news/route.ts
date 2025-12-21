@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
       attachments,
       sendEmail,
       audience,
+      publishedAt,
+      tags,
+      pinned,
+      featured,
     } = body;
 
     const normalizedSendEmail = Boolean(sendEmail);
@@ -63,6 +67,9 @@ export async function POST(req: NextRequest) {
 
     const slug = await generateUniqueSlug(title, companyId);
 
+    // If publishedAt is explicitly null, this is a draft; otherwise publish now
+    const resolvedPublishedAt = publishedAt === null ? null : (publishedAt ? new Date(publishedAt) : new Date());
+
     const newsPost = await prisma.newsPost.create({
       data: {
         id: crypto.randomUUID(),
@@ -78,14 +85,17 @@ export async function POST(req: NextRequest) {
           : [],
         sendEmail: normalizedSendEmail,
         audience: normalizedAudience,
-        publishedAt: new Date(),
+        publishedAt: resolvedPublishedAt,
         updatedAt: new Date(),
         authorId: userId,
         companyId,
+        tags: Array.isArray(tags) ? tags : [],
+        pinned: Boolean(pinned),
       },
     });
 
-    if (normalizedSendEmail) {
+    // Only create email job if post is published (not a draft) and sendEmail is true
+    if (normalizedSendEmail && resolvedPublishedAt !== null) {
       await (prisma as any).newsEmailJob.upsert({
         where: {
           postId: newsPost.id,

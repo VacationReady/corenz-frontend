@@ -15,7 +15,10 @@ export default async function NewsPage() {
   }
 
   await ensurePrismaConnected();
-  const posts = await getAllNewsPosts(session.user.companyId, session?.user?.id);
+  const posts = await getAllNewsPosts(session.user.companyId, session?.user?.id, {
+    includeDrafts: true,
+    includeReadStatus: true,
+  });
 
   // ✅ Transform posts minimally to ensure correct types
   const transformedPosts = posts.map((post: any) => ({
@@ -41,6 +44,8 @@ export default async function NewsPage() {
     bookmarkCount: post.bookmarkCount,
     isBookmarked: post.isBookmarked,
     userReaction: post.userReaction,
+    isRead: post.isRead,
+    isDraft: post.isDraft,
   }));
 
   // Determine permissions

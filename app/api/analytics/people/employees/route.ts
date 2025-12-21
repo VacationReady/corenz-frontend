@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
   const filterType = searchParams.get("filterType");
   const filterValue = searchParams.get("filterValue");
   const companyId = searchParams.get("companyId");
+  const departmentId = searchParams.get("departmentId") || undefined;
 
   if (!filterType || !filterValue || !companyId) {
     return NextResponse.json(
@@ -26,6 +27,10 @@ export async function GET(req: NextRequest) {
 
   try {
     let whereClause: any = { companyId };
+
+    if (departmentId) {
+      whereClause.departmentId = departmentId;
+    }
 
     // Common reference dates used by multiple filters
     const now = new Date();

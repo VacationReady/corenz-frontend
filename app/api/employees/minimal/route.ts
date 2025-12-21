@@ -117,6 +117,7 @@ export async function GET(req: Request) {
         id: emp.id,
         userId: user.id,
         fullName: fullName || user.email || emp.id,
+        email: user.email ?? null,
         departmentId: emp.Department?.id ?? null,
         jobRoleId: emp.JobRole?.id ?? null,
         avatar: {

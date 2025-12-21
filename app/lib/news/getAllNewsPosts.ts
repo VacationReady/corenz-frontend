@@ -3,12 +3,23 @@ import supabase from "@/lib/supabase-admin";
 
 type ReactionCounts = Record<string, number>;
 
-export async function getAllNewsPosts(companyId: string, userId?: string) {
+interface GetAllNewsPostsOptions {
+  includeDrafts?: boolean; // Include drafts (only for authors/admins)
+  includeReadStatus?: boolean; // Include read status for the user
+}
+
+export async function getAllNewsPosts(
+  companyId: string, 
+  userId?: string,
+  options: GetAllNewsPostsOptions = {}
+) {
   await ensurePrismaConnected();
 
   if (!companyId) {
     throw new Error("getAllNewsPosts requires companyId");
   }
+
+  const { includeDrafts = false, includeReadStatus = true } = options;
 
   const signAvatarUrl = async (avatarUrl: string | null | undefined): Promise<string | null> => {
     if (!avatarUrl) return null;
@@ -43,22 +54,53 @@ export async function getAllNewsPosts(companyId: string, userId?: string) {
     return avatarUrl;
   };
 
+  // Build where clause based on options
+  const whereClause: any = {
+    OR: [
+      { companyId },
+      { User: { is: { companyId } } },
+    ],
+  };
+
+  if (!includeDrafts) {
+    // Only published posts
+    whereClause.publishedAt = { not: null };
+  } else if (userId) {
+    // Include drafts only for the author or admins
+    // For now, include all drafts for the requesting user's own posts
+    whereClause.OR = [
+      // Published posts for this company
+      {
+        publishedAt: { not: null },
+        OR: [
+          { companyId },
+          { User: { is: { companyId } } },
+        ],
+      },
+      // Drafts authored by the current user
+      {
+        publishedAt: null,
+        authorId: userId,
+        OR: [
+          { companyId },
+          { User: { is: { companyId } } },
+        ],
+      },
+    ];
+  }
+
   const posts = await prisma.newsPost.findMany({
-    where: {
-      publishedAt: { not: null },
-      OR: [
-        { companyId },
-        { User: { is: { companyId } } },
-      ],
-    },
-    orderBy: { publishedAt: "desc" },
+    where: whereClause,
+    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
     include: {
       User: {
         select: {
+          id: true,
           name: true,
           email: true,
           profileImageUrl: true,
           companyId: true,
+          role: true,
         },
       },
       reactions: {
@@ -72,6 +114,10 @@ export async function getAllNewsPosts(companyId: string, userId?: string) {
           userId: true,
         },
       },
+      reads: includeReadStatus && userId ? {
+        where: { userId },
+        select: { readAt: true },
+      } : false,
     },
   });
 
@@ -109,6 +155,16 @@ export async function getAllNewsPosts(companyId: string, userId?: string) {
 
     const signedAvatar = await signAvatarUrl(post.User?.profileImageUrl);
 
+    // Determine read status
+    const reads = (post as any).reads;
+    const isRead = includeReadStatus && userId && Array.isArray(reads) ? reads.length > 0 : undefined;
+    const readAt = includeReadStatus && userId && Array.isArray(reads) && reads.length > 0 
+      ? reads[0].readAt 
+      : undefined;
+
+    // Determine if this is a draft
+    const isDraft = post.publishedAt === null;
+
     return {
       id: post.id,
       title: post.title,
@@ -131,6 +187,9 @@ export async function getAllNewsPosts(companyId: string, userId?: string) {
       isBookmarked: post.bookmarks.some((bookmark) => bookmark.userId === userId),
       userReaction:
         post.reactions.find((reaction) => reaction.userId === userId)?.reaction ?? null,
+      isRead,
+      readAt,
+      isDraft,
       User: {
         ...post.User,
         profileImageUrl: signedAvatar,

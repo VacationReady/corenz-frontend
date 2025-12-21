@@ -10,7 +10,8 @@ const TOKEN_EXPIRY_HOURS = parseInt(process.env.ACTIVATION_TOKEN_EXPIRY_HOURS ||
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, password, companyId } = await req.json();
+    const { token, password, companyId, mode } = await req.json();
+    const flow: "activate" | "reset" = mode === "reset" ? "reset" : "activate";
 
     if (!token || !password) {
       return NextResponse.json({ error: "Missing token or password" }, { status: 400 });
@@ -101,7 +102,7 @@ export async function POST(req: NextRequest) {
         where: { id: user.id },
         data: {
           password: hashedPassword,
-          isActivated: true,
+          ...(flow === "activate" ? { isActivated: true } : {}),
           sessionVersion: { increment: 1 },
           updatedAt: new Date(),
         },
@@ -119,7 +120,7 @@ export async function POST(req: NextRequest) {
       });
     });
 
-    // 9. Notify admin that the user has activated/logged in
+    // 9. Notify admin
     try {
       const adminUsers = await prisma.user.findMany({
         where: { role: "ADMIN", companyId: user.companyId || undefined },
@@ -130,12 +131,15 @@ export async function POST(req: NextRequest) {
         .filter(Boolean) as string[];
       if (recipients.length) {
         const actorName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
+        const verbPhrase = flow === "reset" ? "reset their password" : "activated their account";
+        const emailTitle = flow === "reset" ? "Password Reset Notice" : "Account Activation Notice";
+        const emailSubject = flow === "reset" ? "User reset their password" : "User activated their account";
         const { html, text } = renderPeopleCoreEmail({
-          preheader: `${actorName} activated their account`,
-          title: "Account Activation Notice",
+          preheader: `${actorName} ${verbPhrase}`,
+          title: emailTitle,
           intro: [
             `Hello,`,
-            `${actorName} (${user.email}) has activated their PeopleCore account.`,
+            `${actorName} (${user.email}) has ${verbPhrase} in PeopleCore.`,
           ],
           outro: [
             "You are receiving this notification because you are listed as an administrator.",
@@ -145,7 +149,7 @@ export async function POST(req: NextRequest) {
         await resend.emails.send({
           from: "noreply@peoplecore.co.nz",
           to: recipients,
-          subject: "User activated their account",
+          subject: emailSubject,
           html,
           text,
         });

@@ -418,7 +418,7 @@ export default function AdminTimesheetHubPage() {
 
   return (
     <div className="container mx-auto max-w-7xl space-y-8 p-6">
-      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-primary/60 via-blue-600/50 to-blue-700/60 p-8 shadow-2xl backdrop-blur">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-blue-600/70 via-blue-700/60 to-indigo-800/70 p-8 shadow-2xl backdrop-blur">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white/70">

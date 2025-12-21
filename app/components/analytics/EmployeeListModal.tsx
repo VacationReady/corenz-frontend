@@ -54,6 +54,7 @@ interface EmployeeListModalProps {
   filterType: "department" | "location" | "jobRole" | "employmentType" | "contractType" | "tenureBand" | "newHires" | "departures" | "contractsExpiring" | "all";
   filterValue: string;
   companyId: string;
+  departmentId?: string;
 }
 
 // Animation variants
@@ -116,6 +117,7 @@ export function EmployeeListModal({
   filterType,
   filterValue,
   companyId,
+  departmentId,
 }: EmployeeListModalProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
@@ -127,7 +129,7 @@ export function EmployeeListModal({
     if (isOpen && filterValue) {
       fetchEmployees();
     }
-  }, [isOpen, filterType, filterValue, companyId]);
+  }, [isOpen, filterType, filterValue, companyId, departmentId]);
 
   // Filter employees based on search query
   useEffect(() => {
@@ -159,6 +161,10 @@ export function EmployeeListModal({
         filterValue,
         companyId,
       });
+
+      if (departmentId) {
+        params.set("departmentId", departmentId);
+      }
 
       const response = await fetch(`/api/analytics/people/employees?${params.toString()}`);
       

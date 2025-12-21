@@ -156,7 +156,7 @@ function PasswordSetSuccessAnimation({ isOpen }: { isOpen: boolean }) {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.35, duration: 0.4, ease: 'easeOut' }}
               >
-                Your account is now activated
+                {mode === "reset" ? "Your password has been updated" : "Your account is now activated"}
               </motion.p>
 
               {/* Redirecting indicator */}
@@ -332,6 +332,8 @@ export default function ActivateClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams?.get("token") ?? "";
+  const modeParam = searchParams?.get("mode") ?? "";
+  const mode: "activate" | "reset" = modeParam === "reset" ? "reset" : "activate";
   const redirect = searchParams?.get("redirect") ?? "/dashboard";
   const companyId = searchParams?.get("companyId") ?? "";
 
@@ -355,7 +357,10 @@ export default function ActivateClient() {
   const brandInitials =
     branding.initials || (branding.name ? branding.name.slice(0, 2).toUpperCase() : "YR");
   const brandLogo = branding.squareLogoUrl || branding.logoUrl || null;
-  const activationHeadline = `Activate Your ${brandName} Account`;
+  const activationHeadline =
+    mode === "reset"
+      ? `Reset Your ${brandName} Password`
+      : `Activate Your ${brandName} Account`;
 
   // Derived validation flags
   const hasMinLength = password.length >= 6;
@@ -389,15 +394,21 @@ export default function ActivateClient() {
 
   useEffect(() => {
     if (!token) {
-      setError("Activation token is missing. Please check your email link.");
+      setError(
+        mode === "reset"
+          ? "Reset token is missing. Please check your email link."
+          : "Activation token is missing. Please check your email link.",
+      );
     }
-  }, [token]);
+  }, [token, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!token) return setError("Missing activation token.");
+    if (!token) {
+      return setError(mode === "reset" ? "Missing reset token." : "Missing activation token.");
+    }
     if (!hasMinLength || !hasUppercase || !hasNumber || !hasSpecial)
       return setError(
         "Password must be at least 6 characters and include an uppercase letter, a number, and a special character.",
@@ -409,7 +420,7 @@ export default function ActivateClient() {
       const res = await fetch("/api/set-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password, companyId }),
+        body: JSON.stringify({ token, password, companyId, mode }),
       });
 
       const data = await res.json();
@@ -551,7 +562,9 @@ export default function ActivateClient() {
                   {activationHeadline}
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400">
-                  Create a secure password to get started
+                  {mode === "reset"
+                    ? "Create a new secure password to continue"
+                    : "Create a secure password to get started"}
                 </p>
               </motion.div>
 

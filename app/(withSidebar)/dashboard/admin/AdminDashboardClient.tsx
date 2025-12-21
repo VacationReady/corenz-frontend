@@ -43,6 +43,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useSession } from "next-auth/react";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { mutate as swrMutate } from "swr";
+import { EmployeeListModal } from "@/components/analytics/EmployeeListModal";
 
 function usePageVisibility() {
   const [visible, setVisible] = useState(true);
@@ -402,6 +403,7 @@ export default function AdminDashboardClient({
   section,
 }: AdminDashboardClientProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const visible = usePageVisibility();
   const [modalOpen, setModalOpen] = useState(false);
   const [addDocumentOpen, setAddDocumentOpen] = useState(false);
@@ -435,6 +437,7 @@ export default function AdminDashboardClient({
   const [newStartersOpen, setNewStartersOpen] = useState(false);
   const [newStarters, setNewStarters] = useState<any[] | null>(null);
   const [loadingNewStarters, setLoadingNewStarters] = useState(false);
+  const [activeEmployeesOpen, setActiveEmployeesOpen] = useState(false);
 
   useEffect(() => {
     const handler = (e: any) => setDetail(e.detail);
@@ -847,6 +850,8 @@ export default function AdminDashboardClient({
 
   // People Metrics Section
   if (section === "people-metrics") {
+    const departmentIdForModal = selectedDepartment !== "all" ? selectedDepartment : undefined;
+
     return (
       <>
         <DashboardWidget title="People Metrics" icon={Users} className="h-full">
@@ -883,9 +888,12 @@ export default function AdminDashboardClient({
                   <span className="text-sm text-muted-foreground">
                     Active Employees
                   </span>
-                  <span className="text-2xl font-bold text-foreground">
+                  <button
+                    className="text-2xl font-bold text-primary hover:underline"
+                    onClick={() => setActiveEmployeesOpen(true)}
+                  >
                     {metrics.headcount}
-                  </span>
+                  </button>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Managers</span>
@@ -962,6 +970,17 @@ export default function AdminDashboardClient({
             </div>
           </div>
         ) : null}
+
+        <EmployeeListModal
+          isOpen={activeEmployeesOpen}
+          onClose={() => setActiveEmployeesOpen(false)}
+          title="Active Employees"
+          description={departmentIdForModal ? "Active employees in this department" : "Complete list of all active employees"}
+          filterType="all"
+          filterValue="all"
+          companyId={session?.user?.companyId || ""}
+          departmentId={departmentIdForModal}
+        />
       </>
     );
   }

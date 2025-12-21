@@ -7,7 +7,7 @@ interface RouteParams {}
 export async function POST(req: NextRequest, context: any) {
   const session = await auth();
 
-  if (!session?.user?.companyId) {
+  if (!session?.user?.companyId || !session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -28,12 +28,36 @@ export async function POST(req: NextRequest, context: any) {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
+  // Update view count
   const updated = await prisma.newsPost.update({
     where: { id: post.id },
     data: { viewCount: { increment: 1 } },
     select: { viewCount: true },
   });
 
-  return NextResponse.json({ viewCount: updated.viewCount });
+  // Mark as read for the current user
+  try {
+    await (prisma as any).newsRead.upsert({
+      where: {
+        postId_userId: {
+          postId: post.id,
+          userId: session.user.id,
+        },
+      },
+      update: {
+        readAt: new Date(),
+      },
+      create: {
+        companyId: session.user.companyId,
+        postId: post.id,
+        userId: session.user.id,
+      },
+    });
+  } catch (error) {
+    // Log but don't fail the request if read tracking fails
+    console.error("Failed to mark news as read:", error);
+  }
+
+  return NextResponse.json({ viewCount: updated.viewCount, isRead: true });
 }
 

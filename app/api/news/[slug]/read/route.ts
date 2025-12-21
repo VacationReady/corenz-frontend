@@ -1,0 +1,118 @@
+export const dynamic = "force-dynamic";
+
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth-options";
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id || !session.user.companyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { slug } = params;
+    const userId = session.user.id;
+    const companyId = session.user.companyId;
+
+    // Find the news post
+    const newsPost = await prisma.newsPost.findFirst({
+      where: {
+        slug,
+        OR: [
+          { companyId },
+          { User: { is: { companyId } } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!newsPost) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    // Upsert the read record
+    const newsRead = await prisma.newsRead.upsert({
+      where: {
+        postId_userId: {
+          postId: newsPost.id,
+          userId,
+        },
+      },
+      update: {
+        readAt: new Date(),
+      },
+      create: {
+        companyId,
+        postId: newsPost.id,
+        userId,
+      },
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      isRead: true,
+      readAt: newsRead.readAt,
+    });
+  } catch (error) {
+    console.error("Error marking news as read:", error);
+    return NextResponse.json(
+      { error: "Failed to mark as read" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id || !session.user.companyId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { slug } = params;
+    const userId = session.user.id;
+    const companyId = session.user.companyId;
+
+    // Find the news post
+    const newsPost = await prisma.newsPost.findFirst({
+      where: {
+        slug,
+        OR: [
+          { companyId },
+          { User: { is: { companyId } } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!newsPost) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    // Delete the read record if it exists
+    await prisma.newsRead.deleteMany({
+      where: {
+        postId: newsPost.id,
+        userId,
+      },
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      isRead: false,
+    });
+  } catch (error) {
+    console.error("Error unmarking news as read:", error);
+    return NextResponse.json(
+      { error: "Failed to unmark as read" },
+      { status: 500 }
+    );
+  }
+}

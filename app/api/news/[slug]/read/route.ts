@@ -4,17 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth-options";
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function POST(req: NextRequest, context: any) {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { slug } = params;
+    const rawParams = context?.params;
+    const { slug } = rawParams?.then ? await rawParams : rawParams;
     const userId = session.user.id;
     const companyId = session.user.companyId;
 
@@ -35,7 +33,7 @@ export async function POST(
     }
 
     // Upsert the read record
-    const newsRead = await prisma.newsRead.upsert({
+    const newsRead = await (prisma as any).newsRead.upsert({
       where: {
         postId_userId: {
           postId: newsPost.id,
@@ -66,17 +64,15 @@ export async function POST(
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { slug: string } }
-) {
+export async function DELETE(req: NextRequest, context: any) {
   try {
     const session = await auth();
     if (!session?.user?.id || !session.user.companyId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { slug } = params;
+    const rawParams = context?.params;
+    const { slug } = rawParams?.then ? await rawParams : rawParams;
     const userId = session.user.id;
     const companyId = session.user.companyId;
 
@@ -97,7 +93,7 @@ export async function DELETE(
     }
 
     // Delete the read record if it exists
-    await prisma.newsRead.deleteMany({
+    await (prisma as any).newsRead.deleteMany({
       where: {
         postId: newsPost.id,
         userId,

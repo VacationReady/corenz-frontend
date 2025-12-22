@@ -97,7 +97,8 @@ const slideVariants = {
   }),
 };
 
-// Collapsible Section Component
+// Collapsible Section Component - Simplified to avoid hook count issues
+// Using CSS-only collapse to prevent React Error #185 when sections are conditionally rendered
 const FormSection = ({ 
   title, 
   icon: Icon, 
@@ -111,8 +112,6 @@ const FormSection = ({
   defaultOpen?: boolean;
   accentColor?: "primary" | "emerald" | "violet" | "amber" | "rose";
 }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
   const iconColors = {
     primary: "text-primary",
     emerald: "text-emerald-600 dark:text-emerald-400",
@@ -121,43 +120,18 @@ const FormSection = ({
     rose: "text-rose-600 dark:text-rose-400",
   };
 
+  // Always render content - no collapsing to avoid hook count issues
+  // The sections are already organized by wizard steps, so collapsing adds complexity without much benefit
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="overflow-hidden"
-    >
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between py-2 hover:opacity-80 transition-opacity"
-      >
-        <div className="flex items-center gap-2">
-          <Icon className={`w-4 h-4 ${iconColors[accentColor]}`} />
-          <span className="font-semibold text-foreground">{title}</span>
-        </div>
-        <motion.div
-          animate={{ rotate: isOpen ? 90 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </motion.div>
-      </button>
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            <div className="pt-3 space-y-4">
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+    <div className="overflow-hidden">
+      <div className="flex items-center gap-2 py-2">
+        <Icon className={`w-4 h-4 ${iconColors[accentColor]}`} />
+        <span className="font-semibold text-foreground">{title}</span>
+      </div>
+      <div className="pt-3 space-y-4">
+        {children}
+      </div>
+    </div>
   );
 };
 
@@ -345,15 +319,8 @@ export default function AddEmployeeModal({
 }: AddEmployeeModalProps) {
   const { data: session } = useSession();
 
-  // Stabilize companyId to prevent hook re-initialization when session loads
-  const companyIdRef = useRef<string | undefined>(undefined);
-  if (session?.user?.companyId && !companyIdRef.current) {
-    companyIdRef.current = session.user.companyId;
-  }
-
   // Use SWR hook for cached, resilient data fetching
-  // Only enable when modal is open AND we have a stable companyId
-  const modalData = useEmployeeModalData(open && !!companyIdRef.current, companyIdRef.current);
+  const modalData = useEmployeeModalData(open);
 
   // Extract datasets from hook - data is already guaranteed to be arrays from the hook's useMemo
   // Using direct references to avoid creating new array references on every render
@@ -1682,6 +1649,9 @@ export default function AddEmployeeModal({
             }
           }}
         >
+          {/* Visually hidden title for accessibility */}
+          <DialogTitle className="sr-only">Add New Employee</DialogTitle>
+          
           {/* Show loading state when data is loading */}
           {showLoadingState ? (
             <div className="flex items-center justify-center p-12">

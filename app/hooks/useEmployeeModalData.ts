@@ -342,8 +342,10 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   // Check if all critical data has loaded (templates are required)
   const hasLoadedCriticalData = !templatesLoading && templates.length >= 0;
 
-  // Memoize the return value to prevent unnecessary re-renders
-  const result = useMemo(() => ({
+  // Return the result directly - no useMemo needed here since SWR already handles
+  // caching and the object creation is cheap. The previous useMemo had incomplete
+  // dependencies which caused stale data and React error #185 (Maximum update depth exceeded).
+  return {
     // Aggregated state
     isLoading,
     hasLoadedCriticalData,
@@ -353,7 +355,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     departments: {
       data: departments,
       isLoading: departmentsLoading,
-      error: departmentsError,
+      error: departmentsError || null,
       retry: revalidateDepartments,
     } as DatasetState<Department[]>,
 
@@ -361,7 +363,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     jobRoles: {
       data: jobRoles,
       isLoading: jobRolesLoading,
-      error: jobRolesError,
+      error: jobRolesError || null,
       retry: revalidateJobRoles,
     } as DatasetState<JobRole[]>,
 
@@ -377,7 +379,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     locations: {
       data: locations,
       isLoading: locationsLoading,
-      error: locationsError,
+      error: locationsError || null,
       retry: revalidateLocations,
     } as DatasetState<Location[]>,
 
@@ -385,7 +387,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     contractTypes: {
       data: contractTypes,
       isLoading: contractTypesLoading,
-      error: contractTypesError,
+      error: contractTypesError || null,
       retry: revalidateContractTypes,
     } as DatasetState<ContractType[]>,
 
@@ -393,7 +395,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     templates: {
       data: normalizedTemplates,
       isLoading: templatesLoading,
-      error: templatesError,
+      error: templatesError || null,
       retry: revalidateTemplates,
     } as DatasetState<OnboardingTemplate[]>,
 
@@ -401,7 +403,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     workingPatterns: {
       data: workingPatterns,
       isLoading: workingPatternsLoading,
-      error: workingPatternsError,
+      error: workingPatternsError || null,
       retry: revalidateWorkingPatterns,
     } as DatasetState<WorkingPattern[]>,
 
@@ -409,7 +411,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     permissionProfiles: {
       data: permissionProfiles,
       isLoading: permissionProfilesLoading,
-      error: permissionProfilesError,
+      error: permissionProfilesError || null,
       retry: revalidatePermissionProfiles,
     } as DatasetState<PermissionProfile[]>,
 
@@ -417,10 +419,8 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     rotaGroups: {
       data: rotaGroups,
       isLoading: rotaGroupsLoading,
-      error: rotaGroupsError,
+      error: rotaGroupsError || null,
       retry: revalidateRotaGroups,
     } as DatasetState<RotaGroup[]>,
-  }), [enabled, employeesLoading, employeesError, employeesResponse, companyId]);
-
-  return result;
+  };
 }

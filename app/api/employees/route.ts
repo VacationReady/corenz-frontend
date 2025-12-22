@@ -243,7 +243,7 @@ export async function GET(req: NextRequest) {
     const whereCondition: any = { companyId: session.user.companyId };
 
     if (userId) whereCondition.userId = userId;
-    if (managerId) whereCondition.user = { managerId };
+    if (managerId) whereCondition.User = { managerId };
     if (status === "active") whereCondition.isActive = true;
     else if (status === "archived") whereCondition.isActive = false;
     // If status is "all", no isActive filter is applied
@@ -330,8 +330,8 @@ export async function GET(req: NextRequest) {
         session.user.companyId,
       );
 
-      whereCondition.user = {
-        ...(whereCondition.user || {}),
+      whereCondition.User = {
+        ...(whereCondition.User || {}),
         id: { in: allSubordinateUserIds.length > 0 ? allSubordinateUserIds : ["no-match"] },
       };
     }
@@ -353,8 +353,8 @@ export async function GET(req: NextRequest) {
 
         const directIds = directReports.map((u) => u.id);
 
-        whereCondition.user = {
-          ...(whereCondition.user || {}),
+        whereCondition.User = {
+          ...(whereCondition.User || {}),
           id: { in: directIds.length > 0 ? directIds : ["no-match"] },
         };
       } else {
@@ -366,8 +366,8 @@ export async function GET(req: NextRequest) {
 
         const allowedUserIds = allSubordinateUserIds;
 
-        whereCondition.user = {
-          ...(whereCondition.user || {}),
+        whereCondition.User = {
+          ...(whereCondition.User || {}),
           id: { in: allowedUserIds.length > 0 ? allSubordinateUserIds : ["no-match"] },
         };
       }

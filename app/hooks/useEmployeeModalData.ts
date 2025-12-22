@@ -155,7 +155,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     data: employeesData,
     error: employeesError,
     isLoading: employeesLoading,
-    mutate: revalidateEmployees,
+    mutate: revalidateEmployees
   } = useSWRImmutable<{ data: EmployeeSummary[] } | EmployeeSummary[]>(
     enabled ? `/api/employees?status=all&limit=100&_v=${manualRevalidate}` : null,
     fetcher,
@@ -165,8 +165,18 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
       shouldRetryOnError: true,
       errorRetryCount: 3,
       errorRetryInterval: 1000,
+      // Prevent revalidation on mount if we already have data
+      revalidateIfStale: false,
+      revalidateOnMount: !enabled, // Only validate on mount if not enabled
+      revalidateOnReconnect: false
     }
   );
+  
+  // Memoize the employees data to prevent unnecessary re-renders
+  const employees = useMemo<EmployeeSummary[]>(() => {
+    if (!employeesData) return [];
+    return Array.isArray(employeesData) ? employeesData : employeesData.data || [];
+  }, [employeesData]);
 
   // Locations
   const {
@@ -283,9 +293,9 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   const jobRoles = Array.isArray(jobRolesData)
     ? jobRolesData
     : (jobRolesData as any)?.jobRoles || [];
-  const employees = Array.isArray(employeesData)
-    ? employeesData
-    : (employeesData as any)?.data || [];
+  const employeesData = Array.isArray(employees.data)
+    ? employees.data
+    : (employees.data as any)?.data || [];
   const locations = Array.isArray(locationsData) ? locationsData : [];
   const contractTypes = Array.isArray(contractTypesData) ? contractTypesData : [];
   const templates = Array.isArray(templatesData)
@@ -297,18 +307,18 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
 
   useEffect(() => {
     if (!enabled) return;
-    if (employeesLoading) return;
-    if (employeesError) return;
+    if (employees.isLoading) return;
+    if (employees.error) return;
 
     // Keep this log in an effect so it doesn't spam on every render.
     console.log("[useEmployeeModalData] Employees loaded:", {
       rawDataType: typeof employeesData,
       isArray: Array.isArray(employeesData),
       hasDataProp: !!(employeesData as any)?.data,
-      normalizedCount: employees.length,
+      normalizedCount: employeesData.length,
       companyId,
     });
-  }, [enabled, employeesLoading, employeesError, employeesData, employees.length, companyId]);
+  }, [enabled, employees.isLoading, employees.error, employeesData, companyId]);
 
   // Normalize templates
   const normalizedTemplates: OnboardingTemplate[] = templates.map((t: any) => ({
@@ -328,7 +338,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   const isLoading =
     departmentsLoading ||
     jobRolesLoading ||
-    employeesLoading ||
+    employees.isLoading ||
     locationsLoading ||
     contractTypesLoading ||
     templatesLoading ||
@@ -339,7 +349,8 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   // Check if all critical data has loaded (templates are required)
   const hasLoadedCriticalData = !templatesLoading && templates.length >= 0;
 
-  return {
+  // Memoize the return value to prevent unnecessary re-renders
+  const result = useMemo(() => ({
     // Aggregated state
     isLoading,
     hasLoadedCriticalData,

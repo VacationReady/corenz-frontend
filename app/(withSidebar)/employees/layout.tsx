@@ -28,10 +28,10 @@ export default async function SectionLayout({
 
   return (
     <div className="flex h-screen">
-      <div className="flex-shrink-0 relative z-50">
+      <div className="flex-shrink-0 relative" style={{ zIndex: 100 }}>
         {Sidebar}
       </div>
-      <main className="flex-1 overflow-y-auto relative z-0">{children}</main>
+      <main className="flex-1 overflow-y-auto relative" style={{ zIndex: 1 }}>{children}</main>
     </div>
   );
 }

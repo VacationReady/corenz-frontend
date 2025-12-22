@@ -1,5 +1,5 @@
 import useSWRImmutable from "swr/immutable";
-import { useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 
 export interface Department {
   id: string;
@@ -108,7 +108,7 @@ const createFetcher = (companyId?: string) => async (url: string) => {
  * @param companyId - Optional company ID for tenant-scoped requests
  */
 export function useEmployeeModalData(enabled: boolean = true, companyId?: string) {
-  const fetcher = createFetcher(companyId);
+  const fetcher = useMemo(() => createFetcher(companyId), [companyId]);
   const [manualRevalidate, setManualRevalidate] = useState(0);
 
   // Departments
@@ -295,8 +295,12 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   const permissionProfiles = Array.isArray(permissionProfilesData) ? permissionProfilesData : [];
   const rotaGroups = (rotaGroupsData as any)?.rotaGroups || [];
 
-  // Debug logging for employees data
-  if (enabled && !employeesLoading && !employeesError) {
+  useEffect(() => {
+    if (!enabled) return;
+    if (employeesLoading) return;
+    if (employeesError) return;
+
+    // Keep this log in an effect so it doesn't spam on every render.
     console.log("[useEmployeeModalData] Employees loaded:", {
       rawDataType: typeof employeesData,
       isArray: Array.isArray(employeesData),
@@ -304,7 +308,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
       normalizedCount: employees.length,
       companyId,
     });
-  }
+  }, [enabled, employeesLoading, employeesError, employeesData, employees.length, companyId]);
 
   // Normalize templates
   const normalizedTemplates: OnboardingTemplate[] = templates.map((t: any) => ({

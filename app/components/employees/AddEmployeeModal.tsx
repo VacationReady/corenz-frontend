@@ -1853,7 +1853,7 @@ export default function AddEmployeeModal({
                           <Switch
                             id="adminAccess"
                             checked={isAdminAccess}
-                            onChange={(checked: boolean) => setIsAdminAccess(checked)}
+                            onCheckedChange={(checked: boolean) => setIsAdminAccess(checked)}
                             aria-describedby="admin-access-description"
                           />
                         </div>
@@ -2255,7 +2255,7 @@ export default function AddEmployeeModal({
                           <Switch
                             id="kiwiSaverEnrolled"
                             checked={formData.kiwiSaverEnrolled}
-                            onChange={(checked: boolean) =>
+                            onCheckedChange={(checked: boolean) =>
                               setFormData({ ...formData, kiwiSaverEnrolled: checked })
                             }
                             aria-describedby="kiwisaver-description"
@@ -2423,7 +2423,7 @@ export default function AddEmployeeModal({
                           <Switch
                             id="ninetyDayTrial"
                             checked={formData.ninetyDayTrialPeriod}
-                            onChange={(checked: boolean) => {
+                            onCheckedChange={(checked: boolean) => {
                               setFormData({
                                 ...formData,
                                 ninetyDayTrialPeriod: checked,
@@ -2837,7 +2837,7 @@ export default function AddEmployeeModal({
                           <Switch
                             id="canBookPublicHolidays"
                             checked={formData.canBookPublicHolidays}
-                            onChange={(checked: boolean) => {
+                            onCheckedChange={(checked: boolean) => {
                               setFormData({
                                 ...formData,
                                 canBookPublicHolidays: checked

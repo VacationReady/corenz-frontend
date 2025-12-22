@@ -345,8 +345,15 @@ export default function AddEmployeeModal({
 }: AddEmployeeModalProps) {
   const { data: session } = useSession();
 
+  // Stabilize companyId to prevent hook re-initialization when session loads
+  const companyIdRef = useRef<string | undefined>(undefined);
+  if (session?.user?.companyId && !companyIdRef.current) {
+    companyIdRef.current = session.user.companyId;
+  }
+
   // Use SWR hook for cached, resilient data fetching
-  const modalData = useEmployeeModalData(open, session?.user?.companyId);
+  // Only enable when modal is open AND we have a stable companyId
+  const modalData = useEmployeeModalData(open && !!companyIdRef.current, companyIdRef.current);
 
   // Extract datasets from hook - data is already guaranteed to be arrays from the hook's useMemo
   // Using direct references to avoid creating new array references on every render

@@ -454,8 +454,8 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     retry: retryRotaGroups,
   }), [rotaGroups, rotaGroupsLoading, rotaGroupsError, retryRotaGroups]);
 
-  // Return memoized state objects to prevent unnecessary re-renders in consuming components
-  return {
+  // Memoize the entire return object to prevent new references on every render
+  return useMemo(() => ({
     // Aggregated state
     isLoading,
     hasLoadedCriticalData,
@@ -471,5 +471,18 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     workingPatterns: workingPatternsState,
     permissionProfiles: permissionProfilesState,
     rotaGroups: rotaGroupsState,
-  };
+  }), [
+    isLoading,
+    hasLoadedCriticalData,
+    retryAll,
+    departmentsState,
+    jobRolesState,
+    employeesState,
+    locationsState,
+    contractTypesState,
+    templatesState,
+    workingPatternsState,
+    permissionProfilesState,
+    rotaGroupsState,
+  ]);
 }

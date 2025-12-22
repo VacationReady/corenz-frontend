@@ -1714,32 +1714,8 @@ export default function AddEmployeeModal({
   const hasCriticalError = criticalErrors.length > 0;
   const hasNonCriticalErrors = nonCriticalErrors.length > 0;
 
-  // Show loading state while critical data is loading
-  // This prevents render errors from undefined data
-  if (modalData.isLoading && templates.length === 0) {
-    return (
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) {
-            onClose();
-          }
-        }}
-      >
-        <DialogContent
-          rawContent
-          className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col"
-        >
-          <div className="flex items-center justify-center p-12">
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-muted-foreground">Loading employee form...</p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  // Determine if we should show loading state
+  const showLoadingState = modalData.isLoading && templates.length === 0;
   
   return (
     <AddEmployeeModalErrorBoundary onReset={() => {
@@ -1772,6 +1748,16 @@ export default function AddEmployeeModal({
             }
           }}
         >
+          {/* Show loading state when data is loading */}
+          {showLoadingState ? (
+            <div className="flex items-center justify-center p-12">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-muted-foreground">Loading employee form...</p>
+              </div>
+            </div>
+          ) : (
+            <>
             {/* Header */}
             <div className="px-8 pt-8 pb-6 flex-shrink-0">
               <div className="flex items-start justify-between">
@@ -3137,6 +3123,8 @@ export default function AddEmployeeModal({
               </fieldset>
             </form>
             </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

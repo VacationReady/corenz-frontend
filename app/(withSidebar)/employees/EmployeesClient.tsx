@@ -774,10 +774,7 @@ function EmployeesContent(props: EmployeesClientProps) {
               transition={{ duration: 0.3, delay: 0.2 }}
             >
               <Button 
-                onClick={() => {
-                  console.log('[EmployeesClient] Add Employee button clicked - isAdmin:', isAdmin);
-                  setModalOpen(true);
-                }} 
+                onClick={() => setModalOpen(true)} 
                 variant="primary"
                 className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 shadow-lg shadow-primary/25 transition-all duration-300"
               >
@@ -1382,10 +1379,7 @@ function EmployeesContent(props: EmployeesClientProps) {
       {/* Always render AddEmployeeModal to prevent React Error #185 (hooks ordering issue) */}
       {/* The modal handles its own visibility via the open prop */}
       <AddEmployeeModal
-        open={(() => {
-          console.log('[EmployeesClient] Rendering AddEmployeeModal - isModalOpen:', isModalOpen, 'isAdmin:', isAdmin, 'open prop:', isModalOpen && isAdmin);
-          return isModalOpen && isAdmin;
-        })()}
+        open={isModalOpen && isAdmin}
         onClose={() => setModalOpen(false)}
         onSuccess={() => {
           // Refresh the local state to show the new employee immediately

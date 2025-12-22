@@ -377,70 +377,82 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   // Check if all critical data has loaded (templates are required)
   const hasLoadedCriticalData = !templatesLoading && templates.length >= 0;
 
+  // Wrap retry functions in useCallback to prevent new references on every render
+  // SWR's mutate function changes reference on every render, causing infinite loops
+  const retryDepartments = useCallback(() => revalidateDepartments(), [revalidateDepartments]);
+  const retryJobRoles = useCallback(() => revalidateJobRoles(), [revalidateJobRoles]);
+  const retryEmployees = useCallback(() => revalidateEmployees(), [revalidateEmployees]);
+  const retryLocations = useCallback(() => revalidateLocations(), [revalidateLocations]);
+  const retryContractTypes = useCallback(() => revalidateContractTypes(), [revalidateContractTypes]);
+  const retryTemplates = useCallback(() => revalidateTemplates(), [revalidateTemplates]);
+  const retryWorkingPatterns = useCallback(() => revalidateWorkingPatterns(), [revalidateWorkingPatterns]);
+  const retryPermissionProfiles = useCallback(() => revalidatePermissionProfiles(), [revalidatePermissionProfiles]);
+  const retryRotaGroups = useCallback(() => revalidateRotaGroups(), [revalidateRotaGroups]);
+
   // Memoize each dataset state object to prevent new references on every render
   // This prevents React error #185 (Maximum update depth exceeded) in consuming components
   const departmentsState = useMemo<DatasetState<Department[]>>(() => ({
     data: departments,
     isLoading: departmentsLoading,
     error: departmentsError || null,
-    retry: revalidateDepartments,
-  }), [departments, departmentsLoading, departmentsError, revalidateDepartments]);
+    retry: retryDepartments,
+  }), [departments, departmentsLoading, departmentsError, retryDepartments]);
 
   const jobRolesState = useMemo<DatasetState<JobRole[]>>(() => ({
     data: jobRoles,
     isLoading: jobRolesLoading,
     error: jobRolesError || null,
-    retry: revalidateJobRoles,
-  }), [jobRoles, jobRolesLoading, jobRolesError, revalidateJobRoles]);
+    retry: retryJobRoles,
+  }), [jobRoles, jobRolesLoading, jobRolesError, retryJobRoles]);
 
   const employeesState = useMemo<DatasetState<EmployeeSummary[]>>(() => ({
     data: employees,
     isLoading: employeesLoading,
     error: employeesError || null,
-    retry: revalidateEmployees,
-  }), [employees, employeesLoading, employeesError, revalidateEmployees]);
+    retry: retryEmployees,
+  }), [employees, employeesLoading, employeesError, retryEmployees]);
 
   const locationsState = useMemo<DatasetState<Location[]>>(() => ({
     data: locations,
     isLoading: locationsLoading,
     error: locationsError || null,
-    retry: revalidateLocations,
-  }), [locations, locationsLoading, locationsError, revalidateLocations]);
+    retry: retryLocations,
+  }), [locations, locationsLoading, locationsError, retryLocations]);
 
   const contractTypesState = useMemo<DatasetState<ContractType[]>>(() => ({
     data: contractTypes,
     isLoading: contractTypesLoading,
     error: contractTypesError || null,
-    retry: revalidateContractTypes,
-  }), [contractTypes, contractTypesLoading, contractTypesError, revalidateContractTypes]);
+    retry: retryContractTypes,
+  }), [contractTypes, contractTypesLoading, contractTypesError, retryContractTypes]);
 
   const templatesState = useMemo<DatasetState<OnboardingTemplate[]>>(() => ({
     data: normalizedTemplates,
     isLoading: templatesLoading,
     error: templatesError || null,
-    retry: revalidateTemplates,
-  }), [normalizedTemplates, templatesLoading, templatesError, revalidateTemplates]);
+    retry: retryTemplates,
+  }), [normalizedTemplates, templatesLoading, templatesError, retryTemplates]);
 
   const workingPatternsState = useMemo<DatasetState<WorkingPattern[]>>(() => ({
     data: workingPatterns,
     isLoading: workingPatternsLoading,
     error: workingPatternsError || null,
-    retry: revalidateWorkingPatterns,
-  }), [workingPatterns, workingPatternsLoading, workingPatternsError, revalidateWorkingPatterns]);
+    retry: retryWorkingPatterns,
+  }), [workingPatterns, workingPatternsLoading, workingPatternsError, retryWorkingPatterns]);
 
   const permissionProfilesState = useMemo<DatasetState<PermissionProfile[]>>(() => ({
     data: permissionProfiles,
     isLoading: permissionProfilesLoading,
     error: permissionProfilesError || null,
-    retry: revalidatePermissionProfiles,
-  }), [permissionProfiles, permissionProfilesLoading, permissionProfilesError, revalidatePermissionProfiles]);
+    retry: retryPermissionProfiles,
+  }), [permissionProfiles, permissionProfilesLoading, permissionProfilesError, retryPermissionProfiles]);
 
   const rotaGroupsState = useMemo<DatasetState<RotaGroup[]>>(() => ({
     data: rotaGroups,
     isLoading: rotaGroupsLoading,
     error: rotaGroupsError || null,
-    retry: revalidateRotaGroups,
-  }), [rotaGroups, rotaGroupsLoading, rotaGroupsError, revalidateRotaGroups]);
+    retry: retryRotaGroups,
+  }), [rotaGroups, rotaGroupsLoading, rotaGroupsError, retryRotaGroups]);
 
   // Return memoized state objects to prevent unnecessary re-renders in consuming components
   return {

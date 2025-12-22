@@ -187,7 +187,12 @@ export default function PersonalInfoSaveButton({
     <>
       <div className="flex justify-end">
         <Button
-          onClick={handleSave}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void handleSave();
+          }}
           disabled={loading}
           loading={loading}
           loadingText="Saving changes"

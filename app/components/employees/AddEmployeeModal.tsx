@@ -546,18 +546,20 @@ export default function AddEmployeeModal({
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [pendingClose, setPendingClose] = useState(false);
 
-  const [dialogOpen, setDialogOpen] = useState(open);
+  // Use the open prop directly instead of syncing to local state
+  // This prevents potential infinite loops from state synchronization
+  const dialogOpen = open;
 
   // Generate storage key based on tenant and user
+  // Use a ref to track if the key has been initialized to prevent re-running effects
   const storageKey = useMemo(() => {
     const tenantId = session?.user?.companyId || 'default';
     const userId = session?.user?.id || 'anonymous';
     return `addEmployeeModal_draft_${tenantId}_${userId}`;
   }, [session?.user?.companyId, session?.user?.id]);
-
-  useEffect(() => {
-    setDialogOpen(open);
-  }, [open]);
+  
+  // Track if we've already initialized the form to prevent re-initialization
+  const hasInitializedRef = useRef(false);
 
   // Check if form has unsaved changes
   const isDirty = useMemo(() => {
@@ -761,8 +763,12 @@ export default function AddEmployeeModal({
 
   // Data is now fetched via SWR hook - no manual fetchData needed
 
+  // Initialize form data only once when modal opens
+  // Use ref to prevent re-initialization when storageKey changes
   useEffect(() => {
-    if (open) {
+    if (open && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      
       // Restore draft from sessionStorage
       try {
         const savedDraft = sessionStorage.getItem(storageKey);
@@ -787,10 +793,92 @@ export default function AddEmployeeModal({
           } else {
             console.warn('[AddEmployeeModal] Invalid draft structure, clearing storage');
             sessionStorage.removeItem(storageKey);
-            setInitialFormData(formData);
+            // Use a stable initial form data reference
+            const initialData = {
+              firstName: "",
+              lastName: "",
+              email: "",
+              phone: "",
+              dateOfBirth: "",
+              startDate: "",
+              role: "EMPLOYEE",
+              permissionProfileId: undefined as string | undefined,
+              departmentId: undefined as string | undefined,
+              jobRoleId: undefined as string | undefined,
+              siteLocation: undefined as string | undefined,
+              locationId: undefined as string | undefined,
+              contractType: undefined as string | undefined,
+              managerId: undefined as string | undefined,
+              onboardingTemplateId: undefined as string | undefined,
+              holidayYear: undefined as string | undefined,
+              workingPatternId: undefined as string | undefined,
+              entitlementDays: "",
+              sickLeaveDays: "10",
+              alternativeHolidayDays: "0",
+              publicHolidayEntitlement: "11",
+              irdNumber: "",
+              taxCode: undefined as string | undefined,
+              kiwiSaverEnrolled: false,
+              kiwiSaverEmployeeRate: undefined as string | undefined,
+              bankAccountNumber: "",
+              residencyStatus: "",
+              emergencyContactName: "",
+              emergencyContactPhone: "",
+              emergencyContactRelationship: "",
+              visaExpiryDate: "",
+              workPermitType: "",
+              ninetyDayTrialPeriod: false,
+              trialPeriodAccepted: false,
+              trialNotifyRecipient: "MANAGER" as "MANAGER" | "ADMIN" | "BOTH",
+              trialNotifyDaysBefore: "7",
+              canBookPublicHolidays: false,
+              rotaGroupIds: [] as string[],
+            };
+            setInitialFormData(initialData);
           }
         } else {
-          setInitialFormData(formData);
+          // Use a stable initial form data reference
+          const initialData = {
+            firstName: "",
+            lastName: "",
+            email: "",
+            phone: "",
+            dateOfBirth: "",
+            startDate: "",
+            role: "EMPLOYEE",
+            permissionProfileId: undefined as string | undefined,
+            departmentId: undefined as string | undefined,
+            jobRoleId: undefined as string | undefined,
+            siteLocation: undefined as string | undefined,
+            locationId: undefined as string | undefined,
+            contractType: undefined as string | undefined,
+            managerId: undefined as string | undefined,
+            onboardingTemplateId: undefined as string | undefined,
+            holidayYear: undefined as string | undefined,
+            workingPatternId: undefined as string | undefined,
+            entitlementDays: "",
+            sickLeaveDays: "10",
+            alternativeHolidayDays: "0",
+            publicHolidayEntitlement: "11",
+            irdNumber: "",
+            taxCode: undefined as string | undefined,
+            kiwiSaverEnrolled: false,
+            kiwiSaverEmployeeRate: undefined as string | undefined,
+            bankAccountNumber: "",
+            residencyStatus: "",
+            emergencyContactName: "",
+            emergencyContactPhone: "",
+            emergencyContactRelationship: "",
+            visaExpiryDate: "",
+            workPermitType: "",
+            ninetyDayTrialPeriod: false,
+            trialPeriodAccepted: false,
+            trialNotifyRecipient: "MANAGER" as "MANAGER" | "ADMIN" | "BOTH",
+            trialNotifyDaysBefore: "7",
+            canBookPublicHolidays: false,
+            rotaGroupIds: [] as string[],
+          };
+          setInitialFormData(initialData);
         }
       } catch (error) {
         console.error('Failed to restore draft:', error);
@@ -798,8 +886,54 @@ export default function AddEmployeeModal({
         try {
           sessionStorage.removeItem(storageKey);
         } catch {}
-        setInitialFormData(formData);
+        // Use a stable initial form data reference
+        const initialData = {
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          dateOfBirth: "",
+          startDate: "",
+          role: "EMPLOYEE",
+          permissionProfileId: undefined as string | undefined,
+          departmentId: undefined as string | undefined,
+          jobRoleId: undefined as string | undefined,
+          siteLocation: undefined as string | undefined,
+          locationId: undefined as string | undefined,
+          contractType: undefined as string | undefined,
+          managerId: undefined as string | undefined,
+          onboardingTemplateId: undefined as string | undefined,
+          holidayYear: undefined as string | undefined,
+          workingPatternId: undefined as string | undefined,
+          entitlementDays: "",
+          sickLeaveDays: "10",
+          alternativeHolidayDays: "0",
+          publicHolidayEntitlement: "11",
+          irdNumber: "",
+          taxCode: undefined as string | undefined,
+          kiwiSaverEnrolled: false,
+          kiwiSaverEmployeeRate: undefined as string | undefined,
+          bankAccountNumber: "",
+          residencyStatus: "",
+          emergencyContactName: "",
+          emergencyContactPhone: "",
+          emergencyContactRelationship: "",
+          visaExpiryDate: "",
+          workPermitType: "",
+          ninetyDayTrialPeriod: false,
+          trialPeriodAccepted: false,
+          trialNotifyRecipient: "MANAGER" as "MANAGER" | "ADMIN" | "BOTH",
+          trialNotifyDaysBefore: "7",
+          canBookPublicHolidays: false,
+          rotaGroupIds: [] as string[],
+        };
+        setInitialFormData(initialData);
       }
+    }
+    
+    // Reset the initialization flag when modal closes
+    if (!open) {
+      hasInitializedRef.current = false;
     }
   }, [open, storageKey]);
 
@@ -1608,21 +1742,18 @@ export default function AddEmployeeModal({
       <Dialog
         open={dialogOpen}
         onOpenChange={(nextOpen) => {
+          // Only handle close events (nextOpen === false)
           if (nextOpen) {
-            setDialogOpen(true);
             return;
           }
 
-          // If the user tries to close the dialog while the form is dirty, keep it open
-          // and show the discard confirmation.
+          // If the user tries to close the dialog while the form is dirty, show discard confirmation
           if (isDirty && !isSubmitting) {
-            setDialogOpen(true);
             setShowDiscardDialog(true);
             setPendingClose(true);
             return;
           }
 
-          setDialogOpen(false);
           onClose();
         }}
       >

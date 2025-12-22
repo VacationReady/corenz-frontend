@@ -860,30 +860,40 @@ export default function AddEmployeeModal({
       return;
     }
 
+    // Only sync holiday fields from formData when modal first opens
+    // Don't include holidayStartMonth/holidayStartDay in deps to avoid infinite loop
     if (!formData.holidayYear) {
       return;
     }
 
     const parsed = parseHolidayYearValue(formData.holidayYear);
-    if (parsed && holidayStartMonth === "" && holidayStartDay === "") {
-      setHolidayStartMonth(parsed.startMonth.toString());
-      setHolidayStartDay(parsed.startDay.toString());
+    if (parsed) {
+      // Use functional updates to avoid dependency on current values
+      setHolidayStartMonth((prev) => prev === "" ? parsed.startMonth.toString() : prev);
+      setHolidayStartDay((prev) => prev === "" ? parsed.startDay.toString() : prev);
     }
-  }, [
-    open,
-    formData.holidayYear,
-    holidayStartMonth,
-    holidayStartDay,
-  ]);
+  }, [open, formData.holidayYear]); // Removed holidayStartMonth, holidayStartDay from deps
 
   // Auto-populate holiday year from start date (QOL feature)
+  // Use a ref to track if we've already auto-populated to prevent loops
+  const hasAutoPopulatedHolidayRef = useRef(false);
+  
   useEffect(() => {
+    if (!open) {
+      hasAutoPopulatedHolidayRef.current = false;
+      return;
+    }
+    
     if (!formData.startDate) return;
-    // Only auto-populate if holiday year hasn't been manually set
-    if (holidayStartMonth !== "" || holidayStartDay !== "") return;
+    // Only auto-populate once per modal open
+    if (hasAutoPopulatedHolidayRef.current) return;
+    // Don't auto-populate if holiday year is already set
+    if (formData.holidayYear) return;
     
     const startDate = new Date(formData.startDate);
     if (isNaN(startDate.getTime())) return;
+    
+    hasAutoPopulatedHolidayRef.current = true;
     
     const month = (startDate.getMonth() + 1).toString();
     const day = startDate.getDate().toString();
@@ -891,7 +901,7 @@ export default function AddEmployeeModal({
     setHolidayStartMonth(month);
     setHolidayStartDay(day);
     updateHolidayYearSelection(month, day);
-  }, [formData.startDate]);
+  }, [open, formData.startDate, formData.holidayYear]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,

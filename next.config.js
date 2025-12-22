@@ -33,6 +33,7 @@ const nextConfig = {
   outputFileTracingRoot: __dirname,
   experimental: {
     optimizePackageImports: ["lucide-react", "@heroicons/react"],
+    turbo: false,
   },
   async headers() {
     // Only apply strict CSP in production

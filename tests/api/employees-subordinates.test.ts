@@ -117,10 +117,10 @@ test("Iterative Subordinate Collection", async (t) => {
     };
 
     mockPrisma.employee.findMany = async ({ where }: any) => {
-      // Verify the subordinate IDs are correctly filtered
-      assert.ok(where.user?.id?.in, "Should filter by user IDs");
+      // Verify the subordinate IDs are correctly filtered (Prisma uses uppercase relation name)
+      assert.ok(where.User?.id?.in, "Should filter by user IDs");
       assert.deepEqual(
-        where.user.id.in.sort(),
+        where.User.id.in.sort(),
         ["user1", "user2", "user3"].sort(),
         "Should include all direct reports"
       );
@@ -182,9 +182,9 @@ test("Iterative Subordinate Collection", async (t) => {
     };
 
     mockPrisma.employee.findMany = async ({ where }: any) => {
-      // Should filter for empty array (no-match pattern)
-      assert.ok(where.user?.id?.in, "Should have user ID filter");
-      assert.deepEqual(where.user.id.in, ["no-match"], "Should use no-match for empty results");
+      // Should filter for empty array (no-match pattern) - Prisma uses uppercase relation name
+      assert.ok(where.User?.id?.in, "Should have user ID filter");
+      assert.deepEqual(where.User.id.in, ["no-match"], "Should use no-match for empty results");
       return [];
     };
 
@@ -235,9 +235,9 @@ test("Iterative Subordinate Collection", async (t) => {
 
     mockPrisma.employee.findMany = async ({ where }: any) => {
       const expectedIds = ["user1", "user2", "user3", "user4", "user5"];
-      assert.ok(where.user?.id?.in, "Should filter by user IDs");
+      assert.ok(where.User?.id?.in, "Should filter by user IDs");
       assert.deepEqual(
-        where.user.id.in.sort(),
+        where.User.id.in.sort(),
         expectedIds.sort(),
         "Should include all subordinates at all levels"
       );
@@ -303,7 +303,7 @@ test("Iterative Subordinate Collection", async (t) => {
     mockPrisma.employee.findMany = async ({ where }: any) => {
       const expectedIds = ["user1", "user2", "user3", "user4", "user5", "user6", "user7"];
       assert.deepEqual(
-        where.user.id.in.sort(),
+        where.User.id.in.sort(),
         expectedIds.sort(),
         "Should include all subordinates across all levels"
       );
@@ -381,8 +381,8 @@ test("Iterative Subordinate Collection", async (t) => {
     };
 
     mockPrisma.employee.findMany = async ({ where }: any) => {
-      // Should only include user1 and user2 (no duplicates)
-      const ids = where.user.id.in;
+      // Should only include user1 and user2 (no duplicates) - Prisma uses uppercase relation name
+      const ids = where.User.id.in;
       assert.ok(ids.length <= 2, "Should not have duplicate IDs");
       
       return ids.map((userId: string, i: number) => ({
@@ -438,7 +438,8 @@ test("Iterative Subordinate Collection", async (t) => {
     };
 
     mockPrisma.employee.findMany = async ({ where }: any) => {
-      const ids = where.user.id.in;
+      // Prisma uses uppercase relation name
+      const ids = where.User.id.in;
       assert.equal(ids.length, 50, "Should handle 50 direct reports");
       
       return ids.map((userId: string, i: number) => ({
@@ -507,7 +508,7 @@ test("Iterative Subordinate Collection", async (t) => {
       const expectedIds = ["user1", "user2", "user3", "user4", "user5", "user6", "user7"];
       
       assert.deepEqual(
-        where.user.id.in.sort(),
+        where.User.id.in.sort(),
         expectedIds.sort(),
         "Iterative approach should match recursive results"
       );

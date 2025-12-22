@@ -544,9 +544,9 @@ test("Employees API - Pagination & Optimization", async (t) => {
     };
 
     mockPrisma.employee.findMany = async ({ where }: any) => {
-      // Verify authorization filter is applied
-      assert.ok(where.user, "Should have user filter");
-      assert.ok(where.user.id, "Should filter by user IDs");
+      // Verify authorization filter is applied (Prisma uses uppercase relation name)
+      assert.ok(where.User, "Should have user filter");
+      assert.ok(where.User.id, "Should filter by user IDs");
 
       return Array.from({ length: 2 }, (_, i) => ({
         id: `emp${i}`,

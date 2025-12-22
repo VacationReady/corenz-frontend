@@ -1714,14 +1714,15 @@ export default function AddEmployeeModal({
   const hasCriticalError = criticalErrors.length > 0;
   const hasNonCriticalErrors = nonCriticalErrors.length > 0;
 
-  // Don't render until modal is open
-  if (!open) return null;
-  
   // Show loading state while critical data is loading
   // This prevents render errors from undefined data
   if (modalData.isLoading && templates.length === 0) {
     return (
-      <Dialog open={dialogOpen} onOpenChange={() => onClose()}>
+      <Dialog open={dialogOpen} onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          onClose();
+        }
+      }}>
         <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
           <div className="flex items-center justify-center p-12">
             <div className="flex flex-col items-center gap-4">
@@ -1742,19 +1743,9 @@ export default function AddEmployeeModal({
       <Dialog
         open={dialogOpen}
         onOpenChange={(nextOpen) => {
-          // Only handle close events (nextOpen === false)
-          if (nextOpen) {
-            return;
+          if (!nextOpen) {
+            onClose();
           }
-
-          // If the user tries to close the dialog while the form is dirty, show discard confirmation
-          if (isDirty && !isSubmitting) {
-            setShowDiscardDialog(true);
-            setPendingClose(true);
-            return;
-          }
-
-          onClose();
         }}
       >
         <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">

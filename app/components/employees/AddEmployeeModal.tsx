@@ -357,16 +357,17 @@ export default function AddEmployeeModal({
   // Use SWR hook for cached, resilient data fetching
   const modalData = useEmployeeModalData(open, session?.user?.companyId);
 
-  // Extract datasets from hook with concrete typing
-  const departments: Department[] = modalData.departments.data;
-  const jobRoles: JobRole[] = modalData.jobRoles.data;
-  const employees: EmployeeSummary[] = modalData.employees.data;
-  const locations: Location[] = modalData.locations.data;
-  const contractTypes: ContractType[] = modalData.contractTypes.data;
-  const templates: OnboardingTemplate[] = modalData.templates.data;
-  const workingPatterns: WorkingPattern[] = modalData.workingPatterns.data;
-  const permissionProfiles: PermissionProfile[] = modalData.permissionProfiles.data;
-  const rotaGroups: RotaGroup[] = modalData.rotaGroups.data;
+  // Extract datasets from hook with concrete typing and defensive guards
+  // Ensure all data is always an array to prevent .map() errors
+  const departments: Department[] = Array.isArray(modalData.departments.data) ? modalData.departments.data : [];
+  const jobRoles: JobRole[] = Array.isArray(modalData.jobRoles.data) ? modalData.jobRoles.data : [];
+  const employees: EmployeeSummary[] = Array.isArray(modalData.employees.data) ? modalData.employees.data : [];
+  const locations: Location[] = Array.isArray(modalData.locations.data) ? modalData.locations.data : [];
+  const contractTypes: ContractType[] = Array.isArray(modalData.contractTypes.data) ? modalData.contractTypes.data : [];
+  const templates: OnboardingTemplate[] = Array.isArray(modalData.templates.data) ? modalData.templates.data : [];
+  const workingPatterns: WorkingPattern[] = Array.isArray(modalData.workingPatterns.data) ? modalData.workingPatterns.data : [];
+  const permissionProfiles: PermissionProfile[] = Array.isArray(modalData.permissionProfiles.data) ? modalData.permissionProfiles.data : [];
+  const rotaGroups: RotaGroup[] = Array.isArray(modalData.rotaGroups.data) ? modalData.rotaGroups.data : [];
 
   const datasetHealth: DatasetHealthEntry[] = [
     {
@@ -1553,7 +1554,26 @@ export default function AddEmployeeModal({
   const hasCriticalError = criticalErrors.length > 0;
   const hasNonCriticalErrors = nonCriticalErrors.length > 0;
 
+  // Don't render until modal is open
   if (!open) return null;
+  
+  // Show loading state while critical data is loading
+  // This prevents render errors from undefined data
+  if (modalData.isLoading && templates.length === 0) {
+    return (
+      <Dialog open={dialogOpen} onOpenChange={() => onClose()}>
+        <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
+          <div className="flex items-center justify-center p-12">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground">Loading employee form...</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+  
   return (
     <AddEmployeeModalErrorBoundary onReset={() => {
       modalData.retryAll();

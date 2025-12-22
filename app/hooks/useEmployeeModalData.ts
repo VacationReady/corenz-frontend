@@ -168,10 +168,12 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     }
   );
 
-  // Normalize employees data
+  // Normalize employees data - ensure we always return an array
   const employees = useMemo(() => {
     if (!employeesResponse) return [];
-    return Array.isArray(employeesResponse) ? employeesResponse : employeesResponse.data || [];
+    if (Array.isArray(employeesResponse)) return employeesResponse;
+    if (Array.isArray(employeesResponse.data)) return employeesResponse.data;
+    return [];
   }, [employeesResponse]);
 
   // Locations
@@ -283,20 +285,29 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   );
 
   // Normalize data shapes (handle both array and { key: array } responses)
+  // Add defensive checks to ensure we always return arrays
   const departments = Array.isArray(departmentsData)
     ? departmentsData
-    : (departmentsData as any)?.departments || [];
+    : Array.isArray((departmentsData as any)?.departments)
+      ? (departmentsData as any).departments
+      : [];
   const jobRoles = Array.isArray(jobRolesData)
     ? jobRolesData
-    : (jobRolesData as any)?.jobRoles || [];
+    : Array.isArray((jobRolesData as any)?.jobRoles)
+      ? (jobRolesData as any).jobRoles
+      : [];
   const locations = Array.isArray(locationsData) ? locationsData : [];
   const contractTypes = Array.isArray(contractTypesData) ? contractTypesData : [];
   const templates = Array.isArray(templatesData)
     ? templatesData
-    : (templatesData as any)?.templates || [];
+    : Array.isArray((templatesData as any)?.templates)
+      ? (templatesData as any).templates
+      : [];
   const workingPatterns = Array.isArray(workingPatternsData) ? workingPatternsData : [];
   const permissionProfiles = Array.isArray(permissionProfilesData) ? permissionProfilesData : [];
-  const rotaGroups = (rotaGroupsData as any)?.rotaGroups || [];
+  const rotaGroups = Array.isArray((rotaGroupsData as any)?.rotaGroups)
+    ? (rotaGroupsData as any).rotaGroups
+    : [];
 
   useEffect(() => {
     if (!enabled) return;
@@ -311,14 +322,18 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
       normalizedCount: employees.length,
       companyId,
     });
-  }, [enabled, employeesLoading, employeesError, employeesResponse, companyId]);
+  }, [enabled, employeesLoading, employeesError, employeesResponse, employees.length, companyId]);
 
-  // Normalize templates
-  const normalizedTemplates: OnboardingTemplate[] = templates.map((t: any) => ({
-    id: t.id,
-    name: t.name,
-    departments: (t.departments || t.Department || []).map((d: any) => ({ id: d.id })),
-    jobRoles: (t.jobRoles || t.JobRole || []).map((j: any) => ({ id: j.id })),
+  // Normalize templates - ensure we handle any edge cases
+  const normalizedTemplates: OnboardingTemplate[] = (Array.isArray(templates) ? templates : []).map((t: any) => ({
+    id: t?.id ?? '',
+    name: t?.name ?? '',
+    departments: Array.isArray(t?.departments || t?.Department) 
+      ? (t.departments || t.Department).map((d: any) => ({ id: d?.id ?? '' }))
+      : [],
+    jobRoles: Array.isArray(t?.jobRoles || t?.JobRole)
+      ? (t.jobRoles || t.JobRole).map((j: any) => ({ id: j?.id ?? '' }))
+      : [],
   }));
 
   // Retry handlers with error logging

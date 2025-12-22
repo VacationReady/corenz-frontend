@@ -1376,16 +1376,16 @@ function EmployeesContent(props: EmployeesClientProps) {
       </div>
 
       {/* Modals */}
-      {isAdmin && (
-        <AddEmployeeModal
-          open={isModalOpen}
-          onClose={() => setModalOpen(false)}
-          onSuccess={() => {
-            // Refresh the local state to show the new employee immediately
-            fetchData(activeTab, true);
-          }}
-        />
-      )}
+      {/* Always render AddEmployeeModal to prevent React Error #185 (hooks ordering issue) */}
+      {/* The modal handles its own visibility via the open prop */}
+      <AddEmployeeModal
+        open={isModalOpen && isAdmin}
+        onClose={() => setModalOpen(false)}
+        onSuccess={() => {
+          // Refresh the local state to show the new employee immediately
+          fetchData(activeTab, true);
+        }}
+      />
       {isDeptModalOpen && (
         <NewDepartmentModal
           onClose={() => {

@@ -527,12 +527,18 @@ export default function AddEmployeeModal({
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [pendingClose, setPendingClose] = useState(false);
 
+  const [dialogOpen, setDialogOpen] = useState(open);
+
   // Generate storage key based on tenant and user
   const storageKey = useMemo(() => {
     const tenantId = session?.user?.companyId || 'default';
     const userId = session?.user?.id || 'anonymous';
     return `addEmployeeModal_draft_${tenantId}_${userId}`;
   }, [session?.user?.companyId, session?.user?.id]);
+
+  useEffect(() => {
+    setDialogOpen(open);
+  }, [open]);
 
   // Check if form has unsaved changes
   const isDirty = useMemo(() => {
@@ -1530,7 +1536,27 @@ export default function AddEmployeeModal({
       modalData.retryAll();
       onClose();
     }}>
-      <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (nextOpen) {
+            setDialogOpen(true);
+            return;
+          }
+
+          // If the user tries to close the dialog while the form is dirty, keep it open
+          // and show the discard confirmation.
+          if (isDirty && !isSubmitting) {
+            setDialogOpen(true);
+            setShowDiscardDialog(true);
+            setPendingClose(true);
+            return;
+          }
+
+          setDialogOpen(false);
+          onClose();
+        }}
+      >
         <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
             {/* Header */}
             <div className="px-8 pt-8 pb-6 flex-shrink-0">

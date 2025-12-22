@@ -152,31 +152,27 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   // This ensures system admins and other users appear in the manager dropdown
   // Note: Using limit=100 (max allowed) instead of limit=all which is rejected by the API
   const {
-    data: employeesData,
+    data: employeesResponse,
     error: employeesError,
     isLoading: employeesLoading,
-    mutate: revalidateEmployees
-  } = useSWRImmutable<{ data: EmployeeSummary[] } | EmployeeSummary[]>(
-    enabled ? `/api/employees?status=all&limit=100&_v=${manualRevalidate}` : null,
+    mutate: revalidateEmployees,
+  } = useSWRImmutable<EmployeeSummary[] | { data: EmployeeSummary[] }>(
+    enabled ? `/api/employees?select=id,firstName,lastName,email&_v=${manualRevalidate}` : null,
     fetcher,
     {
       revalidateOnFocus: false,
-      dedupingInterval: 60000,
+      dedupingInterval: 30000, // 30 seconds
       shouldRetryOnError: true,
-      errorRetryCount: 3,
+      errorRetryCount: 2,
       errorRetryInterval: 1000,
-      // Prevent revalidation on mount if we already have data
-      revalidateIfStale: false,
-      revalidateOnMount: !enabled, // Only validate on mount if not enabled
-      revalidateOnReconnect: false
     }
   );
-  
-  // Memoize the employees data to prevent unnecessary re-renders
-  const employees = useMemo<EmployeeSummary[]>(() => {
-    if (!employeesData) return [];
-    return Array.isArray(employeesData) ? employeesData : employeesData.data || [];
-  }, [employeesData]);
+
+  // Normalize employees data
+  const employees = useMemo(() => {
+    if (!employeesResponse) return [];
+    return Array.isArray(employeesResponse) ? employeesResponse : employeesResponse.data || [];
+  }, [employeesResponse]);
 
   // Locations
   const {
@@ -293,9 +289,6 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   const jobRoles = Array.isArray(jobRolesData)
     ? jobRolesData
     : (jobRolesData as any)?.jobRoles || [];
-  const employeesData = Array.isArray(employees.data)
-    ? employees.data
-    : (employees.data as any)?.data || [];
   const locations = Array.isArray(locationsData) ? locationsData : [];
   const contractTypes = Array.isArray(contractTypesData) ? contractTypesData : [];
   const templates = Array.isArray(templatesData)
@@ -307,18 +300,18 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
 
   useEffect(() => {
     if (!enabled) return;
-    if (employees.isLoading) return;
-    if (employees.error) return;
+    if (employeesLoading) return;
+    if (employeesError) return;
 
     // Keep this log in an effect so it doesn't spam on every render.
     console.log("[useEmployeeModalData] Employees loaded:", {
-      rawDataType: typeof employeesData,
-      isArray: Array.isArray(employeesData),
-      hasDataProp: !!(employeesData as any)?.data,
-      normalizedCount: employeesData.length,
+      rawDataType: typeof employeesResponse,
+      isArray: Array.isArray(employeesResponse),
+      hasDataProp: !!(employeesResponse as any)?.data,
+      normalizedCount: employees.length,
       companyId,
     });
-  }, [enabled, employees.isLoading, employees.error, employeesData, companyId]);
+  }, [enabled, employeesLoading, employeesError, employeesResponse, companyId]);
 
   // Normalize templates
   const normalizedTemplates: OnboardingTemplate[] = templates.map((t: any) => ({
@@ -338,7 +331,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   const isLoading =
     departmentsLoading ||
     jobRolesLoading ||
-    employees.isLoading ||
+    employeesLoading ||
     locationsLoading ||
     contractTypesLoading ||
     templatesLoading ||
@@ -376,7 +369,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
     employees: {
       data: employees,
       isLoading: employeesLoading,
-      error: employeesError,
+      error: employeesError || null,
       retry: revalidateEmployees,
     } as DatasetState<EmployeeSummary[]>,
 
@@ -427,5 +420,7 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
       error: rotaGroupsError,
       retry: revalidateRotaGroups,
     } as DatasetState<RotaGroup[]>,
-  };
+  }), [enabled, employeesLoading, employeesError, employeesResponse, companyId]);
+
+  return result;
 }

@@ -286,28 +286,44 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
 
   // Normalize data shapes (handle both array and { key: array } responses)
   // Add defensive checks to ensure we always return arrays
-  const departments = Array.isArray(departmentsData)
-    ? departmentsData
-    : Array.isArray((departmentsData as any)?.departments)
-      ? (departmentsData as any).departments
-      : [];
-  const jobRoles = Array.isArray(jobRolesData)
-    ? jobRolesData
-    : Array.isArray((jobRolesData as any)?.jobRoles)
-      ? (jobRolesData as any).jobRoles
-      : [];
-  const locations = Array.isArray(locationsData) ? locationsData : [];
-  const contractTypes = Array.isArray(contractTypesData) ? contractTypesData : [];
-  const templates = Array.isArray(templatesData)
-    ? templatesData
-    : Array.isArray((templatesData as any)?.templates)
-      ? (templatesData as any).templates
-      : [];
-  const workingPatterns = Array.isArray(workingPatternsData) ? workingPatternsData : [];
-  const permissionProfiles = Array.isArray(permissionProfilesData) ? permissionProfilesData : [];
-  const rotaGroups = Array.isArray((rotaGroupsData as any)?.rotaGroups)
-    ? (rotaGroupsData as any).rotaGroups
-    : [];
+  // Memoize to prevent creating new array references on every render
+  const departments = useMemo(() => {
+    if (Array.isArray(departmentsData)) return departmentsData;
+    if (Array.isArray((departmentsData as any)?.departments)) return (departmentsData as any).departments;
+    return [];
+  }, [departmentsData]);
+
+  const jobRoles = useMemo(() => {
+    if (Array.isArray(jobRolesData)) return jobRolesData;
+    if (Array.isArray((jobRolesData as any)?.jobRoles)) return (jobRolesData as any).jobRoles;
+    return [];
+  }, [jobRolesData]);
+
+  const locations = useMemo(() => {
+    return Array.isArray(locationsData) ? locationsData : [];
+  }, [locationsData]);
+
+  const contractTypes = useMemo(() => {
+    return Array.isArray(contractTypesData) ? contractTypesData : [];
+  }, [contractTypesData]);
+
+  const templates = useMemo(() => {
+    if (Array.isArray(templatesData)) return templatesData;
+    if (Array.isArray((templatesData as any)?.templates)) return (templatesData as any).templates;
+    return [];
+  }, [templatesData]);
+
+  const workingPatterns = useMemo(() => {
+    return Array.isArray(workingPatternsData) ? workingPatternsData : [];
+  }, [workingPatternsData]);
+
+  const permissionProfiles = useMemo(() => {
+    return Array.isArray(permissionProfilesData) ? permissionProfilesData : [];
+  }, [permissionProfilesData]);
+
+  const rotaGroups = useMemo(() => {
+    return Array.isArray((rotaGroupsData as any)?.rotaGroups) ? (rotaGroupsData as any).rotaGroups : [];
+  }, [rotaGroupsData]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -325,16 +341,20 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   }, [enabled, employeesLoading, employeesError, employeesResponse, employees.length, companyId]);
 
   // Normalize templates - ensure we handle any edge cases
-  const normalizedTemplates: OnboardingTemplate[] = (Array.isArray(templates) ? templates : []).map((t: any) => ({
-    id: t?.id ?? '',
-    name: t?.name ?? '',
-    departments: Array.isArray(t?.departments || t?.Department) 
-      ? (t.departments || t.Department).map((d: any) => ({ id: d?.id ?? '' }))
-      : [],
-    jobRoles: Array.isArray(t?.jobRoles || t?.JobRole)
-      ? (t.jobRoles || t.JobRole).map((j: any) => ({ id: j?.id ?? '' }))
-      : [],
-  }));
+  // Memoize to prevent creating new array references on every render
+  const normalizedTemplates = useMemo<OnboardingTemplate[]>(() => {
+    const templateArray = Array.isArray(templates) ? templates : [];
+    return templateArray.map((t: any) => ({
+      id: t?.id ?? '',
+      name: t?.name ?? '',
+      departments: Array.isArray(t?.departments || t?.Department) 
+        ? (t.departments || t.Department).map((d: any) => ({ id: d?.id ?? '' }))
+        : [],
+      jobRoles: Array.isArray(t?.jobRoles || t?.JobRole)
+        ? (t.jobRoles || t.JobRole).map((j: any) => ({ id: j?.id ?? '' }))
+        : [],
+    }));
+  }, [templates]);
 
   // Retry handlers with error logging
   const retryAll = useCallback(() => {
@@ -357,85 +377,87 @@ export function useEmployeeModalData(enabled: boolean = true, companyId?: string
   // Check if all critical data has loaded (templates are required)
   const hasLoadedCriticalData = !templatesLoading && templates.length >= 0;
 
-  // Return the result directly - no useMemo needed here since SWR already handles
-  // caching and the object creation is cheap. The previous useMemo had incomplete
-  // dependencies which caused stale data and React error #185 (Maximum update depth exceeded).
+  // Memoize each dataset state object to prevent new references on every render
+  // This prevents React error #185 (Maximum update depth exceeded) in consuming components
+  const departmentsState = useMemo<DatasetState<Department[]>>(() => ({
+    data: departments,
+    isLoading: departmentsLoading,
+    error: departmentsError || null,
+    retry: revalidateDepartments,
+  }), [departments, departmentsLoading, departmentsError, revalidateDepartments]);
+
+  const jobRolesState = useMemo<DatasetState<JobRole[]>>(() => ({
+    data: jobRoles,
+    isLoading: jobRolesLoading,
+    error: jobRolesError || null,
+    retry: revalidateJobRoles,
+  }), [jobRoles, jobRolesLoading, jobRolesError, revalidateJobRoles]);
+
+  const employeesState = useMemo<DatasetState<EmployeeSummary[]>>(() => ({
+    data: employees,
+    isLoading: employeesLoading,
+    error: employeesError || null,
+    retry: revalidateEmployees,
+  }), [employees, employeesLoading, employeesError, revalidateEmployees]);
+
+  const locationsState = useMemo<DatasetState<Location[]>>(() => ({
+    data: locations,
+    isLoading: locationsLoading,
+    error: locationsError || null,
+    retry: revalidateLocations,
+  }), [locations, locationsLoading, locationsError, revalidateLocations]);
+
+  const contractTypesState = useMemo<DatasetState<ContractType[]>>(() => ({
+    data: contractTypes,
+    isLoading: contractTypesLoading,
+    error: contractTypesError || null,
+    retry: revalidateContractTypes,
+  }), [contractTypes, contractTypesLoading, contractTypesError, revalidateContractTypes]);
+
+  const templatesState = useMemo<DatasetState<OnboardingTemplate[]>>(() => ({
+    data: normalizedTemplates,
+    isLoading: templatesLoading,
+    error: templatesError || null,
+    retry: revalidateTemplates,
+  }), [normalizedTemplates, templatesLoading, templatesError, revalidateTemplates]);
+
+  const workingPatternsState = useMemo<DatasetState<WorkingPattern[]>>(() => ({
+    data: workingPatterns,
+    isLoading: workingPatternsLoading,
+    error: workingPatternsError || null,
+    retry: revalidateWorkingPatterns,
+  }), [workingPatterns, workingPatternsLoading, workingPatternsError, revalidateWorkingPatterns]);
+
+  const permissionProfilesState = useMemo<DatasetState<PermissionProfile[]>>(() => ({
+    data: permissionProfiles,
+    isLoading: permissionProfilesLoading,
+    error: permissionProfilesError || null,
+    retry: revalidatePermissionProfiles,
+  }), [permissionProfiles, permissionProfilesLoading, permissionProfilesError, revalidatePermissionProfiles]);
+
+  const rotaGroupsState = useMemo<DatasetState<RotaGroup[]>>(() => ({
+    data: rotaGroups,
+    isLoading: rotaGroupsLoading,
+    error: rotaGroupsError || null,
+    retry: revalidateRotaGroups,
+  }), [rotaGroups, rotaGroupsLoading, rotaGroupsError, revalidateRotaGroups]);
+
+  // Return memoized state objects to prevent unnecessary re-renders in consuming components
   return {
     // Aggregated state
     isLoading,
     hasLoadedCriticalData,
     retryAll,
 
-    // Departments
-    departments: {
-      data: departments,
-      isLoading: departmentsLoading,
-      error: departmentsError || null,
-      retry: revalidateDepartments,
-    } as DatasetState<Department[]>,
-
-    // Job Roles
-    jobRoles: {
-      data: jobRoles,
-      isLoading: jobRolesLoading,
-      error: jobRolesError || null,
-      retry: revalidateJobRoles,
-    } as DatasetState<JobRole[]>,
-
-    // Employees
-    employees: {
-      data: employees,
-      isLoading: employeesLoading,
-      error: employeesError || null,
-      retry: revalidateEmployees,
-    } as DatasetState<EmployeeSummary[]>,
-
-    // Locations
-    locations: {
-      data: locations,
-      isLoading: locationsLoading,
-      error: locationsError || null,
-      retry: revalidateLocations,
-    } as DatasetState<Location[]>,
-
-    // Contract Types
-    contractTypes: {
-      data: contractTypes,
-      isLoading: contractTypesLoading,
-      error: contractTypesError || null,
-      retry: revalidateContractTypes,
-    } as DatasetState<ContractType[]>,
-
-    // Templates
-    templates: {
-      data: normalizedTemplates,
-      isLoading: templatesLoading,
-      error: templatesError || null,
-      retry: revalidateTemplates,
-    } as DatasetState<OnboardingTemplate[]>,
-
-    // Working Patterns
-    workingPatterns: {
-      data: workingPatterns,
-      isLoading: workingPatternsLoading,
-      error: workingPatternsError || null,
-      retry: revalidateWorkingPatterns,
-    } as DatasetState<WorkingPattern[]>,
-
-    // Permission Profiles
-    permissionProfiles: {
-      data: permissionProfiles,
-      isLoading: permissionProfilesLoading,
-      error: permissionProfilesError || null,
-      retry: revalidatePermissionProfiles,
-    } as DatasetState<PermissionProfile[]>,
-
-    // Rota Groups
-    rotaGroups: {
-      data: rotaGroups,
-      isLoading: rotaGroupsLoading,
-      error: rotaGroupsError || null,
-      retry: revalidateRotaGroups,
-    } as DatasetState<RotaGroup[]>,
+    // Dataset states (memoized)
+    departments: departmentsState,
+    jobRoles: jobRolesState,
+    employees: employeesState,
+    locations: locationsState,
+    contractTypes: contractTypesState,
+    templates: templatesState,
+    workingPatterns: workingPatternsState,
+    permissionProfiles: permissionProfilesState,
+    rotaGroups: rotaGroupsState,
   };
 }

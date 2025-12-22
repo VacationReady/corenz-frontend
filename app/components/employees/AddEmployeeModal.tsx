@@ -357,19 +357,21 @@ export default function AddEmployeeModal({
   // Use SWR hook for cached, resilient data fetching
   const modalData = useEmployeeModalData(open, session?.user?.companyId);
 
-  // Extract datasets from hook with concrete typing and defensive guards
-  // Ensure all data is always an array to prevent .map() errors
-  const departments: Department[] = Array.isArray(modalData.departments.data) ? modalData.departments.data : [];
-  const jobRoles: JobRole[] = Array.isArray(modalData.jobRoles.data) ? modalData.jobRoles.data : [];
-  const employees: EmployeeSummary[] = Array.isArray(modalData.employees.data) ? modalData.employees.data : [];
-  const locations: Location[] = Array.isArray(modalData.locations.data) ? modalData.locations.data : [];
-  const contractTypes: ContractType[] = Array.isArray(modalData.contractTypes.data) ? modalData.contractTypes.data : [];
-  const templates: OnboardingTemplate[] = Array.isArray(modalData.templates.data) ? modalData.templates.data : [];
-  const workingPatterns: WorkingPattern[] = Array.isArray(modalData.workingPatterns.data) ? modalData.workingPatterns.data : [];
-  const permissionProfiles: PermissionProfile[] = Array.isArray(modalData.permissionProfiles.data) ? modalData.permissionProfiles.data : [];
-  const rotaGroups: RotaGroup[] = Array.isArray(modalData.rotaGroups.data) ? modalData.rotaGroups.data : [];
+  // Extract datasets from hook - data is already guaranteed to be arrays from the hook's useMemo
+  // Using direct references to avoid creating new array references on every render
+  const departments = modalData.departments.data;
+  const jobRoles = modalData.jobRoles.data;
+  const employees = modalData.employees.data;
+  const locations = modalData.locations.data;
+  const contractTypes = modalData.contractTypes.data;
+  const templates = modalData.templates.data;
+  const workingPatterns = modalData.workingPatterns.data;
+  const permissionProfiles = modalData.permissionProfiles.data;
+  const rotaGroups = modalData.rotaGroups.data;
 
-  const datasetHealth: DatasetHealthEntry[] = [
+  // Memoize datasetHealth to prevent creating new array references on every render
+  // This was causing React error #185 (Maximum update depth exceeded)
+  const datasetHealth = useMemo<DatasetHealthEntry[]>(() => [
     {
       key: "templates",
       label: "Onboarding templates",
@@ -419,10 +421,26 @@ export default function AddEmployeeModal({
       description: "Used for manager assignments.",
       state: modalData.employees,
     },
-  ];
+  ], [
+    modalData.templates,
+    modalData.departments,
+    modalData.jobRoles,
+    modalData.locations,
+    modalData.contractTypes,
+    modalData.workingPatterns,
+    modalData.permissionProfiles,
+    modalData.employees,
+  ]);
 
-  const criticalErrors = datasetHealth.filter((entry) => entry.critical && entry.state.error);
-  const nonCriticalErrors = datasetHealth.filter((entry) => !entry.critical && entry.state.error);
+  // Memoize error filters to prevent new array references on every render
+  const criticalErrors = useMemo(
+    () => datasetHealth.filter((entry) => entry.critical && entry.state.error),
+    [datasetHealth]
+  );
+  const nonCriticalErrors = useMemo(
+    () => datasetHealth.filter((entry) => !entry.critical && entry.state.error),
+    [datasetHealth]
+  );
 
   const [error, setError] = useState("");
   const [isDeptModalOpen, setDeptModalOpen] = useState(false);
@@ -1474,28 +1492,36 @@ export default function AddEmployeeModal({
 
   // Filter templates by chosen department/job role.
   // If neither is selected, show all. Templates with no restrictions always show.
-  const filteredTemplates: OnboardingTemplate[] = templates.filter((t) => {
-    const matchesDept =
-      !!formData.departmentId &&
-      !!t.departments?.some((d) => d.id === formData.departmentId);
-    const matchesRole =
-      !!formData.jobRoleId &&
-      !!t.jobRoles?.some((j) => j.id === formData.jobRoleId);
-    const unrestricted =
-      (!t.departments || t.departments.length === 0) &&
-      (!t.jobRoles || t.jobRoles.length === 0);
+  // Memoize to prevent creating new array references on every render
+  const filteredTemplates = useMemo<OnboardingTemplate[]>(() => {
+    return templates.filter((t) => {
+      const matchesDept =
+        !!formData.departmentId &&
+        !!t.departments?.some((d) => d.id === formData.departmentId);
+      const matchesRole =
+        !!formData.jobRoleId &&
+        !!t.jobRoles?.some((j) => j.id === formData.jobRoleId);
+      const unrestricted =
+        (!t.departments || t.departments.length === 0) &&
+        (!t.jobRoles || t.jobRoles.length === 0);
 
-    if (!formData.departmentId && !formData.jobRoleId) {
-      return true; // no filters selected, show all templates
-    }
-    return unrestricted || matchesDept || matchesRole;
-  });
+      if (!formData.departmentId && !formData.jobRoleId) {
+        return true; // no filters selected, show all templates
+      }
+      return unrestricted || matchesDept || matchesRole;
+    });
+  }, [templates, formData.departmentId, formData.jobRoleId]);
 
   const hasTemplateFilters = Boolean(
     formData.departmentId || formData.jobRoleId,
   );
 
-  const templatesToDisplay = showAllTemplates ? templates : filteredTemplates;
+  // Memoize templatesToDisplay to prevent new array references on every render
+  // This was contributing to React error #185 (Maximum update depth exceeded)
+  const templatesToDisplay = useMemo(
+    () => showAllTemplates ? templates : filteredTemplates,
+    [showAllTemplates, templates, filteredTemplates]
+  );
   const shouldShowTemplateSearch = templatesToDisplay.length > 10;
   const templateOptions = useMemo<OnboardingTemplate[]>(
     () =>

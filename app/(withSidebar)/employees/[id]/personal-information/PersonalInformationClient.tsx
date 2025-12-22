@@ -75,17 +75,14 @@ export default function PersonalInformationClient({
       />
 
       <UnsavedChangesGuard>
-        {/* Basic Details Card */}
-        <EmployeeFormCard
-          title="Basic Details"
-          description="Name, date of birth, and identification"
-          icon={User}
-          iconColor="from-primary/20 to-blue-500/20"
-          delay={0.1}
-        >
-          <form
-            action={`/api/employees/${employeeId}/personal-info`}
-            method="PATCH"
+        <form action={`/api/employees/${employeeId}/personal-info`} method="PATCH">
+          {/* Basic Details Card */}
+          <EmployeeFormCard
+            title="Basic Details"
+            description="Name, date of birth, and identification"
+            icon={User}
+            iconColor="from-primary/20 to-blue-500/20"
+            delay={0.1}
           >
             <FormSection columns={2}>
               {/* First Name */}
@@ -260,40 +257,39 @@ export default function PersonalInformationClient({
                 </div>
               </FormField>
             </FormSection>
-          </form>
-        </EmployeeFormCard>
+          </EmployeeFormCard>
 
-        {/* Address Card */}
-        <EmployeeFormCard
-          title="Address"
-          description="Home address information"
-          icon={MapPin}
-          iconColor="from-primary/20 to-blue-500/20"
-          delay={0.2}
-          className="mt-6"
-        >
-          <FormSection columns={2}>
-            {/* Street */}
-            <div className="md:col-span-2">
-              <FormField label="Street" htmlFor="addressStreet">
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    id="addressStreet"
-                    name="addressStreet"
-                    defaultValue={user.addressStreet ?? ""}
-                    readOnly={!canEdit}
-                    placeholder="123 Main Street"
-                    className={cn(
-                      "h-11 pl-10 rounded-xl",
-                      canEdit
-                        ? "bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20"
-                        : "bg-muted/30"
-                    )}
-                  />
-                </div>
-              </FormField>
-            </div>
+          {/* Address Card */}
+          <EmployeeFormCard
+            title="Address"
+            description="Home address information"
+            icon={MapPin}
+            iconColor="from-primary/20 to-blue-500/20"
+            delay={0.2}
+            className="mt-6"
+          >
+            <FormSection columns={2}>
+              {/* Street */}
+              <div className="md:col-span-2">
+                <FormField label="Street" htmlFor="addressStreet">
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      id="addressStreet"
+                      name="addressStreet"
+                      defaultValue={user.addressStreet ?? ""}
+                      readOnly={!canEdit}
+                      placeholder="123 Main Street"
+                      className={cn(
+                        "h-11 pl-10 rounded-xl",
+                        canEdit
+                          ? "bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20"
+                          : "bg-muted/30"
+                      )}
+                    />
+                  </div>
+                </FormField>
+              </div>
 
             {/* City */}
             <FormField label="City" htmlFor="addressCity">
@@ -350,20 +346,21 @@ export default function PersonalInformationClient({
                 </div>
               </FormField>
             </div>
-          </FormSection>
-        </EmployeeFormCard>
+            </FormSection>
+          </EmployeeFormCard>
 
-        {/* Save Button */}
-        {canEdit && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex justify-end pt-4"
-          >
-            <PersonalInfoSaveButton employeeId={employeeId} section="personal-info" />
-          </motion.div>
-        )}
+          {/* Save Button */}
+          {canEdit && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="flex justify-end pt-4"
+            >
+              <PersonalInfoSaveButton employeeId={employeeId} section="personal-info" />
+            </motion.div>
+          )}
+        </form>
       </UnsavedChangesGuard>
     </div>
   );

@@ -1004,33 +1004,43 @@ export default function AddEmployeeModal({
     dayValue: string,
   ) => {
     if (!monthValue) {
-      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
       setHolidayYearError(null);
       return;
     }
 
     const month = parseInt(monthValue, 10);
     if (Number.isNaN(month) || month < 1 || month > 12) {
-      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
       setHolidayYearError("Please choose a valid month.");
       return;
     }
 
     if (!dayValue) {
-      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
       setHolidayYearError(null);
       return;
     }
 
     const day = parseInt(dayValue, 10);
     if (Number.isNaN(day)) {
-      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
       setHolidayYearError("Day must be a number.");
       return;
     }
 
     if (day < 1 || day > 31) {
-      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
       setHolidayYearError("Day must be between 1 and 31.");
       return;
     }
@@ -1040,7 +1050,9 @@ export default function AddEmployeeModal({
       const monthName =
         monthOptions.find((option) => option.value === monthValue)?.label ||
         "The selected month";
-      setFormData((prev) => ({ ...prev, holidayYear: undefined }));
+      setFormData((prev) =>
+        prev.holidayYear === undefined ? prev : { ...prev, holidayYear: undefined },
+      );
       setHolidayYearError(
         `${monthName} has only ${maxDay} days. Adjust the day to continue.`,
       );
@@ -1055,7 +1067,7 @@ export default function AddEmployeeModal({
       endDay,
     });
 
-    setFormData((prev) => ({ ...prev, holidayYear: payload }));
+    setFormData((prev) => (prev.holidayYear === payload ? prev : { ...prev, holidayYear: payload }));
     setHolidayYearError(null);
   };
 

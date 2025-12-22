@@ -1381,9 +1381,11 @@ function EmployeesContent(props: EmployeesClientProps) {
       {/* Modals */}
       {/* Always render AddEmployeeModal to prevent React Error #185 (hooks ordering issue) */}
       {/* The modal handles its own visibility via the open prop */}
-      {console.log('[EmployeesClient] Rendering AddEmployeeModal - isModalOpen:', isModalOpen, 'isAdmin:', isAdmin, 'open prop:', isModalOpen && isAdmin)}
       <AddEmployeeModal
-        open={isModalOpen && isAdmin}
+        open={(() => {
+          console.log('[EmployeesClient] Rendering AddEmployeeModal - isModalOpen:', isModalOpen, 'isAdmin:', isAdmin, 'open prop:', isModalOpen && isAdmin);
+          return isModalOpen && isAdmin;
+        })()}
         onClose={() => setModalOpen(false)}
         onSuccess={() => {
           // Refresh the local state to show the new employee immediately

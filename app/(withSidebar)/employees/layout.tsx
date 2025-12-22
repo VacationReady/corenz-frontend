@@ -4,11 +4,34 @@
 // /app/(withSidebar)/<route>/layout.tsx
 
 import React, { ReactNode } from "react";
+import { auth } from "@/lib/auth-options";
+import AdminSidebar from "@/components/sidebars/AdminSidebar";
+import ManagerSidebar from "@/components/sidebars/ManagerSidebar";
+import EmployeeSidebar from "@/components/sidebars/EmployeeSidebar";
 
 export default async function SectionLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  return <>{children}</>;
+  const session = await auth();
+  const role = session?.user?.role ?? "EMPLOYEE";
+
+  let Sidebar: React.ReactElement | null = null;
+  if (role === "ADMIN" || role === "SUPER_ADMIN") {
+    Sidebar = <AdminSidebar />;
+  } else if (role === "MANAGER") {
+    Sidebar = <ManagerSidebar />;
+  } else {
+    Sidebar = <EmployeeSidebar />;
+  }
+
+  return (
+    <div className="flex h-screen">
+      <div className="flex-shrink-0 relative z-50">
+        {Sidebar}
+      </div>
+      <main className="flex-1 overflow-y-auto relative z-0">{children}</main>
+    </div>
+  );
 }

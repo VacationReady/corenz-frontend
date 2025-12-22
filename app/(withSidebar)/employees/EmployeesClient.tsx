@@ -999,7 +999,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                   {isMounted && openDropdown === "department" && dropdownPosition && createPortal(
                     <div
                       data-filter-dropdown
-                      className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-xl z-[9999] max-h-64 overflow-y-auto"
+                      className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-xl z-40 max-h-64 overflow-y-auto"
                       style={{
                         top: `${dropdownPosition.top}px`,
                         left: `${dropdownPosition.left}px`,
@@ -1067,7 +1067,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                   {isMounted && openDropdown === "jobRole" && dropdownPosition && createPortal(
                     <div
                       data-filter-dropdown
-                      className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-xl z-[9999] max-h-64 overflow-y-auto"
+                      className="fixed w-64 p-2 rounded-xl bg-card border border-border/50 shadow-xl z-40 max-h-64 overflow-y-auto"
                       style={{
                         top: `${dropdownPosition.top}px`,
                         left: `${dropdownPosition.left}px`,
@@ -1135,7 +1135,7 @@ function EmployeesContent(props: EmployeesClientProps) {
                   {isMounted && openDropdown === "status" && dropdownPosition && createPortal(
                     <div
                       data-filter-dropdown
-                      className="fixed w-48 p-2 rounded-xl bg-card border border-border/50 shadow-xl z-[9999]"
+                      className="fixed w-48 p-2 rounded-xl bg-card border border-border/50 shadow-xl z-40"
                       style={{
                         top: `${dropdownPosition.top}px`,
                         left: `${dropdownPosition.left}px`,

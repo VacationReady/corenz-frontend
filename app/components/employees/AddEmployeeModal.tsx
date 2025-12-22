@@ -749,13 +749,36 @@ export default function AddEmployeeModal({
         const savedDraft = sessionStorage.getItem(storageKey);
         if (savedDraft) {
           const parsed = JSON.parse(savedDraft);
-          setFormData(parsed);
-          setInitialFormData(parsed);
+          // Validate that parsed data has expected structure - all string fields should be strings
+          // This prevents crashes from corrupted or incompatible drafts
+          const isValidDraft = parsed && 
+            typeof parsed === 'object' &&
+            (typeof parsed.firstName === 'string' || parsed.firstName === undefined) &&
+            (typeof parsed.lastName === 'string' || parsed.lastName === undefined) &&
+            (typeof parsed.email === 'string' || parsed.email === undefined);
+          
+          if (isValidDraft) {
+            // Ensure rotaGroupIds is always an array
+            const sanitizedData = {
+              ...parsed,
+              rotaGroupIds: Array.isArray(parsed.rotaGroupIds) ? parsed.rotaGroupIds : [],
+            };
+            setFormData(sanitizedData);
+            setInitialFormData(sanitizedData);
+          } else {
+            console.warn('[AddEmployeeModal] Invalid draft structure, clearing storage');
+            sessionStorage.removeItem(storageKey);
+            setInitialFormData(formData);
+          }
         } else {
           setInitialFormData(formData);
         }
       } catch (error) {
         console.error('Failed to restore draft:', error);
+        // Clear corrupted draft
+        try {
+          sessionStorage.removeItem(storageKey);
+        } catch {}
         setInitialFormData(formData);
       }
     }
@@ -1926,7 +1949,7 @@ export default function AddEmployeeModal({
                               )}
                               {departmentOptions.map((d) => (
                                 <SelectItem key={d.id} value={d.id}>
-                                  {d.name}
+                                  {String(d.name ?? '')}
                                 </SelectItem>
                               ))}
                               <div className="px-2 py-2 border-t border-muted/30">
@@ -1962,7 +1985,7 @@ export default function AddEmployeeModal({
                               )}
                               {jobRoleOptions.map((j) => (
                                 <SelectItem key={j.id} value={j.id}>
-                                  {j.name}
+                                  {String(j.name ?? '')}
                                 </SelectItem>
                               ))}
                               <div className="px-2 py-2 border-t border-muted/30">
@@ -1997,7 +2020,7 @@ export default function AddEmployeeModal({
                               )}
                               {locationOptions.map((l) => (
                                 <SelectItem key={l.id} value={l.id}>
-                                  {l.name}
+                                  {String(l.name ?? '')}
                                 </SelectItem>
                               ))}
                               <div className="px-2 py-2 border-t border-muted/30">
@@ -2030,7 +2053,7 @@ export default function AddEmployeeModal({
                               )}
                               {contractTypeOptions.map((t) => (
                                 <SelectItem key={t.id} value={t.label}>
-                                  {t.label}
+                                  {String(t.label ?? '')}
                                 </SelectItem>
                               ))}
                               <div className="px-2 py-2 border-t border-muted/30">
@@ -2160,7 +2183,7 @@ export default function AddEmployeeModal({
                             </SelectItem>
                             {templateOptions.map((t) => (
                               <SelectItem key={t.id} value={t.id}>
-                                {t.name}
+                                {String(t.name ?? '')}
                               </SelectItem>
                             ))}
                             {!showAllTemplates && hasTemplateFilters && (
@@ -2716,7 +2739,7 @@ export default function AddEmployeeModal({
                             )}
                             {workingPatternOptions.map((pattern: any) => (
                               <SelectItem key={pattern.id} value={pattern.id}>
-                                {pattern.name}
+                                {String(pattern.name ?? '')}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -2752,58 +2775,62 @@ export default function AddEmployeeModal({
                                 </div>
                               ) : (
                                 <div className="space-y-2 max-h-48 overflow-y-auto rounded-xl border border-muted/50 bg-white/50 dark:bg-white/5 p-2">
-                                  {rotaGroups.map((group) => (
+                                  {rotaGroups.map((group) => {
+                                    const rotaIds = Array.isArray(formData.rotaGroupIds) ? formData.rotaGroupIds : [];
+                                    const isSelected = rotaIds.includes(group.id);
+                                    return (
                                     <label
                                       key={group.id}
                                       className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
-                                        formData.rotaGroupIds.includes(group.id)
+                                        isSelected
                                           ? "bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800"
                                           : "hover:bg-muted/50 border border-transparent"
                                       }`}
                                     >
                                       <div className={`flex items-center justify-center w-5 h-5 rounded border-2 transition-colors ${
-                                        formData.rotaGroupIds.includes(group.id)
+                                        isSelected
                                           ? "bg-emerald-500 border-emerald-500"
                                           : "border-muted-foreground/30"
                                       }`}>
-                                        {formData.rotaGroupIds.includes(group.id) && (
+                                        {isSelected && (
                                           <Check className="w-3 h-3 text-white" />
                                         )}
                                       </div>
                                       <input
                                         type="checkbox"
                                         className="sr-only"
-                                        checked={formData.rotaGroupIds.includes(group.id)}
+                                        checked={isSelected}
                                         onChange={(e) => {
                                           if (e.target.checked) {
                                             setFormData({
                                               ...formData,
-                                              rotaGroupIds: [...formData.rotaGroupIds, group.id],
+                                              rotaGroupIds: [...rotaIds, group.id],
                                             });
                                           } else {
                                             setFormData({
                                               ...formData,
-                                              rotaGroupIds: formData.rotaGroupIds.filter((id) => id !== group.id),
+                                              rotaGroupIds: rotaIds.filter((id) => id !== group.id),
                                             });
                                           }
                                         }}
                                       />
                                       <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-foreground truncate">
-                                          {group.name}
+                                          {String(group.name ?? '')}
                                         </p>
                                         {(group.Location || group.Department) && (
                                           <p className="text-xs text-muted-foreground truncate">
-                                            {[group.Location?.name, group.Department?.name].filter(Boolean).join(" • ")}
+                                            {[group.Location?.name, group.Department?.name].filter(Boolean).map(n => String(n)).join(" • ")}
                                           </p>
                                         )}
                                       </div>
                                     </label>
-                                  ))}
+                                  );
+                                  })}
                                 </div>
                               )}
                               
-                              {formData.rotaGroupIds.length > 0 && (
+                              {(Array.isArray(formData.rotaGroupIds) && formData.rotaGroupIds.length > 0) && (
                                 <motion.p
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}

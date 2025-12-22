@@ -352,10 +352,15 @@ export default function AddEmployeeModal({
   onClose,
   onSuccess,
 }: AddEmployeeModalProps) {
+  // DEBUG: Log render to track hook ordering issues
+  console.log('[AddEmployeeModal] Render start - open:', open);
+  
   const { data: session } = useSession();
+  console.log('[AddEmployeeModal] After useSession - session:', !!session, 'companyId:', session?.user?.companyId);
 
   // Use SWR hook for cached, resilient data fetching
   const modalData = useEmployeeModalData(open, session?.user?.companyId);
+  console.log('[AddEmployeeModal] After useEmployeeModalData - isLoading:', modalData.isLoading);
 
   // Extract datasets from hook - data is already guaranteed to be arrays from the hook's useMemo
   // Using direct references to avoid creating new array references on every render
@@ -1714,9 +1719,13 @@ export default function AddEmployeeModal({
   const hasCriticalError = criticalErrors.length > 0;
   const hasNonCriticalErrors = nonCriticalErrors.length > 0;
 
+  // DEBUG: Log before early return check
+  console.log('[AddEmployeeModal] Before early return check - isLoading:', modalData.isLoading, 'templates.length:', templates.length);
+
   // Show loading state while critical data is loading
   // This prevents render errors from undefined data
   if (modalData.isLoading && templates.length === 0) {
+    console.log('[AddEmployeeModal] EARLY RETURN - showing loading state');
     return (
       <Dialog
         open={dialogOpen}
@@ -1741,6 +1750,7 @@ export default function AddEmployeeModal({
     );
   }
   
+  console.log('[AddEmployeeModal] FULL RENDER - showing main dialog');
   return (
     <AddEmployeeModalErrorBoundary onReset={() => {
       modalData.retryAll();

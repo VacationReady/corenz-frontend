@@ -16,7 +16,8 @@
     "@opentelemetry/context-async-hooks",
     "@opentelemetry/core",
     "@opentelemetry/sdk-trace-base",
-    "@opentelemetry/semantic-conventions"
+    "@opentelemetry/semantic-conventions",
+    "@pdf-lib/standard-fonts"
   ],
   "skip-missing": true
 }

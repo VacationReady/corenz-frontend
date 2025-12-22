@@ -31,7 +31,6 @@ import type {
   WorkingPattern,
   PermissionProfile,
   RotaGroup,
-  DatasetState,
 } from "@/hooks/useEmployeeModalData";
 import { fetchWithCsrf } from "@/lib/csrf";
 import { prepareSensitiveDataForTransmission } from "@/lib/crypto";
@@ -185,14 +184,6 @@ const NZ_TAX_CODES = [
 ];
 
 type TaxCodeOption = (typeof NZ_TAX_CODES)[number];
-
-type DatasetHealthEntry = {
-  key: string;
-  label: string;
-  description: string;
-  state: DatasetState<unknown>;
-  critical?: boolean;
-};
 
 const KIWISAVER_RATES = [
   { value: "3", label: "3%" },
@@ -369,77 +360,17 @@ export default function AddEmployeeModal({
   const permissionProfiles = modalData.permissionProfiles.data;
   const rotaGroups = modalData.rotaGroups.data;
 
-  // Memoize datasetHealth to prevent creating new array references on every render
-  // This was causing React error #185 (Maximum update depth exceeded)
-  const datasetHealth = useMemo<DatasetHealthEntry[]>(() => [
-    {
-      key: "templates",
-      label: "Onboarding templates",
-      description: "Required to create an employee.",
-      state: modalData.templates,
-      critical: true,
-    },
-    {
-      key: "departments",
-      label: "Departments",
-      description: "Used for template filtering and default metadata.",
-      state: modalData.departments,
-    },
-    {
-      key: "jobRoles",
-      label: "Job roles",
-      description: "Used for template filtering and manager context.",
-      state: modalData.jobRoles,
-    },
-    {
-      key: "locations",
-      label: "Locations",
-      description: "Populates the location selector.",
-      state: modalData.locations,
-    },
-    {
-      key: "contractTypes",
-      label: "Contract types",
-      description: "Populates the contract selector.",
-      state: modalData.contractTypes,
-    },
-    {
-      key: "workingPatterns",
-      label: "Working patterns",
-      description: "Required for Step 2 entitlement calculations.",
-      state: modalData.workingPatterns,
-    },
-    {
-      key: "permissionProfiles",
-      label: "Permission profiles",
-      description: "Required when enabling admin access.",
-      state: modalData.permissionProfiles,
-    },
-    {
-      key: "employees",
-      label: "Employees",
-      description: "Used for manager assignments.",
-      state: modalData.employees,
-    },
-  ], [
-    modalData.templates,
-    modalData.departments,
-    modalData.jobRoles,
-    modalData.locations,
-    modalData.contractTypes,
-    modalData.workingPatterns,
-    modalData.permissionProfiles,
-    modalData.employees,
-  ]);
-
-  // Memoize error filters to prevent new array references on every render
-  const criticalErrors = useMemo(
-    () => datasetHealth.filter((entry) => entry.critical && entry.state.error),
-    [datasetHealth]
-  );
-  const nonCriticalErrors = useMemo(
-    () => datasetHealth.filter((entry) => !entry.critical && entry.state.error),
-    [datasetHealth]
+  // Check for critical errors directly without creating intermediate objects
+  // This avoids the infinite loop caused by object reference changes
+  const hasCriticalError = Boolean(modalData.templates.error);
+  const hasNonCriticalErrors = Boolean(
+    modalData.departments.error ||
+    modalData.jobRoles.error ||
+    modalData.locations.error ||
+    modalData.contractTypes.error ||
+    modalData.workingPatterns.error ||
+    modalData.permissionProfiles.error ||
+    modalData.employees.error
   );
 
   const [error, setError] = useState("");
@@ -1710,10 +1641,6 @@ export default function AddEmployeeModal({
     holidayYearError,
   ]);
 
-  // Check for critical data loading errors
-  const hasCriticalError = criticalErrors.length > 0;
-  const hasNonCriticalErrors = nonCriticalErrors.length > 0;
-
   // Determine if we should show loading state
   const showLoadingState = modalData.isLoading && templates.length === 0;
   
@@ -1869,15 +1796,7 @@ export default function AddEmployeeModal({
                           The modal can’t continue until these datasets succeed:
                         </p>
                       </div>
-                      <ul className="list-disc pl-5 text-sm text-red-800">
-                        {criticalErrors.map((entry) => (
-                          <li key={entry.key}>
-                            <span className="font-medium">{entry.label}</span>
-                            {": "}
-                            {entry.state.error?.message || "Unknown error"}
-                          </li>
-                        ))}
-                      </ul>
+                      
                       <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
@@ -1885,7 +1804,7 @@ export default function AddEmployeeModal({
                           onClick={modalData.retryAll}
                         >
                           <RefreshCw className="h-4 w-4" />
-                          Retry all datasets
+                          Retry
                         </Button>
                       </div>
                     </div>
@@ -1893,41 +1812,7 @@ export default function AddEmployeeModal({
                 </div>
               )}
 
-              {hasNonCriticalErrors && (
-                <div className="space-y-3" role="status" aria-live="polite">
-                  {nonCriticalErrors.map((entry) => (
-                    <div
-                      key={entry.key}
-                      className="rounded-lg border border-amber-200 bg-amber-50 p-3"
-                    >
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="h-5 w-5 text-amber-600" />
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-amber-900">
-                            {entry.label} failed to load
-                          </p>
-                          <p className="text-sm text-amber-800">
-                            {entry.state.error?.message || "Unknown error"}
-                          </p>
-                          <p className="text-xs text-amber-700 mt-1">
-                            {entry.description}
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="min-w-[96px]"
-                          onClick={entry.state.retry}
-                          loading={entry.state.isLoading}
-                        >
-                          Retry
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {hasNonCriticalErrors && (<div className="rounded-lg border border-amber-200 bg-amber-50 p-3" role="status"><div className="flex items-start gap-3"><AlertCircle className="h-5 w-5 text-amber-600" /><div className="flex-1"><p className="text-sm font-semibold text-amber-900">Some data failed to load</p><p className="text-sm text-amber-800">Some dropdown options may be unavailable.</p></div><Button type="button" variant="ghost" size="sm" onClick={modalData.retryAll}>Retry</Button></div></div>)}
 
               <fieldset
                 disabled={hasCriticalError}

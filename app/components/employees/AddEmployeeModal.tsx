@@ -1718,12 +1718,18 @@ export default function AddEmployeeModal({
   // This prevents render errors from undefined data
   if (modalData.isLoading && templates.length === 0) {
     return (
-      <Dialog open={dialogOpen} onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          onClose();
-        }
-      }}>
-        <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            onClose();
+          }
+        }}
+      >
+        <DialogContent
+          rawContent
+          className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col"
+        >
           <div className="flex items-center justify-center p-12">
             <div className="flex flex-col items-center gap-4">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -1748,7 +1754,24 @@ export default function AddEmployeeModal({
           }
         }}
       >
-        <DialogContent rawContent className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col">
+        <DialogContent
+          rawContent
+          className="p-0 bg-white dark:bg-slate-900 border-none shadow-2xl max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col"
+          onEscapeKeyDown={(e) => {
+            if (isDirty && !isSubmitting) {
+              e.preventDefault();
+              setShowDiscardDialog(true);
+              setPendingClose(true);
+            }
+          }}
+          onInteractOutside={(e) => {
+            if (isDirty && !isSubmitting) {
+              e.preventDefault();
+              setShowDiscardDialog(true);
+              setPendingClose(true);
+            }
+          }}
+        >
             {/* Header */}
             <div className="px-8 pt-8 pb-6 flex-shrink-0">
               <div className="flex items-start justify-between">

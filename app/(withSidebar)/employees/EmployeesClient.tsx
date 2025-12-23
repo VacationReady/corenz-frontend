@@ -1376,16 +1376,17 @@ function EmployeesContent(props: EmployeesClientProps) {
       </div>
 
       {/* Modals */}
-      {/* Always render AddEmployeeModal to prevent React Error #185 (hooks ordering issue) */}
-      {/* The modal handles its own visibility via the open prop */}
-      <AddEmployeeModal
-        open={isModalOpen && isAdmin}
-        onClose={() => setModalOpen(false)}
-        onSuccess={() => {
-          // Refresh the local state to show the new employee immediately
-          fetchData(activeTab, true);
-        }}
-      />
+      {/* Conditionally render AddEmployeeModal - the hook count issue was in FormSection, now fixed */}
+      {isModalOpen && isAdmin && (
+        <AddEmployeeModal
+          open={true}
+          onClose={() => setModalOpen(false)}
+          onSuccess={() => {
+            // Refresh the local state to show the new employee immediately
+            fetchData(activeTab, true);
+          }}
+        />
+      )}
       {isDeptModalOpen && (
         <NewDepartmentModal
           onClose={() => {

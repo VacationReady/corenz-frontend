@@ -217,8 +217,20 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     const signedProfileMap = await batchSignProfileUrlsAsMap(profileSignRequests);
 
     // Format employees with signed URLs - flatten the structure to match client expectations
+    // IMPORTANT: Only include serializable fields - Prisma Decimal objects cannot be passed to Client Components
     const formattedEmployees = results.map((emp) => ({
-      ...emp,
+      // Only include the fields the client actually needs - avoid spreading ...emp which includes Decimal fields
+      id: emp.id,
+      userId: emp.userId,
+      isActive: emp.isActive,
+      departmentId: emp.departmentId,
+      jobRoleId: emp.jobRoleId,
+      locationId: emp.locationId,
+      onboardingStatus: emp.onboardingStatus,
+      offboardingStatus: emp.offboardingStatus,
+      lastWorkingDate: emp.lastWorkingDate?.toISOString() ?? null,
+      startDate: emp.startDate?.toISOString() ?? null,
+      contractType: emp.contractType,
       // Flatten User fields to top level for backward compatibility
       firstName: emp.User.firstName,
       lastName: emp.User.lastName,
@@ -231,12 +243,18 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       departmentName: emp.Department?.name,
       jobRoleName: emp.JobRole?.name,
       user: {
-        ...emp.User,
+        id: emp.User.id,
+        firstName: emp.User.firstName,
+        lastName: emp.User.lastName,
+        email: emp.User.email,
+        phone: emp.User.phone,
+        role: emp.User.role,
+        isActivated: emp.User.isActivated,
         profileImageUrl: signedProfileMap.get(emp.User.id) || emp.User.profileImageUrl,
       },
-      department: emp.Department,
-      jobRole: emp.JobRole,
-      location: emp.Location,
+      department: emp.Department ? { id: emp.Department.id, name: emp.Department.name } : null,
+      jobRole: emp.JobRole ? { id: emp.JobRole.id, name: emp.JobRole.name } : null,
+      location: emp.Location ? { id: emp.Location.id, name: emp.Location.name } : null,
       offboarding: emp.EmployeeOffboarding,
       offboardingRecord: emp.EmployeeOffboarding,
     }));

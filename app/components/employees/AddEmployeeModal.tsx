@@ -668,200 +668,53 @@ export default function AddEmployeeModal({
 
   // Data is now fetched via SWR hook - no manual fetchData needed
 
-  // Initialize form data only once when modal opens
-  // Use ref to prevent re-initialization when storageKey changes
+  // Initialize form data only once when modal mounts
+  // Since modal is conditionally rendered, this runs once on mount
   useEffect(() => {
-    if (open && !hasInitializedRef.current) {
-      hasInitializedRef.current = true;
-      
-      // Restore draft from sessionStorage
-      try {
-        const savedDraft = sessionStorage.getItem(storageKey);
-        if (savedDraft) {
-          const parsed = JSON.parse(savedDraft);
-          // Validate that parsed data has expected structure - all string fields should be strings
-          // This prevents crashes from corrupted or incompatible drafts
-          const isValidDraft = parsed && 
-            typeof parsed === 'object' &&
-            (typeof parsed.firstName === 'string' || parsed.firstName === undefined) &&
-            (typeof parsed.lastName === 'string' || parsed.lastName === undefined) &&
-            (typeof parsed.email === 'string' || parsed.email === undefined);
-          
-          if (isValidDraft) {
-            // Ensure rotaGroupIds is always an array
-            const sanitizedData = {
-              ...parsed,
-              rotaGroupIds: Array.isArray(parsed.rotaGroupIds) ? parsed.rotaGroupIds : [],
-            };
-            setFormData(sanitizedData);
-            setInitialFormData(sanitizedData);
-          } else {
-            console.warn('[AddEmployeeModal] Invalid draft structure, clearing storage');
-            sessionStorage.removeItem(storageKey);
-            // Use a stable initial form data reference
-            const initialData = {
-              firstName: "",
-              lastName: "",
-              email: "",
-              phone: "",
-              dateOfBirth: "",
-              startDate: "",
-              role: "EMPLOYEE",
-              permissionProfileId: undefined as string | undefined,
-              departmentId: undefined as string | undefined,
-              jobRoleId: undefined as string | undefined,
-              siteLocation: undefined as string | undefined,
-              locationId: undefined as string | undefined,
-              contractType: undefined as string | undefined,
-              managerId: undefined as string | undefined,
-              onboardingTemplateId: undefined as string | undefined,
-              holidayYear: undefined as string | undefined,
-              workingPatternId: undefined as string | undefined,
-              entitlementDays: "",
-              sickLeaveDays: "10",
-              alternativeHolidayDays: "0",
-              publicHolidayEntitlement: "11",
-              irdNumber: "",
-              taxCode: undefined as string | undefined,
-              kiwiSaverEnrolled: false,
-              kiwiSaverEmployeeRate: undefined as string | undefined,
-              bankAccountNumber: "",
-              residencyStatus: "",
-              emergencyContactName: "",
-              emergencyContactPhone: "",
-              emergencyContactRelationship: "",
-              visaExpiryDate: "",
-              workPermitType: "",
-              ninetyDayTrialPeriod: false,
-              trialPeriodAccepted: false,
-              trialNotifyRecipient: "MANAGER" as "MANAGER" | "ADMIN" | "BOTH",
-              trialNotifyDaysBefore: "7",
-              canBookPublicHolidays: false,
-              rotaGroupIds: [] as string[],
-            };
-            setInitialFormData(initialData);
-          }
-        } else {
-          // Use a stable initial form data reference
-          const initialData = {
-            firstName: "",
-            lastName: "",
-            email: "",
-            phone: "",
-            dateOfBirth: "",
-            startDate: "",
-            role: "EMPLOYEE",
-            permissionProfileId: undefined as string | undefined,
-            departmentId: undefined as string | undefined,
-            jobRoleId: undefined as string | undefined,
-            siteLocation: undefined as string | undefined,
-            locationId: undefined as string | undefined,
-            contractType: undefined as string | undefined,
-            managerId: undefined as string | undefined,
-            onboardingTemplateId: undefined as string | undefined,
-            holidayYear: undefined as string | undefined,
-            workingPatternId: undefined as string | undefined,
-            entitlementDays: "",
-            sickLeaveDays: "10",
-            alternativeHolidayDays: "0",
-            publicHolidayEntitlement: "11",
-            irdNumber: "",
-            taxCode: undefined as string | undefined,
-            kiwiSaverEnrolled: false,
-            kiwiSaverEmployeeRate: undefined as string | undefined,
-            bankAccountNumber: "",
-            residencyStatus: "",
-            emergencyContactName: "",
-            emergencyContactPhone: "",
-            emergencyContactRelationship: "",
-            visaExpiryDate: "",
-            workPermitType: "",
-            ninetyDayTrialPeriod: false,
-            trialPeriodAccepted: false,
-            trialNotifyRecipient: "MANAGER" as "MANAGER" | "ADMIN" | "BOTH",
-            trialNotifyDaysBefore: "7",
-            canBookPublicHolidays: false,
-            rotaGroupIds: [] as string[],
-          };
-          setInitialFormData(initialData);
-        }
-      } catch (error) {
-        console.error('Failed to restore draft:', error);
-        // Clear corrupted draft
-        try {
-          sessionStorage.removeItem(storageKey);
-        } catch {}
-        // Use a stable initial form data reference
-        const initialData = {
-          firstName: "",
-          lastName: "",
-          email: "",
-          phone: "",
-          dateOfBirth: "",
-          startDate: "",
-          role: "EMPLOYEE",
-          permissionProfileId: undefined as string | undefined,
-          departmentId: undefined as string | undefined,
-          jobRoleId: undefined as string | undefined,
-          siteLocation: undefined as string | undefined,
-          locationId: undefined as string | undefined,
-          contractType: undefined as string | undefined,
-          managerId: undefined as string | undefined,
-          onboardingTemplateId: undefined as string | undefined,
-          holidayYear: undefined as string | undefined,
-          workingPatternId: undefined as string | undefined,
-          entitlementDays: "",
-          sickLeaveDays: "10",
-          alternativeHolidayDays: "0",
-          publicHolidayEntitlement: "11",
-          irdNumber: "",
-          taxCode: undefined as string | undefined,
-          kiwiSaverEnrolled: false,
-          kiwiSaverEmployeeRate: undefined as string | undefined,
-          bankAccountNumber: "",
-          residencyStatus: "",
-          emergencyContactName: "",
-          emergencyContactPhone: "",
-          emergencyContactRelationship: "",
-          visaExpiryDate: "",
-          workPermitType: "",
-          ninetyDayTrialPeriod: false,
-          trialPeriodAccepted: false,
-          trialNotifyRecipient: "MANAGER" as "MANAGER" | "ADMIN" | "BOTH",
-          trialNotifyDaysBefore: "7",
-          canBookPublicHolidays: false,
-          rotaGroupIds: [] as string[],
-        };
-        setInitialFormData(initialData);
-      }
-    }
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
     
-    // Reset the initialization flag when modal closes
-    if (!open) {
-      hasInitializedRef.current = false;
+    // Restore draft from sessionStorage
+    try {
+      const savedDraft = sessionStorage.getItem(storageKey);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        // Validate that parsed data has expected structure - all string fields should be strings
+        // This prevents crashes from corrupted or incompatible drafts
+        const isValidDraft = parsed && 
+          typeof parsed === 'object' &&
+          (typeof parsed.firstName === 'string' || parsed.firstName === undefined) &&
+          (typeof parsed.lastName === 'string' || parsed.lastName === undefined) &&
+          (typeof parsed.email === 'string' || parsed.email === undefined);
+        
+        if (isValidDraft) {
+          // Ensure rotaGroupIds is always an array
+          const sanitizedData = {
+            ...parsed,
+            rotaGroupIds: Array.isArray(parsed.rotaGroupIds) ? parsed.rotaGroupIds : [],
+          };
+          setFormData(sanitizedData);
+          setInitialFormData(sanitizedData);
+        } else {
+          console.warn('[AddEmployeeModal] Invalid draft structure, clearing storage');
+          sessionStorage.removeItem(storageKey);
+          setInitialFormData(formData); // Use current default formData
+        }
+      } else {
+        setInitialFormData(formData); // Use current default formData
+      }
+    } catch (error) {
+      console.error('Failed to restore draft:', error);
+      // Clear corrupted draft
+      try {
+        sessionStorage.removeItem(storageKey);
+      } catch {}
+      setInitialFormData(formData); // Use current default formData
     }
-  }, [open, storageKey]);
+  }, [storageKey]); // Only run when storageKey changes (which shouldn't happen during modal lifecycle)
 
   useEffect(() => {
-    if (!open) {
-      setHolidayStartMonth("");
-      setHolidayStartDay("");
-      setHolidayYearError(null);
-      setShowAllTemplates(false);
-      setIsSubmitting(false); // Reset loading state when modal closes
-      setError(""); // Clear any errors
-      setCurrentStep(1); // Reset to first step
-      // Clear validation errors
-      setEmailError(null);
-      setPhoneError(null);
-      setDuplicateEmailError(null);
-      setIrdError(null);
-      setBankAccountError(null);
-      return;
-    }
-
     // Only sync holiday fields from formData when modal first opens
-    // Don't include holidayStartMonth/holidayStartDay in deps to avoid infinite loop
     if (!formData.holidayYear) {
       return;
     }
@@ -872,18 +725,13 @@ export default function AddEmployeeModal({
       setHolidayStartMonth((prev) => prev === "" ? parsed.startMonth.toString() : prev);
       setHolidayStartDay((prev) => prev === "" ? parsed.startDay.toString() : prev);
     }
-  }, [open, formData.holidayYear]); // Removed holidayStartMonth, holidayStartDay from deps
+  }, [formData.holidayYear]); // Only depend on holidayYear
 
   // Auto-populate holiday year from start date (QOL feature)
   // Use a ref to track if we've already auto-populated to prevent loops
   const hasAutoPopulatedHolidayRef = useRef(false);
   
   useEffect(() => {
-    if (!open) {
-      hasAutoPopulatedHolidayRef.current = false;
-      return;
-    }
-    
     if (!formData.startDate) return;
     // Only auto-populate once per modal open
     if (hasAutoPopulatedHolidayRef.current) return;
@@ -901,7 +749,7 @@ export default function AddEmployeeModal({
     setHolidayStartMonth(month);
     setHolidayStartDay(day);
     updateHolidayYearSelection(month, day);
-  }, [open, formData.startDate, formData.holidayYear]);
+  }, [formData.startDate, formData.holidayYear]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -1083,7 +931,7 @@ export default function AddEmployeeModal({
 
   // Autosave to sessionStorage when form data changes
   useEffect(() => {
-    if (!open || !initialFormData) return;
+    if (!initialFormData) return;
 
     const timeoutId = setTimeout(() => {
       try {
@@ -1094,7 +942,7 @@ export default function AddEmployeeModal({
     }, 1000); // Debounce autosave by 1 second
 
     return () => clearTimeout(timeoutId);
-  }, [formData, open, initialFormData, storageKey]);
+  }, [formData, initialFormData, storageKey]);
 
   const updateHolidayYearSelection = (
     monthValue: string,

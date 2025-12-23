@@ -17,7 +17,7 @@ const payloadSchema = z.object({
   endDate: z.string().min(1),
   dayType: z.enum(["FULL_DAY", "HALF_DAY_AM", "HALF_DAY_PM"]).optional(),
   reason: z.string().trim().min(1),
-  forceApprove: z.boolean().optional(),
+  forceApprove: z.boolean().optional().default(true), // Default to auto-approve for admin bulk actions
 });
 
 export async function POST(request: Request) {

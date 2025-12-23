@@ -439,17 +439,21 @@ export async function POST(
       companyId: session.user.companyId,
     });
 
-    // Determine if the current user is the manager of this employee
+    // Determine if the current user is booking leave for someone else (not themselves)
+    const isBookingForSomeoneElse = employee.User?.id !== session.user.id;
+    
+    // Determine if the current user is a manager of this employee
     const isManagerOfEmployee = 
       session.user.role === "MANAGER" && 
       employee.User?.managerId === session.user.id;
 
-    // Auto-approve immediately when created by ADMIN, SUPER_ADMIN, or the employee's direct manager
-    // Managers submitting leave (especially sickness) for their direct reports should be auto-approved
+    // Auto-approve immediately when:
+    // 1. Created by ADMIN or SUPER_ADMIN (for anyone)
+    // 2. Created by a MANAGER for their direct reports (not for themselves)
+    // Managers booking their OWN leave should follow normal approval workflow
     const canAutoApprove = 
-      session.user.role === "ADMIN" || 
-      session.user.role === "SUPER_ADMIN" || 
-      isManagerOfEmployee;
+      (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") ||
+      (session.user.role === "MANAGER" && isManagerOfEmployee && isBookingForSomeoneElse);
 
     if (canAutoApprove) {
       try {

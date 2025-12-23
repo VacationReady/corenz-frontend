@@ -450,38 +450,63 @@ function EmployeesContent(props: EmployeesClientProps) {
           const targetUrl = `/employees/${emp.id}/overview`;
           const isDirectReport = directReportUserIds.has(emp.userId);
           
-          // For managers: show all employees, highlight direct reports with badge
-          // All employees are clickable (managers can view department colleagues like employees can)
+          // For managers: show all employees, but only direct reports are clickable
           if (isManager && !isAdmin) {
-            return (
-              <a
-                href={targetUrl}
-                className="group flex items-center gap-3 py-1"
-              >
-                <div className="relative">
-                  <Avatar
-                    size={36}
-                    name={`${emp.firstName} ${emp.lastName}`}
-                    src={(emp as any).profileImageUrl}
-                    className="ring-2 ring-white dark:ring-card shadow-sm group-hover:ring-primary/30 transition-all duration-200"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-foreground group-hover:text-primary transition-colors duration-200">
-                      {emp.firstName} {emp.lastName}
-                    </span>
-                    {isDirectReport && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/15 text-primary rounded-full">
-                        <UserCheck className="h-3 w-3" />
-                        Direct Report
-                      </span>
-                    )}
+            if (isDirectReport || emp.userId === currentUserId) {
+              // Direct reports and self are clickable
+              return (
+                <a
+                  href={targetUrl}
+                  className="group flex items-center gap-3 py-1"
+                >
+                  <div className="relative">
+                    <Avatar
+                      size={36}
+                      name={`${emp.firstName} ${emp.lastName}`}
+                      src={(emp as any).profileImageUrl}
+                      className="ring-2 ring-white dark:ring-card shadow-sm group-hover:ring-primary/30 transition-all duration-200"
+                    />
                   </div>
-                  <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground group-hover:text-primary transition-colors duration-200">
+                        {emp.firstName} {emp.lastName}
+                      </span>
+                      {isDirectReport && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/15 text-primary rounded-full">
+                          <UserCheck className="h-3 w-3" />
+                          Direct Report
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
+                  </div>
+                </a>
+              );
+            } else {
+              // Department colleagues (not direct reports) are view-only
+              return (
+                <div className="flex items-center gap-3 py-1 opacity-60">
+                  <div className="relative">
+                    <Avatar
+                      size={36}
+                      name={`${emp.firstName} ${emp.lastName}`}
+                      src={(emp as any).profileImageUrl}
+                      className="ring-2 ring-white dark:ring-card shadow-sm"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground/70">
+                        {emp.firstName} {emp.lastName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">(View only)</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
+                  </div>
                 </div>
-              </a>
-            );
+              );
+            }
           }
           
           // Default behavior for admins and other roles

@@ -118,6 +118,8 @@ test("Employees API - Pagination & Optimization", async (t) => {
       Department: null,
       JobRole: null,
       Location: null,
+      WorkingPattern: null,
+      EmployeeWorkingPatternAssignment: [],
       EmployeeOffboarding: null,
       offboardingStatus: null,
       lastWorkingDate: null,
@@ -171,6 +173,8 @@ test("Employees API - Pagination & Optimization", async (t) => {
         Department: null,
         JobRole: null,
         Location: null,
+        WorkingPattern: null,
+        EmployeeWorkingPatternAssignment: [],
         EmployeeOffboarding: null,
         offboardingStatus: null,
         lastWorkingDate: null,
@@ -282,6 +286,8 @@ test("Employees API - Pagination & Optimization", async (t) => {
         Department: null,
         JobRole: null,
         Location: null,
+        WorkingPattern: null,
+        EmployeeWorkingPatternAssignment: [],
         EmployeeOffboarding: null,
         offboardingStatus: null,
         lastWorkingDate: null,
@@ -329,6 +335,8 @@ test("Employees API - Pagination & Optimization", async (t) => {
         Department: null,
         JobRole: null,
         Location: null,
+        WorkingPattern: null,
+        EmployeeWorkingPatternAssignment: [],
         EmployeeOffboarding: null,
         offboardingStatus: null,
         lastWorkingDate: null,
@@ -376,6 +384,8 @@ test("Employees API - Pagination & Optimization", async (t) => {
         Department: null,
         JobRole: null,
         Location: null,
+        WorkingPattern: null,
+        EmployeeWorkingPatternAssignment: [],
         EmployeeOffboarding: null,
         offboardingStatus: null,
         lastWorkingDate: null,
@@ -424,6 +434,8 @@ test("Employees API - Pagination & Optimization", async (t) => {
       Department: null,
       JobRole: null,
       Location: null,
+      WorkingPattern: null,
+      EmployeeWorkingPatternAssignment: [],
       EmployeeOffboarding: null,
       offboardingStatus: null,
       lastWorkingDate: null,
@@ -489,6 +501,8 @@ test("Employees API - Pagination & Optimization", async (t) => {
       Department: null,
       JobRole: null,
       Location: null,
+      WorkingPattern: null,
+      EmployeeWorkingPatternAssignment: [],
       EmployeeOffboarding: null,
       offboardingStatus: null,
       lastWorkingDate: null,
@@ -535,6 +549,14 @@ test("Employees API - Pagination & Optimization", async (t) => {
       user: { id: "manager1", companyId: "company1", role: "MANAGER", email: "manager@example.com" },
     };
 
+    // Mock manager's employee record (for department lookup)
+    mockPrisma.employee.findFirst = async ({ where }: any) => {
+      if (where.userId === "manager1") {
+        return { departmentId: "dept1" };
+      }
+      return null;
+    };
+
     // Mock subordinate lookup
     mockPrisma.user.findMany = async ({ where }: any) => {
       if (where.managerId === "manager1") {
@@ -544,9 +566,10 @@ test("Employees API - Pagination & Optimization", async (t) => {
     };
 
     mockPrisma.employee.findMany = async ({ where }: any) => {
-      // Verify authorization filter is applied (Prisma uses uppercase relation name)
-      assert.ok(where.User, "Should have user filter");
-      assert.ok(where.User.id, "Should filter by user IDs");
+      // Verify authorization filter is applied via OR conditions
+      // Manager access uses OR: [self, department, subordinates]
+      assert.ok(where.OR, "Should have OR filter for manager access");
+      assert.ok(Array.isArray(where.OR), "OR should be an array");
 
       return Array.from({ length: 2 }, (_, i) => ({
         id: `emp${i}`,
@@ -568,6 +591,8 @@ test("Employees API - Pagination & Optimization", async (t) => {
         Department: null,
         JobRole: null,
         Location: null,
+        WorkingPattern: null,
+        EmployeeWorkingPatternAssignment: [],
         EmployeeOffboarding: null,
         offboardingStatus: null,
         lastWorkingDate: null,

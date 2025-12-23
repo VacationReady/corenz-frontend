@@ -87,7 +87,9 @@ const createEmployeeSchema = z.object({
       }
       if (typeof val === "string") {
         const parsed = Number(val);
-        return Number.isFinite(parsed) && parsed >= 0 ? roundToTwoDecimals(parsed) : 10;
+        return Number.isFinite(parsed) && parsed >= 0
+          ? roundToTwoDecimals(parsed)
+          : 10;
       }
       if (typeof val === "number") {
         return Number.isFinite(val) && val >= 0 ? roundToTwoDecimals(val) : 10;
@@ -103,7 +105,9 @@ const createEmployeeSchema = z.object({
       }
       if (typeof val === "string") {
         const parsed = Number(val);
-        return Number.isFinite(parsed) && parsed >= 0 ? roundToTwoDecimals(parsed) : 0;
+        return Number.isFinite(parsed) && parsed >= 0
+          ? roundToTwoDecimals(parsed)
+          : 0;
       }
       if (typeof val === "number") {
         return Number.isFinite(val) && val >= 0 ? roundToTwoDecimals(val) : 0;
@@ -141,12 +145,12 @@ const createEmployeeSchema = z.object({
 /**
  * Iteratively collect all subordinates (direct and indirect reports)
  * using a queue-based approach instead of recursion.
- * 
+ *
  * Benefits:
  * - Avoids stack overflow for deep hierarchies
  * - More predictable memory usage
  * - Easier to debug and test
- * 
+ *
  * @param managerUserId - The manager's user ID
  * @param companyId - Company ID for tenant isolation
  * @returns Array of all subordinate user IDs
@@ -205,16 +209,22 @@ export async function GET(req: NextRequest) {
     const managerId = searchParams.get("managerId");
     const scope = (searchParams.get("scope") || "directory").toLowerCase();
     const workingPatternType = searchParams.get("workingPatternType"); // Filter by pattern type (SHIFT_BASED, STANDARD, etc.)
-    const searchQuery = (searchParams.get("q") || searchParams.get("search") || "").trim();
+    const searchQuery = (
+      searchParams.get("q") ||
+      searchParams.get("search") ||
+      ""
+    ).trim();
     const departmentsParam = (searchParams.get("departments") || "").trim();
     const jobRolesParam = (searchParams.get("jobRoles") || "").trim();
-    
+
     const limitParam = searchParams.get("limit");
     if (limitParam === "all") {
       return NextResponse.json(
         {
           error: "Invalid query parameters",
-          details: { limit: "limit=all is not supported; use cursor-based pagination" },
+          details: {
+            limit: "limit=all is not supported; use cursor-based pagination",
+          },
         },
         { status: 400 },
       );
@@ -247,7 +257,7 @@ export async function GET(req: NextRequest) {
     if (status === "active") whereCondition.isActive = true;
     else if (status === "archived") whereCondition.isActive = false;
     // If status is "all", no isActive filter is applied
-    
+
     // Filter by working pattern type (for rota scheduling - filter to SHIFT_BASED workers)
     // Check BOTH direct WorkingPattern AND EmployeeWorkingPatternAssignment
     // because patterns can be assigned either way:
@@ -257,16 +267,16 @@ export async function GET(req: NextRequest) {
       const patternFilter = {
         OR: [
           { WorkingPattern: { patternType: workingPatternType } },
-          { 
-            EmployeeWorkingPatternAssignment: { 
-              some: { 
-                WorkingPattern: { patternType: workingPatternType } 
-              } 
-            } 
+          {
+            EmployeeWorkingPatternAssignment: {
+              some: {
+                WorkingPattern: { patternType: workingPatternType },
+              },
+            },
           },
         ],
       };
-      
+
       whereCondition.AND = whereCondition.AND || [];
       whereCondition.AND.push(patternFilter);
     }
@@ -311,11 +321,23 @@ export async function GET(req: NextRequest) {
       whereCondition.AND = whereCondition.AND || [];
       whereCondition.AND.push({
         OR: [
-          { User: { firstName: { contains: searchQuery, mode: "insensitive" } } },
-          { User: { lastName: { contains: searchQuery, mode: "insensitive" } } },
+          {
+            User: { firstName: { contains: searchQuery, mode: "insensitive" } },
+          },
+          {
+            User: { lastName: { contains: searchQuery, mode: "insensitive" } },
+          },
           { User: { email: { contains: searchQuery, mode: "insensitive" } } },
-          { Department: { is: { name: { contains: searchQuery, mode: "insensitive" } } } },
-          { JobRole: { is: { name: { contains: searchQuery, mode: "insensitive" } } } },
+          {
+            Department: {
+              is: { name: { contains: searchQuery, mode: "insensitive" } },
+            },
+          },
+          {
+            JobRole: {
+              is: { name: { contains: searchQuery, mode: "insensitive" } },
+            },
+          },
         ],
       });
     }
@@ -332,7 +354,11 @@ export async function GET(req: NextRequest) {
 
       whereCondition.User = {
         ...(whereCondition.User || {}),
-        id: { in: allSubordinateUserIds.length > 0 ? allSubordinateUserIds : ["no-match"] },
+        id: {
+          in: allSubordinateUserIds.length > 0
+            ? allSubordinateUserIds
+            : ["no-match"],
+        },
       };
     }
 
@@ -368,7 +394,9 @@ export async function GET(req: NextRequest) {
 
         whereCondition.User = {
           ...(whereCondition.User || {}),
-          id: { in: allowedUserIds.length > 0 ? allSubordinateUserIds : ["no-match"] },
+          id: {
+            in: allowedUserIds.length > 0 ? allSubordinateUserIds : ["no-match"],
+          },
         };
       }
     } else if (session.user.role === "EMPLOYEE") {
@@ -430,7 +458,7 @@ export async function GET(req: NextRequest) {
               select: { id: true, name: true, patternType: true },
             },
           },
-          orderBy: { effectiveDate: 'desc' as const },
+          orderBy: { effectiveDate: "desc" as const },
           take: 1, // Only get the most recent assignment
         },
         EmployeeOffboarding: {
@@ -493,7 +521,9 @@ export async function GET(req: NextRequest) {
 
       // Prioritize assignment-based working pattern (with effective dates) over direct relationship
       // This ensures employees assigned via the settings page are properly identified
-      const effectiveWorkingPattern = emp.EmployeeWorkingPatternAssignment?.[0]?.WorkingPattern || emp.WorkingPattern;
+      const effectiveWorkingPattern =
+        emp.EmployeeWorkingPatternAssignment?.[0]?.WorkingPattern ||
+        emp.WorkingPattern;
 
       const toNumber = (value: any) =>
         value === null || value === undefined ? null : Number(value);
@@ -503,6 +533,26 @@ export async function GET(req: NextRequest) {
 
       const isPrismaDecimal = (value: any) =>
         value && typeof value === "object" && typeof value.toNumber === "function";
+
+      const normalizeValue = (value: any) => {
+        if (value instanceof Date) {
+          return toISOString(value);
+        }
+
+        if (isPrismaDecimal(value)) {
+          return toNumber(value);
+        }
+
+        return value ?? null;
+      };
+
+      const serializeOffboardingRecord = (record: any) => {
+        if (!record) return null;
+
+        return Object.fromEntries(
+          Object.entries(record).map(([key, value]) => [key, normalizeValue(value)]),
+        );
+      };
 
       return {
         id: emp.id,
@@ -527,9 +577,7 @@ export async function GET(req: NextRequest) {
         isActivated: emp.User.isActivated,
         offboardingStatus: emp.offboardingStatus,
         lastWorkingDate: toISOString(emp.lastWorkingDate),
-        offboardingRecord: emp.EmployeeOffboarding
-          ? serializeValue(emp.EmployeeOffboarding)
-          : null,
+        offboardingRecord: serializeOffboardingRecord(emp.EmployeeOffboarding),
         profileImageUrl: profileUrl,
         permissionProfileName: emp.User.PermissionProfile?.name ?? null,
         // NZ Leave Compliance Fields - normalize Decimal to number for client safety
@@ -540,7 +588,9 @@ export async function GET(req: NextRequest) {
       } as const;
     });
 
-    console.log(`[employees] Found ${flattened.length} employees for companyId: ${session.user.companyId}`);
+    console.log(
+      `[employees] Found ${flattened.length} employees for companyId: ${session.user.companyId}`,
+    );
     console.log("[employees] GET metrics:", {
       companyId: session.user.companyId,
       count: flattened.length,
@@ -553,7 +603,7 @@ export async function GET(req: NextRequest) {
       queryDurationMs,
       totalDurationMs: Date.now() - requestStartMs,
     });
-    
+
     return NextResponse.json({
       data: serializeValue(flattened),
       pagination: {
@@ -569,10 +619,7 @@ export async function GET(req: NextRequest) {
       stack: error instanceof Error ? error.stack : undefined,
       name: error instanceof Error ? error.name : undefined,
     });
-    return NextResponse.json(
-      { error: "Error loading employees" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Error loading employees" }, { status: 500 });
   }
 }
 
@@ -621,9 +668,11 @@ export async function POST(req: NextRequest) {
       trialNotifyRecipient,
       trialNotifyDaysBefore,
     } = createEmployeeSchema.parse(body);
-    
+
     // Extract rotaGroupIds separately (not in schema to keep it optional)
-    const rotaGroupIds: string[] = Array.isArray(body.rotaGroupIds) ? body.rotaGroupIds : [];
+    const rotaGroupIds: string[] = Array.isArray(body.rotaGroupIds)
+      ? body.rotaGroupIds
+      : [];
 
     // ✅ Enforce global email uniqueness across all tenants
     const existingAnywhere = await prisma.user.findFirst({
@@ -681,7 +730,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: "Invalid manager: the specified manager does not exist or belongs to a different company.",
+            error:
+              "Invalid manager: the specified manager does not exist or belongs to a different company.",
           },
           { status: 400 },
         );
@@ -697,7 +747,11 @@ export async function POST(req: NextRequest) {
       });
       if (!dept) {
         return NextResponse.json(
-          { success: false, error: "Invalid department: does not exist or belongs to a different company." },
+          {
+            success: false,
+            error:
+              "Invalid department: does not exist or belongs to a different company.",
+          },
           { status: 400 },
         );
       }
@@ -710,7 +764,10 @@ export async function POST(req: NextRequest) {
       });
       if (!jobRole) {
         return NextResponse.json(
-          { success: false, error: "Invalid job role: does not exist or belongs to a different company." },
+          {
+            success: false,
+            error: "Invalid job role: does not exist or belongs to a different company.",
+          },
           { status: 400 },
         );
       }
@@ -724,7 +781,10 @@ export async function POST(req: NextRequest) {
       });
       if (!location) {
         return NextResponse.json(
-          { success: false, error: "Invalid location: does not exist or belongs to a different company." },
+          {
+            success: false,
+            error: "Invalid location: does not exist or belongs to a different company.",
+          },
           { status: 400 },
         );
       }
@@ -737,7 +797,11 @@ export async function POST(req: NextRequest) {
       });
       if (!pattern) {
         return NextResponse.json(
-          { success: false, error: "Invalid working pattern: does not exist or belongs to a different company." },
+          {
+            success: false,
+            error:
+              "Invalid working pattern: does not exist or belongs to a different company.",
+          },
           { status: 400 },
         );
       }
@@ -781,12 +845,8 @@ export async function POST(req: NextRequest) {
         // Persist canonical employment details
         startDate: new Date(startDate),
         employmentStartDate: new Date(startDate), // Store for anniversary calculations
-        Department: departmentId
-          ? { connect: { id: departmentId } }
-          : undefined,
-        JobRole: jobRoleId
-          ? { connect: { id: jobRoleId } }
-          : undefined,
+        Department: departmentId ? { connect: { id: departmentId } } : undefined,
+        JobRole: jobRoleId ? { connect: { id: jobRoleId } } : undefined,
         // Link Working Pattern via relation (checked create input)
         WorkingPattern: workingPatternId
           ? { connect: { id: workingPatternId } }
@@ -795,9 +855,7 @@ export async function POST(req: NextRequest) {
         OnboardingTemplate: normalizedTemplateId
           ? { connect: { id: normalizedTemplateId } }
           : undefined,
-        Location: locationId
-          ? { connect: { id: locationId } }
-          : undefined,
+        Location: locationId ? { connect: { id: locationId } } : undefined,
         siteLocation: siteLocationLabel,
         contractType: contractType || undefined,
         // NZ Leave Compliance Fields
@@ -811,14 +869,16 @@ export async function POST(req: NextRequest) {
         sickLeaveBalance: 0,
         // Set eligibility date (6 months from start)
         sickLeaveEligibilityDate: new Date(
-          new Date(startDate).setMonth(new Date(startDate).getMonth() + 6)
+          new Date(startDate).setMonth(new Date(startDate).getMonth() + 6),
         ),
         // Public holiday leave booking permission
         canBookPublicHolidays: canBookPublicHolidays ?? false,
         // 90-day trial period fields (NZ Employment Relations Act 2000)
         ninetyDayTrialPeriod: ninetyDayTrialPeriod ?? false,
         trialPeriodAccepted: trialPeriodAccepted ?? false,
-        trialPeriodAcceptedAt: trialPeriodAcceptedAt ? new Date(trialPeriodAcceptedAt) : undefined,
+        trialPeriodAcceptedAt: trialPeriodAcceptedAt
+          ? new Date(trialPeriodAcceptedAt)
+          : undefined,
         // Calculate trial end date (90 days from start)
         trialPeriodEndDate: ninetyDayTrialPeriod
           ? new Date(new Date(startDate).getTime() + 90 * 24 * 60 * 60 * 1000)
@@ -869,7 +929,7 @@ export async function POST(req: NextRequest) {
     // Create or update activation token (upsert handles re-invites)
     await prisma.activationToken.upsert({
       where: { userId: user.id },
-      update: { 
+      update: {
         token: activationToken,
         createdAt: new Date(), // Reset creation time on update
       },
@@ -879,12 +939,10 @@ export async function POST(req: NextRequest) {
         userId: user.id,
       },
     });
-    
+
     console.log(`[employees/POST] Activation token created/updated for user ${user.id}`);
 
-    const redirectPath = normalizedTemplateId
-      ? `/${employee.id}/onboarding`
-      : `/dashboard`;
+    const redirectPath = normalizedTemplateId ? `/${employee.id}/onboarding` : `/dashboard`;
     const activationLink = `${appBaseUrl}/activate?token=${activationToken}&companyId=${encodeURIComponent(
       companyId,
     )}&redirect=${encodeURIComponent(redirectPath)}`;
@@ -1021,7 +1079,7 @@ export async function POST(req: NextRequest) {
         });
 
         const validGroupIds = validRotaGroups.map((g) => g.id);
-        
+
         // Create memberships for valid groups
         if (validGroupIds.length > 0) {
           await prisma.rotaGroupMember.createMany({
@@ -1035,7 +1093,9 @@ export async function POST(req: NextRequest) {
             })),
             skipDuplicates: true,
           });
-          console.log(`[employees/POST] Added employee ${employee.id} to ${validGroupIds.length} rota groups`);
+          console.log(
+            `[employees/POST] Added employee ${employee.id} to ${validGroupIds.length} rota groups`,
+          );
         }
       } catch (e) {
         console.warn("Rota group membership creation failed:", e);
@@ -1069,4 +1129,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

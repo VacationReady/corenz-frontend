@@ -417,12 +417,22 @@ export async function POST(
 
     const EventCategoryName = eventCategory.name;
 
+    // Parse dates as local dates (not UTC) to avoid timezone shifts
+    // When user selects "2025-12-23", we want exactly that date, not UTC midnight
+    const parseLocalDate = (dateStr: string): Date => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day, 0, 0, 0, 0);
+    };
+
+    const startDateObj = parseLocalDate(startDate);
+    const endDateObj = parseLocalDate(endDate);
+
     // Validate entitlement and overlap using the updated validateLeaveRequest
     await validateLeaveRequest({
       employeeId,
       eventCategoryId: EventCategoryId,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: startDateObj,
+      endDate: endDateObj,
       dayType: dayType ?? "FULL_DAY",
       isAdmin:
         session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN",
@@ -460,8 +470,7 @@ export async function POST(
 
         if (enforceEntitlement) {
           // Calculate deduction before transaction
-          const startDateObj = new Date(startDate);
-          const endDateObj = new Date(endDate);
+          // startDateObj and endDateObj are already parsed above
           const totalDays: number[] = [];
           let currentDate = new Date(startDateObj);
           // End date is the last day away (inclusive) - UI instructs user not to include return-to-work day
@@ -532,8 +541,8 @@ export async function POST(
                 User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
                 EventCategory: { connect: { id: EventCategoryId } },
                 Company: { connect: { id: session.user.companyId } },
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
+                startDate: startDateObj,
+                endDate: endDateObj,
                 dayType: dayType ?? "FULL_DAY",
                 reason: reason ?? "",
                 // First-class sick leave fields
@@ -569,8 +578,8 @@ export async function POST(
         User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
         EventCategory: { connect: { id: EventCategoryId } },
         Company: { connect: { id: session.user.companyId } },
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: startDateObj,
+        endDate: endDateObj,
         dayType: dayType ?? "FULL_DAY",
         reason: reason ?? "",
         // First-class sick leave fields

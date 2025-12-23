@@ -44,8 +44,14 @@ export async function POST(request: Request) {
       forceApprove,
     } = body;
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Parse dates as local dates (not UTC) to avoid timezone shifts
+    const parseLocalDate = (dateStr: string): Date => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day, 0, 0, 0, 0);
+    };
+
+    const start = parseLocalDate(startDate);
+    const end = parseLocalDate(endDate);
 
     if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf())) {
       return NextResponse.json({ error: "Invalid date range" }, { status: 400 });

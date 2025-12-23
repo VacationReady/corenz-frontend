@@ -60,8 +60,9 @@ export async function validateLeaveRequest({
   // - If creating a HALF_DAY event: it must not overlap an existing FULL_DAY event
   // We enforce this regardless of role/admin status.
   {
-    const rangeStart = dayjs(startDate).startOf("day").toDate();
-    const rangeEnd = dayjs(endDate).endOf("day").toDate();
+    // Use UTC to avoid timezone shifts when comparing dates
+    const rangeStart = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0));
+    const rangeEnd = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999));
 
     const dayTypeFilter =
       effectiveDayType === "FULL_DAY"

@@ -429,8 +429,19 @@ export async function POST(
       companyId: session.user.companyId,
     });
 
-    // Auto-approve immediately when created by ADMIN or SUPER_ADMIN
-    if (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") {
+    // Determine if the current user is the manager of this employee
+    const isManagerOfEmployee = 
+      session.user.role === "MANAGER" && 
+      employee.User?.managerId === session.user.id;
+
+    // Auto-approve immediately when created by ADMIN, SUPER_ADMIN, or the employee's direct manager
+    // Managers submitting leave (especially sickness) for their direct reports should be auto-approved
+    const canAutoApprove = 
+      session.user.role === "ADMIN" || 
+      session.user.role === "SUPER_ADMIN" || 
+      isManagerOfEmployee;
+
+    if (canAutoApprove) {
       try {
         // Check if entitlement is enforced for this event category
         const eventRule = await prisma.eventRule.findUnique({
@@ -545,12 +556,12 @@ export async function POST(
           return NextResponse.json({ success: true, data: approved });
         }
       } catch (e: any) {
-        console.error("Auto-approve by admin failed:", e);
+        console.error("Auto-approve by admin/manager failed:", e);
         // Fall through to workflow path if deduction failed for any reason
       }
     }
 
-    // Non-admin path: create leave request for workflow approval
+    // Non-admin/non-manager path: create leave request for workflow approval
     const newLeaveRequest = await (prisma.leaveRequest as any).create({
       data: {
         id: crypto.randomUUID(),

@@ -364,7 +364,7 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // Access control: ADMIN can list all; MANAGER limited to reports
+    // Access control: ADMIN can list all; MANAGER limited to department + reports
     if (session.user.role === "MANAGER") {
       // Special case: allow managers to fetch their OWN employee record when explicitly queried
       if (userId && userId === session.user.id) {
@@ -386,18 +386,37 @@ export async function GET(req: NextRequest) {
           id: { in: directIds.length > 0 ? directIds : ["no-match"] },
         };
       } else {
-        // Default manager scope: all direct and indirect reports
+        // Manager scope: department colleagues + all direct/indirect reports
+        // This mirrors employee access (see their department) plus manager access (see their reports)
+        const managerEmployee = await prisma.employee.findFirst({
+          where: {
+            userId: session.user.id,
+            companyId: session.user.companyId,
+          },
+          select: { departmentId: true },
+        });
+
         const allSubordinateUserIds = await getAllSubordinatesIterative(
           session.user.id,
           session.user.companyId,
         );
 
-        const allowedUserIds = allSubordinateUserIds;
+        const orConditions: Prisma.EmployeeWhereInput[] = [];
 
-        whereCondition.User = {
-          ...(whereCondition.User || {}),
-          id: { in: allowedUserIds.length > 0 ? allSubordinateUserIds : ["no-match"] },
-        };
+        // Include self
+        orConditions.push({ userId: session.user.id });
+
+        // Include department colleagues (if manager has a department)
+        if (managerEmployee?.departmentId) {
+          orConditions.push({ departmentId: managerEmployee.departmentId });
+        }
+
+        // Include all direct and indirect reports (regardless of department)
+        if (allSubordinateUserIds.length > 0) {
+          orConditions.push({ userId: { in: allSubordinateUserIds } });
+        }
+
+        whereCondition.OR = orConditions;
       }
     } else if (session.user.role === "EMPLOYEE") {
       const requestorEmployee = await prisma.employee.findFirst({

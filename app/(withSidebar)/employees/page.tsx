@@ -227,6 +227,18 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     const isPrismaDecimal = (value: any) =>
       value && typeof value === "object" && typeof value.toNumber === "function";
 
+    const serializeValue = (value: any): any => {
+      if (value instanceof Date) return toISOString(value);
+      if (isPrismaDecimal(value)) return toNumber(value);
+      if (Array.isArray(value)) return value.map(serializeValue);
+      if (value && typeof value === "object") {
+        return Object.fromEntries(
+          Object.entries(value).map(([k, v]) => [k, serializeValue(v)]),
+        );
+      }
+      return value ?? null;
+    };
+
     const normalizeValue = (value: any) => {
       if (value instanceof Date) {
         return toISOString(value);
@@ -306,15 +318,15 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     ]);
 
     return {
-      initialEmployees: formattedEmployees as any, // Type cast - Prisma types don't exactly match client Employee type
+      initialEmployees: serializeValue(formattedEmployees) as any, // Type cast - Prisma types don't exactly match client Employee type
       initialPagination: { cursor: nextCursor, hasMore, limit },
-      departments,
-      jobRoles,
-      initialCounts: {
+      departments: serializeValue(departments),
+      jobRoles: serializeValue(jobRoles),
+      initialCounts: serializeValue({
         active: activeCount,
         archived: archivedCount,
         all: totalCount,
-      },
+      }),
     };
   } catch (error) {
     console.error("[EmployeesPage] Failed to fetch initial data:", error);

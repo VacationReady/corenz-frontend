@@ -486,6 +486,29 @@ export async function GET(req: NextRequest) {
       const toISOString = (value: any) =>
         value instanceof Date ? value.toISOString() : value ?? null;
 
+      const isPrismaDecimal = (value: any) =>
+        value && typeof value === "object" && typeof value.toNumber === "function";
+
+      const normalizeValue = (value: any) => {
+        if (value instanceof Date) {
+          return toISOString(value);
+        }
+
+        if (isPrismaDecimal(value)) {
+          return toNumber(value);
+        }
+
+        return value ?? null;
+      };
+
+      const serializeOffboardingRecord = (record: any) => {
+        if (!record) return null;
+
+        return Object.fromEntries(
+          Object.entries(record).map(([key, value]) => [key, normalizeValue(value)]),
+        );
+      };
+
       return {
         id: emp.id,
         userId: emp.User.id,
@@ -509,13 +532,7 @@ export async function GET(req: NextRequest) {
         isActivated: emp.User.isActivated,
         offboardingStatus: emp.offboardingStatus,
         lastWorkingDate: toISOString(emp.lastWorkingDate),
-        offboardingRecord: emp.EmployeeOffboarding
-          ? {
-              ...emp.EmployeeOffboarding,
-              lastWorkingDate: toISOString(emp.EmployeeOffboarding.lastWorkingDate),
-              completedAt: toISOString(emp.EmployeeOffboarding.completedAt),
-            }
-          : null,
+        offboardingRecord: serializeOffboardingRecord(emp.EmployeeOffboarding),
         profileImageUrl: profileUrl,
         permissionProfileName: emp.User.PermissionProfile?.name ?? null,
         // NZ Leave Compliance Fields - normalize Decimal to number for client safety

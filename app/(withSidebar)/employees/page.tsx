@@ -224,6 +224,29 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     const toISOString = (value: any) =>
       value instanceof Date ? value.toISOString() : value ?? null;
 
+    const isPrismaDecimal = (value: any) =>
+      value && typeof value === "object" && typeof value.toNumber === "function";
+
+    const normalizeValue = (value: any) => {
+      if (value instanceof Date) {
+        return toISOString(value);
+      }
+
+      if (isPrismaDecimal(value)) {
+        return toNumber(value);
+      }
+
+      return value ?? null;
+    };
+
+    const serializeOffboardingRecord = (record: any) => {
+      if (!record) return null;
+
+      return Object.fromEntries(
+        Object.entries(record).map(([key, value]) => [key, normalizeValue(value)]),
+      );
+    };
+
     const formattedEmployees = results.map((emp) => ({
       // Only include the fields the client actually needs - avoid spreading ...emp which includes Decimal fields
       id: emp.id,
@@ -261,20 +284,8 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       department: emp.Department ? { id: emp.Department.id, name: emp.Department.name } : null,
       jobRole: emp.JobRole ? { id: emp.JobRole.id, name: emp.JobRole.name } : null,
       location: emp.Location ? { id: emp.Location.id, name: emp.Location.name } : null,
-      offboarding: emp.EmployeeOffboarding
-        ? {
-            ...emp.EmployeeOffboarding,
-            lastWorkingDate: toISOString(emp.EmployeeOffboarding.lastWorkingDate),
-            completedAt: toISOString(emp.EmployeeOffboarding.completedAt),
-          }
-        : null,
-      offboardingRecord: emp.EmployeeOffboarding
-        ? {
-            ...emp.EmployeeOffboarding,
-            lastWorkingDate: toISOString(emp.EmployeeOffboarding.lastWorkingDate),
-            completedAt: toISOString(emp.EmployeeOffboarding.completedAt),
-          }
-        : null,
+      offboarding: serializeOffboardingRecord(emp.EmployeeOffboarding),
+      offboardingRecord: serializeOffboardingRecord(emp.EmployeeOffboarding),
       // Normalize any Decimal fields we may need later; keep numbers primitive for client safety
       sickLeaveDaysPerYear: toNumber((emp as any).sickLeaveDaysPerYear),
       alternativeHolidayBalance: toNumber((emp as any).alternativeHolidayBalance),

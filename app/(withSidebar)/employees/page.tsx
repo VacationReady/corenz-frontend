@@ -218,6 +218,47 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
 
     // Format employees with signed URLs - flatten the structure to match client expectations
     // IMPORTANT: Only include serializable fields - Prisma Decimal objects cannot be passed to Client Components
+    const toNumber = (value: any) =>
+      value === null || value === undefined ? null : Number(value);
+
+    const toISOString = (value: any) =>
+      value instanceof Date ? value.toISOString() : value ?? null;
+
+    const isPrismaDecimal = (value: any) =>
+      value && typeof value === "object" && typeof value.toNumber === "function";
+
+    const serializeValue = (value: any): any => {
+      if (value instanceof Date) return toISOString(value);
+      if (isPrismaDecimal(value)) return toNumber(value);
+      if (Array.isArray(value)) return value.map(serializeValue);
+      if (value && typeof value === "object") {
+        return Object.fromEntries(
+          Object.entries(value).map(([k, v]) => [k, serializeValue(v)]),
+        );
+      }
+      return value ?? null;
+    };
+
+    const normalizeValue = (value: any) => {
+      if (value instanceof Date) {
+        return toISOString(value);
+      }
+
+      if (isPrismaDecimal(value)) {
+        return toNumber(value);
+      }
+
+      return value ?? null;
+    };
+
+    const serializeOffboardingRecord = (record: any) => {
+      if (!record) return null;
+
+      return Object.fromEntries(
+        Object.entries(record).map(([key, value]) => [key, normalizeValue(value)]),
+      );
+    };
+
     const formattedEmployees = results.map((emp) => ({
       // Only include the fields the client actually needs - avoid spreading ...emp which includes Decimal fields
       id: emp.id,
@@ -228,8 +269,8 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       locationId: emp.locationId,
       onboardingStatus: emp.onboardingStatus,
       offboardingStatus: emp.offboardingStatus,
-      lastWorkingDate: emp.lastWorkingDate?.toISOString() ?? null,
-      startDate: emp.startDate?.toISOString() ?? null,
+      lastWorkingDate: toISOString(emp.lastWorkingDate),
+      startDate: toISOString(emp.startDate),
       contractType: emp.contractType,
       // Flatten User fields to top level for backward compatibility
       firstName: emp.User.firstName,
@@ -255,8 +296,13 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       department: emp.Department ? { id: emp.Department.id, name: emp.Department.name } : null,
       jobRole: emp.JobRole ? { id: emp.JobRole.id, name: emp.JobRole.name } : null,
       location: emp.Location ? { id: emp.Location.id, name: emp.Location.name } : null,
-      offboarding: emp.EmployeeOffboarding,
-      offboardingRecord: emp.EmployeeOffboarding,
+      offboarding: serializeOffboardingRecord(emp.EmployeeOffboarding),
+      offboardingRecord: serializeOffboardingRecord(emp.EmployeeOffboarding),
+      // Normalize any Decimal fields we may need later; keep numbers primitive for client safety
+      sickLeaveDaysPerYear: toNumber((emp as any).sickLeaveDaysPerYear),
+      alternativeHolidayBalance: toNumber((emp as any).alternativeHolidayBalance),
+      publicHolidaysPerYear: toNumber((emp as any).publicHolidaysPerYear),
+      employmentStartDate: toISOString((emp as any).employmentStartDate),
     }));
 
     // Fetch departments and job roles
@@ -272,15 +318,15 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     ]);
 
     return {
-      initialEmployees: formattedEmployees as any, // Type cast - Prisma types don't exactly match client Employee type
+      initialEmployees: serializeValue(formattedEmployees) as any, // Type cast - Prisma types don't exactly match client Employee type
       initialPagination: { cursor: nextCursor, hasMore, limit },
-      departments,
-      jobRoles,
-      initialCounts: {
+      departments: serializeValue(departments),
+      jobRoles: serializeValue(jobRoles),
+      initialCounts: serializeValue({
         active: activeCount,
         archived: archivedCount,
         all: totalCount,
-      },
+      }),
     };
   } catch (error) {
     console.error("[EmployeesPage] Failed to fetch initial data:", error);

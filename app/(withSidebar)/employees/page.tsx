@@ -1,13 +1,13 @@
 /**
  * Employees Directory - Server Component
- * 
+ *
  * Next.js 15 server component that fetches initial employee data server-side.
  * This provides fast initial page loads and SEO benefits.
- * 
+ *
  * Architecture:
  * - Server: Fetches first page of employees (50), departments, and job roles
  * - Client: Handles interactivity (filters, modals, pagination, mutations)
- * 
+ *
  * Related:
  * - Prompt 6: Paginated /api/employees endpoint
  * - Prompt 7: Client-side pagination implementation
@@ -63,32 +63,37 @@ export const dynamic = "force-dynamic";
  */
 async function getInitialData(status: "active" | "archived" | "all" = "active") {
   const session = await auth();
-  
+
   if (!session?.user?.companyId) {
     redirect("/login");
   }
 
   try {
     const limit = 50;
-    
+
     // Build where condition based on status
-    const whereCondition: Prisma.EmployeeWhereInput = { companyId: session.user.companyId };
+    const whereCondition: Prisma.EmployeeWhereInput = {
+      companyId: session.user.companyId,
+    };
     if (status === "active") whereCondition.isActive = true;
     else if (status === "archived") whereCondition.isActive = false;
 
     // SECURITY: Apply role-based filtering to prevent data exposure
     // This must match the logic in /api/employees/route.ts
     const userRole = session.user.role;
-    
+
     if (userRole === "MANAGER") {
       // Managers see only their direct and indirect reports
       const allSubordinateUserIds = await getAllSubordinatesIterative(
         session.user.id,
         session.user.companyId,
       );
-      
+
       whereCondition.userId = {
-        in: allSubordinateUserIds.length > 0 ? allSubordinateUserIds : ["no-match"],
+        in:
+          allSubordinateUserIds.length > 0
+            ? allSubordinateUserIds
+            : ["no-match"],
       };
     } else if (userRole === "EMPLOYEE") {
       // Employees see only themselves and their department colleagues
@@ -100,9 +105,7 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
         select: { departmentId: true },
       });
 
-      const orConditions: Prisma.EmployeeWhereInput[] = [
-        { userId: session.user.id },
-      ];
+      const orConditions: Prisma.EmployeeWhereInput[] = [{ userId: session.user.id }];
 
       if (requestorEmployee?.departmentId) {
         orConditions.push({ departmentId: requestorEmployee.departmentId });
@@ -159,8 +162,10 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
     });
 
     // Count with same role-based filtering for accurate counts
-    const baseCountWhere: Prisma.EmployeeWhereInput = { companyId: session.user.companyId };
-    
+    const baseCountWhere: Prisma.EmployeeWhereInput = {
+      companyId: session.user.companyId,
+    };
+
     // Apply same role-based filtering to counts
     if (userRole === "MANAGER") {
       const allSubordinateUserIds = await getAllSubordinatesIterative(
@@ -168,7 +173,10 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
         session.user.companyId,
       );
       baseCountWhere.userId = {
-        in: allSubordinateUserIds.length > 0 ? allSubordinateUserIds : ["no-match"],
+        in:
+          allSubordinateUserIds.length > 0
+            ? allSubordinateUserIds
+            : ["no-match"],
       };
     } else if (userRole === "EMPLOYEE") {
       const requestorEmployee = await prisma.employee.findFirst({
@@ -179,9 +187,7 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
         select: { departmentId: true },
       });
 
-      const orConditions: Prisma.EmployeeWhereInput[] = [
-        { userId: session.user.id },
-      ];
+      const orConditions: Prisma.EmployeeWhereInput[] = [{ userId: session.user.id }];
 
       if (requestorEmployee?.departmentId) {
         orConditions.push({ departmentId: requestorEmployee.departmentId });
@@ -189,7 +195,7 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
 
       baseCountWhere.OR = orConditions;
     }
-    
+
     const [activeCount, archivedCount] = await Promise.all([
       prisma.employee.count({
         where: { ...baseCountWhere, isActive: true },
@@ -236,8 +242,27 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
           Object.entries(value).map(([k, v]) => [k, serializeValue(v)]),
         );
       }
+      return value ?? null;
+    };
+
+    const normalizeValue = (value: any) => {
+      if (value instanceof Date) {
+        return toISOString(value);
+      }
+
+      if (isPrismaDecimal(value)) {
+        return toNumber(value);
+      }
 
       return value ?? null;
+    };
+
+    const serializeOffboardingRecord = (record: any) => {
+      if (!record) return null;
+
+      return Object.fromEntries(
+        Object.entries(record).map(([key, value]) => [key, normalizeValue(value)]),
+      );
     };
 
     const formattedEmployees = results.map((emp) => ({
@@ -277,10 +302,8 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       department: emp.Department ? { id: emp.Department.id, name: emp.Department.name } : null,
       jobRole: emp.JobRole ? { id: emp.JobRole.id, name: emp.JobRole.name } : null,
       location: emp.Location ? { id: emp.Location.id, name: emp.Location.name } : null,
-      offboarding: emp.EmployeeOffboarding ? serializeValue(emp.EmployeeOffboarding) : null,
-      offboardingRecord: emp.EmployeeOffboarding
-        ? serializeValue(emp.EmployeeOffboarding)
-        : null,
+      offboarding: serializeOffboardingRecord(emp.EmployeeOffboarding),
+      offboardingRecord: serializeOffboardingRecord(emp.EmployeeOffboarding),
       // Normalize any Decimal fields we may need later; keep numbers primitive for client safety
       sickLeaveDaysPerYear: toNumber((emp as any).sickLeaveDaysPerYear),
       alternativeHolidayBalance: toNumber((emp as any).alternativeHolidayBalance),
@@ -329,7 +352,7 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
 
 export default async function EmployeesPage() {
   const data = await getInitialData("active");
-  
+
   return (
     <EmployeesPageClient
       initialEmployees={data.initialEmployees}

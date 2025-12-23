@@ -18,7 +18,7 @@ export function EnhancedWidget({
   delay = 0,
 }: EnhancedWidgetProps) {
   const sizeClasses: Record<NonNullable<EnhancedWidgetProps["size"]>, string> = {
-    small: "bento-item",
+    small: "",
     medium: "bento-item",
     large: "bento-item-large",
     wide: "bento-item-wide",

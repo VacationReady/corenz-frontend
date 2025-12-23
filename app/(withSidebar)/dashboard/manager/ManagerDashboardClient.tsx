@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
@@ -11,16 +11,16 @@ import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useTenantRegion } from "@/hooks/useTenantRegion";
 import {
-  CalendarCheck2,
   Users,
   BarChart3,
   Search,
-  UserPlus,
+  UserCheck,
+  Lock,
+  User,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import LeaveSummaryCard from "@/components/dashboard/LeaveSummaryCard";
-import { User } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -253,6 +253,110 @@ function TeamInsights() {
   );
 }
 
+function MyDepartment() {
+  const { data: session } = useSession();
+  const userId = session?.user?.id as string | undefined;
+  const { data, error, isLoading } = useSWR(
+    "/api/employees?status=active",
+    fetcher,
+  );
+
+  const { departmentName, colleagues } = useMemo(() => {
+    const employeeList = data?.data || (Array.isArray(data) ? data : []);
+    if (!employeeList.length || !userId) {
+      return { departmentName: null, colleagues: [] };
+    }
+
+    // Find current user's employee record
+    const me = employeeList.find((e: any) => e.userId === userId);
+    if (!me) {
+      return { departmentName: null, colleagues: [] };
+    }
+
+    const myDeptId = me.departmentId;
+    const myDeptName = me.departmentName;
+
+    // Get all colleagues in the same department (excluding self)
+    const deptColleagues = employeeList
+      .filter((e: any) => e.departmentId === myDeptId && e.userId !== userId)
+      .map((e: any) => ({
+        id: e.id,
+        userId: e.userId,
+        name: `${e.firstName || ""} ${e.lastName || ""}`.trim() || e.email || "Unknown",
+        jobTitle: e.jobRoleName || null,
+        avatar: e.avatar?.url || null,
+        isDirectReport: e.managerUserId === userId,
+      }))
+      // Sort: direct reports first, then alphabetically
+      .sort((a: any, b: any) => {
+        if (a.isDirectReport && !b.isDirectReport) return -1;
+        if (!a.isDirectReport && b.isDirectReport) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+    return { departmentName: myDeptName, colleagues: deptColleagues };
+  }, [data, userId]);
+
+  return (
+    <DashboardWidget title={departmentName ? `${departmentName} Team` : "My Department"} icon={Users}>
+      {isLoading ? (
+        <WidgetLoading />
+      ) : error ? (
+        <WidgetError message="Failed to load department." />
+      ) : colleagues.length === 0 ? (
+        <EmptyState
+          tone="brand"
+          title="No colleagues found"
+          description="You're the only one in your department, or department data is not set up."
+          className="py-6"
+        />
+      ) : (
+        <div className="space-y-2 max-h-[280px] overflow-y-auto">
+          {colleagues.map((colleague: any) => (
+            <Link
+              key={colleague.id}
+              href={colleague.isDirectReport ? `/employees/${colleague.id}/overview` : "#"}
+              className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
+                colleague.isDirectReport
+                  ? "hover:bg-primary/10 cursor-pointer"
+                  : "cursor-default opacity-75"
+              }`}
+              onClick={(e) => {
+                if (!colleague.isDirectReport) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              <Avatar
+                src={colleague.avatar}
+                name={colleague.name}
+                size={36}
+                className="flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium truncate">{colleague.name}</span>
+                  {colleague.isDirectReport ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/15 text-primary rounded-full">
+                      <UserCheck className="h-3 w-3" />
+                      Direct Report
+                    </span>
+                  ) : (
+                    <Lock className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </div>
+                {colleague.jobTitle && (
+                  <p className="text-xs text-muted-foreground truncate">{colleague.jobTitle}</p>
+                )}
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </DashboardWidget>
+  );
+}
+
 interface ManagerDashboardClientProps {
   firstName?: string | null;
   fullName?: string | null;
@@ -332,11 +436,6 @@ export default function ManagerDashboardClient({
                   />
                   <Search className="absolute right-3 top-2.5 w-4 h-4 text-muted-foreground" />
                 </div>
-                <Link href="/employees">
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-premium">
-                    <UserPlus className="h-4 w-4 mr-2" /> Add Employee
-                  </Button>
-                </Link>
               </div>
             </div>
           </div>
@@ -344,30 +443,37 @@ export default function ManagerDashboardClient({
 
         {/* Main Content - Bento Grid */}
         <div className="flex-1 p-4 pt-0">
-          <div className="bento-grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+            {/* Top row - 4 equal cards */}
             {employeeId && (
-              <EnhancedWidget size="medium" delay={0.05}>
+              <EnhancedWidget size="small" delay={0.05} className="xl:col-span-1">
                 <LeaveSummaryCard employeeId={employeeId} />
               </EnhancedWidget>
             )}
             
-            <EnhancedWidget size="medium" delay={0.1}>
+            <EnhancedWidget size="small" delay={0.1} className="xl:col-span-1">
               <MetricsSummary />
             </EnhancedWidget>
 
-            <EnhancedWidget size="medium" delay={0.15}>
+            <EnhancedWidget size="small" delay={0.15} className="xl:col-span-1">
               <TeamAbsenceOverview />
             </EnhancedWidget>
 
-            <EnhancedWidget size="medium" delay={0.2}>
+            <EnhancedWidget size="small" delay={0.2} className="xl:col-span-1">
               <TeamInsights />
             </EnhancedWidget>
 
-            <EnhancedWidget size="large" delay={0.25}>
+            {/* Middle row - Action Items and My Department */}
+            <EnhancedWidget size="wide" delay={0.25} className="xl:col-span-2">
               <UnifiedActionItems employeeId={employeeId} isManager={true} />
             </EnhancedWidget>
 
-            <EnhancedWidget size="large" delay={0.3}>
+            <EnhancedWidget size="wide" delay={0.3} className="xl:col-span-2">
+              <MyDepartment />
+            </EnhancedWidget>
+
+            {/* Bottom row - News full width */}
+            <EnhancedWidget size="wide" delay={0.35} className="xl:col-span-4">
               <NewsWidget limit={3} />
             </EnhancedWidget>
           </div>

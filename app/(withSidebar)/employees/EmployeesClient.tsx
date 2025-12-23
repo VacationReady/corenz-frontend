@@ -36,7 +36,7 @@ import { DropdownMenu, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuConten
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OffboardingModal from "@/components/employees/OffboardingModal";
-import { MoreVertical, Users, UserX, Archive, UserCheck, UserPlus, Download, Filter, Sparkles, TrendingUp, Building2, Clock, CalendarDays, Briefcase, Search, X, ChevronDown, Check, Trash2, Mail, Send, Lock } from "lucide-react";
+import { MoreVertical, Users, UserX, Archive, UserCheck, UserPlus, Download, Filter, Sparkles, TrendingUp, Building2, Clock, CalendarDays, Briefcase, Search, X, ChevronDown, Check, Trash2, Mail, Send } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { toast } from "sonner";
 import { deleteEmployeeAction, sendActivationEmailAction } from "./actions";
@@ -449,50 +449,38 @@ function EmployeesContent(props: EmployeesClientProps) {
           const emp = row.original as Employee;
           const targetUrl = `/employees/${emp.id}/overview`;
           const isDirectReport = directReportUserIds.has(emp.userId);
-          const canAccess = isAdmin || isDirectReport || emp.userId === currentUserId;
           
-          // For managers: show direct reports as clickable, others as view-only
+          // For managers: show all employees, highlight direct reports with badge
+          // All employees are clickable (managers can view department colleagues like employees can)
           if (isManager && !isAdmin) {
             return (
-              <div className="group flex items-center gap-3 py-1">
+              <a
+                href={targetUrl}
+                className="group flex items-center gap-3 py-1"
+              >
                 <div className="relative">
                   <Avatar
                     size={36}
                     name={`${emp.firstName} ${emp.lastName}`}
                     src={(emp as any).profileImageUrl}
-                    className={cn(
-                      "ring-2 ring-white dark:ring-card shadow-sm transition-all duration-200",
-                      canAccess ? "group-hover:ring-primary/30" : "opacity-75"
-                    )}
+                    className="ring-2 ring-white dark:ring-card shadow-sm group-hover:ring-primary/30 transition-all duration-200"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    {canAccess ? (
-                      <a
-                        href={targetUrl}
-                        className="font-medium text-foreground hover:text-primary transition-colors duration-200"
-                      >
-                        {emp.firstName} {emp.lastName}
-                      </a>
-                    ) : (
-                      <span className="font-medium text-foreground/70">
-                        {emp.firstName} {emp.lastName}
-                      </span>
-                    )}
+                    <span className="font-medium text-foreground group-hover:text-primary transition-colors duration-200">
+                      {emp.firstName} {emp.lastName}
+                    </span>
                     {isDirectReport && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/15 text-primary rounded-full">
                         <UserCheck className="h-3 w-3" />
                         Direct Report
                       </span>
                     )}
-                    {!canAccess && (
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                    )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate max-w-[180px]">{emp.email}</p>
                 </div>
-              </div>
+              </a>
             );
           }
           

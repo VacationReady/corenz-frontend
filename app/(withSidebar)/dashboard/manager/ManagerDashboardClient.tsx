@@ -9,13 +9,10 @@ import { NewsWidget } from "@/components/dashboard/NewsWidget";
 import { UnifiedActionItems } from "@/components/dashboard/UnifiedActionItems";
 import { WidgetLoading, WidgetError } from "@/components/ui/WidgetStates";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { useTenantRegion } from "@/hooks/useTenantRegion";
 import {
   Users,
   BarChart3,
   Search,
-  UserCheck,
-  Lock,
   User,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
@@ -109,7 +106,6 @@ function TeamAbsenceOverview() {
     `/api/calendar-events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     fetcher,
   );
-  const { template, regionName } = useTenantRegion();
   return (
     <DashboardWidget title="Team Absences Today" icon={Users}>
       {isLoading ? (
@@ -122,18 +118,6 @@ function TeamAbsenceOverview() {
           title="Everyone's in"
           description="No absences are scheduled today."
           className="py-8"
-          guidance={[
-            template === "NZ"
-              ? "Check the NZ public holiday calendar so upcoming regional days don't surprise the roster."
-              : template === "AU"
-              ? "Review your AU award roster to confirm coverage before the next payroll run."
-              : template === "UK"
-              ? "Give the UK bank holiday calendar a quick scan for any last-minute impacts."
-              : "Review your upcoming roster to stay ahead of any coverage gaps.",
-            regionName
-              ? `Keep an eye on ${regionName} sickness trends so you can react quickly.`
-              : "Keep an eye on sickness trends so you can react quickly.",
-          ]}
         />
       ) : (
         <ul className="space-y-1 text-sm">
@@ -154,7 +138,6 @@ function TeamInsights() {
     `/api/employees?status=active`,
     fetcher,
   );
-  const { template, regionName } = useTenantRegion();
 
   const insights = useMemo(() => {
     if (!Array.isArray(data)) return null;
@@ -235,123 +218,7 @@ function TeamInsights() {
           title="Build your first insight"
           description="We need a little more information to surface team insights."
           className="py-8"
-          guidance={[
-            template === "NZ"
-              ? "Run the NZ payroll insights report to seed tenure and anniversary trends."
-              : template === "AU"
-              ? "Start with the AU award compliance report to benchmark allowance usage."
-              : template === "UK"
-              ? "Generate the UK payroll starter report to baseline tenure data."
-              : "Save a core people analytics report to baseline tenure data.",
-            regionName
-              ? `Tag upcoming ${regionName} public holidays so celebrations land on the right day.`
-              : "Tag upcoming public holidays so celebrations land on the right day.",
-          ]}
         />
-      )}
-    </DashboardWidget>
-  );
-}
-
-function MyDepartment() {
-  const { data: session } = useSession();
-  const userId = session?.user?.id as string | undefined;
-  const { data, error, isLoading } = useSWR(
-    "/api/employees?status=active",
-    fetcher,
-  );
-
-  const { departmentName, colleagues } = useMemo(() => {
-    const employeeList = data?.data || (Array.isArray(data) ? data : []);
-    if (!employeeList.length || !userId) {
-      return { departmentName: null, colleagues: [] };
-    }
-
-    // Find current user's employee record
-    const me = employeeList.find((e: any) => e.userId === userId);
-    if (!me) {
-      return { departmentName: null, colleagues: [] };
-    }
-
-    const myDeptId = me.departmentId;
-    const myDeptName = me.departmentName;
-
-    // Get all colleagues in the same department (excluding self)
-    const deptColleagues = employeeList
-      .filter((e: any) => e.departmentId === myDeptId && e.userId !== userId)
-      .map((e: any) => ({
-        id: e.id,
-        userId: e.userId,
-        name: `${e.firstName || ""} ${e.lastName || ""}`.trim() || e.email || "Unknown",
-        jobTitle: e.jobRoleName || null,
-        avatar: e.avatar?.url || null,
-        isDirectReport: e.managerUserId === userId,
-      }))
-      // Sort: direct reports first, then alphabetically
-      .sort((a: any, b: any) => {
-        if (a.isDirectReport && !b.isDirectReport) return -1;
-        if (!a.isDirectReport && b.isDirectReport) return 1;
-        return a.name.localeCompare(b.name);
-      });
-
-    return { departmentName: myDeptName, colleagues: deptColleagues };
-  }, [data, userId]);
-
-  return (
-    <DashboardWidget title={departmentName ? `${departmentName} Team` : "My Department"} icon={Users}>
-      {isLoading ? (
-        <WidgetLoading />
-      ) : error ? (
-        <WidgetError message="Failed to load department." />
-      ) : colleagues.length === 0 ? (
-        <EmptyState
-          tone="brand"
-          title="No colleagues found"
-          description="You're the only one in your department, or department data is not set up."
-          className="py-6"
-        />
-      ) : (
-        <div className="space-y-2 max-h-[280px] overflow-y-auto">
-          {colleagues.map((colleague: any) => (
-            <Link
-              key={colleague.id}
-              href={colleague.isDirectReport ? `/employees/${colleague.id}/overview` : "#"}
-              className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
-                colleague.isDirectReport
-                  ? "hover:bg-primary/10 cursor-pointer"
-                  : "cursor-default opacity-75"
-              }`}
-              onClick={(e) => {
-                if (!colleague.isDirectReport) {
-                  e.preventDefault();
-                }
-              }}
-            >
-              <Avatar
-                src={colleague.avatar}
-                name={colleague.name}
-                size={36}
-                className="flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium truncate">{colleague.name}</span>
-                  {colleague.isDirectReport ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-primary/15 text-primary rounded-full">
-                      <UserCheck className="h-3 w-3" />
-                      Direct Report
-                    </span>
-                  ) : (
-                    <Lock className="h-3 w-3 text-muted-foreground" />
-                  )}
-                </div>
-                {colleague.jobTitle && (
-                  <p className="text-xs text-muted-foreground truncate">{colleague.jobTitle}</p>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
       )}
     </DashboardWidget>
   );
@@ -463,17 +330,12 @@ export default function ManagerDashboardClient({
               <TeamInsights />
             </EnhancedWidget>
 
-            {/* Middle row - Action Items and My Department */}
+            {/* Bottom row - Action Items and News side by side */}
             <EnhancedWidget size="wide" delay={0.25} className="xl:col-span-2">
               <UnifiedActionItems employeeId={employeeId} isManager={true} />
             </EnhancedWidget>
 
             <EnhancedWidget size="wide" delay={0.3} className="xl:col-span-2">
-              <MyDepartment />
-            </EnhancedWidget>
-
-            {/* Bottom row - News full width */}
-            <EnhancedWidget size="wide" delay={0.35} className="xl:col-span-4">
               <NewsWidget limit={3} />
             </EnhancedWidget>
           </div>

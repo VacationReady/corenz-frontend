@@ -76,6 +76,7 @@ export async function canAccessLeaveRequests(
  * 
  * Access Rules:
  * - ADMIN/SUPER_ADMIN: Can create leave requests for any employee in their company
+ * - MANAGER: Can create leave requests for their direct reports (e.g., booking sick leave)
  * - EMPLOYEE: Can only create leave requests for themselves
  * 
  * @param context - The authenticated user's context
@@ -97,7 +98,28 @@ export async function canCreateLeaveRequest(
     return employee.companyId === context.companyId;
   }
 
-  // Regular users can only create for themselves
+  // Manager access: can create leave requests for their direct reports
+  if (context.role === "MANAGER") {
+    const targetEmployee = await prisma.employee.findUnique({
+      where: { id: targetEmployeeId, companyId: context.companyId },
+      select: {
+        userId: true,
+        User: {
+          select: { managerId: true },
+        },
+      },
+    });
+
+    if (!targetEmployee) return false;
+    
+    // Managers can create for themselves
+    if (targetEmployee.userId === context.userId) return true;
+    
+    // Managers can create for their direct reports
+    return targetEmployee.User?.managerId === context.userId;
+  }
+
+  // Regular employees can only create for themselves
   const targetEmployee = await prisma.employee.findUnique({
     where: { id: targetEmployeeId, companyId: context.companyId },
     select: { userId: true },

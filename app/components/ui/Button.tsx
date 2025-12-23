@@ -29,7 +29,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       pill = false,
       glow = false,
       disabled,
-      type = "submit",
+      type = "button",
       asChild = false,
       ...props
     },

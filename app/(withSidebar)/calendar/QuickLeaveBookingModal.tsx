@@ -32,6 +32,7 @@ import {
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
+import LeaveRuleOverrideDialog, { LeaveValidationWarning } from "@/components/leave/LeaveRuleOverrideDialog";
 
 interface Employee {
   id: string;
@@ -108,6 +109,11 @@ export default function QuickLeaveBookingModal({
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  
+  // Rule override dialog state
+  const [showOverrideDialog, setShowOverrideDialog] = useState(false);
+  const [validationWarnings, setValidationWarnings] = useState<LeaveValidationWarning[]>([]);
+  const [isOverrideLoading, setIsOverrideLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -208,7 +214,7 @@ export default function QuickLeaveBookingModal({
     }
   }, [employeeSelectionDisabled]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (bypassWarnings = false) => {
     if (!selectedEmployee) {
       toast.error("Please select an employee");
       return;
@@ -253,12 +259,23 @@ export default function QuickLeaveBookingModal({
           dayType: "FULL_DAY",
           // Include sickReason if it's sick leave
           ...(isSickCategory ? { sickReason } : {}),
+          // Admin/Manager override flag
+          bypassWarnings,
         }),
       });
 
+      const data = await res.json().catch(() => ({}));
+
+      // Handle warning confirmation flow for admins/managers
+      if (data?.requiresConfirmation && data?.warnings?.length > 0) {
+        setValidationWarnings(data.warnings);
+        setShowOverrideDialog(true);
+        setLoading(false);
+        return;
+      }
+
       if (!res.ok) {
-        const error = await res.json();
-        toast.error(error.error || "Failed to book leave");
+        toast.error(data.error || "Failed to book leave");
         return;
       }
 
@@ -278,6 +295,20 @@ export default function QuickLeaveBookingModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle override confirmation
+  const handleOverrideConfirm = async () => {
+    setIsOverrideLoading(true);
+    setShowOverrideDialog(false);
+    await handleSubmit(true); // Resubmit with bypassWarnings=true
+    setIsOverrideLoading(false);
+    setValidationWarnings([]);
+  };
+
+  const handleOverrideCancel = () => {
+    setShowOverrideDialog(false);
+    setValidationWarnings([]);
   };
 
   const resetForm = () => {
@@ -362,7 +393,17 @@ export default function QuickLeaveBookingModal({
   if (!open) return null;
 
   return (
-    <AnimatePresence>
+    <>
+      {/* Rule Override Confirmation Dialog */}
+      <LeaveRuleOverrideDialog
+        open={showOverrideDialog}
+        warnings={validationWarnings}
+        onConfirm={handleOverrideConfirm}
+        onCancel={handleOverrideCancel}
+        isLoading={isOverrideLoading}
+      />
+      
+      <AnimatePresence>
       {open && (
         <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
@@ -939,5 +980,6 @@ export default function QuickLeaveBookingModal({
         </motion.div>
       )}
     </AnimatePresence>
+    </>
   );
 }

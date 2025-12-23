@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LogOut, X, Target, ClipboardList, CalendarClock, Users as UsersIcon, GitCompare } from "lucide-react";
+import { LogOut, X, LayoutDashboard, Calendar, Users as UsersIcon, Target, ClipboardList, CalendarClock, GitCompare, Network } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { getLogoutCallbackUrl } from "@/lib/logout-url";
 import { useTenantBranding } from "@/components/TenantBrandingProvider";
@@ -26,23 +26,20 @@ export default function ManagerSidebar({
   const sectionPadding = isMobile ? "px-4 py-3" : "px-4 py-3";
   const navPadding = isMobile ? "px-2" : "px-2";
 
-  const brandName = branding.shortName || branding.name;
-
   const handleLogout = () => {
     onMobileNavigate?.();
     void signOut({ callbackUrl: getLogoutCallbackUrl() });
   };
 
   const navItems = [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Employees", href: "/employees" },
-    { label: "Calendar", href: "/calendar" },
-    { label: "Team Schedule", href: "/rota" },
-    { label: "Timesheets", href: "/admin/timesheets/hub" },
-    { label: "Reconciliation", href: "/admin/reconciliation" },
-    { label: "Performance", href: "/performance" },
-    { label: "Tasks", href: "/tasks" },
-    { label: "Org Chart", href: "/org-chart" },
+    { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard size={16} /> },
+    { label: "Employees", href: "/employees", icon: <UsersIcon size={16} /> },
+    { label: "Calendar", href: "/calendar", icon: <Calendar size={16} /> },
+    { label: "Team Schedule", href: "/rota", icon: <CalendarClock size={16} /> },
+    { label: "Timesheets", href: "/admin/timesheets/hub", icon: <ClipboardList size={16} /> },
+    { label: "Reconciliation", href: "/admin/reconciliation", icon: <GitCompare size={16} /> },
+    { label: "Performance", href: "/performance", icon: <Target size={16} /> },
+    { label: "Org Chart", href: "/org-chart", icon: <Network size={16} /> },
   ];
 
   return (
@@ -95,7 +92,7 @@ export default function ManagerSidebar({
           )}
         >
           <div className="space-y-0.5">
-            {navItems.map(({ label, href }) => (
+            {navItems.map(({ label, href, icon }) => (
               <Link
                 key={href}
                 href={href}
@@ -107,6 +104,9 @@ export default function ManagerSidebar({
                 )}
                 onClick={() => onMobileNavigate?.()}
               >
+                <div className="w-4 h-4">
+                  {icon}
+                </div>
                 <span className="truncate font-medium text-sm">{label}</span>
               </Link>
             ))}

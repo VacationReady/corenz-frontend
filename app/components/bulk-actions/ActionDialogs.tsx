@@ -721,10 +721,43 @@ export function MessagingBulkActionDialog({ open, onOpenChange, allEmployees, de
   const [sendTestTo, setSendTestTo] = useState<string>("");
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const employeeIds = useMemo(() => Array.from(selectedIds), [selectedIds]);
-  const canSubmit = employeeIds.length > 0 && subject.trim().length > 3 && body.trim().length > 5 && reason.trim().length > 3 && !submitting;
+  const canSubmit = employeeIds.length > 0 && subject.trim().length > 3 && body.trim().length > 5 && reason.trim().length > 3 && !submitting && !sendingTest;
+  const canSendTest = sendTestTo.trim().length > 0 && subject.trim().length > 3 && body.trim().length > 5 && !submitting && !sendingTest;
+
+  const handleSendTest = async () => {
+    if (!canSendTest) return;
+    setSendingTest(true);
+    try {
+      const res = await fetch("/api/bulk-actions/messaging", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          employeeIds: [], 
+          subject, 
+          previewText: previewText || undefined, 
+          body, 
+          ctaLabel: ctaLabel || undefined, 
+          ctaUrl: ctaUrl || undefined, 
+          sendTestTo,
+          reason: "Test email",
+          testOnly: true 
+        }) 
+      });
+      if (!res.ok) { 
+        const payload = await res.json().catch(() => ({})); 
+        throw new Error(payload?.error || "Failed to send test"); 
+      }
+      toast.success("Test email sent!", { description: `Check ${sendTestTo}` });
+    } catch (error: any) { 
+      toast.error(error?.message || "Unable to send test email"); 
+    } finally { 
+      setSendingTest(false); 
+    }
+  };
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -759,7 +792,7 @@ export function MessagingBulkActionDialog({ open, onOpenChange, allEmployees, de
               <div className="space-y-2"><Label className="text-sm font-medium flex items-center justify-between"><span>CTA Button Label</span><span className="text-xs text-muted-foreground font-normal">Optional</span></Label><Input value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="e.g. View Policy" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
               <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><Link2 className="h-4 w-4 text-muted-foreground" />CTA URL</Label><Input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://..." type="url" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
             </div>
-            <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><TestTube className="h-4 w-4 text-blue-500" />Send Test Email<span className="text-xs text-muted-foreground font-normal ml-auto">Optional</span></Label><Input value={sendTestTo} onChange={(e) => setSendTestTo(e.target.value)} placeholder="your-email@example.com" type="email" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50" /></div>
+            <div className="space-y-2"><Label className="text-sm font-medium flex items-center gap-2"><TestTube className="h-4 w-4 text-blue-500" />Send Test Email<span className="text-xs text-muted-foreground font-normal ml-auto">Optional</span></Label><div className="flex gap-2"><Input value={sendTestTo} onChange={(e) => setSendTestTo(e.target.value)} placeholder="your-email@example.com" type="email" className="h-11 rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50 flex-1" /><Button type="button" variant="outline" onClick={handleSendTest} disabled={!canSendTest} className="h-11 rounded-xl whitespace-nowrap">{sendingTest ? "Sending..." : "Send Test"}</Button></div></div>
           </div>
           <div className="space-y-2 pt-2 border-t border-sky-200/30"><Label className="text-sm font-medium flex items-center gap-2"><FileText className="h-4 w-4 text-muted-foreground" />Reason for Communication</Label><Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="For audit purposes" rows={2} className="rounded-xl bg-white/80 dark:bg-white/5 border-sky-200/50 resize-none" /></div>
         </div>

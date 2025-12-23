@@ -425,9 +425,10 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
         const dateStr = `${currentCalendarDate.getFullYear()}-${String(currentCalendarDate.getMonth() + 1).padStart(2, "0")}-${String(currentCalendarDate.getDate()).padStart(2, "0")}`;
         url.searchParams.set("date", dateStr);
       }
-      router.replace(url.pathname + "?" + url.searchParams.toString(), { scroll: false });
+      // Use window.history.replaceState instead of router.replace to avoid re-suspending
+      window.history.replaceState(null, "", url.pathname + "?" + url.searchParams.toString());
     } catch (_err) {}
-  }, [filters.departments.join(","), filters.search, currentView, currentCalendarDate, router]);
+  }, [filters.departments.join(","), filters.search, currentView, currentCalendarDate]);
 
   const fetchLeaveEvents = useCallback(
     async (

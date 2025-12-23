@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dialog";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { LeaveRequestSuccessAnimation } from "@/components/animations";
+import LeaveRuleOverrideDialog, { LeaveValidationWarning } from "@/components/leave/LeaveRuleOverrideDialog";
 
 interface SickLeaveData {
   availableDays: number;
@@ -138,6 +139,11 @@ export default function AddLeaveRequestDialog({
     isAutoApproved: boolean;
   } | null>(null);
 
+  // Rule override dialog state
+  const [showOverrideDialog, setShowOverrideDialog] = useState(false);
+  const [validationWarnings, setValidationWarnings] = useState<LeaveValidationWarning[]>([]);
+  const [isOverrideLoading, setIsOverrideLoading] = useState(false);
+
   const fetchCategories = async () => {
     try {
       const res = await fetch("/api/event-categories");
@@ -232,7 +238,7 @@ export default function AddLeaveRequestDialog({
     }
   }, [startDate, endDate, employeeId]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (bypassWarnings = false) => {
     // Validate based on sick leave toggle
     if (isSickLeave) {
       if (!startDate || !endDate) {
@@ -290,6 +296,8 @@ export default function AddLeaveRequestDialog({
               : { sickReason }),
             paidStatus,
           }),
+          // Admin/Manager override flag
+          bypassWarnings,
         }),
       });
 
@@ -298,6 +306,14 @@ export default function AddLeaveRequestDialog({
         data = await res.json();
       } catch {
         data = {};
+      }
+
+      // Handle warning confirmation flow for admins/managers
+      if (data?.requiresConfirmation && data?.warnings?.length > 0) {
+        setValidationWarnings(data.warnings);
+        setShowOverrideDialog(true);
+        setLoading(false);
+        return;
       }
 
       if (!res.ok || data.success === false) {
@@ -349,6 +365,7 @@ export default function AddLeaveRequestDialog({
       setTotalDays(0);
       setDeduction(0);
       setIsSickLeave(false);
+      setValidationWarnings([]);
       onSubmitted?.();
     } catch (error: any) {
       console.error("Error submitting leave request:", error);
@@ -359,6 +376,20 @@ export default function AddLeaveRequestDialog({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle override confirmation
+  const handleOverrideConfirm = async () => {
+    setIsOverrideLoading(true);
+    setShowOverrideDialog(false);
+    await handleSubmit(true); // Resubmit with bypassWarnings=true
+    setIsOverrideLoading(false);
+    setValidationWarnings([]);
+  };
+
+  const handleOverrideCancel = () => {
+    setShowOverrideDialog(false);
+    setValidationWarnings([]);
   };
 
   const totalDeducted = Math.max(0, deduction).toFixed(1);
@@ -401,6 +432,15 @@ export default function AddLeaveRequestDialog({
             isAutoApproved={successData.isAutoApproved}
           />
         )}
+
+        {/* Rule Override Confirmation Dialog */}
+        <LeaveRuleOverrideDialog
+          open={showOverrideDialog}
+          warnings={validationWarnings}
+          onConfirm={handleOverrideConfirm}
+          onCancel={handleOverrideCancel}
+          isLoading={isOverrideLoading}
+        />
 
         <Dialog
           open={modalOpen}

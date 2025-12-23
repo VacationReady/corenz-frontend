@@ -56,13 +56,14 @@ export function FilterBar({
   onSelectView,
   onDeleteView,
 }: FilterBarProps) {
-  const { filters, updateFilter, clearFilters, isFiltered } = useFilters();
+  const { filters, updateFilter, clearFilters, clearFilter, isFiltered } = useFilters();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [searchInput, setSearchInput] = useState(filters.search);
 
   // Debounce search input
   const debouncedSearch = useDebounce(searchInput, 300);
 
+  // Sync local search input with global filter state
   React.useEffect(() => {
     setSearchInput(filters.search);
   }, [filters.search]);
@@ -76,6 +77,29 @@ export function FilterBar({
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
   };
+
+  // Clear search filter
+  const handleClearSearch = React.useCallback(() => {
+    setSearchInput("");
+    updateFilter("search", "");
+  }, [updateFilter]);
+
+  // Clear all filters
+  const handleClearAll = React.useCallback(() => {
+    setSearchInput("");
+    clearFilters();
+  }, [clearFilters]);
+
+  // Remove a specific filter value from an array filter
+  const handleRemoveFilter = React.useCallback(<K extends keyof typeof filters>(
+    key: K,
+    value: string
+  ) => {
+    const currentValues = filters[key];
+    if (Array.isArray(currentValues)) {
+      updateFilter(key, currentValues.filter((v: string) => v !== value) as typeof currentValues);
+    }
+  }, [filters, updateFilter]);
 
   const toggleSortOrder = () => {
     updateFilter("sortOrder", filters.sortOrder === "asc" ? "desc" : "asc");
@@ -215,12 +239,7 @@ export function FilterBar({
               type="button"
               variant="ghost"
               size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setSearchInput("");
-                clearFilters();
-              }}
+              onClick={handleClearAll}
               className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
             >
               <X className="w-4 h-4" />
@@ -240,12 +259,7 @@ export function FilterBar({
               variant="secondary"
               size="sm"
               className="rounded-full px-3"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setSearchInput("");
-                updateFilter("search", "");
-              }}
+              onClick={handleClearSearch}
             >
               Search: &ldquo;{filters.search}&rdquo; <span className="ml-2">×</span>
             </Button>
@@ -261,11 +275,7 @@ export function FilterBar({
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateFilter("departments", filters.departments.filter((v) => v !== val));
-                }}
+                onClick={() => handleRemoveFilter("departments", val)}
               >
                 Department: {label} <span className="ml-2">×</span>
               </Button>
@@ -281,11 +291,7 @@ export function FilterBar({
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateFilter("jobRoles", filters.jobRoles.filter((v) => v !== val));
-                }}
+                onClick={() => handleRemoveFilter("jobRoles", val)}
               >
                 Job: {label} <span className="ml-2">×</span>
               </Button>
@@ -301,11 +307,7 @@ export function FilterBar({
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateFilter("status", filters.status.filter((v) => v !== val));
-                }}
+                onClick={() => handleRemoveFilter("status", val)}
               >
                 Status: {label} <span className="ml-2">×</span>
               </Button>
@@ -321,14 +323,7 @@ export function FilterBar({
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateFilter(
-                    "locations",
-                    filters.locations.filter((v) => v !== val),
-                  );
-                }}
+                onClick={() => handleRemoveFilter("locations", val)}
               >
                 Location: {label} <span className="ml-2">×</span>
               </Button>
@@ -344,11 +339,7 @@ export function FilterBar({
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateFilter("documentTypes", filters.documentTypes.filter((v) => v !== val));
-                }}
+                onClick={() => handleRemoveFilter("documentTypes", val)}
               >
                 Doc: {label} <span className="ml-2">×</span>
               </Button>
@@ -364,11 +355,7 @@ export function FilterBar({
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateFilter("authors", filters.authors.filter((v) => v !== val));
-                }}
+                onClick={() => handleRemoveFilter("authors", val)}
               >
                 Author: {label} <span className="ml-2">×</span>
               </Button>
@@ -384,11 +371,7 @@ export function FilterBar({
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  updateFilter("categories", filters.categories.filter((v) => v !== val));
-                }}
+                onClick={() => handleRemoveFilter("categories", val)}
               >
                 Category: {label} <span className="ml-2">×</span>
               </Button>

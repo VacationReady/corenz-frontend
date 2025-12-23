@@ -7,7 +7,7 @@ import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 import { auditLog } from "@/lib/audit";
 
 const payloadSchema = z.object({
-  employeeIds: z.array(z.string().uuid()).min(1),
+  employeeIds: z.array(z.string().uuid()),
   subject: z.string().trim().min(3),
   previewText: z.string().trim().optional(),
   body: z.string().trim().min(5),
@@ -15,7 +15,11 @@ const payloadSchema = z.object({
   ctaUrl: z.string().url().optional(),
   sendTestTo: z.string().email().optional(),
   reason: z.string().trim().min(3),
-});
+  testOnly: z.boolean().optional(),
+}).refine(
+  (data) => data.testOnly === true || data.employeeIds.length >= 1,
+  { message: "At least one employee must be selected", path: ["employeeIds"] }
+);
 
 export async function POST(request: Request) {
   try {
@@ -40,10 +44,61 @@ export async function POST(request: Request) {
       ctaUrl,
       sendTestTo,
       reason,
+      testOnly,
     } = body;
 
     const senderFirstName = (session.user as any)?.firstName ?? "";
     const senderLastName = (session.user as any)?.lastName ?? "";
+
+    // If testOnly mode, just send the test email and return early
+    if (testOnly && sendTestTo) {
+      const paragraphs = messageBody
+        .split(/\n{2,}/)
+        .map((block) => block.trim())
+        .filter((block) => block.length > 0);
+
+      const outro = [
+        "If you have any questions, please contact the People team.",
+        `${senderFirstName} ${senderLastName}`.trim() || "HR team",
+      ];
+
+      const baseEmail = renderPeopleCoreEmail({
+        preheader: previewText || subject,
+        title: subject,
+        intro: ["Hi there,", previewText || "We wanted to share an update with you."],
+        sections: paragraphs.length
+          ? [
+              {
+                description: paragraphs,
+              },
+            ]
+          : undefined,
+        ctas: ctaLabel && ctaUrl ? { label: ctaLabel, href: ctaUrl } : undefined,
+        outro,
+      });
+
+      try {
+        await resend.emails.send({
+          from: process.env.FROM_EMAIL || "noreply@peoplecore.co.nz",
+          to: sendTestTo,
+          subject: `[TEST] ${subject}`,
+          html: baseEmail.html,
+          text: baseEmail.text,
+        });
+        return NextResponse.json({
+          ok: true,
+          testSent: true,
+          processed: 0,
+          failures: [],
+        });
+      } catch (error: any) {
+        console.error("[bulk-actions/messaging:test]", error);
+        return NextResponse.json(
+          { error: "Failed to send test email" },
+          { status: 400 },
+        );
+      }
+    }
 
     const employees = await prisma.employee.findMany({
       where: { id: { in: employeeIds }, companyId: session.user.companyId },

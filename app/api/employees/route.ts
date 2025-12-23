@@ -12,6 +12,27 @@ import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
 import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
+const toNumber = (value: any) =>
+  value === null || value === undefined ? null : Number(value);
+
+const isPrismaDecimal = (value: any) =>
+  value && typeof value === "object" && typeof value.toNumber === "function";
+
+const serializeValue = (value: any): any => {
+  if (value instanceof Date) return value.toISOString();
+  if (isPrismaDecimal(value)) return toNumber(value);
+
+  if (Array.isArray(value)) return value.map(serializeValue);
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [k, serializeValue(v)]),
+    );
+  }
+
+  return value ?? null;
+};
+
 const optionalTrimmedString = z.preprocess(
   (val) => {
     if (val === null || val === undefined) {
@@ -471,6 +492,9 @@ export async function GET(req: NextRequest) {
     const signedUrlMap = await batchSignProfileUrlsAsMap(profileSignRequests);
 
     // Map employees to response format with signed URLs from batch
+    const toISOString = (value: any) =>
+      value instanceof Date ? value.toISOString() : value ?? null;
+
     const flattened = results.map((emp) => {
       const profileUrl = emp.User.profileImageUrl
         ? signedUrlMap.get(emp.User.id) ?? null
@@ -488,7 +512,7 @@ export async function GET(req: NextRequest) {
         email: emp.User.email,
         phone: emp.User.phone,
         role: emp.User.role,
-        createdAt: emp.User.createdAt,
+        createdAt: toISOString(emp.User.createdAt),
         managerUserId: emp.User.managerId ?? null,
         departmentId: emp.Department?.id ?? null,
         departmentName: emp.Department?.name ?? null,
@@ -502,15 +526,17 @@ export async function GET(req: NextRequest) {
         isActive: emp.isActive,
         isActivated: emp.User.isActivated,
         offboardingStatus: emp.offboardingStatus,
-        lastWorkingDate: emp.lastWorkingDate,
-        offboardingRecord: emp.EmployeeOffboarding,
+        lastWorkingDate: toISOString(emp.lastWorkingDate),
+        offboardingRecord: emp.EmployeeOffboarding
+          ? serializeValue(emp.EmployeeOffboarding)
+          : null,
         profileImageUrl: profileUrl,
         permissionProfileName: emp.User.PermissionProfile?.name ?? null,
-        // NZ Leave Compliance Fields
-        sickLeaveDaysPerYear: emp.sickLeaveDaysPerYear,
-        alternativeHolidayBalance: emp.alternativeHolidayBalance,
-        publicHolidaysPerYear: emp.publicHolidaysPerYear,
-        employmentStartDate: emp.employmentStartDate,
+        // NZ Leave Compliance Fields - normalize Decimal to number for client safety
+        sickLeaveDaysPerYear: toNumber(emp.sickLeaveDaysPerYear),
+        alternativeHolidayBalance: toNumber(emp.alternativeHolidayBalance),
+        publicHolidaysPerYear: toNumber(emp.publicHolidaysPerYear),
+        employmentStartDate: toISOString(emp.employmentStartDate),
       } as const;
     });
 
@@ -529,7 +555,7 @@ export async function GET(req: NextRequest) {
     });
     
     return NextResponse.json({
-      data: flattened,
+      data: serializeValue(flattened),
       pagination: {
         limit,
         cursor: nextCursor,

@@ -6,7 +6,6 @@ import { calculateLeaveDeduction } from "@/lib/calculateLeaveDeduction";
 import { checkNegativeBalanceAllowed } from "@/lib/accrualEngine";
 import { getNZPublicHolidayInfo } from "@/lib/public-holiday-checker";
 import { isEligibleForSickLeave, getSickLeaveStatus, applySickLeaveGrants } from "@/lib/leave/nz-sick-leave-ledger";
-import dayjs from "dayjs";
 
 /**
  * Validates a leave request against entitlement, business rules, blackout days, working pattern, and concurrency.
@@ -59,22 +58,34 @@ export async function validateLeaveRequest({
   // - If creating a FULL_DAY event: it must not overlap ANY other leave event (full or half day)
   // - If creating a HALF_DAY event: it must not overlap an existing FULL_DAY event
   // We enforce this regardless of role/admin status.
+  //
+  // IMPORTANT: We compare by calendar date, not timestamp, to handle both old (UTC) and new (local) date formats
   {
-    // Use UTC to avoid timezone shifts when comparing dates
-    const rangeStart = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0, 0));
-    const rangeEnd = new Date(Date.UTC(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999));
+    // Helper function to normalize a date to calendar day (ignoring time/timezone)
+    const toCalendarDate = (d: Date): string => {
+      // Use local date components to get the calendar date
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    // Get calendar dates for the requested range
+    const requestStartCal = toCalendarDate(startDate);
+    const requestEndCal = toCalendarDate(endDate);
 
     const dayTypeFilter =
       effectiveDayType === "FULL_DAY"
         ? undefined
         : { dayType: "FULL_DAY" as const };
 
-    const overlapping = await prisma.leaveRequest.findFirst({
+    // Find all potentially overlapping leave requests
+    // We'll filter by calendar date in memory since DB dates may be in different formats
+    const potentialOverlaps = await prisma.leaveRequest.findMany({
       where: {
         employeeId,
         approvalStatus: { in: ["PENDING", "APPROVED"] },
         ...(dayTypeFilter ?? {}),
-        AND: [{ startDate: { lte: rangeEnd } }, { endDate: { gte: rangeStart } }],
       },
       select: {
         id: true,
@@ -85,9 +96,23 @@ export async function validateLeaveRequest({
       },
     });
 
+    // Check for actual calendar date overlaps
+    const overlapping = potentialOverlaps.find((existing) => {
+      const existingStartCal = toCalendarDate(new Date(existing.startDate));
+      const existingEndCal = toCalendarDate(new Date(existing.endDate));
+
+      // Check if date ranges overlap
+      // Range A overlaps Range B if: A.start <= B.end AND A.end >= B.start
+      return requestStartCal <= existingEndCal && requestEndCal >= existingStartCal;
+    });
+
     if (overlapping) {
+      // Format dates for error message using calendar dates
+      const existingStartCal = toCalendarDate(new Date(overlapping.startDate));
+      const existingEndCal = toCalendarDate(new Date(overlapping.endDate));
+      
       const error: any = new Error(
-        `Cannot book leave: this employee already has a leave event (${overlapping.EventCategory?.name ?? "Leave"}) overlapping ${format(rangeStart, "yyyy-MM-dd")} to ${format(rangeEnd, "yyyy-MM-dd")}.`,
+        `Cannot book leave: this employee already has a leave event (${overlapping.EventCategory?.name ?? "Leave"}) overlapping ${existingStartCal} to ${existingEndCal}.`,
       );
       error.code = "LEAVE_OVERLAP_FULL_DAY";
       error.conflict = {
@@ -144,10 +169,10 @@ export async function validateLeaveRequest({
   });
   const requiredNoticeDays = eventRule?.noticePeriodDays ?? 0;
 
-  const leaveStart = dayjs(startDate).startOf("day");
-  const leaveEnd = dayjs(endDate).startOf("day");
-  const today = dayjs().startOf("day");
-  const daysNoticeGiven = leaveStart.diff(today, "day");
+  // Calculate days notice given (using calendar dates, not timestamps)
+  const leaveStartTime = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
+  const todayTime = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).getTime();
+  const daysNoticeGiven = Math.floor((leaveStartTime - todayTime) / (1000 * 60 * 60 * 24));
 
   if (daysNoticeGiven < requiredNoticeDays && !isAdmin) {
     console.error(
@@ -159,7 +184,9 @@ export async function validateLeaveRequest({
   }
 
   // ── MAX BOOKING LENGTH ENFORCEMENT ───────────────
-  const daysRequested = leaveEnd.diff(leaveStart, "day") + 1;
+  // Calculate days requested (using calendar dates)
+  const leaveEndTime = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()).getTime();
+  const daysRequested = Math.floor((leaveEndTime - leaveStartTime) / (1000 * 60 * 60 * 24)) + 1;
   const maxBookingLength = eventRule?.maxBookingLength ?? 14;
 
   if (daysRequested > maxBookingLength && !isAdmin) {

@@ -236,8 +236,27 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
           Object.entries(value).map(([k, v]) => [k, serializeValue(v)]),
         );
       }
+      return value ?? null;
+    };
+
+    const normalizeValue = (value: any) => {
+      if (value instanceof Date) {
+        return toISOString(value);
+      }
+
+      if (isPrismaDecimal(value)) {
+        return toNumber(value);
+      }
 
       return value ?? null;
+    };
+
+    const serializeOffboardingRecord = (record: any) => {
+      if (!record) return null;
+
+      return Object.fromEntries(
+        Object.entries(record).map(([key, value]) => [key, normalizeValue(value)]),
+      );
     };
 
     const formattedEmployees = results.map((emp) => ({
@@ -277,10 +296,8 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       department: emp.Department ? { id: emp.Department.id, name: emp.Department.name } : null,
       jobRole: emp.JobRole ? { id: emp.JobRole.id, name: emp.JobRole.name } : null,
       location: emp.Location ? { id: emp.Location.id, name: emp.Location.name } : null,
-      offboarding: emp.EmployeeOffboarding ? serializeValue(emp.EmployeeOffboarding) : null,
-      offboardingRecord: emp.EmployeeOffboarding
-        ? serializeValue(emp.EmployeeOffboarding)
-        : null,
+      offboarding: serializeOffboardingRecord(emp.EmployeeOffboarding),
+      offboardingRecord: serializeOffboardingRecord(emp.EmployeeOffboarding),
       // Normalize any Decimal fields we may need later; keep numbers primitive for client safety
       sickLeaveDaysPerYear: toNumber((emp as any).sickLeaveDaysPerYear),
       alternativeHolidayBalance: toNumber((emp as any).alternativeHolidayBalance),

@@ -480,6 +480,12 @@ export async function GET(req: NextRequest) {
       // This ensures employees assigned via the settings page are properly identified
       const effectiveWorkingPattern = emp.EmployeeWorkingPatternAssignment?.[0]?.WorkingPattern || emp.WorkingPattern;
 
+      const toNumber = (value: any) =>
+        value === null || value === undefined ? null : Number(value);
+
+      const toISOString = (value: any) =>
+        value instanceof Date ? value.toISOString() : value ?? null;
+
       return {
         id: emp.id,
         userId: emp.User.id,
@@ -488,7 +494,7 @@ export async function GET(req: NextRequest) {
         email: emp.User.email,
         phone: emp.User.phone,
         role: emp.User.role,
-        createdAt: emp.User.createdAt,
+        createdAt: toISOString(emp.User.createdAt),
         managerUserId: emp.User.managerId ?? null,
         departmentId: emp.Department?.id ?? null,
         departmentName: emp.Department?.name ?? null,
@@ -502,15 +508,21 @@ export async function GET(req: NextRequest) {
         isActive: emp.isActive,
         isActivated: emp.User.isActivated,
         offboardingStatus: emp.offboardingStatus,
-        lastWorkingDate: emp.lastWorkingDate,
-        offboardingRecord: emp.EmployeeOffboarding,
+        lastWorkingDate: toISOString(emp.lastWorkingDate),
+        offboardingRecord: emp.EmployeeOffboarding
+          ? {
+              ...emp.EmployeeOffboarding,
+              lastWorkingDate: toISOString(emp.EmployeeOffboarding.lastWorkingDate),
+              completedAt: toISOString(emp.EmployeeOffboarding.completedAt),
+            }
+          : null,
         profileImageUrl: profileUrl,
         permissionProfileName: emp.User.PermissionProfile?.name ?? null,
-        // NZ Leave Compliance Fields
-        sickLeaveDaysPerYear: emp.sickLeaveDaysPerYear,
-        alternativeHolidayBalance: emp.alternativeHolidayBalance,
-        publicHolidaysPerYear: emp.publicHolidaysPerYear,
-        employmentStartDate: emp.employmentStartDate,
+        // NZ Leave Compliance Fields - normalize Decimal to number for client safety
+        sickLeaveDaysPerYear: toNumber(emp.sickLeaveDaysPerYear),
+        alternativeHolidayBalance: toNumber(emp.alternativeHolidayBalance),
+        publicHolidaysPerYear: toNumber(emp.publicHolidaysPerYear),
+        employmentStartDate: toISOString(emp.employmentStartDate),
       } as const;
     });
 

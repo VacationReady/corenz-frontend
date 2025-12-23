@@ -218,6 +218,12 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
 
     // Format employees with signed URLs - flatten the structure to match client expectations
     // IMPORTANT: Only include serializable fields - Prisma Decimal objects cannot be passed to Client Components
+    const toNumber = (value: any) =>
+      value === null || value === undefined ? null : Number(value);
+
+    const toISOString = (value: any) =>
+      value instanceof Date ? value.toISOString() : value ?? null;
+
     const formattedEmployees = results.map((emp) => ({
       // Only include the fields the client actually needs - avoid spreading ...emp which includes Decimal fields
       id: emp.id,
@@ -228,8 +234,8 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       locationId: emp.locationId,
       onboardingStatus: emp.onboardingStatus,
       offboardingStatus: emp.offboardingStatus,
-      lastWorkingDate: emp.lastWorkingDate?.toISOString() ?? null,
-      startDate: emp.startDate?.toISOString() ?? null,
+      lastWorkingDate: toISOString(emp.lastWorkingDate),
+      startDate: toISOString(emp.startDate),
       contractType: emp.contractType,
       // Flatten User fields to top level for backward compatibility
       firstName: emp.User.firstName,
@@ -255,8 +261,25 @@ async function getInitialData(status: "active" | "archived" | "all" = "active") 
       department: emp.Department ? { id: emp.Department.id, name: emp.Department.name } : null,
       jobRole: emp.JobRole ? { id: emp.JobRole.id, name: emp.JobRole.name } : null,
       location: emp.Location ? { id: emp.Location.id, name: emp.Location.name } : null,
-      offboarding: emp.EmployeeOffboarding,
-      offboardingRecord: emp.EmployeeOffboarding,
+      offboarding: emp.EmployeeOffboarding
+        ? {
+            ...emp.EmployeeOffboarding,
+            lastWorkingDate: toISOString(emp.EmployeeOffboarding.lastWorkingDate),
+            completedAt: toISOString(emp.EmployeeOffboarding.completedAt),
+          }
+        : null,
+      offboardingRecord: emp.EmployeeOffboarding
+        ? {
+            ...emp.EmployeeOffboarding,
+            lastWorkingDate: toISOString(emp.EmployeeOffboarding.lastWorkingDate),
+            completedAt: toISOString(emp.EmployeeOffboarding.completedAt),
+          }
+        : null,
+      // Normalize any Decimal fields we may need later; keep numbers primitive for client safety
+      sickLeaveDaysPerYear: toNumber((emp as any).sickLeaveDaysPerYear),
+      alternativeHolidayBalance: toNumber((emp as any).alternativeHolidayBalance),
+      publicHolidaysPerYear: toNumber((emp as any).publicHolidaysPerYear),
+      employmentStartDate: toISOString((emp as any).employmentStartDate),
     }));
 
     // Fetch departments and job roles

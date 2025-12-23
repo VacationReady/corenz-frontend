@@ -18,7 +18,7 @@
  * - Prompt 8: Server-first refactor
  */
 
-import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useTransition, useRef } from "react";
+import { useState, useEffect, ChangeEvent, FormEvent, useMemo, useTransition, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -118,7 +118,7 @@ function EmployeesContent(props: EmployeesClientProps) {
   );
   const [activeTab, setActiveTab] = useState("active");
   const [error, setError] = useState("");
-  const [visibleEmployees, setVisibleEmployees] = useState<Employee[]>([]);
+  const visibleEmployeesRef = useRef<Employee[] | null>(null);
   const [resetFiltersTick, setResetFiltersTick] = useState(0);
   
   // Modern filter bar state
@@ -651,11 +651,21 @@ function EmployeesContent(props: EmployeesClientProps) {
     [activeTab, departments, jobRoles, isAdmin, router, startTransition],
   );
 
+  // Stable callback for DataTable filtered rows - uses ref to avoid re-render loops
+  const handleFilteredRowsChange = useCallback((rows: unknown[]) => {
+    visibleEmployeesRef.current = rows as Employee[];
+  }, []);
+
   // Export CSV
   const handleExport = () => {
+    // Prefer filtered rows from ref if available, otherwise export all employees
+    const exportData = (visibleEmployeesRef.current && visibleEmployeesRef.current.length > 0)
+      ? visibleEmployeesRef.current
+      : employees;
+    
     const csvContent = [
       ["Name", "Email", "Phone", "Department", "Job Role", "Role"],
-      ...(visibleEmployees.length > 0 ? visibleEmployees : employees).map((emp) => [
+      ...exportData.map((emp) => [
         `${emp.firstName} ${emp.lastName}`,
         emp.email || "",
         emp.phone || "",
@@ -1314,7 +1324,7 @@ function EmployeesContent(props: EmployeesClientProps) {
               // virtualizeRows
               // virtualizeContainerHeight={560}
               // virtualizeEstimateRowHeight={64}
-              onFilteredRowsChange={(rows) => setVisibleEmployees(rows as Employee[])}
+              onFilteredRowsChange={handleFilteredRowsChange}
               resetFiltersAt={resetFiltersTick}
             />
             
@@ -1379,7 +1389,7 @@ function EmployeesContent(props: EmployeesClientProps) {
       {/* Conditionally render AddEmployeeModal - the hook count issue was in FormSection, now fixed */}
       {isModalOpen && isAdmin && (
         <AddEmployeeModal
-          open={true}
+          open={isModalOpen}
           onClose={() => setModalOpen(false)}
           onSuccess={() => {
             // Refresh the local state to show the new employee immediately

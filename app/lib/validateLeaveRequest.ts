@@ -14,6 +14,13 @@ import { isEligibleForSickLeave, getSickLeaveStatus, applySickLeaveGrants } from
  * For other event types (e.g., Compassionate Leave, Sick Leave), entitlement is NOT enforced.
  * Instead, they may have a maxDaysPerPeriod limit (e.g., max 5 days over 12 months).
  */
+export interface LeaveValidationWarning {
+  code: string;
+  message: string;
+  severity: "warning" | "error";
+  ruleType: "notice_period" | "max_booking_length" | "blackout_day" | "entitlement" | "overlap" | "sick_leave_eligibility" | "public_holiday" | "max_days_per_period";
+}
+
 export async function validateLeaveRequest({
   employeeId,
   eventCategoryId,
@@ -22,6 +29,7 @@ export async function validateLeaveRequest({
   dayType,
   isAdmin = false,
   companyId,
+  bypassWarnings = false,
 }: {
   employeeId: string;
   eventCategoryId: string;
@@ -30,7 +38,8 @@ export async function validateLeaveRequest({
   dayType?: "FULL_DAY" | "HALF_DAY_AM" | "HALF_DAY_PM";
   isAdmin?: boolean;
   companyId: string;
-}) {
+  bypassWarnings?: boolean;
+}): Promise<LeaveValidationWarning[]> {
   console.log("🛠️ [validateLeaveRequest] START:", {
     employeeId,
     eventCategoryId,
@@ -38,8 +47,10 @@ export async function validateLeaveRequest({
     endDate: endDate.toISOString(),
     dayType,
     isAdmin,
+    bypassWarnings,
   });
 
+  const warnings: LeaveValidationWarning[] = [];
   const effectiveDayType = dayType ?? "FULL_DAY";
 
   const eventCategory = await prisma.eventCategory.findFirst({
@@ -174,13 +185,25 @@ export async function validateLeaveRequest({
   const todayTime = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).getTime();
   const daysNoticeGiven = Math.floor((leaveStartTime - todayTime) / (1000 * 60 * 60 * 24));
 
-  if (daysNoticeGiven < requiredNoticeDays && !isAdmin) {
-    console.error(
-      `❌ Notice period not met: required ${requiredNoticeDays}, given ${daysNoticeGiven}`,
-    );
-    throw new Error(
-      `This leave requires at least ${requiredNoticeDays} days notice.`,
-    );
+  if (daysNoticeGiven < requiredNoticeDays) {
+    const message = `This leave requires at least ${requiredNoticeDays} days notice. Only ${Math.max(0, daysNoticeGiven)} days notice given.`;
+    
+    if (isAdmin) {
+      // Admins/Managers get a warning but can proceed
+      if (!bypassWarnings) {
+        console.warn(`⚠️ Notice period not met (admin override available): ${message}`);
+        warnings.push({
+          code: "NOTICE_PERIOD_NOT_MET",
+          message,
+          severity: "warning",
+          ruleType: "notice_period",
+        });
+      }
+    } else {
+      // Regular employees get blocked
+      console.error(`❌ Notice period not met: ${message}`);
+      throw new Error(message);
+    }
   }
 
   // ── MAX BOOKING LENGTH ENFORCEMENT ───────────────
@@ -189,41 +212,63 @@ export async function validateLeaveRequest({
   const daysRequested = Math.floor((leaveEndTime - leaveStartTime) / (1000 * 60 * 60 * 24)) + 1;
   const maxBookingLength = eventRule?.maxBookingLength ?? 14;
 
-  if (daysRequested > maxBookingLength && !isAdmin) {
-    console.error(
-      `❌ Max booking length exceeded: requested ${daysRequested}, allowed ${maxBookingLength}`,
-    );
-    throw new Error(
-      `You can only book up to ${maxBookingLength} days at a time for this leave type.`,
-    );
+  if (daysRequested > maxBookingLength) {
+    const message = `You can only book up to ${maxBookingLength} days at a time for this leave type. Requested ${daysRequested} days.`;
+    
+    if (isAdmin) {
+      // Admins/Managers get a warning but can proceed
+      if (!bypassWarnings) {
+        console.warn(`⚠️ Max booking length exceeded (admin override available): ${message}`);
+        warnings.push({
+          code: "MAX_BOOKING_LENGTH_EXCEEDED",
+          message,
+          severity: "warning",
+          ruleType: "max_booking_length",
+        });
+      }
+    } else {
+      // Regular employees get blocked
+      console.error(`❌ Max booking length exceeded: ${message}`);
+      throw new Error(message);
+    }
   }
 
   // ── BLACKOUT DAY CHECK ────────────────────────────
-  if (!isAdmin) {
-    const blackoutDays = await prisma.blackoutDay.findMany({
-      where: {
-        companyId,
-        OR: [
-          { allEvents: true },
-          { eventCategoryIds: { has: eventCategoryId } },
-        ],
-      },
-    });
+  const blackoutDays = await prisma.blackoutDay.findMany({
+    where: {
+      companyId,
+      OR: [
+        { allEvents: true },
+        { eventCategoryIds: { has: eventCategoryId } },
+      ],
+    },
+  });
 
-    const blackoutDates = blackoutDays.map(
-      (b) => b.date.toISOString().split("T")[0],
-    );
-    const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
+  const blackoutDates = blackoutDays.map(
+    (b) => b.date.toISOString().split("T")[0],
+  );
+  const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
 
-    for (const date of datesInRange) {
-      const dateString = date.toISOString().split("T")[0];
-      if (blackoutDates.includes(dateString)) {
-        console.error(
-          `❌ Blackout day detected on ${dateString}, throwing error.`,
-        );
-        throw new Error(
-          `The date ${dateString} is blocked due to a company blackout.`,
-        );
+  for (const date of datesInRange) {
+    const dateString = date.toISOString().split("T")[0];
+    if (blackoutDates.includes(dateString)) {
+      const message = `The date ${dateString} is blocked due to a company blackout.`;
+      
+      if (isAdmin) {
+        // Admins/Managers get a warning but can proceed
+        if (!bypassWarnings) {
+          console.warn(`⚠️ Blackout day detected (admin override available): ${dateString}`);
+          warnings.push({
+            code: "BLACKOUT_DAY_CONFLICT",
+            message,
+            severity: "warning",
+            ruleType: "blackout_day",
+          });
+        }
+      } else {
+        // Regular employees get blocked
+        console.error(`❌ Blackout day detected on ${dateString}, throwing error.`);
+        throw new Error(message);
       }
     }
   }
@@ -309,10 +354,10 @@ export async function validateLeaveRequest({
   }
 
   // ── CALCULATE DAYS FOR THIS REQUEST ────────────────
-  const datesInRange = eachDayOfInterval({ start: startDate, end: endDate });
+  const datesForDeduction = eachDayOfInterval({ start: startDate, end: endDate });
   let daysRequestedForDeduction = 0;
 
-  for (const date of datesInRange) {
+  for (const date of datesForDeduction) {
     const deduction = await calculateLeaveDeduction(employeeId, date);
     daysRequestedForDeduction += deduction;
   }
@@ -367,10 +412,24 @@ export async function validateLeaveRequest({
 
     if (totalDaysWithNewRequest > maxDaysPerPeriod) {
       const remainingAllowed = Math.max(0, maxDaysPerPeriod - daysAlreadyUsed);
-      console.error(`❌ Exceeds maximum ${maxDaysPerPeriod} days over ${periodMonths} months.`);
-      throw new Error(
-        `This exceeds the maximum of ${maxDaysPerPeriod} days allowed for ${eventCategory.name} over a ${periodMonths}-month period. You have ${remainingAllowed} day(s) remaining.`,
-      );
+      const message = `This exceeds the maximum of ${maxDaysPerPeriod} days allowed for ${eventCategory.name} over a ${periodMonths}-month period. You have ${remainingAllowed} day(s) remaining.`;
+      
+      if (isAdmin) {
+        // Admins/Managers get a warning but can proceed
+        if (!bypassWarnings) {
+          console.warn(`⚠️ Max days per period exceeded (admin override available): ${message}`);
+          warnings.push({
+            code: "MAX_DAYS_PER_PERIOD_EXCEEDED",
+            message,
+            severity: "warning",
+            ruleType: "max_days_per_period",
+          });
+        }
+      } else {
+        // Regular employees get blocked
+        console.error(`❌ Exceeds maximum ${maxDaysPerPeriod} days over ${periodMonths} months.`);
+        throw new Error(message);
+      }
     }
   }
 
@@ -379,7 +438,7 @@ export async function validateLeaveRequest({
   if (!enforceEntitlement) {
     console.log("ℹ️ Entitlement enforcement is disabled for this event type. Skipping entitlement check.");
     console.log("✅ [validateLeaveRequest] Validation passed successfully.");
-    return;
+    return warnings;
   }
 
   const entitlement = await prisma.leaveEntitlement.findFirst({
@@ -421,15 +480,25 @@ export async function validateLeaveRequest({
   console.log("🏦 Negative balance allowed:", negativeBalanceAllowed);
 
   // If negative balance is allowed, skip entitlement check but still enforce Event Rules
-  if (
-    daysRequestedForDeduction > combinedAvailable &&
-    !isAdmin &&
-    !negativeBalanceAllowed
-  ) {
-    console.error("❌ Insufficient entitlement including carryover.");
-    throw new Error(
-      `Insufficient entitlement: Requested ${daysRequestedForDeduction} days, but only ${combinedAvailable} days available (including carryover).`,
-    );
+  if (daysRequestedForDeduction > combinedAvailable && !negativeBalanceAllowed) {
+    const message = `Insufficient entitlement: Requested ${daysRequestedForDeduction} days, but only ${combinedAvailable} days available (including carryover).`;
+    
+    if (isAdmin) {
+      // Admins/Managers get a warning but can proceed
+      if (!bypassWarnings) {
+        console.warn(`⚠️ Insufficient entitlement (admin override available): ${message}`);
+        warnings.push({
+          code: "INSUFFICIENT_ENTITLEMENT",
+          message,
+          severity: "warning",
+          ruleType: "entitlement",
+        });
+      }
+    } else {
+      // Regular employees get blocked
+      console.error("❌ Insufficient entitlement including carryover.");
+      throw new Error(message);
+    }
   }
 
   if (negativeBalanceAllowed && daysRequestedForDeduction > combinedAvailable) {
@@ -437,5 +506,6 @@ export async function validateLeaveRequest({
   }
 
   console.log("✅ [validateLeaveRequest] Validation passed successfully.");
+  return warnings;
 }
 

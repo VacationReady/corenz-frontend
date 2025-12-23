@@ -79,6 +79,7 @@ import {
 
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import EditOtherEntitlementsModal from "@/components/leave/EditOtherEntitlementsModal";
+import EditAnnualLeaveModal from "@/components/leave/EditAnnualLeaveModal";
 
 // ============================================================================
 // Types
@@ -370,6 +371,7 @@ function LeavePageContent() {
 
   // Modal State
   const [otherEntitlementsModalOpen, setOtherEntitlementsModalOpen] = useState(false);
+  const [annualLeaveModalOpen, setAnnualLeaveModalOpen] = useState(false);
 
   // Sheet State
   const [selectedEvent, setSelectedEvent] = useState<LeaveEventExtendedProps | null>(null);
@@ -643,8 +645,7 @@ function LeavePageContent() {
 
   // Handle edit annual leave balance
   const handleEditAnnualLeave = () => {
-    // TODO: Open edit modal for annual leave balance
-    toast.info("Edit functionality coming soon");
+    setAnnualLeaveModalOpen(true);
   };
 
   // Handle date click for booking leave
@@ -1141,6 +1142,19 @@ function LeavePageContent() {
           isOpen={otherEntitlementsModalOpen}
           onClose={() => setOtherEntitlementsModalOpen(false)}
           employeeId={employeeId}
+          onSuccess={refresh}
+        />
+      )}
+
+      {/* Edit Annual Leave Balance Modal */}
+      {isPrivileged && (
+        <EditAnnualLeaveModal
+          isOpen={annualLeaveModalOpen}
+          onClose={() => setAnnualLeaveModalOpen(false)}
+          employeeId={employeeId}
+          currentBalance={
+            balances.find((b) => b.categoryName.toLowerCase().includes('annual'))?.remaining || 0
+          }
           onSuccess={refresh}
         />
       )}

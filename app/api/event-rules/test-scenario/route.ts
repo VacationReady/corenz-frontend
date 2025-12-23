@@ -112,14 +112,21 @@ export async function POST(req: NextRequest) {
             Math.max(1, eventRule.noticePeriodDays - 1),
         );
 
-        scenarios.push({
-          type: "notice_period",
-          title: "Notice Period Check",
-          description: `Booking ${eventRule.noticePeriodDays - 1} days in advance`,
-          result: "BLOCKED",
-          mode: "HARD_BLOCK", // Notice period is always hard block
-          message: `This leave requires at least ${eventRule.noticePeriodDays} days notice.`,
-        });
+        // Check if this event type allows retrospective booking
+        const allowsRetrospectiveBooking = 
+          eventRule.EventCategory?.name.toLowerCase().includes("sick") ||
+          eventRule.EventCategory?.name.toLowerCase().includes("compassionate");
+
+        if (!allowsRetrospectiveBooking) {
+          scenarios.push({
+            type: "notice_period",
+            title: "Notice Period Check",
+            description: `Booking ${eventRule.noticePeriodDays - 1} days in advance`,
+            result: "BLOCKED",
+            mode: "HARD_BLOCK", // Notice period is always hard block
+            message: `This leave requires at least ${eventRule.noticePeriodDays} days notice.`,
+          });
+        }
       }
 
       // Max booking length scenario

@@ -95,6 +95,7 @@ export async function POST(request: Request) {
 
     for (const employee of employees) {
       try {
+        // Bulk actions by admins should bypass warnings automatically
         await validateLeaveRequest({
           employeeId: employee.id,
           eventCategoryId,
@@ -103,6 +104,7 @@ export async function POST(request: Request) {
           dayType: dayType ?? "FULL_DAY",
           companyId: session.user.companyId,
           isAdmin: true,
+          bypassWarnings: true, // Bulk actions always bypass warnings
         });
 
         const leaveRequest = await prisma.leaveRequest.create({

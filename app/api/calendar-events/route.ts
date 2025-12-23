@@ -131,6 +131,14 @@ export async function GET(req: NextRequest) {
       orderBy: { startDate: "desc" },
     });
 
+    // Helper to detect if a leave request is sickness
+    // Checks both first-class leaveType field and category name for backward compatibility
+    const isSicknessLeave = (req: any): boolean => {
+      if (req.leaveType === "SICK") return true;
+      const categoryName = (req.EventCategory?.name || "").toLowerCase();
+      return categoryName.includes("sick");
+    };
+
     const leaveEvents = await Promise.all(
       leaveRequests.map(async (req: any) => {
         const user = req.Employee?.User;
@@ -172,6 +180,9 @@ export async function GET(req: NextRequest) {
         const exclusiveEndDate = new Date(endDate);
         exclusiveEndDate.setDate(exclusiveEndDate.getDate() + 1);
         
+        // Determine if this is a sickness event for filtering purposes
+        const isSickness = isSicknessLeave(req);
+        
         return {
           id: req.id,
           title: `${req.EventCategory?.name ?? "Leave"} - ${displayName}`,
@@ -187,6 +198,8 @@ export async function GET(req: NextRequest) {
           backgroundColor: eventColor,
           borderColor: eventColor,
           textColor: '#FFFFFF',
+          // Internal flag for sickness filtering (not exposed to UI directly)
+          _isSickness: isSickness,
           // Provide both employee (camelCase) for UI and Employee (PascalCase) for compatibility
           employee: {
             id: req.Employee?.id,
@@ -208,30 +221,42 @@ export async function GET(req: NextRequest) {
 
     let filteredLeaveEvents = leaveEvents;
 
+    // SECURITY: Apply role-based sickness visibility filtering
+    // - EMPLOYEE: Can see their own leave (all types) + colleagues' NON-sickness leave
+    //             NEVER sees sickness from colleagues
+    // - MANAGER: Can see sickness ONLY for direct reports (subordinates)
+    // - ADMIN/SUPER_ADMIN: Full visibility across all employees
+    
     if (isEmployee && selfEmployee) {
       const selfEmployeeId = selfEmployee.id;
       filteredLeaveEvents = leaveEvents.filter((event: any) => {
         const eventEmployeeId = event.employee?.id as string | undefined;
-        const categoryName = (event.categoryName as string | null) || "";
-        const lower = categoryName.toLowerCase();
-        const isSickness = lower.includes("sick");
-        const isAnnualLeave = lower.includes("annual");
-
-        // Always allow the logged-in employee to see their own events
-        if (eventEmployeeId && eventEmployeeId === selfEmployeeId) {
+        const isOwnEvent = eventEmployeeId === selfEmployeeId;
+        
+        // Always show own leave events (including own sickness)
+        if (isOwnEvent) {
           return true;
         }
-
-        // For colleagues in their department, only show annual leave and never sickness
-        if (isSickness) {
+        
+        // For colleagues: NEVER show sickness - this is a critical security requirement
+        if (event._isSickness) {
           return false;
         }
-
-        return isAnnualLeave;
+        
+        // Show non-sickness leave from colleagues (annual leave, etc.)
+        return true;
       });
+    } else if (isManager) {
+      // Managers can see their own leave + subordinates' leave (including sickness)
+      // The query already filters to only subordinates, so sickness is only visible for direct reports
+      // No additional filtering needed for managers
     }
+    // ADMIN/SUPER_ADMIN: No filtering - full visibility (default behavior)
+    
+    // Remove internal _isSickness flag before sending response
+    const sanitizedEvents = filteredLeaveEvents.map(({ _isSickness, ...event }) => event);
 
-    return NextResponse.json(filteredLeaveEvents);
+    return NextResponse.json(sanitizedEvents);
   } catch (error) {
     console.error("[CALENDAR_EVENTS_GET]", error);
     return NextResponse.json(

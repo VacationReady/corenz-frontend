@@ -61,6 +61,8 @@ const leaveRequestCreateSchema = z.object({
     .or(z.null())
     .or(z.undefined())
     .transform((val) => (typeof val === "string" ? val : undefined)),
+  // Admin/Manager override flag - when true, bypasses validation warnings
+  bypassWarnings: z.boolean().optional().default(false),
 });
 
 export const runtime = "nodejs";
@@ -297,7 +299,7 @@ export async function POST(
 
     const userId = session.user.id;
     const body = leaveRequestCreateSchema.parse(await req.json());
-    const { startDate, endDate, reason, sickReasonId, sickReason, paidStatus, dayType, isSick } = body;
+    const { startDate, endDate, reason, sickReasonId, sickReason, paidStatus, dayType, isSick, bypassWarnings } = body;
   
   // First-class sick leave: isSick === true means this is sick leave
   // When sick, eventCategoryId is ignored - we use a placeholder or the company's sick leave category
@@ -428,16 +430,37 @@ export async function POST(
     const endDateObj = parseLocalDate(endDate);
 
     // Validate entitlement and overlap using the updated validateLeaveRequest
-    await validateLeaveRequest({
+    const warnings = await validateLeaveRequest({
       employeeId,
       eventCategoryId: EventCategoryId,
       startDate: startDateObj,
       endDate: endDateObj,
       dayType: dayType ?? "FULL_DAY",
       isAdmin:
-        session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN",
+        session.user.role === "ADMIN" || 
+        session.user.role === "SUPER_ADMIN" ||
+        session.user.role === "MANAGER",
       companyId: session.user.companyId,
+      bypassWarnings: bypassWarnings === true,
     });
+
+    // If there are warnings and user hasn't confirmed bypass, return warnings for confirmation
+    if (warnings.length > 0 && !bypassWarnings) {
+      console.log("⚠️ Validation warnings detected, requesting user confirmation");
+      return NextResponse.json(
+        { 
+          success: false, 
+          requiresConfirmation: true,
+          warnings: warnings.map(w => ({
+            code: w.code,
+            message: w.message,
+            severity: w.severity,
+            ruleType: w.ruleType,
+          })),
+        },
+        { status: 200 },
+      );
+    }
 
     // Determine if the current user is booking leave for someone else (not themselves)
     const isBookingForSomeoneElse = employee.User?.id !== session.user.id;

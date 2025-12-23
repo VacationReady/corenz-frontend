@@ -212,9 +212,12 @@ export function FilterBar({
 
           {isFiltered && (
             <Button
+              type="button"
               variant="ghost"
               size="sm"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setSearchInput("");
                 clearFilters();
               }}
@@ -233,10 +236,13 @@ export function FilterBar({
           {/* Search Chip */}
           {filters.search && (
             <Button
+              type="button"
               variant="secondary"
               size="sm"
               className="rounded-full px-3"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setSearchInput("");
                 updateFilter("search", "");
               }}
@@ -251,10 +257,15 @@ export function FilterBar({
             return (
               <Button
                 key={`dept-${val}`}
+                type="button"
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={() => updateFilter("departments", filters.departments.filter((v) => v !== val))}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateFilter("departments", filters.departments.filter((v) => v !== val));
+                }}
               >
                 Department: {label} <span className="ml-2">×</span>
               </Button>
@@ -266,10 +277,15 @@ export function FilterBar({
             return (
               <Button
                 key={`job-${val}`}
+                type="button"
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={() => updateFilter("jobRoles", filters.jobRoles.filter((v) => v !== val))}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateFilter("jobRoles", filters.jobRoles.filter((v) => v !== val));
+                }}
               >
                 Job: {label} <span className="ml-2">×</span>
               </Button>
@@ -281,10 +297,15 @@ export function FilterBar({
             return (
               <Button
                 key={`status-${val}`}
+                type="button"
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={() => updateFilter("status", filters.status.filter((v) => v !== val))}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateFilter("status", filters.status.filter((v) => v !== val));
+                }}
               >
                 Status: {label} <span className="ml-2">×</span>
               </Button>
@@ -296,15 +317,18 @@ export function FilterBar({
             return (
               <Button
                 key={`location-${val}`}
+                type="button"
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={() =>
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   updateFilter(
                     "locations",
                     filters.locations.filter((v) => v !== val),
-                  )
-                }
+                  );
+                }}
               >
                 Location: {label} <span className="ml-2">×</span>
               </Button>
@@ -316,10 +340,15 @@ export function FilterBar({
             return (
               <Button
                 key={`doctype-${val}`}
+                type="button"
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={() => updateFilter("documentTypes", filters.documentTypes.filter((v) => v !== val))}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateFilter("documentTypes", filters.documentTypes.filter((v) => v !== val));
+                }}
               >
                 Doc: {label} <span className="ml-2">×</span>
               </Button>
@@ -331,10 +360,15 @@ export function FilterBar({
             return (
               <Button
                 key={`author-${val}`}
+                type="button"
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={() => updateFilter("authors", filters.authors.filter((v) => v !== val))}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateFilter("authors", filters.authors.filter((v) => v !== val));
+                }}
               >
                 Author: {label} <span className="ml-2">×</span>
               </Button>
@@ -346,10 +380,15 @@ export function FilterBar({
             return (
               <Button
                 key={`cat-${val}`}
+                type="button"
                 variant="secondary"
                 size="sm"
                 className="rounded-full px-3"
-                onClick={() => updateFilter("categories", filters.categories.filter((v) => v !== val))}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateFilter("categories", filters.categories.filter((v) => v !== val));
+                }}
               >
                 Category: {label} <span className="ml-2">×</span>
               </Button>

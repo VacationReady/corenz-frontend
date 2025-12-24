@@ -13,6 +13,12 @@ import {
   createAuthContext,
 } from "@/lib/authz";
 import { z } from "zod";
+import {
+  recordSickLeaveUsage,
+  applySickLeaveGrants,
+  daysToHours,
+} from "@/lib/leave/nz-sick-leave-ledger";
+import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 
 const optionalTrimmedString = z
   .union([z.string(), z.null(), z.undefined()])
@@ -494,6 +500,69 @@ export async function POST(
         // Only enforce entitlement for Annual Leave by default (unless explicitly configured)
         const isAnnualLeave = EventCategoryName.toLowerCase().includes("annual leave");
         const enforceEntitlement = eventRule?.enforceEntitlement ?? isAnnualLeave;
+
+        // NZ SICK LEAVE: Handle sick leave via ledger system (Holidays Act 2003)
+        // Sick leave uses a separate balance tracking system from regular leave entitlements
+        if (isSick) {
+          // Calculate deduction for sick leave
+          const totalDays: number[] = [];
+          let currentDate = new Date(startDateObj);
+
+          while (currentDate <= endDateObj) {
+            const deduction = await calculateLeaveDeduction(employeeId, currentDate);
+            totalDays.push(deduction);
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+
+          const totalDeductionDays = roundToTwoDecimals(totalDays.reduce((sum, d) => sum + d, 0));
+
+          // Create leave request first
+          const newLeaveRequest = await (prisma.leaveRequest as any).create({
+            data: {
+              id: crypto.randomUUID(),
+              Employee: { connect: { id: employeeId } },
+              User_LeaveRequest_requesterIdToUser: { connect: { id: userId } },
+              EventCategory: { connect: { id: EventCategoryId } },
+              Company: { connect: { id: session.user.companyId } },
+              startDate: startDateObj,
+              endDate: endDateObj,
+              dayType: dayType ?? "FULL_DAY",
+              reason: reason ?? "",
+              leaveType: "SICK",
+              sickReason: resolvedSickReason,
+              paidStatus: paidStatus ?? "PAID",
+              ...(sickReasonId
+                ? { EventSubcategory: { connect: { id: sickReasonId } } }
+                : {}),
+              updatedAt: new Date(),
+              approvalStatus: "APPROVED",
+              approvedById: session.user.id,
+            },
+          });
+
+          // Record sick leave usage via ledger system
+          if (totalDeductionDays > 0) {
+            try {
+              // Apply any pending grants first
+              await applySickLeaveGrants(prisma as any, employeeId, new Date(), session.user.id);
+              // Record the usage
+              await recordSickLeaveUsage(
+                prisma as any,
+                employeeId,
+                daysToHours(totalDeductionDays),
+                newLeaveRequest.id,
+                session.user.id
+              );
+              console.log(`✅ Sick leave usage recorded via ledger: ${totalDeductionDays} days for request ${newLeaveRequest.id}`);
+            } catch (sickLeaveError: any) {
+              console.error("❌ Failed to record sick leave usage:", sickLeaveError);
+              // Don't fail the request - the leave is booked, balance tracking can be reconciled
+              // This matches the behavior in advanceLeaveApproval.ts
+            }
+          }
+
+          return NextResponse.json({ success: true, data: newLeaveRequest });
+        }
 
         if (enforceEntitlement) {
           // Calculate deduction before transaction

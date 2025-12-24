@@ -758,7 +758,7 @@ export default function AddLeaveRequestDialog({
                   </Button>
                   <Button
                     type="button"
-                    onClick={handleSubmit}
+                    onClick={() => handleSubmit()}
                     disabled={loading || isFormIncomplete || isSickLeaveDisabled}
                     className="h-11 px-6 rounded-xl bg-gradient-to-r from-primary to-blue-500 hover:from-primary/90 hover:to-blue-500/90 text-white font-semibold shadow-lg shadow-primary/25"
                   >

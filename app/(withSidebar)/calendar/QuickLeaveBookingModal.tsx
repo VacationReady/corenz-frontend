@@ -948,7 +948,7 @@ export default function QuickLeaveBookingModal({
                 </Button>
                 <Button
                   type="button"
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit()}
                   disabled={loading || !isFormValid}
                   className={cn(
                     "flex-1 h-12 rounded-2xl font-semibold transition-all duration-300",

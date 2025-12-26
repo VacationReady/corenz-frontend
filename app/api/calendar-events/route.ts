@@ -199,6 +199,27 @@ export async function GET(req: NextRequest) {
       orderBy: { startDate: "desc" },
     });
 
+    // Fetch category visibility settings separately using raw query
+    // This handles the case where Prisma client hasn't been regenerated yet
+    let categoryVisibilityMap: Map<string, boolean> = new Map();
+    try {
+      const categoryVisibility = await prisma.$queryRaw<Array<{
+        id: string;
+        includeInGeneralVisibility: boolean | null;
+      }>>`
+        SELECT id, "includeInGeneralVisibility" 
+        FROM "EventCategory" 
+        WHERE "companyId" = ${companyId}
+      `;
+      categoryVisibility.forEach((cat) => {
+        // Default to true if null (for backwards compatibility)
+        categoryVisibilityMap.set(cat.id, cat.includeInGeneralVisibility !== false);
+      });
+    } catch {
+      // Column doesn't exist yet (migration not applied), all categories visible by default
+      console.log("[CALENDAR_EVENTS] Category visibility column not found, using defaults");
+    }
+
     // Helper to detect if a leave request is sickness
     // Checks both first-class leaveType field and category name for backward compatibility
     const isSicknessLeave = (req: any): boolean => {
@@ -251,6 +272,12 @@ export async function GET(req: NextRequest) {
         // Determine if this is a sickness event for filtering purposes
         const isSickness = isSicknessLeave(req);
         
+        // Check if this category is excluded from general visibility
+        const categoryId = req.EventCategory?.id;
+        const excludedFromGeneralVisibility = categoryId 
+          ? categoryVisibilityMap.get(categoryId) === false 
+          : false;
+        
         return {
           id: req.id,
           title: `${req.EventCategory?.name ?? "Leave"} - ${displayName}`,
@@ -268,6 +295,7 @@ export async function GET(req: NextRequest) {
           textColor: '#FFFFFF',
           // Internal flags for filtering (not exposed to UI directly)
           _isSickness: isSickness,
+          _excludedFromGeneralVisibility: excludedFromGeneralVisibility,
           _employeeUserId: req.Employee?.User?.id ?? null,
           // Provide both employee (camelCase) for UI and Employee (PascalCase) for compatibility
           employee: {
@@ -290,11 +318,12 @@ export async function GET(req: NextRequest) {
 
     let filteredLeaveEvents = leaveEvents;
 
-    // SECURITY: Apply role-based sickness visibility filtering
+    // SECURITY: Apply role-based visibility filtering
     // - EMPLOYEE: Can see their own leave (all types) + colleagues' NON-sickness leave
+    //             + colleagues' leave only if category has includeInGeneralVisibility=true
     //             NEVER sees sickness from colleagues
     // - MANAGER: Can see their own leave (all types) + direct reports' leave (all types including sickness)
-    //            + department colleagues' NON-sickness leave
+    //            + department colleagues' NON-sickness leave with includeInGeneralVisibility=true
     // - ADMIN/SUPER_ADMIN: Full visibility across all employees
     
     if (isEmployee && selfEmployee) {
@@ -303,7 +332,7 @@ export async function GET(req: NextRequest) {
         const eventEmployeeId = event.employee?.id as string | undefined;
         const isOwnEvent = eventEmployeeId === selfEmployeeId;
         
-        // Always show own leave events (including own sickness)
+        // Always show own leave events (including own sickness and excluded categories)
         if (isOwnEvent) {
           return true;
         }
@@ -313,7 +342,12 @@ export async function GET(req: NextRequest) {
           return false;
         }
         
-        // Show non-sickness leave from colleagues (annual leave, etc.)
+        // For colleagues: Don't show categories excluded from general visibility
+        if (event._excludedFromGeneralVisibility) {
+          return false;
+        }
+        
+        // Show non-sickness, non-excluded leave from colleagues (annual leave, etc.)
         return true;
       });
     } else if (isManager && selfEmployee) {
@@ -324,26 +358,36 @@ export async function GET(req: NextRequest) {
       filteredLeaveEvents = leaveEvents.filter((event: any) => {
         const eventEmployeeId = event.employee?.id as string | undefined;
         const isOwnEvent = eventEmployeeId === selfEmployeeId;
+        const isDirectReport = event._employeeUserId && directReportUserIds.has(event._employeeUserId);
         
-        // Always show own leave events (including own sickness)
+        // Always show own leave events (including own sickness and excluded categories)
         if (isOwnEvent) {
           return true;
         }
         
-        // For sickness events: only show if it's a direct report
-        if (event._isSickness) {
-          // Check if this employee's user is in the direct reports list
-          return event._employeeUserId && directReportUserIds.has(event._employeeUserId);
+        // Always show direct reports' leave (all types including sickness and excluded categories)
+        if (isDirectReport) {
+          return true;
         }
         
-        // Show all non-sickness leave (annual leave, etc.) from department
+        // For non-direct-report colleagues: NEVER show sickness
+        if (event._isSickness) {
+          return false;
+        }
+        
+        // For non-direct-report colleagues: Don't show categories excluded from general visibility
+        if (event._excludedFromGeneralVisibility) {
+          return false;
+        }
+        
+        // Show non-sickness, non-excluded leave from department colleagues
         return true;
       });
     }
     // ADMIN/SUPER_ADMIN: No filtering - full visibility (default behavior)
     
     // Remove internal flags before sending response
-    const sanitizedEvents = filteredLeaveEvents.map(({ _isSickness, _employeeUserId, ...event }) => event);
+    const sanitizedEvents = filteredLeaveEvents.map(({ _isSickness, _excludedFromGeneralVisibility, _employeeUserId, ...event }) => event);
 
     return NextResponse.json(sanitizedEvents);
   } catch (error) {

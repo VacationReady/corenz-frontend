@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Switch } from "@/components/ui/switch";
-import { PlusIcon, ChevronDownIcon, ChevronUpIcon, PencilIcon } from "lucide-react";
+import { PlusIcon, ChevronDownIcon, ChevronUpIcon, PencilIcon, Eye, EyeOff, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AddCategoryModal from "@/components/AddCategoryModal";
 import AddSubcategoryModal from "@/components/AddSubcategoryModal";
@@ -18,6 +18,12 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { breadcrumbConfigs } from "@/components/ui/Breadcrumb";
 import { IconPicker } from "@/components/IconPicker";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface EventCategory {
   id: string;
@@ -33,6 +39,7 @@ interface EventCategory {
   balanceRequired?: boolean;
   defaultBalance?: number | null;
   balanceRefreshMonths?: number | null;
+  includeInGeneralVisibility?: boolean;
 }
 
 export default function EventManagerPage() {
@@ -124,7 +131,7 @@ export default function EventManagerPage() {
   };
   const handleToggleCategory = async (
     categoryId: string,
-    key: "requiresApproval" | "adminOnly" | "isActive",
+    key: "requiresApproval" | "adminOnly" | "isActive" | "includeInGeneralVisibility",
     nextValue: boolean,
   ) => {
     const sk = `${categoryId}:${key}`;
@@ -356,6 +363,51 @@ export default function EventManagerPage() {
                         </div>
                       </div>
                     ))}
+                    {/* Calendar Visibility Toggle */}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm whitespace-nowrap flex items-center gap-1">
+                              {category.includeInGeneralVisibility !== false ? (
+                                <Eye className="w-3.5 h-3.5 text-green-600" />
+                              ) : (
+                                <EyeOff className="w-3.5 h-3.5 text-muted-foreground" />
+                              )}
+                              Calendar
+                              <Info className="w-3 h-3 text-muted-foreground" />
+                            </span>
+                            <Switch
+                              checked={category.includeInGeneralVisibility !== false}
+                              onChange={(val) =>
+                                handleToggleCategory(
+                                  category.id,
+                                  "includeInGeneralVisibility",
+                                  Boolean(val),
+                                )
+                              }
+                              disabled={
+                                category.name.toLowerCase().includes("sick") ||
+                                savingKey === `${category.id}:includeInGeneralVisibility`
+                              }
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[280px] text-xs">
+                          {category.name.toLowerCase().includes("sick") ? (
+                            <p>Sickness visibility is always restricted and cannot be changed.</p>
+                          ) : (
+                            <>
+                              <p className="font-medium mb-1">Include in General Visibility</p>
+                              <p className="text-muted-foreground">
+                                When enabled, employees can see this event type on the calendar based on their visibility settings.
+                                When disabled, only the employee themselves, their manager, and admins can see it.
+                              </p>
+                            </>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     <Button
                       size="sm"
                       variant="ghost"

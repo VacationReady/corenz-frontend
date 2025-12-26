@@ -725,30 +725,32 @@ model EmploymentTypeOption {
 }
 
 model EventCategory {
-  id                   String              @id
-  name                 String
-  requiresApproval     Boolean
-  adminOnly            Boolean
-  isActive             Boolean             @default(true)
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime
-  categoryType         String
-  color                String?
-  iconKey              String?
-  systemDefined        Boolean             @default(false)
-  companyId            String
+  id                        String              @id
+  name                      String
+  requiresApproval          Boolean
+  adminOnly                 Boolean
+  isActive                  Boolean             @default(true)
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime
+  categoryType              String
+  color                     String?
+  iconKey                   String?
+  systemDefined             Boolean             @default(false)
+  companyId                 String
   // Balance configuration for entitlement-based event categories
-  balanceRequired      Boolean             @default(false)
-  defaultBalance       Float? // Default balance in days when balanceRequired is true
-  balanceRefreshMonths Int? // Number of months after which balance refreshes (e.g., 12 for annual)
-  ApprovalWorkflow     ApprovalWorkflow[]
-  Company              Company             @relation(fields: [companyId], references: [id])
-  EventRule            EventRule[]
-  EventRuleOverride    EventRuleOverride[]
-  EventSubcategory     EventSubcategory[]
-  LeaveEntitlement     LeaveEntitlement[]
-  LeavePolicy          LeavePolicy[]
-  LeaveRequest         LeaveRequest[]
+  balanceRequired           Boolean             @default(false)
+  defaultBalance            Float? // Default balance in days when balanceRequired is true
+  balanceRefreshMonths      Int? // Number of months after which balance refreshes (e.g., 12 for annual)
+  // Calendar visibility - if false, employees won't see this category in calendar (managers still see direct reports, admins see all)
+  includeInGeneralVisibility Boolean            @default(true)
+  ApprovalWorkflow          ApprovalWorkflow[]
+  Company                   Company             @relation(fields: [companyId], references: [id])
+  EventRule                 EventRule[]
+  EventRuleOverride         EventRuleOverride[]
+  EventSubcategory          EventSubcategory[]
+  LeaveEntitlement          LeaveEntitlement[]
+  LeavePolicy               LeavePolicy[]
+  LeaveRequest              LeaveRequest[]
 
   @@unique([companyId, name])
 }

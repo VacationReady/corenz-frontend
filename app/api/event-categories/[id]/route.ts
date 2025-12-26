@@ -17,6 +17,8 @@ const UpdateEventCategorySchema = z.object({
   balanceRequired: z.boolean().optional(),
   defaultBalance: z.number().nullable().optional(),
   balanceRefreshMonths: z.number().int().nullable().optional(),
+  // Calendar visibility
+  includeInGeneralVisibility: z.boolean().optional(),
 });
 
 // GET single event category

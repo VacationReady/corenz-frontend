@@ -306,6 +306,19 @@ export async function POST(
     const userId = session.user.id;
     const body = leaveRequestCreateSchema.parse(await req.json());
     const { startDate, endDate, reason, sickReasonId, sickReason, paidStatus, dayType, isSick, bypassWarnings } = body;
+    
+    // DEBUG: Log incoming request details for sick leave troubleshooting
+    console.log("🔍 [LEAVE_REQUEST_DEBUG] Incoming request:", {
+      employeeId,
+      isSick,
+      startDate,
+      endDate,
+      sessionUserRole: session.user.role,
+      sessionUserId: session.user.id,
+      sickReasonId,
+      sickReason,
+      paidStatus,
+    });
   
   // First-class sick leave: isSick === true means this is sick leave
   // When sick, eventCategoryId is ignored - we use a placeholder or the company's sick leave category
@@ -435,6 +448,12 @@ export async function POST(
     const startDateObj = parseLocalDate(startDate);
     const endDateObj = parseLocalDate(endDate);
 
+    console.log("🔍 [LEAVE_REQUEST_DEBUG] Parsed dates:", {
+      startDateObj: startDateObj.toISOString(),
+      endDateObj: endDateObj.toISOString(),
+      EventCategoryId,
+    });
+
     // Validate entitlement and overlap using the updated validateLeaveRequest
     const warnings = await validateLeaveRequest({
       employeeId,
@@ -448,6 +467,12 @@ export async function POST(
         session.user.role === "MANAGER",
       companyId: session.user.companyId,
       bypassWarnings: bypassWarnings === true,
+    });
+
+    console.log("🔍 [LEAVE_REQUEST_DEBUG] Validation result:", {
+      warningsCount: warnings.length,
+      warnings: warnings.map(w => ({ code: w.code, message: w.message })),
+      bypassWarnings,
     });
 
     // If there are warnings and user hasn't confirmed bypass, return warnings for confirmation
@@ -484,7 +509,19 @@ export async function POST(
       (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") ||
       (session.user.role === "MANAGER" && isManagerOfEmployee && isBookingForSomeoneElse);
 
+    // DEBUG: Log auto-approve decision
+    console.log("🔍 [LEAVE_REQUEST_DEBUG] Auto-approve check:", {
+      sessionUserRole: session.user.role,
+      isBookingForSomeoneElse,
+      isManagerOfEmployee,
+      canAutoApprove,
+      isSick,
+      employeeUserId: employee.User?.id,
+      sessionUserId: session.user.id,
+    });
+
     if (canAutoApprove) {
+      console.log("🔍 [LEAVE_REQUEST_DEBUG] Entering canAutoApprove block");
       try {
         // Check if entitlement is enforced for this event category
         const eventRule = await prisma.eventRule.findUnique({
@@ -504,6 +541,8 @@ export async function POST(
         // NZ SICK LEAVE: Handle sick leave via ledger system (Holidays Act 2003)
         // Sick leave uses a separate balance tracking system from regular leave entitlements
         if (isSick) {
+          console.log("🔍 [LEAVE_REQUEST_DEBUG] Entering sick leave handling block");
+          
           // Calculate deduction for sick leave
           const totalDays: number[] = [];
           let currentDate = new Date(startDateObj);
@@ -538,6 +577,12 @@ export async function POST(
               approvalStatus: "APPROVED",
               approvedById: session.user.id,
             },
+          });
+
+          console.log("✅ [LEAVE_REQUEST_DEBUG] Sick leave request created:", {
+            id: newLeaveRequest.id,
+            approvalStatus: newLeaveRequest.approvalStatus,
+            totalDeductionDays,
           });
 
           // Record sick leave usage via ledger system
@@ -661,11 +706,14 @@ export async function POST(
           return NextResponse.json({ success: true, data: approved });
         }
       } catch (e: any) {
-        console.error("Auto-approve by admin/manager failed:", e);
+        console.error("❌ [LEAVE_REQUEST_DEBUG] Auto-approve by admin/manager failed:", e?.message || e);
+        console.error("❌ [LEAVE_REQUEST_DEBUG] Full error:", e);
         // Fall through to workflow path if deduction failed for any reason
       }
     }
 
+    console.log("🔍 [LEAVE_REQUEST_DEBUG] Falling through to workflow path (non-admin or error occurred)");
+    
     // Non-admin/non-manager path: create leave request for workflow approval
     const newLeaveRequest = await (prisma.leaveRequest as any).create({
       data: {

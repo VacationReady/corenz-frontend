@@ -179,6 +179,9 @@ model Company {
   website                             String?
   publicHolidayTemplate               PublicHolidayTemplate?
   publicHolidayRegion                 String?
+  // Calendar visibility settings
+  calendarEmployeeScope               CalendarEmployeeScope                 @default(DEPARTMENT)
+  calendarManagerScope                CalendarManagerScope                  @default(DEPARTMENT)
   ApprovalWorkflow                    ApprovalWorkflow[]
   AutomationExecution                 AutomationExecution[]
   AutomationJob                       AutomationJob[]
@@ -2652,6 +2655,18 @@ enum PublicHolidayTemplate {
   NZ
   AU
   UK
+}
+
+enum CalendarEmployeeScope {
+  OWN
+  DEPARTMENT
+  COMPANY
+}
+
+enum CalendarManagerScope {
+  DIRECT_REPORTS
+  DEPARTMENT
+  COMPANY
 }
 
 // Journey Designer Models

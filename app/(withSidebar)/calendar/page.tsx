@@ -84,6 +84,7 @@ import {
 import AddHolidayModal from "./AddHolidayModal";
 import { getEventCategoryIcon } from "@/lib/event-category-icons";
 import { cn } from "@/lib/utils";
+import { CalendarSettingsPanel } from "./CalendarSettingsPanel";
 
 interface Department {
   id: string;
@@ -245,6 +246,7 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
     | "SUPER_ADMIN"
     | undefined;
   const isEmployeeRole = role === "EMPLOYEE";
+  const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
 
   const inspectorBlackoutKey = inspectorDate
     ? `${inspectorDate.getFullYear()}-${String(inspectorDate.getMonth() + 1).padStart(2, "0")}-${String(inspectorDate.getDate()).padStart(2, "0")}`
@@ -1245,6 +1247,15 @@ function CalendarPageInner({ initialView }: CalendarPageInnerProps) {
                       <Filter className={cn("h-3.5 w-3.5", showFilters && "text-primary")} />
                       <span className="hidden sm:inline">Filters</span>
                     </Button>
+
+                    {/* Calendar Visibility Settings (Admin only) */}
+                    <CalendarSettingsPanel
+                      isAdmin={isAdmin}
+                      onSettingsChange={() => {
+                        // Refetch calendar events when settings change
+                        calendarRef.current?.getApi().refetchEvents();
+                      }}
+                    />
                   </div>
                 </div>
 

@@ -5,6 +5,15 @@ import supabase from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 
+// Type definitions for calendar visibility settings
+type CalendarEmployeeScope = "OWN" | "DEPARTMENT" | "COMPANY";
+type CalendarManagerScope = "DIRECT_REPORTS" | "DEPARTMENT" | "COMPANY";
+
+interface CalendarVisibilitySettings {
+  calendarEmployeeScope: CalendarEmployeeScope;
+  calendarManagerScope: CalendarManagerScope;
+}
+
 export async function GET(req: NextRequest) {
   const session = await getMobileSession(req);
   if (!session?.user?.companyId) {
@@ -24,6 +33,21 @@ export async function GET(req: NextRequest) {
     const role = session.user.role;
     const isEmployee = role === "EMPLOYEE";
     const isManager = role === "MANAGER";
+    const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
+
+    // Fetch calendar visibility settings for the company
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: {
+        calendarEmployeeScope: true,
+        calendarManagerScope: true,
+      },
+    });
+
+    const visibilitySettings: CalendarVisibilitySettings = {
+      calendarEmployeeScope: (company?.calendarEmployeeScope as CalendarEmployeeScope) ?? "DEPARTMENT",
+      calendarManagerScope: (company?.calendarManagerScope as CalendarManagerScope) ?? "DEPARTMENT",
+    };
 
     async function getAllSubordinates(managerUserId: string): Promise<string[]> {
       const directReports = await prisma.user.findMany({
@@ -85,29 +109,58 @@ export async function GET(req: NextRequest) {
         : {}),
     };
 
+    // Build visibility scope based on role and settings
     if (isEmployee && selfEmployee) {
-      leaveWhere.Employee = {
-        OR: [
-          { id: selfEmployee.id },
-          selfEmployee.departmentId
-            ? { departmentId: selfEmployee.departmentId }
-            : undefined,
-        ].filter(Boolean),
-      };
+      const employeeScope = visibilitySettings.calendarEmployeeScope;
+      
+      if (employeeScope === "OWN") {
+        // Only own leave
+        leaveWhere.Employee = { id: selfEmployee.id };
+      } else if (employeeScope === "DEPARTMENT") {
+        // Own leave + department colleagues
+        leaveWhere.Employee = {
+          OR: [
+            { id: selfEmployee.id },
+            selfEmployee.departmentId
+              ? { departmentId: selfEmployee.departmentId }
+              : undefined,
+          ].filter(Boolean),
+        };
+      } else if (employeeScope === "COMPANY") {
+        // Company-wide visibility (no employee filter needed, just companyId)
+        // Leave the Employee filter empty to get all company leave
+      }
     } else if (isManager && selfEmployee) {
-      // Managers see: own leave + direct reports + entire department
+      const managerScope = visibilitySettings.calendarManagerScope;
       const allowedUserIds = [session.user.id, ...subordinateUserIds];
+      
+      if (managerScope === "DIRECT_REPORTS") {
+        // Own leave + direct reports only
+        leaveWhere.Employee = {
+          User: { id: { in: allowedUserIds } },
+        };
+      } else if (managerScope === "DEPARTMENT") {
+        // Own leave + direct reports + department colleagues
+        leaveWhere.Employee = {
+          OR: [
+            { User: { id: { in: allowedUserIds } } },
+            selfEmployee.departmentId
+              ? { departmentId: selfEmployee.departmentId }
+              : undefined,
+          ].filter(Boolean),
+        };
+      } else if (managerScope === "COMPANY") {
+        // Company-wide visibility (no employee filter needed)
+        // Leave the Employee filter empty to get all company leave
+      }
+    } else if (isAdmin) {
+      // Admins: apply department/departmentId filters if provided, otherwise full visibility
       leaveWhere.Employee = {
-        OR: [
-          // Own leave and direct reports
-          { User: { id: { in: allowedUserIds } } },
-          // Department colleagues (if manager has a department)
-          selfEmployee.departmentId
-            ? { departmentId: selfEmployee.departmentId }
-            : undefined,
-        ].filter(Boolean),
+        ...(department ? { Department: { is: { name: department } } } : {}),
+        ...(departmentId ? { departmentId } : {}),
       };
     } else {
+      // Fallback for other roles
       leaveWhere.Employee = {
         ...(department ? { Department: { is: { name: department } } } : {}),
         ...(departmentId ? { departmentId } : {}),

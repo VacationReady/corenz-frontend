@@ -45,6 +45,7 @@ interface NewsPost {
   bookmarkCount?: number;
   isBookmarked?: boolean;
   userReaction?: string | null;
+  isDraft?: boolean;
 }
 
 interface NewsSpotlightCardProps {
@@ -308,7 +309,16 @@ export default function NewsSpotlightCard({
                 
                 {/* Badges */}
                 <div className="absolute top-3 left-3 flex gap-2 z-10">
-                  {post.pinned && (
+                  {post.isDraft && (
+                    <motion.span
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="px-2.5 py-1 bg-amber-500/95 text-amber-950 text-xs font-bold rounded-lg shadow-lg shadow-amber-500/30 backdrop-blur-sm"
+                    >
+                      ✏️ Draft
+                    </motion.span>
+                  )}
+                  {post.pinned && !post.isDraft && (
                     <motion.span
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -317,7 +327,7 @@ export default function NewsSpotlightCard({
                       📌 Pinned
                     </motion.span>
                   )}
-                  {post.featured && (
+                  {post.featured && !post.isDraft && (
                     <motion.span
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -530,8 +540,11 @@ export default function NewsSpotlightCard({
     }
   };
 
+  // Drafts should link to edit page, published posts to view page
+  const linkHref = post.isDraft ? `/news/${post.slug}/edit` : `/news/${post.slug}`;
+
   return (
-    <Link href={`/news/${post.slug}`} className="block h-full">
+    <Link href={linkHref} className="block h-full">
       {cardContent()}
     </Link>
   );

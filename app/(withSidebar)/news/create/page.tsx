@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import NewsEditor from "@/components/news/NewsEditor";
 import NewsContentTipTapRenderer from "@/components/news/NewsContentTipTapRenderer";
 import NewsChip from "@/components/ui/NewsChip";
+import AudienceSelector from "@/components/news/AudienceSelector";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -1148,6 +1149,20 @@ export default function CreateNewsPostPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </motion.div>
+
+            {/* Audience Selector */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-card/60 backdrop-blur-sm rounded-2xl p-6 border border-border/50"
+            >
+              <AudienceSelector
+                value={audience}
+                onChange={setAudience}
+                refreshKey={0}
+              />
             </motion.div>
           </div>
         </div>

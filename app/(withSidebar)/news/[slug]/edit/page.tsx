@@ -39,6 +39,7 @@ import {
   Star,
   Mail,
   RefreshCw,
+  Zap,
 } from "lucide-react";
 
 const NewsEditor = dynamic(
@@ -118,6 +119,8 @@ export default function EditNewsPostPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState<any>(null);
   const [coverImage, setCoverImage] = useState("");
@@ -198,6 +201,7 @@ export default function EditNewsPostPage() {
         setPinned(post.pinned || false);
         setFeatured(post.featured || false);
         setTags(post.tags || []);
+        setIsDraft(!post.publishedAt);
 
         const normalizedAttachments = Array.isArray(post.attachments)
           ? post.attachments
@@ -351,6 +355,67 @@ export default function EditNewsPostPage() {
     }
   };
 
+  const handlePublish = async () => {
+    if (!validateForm()) return;
+
+    const hasUploadingAttachments = attachmentItems.some(
+      (item) => item.status === "uploading",
+    );
+    if (hasUploadingAttachments) {
+      toast.error("Please wait for attachments to finish uploading.");
+      return;
+    }
+
+    const hasUploadingCover = coverItems.some(
+      (item) => item.status === "uploading",
+    );
+    if (hasUploadingCover) {
+      toast.error("Please wait for the cover image upload to finish.");
+      return;
+    }
+
+    const uploadedAttachments = attachmentItems
+      .filter((item) => item.status === "success" && item.meta)
+      .map((item) => (item.meta as NewsUploadMeta).url || (item.meta as NewsUploadMeta).path);
+
+    setPublishing(true);
+
+    try {
+      const res = await tenantFetch(`/api/news/${slug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          content,
+          coverImage: normalizeCoverForSave(coverStoragePath || coverImage) || null,
+          videoEmbedUrl: videoUrl || null,
+          attachments: [...existingFiles, ...uploadedAttachments],
+          sendEmail,
+          audience,
+          tags,
+          pinned,
+          featured,
+          publishedAt: new Date().toISOString(),
+        }),
+      });
+
+      if (res.ok) {
+        toast.success("Post published successfully!");
+        router.push(`/news/${slug}`);
+      } else {
+        const error = await res.text();
+        toast.error(`Failed to publish: ${error}`);
+      }
+    } catch (error) {
+      toast.error("An error occurred while publishing");
+      console.error(error);
+    } finally {
+      setPublishing(false);
+    }
+  };
+    }
+  };
+
   // Section Header Component
   const SectionHeader = ({ 
     title, 
@@ -430,7 +495,7 @@ export default function EditNewsPostPage() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => router.push(`/news/${slug}`)}
+                onClick={() => router.push(isDraft ? "/news" : `/news/${slug}`)}
                 className="p-2.5 hover:bg-muted rounded-xl transition-all"
                 type="button"
               >
@@ -439,10 +504,10 @@ export default function EditNewsPostPage() {
               <div>
                 <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
                   <RefreshCw className="w-5 h-5 text-blue-500" />
-                  Edit Story
+                  {isDraft ? "Edit Draft" : "Edit Story"}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Update your news post
+                  {isDraft ? "Continue editing your draft" : "Update your news post"}
                 </p>
               </div>
             </div>
@@ -468,11 +533,10 @@ export default function EditNewsPostPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleSubmit}
-                disabled={saving}
+                disabled={saving || publishing}
                 className={cn(
-                  "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all",
-                  "bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white",
-                  "shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40",
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                  "bg-muted/50 hover:bg-muted",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
                 type="button"
@@ -482,8 +546,54 @@ export default function EditNewsPostPage() {
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                <span>Save Changes</span>
+                <span className="hidden sm:inline">{isDraft ? "Save Draft" : "Save Changes"}</span>
               </motion.button>
+
+              {isDraft && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handlePublish}
+                  disabled={saving || publishing}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all",
+                    "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 text-white",
+                    "shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                  )}
+                  type="button"
+                >
+                  {publishing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Zap className="w-4 h-4" />
+                  )}
+                  <span>Publish</span>
+                </motion.button>
+              )}
+
+              {!isDraft && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleSubmit}
+                  disabled={saving || publishing}
+                  className={cn(
+                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all",
+                    "bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white",
+                    "shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40",
+                    "disabled:opacity-50 disabled:cursor-not-allowed"
+                  )}
+                  type="button"
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  <span>Save Changes</span>
+                </motion.button>
+              )}
             </div>
           </div>
         </div>

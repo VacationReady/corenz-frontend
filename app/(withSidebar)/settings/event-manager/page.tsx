@@ -155,6 +155,16 @@ export default function EventManagerPage() {
         throw new Error(msg);
       }
       const json = await res.json();
+      
+      // Update local state with the response data to ensure consistency
+      if (json?.data) {
+        setCategories((current) =>
+          current.map((c) =>
+            c.id === categoryId ? { ...c, ...json.data } : c
+          )
+        );
+      }
+      
       toast.success(json?.message || "Updated");
     } catch (e: any) {
       setCategories(prev);

@@ -103,13 +103,16 @@ export async function PATCH(
       );
     }
 
+    // Extract includeInGeneralVisibility for separate handling (raw SQL)
+    const { includeInGeneralVisibility, ...restData } = parse.data;
+
     if (category.systemDefined) {
       // Allow editing iconKey and color for system-defined categories, but prevent other changes
-      const { iconKey, color, ...rest } = parse.data;
+      const { iconKey, color, ...rest } = restData;
       // Check if any other fields are being updated
       const hasRestUpdates = Object.values(rest).some((val) => val !== undefined);
 
-      if (hasRestUpdates) {
+      if (hasRestUpdates || includeInGeneralVisibility !== undefined) {
         return NextResponse.json(
           { success: false, error: "Cannot edit system-defined categories properties except icon and color." },
           { status: 400 },
@@ -117,16 +120,36 @@ export async function PATCH(
       }
     }
 
-    const updateResult = await prisma.eventCategory.updateMany({
-      where: { id, companyId: session.user.companyId },
-      data: parse.data,
-    });
+    // Update standard fields via Prisma if any
+    if (Object.keys(restData).length > 0) {
+      const updateResult = await prisma.eventCategory.updateMany({
+        where: { id, companyId: session.user.companyId },
+        data: restData,
+      });
 
-    if (updateResult.count === 0) {
-      return NextResponse.json(
-        { success: false, error: "Event category not found." },
-        { status: 404 },
-      );
+      if (updateResult.count === 0) {
+        return NextResponse.json(
+          { success: false, error: "Event category not found." },
+          { status: 404 },
+        );
+      }
+    }
+
+    // Update includeInGeneralVisibility via raw SQL (handles pre-migration state)
+    if (includeInGeneralVisibility !== undefined) {
+      try {
+        await prisma.$executeRaw`
+          UPDATE "EventCategory" 
+          SET "includeInGeneralVisibility" = ${includeInGeneralVisibility}
+          WHERE id = ${id} AND "companyId" = ${session.user.companyId}
+        `;
+      } catch (rawError) {
+        console.error("[Event Categories PATCH] Failed to update includeInGeneralVisibility:", rawError);
+        return NextResponse.json(
+          { success: false, error: "Failed to update visibility setting. Migration may not be applied." },
+          { status: 500 },
+        );
+      }
     }
 
     const updatedCategory = await prisma.eventCategory.findFirst({
@@ -140,14 +163,34 @@ export async function PATCH(
       );
     }
 
+    // Fetch the visibility field separately via raw query
+    let visibilityValue = true;
+    try {
+      const visibilityResult = await prisma.$queryRaw<Array<{
+        includeInGeneralVisibility: boolean | null;
+      }>>`
+        SELECT "includeInGeneralVisibility" 
+        FROM "EventCategory" 
+        WHERE id = ${id}
+      `;
+      if (visibilityResult.length > 0) {
+        visibilityValue = visibilityResult[0].includeInGeneralVisibility !== false;
+      }
+    } catch {
+      // Column doesn't exist yet, use default
+    }
+
     console.log("[Event Categories PATCH] Updated:", updatedCategory);
 
     return NextResponse.json({
       success: true,
-      message: parse.data.isActive
+      message: restData.isActive
         ? "Category reactivated successfully."
         : "Category updated successfully.",
-      data: updatedCategory,
+      data: {
+        ...updatedCategory,
+        includeInGeneralVisibility: visibilityValue,
+      },
     });
   } catch (error: any) {
     console.error("[Event Categories PATCH]", error);

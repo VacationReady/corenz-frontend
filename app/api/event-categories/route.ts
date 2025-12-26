@@ -43,9 +43,32 @@ export async function GET() {
       },
     });
 
+    // Fetch visibility settings separately using raw query
+    // This handles the case where Prisma client hasn't been regenerated yet
+    let visibilityMap: Map<string, boolean> = new Map();
+    try {
+      const visibilityData = await prisma.$queryRaw<Array<{
+        id: string;
+        includeInGeneralVisibility: boolean | null;
+      }>>`
+        SELECT id, "includeInGeneralVisibility" 
+        FROM "EventCategory" 
+        WHERE "companyId" = ${session.user.companyId} AND "isActive" = true
+      `;
+      visibilityData.forEach((cat) => {
+        // Default to true if null
+        visibilityMap.set(cat.id, cat.includeInGeneralVisibility !== false);
+      });
+    } catch {
+      // Column doesn't exist yet (migration not applied), default all to true
+      console.log("[Event Categories GET] includeInGeneralVisibility column not found, using defaults");
+    }
+
     // Normalize shape for consumers expecting `subcategories` while preserving original fields
     const normalized = categories.map((c) => ({
       ...c,
+      // Add visibility field from raw query, default to true if not found
+      includeInGeneralVisibility: visibilityMap.get(c.id) ?? true,
       subcategories: (c as any).EventSubcategory?.map((s: any) => ({
         id: s.id,
         name: s.name,

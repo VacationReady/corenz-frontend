@@ -7,11 +7,9 @@ export const dynamic = "force-dynamic";
 
 // Type definitions for calendar visibility settings
 type CalendarEmployeeScope = "OWN" | "DEPARTMENT" | "COMPANY";
-type CalendarManagerScope = "DIRECT_REPORTS" | "DEPARTMENT" | "COMPANY";
 
 interface CalendarVisibilitySettings {
   calendarEmployeeScope: CalendarEmployeeScope;
-  calendarManagerScope: CalendarManagerScope;
 }
 
 export async function GET(req: NextRequest) {
@@ -39,22 +37,19 @@ export async function GET(req: NextRequest) {
     // Use raw query to handle case where Prisma client hasn't been regenerated yet
     let visibilitySettings: CalendarVisibilitySettings = {
       calendarEmployeeScope: "DEPARTMENT",
-      calendarManagerScope: "DEPARTMENT",
     };
     
     try {
       const visibilityResult = await prisma.$queryRaw<Array<{
         calendarEmployeeScope: string | null;
-        calendarManagerScope: string | null;
       }>>`
-        SELECT "calendarEmployeeScope", "calendarManagerScope" 
+        SELECT "calendarEmployeeScope" 
         FROM "Company" 
         WHERE id = ${companyId}
       `;
       if (visibilityResult && visibilityResult.length > 0) {
         visibilitySettings = {
           calendarEmployeeScope: (visibilityResult[0].calendarEmployeeScope as CalendarEmployeeScope) ?? "DEPARTMENT",
-          calendarManagerScope: (visibilityResult[0].calendarManagerScope as CalendarManagerScope) ?? "DEPARTMENT",
         };
       }
     } catch {
@@ -144,27 +139,30 @@ export async function GET(req: NextRequest) {
         // Leave the Employee filter empty to get all company leave
       }
     } else if (isManager && selfEmployee) {
-      const managerScope = visibilitySettings.calendarManagerScope;
+      // Managers use the same employee scope PLUS always see direct reports
+      const employeeScope = visibilitySettings.calendarEmployeeScope;
       const allowedUserIds = [session.user.id, ...subordinateUserIds];
       
-      if (managerScope === "DIRECT_REPORTS") {
-        // Own leave + direct reports only
+      // Build the base visibility based on employee scope
+      const scopeConditions: any[] = [
+        // Always include direct reports for managers
+        { User: { id: { in: allowedUserIds } } },
+      ];
+      
+      if (employeeScope === "DEPARTMENT" && selfEmployee.departmentId) {
+        // Add department colleagues
+        scopeConditions.push({ departmentId: selfEmployee.departmentId });
+      } else if (employeeScope === "COMPANY") {
+        // Company-wide visibility - no additional filter needed
+        // Just use companyId filter which is already applied
+        leaveWhere.Employee = {};
+      }
+      
+      // Only apply OR filter if not company-wide
+      if (employeeScope !== "COMPANY") {
         leaveWhere.Employee = {
-          User: { id: { in: allowedUserIds } },
+          OR: scopeConditions,
         };
-      } else if (managerScope === "DEPARTMENT") {
-        // Own leave + direct reports + department colleagues
-        leaveWhere.Employee = {
-          OR: [
-            { User: { id: { in: allowedUserIds } } },
-            selfEmployee.departmentId
-              ? { departmentId: selfEmployee.departmentId }
-              : undefined,
-          ].filter(Boolean),
-        };
-      } else if (managerScope === "COMPANY") {
-        // Company-wide visibility (no employee filter needed)
-        // Leave the Employee filter empty to get all company leave
       }
     } else if (isAdmin) {
       // Admins: apply department/departmentId filters if provided, otherwise full visibility

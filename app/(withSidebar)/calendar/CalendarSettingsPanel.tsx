@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Settings, Eye, Users, Building2, Globe, UserCheck, Info, Shield, Loader2 } from "lucide-react";
+import { Settings, Eye, Users, Building2, Globe, Shield, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
@@ -22,23 +22,15 @@ import {
 import { cn } from "@/lib/utils";
 
 type CalendarEmployeeScope = "OWN" | "DEPARTMENT" | "COMPANY";
-type CalendarManagerScope = "DIRECT_REPORTS" | "DEPARTMENT" | "COMPANY";
 
 interface CalendarVisibilitySettings {
   calendarEmployeeScope: CalendarEmployeeScope;
-  calendarManagerScope: CalendarManagerScope;
 }
 
 const EMPLOYEE_SCOPE_OPTIONS: { value: CalendarEmployeeScope; label: string; description: string; icon: React.ReactNode }[] = [
-  { value: "OWN", label: "Own leave only", description: "Employees see only their own leave requests", icon: <Eye className="h-4 w-4" /> },
-  { value: "DEPARTMENT", label: "Department", description: "Employees see their department's leave", icon: <Building2 className="h-4 w-4" /> },
-  { value: "COMPANY", label: "Company-wide", description: "Employees see all company leave", icon: <Globe className="h-4 w-4" /> },
-];
-
-const MANAGER_SCOPE_OPTIONS: { value: CalendarManagerScope; label: string; description: string; icon: React.ReactNode }[] = [
-  { value: "DIRECT_REPORTS", label: "Direct reports", description: "Managers see only their team's leave", icon: <UserCheck className="h-4 w-4" /> },
-  { value: "DEPARTMENT", label: "Department", description: "Managers see their department's leave", icon: <Building2 className="h-4 w-4" /> },
-  { value: "COMPANY", label: "Company-wide", description: "Managers see all company leave", icon: <Globe className="h-4 w-4" /> },
+  { value: "OWN", label: "Own leave only", description: "See only your own leave requests", icon: <Eye className="h-4 w-4" /> },
+  { value: "DEPARTMENT", label: "Department", description: "See your department's leave", icon: <Building2 className="h-4 w-4" /> },
+  { value: "COMPANY", label: "Company-wide", description: "See all company leave", icon: <Globe className="h-4 w-4" /> },
 ];
 
 interface CalendarSettingsPanelProps {
@@ -52,7 +44,6 @@ export function CalendarSettingsPanel({ isAdmin, onSettingsChange }: CalendarSet
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<CalendarVisibilitySettings>({
     calendarEmployeeScope: "DEPARTMENT",
-    calendarManagerScope: "DEPARTMENT",
   });
   const [originalSettings, setOriginalSettings] = useState<CalendarVisibilitySettings | null>(null);
 
@@ -70,11 +61,9 @@ export function CalendarSettingsPanel({ isAdmin, onSettingsChange }: CalendarSet
         const data = await res.json();
         setSettings({
           calendarEmployeeScope: data.calendarEmployeeScope || "DEPARTMENT",
-          calendarManagerScope: data.calendarManagerScope || "DEPARTMENT",
         });
         setOriginalSettings({
           calendarEmployeeScope: data.calendarEmployeeScope || "DEPARTMENT",
-          calendarManagerScope: data.calendarManagerScope || "DEPARTMENT",
         });
       }
     } catch (error) {
@@ -112,8 +101,7 @@ export function CalendarSettingsPanel({ isAdmin, onSettingsChange }: CalendarSet
   };
 
   const hasChanges = originalSettings && (
-    settings.calendarEmployeeScope !== originalSettings.calendarEmployeeScope ||
-    settings.calendarManagerScope !== originalSettings.calendarManagerScope
+    settings.calendarEmployeeScope !== originalSettings.calendarEmployeeScope
   );
 
   if (!isAdmin) {
@@ -168,7 +156,7 @@ export function CalendarSettingsPanel({ isAdmin, onSettingsChange }: CalendarSet
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                      <label className="text-xs font-medium">Employee Visibility</label>
+                      <label className="text-xs font-medium">Calendar Visibility</label>
                     </div>
                     <Select
                       value={settings.calendarEmployeeScope}
@@ -193,37 +181,7 @@ export function CalendarSettingsPanel({ isAdmin, onSettingsChange }: CalendarSet
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  {/* Manager Visibility */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <UserCheck className="h-3.5 w-3.5 text-muted-foreground" />
-                      <label className="text-xs font-medium">Manager Visibility</label>
-                    </div>
-                    <Select
-                      value={settings.calendarManagerScope}
-                      onValueChange={(value: CalendarManagerScope) =>
-                        setSettings((prev) => ({ ...prev, calendarManagerScope: value }))
-                      }
-                    >
-                      <SelectTrigger className="h-9 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MANAGER_SCOPE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value} className="text-xs">
-                            <div className="flex items-center gap-2">
-                              {option.icon}
-                              <div>
-                                <div className="font-medium">{option.label}</div>
-                                <div className="text-[10px] text-muted-foreground">{option.description}</div>
-                              </div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <p className="text-[10px] text-muted-foreground">Managers always see their direct reports in addition to this setting.</p>
                   </div>
 
                   {/* Sickness Privacy Notice */}

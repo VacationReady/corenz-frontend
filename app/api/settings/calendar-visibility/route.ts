@@ -7,13 +7,11 @@ export const runtime = "nodejs";
 
 const updateSchema = z.object({
   calendarEmployeeScope: z.enum(["OWN", "DEPARTMENT", "COMPANY"]).optional(),
-  calendarManagerScope: z.enum(["DIRECT_REPORTS", "DEPARTMENT", "COMPANY"]).optional(),
 });
 
 // Type for raw query result
 interface CompanyVisibilityRow {
   calendarEmployeeScope: string | null;
-  calendarManagerScope: string | null;
 }
 
 /**
@@ -33,17 +31,15 @@ export async function GET() {
     // Use raw query to handle case where Prisma client hasn't been regenerated yet
     // This will return null for the columns if migration hasn't run, or the values if it has
     let calendarEmployeeScope = "DEPARTMENT";
-    let calendarManagerScope = "DEPARTMENT";
     
     try {
       const result = await prisma.$queryRaw<CompanyVisibilityRow[]>`
-        SELECT "calendarEmployeeScope", "calendarManagerScope" 
+        SELECT "calendarEmployeeScope" 
         FROM "Company" 
         WHERE id = ${companyId}
       `;
       if (result && result.length > 0) {
         calendarEmployeeScope = result[0].calendarEmployeeScope ?? "DEPARTMENT";
-        calendarManagerScope = result[0].calendarManagerScope ?? "DEPARTMENT";
       }
     } catch {
       // Columns don't exist yet (migration not applied), use defaults
@@ -52,7 +48,6 @@ export async function GET() {
 
     return NextResponse.json({
       calendarEmployeeScope,
-      calendarManagerScope,
     });
   } catch (error) {
     console.error("[settings/calendar-visibility][GET]", error);
@@ -92,28 +87,21 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const { calendarEmployeeScope, calendarManagerScope } = parsed.data;
+    const { calendarEmployeeScope } = parsed.data;
 
-    if (!calendarEmployeeScope && !calendarManagerScope) {
+    if (!calendarEmployeeScope) {
       return NextResponse.json({ error: "No settings to update" }, { status: 400 });
     }
 
     // Use raw SQL to update - handles case where Prisma client hasn't been regenerated
-    const updateParts: string[] = [];
-    const updateData: Record<string, string> = {};
-    
-    if (calendarEmployeeScope) {
-      updateParts.push(`"calendarEmployeeScope" = '${calendarEmployeeScope}'::"CalendarEmployeeScope"`);
-      updateData.calendarEmployeeScope = calendarEmployeeScope;
-    }
-    if (calendarManagerScope) {
-      updateParts.push(`"calendarManagerScope" = '${calendarManagerScope}'::"CalendarManagerScope"`);
-      updateData.calendarManagerScope = calendarManagerScope;
-    }
+    const updateData: Record<string, string> = {
+      calendarEmployeeScope,
+    };
 
     try {
       await prisma.$executeRawUnsafe(
-        `UPDATE "Company" SET ${updateParts.join(", ")} WHERE id = $1`,
+        `UPDATE "Company" SET "calendarEmployeeScope" = $1::"CalendarEmployeeScope" WHERE id = $2`,
+        calendarEmployeeScope,
         companyId
       );
     } catch (updateError) {

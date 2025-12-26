@@ -239,7 +239,7 @@ export default function OverviewClient({
         {/* Employment Details */}
         <QuickInfoCard
           href={`/employees/${employeeId}/employment-details`}
-          title="Employment"
+          title="Employment Details"
           icon={Briefcase}
           iconColor="from-primary to-blue-500"
           delay={0.2}

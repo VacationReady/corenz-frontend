@@ -138,11 +138,12 @@ export async function PATCH(
     // Update includeInGeneralVisibility via raw SQL (handles pre-migration state)
     if (includeInGeneralVisibility !== undefined) {
       try {
-        await prisma.$executeRaw`
+        const updateCount = await prisma.$executeRaw`
           UPDATE "EventCategory" 
           SET "includeInGeneralVisibility" = ${includeInGeneralVisibility}
           WHERE id = ${id} AND "companyId" = ${session.user.companyId}
         `;
+        console.log("[Event Categories PATCH] Updated includeInGeneralVisibility to", includeInGeneralVisibility, "rows affected:", updateCount);
       } catch (rawError) {
         console.error("[Event Categories PATCH] Failed to update includeInGeneralVisibility:", rawError);
         return NextResponse.json(
@@ -164,7 +165,8 @@ export async function PATCH(
     }
 
     // Fetch the visibility field separately via raw query
-    let visibilityValue = true;
+    // Default to the value we just set if we updated it, otherwise true
+    let visibilityValue = includeInGeneralVisibility !== undefined ? includeInGeneralVisibility : true;
     try {
       const visibilityResult = await prisma.$queryRaw<Array<{
         includeInGeneralVisibility: boolean | null;
@@ -173,24 +175,31 @@ export async function PATCH(
         FROM "EventCategory" 
         WHERE id = ${id}
       `;
-      if (visibilityResult.length > 0) {
-        visibilityValue = visibilityResult[0].includeInGeneralVisibility !== false;
+      console.log("[Event Categories PATCH] Fetched visibility:", visibilityResult);
+      if (visibilityResult.length > 0 && visibilityResult[0].includeInGeneralVisibility !== null) {
+        visibilityValue = visibilityResult[0].includeInGeneralVisibility;
       }
-    } catch {
-      // Column doesn't exist yet, use default
+    } catch (fetchError) {
+      // Column doesn't exist yet, use the value we tried to set or default
+      console.log("[Event Categories PATCH] Could not fetch visibility, using:", visibilityValue, fetchError);
     }
 
     console.log("[Event Categories PATCH] Updated:", updatedCategory);
+
+    // Build response data - for includeInGeneralVisibility, trust the value we set if we updated it
+    const responseData = {
+      ...updatedCategory,
+      includeInGeneralVisibility: includeInGeneralVisibility !== undefined 
+        ? includeInGeneralVisibility  // Use the value we just set
+        : visibilityValue,            // Use fetched value for other updates
+    };
 
     return NextResponse.json({
       success: true,
       message: restData.isActive
         ? "Category reactivated successfully."
         : "Category updated successfully.",
-      data: {
-        ...updatedCategory,
-        includeInGeneralVisibility: visibilityValue,
-      },
+      data: responseData,
     });
   } catch (error: any) {
     console.error("[Event Categories PATCH]", error);

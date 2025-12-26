@@ -1428,6 +1428,35 @@ export default function AddEmployeeModal({
     [templatesToDisplay, templateSearch, shouldShowTemplateSearch],
   );
 
+  // Get list of missing required fields for Step 1
+  const getMissingStep1Fields = useMemo(() => {
+    const missing: string[] = [];
+    
+    if (!formData.firstName?.trim()) missing.push("First Name");
+    if (!formData.lastName?.trim()) missing.push("Last Name");
+    if (!formData.email?.trim()) missing.push("Email Address");
+    if (!formData.startDate) missing.push("Start Date");
+    if (!formData.onboardingTemplateId) missing.push("Onboarding Template");
+    if (emailError) missing.push("Valid Email Address");
+    if (duplicateEmailError) missing.push("Unique Email Address");
+    if (phoneError) missing.push("Valid Phone Number");
+    if (irdError) missing.push("Valid IRD Number");
+    if (bankAccountError) missing.push("Valid Bank Account");
+    
+    return missing;
+  }, [
+    formData.firstName,
+    formData.lastName,
+    formData.email,
+    formData.startDate,
+    formData.onboardingTemplateId,
+    emailError,
+    duplicateEmailError,
+    phoneError,
+    irdError,
+    bankAccountError,
+  ]);
+
   // Compute form validity for Step 1
   // onboardingTemplateId is required - user must select a template or "No Template"
   const isStep1Valid = useMemo(() => {
@@ -1456,6 +1485,21 @@ export default function AddEmployeeModal({
     irdError,
     bankAccountError,
     isCheckingDuplicate,
+  ]);
+
+  // Get list of missing required fields for Step 2
+  const getMissingStep2Fields = useMemo(() => {
+    const missing: string[] = [];
+    
+    if (!formData.workingPatternId || formData.workingPatternId === "") missing.push("Working Pattern");
+    if (!formData.entitlementDays || formData.entitlementDays === "") missing.push("Entitlement Days");
+    if (holidayYearError) missing.push("Valid Holiday Year");
+    
+    return missing;
+  }, [
+    formData.workingPatternId,
+    formData.entitlementDays,
+    holidayYearError,
   ]);
 
   // Compute form validity for Step 2
@@ -2521,15 +2565,36 @@ export default function AddEmployeeModal({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
                     >
-                      <Button
-                        type="button"
-                        onClick={nextStep}
-                        disabled={!isStep1Valid}
-                        className="h-12 px-8 rounded-2xl bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 text-white font-semibold shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50 disabled:shadow-none"
-                      >
-                        <span>Continue to Leave Settings</span>
-                        <ChevronRight className="w-5 h-5 ml-2" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip open={!isStep1Valid && getMissingStep1Fields.length > 0 ? undefined : false}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              onClick={nextStep}
+                              disabled={!isStep1Valid}
+                              className="h-12 px-8 rounded-2xl bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 text-white font-semibold shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50 disabled:shadow-none"
+                            >
+                              <span>Continue to Leave Settings</span>
+                              <ChevronRight className="w-5 h-5 ml-2" />
+                            </Button>
+                          </TooltipTrigger>
+                          {!isStep1Valid && getMissingStep1Fields.length > 0 && (
+                            <TooltipContent side="left" className="max-w-xs">
+                              <div className="space-y-1">
+                                <p className="font-semibold text-sm">Missing required fields:</p>
+                                <ul className="text-xs space-y-0.5">
+                                  {getMissingStep1Fields.map((field, idx) => (
+                                    <li key={idx} className="flex items-center gap-1.5">
+                                      <span className="text-primary">•</span>
+                                      {field}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </motion.div>
                   </motion.div>
                 )}
@@ -2827,16 +2892,37 @@ export default function AddEmployeeModal({
                         <ChevronRight className="w-5 h-5 mr-2 rotate-180" />
                         Back
                       </Button>
-                      <Button
-                        type="submit"
-                        loading={isSubmitting}
-                        loadingText="Creating Employee..."
-                        disabled={isSubmitting || !isStep2Valid}
-                        className="h-12 px-8 rounded-2xl bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50 disabled:shadow-none"
-                      >
-                        <CheckCircle2 className="w-5 h-5 mr-2" />
-                        Add Employee
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip open={!isStep2Valid && getMissingStep2Fields.length > 0 ? undefined : false}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="submit"
+                              loading={isSubmitting}
+                              loadingText="Creating Employee..."
+                              disabled={isSubmitting || !isStep2Valid}
+                              className="h-12 px-8 rounded-2xl bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90 text-white font-semibold shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50 disabled:shadow-none"
+                            >
+                              <CheckCircle2 className="w-5 h-5 mr-2" />
+                              Add Employee
+                            </Button>
+                          </TooltipTrigger>
+                          {!isStep2Valid && getMissingStep2Fields.length > 0 && (
+                            <TooltipContent side="left" className="max-w-xs">
+                              <div className="space-y-1">
+                                <p className="font-semibold text-sm">Missing required fields:</p>
+                                <ul className="text-xs space-y-0.5">
+                                  {getMissingStep2Fields.map((field, idx) => (
+                                    <li key={idx} className="flex items-center gap-1.5">
+                                      <span className="text-emerald-400">•</span>
+                                      {field}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                     </motion.div>
                   </motion.div>
                 )}

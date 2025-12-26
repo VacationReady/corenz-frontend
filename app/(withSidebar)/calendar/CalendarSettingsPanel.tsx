@@ -144,9 +144,9 @@ export function CalendarSettingsPanel({ isAdmin, onSettingsChange }: CalendarSet
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             className="absolute right-0 top-full mt-2 z-50 w-[340px]"
           >
-            <Card className="border-border/50 shadow-xl shadow-black/10 overflow-hidden">
+            <Card className="border-border/50 shadow-xl shadow-black/10 overflow-hidden bg-background/95 backdrop-blur-md">
               {/* Header */}
-              <div className="px-4 py-3 border-b border-border/50 bg-gradient-to-r from-primary/5 via-primary/3 to-transparent">
+              <div className="px-4 py-3 border-b border-border/50 bg-gradient-to-r from-primary/8 via-primary/5 to-transparent backdrop-blur-sm">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 rounded-lg bg-primary/10">
                     <Eye className="h-4 w-4 text-primary" />

@@ -10,6 +10,12 @@ const updateSchema = z.object({
   calendarManagerScope: z.enum(["DIRECT_REPORTS", "DEPARTMENT", "COMPANY"]).optional(),
 });
 
+// Type for raw query result
+interface CompanyVisibilityRow {
+  calendarEmployeeScope: string | null;
+  calendarManagerScope: string | null;
+}
+
 /**
  * GET /api/settings/calendar-visibility
  * Fetch calendar visibility settings for the company
@@ -24,18 +30,29 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
-      select: {
-        calendarEmployeeScope: true,
-        calendarManagerScope: true,
-      },
-    });
+    // Use raw query to handle case where Prisma client hasn't been regenerated yet
+    // This will return null for the columns if migration hasn't run, or the values if it has
+    let calendarEmployeeScope = "DEPARTMENT";
+    let calendarManagerScope = "DEPARTMENT";
+    
+    try {
+      const result = await prisma.$queryRaw<CompanyVisibilityRow[]>`
+        SELECT "calendarEmployeeScope", "calendarManagerScope" 
+        FROM "Company" 
+        WHERE id = ${companyId}
+      `;
+      if (result && result.length > 0) {
+        calendarEmployeeScope = result[0].calendarEmployeeScope ?? "DEPARTMENT";
+        calendarManagerScope = result[0].calendarManagerScope ?? "DEPARTMENT";
+      }
+    } catch {
+      // Columns don't exist yet (migration not applied), use defaults
+      console.log("[settings/calendar-visibility] Using default settings (migration may not be applied yet)");
+    }
 
-    // Return defaults if company not found (shouldn't happen)
     return NextResponse.json({
-      calendarEmployeeScope: company?.calendarEmployeeScope ?? "DEPARTMENT",
-      calendarManagerScope: company?.calendarManagerScope ?? "DEPARTMENT",
+      calendarEmployeeScope,
+      calendarManagerScope,
     });
   } catch (error) {
     console.error("[settings/calendar-visibility][GET]", error);
@@ -77,32 +94,44 @@ export async function PUT(req: NextRequest) {
 
     const { calendarEmployeeScope, calendarManagerScope } = parsed.data;
 
-    // Build update data only with provided fields
-    const updateData: any = {};
-    if (calendarEmployeeScope) {
-      updateData.calendarEmployeeScope = calendarEmployeeScope;
-    }
-    if (calendarManagerScope) {
-      updateData.calendarManagerScope = calendarManagerScope;
-    }
-
-    if (Object.keys(updateData).length === 0) {
+    if (!calendarEmployeeScope && !calendarManagerScope) {
       return NextResponse.json({ error: "No settings to update" }, { status: 400 });
     }
 
-    await prisma.company.update({
-      where: { id: companyId },
-      data: updateData,
-    });
+    // Use raw SQL to update - handles case where Prisma client hasn't been regenerated
+    const updateParts: string[] = [];
+    const updateData: Record<string, string> = {};
+    
+    if (calendarEmployeeScope) {
+      updateParts.push(`"calendarEmployeeScope" = '${calendarEmployeeScope}'::"CalendarEmployeeScope"`);
+      updateData.calendarEmployeeScope = calendarEmployeeScope;
+    }
+    if (calendarManagerScope) {
+      updateParts.push(`"calendarManagerScope" = '${calendarManagerScope}'::"CalendarManagerScope"`);
+      updateData.calendarManagerScope = calendarManagerScope;
+    }
 
-    // Create audit log
+    try {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "Company" SET ${updateParts.join(", ")} WHERE id = $1`,
+        companyId
+      );
+    } catch (updateError) {
+      console.error("[settings/calendar-visibility] Update failed - migration may not be applied:", updateError);
+      return NextResponse.json(
+        { error: "Calendar visibility settings not available. Please ensure database migration has been applied." },
+        { status: 503 }
+      );
+    }
+
+    // Create audit log - using BRANDING_CONFIG as the closest entity type for company settings
     await prisma.globalAuditLog.create({
       data: {
         id: `audit-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         actorId: (session as any)?.user?.id,
         companyId,
         action: "UPDATED",
-        entityType: "COMPANY",
+        entityType: "BRANDING_CONFIG",
         entityId: companyId,
         metadata: {
           type: "CALENDAR_VISIBILITY_SETTINGS_UPDATED",

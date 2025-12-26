@@ -36,18 +36,31 @@ export async function GET(req: NextRequest) {
     const isAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
 
     // Fetch calendar visibility settings for the company
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
-      select: {
-        calendarEmployeeScope: true,
-        calendarManagerScope: true,
-      },
-    });
-
-    const visibilitySettings: CalendarVisibilitySettings = {
-      calendarEmployeeScope: (company?.calendarEmployeeScope as CalendarEmployeeScope) ?? "DEPARTMENT",
-      calendarManagerScope: (company?.calendarManagerScope as CalendarManagerScope) ?? "DEPARTMENT",
+    // Use raw query to handle case where Prisma client hasn't been regenerated yet
+    let visibilitySettings: CalendarVisibilitySettings = {
+      calendarEmployeeScope: "DEPARTMENT",
+      calendarManagerScope: "DEPARTMENT",
     };
+    
+    try {
+      const visibilityResult = await prisma.$queryRaw<Array<{
+        calendarEmployeeScope: string | null;
+        calendarManagerScope: string | null;
+      }>>`
+        SELECT "calendarEmployeeScope", "calendarManagerScope" 
+        FROM "Company" 
+        WHERE id = ${companyId}
+      `;
+      if (visibilityResult && visibilityResult.length > 0) {
+        visibilitySettings = {
+          calendarEmployeeScope: (visibilityResult[0].calendarEmployeeScope as CalendarEmployeeScope) ?? "DEPARTMENT",
+          calendarManagerScope: (visibilityResult[0].calendarManagerScope as CalendarManagerScope) ?? "DEPARTMENT",
+        };
+      }
+    } catch {
+      // Columns don't exist yet (migration not applied), use defaults
+      console.log("[CALENDAR_EVENTS] Using default visibility settings (migration may not be applied yet)");
+    }
 
     async function getAllSubordinates(managerUserId: string): Promise<string[]> {
       const directReports = await prisma.user.findMany({

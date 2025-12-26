@@ -237,25 +237,6 @@ export default function PersonalInformationClient({
                 </div>
               </FormField>
 
-              {/* National ID */}
-              <FormField label="National ID" htmlFor="nationalId">
-                <div className="relative">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  <Input
-                    id="nationalId"
-                    name="nationalId"
-                    defaultValue={user.nationalId ?? ""}
-                    readOnly={!canEdit}
-                    placeholder="National identification number"
-                    className={cn(
-                      "h-11 pl-10 rounded-xl",
-                      canEdit
-                        ? "bg-white/50 dark:bg-white/5 border-muted/50 focus:border-primary focus:ring-primary/20"
-                        : "bg-muted/30"
-                    )}
-                  />
-                </div>
-              </FormField>
             </FormSection>
           </EmployeeFormCard>
 

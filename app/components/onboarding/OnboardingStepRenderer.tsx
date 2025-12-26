@@ -333,6 +333,56 @@ export default function OnboardingStepRenderer({
     });
   }, [metadata, step.id]);
 
+  // Pre-populate payroll values from Employee record for payroll-setup steps
+  useEffect(() => {
+    if (stepType !== "payroll-setup" || !employeeId) return;
+    
+    // Fetch employee's bank/payroll data to pre-populate the form
+    const fetchEmployeePayrollData = async () => {
+      try {
+        const res = await tenantFetch(`/api/employees/${employeeId}/bank-payroll`);
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        
+        // Map employee data to payroll field IDs
+        const prePopulatedValues: Record<string, string> = {};
+        
+        // Map common field IDs to employee data
+        const fieldMappings: Record<string, string | null | undefined> = {
+          bankAccountNumber: data.bankAccountNumber,
+          bankAccount: data.bankAccountNumber,
+          irdNumber: data.irdNumber,
+          taxCode: data.taxCode,
+          kiwiSaverEnrolled: data.kiwiSaverEnrolled === true ? "enrolled" : data.kiwiSaverEnrolled === false ? "not_enrolled" : "",
+          kiwiSaverStatus: data.kiwiSaverEnrolled === true ? "enrolled" : data.kiwiSaverEnrolled === false ? "not_enrolled" : "",
+          kiwiSaverEmployeeRate: data.kiwiSaverEmployeeRate ? data.kiwiSaverEmployeeRate.toString() : "",
+          kiwiSaverEmployerRate: data.kiwiSaverEmployerRate ? (data.kiwiSaverEmployerRate * 100).toString() : "",
+        };
+        
+        // Only set values for fields that exist in the form and have data
+        for (const field of payrollFields) {
+          const mappedValue = fieldMappings[field.id];
+          if (mappedValue !== null && mappedValue !== undefined && mappedValue !== "") {
+            prePopulatedValues[field.id] = mappedValue;
+          }
+        }
+        
+        // Merge with existing defaults (pre-populated values take precedence)
+        if (Object.keys(prePopulatedValues).length > 0) {
+          setPayrollValues((prev) => ({
+            ...prev,
+            ...prePopulatedValues,
+          }));
+        }
+      } catch (error) {
+        console.warn("[OnboardingStepRenderer] Failed to fetch employee payroll data for pre-population:", error);
+      }
+    };
+    
+    fetchEmployeePayrollData();
+  }, [stepType, employeeId, payrollFields, tenantFetch]);
+
   useEffect(() => {
     if (!formType && step.formId) {
       fetch(`/api/forms/${step.formId}`)

@@ -38,7 +38,6 @@ export async function PATCH(
       "addressCity",
       "addressPostcode",
       "addressCountry",
-      "nationalId",
       "pronouns",
     ] as const;
 

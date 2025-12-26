@@ -673,6 +673,20 @@ export async function POST(req: NextRequest) {
       trialNotifyDaysBefore,
     } = createEmployeeSchema.parse(body);
 
+    // Extract bank/payroll and emergency contact fields (not in schema to keep them optional)
+    const bankAccountNumber = typeof body.bankAccountNumber === "string" ? body.bankAccountNumber.trim() : undefined;
+    const irdNumber = typeof body.irdNumber === "string" ? body.irdNumber.trim() : undefined;
+    const taxCode = typeof body.taxCode === "string" ? body.taxCode.trim() : undefined;
+    const kiwiSaverEnrolled = typeof body.kiwiSaverEnrolled === "boolean" ? body.kiwiSaverEnrolled : undefined;
+    const kiwiSaverEmployeeRate = typeof body.kiwiSaverEmployeeRate === "number" ? body.kiwiSaverEmployeeRate : undefined;
+    const visaExpiryDate = typeof body.visaExpiryDate === "string" && body.visaExpiryDate.trim() ? body.visaExpiryDate.trim() : undefined;
+    const workPermitType = typeof body.workPermitType === "string" ? body.workPermitType.trim() : undefined;
+    
+    // Emergency contact fields
+    const emergencyContactName = typeof body.emergencyContactName === "string" ? body.emergencyContactName.trim() : undefined;
+    const emergencyContactPhone = typeof body.emergencyContactPhone === "string" ? body.emergencyContactPhone.trim() : undefined;
+    const emergencyContactRelationship = typeof body.emergencyContactRelationship === "string" ? body.emergencyContactRelationship.trim() : undefined;
+
     // Extract rotaGroupIds separately (not in schema to keep it optional)
     const rotaGroupIds: string[] = Array.isArray(body.rotaGroupIds) ? body.rotaGroupIds : [];
 
@@ -858,6 +872,14 @@ export async function POST(req: NextRequest) {
         Location: locationId ? { connect: { id: locationId } } : undefined,
         siteLocation: siteLocationLabel,
         contractType: contractType || undefined,
+        // NZ Bank & Payroll Fields (persisted from AddEmployeeModal)
+        bankAccountNumber: bankAccountNumber || undefined,
+        irdNumber: irdNumber || undefined,
+        taxCode: taxCode as any || undefined,
+        kiwiSaverEnrolled: kiwiSaverEnrolled ?? undefined,
+        kiwiSaverEmployeeRate: kiwiSaverEmployeeRate ?? undefined,
+        visaExpiryDate: visaExpiryDate ? new Date(visaExpiryDate) : undefined,
+        workPermitType: workPermitType || undefined,
         // NZ Leave Compliance Fields
         sickLeaveDaysPerYear: sickLeaveDays,
         alternativeHolidayBalance: alternativeHolidayDays,
@@ -887,6 +909,24 @@ export async function POST(req: NextRequest) {
         trialNotifyDaysBefore: ninetyDayTrialPeriod ? trialNotifyDaysBefore : undefined,
       },
     });
+
+    // ✅ Create EmergencyContact if provided (persisted from AddEmployeeModal)
+    if (emergencyContactName) {
+      try {
+        await prisma.emergencyContact.create({
+          data: {
+            id: crypto.randomUUID(),
+            employeeId: employee.id,
+            name: emergencyContactName,
+            phone: emergencyContactPhone || undefined,
+            relationship: emergencyContactRelationship || undefined,
+          },
+        });
+        console.log(`[employees/POST] Created emergency contact for employee ${employee.id}`);
+      } catch (e) {
+        console.warn("Emergency contact creation failed:", e);
+      }
+    }
 
     // ✅ Auto-promote manager and apply Manager permission profile within company
     //    - Only elevate EMPLOYEE to MANAGER

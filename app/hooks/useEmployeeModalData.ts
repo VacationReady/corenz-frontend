@@ -138,7 +138,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     isLoading: employeesLoading,
     mutate: revalidateEmployees,
   } = useSWRImmutable<EmployeeSummary[] | { data: EmployeeSummary[] }>(
-    enabled ? `/api/employees?select=id,firstName,lastName,email&_v=${manualRevalidate}` : null,
+    enabled ? `/api/employees?select=id,firstName,lastName,email&limit=all&_v=${manualRevalidate}` : null,
     fetcher,
     {
       revalidateOnFocus: false,

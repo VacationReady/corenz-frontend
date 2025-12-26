@@ -107,14 +107,14 @@ export async function PATCH(
     const { includeInGeneralVisibility, ...restData } = parse.data;
 
     if (category.systemDefined) {
-      // Allow editing iconKey and color for system-defined categories, but prevent other changes
+      // Allow editing iconKey, color, and includeInGeneralVisibility for system-defined categories, but prevent other changes
       const { iconKey, color, ...rest } = restData;
       // Check if any other fields are being updated
       const hasRestUpdates = Object.values(rest).some((val) => val !== undefined);
 
-      if (hasRestUpdates || includeInGeneralVisibility !== undefined) {
+      if (hasRestUpdates) {
         return NextResponse.json(
-          { success: false, error: "Cannot edit system-defined categories properties except icon and color." },
+          { success: false, error: "Cannot edit system-defined categories properties except icon, color, and visibility." },
           { status: 400 },
         );
       }

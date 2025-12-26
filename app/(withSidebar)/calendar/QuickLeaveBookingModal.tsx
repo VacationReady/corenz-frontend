@@ -771,7 +771,9 @@ export default function QuickLeaveBookingModal({
                     <SelectValue placeholder={leaveTypePlaceholder} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl border-slate-200 dark:border-slate-700 shadow-xl">
-                    {categories.map((cat) => {
+                    {[...categories]
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((cat) => {
                       const Icon = getEventCategoryIcon(cat.iconKey);
                       return (
                         <SelectItem

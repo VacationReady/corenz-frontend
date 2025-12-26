@@ -210,8 +210,8 @@ export async function GET(req: NextRequest) {
   };
 
   const whereClause = isAdmin
-    ? baseWhereClause
-    : { AND: [baseWhereClause, audienceWhereClause] };
+    ? { AND: [baseWhereClause, { publishedAt: { not: null } }] }
+    : { AND: [baseWhereClause, audienceWhereClause, { publishedAt: { not: null } }] };
 
   // Get total count for pagination
   const totalCount = await prisma.newsPost.count({

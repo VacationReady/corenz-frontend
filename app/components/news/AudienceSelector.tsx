@@ -10,7 +10,7 @@ type AudienceFilter = {
   departments?: string[];
   roles?: string[];
   locations?: string[];
-  type?: "all";
+  type?: "all" | "custom";
 };
 
 interface Props {

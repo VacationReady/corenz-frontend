@@ -413,8 +413,6 @@ export default function EditNewsPostPage() {
       setPublishing(false);
     }
   };
-    }
-  };
 
   // Section Header Component
   const SectionHeader = ({ 
@@ -1108,4 +1106,3 @@ export default function EditNewsPostPage() {
       </AnimatePresence>
     </div>
   );
-}

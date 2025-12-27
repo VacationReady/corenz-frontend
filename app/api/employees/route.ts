@@ -11,6 +11,7 @@ import { resend } from "@/lib/resend";
 import { getAppBaseUrl, renderPeopleCoreEmail } from "@/lib/email/template";
 import { batchSignProfileUrlsAsMap } from "@/lib/storage/signProfiles";
 import { roundToTwoDecimals } from "@/lib/decimalPrecision";
+import { decryptSensitiveData } from "@/lib/crypto";
 
 const toNumber = (value: any) =>
   value === null || value === undefined ? null : Number(value);
@@ -674,13 +675,60 @@ export async function POST(req: NextRequest) {
     } = createEmployeeSchema.parse(body);
 
     // Extract bank/payroll and emergency contact fields (not in schema to keep them optional)
-    const bankAccountNumber = typeof body.bankAccountNumber === "string" ? body.bankAccountNumber.trim() : undefined;
-    const irdNumber = typeof body.irdNumber === "string" ? body.irdNumber.trim() : undefined;
+    // These fields may be encrypted from the client, so we need to decrypt them
+    let bankAccountNumber: string | undefined;
+    let irdNumber: string | undefined;
+    let workPermitType: string | undefined;
+    
+    // Decrypt sensitive fields if they appear to be encrypted (contain colons indicating IV:AuthTag:Ciphertext format)
+    const isEncrypted = (value: string) => value.includes(':') && value.split(':').length === 3;
+    
+    if (typeof body.bankAccountNumber === "string" && body.bankAccountNumber.trim()) {
+      const rawValue = body.bankAccountNumber.trim();
+      if (isEncrypted(rawValue)) {
+        try {
+          bankAccountNumber = await decryptSensitiveData(rawValue);
+        } catch (e) {
+          console.warn("[employees/POST] Failed to decrypt bankAccountNumber, using raw value:", e);
+          bankAccountNumber = rawValue;
+        }
+      } else {
+        bankAccountNumber = rawValue;
+      }
+    }
+    
+    if (typeof body.irdNumber === "string" && body.irdNumber.trim()) {
+      const rawValue = body.irdNumber.trim();
+      if (isEncrypted(rawValue)) {
+        try {
+          irdNumber = await decryptSensitiveData(rawValue);
+        } catch (e) {
+          console.warn("[employees/POST] Failed to decrypt irdNumber, using raw value:", e);
+          irdNumber = rawValue;
+        }
+      } else {
+        irdNumber = rawValue;
+      }
+    }
+    
+    if (typeof body.workPermitType === "string" && body.workPermitType.trim()) {
+      const rawValue = body.workPermitType.trim();
+      if (isEncrypted(rawValue)) {
+        try {
+          workPermitType = await decryptSensitiveData(rawValue);
+        } catch (e) {
+          console.warn("[employees/POST] Failed to decrypt workPermitType, using raw value:", e);
+          workPermitType = rawValue;
+        }
+      } else {
+        workPermitType = rawValue;
+      }
+    }
+    
     const taxCode = typeof body.taxCode === "string" ? body.taxCode.trim() : undefined;
     const kiwiSaverEnrolled = typeof body.kiwiSaverEnrolled === "boolean" ? body.kiwiSaverEnrolled : undefined;
     const kiwiSaverEmployeeRate = typeof body.kiwiSaverEmployeeRate === "number" ? body.kiwiSaverEmployeeRate : undefined;
     const visaExpiryDate = typeof body.visaExpiryDate === "string" && body.visaExpiryDate.trim() ? body.visaExpiryDate.trim() : undefined;
-    const workPermitType = typeof body.workPermitType === "string" ? body.workPermitType.trim() : undefined;
     
     // Emergency contact fields
     const emergencyContactName = typeof body.emergencyContactName === "string" ? body.emergencyContactName.trim() : undefined;

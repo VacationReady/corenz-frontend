@@ -526,48 +526,50 @@ export default function EditNewsPostPage() {
                 <Eye className="w-4 h-4" />
                 <span className="hidden sm:inline">Preview</span>
               </motion.button>
-              
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSubmit}
-                disabled={saving || publishing}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
-                  "bg-muted/50 hover:bg-muted",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
-                )}
-                type="button"
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                <span className="hidden sm:inline">{isDraft ? "Save Draft" : "Save Changes"}</span>
-              </motion.button>
 
               {isDraft && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handlePublish}
-                  disabled={saving || publishing}
-                  className={cn(
-                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all",
-                    "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 text-white",
-                    "shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40",
-                    "disabled:opacity-50 disabled:cursor-not-allowed"
-                  )}
-                  type="button"
-                >
-                  {publishing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Zap className="w-4 h-4" />
-                  )}
-                  <span>Publish</span>
-                </motion.button>
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleSubmit}
+                    disabled={saving || publishing}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all",
+                      "bg-muted/50 hover:bg-muted",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                    type="button"
+                  >
+                    {saving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    <span className="hidden sm:inline">Save Draft</span>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handlePublish}
+                    disabled={saving || publishing}
+                    className={cn(
+                      "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all",
+                      "bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 text-white",
+                      "shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40",
+                      "disabled:opacity-50 disabled:cursor-not-allowed"
+                    )}
+                    type="button"
+                  >
+                    {publishing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Zap className="w-4 h-4" />
+                    )}
+                    <span>Publish</span>
+                  </motion.button>
+                </>
               )}
 
               {!isDraft && (

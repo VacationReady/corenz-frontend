@@ -33,7 +33,6 @@ import type {
   RotaGroup,
 } from "@/hooks/useEmployeeModalData";
 import { fetchWithCsrf } from "@/lib/csrf";
-import { prepareSensitiveDataForTransmission } from "@/lib/crypto";
 import { AddEmployeeModalErrorBoundary } from "./AddEmployeeModalErrorBoundary";
 import { roundToTwoDecimals } from "@/lib/decimalPrecision";
 import { RefreshCw, User, Users, Briefcase, Calendar, Shield, Building2, MapPin, FileText, DollarSign, Phone, Heart, CheckCircle2, ChevronRight, Sparkles, Check, Bell } from "lucide-react";
@@ -1277,9 +1276,9 @@ export default function AddEmployeeModal({
         rotaGroupIds: formData.rotaGroupIds.length > 0 ? formData.rotaGroupIds : undefined,
       };
 
-      // Encrypt sensitive NZ payroll and visa data before transmission
-      const sensitiveFields = ['irdNumber', 'bankAccountNumber', 'workPermitType'];
-      const payload = await prepareSensitiveDataForTransmission(basePayload, sensitiveFields);
+      // Send payload directly - HTTPS provides transport encryption
+      // Note: Client-side encryption was removed due to format incompatibility with server-side decryption
+      const payload = basePayload;
 
       // Use CSRF-protected fetch for security with tenant headers
       const res = await fetchWithCsrf("/api/employees", {

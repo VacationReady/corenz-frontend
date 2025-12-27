@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useSession } from "next-auth/react";
 import useSWR from "swr";
 import { DashboardWidget } from "@/components/ui/DashboardWidget";
@@ -227,36 +227,16 @@ interface ManagerDashboardClientProps {
   firstName?: string | null;
   fullName?: string | null;
   avatarUrl?: string | null;
+  employeeId?: string;
 }
 
 export default function ManagerDashboardClient({
   firstName,
   fullName,
   avatarUrl,
+  employeeId,
 }: ManagerDashboardClientProps) {
   const { data: session } = useSession();
-  const sessionEmployeeId = (session?.user as any)?.employeeId as string | undefined;
-  const [employeeId, setEmployeeId] = useState<string | undefined>(sessionEmployeeId);
-
-  // Fallback: some managers may not have employeeId on the session; resolve via API
-  useEffect(() => {
-    let active = true;
-    const resolve = async () => {
-      if (employeeId) return;
-      const userId = (session?.user as any)?.id as string | undefined;
-      if (!userId) return;
-      try {
-        const res = await fetch(`/api/employees?status=active&userId=${encodeURIComponent(userId)}`, { cache: "no-store" });
-        const data = await res.json().catch(() => []);
-        const emp = Array.isArray(data) ? data[0] : null;
-        if (active && emp?.id) setEmployeeId(emp.id as string);
-      } catch {
-        // no-op
-      }
-    };
-    resolve();
-    return () => { active = false; };
-  }, [session, employeeId]);
 
   const title = firstName ? `Hi, ${firstName}!` : "Manager Dashboard";
 

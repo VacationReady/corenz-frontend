@@ -333,6 +333,56 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
                 }
               }
             });
+          } else if (item.type === 'DOCUMENT_SIGNATURE') {
+            // Document signature tasks - open signature modal
+            const metadata = item.metadata || {};
+            items.push({
+              id: `action-${item.id}`,
+              type: "signature",
+              title: item.title,
+              subtitle: metadata.documentCategory || "Signature required",
+              urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
+              metadata: { ...item, documentId: metadata.documentId, documentName: metadata.documentName },
+              actionLabel: "Sign",
+              onAction: async () => {
+                // Open signature modal with document
+                if (metadata.documentId) {
+                  setPreviewDoc({ 
+                    id: metadata.documentId, 
+                    name: metadata.documentName || item.title, 
+                    requiresSignature: true, 
+                    requiresAck: false 
+                  });
+                } else {
+                  toast.error('Document data not available');
+                }
+              }
+            });
+          } else if (item.type === 'DOCUMENT_ACKNOWLEDGEMENT') {
+            // Document acknowledgement tasks - open acknowledgement modal
+            const metadata = item.metadata || {};
+            items.push({
+              id: `action-${item.id}`,
+              type: "document",
+              title: item.title,
+              subtitle: metadata.documentCategory || "Acknowledgement required",
+              urgent: item.priority === "HIGH" || (item.dueDate && new Date(item.dueDate) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
+              metadata: { ...item, documentId: metadata.documentId, documentName: metadata.documentName },
+              actionLabel: "Review",
+              onAction: async () => {
+                // Open acknowledgement modal with document
+                if (metadata.documentId) {
+                  setPreviewDoc({ 
+                    id: metadata.documentId, 
+                    name: metadata.documentName || item.title, 
+                    requiresSignature: metadata.requiresSignature || false, 
+                    requiresAck: true 
+                  });
+                } else {
+                  toast.error('Document data not available');
+                }
+              }
+            });
           } else {
             // Regular workflow tasks
             items.push({
@@ -419,8 +469,20 @@ export function UnifiedActionItems({ employeeId, isManager = false, className }:
         const uniqueDocs = new Map<string, any>();
         allDocs.forEach(d => d?.id && !uniqueDocs.has(d.id) && uniqueDocs.set(d.id, d));
 
+        // Get document IDs that already have action items from the database to avoid duplicates
+        const dbDocumentIds = new Set<string>();
+        if (dbActionItems?.success && Array.isArray(dbActionItems.data)) {
+          dbActionItems.data.forEach((item: any) => {
+            if ((item.type === 'DOCUMENT_SIGNATURE' || item.type === 'DOCUMENT_ACKNOWLEDGEMENT') && item.metadata?.documentId) {
+              dbDocumentIds.add(item.metadata.documentId);
+            }
+          });
+        }
+
         const docsToCheck = Array.from(uniqueDocs.values())
           .filter(d => d?.requiresAck || d?.requiresSignature)
+          // Skip documents that already have database action items
+          .filter(d => !dbDocumentIds.has(d.id))
           .slice(0, 20);
 
         const checks = await Promise.all(

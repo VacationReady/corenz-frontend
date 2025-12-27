@@ -7,6 +7,15 @@ export default async function ManagerDashboardPage() {
   const session = await auth();
   
   const userId = session?.user?.id;
+  let employeeId: string | undefined = undefined;
+  
+  if (userId && session?.user?.companyId) {
+    const employee = await prisma.employee.findFirst({
+      where: { userId, companyId: session.user.companyId },
+      select: { id: true },
+    });
+    employeeId = employee?.id;
+  }
   
   const user = userId ? await prisma.user.findUnique({
     where: { id: userId },
@@ -32,6 +41,7 @@ export default async function ManagerDashboardPage() {
       firstName={user?.firstName}
       fullName={fullName}
       avatarUrl={avatarUrl}
+      employeeId={employeeId}
     />
   );
 }

@@ -139,7 +139,7 @@ export default function EditNewsPostPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [audience, setAudience] = useState<{
-    type?: "all";
+    type?: "all" | "custom";
     departments?: string[];
     roles?: string[];
     locations?: string[];

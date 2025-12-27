@@ -169,16 +169,32 @@ export default function EditRotaGroupModal({
   const fetchEmployees = async () => {
     if (!group) return;
     try {
-      const [membersRes, employeesRes] = await Promise.all([
-        fetch(`/api/rota-groups/${group.id}/members`),
-        fetch('/api/employees?status=active&limit=all'),
-      ]);
-
+      // Fetch members for this group
+      const membersRes = await fetch(`/api/rota-groups/${group.id}/members`);
       const membersData = await membersRes.json();
-      const employeesData = await employeesRes.json();
-
       setMembers(membersData.members || []);
-      const rawEmployees = (employeesData.employees || employeesData.data || []) as any[];
+
+      // Fetch all employees using cursor-based pagination (limit=all is not supported)
+      const allEmployeesData: any[] = [];
+      let cursor: string | null = null;
+      const limit = 100;
+
+      do {
+        const params = new URLSearchParams({ status: 'active', limit: limit.toString() });
+        if (cursor) params.set('cursor', cursor);
+        
+        const res = await fetch(`/api/employees?${params.toString()}`);
+        const data = await res.json();
+        const employees = data.data || data || [];
+        
+        if (Array.isArray(employees)) {
+          allEmployeesData.push(...employees);
+        }
+        
+        cursor = data.pagination?.cursor || null;
+      } while (cursor);
+
+      const rawEmployees = allEmployeesData;
 
       const normalizedEmployees: Employee[] = rawEmployees.map((emp: any) => {
         if (emp.User) {

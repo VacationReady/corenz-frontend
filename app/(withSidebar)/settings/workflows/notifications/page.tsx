@@ -166,17 +166,39 @@ export default function TransactionalNotificationsPage() {
     const [employees, setEmployees] = useState<{ id: string; name: string; departmentId?: string }[]>([]);
     useEffect(() => {
       (async () => {
-        const [d, r, e] = await Promise.all([
+        // Fetch departments and job roles
+        const [d, r] = await Promise.all([
           fetch('/api/departments').then(r => r.json()).catch(() => []),
           fetch('/api/job-roles').then(r => r.json()).catch(() => []),
-          fetch('/api/employees?status=active&limit=all').then(r => r.json()).catch(() => []),
         ]);
         setDepartments(Array.isArray(d) ? d : []);
         setJobRoles(Array.isArray(r) ? r : []);
 
-        const employeeRows = Array.isArray(e)
-          ? e
-          : (e && Array.isArray((e as any).data) ? (e as any).data : []);
+        // Fetch all employees using cursor-based pagination (limit=all is not supported)
+        const allEmployeesData: any[] = [];
+        let cursor: string | null = null;
+        const limit = 100;
+
+        try {
+          do {
+            const params = new URLSearchParams({ status: 'active', limit: limit.toString() });
+            if (cursor) params.set('cursor', cursor);
+            
+            const res = await fetch(`/api/employees?${params.toString()}`);
+            const data = await res.json();
+            const employees = data.data || data || [];
+            
+            if (Array.isArray(employees)) {
+              allEmployeesData.push(...employees);
+            }
+            
+            cursor = data.pagination?.cursor || null;
+          } while (cursor);
+        } catch {
+          // Ignore errors, use empty array
+        }
+
+        const employeeRows = allEmployeesData;
 
         const normalizedEmployees = Array.isArray(employeeRows)
           ? employeeRows

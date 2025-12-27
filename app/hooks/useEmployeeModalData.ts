@@ -88,6 +88,54 @@ const fetcher = async (url: string) => {
 };
 
 /**
+ * Fetches all employees using cursor-based pagination.
+ * The employees API no longer supports limit=all, so we paginate through all results.
+ */
+const paginatedEmployeeFetcher = async (baseUrl: string): Promise<EmployeeSummary[]> => {
+  const allEmployees: EmployeeSummary[] = [];
+  let cursor: string | null = null;
+  const limit = 100;
+  
+  // Extract base params from URL (e.g., select=id,firstName,lastName,email)
+  const url = new URL(baseUrl, window.location.origin);
+  const baseParams = new URLSearchParams(url.search);
+  // Remove any _v cache-busting param for the actual requests
+  baseParams.delete('_v');
+  
+  do {
+    const params = new URLSearchParams(baseParams);
+    params.set('limit', limit.toString());
+    if (cursor) {
+      params.set('cursor', cursor);
+    }
+    
+    const response = await fetch(`${url.pathname}?${params.toString()}`, {
+      credentials: "include",
+    });
+    
+    if (!response.ok) {
+      const errorPayload = await response.json().catch(() => ({}));
+      const message =
+        errorPayload?.error ||
+        errorPayload?.message ||
+        `Failed to load employees (${response.status})`;
+      throw new Error(message);
+    }
+    
+    const result = await response.json();
+    const employees = result.data || result || [];
+    
+    if (Array.isArray(employees)) {
+      allEmployees.push(...employees);
+    }
+    
+    cursor = result.pagination?.cursor || null;
+  } while (cursor);
+  
+  return allEmployees;
+};
+
+/**
  * Shared hook for employee modal reference data with SWR caching.
  * Provides stale-while-revalidate semantics with granular error handling per dataset.
  * @param enabled - Whether to fetch data (default: true)
@@ -131,15 +179,15 @@ export function useEmployeeModalData(enabled: boolean = true) {
     }
   );
 
-  // Employees
+  // Employees - use paginated fetcher since limit=all is not supported
   const {
     data: employeesResponse,
     error: employeesError,
     isLoading: employeesLoading,
     mutate: revalidateEmployees,
-  } = useSWRImmutable<EmployeeSummary[] | { data: EmployeeSummary[] }>(
-    enabled ? `/api/employees?select=id,firstName,lastName,email&limit=all&_v=${manualRevalidate}` : null,
-    fetcher,
+  } = useSWRImmutable<EmployeeSummary[]>(
+    enabled ? `/api/employees?select=id,firstName,lastName,email&status=active&_v=${manualRevalidate}` : null,
+    paginatedEmployeeFetcher,
     {
       revalidateOnFocus: false,
       dedupingInterval: 30000,
@@ -268,7 +316,7 @@ export function useEmployeeModalData(enabled: boolean = true) {
     
   const employees: EmployeeSummary[] = Array.isArray(employeesResponse) 
     ? employeesResponse 
-    : (employeesResponse as any)?.data || [];
+    : [];
     
   const locations: Location[] = Array.isArray(locationsData) ? locationsData : [];
   

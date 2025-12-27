@@ -108,6 +108,10 @@ export async function GET(req: Request) {
         { Department: { some: { id: user.departmentId || "" } } },
         { JobRole: { some: { id: user.jobRoleId || "" } } },
         { AND: [{ Department: { none: {} } }, { JobRole: { none: {} } }] }, // Unrestricted (global) docs
+        // Include documents where the user is explicitly assigned as a signer
+        ...(sessionEmployeeId ? [{ SignatureEmployees: { some: { employeeId: sessionEmployeeId } } }] : []),
+        // Include documents where the user is assigned to a signature field
+        ...(sessionEmployeeId ? [{ SignatureFields: { some: { assignedEmployeeId: sessionEmployeeId } } }] : []),
       ],
       ...(cursor
         ? {

@@ -25,6 +25,10 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as SignRequestBody;
     const { documentId, method, typedText, drawnDataUrl, fieldId, fieldValues } = body;
 
+    // Debug logging for incoming request
+    console.log(`[sign] Received request: documentId=${documentId}, method=${method}, typedText=${typedText?.substring(0, 20)}, hasDrawnData=${!!drawnDataUrl}, fieldId=${fieldId}`);
+    console.log(`[sign] fieldValues:`, JSON.stringify(fieldValues));
+
     if (!documentId || !method) {
       return NextResponse.json(
         { error: "documentId and method are required" },
@@ -222,6 +226,24 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Also mark DOCUMENT_SIGNATURE action items as completed
+    await prisma.actionItem.updateMany({
+      where: {
+        companyId,
+        assignedToId: userId,
+        type: "DOCUMENT_SIGNATURE",
+        status: "PENDING",
+        metadata: {
+          path: ["documentId"],
+          equals: documentId,
+        },
+      },
+      data: {
+        status: "COMPLETED",
+        updatedAt: new Date(),
+      },
+    });
+
     // Invalidate document status cache
     try {
       await invalidateDocumentStatusCache(companyId, documentId);
@@ -231,7 +253,8 @@ export async function POST(req: NextRequest) {
 
     // Stamp the PDF visually with signatures and field values and upload a new version
     try {
-      const shouldStampPdf = method === "DRAWN" || (fieldValues && Object.keys(fieldValues).length > 0);
+      const hasFieldValues = fieldValues && Object.keys(fieldValues).length > 0;
+      const shouldStampPdf = method === "DRAWN" || method === "TYPED" || hasFieldValues;
       if (shouldStampPdf) {
         let origArrayBuffer: ArrayBuffer | null = null;
         try {
@@ -307,6 +330,9 @@ export async function POST(req: NextRequest) {
             const isSignatureField = !fieldLabel.includes("name") && !fieldLabel.includes("job");
             const isNameField = fieldLabel.includes("name");
             const isJobField = fieldLabel.includes("job");
+            
+            // Debug logging for field stamping
+            console.log(`[sign] Processing field: id=${f.id}, label=${f.label}, isName=${isNameField}, isJob=${isJobField}, fieldValue=${fieldValues?.[f.id]}`);
             
             // Draw signature on actual signature fields
             if (isSignatureField) {

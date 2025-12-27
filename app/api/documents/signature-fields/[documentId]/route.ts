@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { getAppBaseUrl } from "@/lib/email/template";
 import { buildDocumentNotificationEmail } from "@/lib/email/documentNotifications";
+import { createActionItemsBulk } from "@/lib/action-items-helper";
 
 export async function GET(
   req: NextRequest,
@@ -157,6 +158,36 @@ export async function POST(
             }
           }),
         );
+      }
+
+      // Create DOCUMENT_SIGNATURE action items for all signers
+      const signatureDueDate = document.signatureDueAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const userIdToEmployeeId = new Map<string, string>();
+      for (const emp of employees) {
+        if (emp.userId) userIdToEmployeeId.set(emp.userId, emp.id);
+      }
+
+      const actionItemsPayload = users
+        .filter((u) => userIdToEmployeeId.has(u.id))
+        .map((u) => ({
+          companyId: document.companyId,
+          type: "DOCUMENT_SIGNATURE" as const,
+          title: `Sign document: ${document.name}`,
+          description: document.category || undefined,
+          assignedToId: u.id,
+          relatedEmployeeId: userIdToEmployeeId.get(u.id)!,
+          dueDate: signatureDueDate,
+          priority: "HIGH" as const,
+          metadata: {
+            documentId: document.id,
+            documentName: document.name,
+            documentPath: document.path,
+            documentCategory: document.category,
+          },
+        }));
+
+      if (actionItemsPayload.length > 0) {
+        await createActionItemsBulk(actionItemsPayload);
       }
     }
   } catch (err) {

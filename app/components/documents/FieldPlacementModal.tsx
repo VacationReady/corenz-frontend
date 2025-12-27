@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import Button from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
-import { Briefcase, PenLine, UserRound, X, AlertTriangle, Grip } from "lucide-react";
+import { Briefcase, PenLine, UserRound, X, AlertTriangle, Info } from "lucide-react";
 import { useTenantFetch } from "@/hooks/useTenantFetch";
 import { PDFDocument } from "pdf-lib";
 import {
@@ -22,6 +22,12 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Field {
   pageNumber: number;
@@ -291,11 +297,11 @@ export default function FieldPlacementModal({
   }, [fields, initialFields]);
 
   const addField = (type: "SIGNATURE" | "NAME" | "JOB_ROLE", dropX?: number, dropY?: number) => {
-    // Increased default height slightly to prevent icon cutoff
     // Use drop position if provided, otherwise default to top-left
     const x = dropX !== undefined ? dropX : 0.1;
     const y = dropY !== undefined ? dropY : 0.1;
-    const base = { pageNumber: 1, x, y, width: 0.15, height: 0.04 } as Field;
+    // Increased default dimensions to ensure full content visibility
+    const base = { pageNumber: 1, x, y, width: 0.22, height: 0.055 } as Field;
     const label = type === "SIGNATURE" ? "Signature" : type === "NAME" ? "Name" : "Job Role";
     setFields((prev) => [
       ...prev,
@@ -555,9 +561,11 @@ export default function FieldPlacementModal({
                           top: `${f.y * 100}%`,
                           width: `${f.width * 100}%`,
                           height: `${f.height * 100}%`,
+                          minWidth: "160px",
+                          minHeight: "48px",
                           transform: "translate(-50%, -50%)",
                           willChange: "left, top, width, height",
-                          padding: "8px 12px", // Reduced vertical padding for better fit
+                          padding: "8px 12px",
                         }}
                         onPointerDown={(e) => onPointerDownField(idx, e)}
                       >
@@ -572,15 +580,15 @@ export default function FieldPlacementModal({
                              onPointerDown={(e) => onPointerDownHandle(idx, "br", e)} />
 
                         <div className="flex items-center gap-3 pointer-events-none w-full overflow-hidden h-full">
-                          <span className={`flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 shadow-sm ${theme.iconBg}`}>
+                          <span className={`flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 shadow-sm ${theme.iconBg}`}>
                             <Icon className="w-4 h-4" />
                           </span>
-                          <div className="flex flex-col overflow-hidden min-w-0 justify-center">
-                            <span className="text-[10px] font-bold text-slate-900 truncate uppercase tracking-wider leading-none mb-0.5">
+                          <div className="flex flex-col overflow-hidden min-w-0 justify-center flex-1">
+                            <span className="text-xs font-semibold text-slate-900 truncate leading-tight">
                               {assigneeName || f.label || "Signature"}
                             </span>
-                            <span className="text-[9px] text-slate-500 truncate leading-none">
-                              {assigneeName ? f.label || "Signature" : "Drag to move"}
+                            <span className="text-[10px] text-slate-500 truncate leading-tight">
+                              {assigneeName ? f.label || "Signature" : "Drag to position"}
                             </span>
                           </div>
                         </div>
@@ -612,7 +620,21 @@ export default function FieldPlacementModal({
             </div>
             <div className="col-span-3 space-y-4 h-full overflow-y-auto pb-2">
             <div className="border border-slate-200 rounded-2xl p-4 bg-white shadow-sm flex-shrink-0">
-              <div className="font-semibold text-sm text-slate-900 mb-3">Palette</div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="font-semibold text-sm text-slate-900">Palette</div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="p-1 rounded-full hover:bg-slate-100 transition-colors">
+                        <Info className="w-4 h-4 text-slate-400" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-[220px] text-center">
+                      <p className="text-xs">Drag a field onto the document and it will stay exactly where you drop it. You can resize and reposition fields after placing them.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <div className="space-y-2">
                 {paletteOptions.map((item) => {
                   const Icon = item.icon;

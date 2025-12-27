@@ -1108,3 +1108,4 @@ export default function EditNewsPostPage() {
       </AnimatePresence>
     </div>
   );
+}
